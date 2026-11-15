@@ -42,7 +42,7 @@
         });
 
       const { tools } = await window.mcp("tools/list", {});
-      const tool = tools.find((t) => t.name === "show_recipe");
+      const tool = tools.find((t) => t.name === (new URLSearchParams(location.search).get("tool") ?? "show_recipe"));
       const args = { recipe: "rcp_lemon_orzo" };
       const result = window.mcp("tools/call", { name: tool.name, arguments: args });
       const [resource] = (await window.mcp("resources/read", { uri: tool._meta.ui.resourceUri })).contents;

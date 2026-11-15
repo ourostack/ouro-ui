@@ -12,12 +12,14 @@ import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
-import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO } from "./copy";
+import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO, WORKS_WITH } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
 import { SCENES } from "./storybook";
 import shipComponents from "./docs/ship-components.json";
+import parity from "../../scripts/parity-data/parity.json";
+import provenance from "../../scripts/parity-data/provenance.json";
 import versions from "../../scripts/parity-data/versions.json";
 import { SHIP_PAGES } from "./docs/ships";
 import readme from "../../README.md?raw";
@@ -137,23 +139,33 @@ describe("home page", () => {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
     expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
-    // The hero says what Ouro UI is beside A2UI, and links the benchmark, the model reviews and the platform gap.
+    // The hero says what is Ouro UI's own (one action, consent built in, the X-ray), and links the benchmark, the model reviews and the platform gap.
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
     // No line of it breaks inside a hyphenated word: "X-ray" once wrapped as "X-" / "ray".
     expect([...document.querySelectorAll("[data-site-whole-word]")].map((word) => word.textContent)).toEqual(["person-only", "X-ray"]);
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Agent benchmark", "/docs/agent-interfaces/"],
       ["Model reviews", "/docs/model-reviews/"],
-      ["No Android or Windows kit yet", "/docs/platforms/"],
+      ["No Android kit yet", "/docs/platforms/"],
     ]);
     // On a phone, a lede no taller than the old one, so the porthole still starts on the first screen, with the same two links.
     const phone = document.querySelector("[data-site-hero-phone]")!;
     expect(phone.textContent).toContain(VOYAGE_HERO.phoneSubline);
     expect([...phone.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(["/docs/agent-interfaces/", "/docs/model-reviews/"]);
     expect(routes[0]!.title).toBe("Ouro UI");
-    // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what it is beside A2UI.
+    // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;
+    // the formats agents compose interfaces in come after, under "Works with".
     const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
-    expect(opening.startsWith("# Ouro UI\n\n**A design system for people and agents.** Ouro UI renders [A2UI]")).toBe(true);
+    expect(opening.startsWith("# Ouro UI\n\n**A design system for people and agents.** Declare an action once")).toBe(true);
+    expect(opening.split("\n\n")[1]).not.toContain("A2UI");
+    expect(opening.indexOf("**Works with**")).toBeGreaterThan(opening.indexOf("**X-ray checks.**"));
+    expect(opening.indexOf("[A2UI](https://a2ui.org/)")).toBeGreaterThan(opening.indexOf("**Works with** [MCP Apps]"));
+    // The site home says the same below the fold, in the Ouro AX section, with each format linked to its renderer's docs.
+    const worksWith = document.querySelector("[data-site-works-with]")!;
+    expect(worksWith.closest("#ax-section")).not.toBeNull();
+    expect(worksWith.textContent).toContain(WORKS_WITH.lede);
+    expect([...worksWith.querySelectorAll("a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual(WORKS_WITH.formats.map((format) => [format.label, format.href]));
+    expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).not.toContain("A2UI");
     for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-reviews/", "docs/platforms/android.md"]) {
       expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
     }
@@ -762,10 +774,10 @@ describe("platforms", () => {
     };
     const rows = [...document.querySelectorAll("main table tbody tr")].map((row) => [...row.querySelectorAll("td")].slice(0, 3).map(text));
     expect(rows).toEqual([
-      ["For web", versions.web.tag, `core ${versions.core.tag}, for its tokens`],
+      ["For web", parity.webTag, `core ${provenance.coreTag}, for its tokens`],
       ["For Apple", versions.apple.tag, versions.apple.treeCoreTag === versions.apple.coreTag ? `core ${versions.apple.coreTag}` : `core ${versions.apple.coreTag}, and ${versions.apple.treeCoreTag} for its A2UI conformance cases`],
       ["For Android", "none yet", "none yet"],
-      ["For Windows", "none yet", "none yet"],
+      ["For Windows", versions.windows.tag, versions.windows.treeCoreTag === versions.windows.coreTag ? `core ${versions.windows.coreTag}` : `core ${versions.windows.coreTag}, and ${versions.windows.treeCoreTag} for its A2UI conformance cases`],
     ]);
   });
 
@@ -778,7 +790,6 @@ describe("platforms", () => {
 
   it.each([
     ["android", "AppFunctions", "docs/platforms/android.md", "ouro-ui-android"],
-    ["windows", "On-device Agent Registry", "docs/platforms/windows.md", "ouro-ui-windows"],
     ["your-platform", "MCP server", "docs/platforms/<platform>.md", "ouro-ui-<platform>"],
   ])("gives the %s page its agent door, the contract and the way to propose it", async (name, door, file, repository) => {
     await renderPage(`/docs/platforms/${name}/`);
@@ -799,7 +810,15 @@ describe("platforms", () => {
     ]);
   });
 
-  it.each(["/docs/platforms/android/", "/docs/platforms/windows/", "/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
+  it("shows what the Windows kit ships, and what it still lacks", async () => {
+    await renderPage("/docs/platforms/windows/");
+    const text = document.body.innerText;
+    for (const name of ["OuroButton", "OuroBadge", "OuroCard", "OuroItem", "Ouro.Actions", "On-device Agent Registry"]) expect(text).toContain(name);
+    for (const name of ["What ships today", "What is still missing", "Contribute next"]) await expect.element(page.getByRole("heading", { level: 2, name })).toBeVisible();
+    expect(text).toContain("ourostack/ouro-ui-windows");
+  });
+
+  it.each(["/docs/platforms/android/", "/docs/platforms/your-platform/", "/docs/platforms/contributing/", "/docs/ax-eval/", "/docs/testing/"])(
     "renders %s's numbered steps as list items, with no step run into a paragraph",
     async (path) => {
       await renderPage(path);

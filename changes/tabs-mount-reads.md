@@ -1,0 +1,1 @@
+- Tabs no longer reads computed style on mount for a row that fits: the text direction is read only when a side hides tabs.

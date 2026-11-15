@@ -5,7 +5,7 @@ import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import generated from "../generated/agent-messages.json";
-import { AX_SECTION } from "../copy";
+import { AX_SECTION, WORKS_WITH } from "../copy";
 import { FigureValue, Screen, Transcript } from "../ax/parts";
 import { LATE_SEEN, TRANSCRIPTS } from "../ax/story";
 import { latestRelease } from "../latest-release";
@@ -222,7 +222,19 @@ export function OuroAx(): JSX.Element {
             })}
           </Figure>
         </ul>
-        <div className="mt-12 flex flex-wrap gap-3">
+        <p className="mt-12 mb-0 text-sm text-muted-foreground" data-site-works-with="">
+          <strong className="font-medium text-foreground">{WORKS_WITH.label}</strong>{" "}
+          {WORKS_WITH.formats.map((format, index) => (
+            <span key={format.href}>
+              {index > 0 ? " and " : null}
+              <Link href={href(format.href)} tone="secondary" inline>
+                {format.label}
+              </Link>
+            </span>
+          ))}
+          , the formats agents compose interfaces in. {WORKS_WITH.lede}
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
           <Button href={href("/ax/#be-the-agent")}>{"Be the agent"}</Button>
           <Button href={href("/ax/")} variant="outline" tone="secondary">
             {AX_SECTION.morning}

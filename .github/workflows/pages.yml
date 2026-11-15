@@ -5,8 +5,10 @@ name: Pages
 # (scripts/namespace.sh). The build asks GitHub for the newest release and names it in the
 # site, llms.txt and the namespace, whatever main's package.json says, so a release shows
 # here as soon as Pages runs, before the pull request that prepares main merges (release.yml
-# runs this workflow once the release is out). In the namespace build, same-repo
-# registryDependencies are @ouro/<item>, so an app installs everything from Pages, and only
+# runs this workflow once the release is out). The build writes core's newest release into the
+# Platforms pages the same way (scripts/platform-versions.mjs --write), so they name it too, and each other
+# kit's newest release and components into the parity matrix (scripts/parity-matrix.mjs --write). In the
+# namespace build, same-repo registryDependencies are @ouro/<item>, so an app installs everything from Pages, and only
 # released code. Deploys on every push to main, from that commit, without waiting for main's
 # CI (which still runs, and a bad deploy is reversed by deploying again), and only when that
 # push is still main's tip, so a slower run for an older commit never deploys over a newer one.
@@ -68,6 +70,36 @@ jobs:
             node scripts/latest-release.mjs set "$newest"
             pnpm run docs
           fi
+      - name: Write core's newest release into the Platforms pages
+        # core's copies (scripts/parity-data) and the pages that name them, read from GitHub here, so the Platforms pages name
+        # core's newest release as soon as Pages runs. Exit 2 (GitHub unreadable) is a warning: nothing is written, and the
+        # build keeps the copies main has. The parity page is rendered by the step after this one, once they are written.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          code=0
+          node scripts/platform-versions.mjs --write || code=$?
+          if [ "$code" = 2 ]; then
+            echo "Core's newest release could not be read, so the Platforms pages name the release main has." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$code" != 0 ]; then
+            exit "$code"
+          fi
+      - name: Write the other kits' newest releases into the parity matrix
+        # platforms.json (Windows' newest release and its components, read from its source at that release, and Apple's pinned
+        # components) read from GitHub here, so the matrix names each kit's newest release as soon as Pages runs. Exit 2 (GitHub
+        # unreadable) is a warning: nothing is written, and the build keeps the copy main has. The page is rendered last, from the
+        # copies and the data, so it names the copies core's step wrote.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          code=0
+          node scripts/parity-matrix.mjs --write || code=$?
+          if [ "$code" = 2 ]; then
+            echo "The other kits' newest releases could not be read, so the parity matrix names the releases main has." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$code" != 0 ]; then
+            exit "$code"
+          fi
+          node scripts/parity-matrix.mjs --render
       - name: Build in the newest adoption ledger
         env:
           REPO: ${{ github.repository }}

@@ -271,6 +271,10 @@
     "status": 200,
     "checked": "2026-11-14"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/0bdacddba45f47018639f89d9f6a67f7e6097e29/parity.json": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45": {
     "status": 200,
     "checked": "2026-11-14"
@@ -288,10 +292,6 @@
     "checked": "2026-11-14"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md": {
-    "status": 200,
-    "checked": "2026-11-14"
-  },
-  "https://github.com/ourostack/ouro-ui-core/blob/4368a1610e870afeaf6126168d0a94993e3cd8ba/parity.json": {
     "status": 200,
     "checked": "2026-11-14"
   },
@@ -319,11 +319,43 @@
     "status": 200,
     "checked": "2026-11-14"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/e2ab6ea4072dff1674cecf1b1df70933e4c0f0f9/docs/decisions/2026-11-14-native-kits.md#windows-v010": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
     "status": 200,
     "checked": "2026-11-13"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.12.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.12.1": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/.github/workflows/ci.yml": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/.github/workflows/ci.yml#L37-L48": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/AGENTS.md": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/README.md": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/docs/person-check.md": {
+    "status": 200,
+    "checked": "2026-11-14"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1": {
     "status": 200,
     "checked": "2026-11-14"
   },
@@ -470,14 +502,6 @@
   "https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)": {
     "status": 200,
     "checked": "2026-11-06"
-  },
-  "https://learn.microsoft.com/en-us/windows/ai/app-actions/": {
-    "status": 200,
-    "checked": "2026-11-04"
-  },
-  "https://learn.microsoft.com/en-us/windows/ai/mcp/overview": {
-    "status": 200,
-    "checked": "2026-11-04"
   },
   "https://nodejs.org/api/typescript.html#type-stripping": {
     "status": 200,

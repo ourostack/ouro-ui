@@ -48,22 +48,22 @@ export function closure(items, root) {
 }
 
 export function plan(items, manifest, root = "ouro-tests") {
-  const full = { mode: "full" };
-  if (!manifest || typeof manifest.items !== "object" || manifest.items === null) return full;
+  const full = (reason) => ({ mode: "full", reason });
+  if (!manifest || typeof manifest.items !== "object" || manifest.items === null) return full("no manifest");
   const installed = closure(items, root);
   const same = (a, b) => a.length === b.length && a.every((value, index) => value === b[index]);
   const names = Object.keys(items);
-  if (names.length !== Object.keys(manifest.items).length) return full;
+  if (names.length !== Object.keys(manifest.items).length) return full("the item count changed");
   const changed = [];
   for (const name of names) {
     const before = manifest.items[name];
     const now = items[name];
     // The shape of the install (its files and what it depends on) must be what the app was built from:
     // a new, removed or moved file, or a new dependency, is the base's job (its runtime checks), not a delta's.
-    if (!before || !same(before.paths, now.paths) || !same(before.dependencies, now.dependencies)) return full;
+    if (!before || !same(before.paths, now.paths) || !same(before.dependencies, now.dependencies)) return full(`${name} changed its files or dependencies`);
     if (before.hash !== now.hash) changed.push(name);
   }
-  if (changed.some((name) => !installed.has(name) || name === root)) return full;
+  if (changed.some((name) => !installed.has(name) || name === root)) return full(`${changed.find((name) => !installed.has(name) || name === root)} changed outside the delta`);
   return { mode: "incremental", items: changed.sort() };
 }
 

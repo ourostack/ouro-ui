@@ -3,8 +3,8 @@ import { resolveMessages } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { vendored } from "../scripts/vendored.mjs";
 import core from "./fixtures/a2ui/core.json";
 
-// The A2UI module and its conformance cases are core's (ourostack/ouro-ui-core), copied byte for byte and pinned
-// in fixtures/a2ui/core.json. These tests prove the copies are the pinned bytes, and that web's copy resolves every
+// The A2UI module and its conformance cases are core's (ourostack/ouro-ui-core), vendored by scripts/core-bundle.mts
+// and pinned in fixtures/a2ui/core.json. These tests prove the copies are the pinned bytes, and that web's copy resolves every
 // case to what core says it must: the same check Apple's OuroA2UI runs, which is the web and Apple parity check.
 
 const raw: Record<string, string> = {
@@ -23,7 +23,7 @@ describe("A2UI files vendored from core", () => {
   it("are byte for byte the files core.json pins, and every case core pinned is here", async () => {
     for (const [path, pin] of Object.entries(core.files)) {
       expect(raw[`/${path}`], `${path} is missing`).toBeTypeOf("string");
-      expect(await sha256(raw[`/${path}`]!), `${path} differs from ${core.coreTag}'s ${pin.from}. Fix: copy it from that release, never edit it.`).toBe(pin.sha256);
+      expect(await sha256(raw[`/${path}`]!), `${path} differs from what ${core.coreTag}'s ${pin.from} vendors as. Fix: node scripts/core-bundle.mts --update ${core.coreTag}, never edit it.`).toBe(pin.sha256);
     }
     const cases = Object.keys(raw).filter((p) => p.startsWith("/test/fixtures/a2ui/cases/"));
     expect(cases.map((p) => p.slice(1)).sort()).toEqual(Object.keys(core.files).filter((p) => p.includes("/cases/")).sort());

@@ -279,14 +279,16 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // nested-frame: a frame hugging a frame, or corners that don't nest.
+  // nested-frame: a frame hugging a frame, or corners that don't nest. An Ouro surface layer is its parent's own paint
+  // (where the engine has no corner-shape it draws the parent's fill and border), never a frame inside it.
+  const isLayer = (el: Element) => el.hasAttribute("data-ouro-surface") || el.hasAttribute("data-ouro-avatar-surface");
   const framed = visible.filter((el) => frameOf(el) !== null);
   const reported = new Set<Element>();
   for (const outer of framed) {
     if (optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of framed) {
-      if (inner === outer || !outer.contains(inner) || reported.has(inner)) continue;
+      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner)) continue;
       const i = inner.getBoundingClientRect();
       const insets = [i.top - o.top, o.right - i.right, o.bottom - i.bottom, i.left - o.left];
       if (i.width >= 48 && i.height >= 32 && insets.every((d) => d >= -1 && d <= hugPx)) {
@@ -308,7 +310,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     if (radius < 6 || /hidden|clip/.test(os.overflow) || !filled(outer) || optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of outer.children) {
-      if (reported.has(inner) || !shown(inner) || !edged(inner)) continue;
+      if (reported.has(inner) || isLayer(inner) || !shown(inner) || !edged(inner)) continue;
       const i = inner.getBoundingClientRect();
       const inset = Math.max(0, Math.min(i.top - o.top, i.left - o.left));
       if (inset >= radius / 2) continue;
