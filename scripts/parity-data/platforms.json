@@ -66,6 +66,13 @@
         "name": "OuroItem",
         "web": "item"
       }
+    ],
+    "claims": [
+      "contrast.text",
+      "motion.reduced",
+      "name.spoken",
+      "target.touch",
+      "text.reflows"
     ]
   }
 }
