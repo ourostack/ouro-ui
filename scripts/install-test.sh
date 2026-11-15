@@ -612,7 +612,7 @@ if [ -n "${OURO_DELTA:-}" ] && [ -f "$app/.ouro-added.json" ]; then
   if [ "$delta_mode" = incremental ]; then
     mapfile -t test_items < <(node -e 'for (const item of JSON.parse(process.argv[1]).items) console.log(process.argv[2] + "/" + item + ".json")' "$delta_plan" "$registry/r")
   fi
-  echo "Install delta: $delta_mode (${#test_items[@]} items to add)"
+  echo "Install delta: $delta_mode (${#test_items[@]} items to add) $(node -e 'console.log(JSON.parse(process.argv[1]).reason ?? "")' "$delta_plan")"
   if [ "$delta_mode" = full ]; then
     echo "the restored app does not match the built registry; start from the base"
     exit 75
