@@ -31,6 +31,7 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
     }
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
     for (const f of [...escapes, ...looks.differences(), ...looks.pixelDifferences()]) console.log(`FINDING ${browserName} ${mode}: ${typeof f === "string" ? f : JSON.stringify(f)}`);
+    for (const side of looks.sides()) console.log(`SIDES ${browserName} ${mode}: ${side}`);
     expect.soft(guard.skipped.length, `routes skipped as too slow: ${guard.skipped.join(", ")}`).toBeLessThanOrEqual(3);
     recordMatched(`sameness-${mode}-${engine}${parts > 1 ? `-${part}` : ""}`);
     expect.soft(escapes, "a part leaves its container").toEqual([]);

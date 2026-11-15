@@ -1368,8 +1368,13 @@ jobs:
           SHARDS: ${{ needs.e2e-shard.result }}
           SWEEPS: ${{ needs.sweep-shard.result }}
         run: |
-          if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
+          if [ "$SHARDS" != success ]; then
             echo "::error::An e2e shard did not pass ($SHARDS): see the e2e (n/4) jobs."
+          fi
+          if [ "$SWEEPS" != success ]; then
+            echo "::error::A sweeps shard did not pass ($SWEEPS): see the sweeps (n/6) jobs."
+          fi
+          if [ "$SHARDS" != success ] || [ "$SWEEPS" != success ]; then
             exit 1
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
