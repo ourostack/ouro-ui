@@ -204,6 +204,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
     onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => {
       own.onKeyDown?.(event);
       if (event.key !== "Escape" || !open) return;
+      // Stryker disable next-line CallExpression: equivalent; Base UI's own Escape listener on the document, in the capture phase, closes the card too.
       after(0, false);
       event.preventDefault();
       event.stopPropagation();

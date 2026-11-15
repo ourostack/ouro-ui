@@ -270,6 +270,11 @@ describe("HoverCard", () => {
     await pressTab();
     seen.length = 0;
     await shown();
+    // Any other key goes on to what holds the link, and leaves the card open.
+    await userEvent.keyboard("{Shift}");
+    expect(seen).toEqual(["link Shift", "Shift"]);
+    expect(card()).not.toBeNull();
+    seen.length = 0;
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => card()).toBeNull();
     expect(seen).toEqual(["link Escape"]);
