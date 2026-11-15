@@ -51,6 +51,10 @@ writeMatrices();
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
+  // The shared suites' first import of test/stories.tsx pulls in every story; transforming and
+  // instrumenting that graph on demand stalls the Node process for seconds in the middle of a
+  // timing-sensitive test (#1481, #1506). Vite does it as the server starts instead.
+  server: { warmup: { clientFiles: ["./test/stories.tsx"] } },
   // Pre-bundle Base UI entry points up front. A dependency Vite discovers mid-run
   // triggers a re-optimization and reload, which can load React twice for one file.
   optimizeDeps: {
