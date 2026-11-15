@@ -76,6 +76,13 @@ const row = (id: string) => document.getElementById(id)!;
 const layers = () => [...document.querySelectorAll('[role="toolbar"]')];
 const layerIn = (id: string) => row(id).querySelector('[role="toolbar"]');
 const list = () => document.querySelector<HTMLElement>("[data-testid=list]")!;
+/** Scrolls the list for real, by `by` pixels, and waits for the browser's scroll event. */
+const scrollList = (by: number) =>
+  act(async () => {
+    const scrolled = new Promise((resolve) => list().addEventListener("scroll", resolve, { once: true }));
+    list().scrollTop += by;
+    await scrolled;
+  });
 const pointer = (target: Element, type: string, pointerType = "mouse", at?: { x: number; y: number }) =>
   target.dispatchEvent(new PointerEvent(type, { bubbles: type !== "pointerleave", pointerType, ...(at && { clientX: at.x, clientY: at.y }) }));
 const key = (target: Element, init: KeyboardEventInit) => act(async () => void target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init })));
@@ -270,9 +277,10 @@ describe("useRowHover", () => {
 
   it("hides on a scroll until the pointer moves again, on the window's blur and when the row goes", async () => {
     const { rerender } = await render(<List count={10} />);
-    await userEvent.hover(row("r2").querySelector("[data-text]")!);
+    // Dispatched, so the real mouse stays off the frame: a real scroll would send its hover to the row under it.
+    await act(async () => void pointer(row("r2").querySelector("[data-text]")!, "pointerover", "mouse", { x: 11, y: 13 }));
     expect(layerIn("r2")).not.toBeNull();
-    await act(async () => void list().dispatchEvent(new Event("scroll")));
+    await scrollList(40);
     expect(layers()).toHaveLength(0);
     // Nothing comes back until the pointer moves; then on the row it is over.
     await act(async () => void pointer(row("r3"), "pointermove"));
@@ -280,7 +288,7 @@ describe("useRowHover", () => {
     // A scroll under a row shown by a tap hides it too, not only one shown by the pointer.
     await act(async () => void pointer(row("r3"), "pointerup", "touch"));
     expect(probe.hover.via).toBe("touch");
-    await act(async () => void list().dispatchEvent(new Event("scroll")));
+    await scrollList(40);
     expect(layers()).toHaveLength(0);
     // A real coordinate, not the bare default (0, 0): the previous move already left the page's last
     // pointer position at (0, 0), so a second bare dispatch would read as the same resting pointer.
@@ -654,6 +662,24 @@ describe("useRowHover", () => {
     expect(layerIn("r0")).not.toBeNull();
   });
 
+  it("keeps the layer through a scroll that leaves its row where it was, and hides it once a scroll moves the row", async () => {
+    await render(<List count={10} />);
+    await scrollList(list().scrollHeight);
+    await act(async () => void pointer(row("r9").querySelector("[data-text]")!, "pointerover", "mouse", { x: 11, y: 13 }));
+    expect(layerIn("r9")).not.toBeNull();
+    const top = row("r9").getBoundingClientRect().top;
+    // The content above shrinks while the list is at its end: the browser moves the scroll position, and the row stays put.
+    await act(async () => {
+      const scrolled = new Promise((resolve) => list().addEventListener("scroll", resolve, { once: true }));
+      row("r0").style.height = "0px";
+      await scrolled;
+    });
+    expect(row("r9").getBoundingClientRect().top).toBe(top);
+    expect(layerIn("r9")).not.toBeNull();
+    await scrollList(-40);
+    expect(layers()).toHaveLength(0);
+  });
+
   it("takes the scroll listener out with the layer whose effect added it: scrolling after a layer swap never hides from the old one", async () => {
     function Harness({ layer }: { layer: RowLayer<string> }) {
       const ref = useRef<HTMLDivElement>(null);
@@ -666,10 +692,11 @@ describe("useRowHover", () => {
         layer.set(rowRef.current!, "r0");
       }, [layer]);
       return (
-        <div ref={ref} data-testid="list" style={{ height: 200 }}>
+        <div ref={ref} data-testid="list" style={{ height: 200, overflowY: "auto" }}>
           <div ref={rowRef} id="r0" style={{ height: 40 }}>
             <span data-text="">Row</span>
           </div>
+          <div style={{ height: 400 }} />
           {hover.row && createPortal(<span role="toolbar" aria-label="Layer on r0" />, hover.row)}
         </div>
       );
@@ -686,7 +713,7 @@ describe("useRowHover", () => {
     // A new layer: the old effect tears down, and its scroll listener (always on from mount, not armed like
     // pointermove) should go with it. The new effect's own `via` starts null, so its own scroll handler no-ops.
     await rerender(<Harness layer={createRowLayer<string>()} />);
-    await act(async () => void list().dispatchEvent(new Event("scroll")));
+    await scrollList(20);
     expect(layerIn("r0")).not.toBeNull();
     expect(probe.hover.via).toBe("pointer");
   });
