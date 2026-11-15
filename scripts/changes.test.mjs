@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
-import { HEADING, assemble, changesProblem, fragmentProblems, listed } from "./changes.mjs";
+import { HEADING, assemble, changesProblem, fragmentProblems, listed, releasedAt } from "./changes.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 // changes/*.md hold one release's behaviour changes, one fragment per change, so parallel
 // pull requests never edit the same file. release.yml assembles them into the notes' "Changes
-// in this release" section, refuses to release when there are none, or when one is still in
-// the last release's notes; fragments stay on main and each release skips the lines its predecessor printed.
+// in this release" section, refuses to release when there are none new, and leaves out the lines the
+// fragments at the last release's tag held; fragments stay on main after the release that used them.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const release = readFileSync(join(root, ".github/workflows/release.yml"), "utf8");
@@ -51,7 +51,7 @@ test("a file that lists no change is a problem, whether it is empty or only the 
 });
 
 test("fragments the last release already listed are not this release's: with none new, that is a problem", () => {
-  assert.match(changesProblem(changes, lastNotes + "- ConfirmDialog resets on reopen.\n"), /lists no change that the last release's notes do not already hold/);
+  assert.match(changesProblem(changes, lastNotes + "- ConfirmDialog resets on reopen.\n"), /lists no change that the last release did not already publish/);
   assert.equal(changesProblem(changes, lastNotes), null);
   assert.equal(assemble(fragments({ "a.md": "- Sheets stack at --ouro-layer.\n", "b.md": "- New.\n" }), lastNotes), `${HEADING}\n\n- New.\n`);
 });
@@ -63,20 +63,72 @@ test("new changes pass, with or without a last release", () => {
 
 const run = (...args) => spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
 
-test("`check` exits 1 with a GitHub error for a problem, and 0 otherwise", () => {
-  const notes = join(scratchDir("changes-"), "notes.md");
-  writeFileSync(notes, lastNotes);
+/**
+ * A repository whose changes/ folder goes through `steps` in order: each step's fragments are added (a
+ * `null` text deletes the file), committed, and tagged when the step names a tag. Returns its folder.
+ */
+function history(steps) {
+  const repo = scratchDir("changes-git-");
+  const git = (...args) => {
+    const result = spawnSync("git", args, { cwd: repo, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  };
+  git("init", "--quiet");
+  git("config", "user.email", "test@example.com");
+  git("config", "user.name", "Test");
+  mkdirSync(join(repo, "changes"));
+  for (const { files, tag } of steps) {
+    for (const [name, text] of Object.entries(files)) {
+      if (text === null) rmSync(join(repo, "changes", name));
+      else writeFileSync(join(repo, "changes", name), text);
+    }
+    git("add", "--all");
+    git("commit", "--quiet", "--allow-empty", "-m", tag ?? "work");
+    if (tag) git("tag", tag);
+  }
+  return repo;
+}
+const runIn = (repo, ...args) => spawnSync(process.execPath, [script, ...args], { cwd: repo, encoding: "utf8" });
 
-  let result = run("check", fragments({}), notes);
+test("`check` exits 1 with a GitHub error for a problem, and 0 otherwise", () => {
+  let result = run("check", fragments({}));
   assert.equal(result.status, 1);
   assert.match(result.stdout, /^::error::changes\/ lists no change/);
 
-  result = run("check", fragments({ "layer.md": "- Sheets stack at --ouro-layer.\n" }), notes);
+  const released = history([{ files: { "layer.md": "- Sheets stack at --ouro-layer.\n" }, tag: "v1.0.0" }]);
+  result = runIn(released, "check", "changes", "--since", "v1.0.0");
   assert.equal(result.status, 1);
   assert.match(result.stdout, /^::error::changes\/ lists no change that/);
 
-  result = run("check", fragments({ "new.md": "- Something new.\n" }), notes);
+  result = runIn(history([{ files: { "layer.md": "- Sheets stack at --ouro-layer.\n" }, tag: "v1.0.0" }, { files: { "new.md": "- Something new.\n" } }]), "check", "changes", "--since", "v1.0.0");
   assert.equal(result.status, 0, result.stdout + result.stderr);
+});
+
+test("a release lists only the fragment lines its predecessor's tag did not hold, so it never lists the one before that again", () => {
+  // v1.0.1 published A and v1.0.2 published B; the next release, with C new, lists C alone. Leaving out
+  // only v1.0.2's notes (B) listed A again: v1.3.160's notes were v1.3.158's (#1485).
+  const repo = history([
+    { files: { "a.md": "- A.\n" }, tag: "v1.0.1" },
+    { files: { "b.md": "- B.\n" }, tag: "v1.0.2" },
+    { files: { "c.md": "- C.\n" } },
+  ]);
+  let result = runIn(repo, "assemble", "changes", "--since", "v1.0.2");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `${HEADING}\n\n- C.\n`);
+  assert.deepEqual(releasedAt("v1.0.2", "changes", repo), ["- A.", "- B."]);
+  // A fragment deleted after its release is still released; with nothing new, there is nothing to release.
+  const quiet = history([{ files: { "a.md": "- A.\n", "b.md": "- B.\n" }, tag: "v1.0.2" }, { files: { "a.md": null } }]);
+  result = runIn(quiet, "check", "changes", "--since", "v1.0.2");
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^::error::changes\/ lists no change that the last release did not already publish/);
+});
+
+test("`--since` a tag the checkout lacks fails with the fetch that brings it", () => {
+  const result = runIn(history([{ files: { "a.md": "- A.\n" } }]), "assemble", "changes", "--since", "v9.9.9");
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^::error::changes\.mjs: v9\.9\.9 is not in this checkout\. Fetch it: git fetch --no-tags --depth=1 origin refs\/tags\/v9\.9\.9:refs\/tags\/v9\.9\.9$/m);
+  assert.equal(run("assemble", "changes", "--since").status, 2);
+  assert.equal(run("assemble", "changes", "v1.0.0").status, 2);
 });
 
 test("`assemble` prints the section the release notes show", () => {
@@ -101,23 +153,21 @@ const step = (name) => {
 test("release.yml checks the changes against the last release before it pushes anything, and prints them in the notes", () => {
   const check = step("Check the changes");
   assert.ok(check.start < step("Push the release branch").start);
-  assert.match(check.body, /gh release view .*--json body/);
-  assert.match(check.body, /node scripts\/changes\.mjs check changes /);
+  assert.match(check.body, /last=\$\(gh release view --json tagName --jq \.tagName/);
+  assert.match(check.body, /git fetch --quiet --no-tags --depth=1 origin "refs\/tags\/\$last:refs\/tags\/\$last"\n\s*node scripts\/changes\.mjs check changes --since "\$last"/);
   // The release commit, and so the tag, holds the assembled CHANGES.md; the notes print it.
   // (scripts/release-commit.sh writes the release commit's files.)
   assert.match(step("Push the release branch").body, /scripts\/release-commit\.sh "\$VERSION"\n\s*git add CHANGES\.md\n\s*git commit -am "Release \$TAG"/);
-  assert.match(readFileSync(new URL("./release-commit.sh", import.meta.url), "utf8"), /\nnode scripts\/changes\.mjs assemble changes "\$notes" > CHANGES\.md\n/);
+  assert.match(readFileSync(new URL("./release-commit.sh", import.meta.url), "utf8"), /\n {2}node scripts\/changes\.mjs assemble changes --since "\$last" > CHANGES\.md\n/);
   assert.match(step("Tag and publish the release").body, /sed -e '1s\/\^# \/### \/' CHANGES\.md/);
   // Main keeps fragments only: no other step writes CHANGES.md.
   for (const name of ["Check the changes"]) assert.doesNotMatch(step(name).body, /CHANGES\.md/, name);
 });
 
 test("`check` fails on a fragment line that is not a top-level change, naming the file and line", () => {
-  const notes = join(scratchDir("changes-"), "notes.md");
-  writeFileSync(notes, "");
   const dir = fragments({ "ok.md": "- Fine.\n\n", "wrapped.md": "- Wrapped bullet that\n  continues here.\n  - sub item\n" });
   assert.deepEqual(fragmentProblems(dir), ["changes/wrapped.md:2:   continues here.", "changes/wrapped.md:3:   - sub item"]);
-  const result = run("check", dir, notes);
+  const result = run("check", dir);
   assert.equal(result.status, 1);
   assert.match(result.stdout, /^::error::Each changes\/ fragment line is one change.*changes\/wrapped\.md:2: {3}continues here\./);
   assert.deepEqual(fragmentProblems(fragments({ "ok.md": "- Fine.\n" })), []);

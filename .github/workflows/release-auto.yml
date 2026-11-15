@@ -51,15 +51,13 @@ jobs:
           else
             sha=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" refs/heads/main | cut -f1)
           fi
-          # Fragments stay in changes/ after a release, so a change is new when the newest release's notes lack its line (scripts/changes.mjs).
-          notes=$(gh release view --json body --jq .body)
-          fresh=0
-          for name in $(gh api "repos/$GITHUB_REPOSITORY/contents/changes?ref=$sha" --jq '.[] | select(.name | endswith(".md")) | .name'); do
-            while IFS= read -r line; do
-              [[ "$line" == "- "* ]] || continue
-              grep -qxF -- "$line" <<<"$notes" || fresh=$((fresh + 1))
-            done < <(gh api -H "Accept: application/vnd.github.raw" "repos/$GITHUB_REPOSITORY/contents/changes/$name?ref=$sha")
-          done
+          # Fragments stay in changes/ after a release, so a change is new when changes/ at the newest release's tag
+          # lacked its line (scripts/changes.mjs). That release's notes hold only its own lines, so counting against
+          # them called the release before's lines new again, and released with no new change (#1485).
+          last=$(gh release view --json tagName --jq .tagName)
+          git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$sha"
+          if [ -n "$last" ] && ! git rev-parse -q --verify "refs/tags/$last" >/dev/null; then git fetch -q --no-tags --depth=1 origin "refs/tags/$last:refs/tags/$last"; fi
+          fresh=$(node --input-type=module -e 'import { releasedAt } from "./scripts/changes.mjs"; const [now, last] = process.argv.slice(1); const released = new Set(last ? releasedAt(last) : []); console.log(releasedAt(now).filter((line) => !released.has(line)).length);' "$sha" "$last")
           [ "$fresh" -gt 0 ] || { echo "::notice::changes/ lists no change the newest release lacks, so there is nothing to release."; exit 0; }
           # The docs pin (docs-pin.yml) changes what nobody ships: its commit and its parent are read here, the parent fetched when the checkout lacks it.
           git cat-file -e "$sha^" 2>/dev/null || git fetch -q --depth=2 origin "$sha" || true
