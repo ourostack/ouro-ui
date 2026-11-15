@@ -774,6 +774,9 @@ export function Menu(props: MenuProps): JSX.Element {
  * focus has gone on elsewhere or another menu has opened while it closed. That menu closes when
  * focus lands outside it, so a press on its trigger, which takes no focus in Safari, would open it
  * only for this one's focus return to close it again.
+ *
+ * @claim "That menu closes when focus lands outside it, so a press on its trigger, which takes no focus in Safari, would open it only for this one's focus return to close it again." registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > leaves a menu that opened while another closed open, when the closing one would give focus back to its trigger)
+ * @claim "back to its trigger, as Base UI does, unless focus has gone on elsewhere" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu modal > gives focus back to its trigger when a press on the page's blank space closes it, and leaves focus that moved on)
  */
 function backToTrigger(): boolean {
   if (document.querySelector('[data-ouro="menu"][data-open]') !== null) return false;
