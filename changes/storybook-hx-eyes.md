@@ -1,0 +1,1 @@
+- The Ouro UI hero is redrawn with Ouro's eyes in the brand face, so the site serves the fixed art.
