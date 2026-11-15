@@ -274,7 +274,8 @@ function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" 
     image.onerror = () => settle("error");
     image.src = src;
     // Before paint, so a picture already in the browser's cache is there on the avatar's first frame.
-    settle(image.complete && image.naturalWidth > 0 ? "loaded" : "loading");
+    // An image is complete as its address is set only when the browser holds that picture ready.
+    settle(image.complete ? "loaded" : "loading");
     return () => {
       current = false;
     };

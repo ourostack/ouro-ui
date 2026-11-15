@@ -230,6 +230,26 @@ describe("Avatar", () => {
     expect(commits).toBe(drawnOnMount);
   });
 
+  it("draws an avatar without a picture in one commit, fetching nothing", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let commits = 0;
+    const fetches = vi.spyOn(window, "Image");
+    await act(async () =>
+      root.render(
+        <Profiler id="avatar" onRender={() => (commits += 1)}>
+          <Avatar name="Ana Lind" />
+          <Avatar name="Ana Lind" src="" />
+        </Profiler>,
+      ),
+    );
+    expect(commits).toBe(1);
+    expect(fetches).not.toHaveBeenCalled();
+  });
+
   it("draws no picture in the first commit for one that failed before, and says loading until it fails again", async () => {
     await failed(broken);
     const { avatar } = await renderSync(<Avatar name="Ana Lind" src={broken} />);
