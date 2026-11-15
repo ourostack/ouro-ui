@@ -138,22 +138,22 @@ export interface MessageListOwnProps {
    */
   maxWidth?: number | undefined;
   /**
-   * Whether a long conversation draws only the messages near its view. Above 60 children the list
+   * Whether a long conversation draws only the messages near its view. Above 20 children the list
    * draws those within a screen or 800 pixels of the view, whichever is more, the newest, the one with focus, and any
    * still streaming, each measured as it draws, with space for the rest kept above and below, so a long
    * conversation opens and redraws in about the time a screenful does. The browser's find in page, and
    * code that reads messages from the page, see only the messages drawn: search your own messages and
    * call `actionsRef.current.reveal(id)` to show a match. Set `false` to keep every message in the page.
-   * A list the reader scrolled up in that takes older and newer messages in one commit renders no more than 60 of the
+   * A list the reader scrolled up in that takes older and newer messages in one commit renders no more than 20 of the
    * children it drew before, and the 20 newest, before it finds the view; scrolling up through rows never drawn moves
    * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving it more
    * than a pixel.
    * @default true
-   * @claim "renders no more than 60 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
+   * @claim "renders no more than 20 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
    * @claim "moves what the reader looks at by under a pixel" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px)
    * @claim "opens at its end with no frame moving it more" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the view and the row at its top by no more than a pixel in any frame)
-   * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
-   * @claim "Above 60 children the list draws" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const OVERSCAN = 800;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /Math\.max\(OVERSCAN, scroller\.clientHeight\)/)
+   * @claim "Above 20 children the list draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
+   * @claim "Above 20 children the list draws" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const OVERSCAN = 800;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /Math\.max\(OVERSCAN, scroller\.clientHeight\)/)
    * @claim "Set `false` to keep every message" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps every message in the page with windowing={false})
    */
   windowing?: boolean | undefined;
@@ -333,11 +333,16 @@ const KEEP_SPOKEN = 5;
 
 /**
  * Above this many children the list draws only the messages near its view.
- * @claim "Above this many children the list" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps a conversation of 60 messages whole, and windows it once it grows past 60, leaving the view where it is)
+ * @claim "Above this many children the list" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps a conversation of 20 messages whole, and windows it once it grows past 20, leaving the view where it is)
  */
-const WINDOW_ABOVE = 60;
+const WINDOW_ABOVE = 20;
 /** How far past the view's edges, in pixels, messages still draw: a page key, or a short scroll, finds them drawn. At least the view's height. */
 const OVERSCAN = 800;
+/**
+ * How soon after the reader's own input (a wheel, a finger, a key) a scroll is theirs, in milliseconds. It stays theirs until
+ * the browser says it ended (`scrollend`), a fling's momentum included, and a press on the scrollbar keeps it theirs while held.
+ */
+const READER_GAP = 150;
 /** How much of the conversation draws before the view is known (server HTML, the first draw), in pixels: from its end, or around `initialAnchor`. */
 const FIRST_VIEW = 1600;
 /** A message's height, with its margins, before any is measured. */
@@ -423,7 +428,7 @@ function extentOf(slot: Element): { top: number; size: number } {
 function firstRange(count: number, size: (index: number) => number, anchor: number): [number, number] {
   if (anchor < 0) {
     let from = count - 1;
-    // Stryker disable next-line ConditionalExpression,EqualityOperator: a windowed list has more than 60 children, more than FIRST_VIEW takes, so this never reaches the first.
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: a windowed list has more than 20 children, which the first view rarely all takes, and one that does draws them all either way.
     for (let height = size(from); from > 0 && height < FIRST_VIEW; height += size(--from));
     // Stryker disable next-line ArithmeticOperator: an end past the last child draws no more.
     return [from, count - 1];
@@ -840,7 +845,7 @@ interface Spoken {
  * Nothing in it overflows the boxes around it, so moving focus or scrolling a message into view
  * scrolls the list, not the page around it.
  *
- * A conversation of more than 60 children draws only the messages near its view (`windowing`),
+ * A conversation of more than 20 children draws only the messages near its view (`windowing`),
  * each measured as it draws, with space kept for the rest, so a long conversation opens and redraws
  * in about the time a screenful does. The reader's place holds as the messages above them are
  * measured and as older ones load above, in one frame. The newest message, the one with focus and
@@ -952,8 +957,8 @@ interface Spoken {
  * @claim "Scrolling is never announced" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > never announces while the reader scrolls)
  * @claim "Nor does something in a message" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > stays at its end when a picture in a message shrinks and grows back between frames, as a placeholder swapped for its picture does)
  * @claim "At the bottom it also follows" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > follows its end at the bottom when something in a message reaches past it, though no message changes size)
- * @claim "A conversation of more than 60 children draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
- * @claim "A conversation of more than 60 children draws" test/message-list-windowing.bench.test.tsx verify:fileLine(test/message-list-windowing.bench.test.tsx, /expect\(windowed\.redraw\)\.toBeLessThan\(whole\.redraw \/ 2\)/)
+ * @claim "A conversation of more than 20 children draws" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the messages near the view of a long conversation, in a list as tall as all of them)
+ * @claim "A conversation of more than 20 children draws" test/message-list-windowing.bench.test.tsx verify:fileLine(test/message-list-windowing.bench.test.tsx, /expect\(windowed\.redraw\)\.toBeLessThan\(whole\.redraw \/ 2\)/)
  * @claim "The reader's place holds as the messages above" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place while messages above are measured, scrolling up through them)
  * @claim "The reader's place holds as the messages above" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place when a page of older messages loads above, putting it in at once)
  * @claim "The newest message, the one with focus" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the message with focus drawn, and focus on it, as the reader scrolls far away)
@@ -1056,6 +1061,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The key of the first child, and of the first one drawn: a page of older ones above it waits.
   // Stryker disable next-line ObjectLiteral: an empty start takes the first child's key in the first render instead; this only spares that render.
   const [edge, setEdge] = useState(() => ({ first: top, drawn: top }));
+  // Whether the list drew every child until it grew long: until it finds its window it keeps those children where they are.
+  const [drewWhole, setDrewWhole] = useState(!windowed);
   // A windowed list puts a page of older messages in at once, as space above the messages drawn, so it waits for none and
   // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
@@ -1089,6 +1096,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setReach(next);
   });
   if (!windowed && band !== null) setBand(null);
+  // Once long it stays set, as the band decides from then on; another conversation clears it.
+  if (!windowed && !drewWhole) setDrewWhole(true);
   // The newest child's key the announcements last heard of, so the children after it, which just arrived, draw until they are heard.
   const [heard, setHeard] = useState<string | null>(null);
   // The keys of the messages the announcements wait on, kept drawn until a reply that streamed is heard.
@@ -1115,11 +1124,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // place of ones that went (a message's key changed in place) draw.
       // Stryker disable next-line ArithmeticOperator: a child more or less between the edges is one the window draws, or not, before the browser draws.
       if (range[1] - range[0] + 1 > band.held.size) held = band.held;
-    } else if (showJump && indexes.has(String(edge.drawn))) {
-      // A list the reader scrolled up in that grows long (older history loading above, newer messages after) draws, to begin
-      // with, no more than the WINDOW_ABOVE children it drew whole, from the first of them: the rest, and what came with the
-      // page, is space. The window then finds itself from where those children are, before the browser draws, so the view
-      // stays where it is. One at its end opens at its end.
+    } else if ((showJump || drewWhole) && indexes.has(String(edge.drawn))) {
+      // A list the reader scrolled up in that grows long (older history loading above, newer messages after), or any list that
+      // drew whole until now, draws, to begin with, no more than the WINDOW_ABOVE children it drew whole, from the first of them:
+      // the rest, and what came with the page, is space. The window then finds itself from where those children are, before the
+      // browser draws, so the view stays where it is, though code moved it before the browser reported the scroll.
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
     } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor));
@@ -1223,6 +1232,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The other conversation draws from its newest, whatever of the one before was drawn.
       // Stryker disable next-line ObjectLiteral: an empty edge has no drawn key, so the slice starts at the first child, as drawn: top does; the next frame's step sets it to the first child's key. The same rows draw either way; on a non-windowed list the empty edge makes the render near line 1020 call setEdge again, one extra render before the commit and no extra commit.
       setEdge({ first: top, drawn: top });
+      // Another conversation opens at its newest, not where the one before was drawn.
+      setDrewWhole(false);
       setBand(null);
       // The next opens at its newest, with no jump to offer and no focus kept on a message of the one before.
       setFocusKey(null);
@@ -1333,6 +1344,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     }
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
+    ownTop.current = scroller.scrollTop;
     springsRef.current?.moved(scroller.scrollTop - before);
   }, []);
 
@@ -1475,6 +1487,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const box = boxOf(target);
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
       scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      ownTop.current = scroller.scrollTop;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
@@ -1522,6 +1535,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       content.style.removeProperty("translate");
       const before = scroller.scrollTop;
       scroller.scrollTop += by;
+      ownTop.current = scroller.scrollTop;
       const applied = scroller.scrollTop - before;
       springsRef.current?.moved(applied);
       // The anchors sit where they did in the content, which a scroll does not move: only the list's own scroll since they were
@@ -1594,6 +1608,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
+          ownTop.current = scroller.scrollTop;
           const applied = scroller.scrollTop - before;
           springsRef.current?.moved(applied);
           // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
@@ -1642,6 +1657,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // keeps the reader's place as their heights replace the estimates, brings a message asked for into view, and draws the
   // children the view and OVERSCAN reach.
   const windowSync = useRef<(scrolled: boolean) => void>(undefined);
+  // The reader's own scrolling: when they last gave input, whether a scroll of theirs is going on, and whether they hold the
+  // scrollbar. A scroll made by code (find in page, a screen reader, a test tool, the app) is none of these.
+  // `code` is whether the last scroll was neither theirs nor the list's own (`ownTop`, where it last put the scroll position).
+  // Stryker disable next-line ObjectLiteral: an empty start reads as no input, no scroll going and nothing held, as these do.
+  const reader = useRef({
+    // Stryker disable next-line UnaryOperator: at most the first scroll after the list mounts is taken for the reader's, and its scrollend hands the next to code.
+    at: -Infinity,
+    // Stryker disable next-line BooleanLiteral: at most the first scroll after the list mounts is taken for the reader's, and its scrollend hands the next to code.
+    going: false,
+    held: false,
+    code: false,
+  });
+  const ownTop = useRef<number | null>(null);
   // Where each slot drawn sits in the content, and its size, as last measured.
   const tops = useRef(new Map<string, { top: number; size: number }>());
   // How many messages each child drawn holds: a child that starts the conversation holds none.
@@ -1772,20 +1800,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let to = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
       while (starts[to]! >= viewBottom + over) to--;
-      // Children already drawn stay drawn until they are twice the overscan from the view: a scroll back and forth, or code that
-      // brings one message after another into view (a contrast check measuring each), finds them still in the page.
-      const keep = 2 * over;
-      let keepFrom = 0;
-      // Stryker disable next-line EqualityOperator: a child that ends exactly at twice the overscan stays or goes, and the next scroll settles it.
-      while (starts[keepFrom]! + extent(keepFrom) <= viewTop - keep) keepFrom++;
-      let keepTo = keys.length - 1;
-      // Stryker disable next-line EqualityOperator: a child that starts exactly at twice the overscan stays or goes, and the next scroll settles it.
-      while (starts[keepTo]! >= viewBottom + keep) keepTo--;
-      // The band drawn now, by index: NaN, which no keep range holds, where there is none or its edge went.
+      // The band drawn now, by index: NaN, which no keep range holds and no band meets, where there is none or its edge went.
       const drawnFrom = band === null ? NaN : (indexes.get(band.from) ?? NaN);
       const drawnTo = band === null ? NaN : (indexes.get(band.to) ?? NaN);
-      if (drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
-      if (drawnTo <= keepTo) to = Math.max(to, drawnTo);
+      const code = reader.current.code;
+      // Children already drawn stay drawn until they are twice the overscan from the view: a scroll back and forth finds them
+      // still in the page. After a scroll made by code, eight times, while the band they are in meets the new one: code that
+      // brings one message after another into view (a contrast check measuring each) finds them all still there, and a jump
+      // past them lets them go.
+      const keep = (code ? 8 : 2) * over;
+      let keepFrom = 0;
+      // Stryker disable next-line EqualityOperator: a child that ends exactly at the keep distance stays or goes, and the next scroll settles it.
+      while (starts[keepFrom]! + extent(keepFrom) <= viewTop - keep) keepFrom++;
+      let keepTo = keys.length - 1;
+      // Stryker disable next-line EqualityOperator: a child that starts exactly at the keep distance stays or goes, and the next scroll settles it.
+      while (starts[keepTo]! >= viewBottom + keep) keepTo--;
+      // Stryker disable next-line EqualityOperator,ArithmeticOperator: a band that meets the new one only within a child draws that child or not, and the next scroll settles it.
+      const meets = !code || (drawnFrom <= to + 1 && drawnTo >= from - 1);
+      if (meets && drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
+      if (meets && drawnTo <= keepTo) to = Math.max(to, drawnTo);
       const inBand = keys.slice(from, to + 1);
       // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
       const id = inBand.join("\n");
@@ -1802,15 +1835,38 @@ export function MessageList(props: MessageListProps): JSX.Element {
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
     const content = contentRef.current!;
-    // Stryker disable next-line BooleanLiteral: a scroll moves nothing the window measures, so measuring again on it only costs the time.
-    const onScroll = () => windowSync.current!(true);
+    const state = reader.current;
+    const byReader = () => void (state.at = performance.now());
+    const press = () => ((state.held = true), byReader());
+    const release = () => void (state.held = false);
+    const onScroll = () => {
+      // Stryker disable next-line EqualityOperator: a scroll exactly at the gap is the reader's or code's alike.
+      if (performance.now() - state.at <= READER_GAP) state.going = true;
+      // The list's own move (following the end, keeping the reader's place) leaves the last scroll's say.
+      if (scroller.scrollTop !== ownTop.current) state.code = !state.going && !state.held;
+      ownTop.current = null;
+      // Stryker disable next-line BooleanLiteral: a scroll moves nothing the window measures, so measuring again on it only costs the time.
+      windowSync.current!(true);
+    };
+    // The reader's scroll is over: a scroll after this is code's, unless they act again.
+    const onScrollEnd = () => void (state.going = false);
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
     scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("scrollend", onScrollEnd);
+    const reading = ["wheel", "touchstart", "touchmove", "keydown"] as const;
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
+    for (const type of reading) scroller.addEventListener(type, byReader, { passive: true });
+    scroller.addEventListener("pointerdown", press);
+    const doc = scroller.ownerDocument;
+    // Stryker disable next-line BooleanLiteral: captured, so a release an app stops on its way still lets go; bubbling, it lets go alike where none does.
+    doc.addEventListener("pointerup", release, true);
+    // Stryker disable next-line BooleanLiteral: captured, so a release an app stops on its way still lets go; bubbling, it lets go alike where none does.
+    doc.addEventListener("pointercancel", release, true);
     const resized = new ResizeObserver(() => windowSync.current!(false));
     resized.observe(scroller);
     resized.observe(content);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll));
+    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
