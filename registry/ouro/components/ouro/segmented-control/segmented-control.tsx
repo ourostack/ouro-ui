@@ -179,22 +179,21 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     setOwn(pressed);
     onValueChange?.(pressed);
   };
-  const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     // The app checked another segment (a setting changed elsewhere) while a segment has focus:
     // focus follows the check, so the ring is never on a segment beside the thumb's.
-    const root = rootRef.current!;
-    if (asked.current.has(selected) || !root.contains(root.ownerDocument.activeElement)) return;
-    const checked = root.querySelector<HTMLElement>('[data-ouro-segment][aria-checked="true"]');
+    const group = document.activeElement?.closest(`[aria-labelledby="${labelId}"]`);
+    if (!group || asked.current.has(selected)) return;
+    const checked = group.querySelector<HTMLElement>('[data-ouro-segment][aria-checked="true"]');
     if (checked) checked.focus();
-  }, [selected]);
+  }, [selected, labelId]);
   const thumbStyle = {
     "--ouro-segment-count": items.length,
     "--ouro-segment-index": Math.max(index, 0),
     opacity: index === -1 ? 0 : undefined,
   } as CSSProperties;
   return (
-    <div ref={rootRef} data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", className)}>
+    <div data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", className)}>
       <span id={labelId} className={cn(labelClass, hideLabel && "sr-only")}>
         {label}
       </span>
