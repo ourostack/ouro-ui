@@ -141,15 +141,15 @@ export const NowAdornment: Story = {
   },
 };
 
-/** A made-up design team's shared calendar, drawn beside the person's own week. */
+/**
+ * A made-up design team's shared calendar, drawn beside the person's own week. Each event is a popover trigger the story
+ * scans open in turn, so a few that show the overlap and the tones are enough (#1568).
+ */
 const shared: TimeGridEvent[] = [
   { id: "crit-9", title: "Design crit", start: at(9, "11:00"), end: at(9, "12:00"), tone: "secondary", description: "Studio 2" },
   { id: "research", title: "Research readout", start: at(10, "10:00"), end: at(10, "11:30"), description: "18 people" },
-  { id: "crit-11", title: "Design crit", start: at(11, "11:00"), end: at(11, "12:00"), tone: "secondary", description: "Studio 2" },
   { id: "portfolio", title: "Portfolio review", start: at(12, "10:00"), end: at(12, "11:00"), description: "Studio 2" },
   { id: "hands", title: "All hands", start: at(12, "10:30"), end: at(12, "11:30"), tone: "success", description: "412 people" },
-  { id: "tokens", title: "Design tokens sync", start: at(12, "14:00"), end: at(12, "14:30"), tone: "secondary" },
-  { id: "showcase", title: "Friday showcase", start: at(13, "15:00"), end: at(13, "16:00"), tone: "success", description: "Atrium" },
 ];
 
 /** A load bar with words of its own: how many of a day's working hours are taken. */
