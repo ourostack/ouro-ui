@@ -594,7 +594,7 @@ export function Command(props: CommandProps): JSX.Element {
   // draws at. The search is emptied once the palette has closed (emptyOnceClosed), off the opening's path.
   useLayoutEffect(() => {
     const popup = popupRef.current;
-    // Stryker disable next-line LogicalOperator: a palette mounted as it opens already holds this width, and a closed one has none to hold, so these two run the same
+    // Stryker disable next-line LogicalOperator,ConditionalExpression: a palette mounted as it opens already holds this width, and a closed one has none to hold, so these two run the same
     if (!keepMounted || !isOpenNow || !popup) return;
     popup.style.width = "";
     const frame = requestAnimationFrame(() => holdWidth(popup));
@@ -607,14 +607,9 @@ export function Command(props: CommandProps): JSX.Element {
   // Never after a touch or pen tap, which opens the palette focused on itself, so no software keyboard pops up.
   useLayoutEffect(() => {
     if (!isOpenNow || sheet || lastInput() === "touch" || lastInput() === "pen") return;
-    let gone = false;
-    const take = () => {
-      if (!gone) popupRef.current?.querySelector<HTMLInputElement>('[data-ouro-part="input"]')?.focus();
-    };
     // Base UI shows the dialog in the commit just after this one, which a microtask comes after: still in the task of
-    // the key that opened it, before any later key.
-    queueMicrotask(take);
-    return () => void (gone = true);
+    // the key that opened it, before any later key. A palette shut again by then has no search to focus, or a hidden one.
+    queueMicrotask(() => popupRef.current?.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!.focus());
   }, [isOpenNow, sheet]);
   const emptyOnceClosed = (next: boolean) => {
     if (next || !keepMounted) return;

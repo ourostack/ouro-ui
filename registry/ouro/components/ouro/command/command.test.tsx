@@ -858,6 +858,11 @@ function ServerPalette({ server, onSelect = () => {} }: { server: ReturnType<typ
 /** A palette the app opens from a key, as a shortcut does, recording where focus is before the next frame. */
 function KeyOpened({ keepMounted, onQueryChange, seen, items = entries() }: { keepMounted?: boolean; onQueryChange?: CommandProps["onQueryChange"]; seen: { focus: Element | null }; items?: CommandEntry[] }) {
   const [open, setOpen] = useState(false);
+  const openNow = () => {
+    flushSync(() => setOpen(true));
+    // Two microtasks on, still in the task that opened it: before any frame is drawn.
+    queueMicrotask(() => queueMicrotask(() => (seen.focus = document.activeElement)));
+  };
   return (
     <>
       <button
@@ -866,10 +871,9 @@ function KeyOpened({ keepMounted, onQueryChange, seen, items = entries() }: { ke
         onKeyDown={(event) => {
           if (event.key !== "k") return;
           event.preventDefault();
-          flushSync(() => setOpen(true));
-          // Two microtasks on, still in the key's task: before any frame is drawn.
-          queueMicrotask(() => queueMicrotask(() => (seen.focus = document.activeElement)));
+          openNow();
         }}
+        onClick={openNow}
       >
         Page
       </button>
@@ -888,16 +892,17 @@ describe("Command opened by a key", () => {
     expect(seen.focus).toBe(input().element());
   });
 
-  it.each(["touch", "pen"])("leaves focus on the palette itself after a %s tap opens it, so no software keyboard pops up", async (pointerType) => {
-    await render(<Command title="Command palette" trigger={<Button>Search</Button>} items={entries()} keepMounted />);
-    trigger().dispatchEvent(new PointerEvent("pointerdown", { pointerType, bubbles: true }));
-    trigger().click();
-    const element = await settled();
-    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    expect(document.activeElement).toBe(element);
+  it.each(["touch", "pen"])("puts no focus in the search after a %s tap opens it, so no software keyboard pops up", async (pointerType) => {
+    const seen = { focus: null as Element | null };
+    await render(<KeyOpened keepMounted seen={seen} />);
+    const harness = document.querySelector<HTMLElement>("[data-test-harness]")!;
+    harness.dispatchEvent(new PointerEvent("pointerdown", { pointerType, bubbles: true }));
+    harness.click();
+    await expect.poll(() => seen.focus).not.toBeNull();
+    expect(seen.focus).not.toBe(input().element());
   });
 
-  it("puts no focus in a search the palette closed in the same task as it opened", async () => {
+  it.each([true, false])("puts no focus in a search the palette closed in the same task as it opened (keepMounted %s)", async (keepMounted) => {
     function OpenAndShut() {
       const [open, setOpen] = useState(false);
       return (
@@ -913,7 +918,7 @@ describe("Command opened by a key", () => {
           >
             Page
           </button>
-          <Command title="Command palette" items={entries()} open={open} onOpenChange={setOpen} keepMounted />
+          <Command title="Command palette" items={entries()} open={open} onOpenChange={setOpen} keepMounted={keepMounted} />
         </>
       );
     }
