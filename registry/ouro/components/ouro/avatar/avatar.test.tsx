@@ -162,6 +162,25 @@ describe("Avatar", () => {
     expect(drawn(avatar)).toBe("AL");
   });
 
+  it("shows the initials for an empty picture address, as for one that failed", async () => {
+    const { avatar } = await render(<Avatar name="Ana Lind" src="" />);
+    expect(avatar.getAttribute("data-image")).toBe("error");
+    expect(avatar.querySelector("img")).toBeNull();
+    expect(drawn(avatar)).toBe("AL");
+  });
+
+  it("shows the initials while a new picture loads, then the new picture", async () => {
+    const { avatar, rerender } = await render(<Avatar name="Ana Lind" src={photo} />);
+    await expect.poll(() => avatar.querySelector("img")?.getAttribute("src")).toBe(photo);
+    await rerender(<Avatar name="Ana Lind" src={broken} />);
+    await expect.poll(() => avatar.getAttribute("data-image")).toBe("error");
+    expect(avatar.querySelector("img")).toBeNull();
+    expect(drawn(avatar)).toBe("AL");
+    await rerender(<Avatar name="Ana Lind" />);
+    expect(avatar.getAttribute("data-image")).toBe("idle");
+    expect(drawn(avatar)).toBe("AL");
+  });
+
   it("renders initials in server HTML and hydrates without a warning", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const node = <Avatar name="Ana Lind" src={photo} />;
