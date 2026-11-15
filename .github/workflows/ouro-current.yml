@@ -40,7 +40,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/current/current.mjs --out "$RUNNER_TEMP/current.json"
       - name: Publish who it keeps current
-        if: always() && hashFiles(format('{0}/current.json', runner.temp)) != ''
+        # hashFiles reads only the workspace, never RUNNER_TEMP, so the step checks for the report itself.
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
