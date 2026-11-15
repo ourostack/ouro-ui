@@ -3595,6 +3595,9 @@ describe("MessageList switching conversations", () => {
     expect(ids.every((id) => id.startsWith("theo-") && Number(id.slice(5)) >= 250)).toBe(true);
     const view = list.scroller.getBoundingClientRect();
     expect(messagesOf(list.scroller)[0]!.getBoundingClientRect().top).toBeLessThanOrEqual(view.top);
+    // Only what the view shows: the rows past its edges draw after the switch's frame is painted.
+    const drawn = seen.filter((node) => node.isConnected).reduce((height, node) => height + node.getBoundingClientRect().height, 0);
+    expect(drawn).toBeLessThan(view.height + 400);
   });
 
   it("confirms what a change under the same name leaves, so a rename that changes nothing waits for the messages to follow", async () => {

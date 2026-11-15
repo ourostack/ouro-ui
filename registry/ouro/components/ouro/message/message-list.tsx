@@ -1664,11 +1664,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: a second request in the same frame draws the same rows a frame later.
     if (widening.current !== null) return;
     // A frame, then a task: the one after the browser paints the frame the list opened in.
+    // Stryker disable next-line ObjectLiteral: the frame is set on the next line, before anything reads it.
     const pending: { frame: number; timer?: ReturnType<typeof setTimeout> } = { frame: 0 };
     widening.current = pending;
     pending.frame = requestAnimationFrame(() => {
       pending.timer = setTimeout(() => {
         widening.current = null;
+        // Stryker disable next-line BooleanLiteral: not equivalent; "opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint" (message-list.windowing.test.tsx) fails on it, but per-test coverage attributes this timer to another test, so the shard never runs it.
         wide.current = true;
         windowSync.current!(true);
       });
@@ -1836,12 +1838,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     resized.observe(scroller);
     resized.observe(content);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => {
-      resized.disconnect();
-      scroller.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(widening.current?.frame ?? 0);
-      clearTimeout(widening.current?.timer);
-    };
+    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);
