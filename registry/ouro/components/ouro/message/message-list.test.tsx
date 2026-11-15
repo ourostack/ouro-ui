@@ -176,6 +176,58 @@ describe("MessageList", () => {
     }
   });
 
+  it("draws its focus ring whole over content that sticks to an edge, and leaves the pointer to the content", async () => {
+    // Without messages the region itself is the Tab stop while it scrolls.
+    const { list, scroller } = await render(
+      <>
+        <button type="button">Before</button>
+        <MessageList label="Notes" style={{ height: 300 }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 10, height: 40, background: "var(--background)" }}>Notes</div>
+          <p>{"A long note. ".repeat(300)}</p>
+        </MessageList>
+      </>,
+    );
+    await expect.poll(() => scroller.getAttribute("tabindex")).toBe("0");
+    // At rest nothing lies over the content, so a contrast check sees the text's own background.
+    const overlay = list.querySelector<HTMLElement>("[data-ouro-message-list-focus-ring]")!;
+    expect(getComputedStyle(overlay).display).toBe("none");
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    expect(document.activeElement).toBe(scroller);
+    // Scrolled, the sticky header sits over the content at the region's top edge.
+    await act(async () => void (scroller.scrollTop = 200));
+    expect(getComputedStyle(overlay).display).toBe("block");
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    // The ring's colour as pixels, and the list's pixels as the screen shows them.
+    const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+    probe.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ring");
+    probe.fillRect(0, 0, 1, 1);
+    const ring = [...probe.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+    const image = new Image();
+    image.src = `data:image/png;base64,${await page.screenshot({ save: false, element: list, animations: "disabled" })}`;
+    await image.decode();
+    const shot = document.createElement("canvas");
+    shot.width = image.naturalWidth;
+    shot.height = image.naturalHeight;
+    const context = shot.getContext("2d", { willReadFrequently: true })!;
+    context.drawImage(image, 0, 0);
+    const scale = image.naturalWidth / list.getBoundingClientRect().width;
+    const { width, height } = list.getBoundingClientRect();
+    // One pixel in from the middle of each edge, inside the 2px ring.
+    const edges = { top: [width / 2, 1], bottom: [width / 2, height - 1], start: [1, height / 2], end: [width - 1, height / 2] };
+    const shown = Object.fromEntries(
+      Object.entries(edges).map(([edge, [x, y]]) => {
+        const pixel = [...context.getImageData(Math.floor(x! * scale), Math.floor(y! * scale), 1, 1).data.slice(0, 3)];
+        return [edge, pixel.every((value, index) => Math.abs(value - ring[index]!) <= 24)];
+      }),
+    );
+    expect(shown).toEqual({ top: true, bottom: true, start: true, end: true });
+    // The ring takes no pointer: a press on the sticky header lands on the header.
+    const header = scroller.querySelector<HTMLElement>("[style*='sticky']")!;
+    const box = header.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + box.width / 2, box.top + 1)).toBe(header);
+  });
+
   it("keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it", async () => {
     const { host, scroller } = await render(
       <div data-frame="" style={{ height: 400, overflow: "hidden" }}>
