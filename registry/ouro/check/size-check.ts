@@ -126,8 +126,8 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   }
 
   // Clipped text.
-  // Text hidden from assistive technology by the page: under aria-hidden that no open modal set. A modal dialog hides the
-  // page behind it on purpose, so text there is the page's, which a person reaches once the modal closes.
+  // Text hidden from assistive technology by the page: under aria-hidden that no open modal set. Text a modal hides is the
+  // page behind it, whose findings check.ts leaves to the page's own run (behindModal).
   const modals = [...document.querySelectorAll('[aria-modal="true"], dialog:modal')].filter((m) => m.getClientRects().length);
   const unreachable = (el: Element) => {
     const hidden = el.closest('[aria-hidden="true"]');
