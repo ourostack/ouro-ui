@@ -42,7 +42,11 @@ describe("the adoption page", () => {
     const host = await renderPage("/adoption/");
     const rows = [...host.querySelectorAll<HTMLElement>(".adoption-row")];
     const ids = rows.flatMap((row) => (row.dataset.ids ? row.dataset.ids.split(" ") : [row.id]));
-    expect(ids).toEqual([...SNAPSHOT.summary.order].reverse());
+    // Each product once; a folded line stands where its first member would.
+    expect([...ids].sort()).toEqual([...SNAPSHOT.summary.order].sort());
+    const firsts = rows.map((row) => (row.dataset.ids ? row.dataset.ids.split(" ")[0]! : row.id));
+    const closestFirst = [...SNAPSHOT.summary.order].reverse();
+    expect([...firsts].sort((a, b) => closestFirst.indexOf(a) - closestFirst.indexOf(b))).toEqual(firsts);
     for (const row of rows) {
       const members = row.dataset.ids ? row.dataset.ids.split(" ") : [row.id];
       const marks = [...row.querySelectorAll<HTMLElement>(".adoption-marks > li")];
