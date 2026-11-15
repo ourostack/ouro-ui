@@ -1218,10 +1218,35 @@ describe("MessageList windowing", () => {
   it("walks up past the messages first drawn with the Up arrow, each one drawn and shown as focus reaches it", async () => {
     const { scroller } = await render(<Chat items={conversation(400, 0, true)} />);
     await act(async () => document.getElementById("m399")!.focus());
+    // Diagnosis for #1475, not for merging: per step, whether the target was drawn, the key's round trip, the time to
+    // focus, the frames in the step and the longest frame, and frames with a spring settling.
+    const log: string[] = [];
+    const start = performance.now();
+    let frames: number[] = [];
+    let settling = 0;
+    let last = performance.now();
+    let watching = true;
+    const tick = (now: number) => {
+      frames.push(now - last);
+      last = now;
+      if (document.querySelector("[data-ouro-settling]")) settling++;
+      if (watching) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
     for (let step = 1; step <= 40; step++) {
+      const drawn = document.getElementById(`m${399 - step}`) !== null;
+      frames = [];
+      settling = 0;
+      const t = performance.now();
       await userEvent.keyboard("{ArrowUp}");
+      const key = performance.now() - t;
       await expect.poll(() => document.activeElement?.id).toBe(`m${399 - step}`);
+      const total = performance.now() - t;
+      log.push(`${step}${drawn ? "" : "!"} key=${Math.round(key)} focus=${Math.round(total)} frames=${frames.length} max=${Math.round(Math.max(0, ...frames))} spring=${settling}`);
+      if (performance.now() - start > 9000) break;
     }
+    watching = false;
+    expect(log).toEqual([]);
     await settle(scroller);
     expect(inView(scroller, "m359")).toBe(true);
     await userEvent.keyboard("{ArrowDown}");
