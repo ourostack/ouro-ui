@@ -1,4 +1,4 @@
-import type { Ledger, LedgerCell, Surface } from "./ledger";
+import type { Ledger, LedgerCell, Previous, Surface } from "./ledger";
 
 /*
  * The page's reading of the ledger: for each product, its four checks and, for each one that is not met, one short line
@@ -186,14 +186,14 @@ export interface Change {
 }
 
 /** What changed between an earlier ledger and this one, by the ledger's own conditions; products in only one of them are left out. */
-export function changesBetween(before: Ledger, after: Ledger): Change[] {
+export function changesBetween(before: Pick<Previous, "surfaces">, after: Ledger): Change[] {
   const earlier = new Map(before.surfaces.map((surface) => [surface.id, surface]));
   const changes: Change[] = [];
   for (const surface of after.surfaces.filter((item) => item.inScope)) {
     const old = earlier.get(surface.id);
     if (!old?.conditions) continue;
     for (const key of CHECK_KEYS) {
-      const was = old.conditions[key]?.met;
+      const was = (old.conditions as Partial<Record<string, { met: boolean }>>)[key]?.met;
       const is = surface.conditions[key].met;
       if (typeof was === "boolean" && was !== is) changes.push({ id: surface.id, name: surface.name, key, label: CHECK_SHORT[key], passes: is });
     }

@@ -33,6 +33,9 @@ const norm = (tag) => String(tag ?? "").replace(/^v/, "");
 const short = (sha) => String(sha).slice(0, 7);
 const blob = (repo, path) => `https://github.com/${repo}/blob/HEAD/${path}`;
 
+/** The repository whose `adoption-data` branch holds the published ledger and its history. */
+const LEDGER_REPO = "ourostack/ouro-ui";
+
 export function createContext({ gh = realGh, now = () => new Date(), sleep = sleepSync, searchGapMs = 6500, searchBudgetMs = 15 * 60_000 } = {}) {
   const cache = new Map();
   const memo = (key, make) => {
@@ -427,6 +430,34 @@ const hxRank = { full: 0, partial: 1, none: 2 };
 /** A cell nobody could measure. An `n/a` cell (the upstream's own give-back) has nothing to measure, so it is not one. */
 const isUnmeasured = (value) => value.value === null && !/^n\/a\b/.test(value.note ?? "");
 
+// ---- The day before --------------------------------------------------------------------------------------
+
+/** Each product's checks from an earlier ledger: what the page's "changed since" line compares, kept small. */
+export function previousOf(earlier) {
+  if (!earlier || !Array.isArray(earlier.surfaces) || typeof earlier.generatedAt !== "string") return null;
+  return {
+    generatedAt: earlier.generatedAt,
+    surfaces: earlier.surfaces
+      .filter((surface) => surface.conditions)
+      .map((surface) => ({ id: surface.id, conditions: Object.fromEntries(Object.entries(surface.conditions).map(([key, value]) => [key, { met: Boolean(value?.met) }])) })),
+  };
+}
+
+/**
+ * The checks as the hourly run left them a day before `generatedAt`, read here, signed in, from the data branch's history,
+ * so the page needs no call to GitHub's API (60 an hour unsigned) to say what changed. Null when there is none yet.
+ */
+export function measurePrevious(ctx, generatedAt, repo = LEDGER_REPO) {
+  try {
+    const until = new Date(Date.parse(generatedAt) - 24 * 60 * 60 * 1000).toISOString();
+    const [commit] = ctx.api(`repos/${repo}/commits?sha=adoption-data&path=ledger.json&per_page=1&until=${until}`);
+    if (!commit?.sha) return null;
+    return previousOf(ctx.api(`repos/${repo}/contents/ledger.json?ref=${commit.sha}`, ["-H", "Accept: application/vnd.github.raw+json"]));
+  } catch {
+    return null;
+  }
+}
+
 export function build(ctx, config, { only = null } = {}) {
   const latest = latestReleases(ctx, config);
   const issues = readIssues(ctx, config);
@@ -510,14 +541,16 @@ export function build(ctx, config, { only = null } = {}) {
     .map((surface) => ({ id: surface.id, name: surface.name, late: pinsOf(surface).reduce((total, pin) => total + (pin.late ?? 0), 0), behind: pinsOf(surface).reduce((total, pin) => total + (pin.behind ?? 0), 0) }))
     .filter((item) => item.late > 0);
   const order = [...inScope].sort((a, b) => a.met - b.met || (hxRank[a.cells.hx.value] ?? 3) - (hxRank[b.cells.hx.value] ?? 3) || a.name.localeCompare(b.name));
+  const generatedAt = ctx.stamp();
   return {
     schema: 1,
-    generatedAt: ctx.stamp(),
+    generatedAt,
     summary: { total: inScope.length, confirmed: inScope.filter((surface) => surface.confirmed).length, listed: surfaces.length, unmeasuredCells: surfaces.reduce((sum, surface) => sum + Object.values(surface.cells).filter(isUnmeasured).length, 0), releasesBehind, late, order: order.map((surface) => surface.id) },
     latest,
     program,
     cards: config.cards.map((card) => ({ id: card.id, title: card.title, outcome: card.outcome, surfaces: card.surfaces, issue: issues.byCard[card.id] ? issueView(issues.byCard[card.id]) : null })),
     surfaces,
+    previous: measurePrevious(ctx, generatedAt),
   };
 }
 

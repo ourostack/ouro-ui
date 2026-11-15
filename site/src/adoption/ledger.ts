@@ -101,6 +101,14 @@ export interface Ledger {
   program: { issue: Issue | null; steps: Step[]; headline: Headline[]; source: string; note: string | null };
   cards: { id: string; title: string; outcome: string; surfaces: string[]; issue: Issue | null }[];
   surfaces: Surface[];
+  /** Each product's checks as the hourly run left them a day earlier, for what changed since. Ledgers before 2026-11-15 lack it. */
+  previous?: Previous | null;
+}
+
+/** An earlier ledger's checks, as scripts/adoption/ledger.mjs (`previousOf`) writes them. */
+export interface Previous {
+  generatedAt: string;
+  surfaces: Array<{ id: string; conditions?: Partial<Record<string, { met: boolean }>> }>;
 }
 
 /** The ledger as it was when the site was built; the page asks for a newer one when it opens. */
@@ -117,19 +125,3 @@ export function isNewer(candidate: unknown, current: Ledger): candidate is Ledge
 
 /** A UTC time as people read it: `2026-11-13 22:14 UTC`. */
 export const stamp = (iso: string): string => `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
-
-/** Where the hourly run's history is listed: the commits of the data branch that touched the ledger. */
-export const HISTORY_URL = "https://api.github.com/repos/ourostack/ouro-ui/commits?sha=adoption-data&path=ledger.json&per_page=1";
-
-/** The ledger as the hourly run left it a day before `generatedAt`, or null when there is none of this shape. */
-export async function fetchEarlier(generatedAt: string, signal: AbortSignal | null = null): Promise<Ledger | null> {
-  const until = new Date(Date.parse(generatedAt) - 24 * 60 * 60 * 1000).toISOString();
-  const listed = await fetch(`${HISTORY_URL}&until=${until}`, { signal });
-  if (!listed.ok) return null;
-  const [commit] = (await listed.json()) as Array<{ sha?: string }>;
-  if (!commit?.sha) return null;
-  const response = await fetch(`https://raw.githubusercontent.com/ourostack/ouro-ui/${commit.sha}/ledger.json`, { signal });
-  if (!response.ok) return null;
-  const value = (await response.json()) as Partial<Ledger> | null;
-  return value && Array.isArray(value.surfaces) && typeof value.generatedAt === "string" && value.generatedAt < generatedAt ? (value as Ledger) : null;
-}

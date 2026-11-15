@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState, type JSX } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Container } from "../voyage/layout";
-import { fetchEarlier, isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger } from "./ledger";
+import { isNewer, LIVE_URL, SNAPSHOT, stamp, type Ledger, type Previous } from "./ledger";
 import { boardOf, changesBetween, CHECK_KEYS, CHECK_SHORT, STATE_WORD, type Check, type CheckState } from "./checks";
 import { Sky } from "./sky";
 import "./adoption.css";
@@ -76,10 +76,9 @@ function Marks({ checks, label }: { checks: Check[]; label: string }): JSX.Eleme
 }
 
 /** The ledger and the page's own text: used by the route (pages/voyage.tsx) and its test. */
-export function AdoptionPage({ initial = SNAPSHOT, live = true, earlier = null }: { initial?: Ledger; live?: boolean; earlier?: Ledger | null }): JSX.Element {
+export function AdoptionPage({ initial = SNAPSHOT, live = true, earlier = null }: { initial?: Ledger; live?: boolean; earlier?: Previous | null }): JSX.Element {
   const [ledger, setLedger] = useState(initial);
   const [waiting, setWaiting] = useState<Ledger | null>(null);
-  const [before, setBefore] = useState<Ledger | null>(earlier);
   const [active, setActive] = useState<string[]>([]);
   // The page paints from the ledger built into the site. A newer one from the hourly run waits behind a button, so nothing
   // moves under the reader's eyes while the page loads.
@@ -92,15 +91,12 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true, earlier = null }
         if (isNewer(next, initial)) setWaiting(next);
       })
       .catch(() => undefined);
-    // The ledger of a day before, from the hourly run's history, for what changed since.
-    fetchEarlier(initial.generatedAt, controller.signal)
-      .then((found) => {
-        if (found) setBefore(found);
-      })
-      .catch(() => undefined);
     return () => controller.abort();
   }, [initial, live]);
 
+  // The checks of a day before come in the ledger itself (`previous`, written by the hourly run), so the page makes no
+  // call to GitHub's API, which allows a reader 60 an hour, to say what changed.
+  const before = earlier ?? ledger.previous ?? null;
   const board = boardOf(ledger);
   const closed = board.total > 0 && board.green === board.total;
   const focus = board.rows.filter((row) => active.includes(row.surface.id));
