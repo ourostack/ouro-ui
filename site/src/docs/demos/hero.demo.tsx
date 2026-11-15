@@ -16,7 +16,7 @@ export default function HeroDemo(): JSX.Element {
           src: "/brand/storybook/headers/ouro-ui-core.webp",
           width: 1536,
           height: 576,
-          alt: "Six jars of paint pour glowing ribbons of colour onto a phone, a laptop and a tablet, while Ouro, a green snake, watches.",
+          alt: "A little robot paints six colours onto a palette while a friend looks on, the same colours already on a phone, a laptop and a tablet beside them, and Ouro, a green snake, at their feet.",
           crop: "8 / 3",
         },
         dark: { src: "/brand/storybook/headers/ouro-ui-core-dark.webp", width: 1536, height: 576 },

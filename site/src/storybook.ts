@@ -66,22 +66,22 @@ export const SCENES: Record<SceneName, Scene> = {
     night: { phoneHeight: 432 },
   },
   "ouro-ui-core": {
-    alt: "Six jars of paint on a bench pour glowing ribbons of colour onto a phone, a laptop and a tablet below, all painted to match, while Ouro watches the pour.",
-    sky: ["#edb6b1", "#f7c7b1", "#fac0a5", "#fcd693", "#fdec95"],
+    alt: "A little glass robot paints six colours onto a palette at an easel while a faceless glass person with a mug looks on. On the bench beside them a phone, a laptop and a tablet already show the same six colours, and Ouro lies at their feet.",
+    sky: ["#dba29a", "#f9c1b1", "#fabda8", "#fcd498", "#fded9a"],
     height: 576,
-    phoneHeight: 576,
+    phoneHeight: 549,
     band: 50,
-    night: { phoneHeight: 576 },
+    night: { phoneHeight: 549 },
   },
   "playwright-focus-proof": {
-    alt: "One morning in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+    alt: "One morning in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
     sky: ["#dac0c6", "#d1c5cf", "#d3ceda", "#f9cfb6", "#fbd6a7"],
     height: 576,
     phoneHeight: 320,
     band: 100,
     night: {
       phoneHeight: 300,
-      alt: "One night in the meadow: a woman works on her laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      alt: "One night in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
     },
   },
   "ouroboros-skills": {
@@ -94,14 +94,14 @@ export const SCENES: Record<SceneName, Scene> = {
     night: { phoneHeight: 320 },
   },
   ourostack: {
-    alt: "Ouro's whole world at dawn: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+    alt: "Ouro's whole world at dawn: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
     sky: ["#f8bcad", "#fabc9f", "#fbb59b", "#fdcb9d", "#fde99e"],
     height: 512,
     phoneHeight: 384,
     band: 65,
     night: {
       phoneHeight: 384,
-      alt: "Ouro's whole world at night: Ouro curled on the glowing trail, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      alt: "Ouro's whole world at night: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
     },
   },
 };
