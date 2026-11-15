@@ -78,13 +78,13 @@ describe("listenForMeasures", () => {
   });
 
   it("records each control the first frame draws, once, and no control drawn after input", async () => {
-    host = render('<button id="first">First</button><a id="link" href="#x">Link</a><button id="zero" style="width:0;padding:0;border:0">Zero</button><button id="tall" style="height:0;padding:0;border:0">Tall</button><button id="hidden" hidden>Hidden</button><button id="left" style="position:absolute;left:-2000px">Left</button><button id="up" style="position:absolute;top:-3000px">Up</button><button id="right" style="position:absolute;left:100000px">Right</button><button id="down" style="position:absolute;top:100000px">Down</button>');
+    host = render('<button id="first">First</button><a id="link" href="#x">Link</a><button id="zero" style="width:0;padding:0;border:0">Zero</button><button id="tall" style="height:0;padding:0;border:0">Tall</button><button id="hidden" hidden>Hidden</button><button id="left" style="position:absolute;left:-2000px">Left</button><button id="up" style="position:absolute;top:-3000px">Up</button><button id="right" style="position:absolute;left:100000px">Right</button><button id="down" style="position:absolute;top:100000px">Down</button><button id="faded" style="opacity:0">Faded</button><button id="unseen" style="visibility:hidden">Unseen</button>');
     const m = measures();
     await frames();
     const at = (id: string) => document.getElementById(id)!;
     expect(m.painted.get(at("first"))).toMatchObject({ frame: 1, skipped: false });
     expect(m.painted.get(at("link"))?.frame).toBe(1);
-    expect(["zero", "tall", "hidden", "left", "up", "right", "down"].map((id) => m.painted.has(at(id)))).toEqual([false, false, false, false, false, false, false]);
+    expect(["zero", "tall", "hidden", "left", "up", "right", "down", "faded", "unseen"].map((id) => m.painted.has(at(id)))).toEqual([false, false, false, false, false, false, false, false, false]);
     // Input ends the reading, even one that lands while a frame is on its way to be read: this runs in the frame after the
     // recorder's own callback, so the frame it posts is read once the input has come and the control is drawn.
     await new Promise<void>((done) =>
