@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_BASE_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -1567,6 +1567,15 @@ describe("Ouro's focus and row classes for plain markup", () => {
         expect(findOffendersInSource("app/app.css", base).filter((offender) => offender.category === "control-state-style")).toEqual([]);
         const markup = 'export const rows = (items) => items.map((item) => `<li class="ouro-row ouro-focus-ring-inset" tabindex="0" data-go="${item.id}">${item.name}</li>`).join("");\nexport const Tip = () => <span className="ouro-focus-ring" tabIndex={0}>?</span>;';
         expect(categories(markup)).not.toContain("control-state-style");
+    });
+    it("exempts exactly the classes ouro-base defines, and counts an app's own .ouro- class like any other", () => {
+        const base = readFileSync("registry/ouro/theme/ouro-base.css", "utf8");
+        expect([...new Set([...base.matchAll(/^\s*\.(ouro-[\w-]+)/gm)].map((match) => match[1]))].sort()).toEqual([...OURO_BASE_CLASSES].sort());
+        const found = findOffendersInSource("app/app.css", ".ouro-mine:focus-visible { outline: 2px solid; }\n.ouro-row-x:active { background: red; }\n.ouro-row:active { background: var(--muted); }");
+        expect(found.map((offender) => offender.fingerprint)).toEqual([
+            "app/app.css::(stylesheet)::control-state-style::.ouro-mine:focus-visible::",
+            "app/app.css::(stylesheet)::control-state-style::.ouro-row-x:active::",
+        ]);
     });
     it("still counts a hand-written state beside an Ouro class, and names the Ouro classes as the fix for focus and press", () => {
         const found = findOffendersInSource("app/app.css", "li[data-go]:focus-visible { outline: 2px solid; }\n.my-row.ouro-row:active { background: red; }");
