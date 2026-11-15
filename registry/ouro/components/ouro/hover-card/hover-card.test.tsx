@@ -275,9 +275,18 @@ describe("HoverCard", () => {
     expect(seen).toEqual(["link Shift", "Shift"]);
     expect(card()).not.toBeNull();
     seen.length = 0;
-    await userEvent.keyboard("{Escape}");
+    // The Escape the card takes is marked handled, as Base UI marks it, so a listener that checks for that skips it.
+    const keys: KeyboardEvent[] = [];
+    const record = (event: KeyboardEvent) => keys.push(event);
+    document.addEventListener("keydown", record, true);
+    try {
+      await userEvent.keyboard("{Escape}");
+    } finally {
+      document.removeEventListener("keydown", record, true);
+    }
     await expect.poll(() => card()).toBeNull();
     expect(seen).toEqual(["link Escape"]);
+    expect(keys.map((event) => event.defaultPrevented)).toEqual([true]);
     await userEvent.keyboard("{Escape}");
     expect(seen).toEqual(["link Escape", "link Escape", "Escape"]);
   });
