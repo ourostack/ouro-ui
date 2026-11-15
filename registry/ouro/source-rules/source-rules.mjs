@@ -33,7 +33,9 @@ import ts from "typescript";
 //   followed through same-file constants and helpers; and stylesheet rules (or @apply) whose
 //   selector puts that state on a class or a data-* hook (only the app's own hooks, `.<prefix>-`
 //   and `[data-<prefix>-`, when `hookPrefix` is set). Hover-only decoration and page motion are
-//   not control state.
+//   not control state. ouro-base's own classes for plain markup (.ouro-focus-ring, .ouro-row), which
+//   land in the app's stylesheet, are Ouro's, and the message for a focus or press state written by
+//   hand names them.
 // - hand-drawn-unread-dot: a plain accent-colored round dot in a row, which is an unread mark; UnreadDot draws it. (A dot on an avatar's corner stays hand-drawn-presence-dot.)
 // - hand-drawn-avatar, hand-drawn-presence-dot: an intrinsic element drawn as what Ouro UI's Avatar
 //   draws: a round picture (`img`, or `overflow-hidden`/`object-cover`, `rounded-full`, at least
@@ -332,6 +334,10 @@ export const HAND_DRAWN_CORNER_FIX =
 /** What the hand-drawn-switch rule tells an app to do. */
 export const HAND_DRAWN_SWITCH_FIX =
   "Use Switch from the registry (`<Switch label=\"...\" checked={on} onCheckedChange={setOn} />`), so it gets the Quiet glass look (the --ouro-glass tokens), focus, touch target and any change to switches.";
+/** What the control-state-style rule tells an app that draws focus or a pressed row by hand in a stylesheet. */
+export const FOCUS_RING_FIX =
+  "Give the element Ouro's classes from ouro-base instead of writing the state: class=\"ouro-focus-ring\" draws the ring Ouro's controls draw on keyboard focus (ouro-focus-ring-inset keeps it inside a row or cell a scroller would clip), and class=\"ouro-row\" tints a row that opens something while a mouse rests on it and while it is pressed. For a control with its own behaviour, use the Ouro component.";
+
 /** What the third-party-control rule tells an app that wraps itself in Base UI's CSPProvider. */
 export const CSP_PROVIDER_FIX =
   "Wrap the app in <OuroProvider strictCsp> (lib/ouro/ouro-provider) instead: it sets Base UI's disableStyleElements for you, and Ouro UI's own parts add no <style> under it either, so a page whose policy refuses inline styles (style-src 'self') breaks none of its rules.";
@@ -348,6 +354,8 @@ const CATEGORY_MESSAGES = {
   "hand-drawn-corner": { headline: "New fixed corner radius", fix: HAND_DRAWN_CORNER_FIX },
   "hand-drawn-switch": { headline: "New switch drawn by hand", fix: HAND_DRAWN_SWITCH_FIX },
   "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
+  // A focus or press state written in a stylesheet has Ouro classes; a class-variant one names the element only.
+  "control-state-style": (tag) => (/:(?:focus|active)/.test(tag) ? { headline: "New focus or press style written by hand", fix: FOCUS_RING_FIX } : undefined),
   // Base UI's CSPProvider has an Ouro form; any other library's control takes the general message.
   "third-party-control": (tag) => (/\.CSPProvider$/.test(tag) ? { headline: "New Base UI CSPProvider", fix: CSP_PROVIDER_FIX } : undefined),
   // Names the phrase it found, the fingerprint's tag.
@@ -433,6 +441,8 @@ const STATE_SELECTOR = new RegExp(
 // A stylesheet selector that names something the app styles by hand: any class or data-* hook, or
 // only the app's own (`.app-`, `[data-app-`) with a `hookPrefix`.
 const ANY_HOOK = /\.[\w-]|\[data-/;
+// A class ouro-base defines for markup that is not an Ouro component.
+const OURO_CLASS = /\.ouro-[\w-]+/g;
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
@@ -1879,7 +1889,8 @@ function scanStylesheet(file, source, hook = ANY_HOOK) {
     if (node.type === "rule") {
       for (const selector of node.selectors) {
         const scope = [...rules, selector.replace(/\s+/g, " ")].join(" ");
-        if (hook.test(scope) && STATE_SELECTOR.test(selector)) add(node, scope, atRules);
+        // Ouro's own classes (.ouro-focus-ring, .ouro-row), which ouro-base puts in the app's stylesheet, are Ouro's.
+        if (hook.test(scope.replace(OURO_CLASS, "")) && STATE_SELECTOR.test(selector)) add(node, scope, atRules);
       }
     }
     if (node.type === "atrule" && node.name === "apply") {

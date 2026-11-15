@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -1558,6 +1558,28 @@ describe("isControlStateClass", () => {
         "",
     ])("leaves %s alone", (token) => {
         expect(isControlStateClass(token)).toBe(false);
+    });
+});
+describe("Ouro's focus and row classes for plain markup", () => {
+    it("counts ouro-base's own rules in the app's stylesheet as Ouro's, and the classes in markup as no control state", () => {
+        const base = readFileSync("registry/ouro/theme/ouro-base.css", "utf8");
+        expect(base).toContain(".ouro-focus-ring:focus-visible");
+        expect(findOffendersInSource("app/app.css", base).filter((offender) => offender.category === "control-state-style")).toEqual([]);
+        const markup = 'export const rows = (items) => items.map((item) => `<li class="ouro-row ouro-focus-ring-inset" tabindex="0" data-go="${item.id}">${item.name}</li>`).join("");\nexport const Tip = () => <span className="ouro-focus-ring" tabIndex={0}>?</span>;';
+        expect(categories(markup)).not.toContain("control-state-style");
+    });
+    it("still counts a hand-written state beside an Ouro class, and names the Ouro classes as the fix for focus and press", () => {
+        const found = findOffendersInSource("app/app.css", "li[data-go]:focus-visible { outline: 2px solid; }\n.my-row.ouro-row:active { background: red; }");
+        expect(found.map((offender) => offender.fingerprint)).toEqual([
+            "app/app.css::(stylesheet)::control-state-style::li[data-go]:focus-visible::",
+            "app/app.css::(stylesheet)::control-state-style::.my-row.ouro-row:active::",
+        ]);
+        const lines = formatComparison(compareWithBaseline(found, {}));
+        expect(lines).toContain(`New focus or press style written by hand: app/app.css::(stylesheet)::control-state-style::li[data-go]:focus-visible:: (+1) at app/app.css:1. ${FOCUS_RING_FIX}`);
+        expect(FOCUS_RING_FIX).toContain('class="ouro-focus-ring"');
+        expect(FOCUS_RING_FIX).toContain('class="ouro-row"');
+        const selected = compareWithBaseline([{ fingerprint: 'app/app.css::(stylesheet)::control-state-style::.tab[aria-selected="true"]::', file: "app/app.css", line: 3 }], {});
+        expect(formatComparison(selected)[0]).toMatch(/^New hand-rolled control: /);
     });
 });
 describe("findOffendersInSource: stylesheets", () => {
