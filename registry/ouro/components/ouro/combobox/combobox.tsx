@@ -652,6 +652,8 @@ function ListBody({
  * it hides deeper in the page, stays hidden. It reads only the input and the list, never the
  * whole page, so opening the list costs no search of the page. It renders in the portal, which
  * holds the list only while it is open.
+ *
+ * @claim "It reads only the input and the list, never the whole page, so opening the list costs no search of the page." registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox > opens its list without searching the whole page, while it keeps the page exposed)
  */
 function KeepPageExposed({ input, list }: { input: RefObject<HTMLElement | null>; list: RefObject<HTMLElement | null> }): null {
   useLayoutEffect(
