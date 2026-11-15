@@ -1216,7 +1216,7 @@ describe("MessageList windowing", () => {
   });
 
   it("diagnosis: Springs at rest changes no rows over 60 frames (not for merging)", async () => {
-    const { renderStory, settle: settleStory, cleanupStories, stories } = await import("@/test/stories");
+    const { renderStory, settle: settleStory, cleanupStories, stories } = await import("../../../../../test/stories");
     const entry = stories.find((story) => story.id === "MessageList/Springs")!;
     const seen: string[] = [];
     for (const width of [390, 1280]) {
