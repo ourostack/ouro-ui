@@ -643,6 +643,37 @@ test("Pages names GitHub's newest release before it builds, whatever main's pack
   assert.ok(pages.indexOf("scripts/namespace.sh _site/r") > set, "and before the namespace builds");
 });
 
+test("Pages writes core's newest release into the Platforms pages before it builds, and keeps main's copies when GitHub cannot be read", () => {
+  const pages = workflow("pages.yml");
+  const write = pages.indexOf("node scripts/platform-versions.mjs --write || code=$?");
+  const render = pages.indexOf("node scripts/parity-matrix.mjs --render");
+  assert.ok(write > 0, "pages.yml writes core's copies and the Platforms pages from GitHub");
+  assert.ok(render > write, "then renders the parity page from the copies it wrote");
+  assert.ok(pages.indexOf("pnpm site:build") > render, "before the site builds");
+  assert.match(pages, /if \[ "\$code" = 2 \]; then\n\s+echo "Core's newest release could not be read[^\n]*>> "\$GITHUB_STEP_SUMMARY"\n\s+elif \[ "\$code" != 0 \]; then\n\s+exit "\$code"\n\s+fi\n/);
+});
+
+test("the scheduled Apple check holds only what is pinned, through --live, and only Pages writes core's release and the kits' newest releases", () => {
+  const apple = workflow("apple-release.yml");
+  assert.match(apple, /run: node scripts\/platform-versions\.mjs --live$/m);
+  assert.match(apple, /run: node scripts\/parity-matrix\.mjs --live$/m);
+  assert.doesNotMatch(apple, /platform-versions\.mjs --(write|render|apple)/);
+  assert.doesNotMatch(apple, /run: node scripts\/parity-matrix\.mjs --(write|render)/);
+  assert.match(workflow("pages.yml"), /node scripts\/platform-versions\.mjs --write/);
+  assert.match(workflow("pages.yml"), /node scripts\/parity-matrix\.mjs --write/);
+});
+
+test("Pages writes the other kits' newest releases into the parity matrix before it builds, and keeps main's copy when GitHub cannot be read", () => {
+  const pages = workflow("pages.yml");
+  const core = pages.indexOf("node scripts/platform-versions.mjs --write || code=$?");
+  const write = pages.indexOf("node scripts/parity-matrix.mjs --write || code=$?");
+  const render = pages.indexOf("node scripts/parity-matrix.mjs --render");
+  assert.ok(write > core, "pages.yml writes the matrix's kits after core's copies");
+  assert.ok(render > write, "then renders the matrix from the data it wrote");
+  assert.ok(pages.indexOf("pnpm site:build") > render, "before the site builds");
+  assert.match(pages, /if \[ "\$code" = 2 \]; then\n\s+echo "The other kits' newest releases could not be read[^\n]*>> "\$GITHUB_STEP_SUMMARY"\n\s+elif \[ "\$code" != 0 \]; then\n\s+exit "\$code"\n\s+fi\n/);
+});
+
 test("CI cancels only a pull request's superseded run: never a merge-queue, main or dispatched run", () => {
   const text = workflow("ci.yml");
   const block = text.split("\nconcurrency:\n")[1].split(/\n(?=\S)/)[0];
@@ -1219,7 +1250,9 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   assert.match(block, /^ {8}shard: \[1, 2, 3, 4, 5, 6, 7, 8\]$/m);
   // The check itself, through the repository's action, on the build, with the waivers file and no way to pass a finding.
   assert.match(block, /uses: \.\/\.github\/actions\/check\n {8}with:\n {10}targets: site\/dist\n {10}sizes: 390x844,1440x900,3840x2160\n {10}shard: \$\{\{ matrix\.shard \}\}\/8\n {10}script: registry\/ouro\/check\/check\.ts\n {10}config: \.github\/ouro-check\.json\n/);
-  assert.doesNotMatch(block, /continue-on-error|themes:/);
+  assert.doesNotMatch(block, /continue-on-error/);
+  // The first shard also checks the converted components' pages with the corner-shape fallback forced on.
+  assert.match(block, /targets: site\/dist-fallback\n {10}sizes: 390x844,1440x900\n {10}themes: dark,light\n/);
   assert.match(block, /^ {6}- if: steps\.relevance\.outputs\.run != 'false'\n {8}run: pnpm site:build$/m);
   // Off a pull request (the merge queue, main, a dispatch) it always runs.
   for (const event of ["merge_group", "push", "workflow_dispatch"]) assert.deepEqual(runStep(stepScript(block, "Can the change reach the site?"), { EVENT: event }).output, { run: "true" }, event);
@@ -1884,6 +1917,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "screens.yml": "  group: screens-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "stale-pages.yml": "  group: stale-pages-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];

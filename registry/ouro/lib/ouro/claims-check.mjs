@@ -3,7 +3,8 @@
 //
 //   node src/lib/ouro/claims-check.mjs check            lints every surface, runs every claim's checks
 //   node src/lib/ouro/claims-check.mjs lint <file>…     the same for some files; --pr lints a pull
-//                                                       request's title and body (PR_TITLE, PR_BODY),
+//                                                       request's title and body (PR_TITLE, PR_BODY, or
+//                                                       --title and --body-file),
 //                                                       --stdin [--name <name>] reads a draft
 //   node src/lib/ouro/claims-check.mjs show <file>…     lists a file's claims, sources and checks
 //   node src/lib/ouro/claims-check.mjs ratchet          with CLAIMS_BASE_REF and PR_BODY: fails on an
@@ -84,6 +85,14 @@ export function classify(file, config) {
 const MONTH = "January|February|March|April|May|June|July|August|September|October|November|December";
 const DATE = new RegExp(`\\b(?:19|20)\\d\\d-\\d\\d-\\d\\d\\b|\\b(?:${MONTH})(?:\\s+\\d{1,2},?)?\\s+(?:19|20)\\d\\d\\b|\\b\\d{1,2}\\s+(?:${MONTH})\\s+(?:19|20)\\d\\d\\b`, "g");
 const VERSION = /\bv?\d+\.\d+(?:\.\d+)*\b(?![:\d])/g;
+/** An issue or pull request reference, "#1074" or "owner/repo#1074": a name for a thread, not a count. GitHub URLs are masked as addresses already. */
+const REFERENCE = /(?:[\w.-]+\/[\w.-]+)?#\d+\b/g;
+/** A GitHub Actions run or job ID after "run" or "job" ("main run 43581029577"), which is a name, not a count. Its URL is masked as an address already. */
+const RUN_ID = /(?<=\b(?:run|job)s?\s+)\d{6,}\b/gi;
+/** A commit SHA: a run of lowercase hex characters, long enough for a short SHA, with a digit and a letter, so a plain number or a word such as "deadbeef" is not one. */
+const COMMIT = /\b(?=[0-9a-f]{7,40}\b)(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/g;
+/** The names a sentence may use for a thread, run or commit are not counts. */
+const IDENTIFIERS = [REFERENCE, RUN_ID, COMMIT];
 
 /** Numbers in words: "three themes", "a dozen helpers". Not "one", which mostly means "a" ("in one app"). */
 const NUMBER_WORDS = /\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|dozens?)\b/gi;
@@ -95,7 +104,8 @@ const WORDS = [
   ["every", /\bevery(?:thing|one|where)?\b/i],
   ["all", /\ball\b/i],
   ["each", /\beach\b/i],
-  ["no", /\b(?:no|zero|none)\b/i],
+  // "no longer" describes a change, and "no-break" is a noun, so neither is a universal negative.
+  ["no", /\b(?:no(?!\s+longer\b|-[a-z])|zero|none)\b/i],
   ["always", /\b(?:always|never)\b/i],
   ["fully", /\bfully\b/i],
   ["works with", /\bworks?\s+with\b/i],
@@ -208,10 +218,11 @@ function triggersOf(masked) {
     found.push({ kind, words });
     text = text.replace(pattern, (match) => " ".repeat(match.length));
   };
+  for (const identifier of IDENTIFIERS) text = text.replace(identifier, (match) => " ".repeat(match.length));
   take("date", DATE);
   take("version", VERSION);
-  // A digit inside a name ("e2e", "h1") is part of the name; "v2" and "x4" still count.
-  take("number", /(?<![A-Za-uwyz])\d+/g);
+  // A digit inside a name ("e2e", "h1", "p95") is part of the name; "v2" and "x4" still count.
+  take("number", /(?<![A-Za-uwyz\d])\d+/g);
   const spelled = [...text.matchAll(NUMBER_WORDS)].map((match) => match[0]);
   if (spelled.length > 0) {
     const number = found.find((entry) => entry.kind === "number");
@@ -1348,7 +1359,7 @@ export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}
   const option = (name) => (rest.includes(name) ? rest[rest.indexOf(name) + 1] : undefined);
   const root = option("--root") ?? defaultRoot;
   const network = flag("--network") ? true : flag("--network=changed") ? "changed" : false;
-  const positional = rest.filter((arg, index) => !arg.startsWith("--") && !["--root", "--name"].includes(rest[index - 1] ?? ""));
+  const positional = rest.filter((arg, index) => !arg.startsWith("--") && !["--root", "--name", "--title", "--body-file"].includes(rest[index - 1] ?? ""));
   const config = loadConfig(root);
   const report = (failures, ok) => {
     for (const failure of failures) process.stderr.write(`${failure.message}\n`);
@@ -1369,10 +1380,21 @@ export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}
     const failures = [];
     const verbs = new Set(config.instructionVerbs);
     if (flag("--pr")) {
-      failures.push(...readMarkdown((process.env.PR_TITLE ?? "").replace(/^#+\s*/, ""), { file: "pull request title", verbs }).findings);
-      const body = readMarkdown(process.env.PR_BODY ?? "", { file: "pull request body", verbs });
-      claims.push(...body.claims);
-      failures.push(...body.findings);
+      // --title and --body-file give the text a contributor's shell passes; CI passes it in PR_TITLE and PR_BODY.
+      const title = option("--title") ?? process.env.PR_TITLE ?? "";
+      let body = process.env.PR_BODY ?? "";
+      if (flag("--body-file")) {
+        try {
+          body = readFileSync(option("--body-file"), "utf8");
+        } catch (error) {
+          process.stderr.write(`--body-file: ${error.message}\n`);
+          return 2;
+        }
+      }
+      failures.push(...readMarkdown(title.replace(/^#+\s*/, ""), { file: "pull request title", verbs }).findings);
+      const result = readMarkdown(body, { file: "pull request body", verbs });
+      claims.push(...result.claims);
+      failures.push(...result.findings);
     }
     if (flag("--stdin")) {
       const result = readMarkdown(readFileSync(0, "utf8"), { file: option("--name") ?? "stdin", verbs });
@@ -1420,7 +1442,7 @@ export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}
     }
     return 0;
   }
-  process.stderr.write("Usage: claims-check.mjs check [--network | --network=changed] | lint [<file>…] [--pr] [--stdin [--name <name>]] | show <file>… | ratchet\n");
+  process.stderr.write("Usage: claims-check.mjs check [--network | --network=changed] | lint [<file>…] [--pr [--title <title>] [--body-file <path>]] [--stdin [--name <name>]] | show <file>… | ratchet\n");
   return 2;
 }
 

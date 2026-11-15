@@ -1,0 +1,1 @@
+- Changed: the `hand-drawn-corner` source rule leaves a stylesheet rule alone when it sets `corner-shape: round` or follows an `ouro-allow hand-drawn-corner` comment that gives a reason.

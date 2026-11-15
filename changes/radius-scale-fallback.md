@@ -1,0 +1,1 @@
+- An app's own `--ouro-radius-scale` now multiplies with the Safari fallback factor, kept in `--ouro-corner-fallback`, so a custom scale keeps the fallback step.

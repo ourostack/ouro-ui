@@ -1,0 +1,1 @@
+- Fixed: Ouro check's nested-frame rule skips a component's own surface layer (`data-ouro-surface`, `data-ouro-avatar-surface`) and keeps checking its real children, which fixes Button, Card, Dialog and TextField in browsers without corner-shape.

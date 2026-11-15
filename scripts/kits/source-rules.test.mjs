@@ -2589,6 +2589,12 @@ describe("hand-drawn corner radius, widened", () => {
         ].join("\n");
         expect(categories(css, "app/app.css")).toEqual([]);
     });
+    it("passes a stylesheet radius with corner-shape: round, or under an ouro-allow comment that gives a reason, and flags one without a reason", () => {
+        expect(categories(".a { border-radius: 12px; corner-shape: round; }", "app/app.css")).toEqual([]);
+        expect(categories("/* ouro-allow hand-drawn-corner: speech bubble */\n.a { border-radius: 12px; }\n.b { border-radius: 8px; }", "app/app.css")).toEqual([]);
+        expect(categories(".chrome { border-radius: 4px; }\n/* ouro-allow hand-drawn-corner: panel */\n.bubble { border-radius: 12px; }", "app/app.css")).toEqual(["hand-drawn-corner"]);
+        expect(categories("/* ouro-allow hand-drawn-corner: */\n.a { border-radius: 12px; }", "app/app.css")).toEqual(["hand-drawn-corner"]);
+    });
     it("flags rounded-full on a large oblong box or a structural element", () => {
         const source = [
             'export const A = () => <div className="h-40 w-96 rounded-full">x</div>;',

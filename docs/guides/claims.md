@@ -7,7 +7,7 @@ A factual sentence in this repository is a claim: it carries the primary source 
 ```sh
 pnpm claims:check                  # lint every surface, then run every claim's checks
 pnpm claims:check --network        # the same, fetching every urlOk address again into scripts/claims-urls.json
-pnpm claims:lint <file>…           # the same for some files; --pr for a pull request, --stdin for a draft
+pnpm claims:lint <file>…           # the same for some files; --pr for a pull request (--title, --body-file, and its branch's change fragments), --stdin for a draft
 pnpm claims:show <file>…           # each claim in a file, its sources, and whether each check holds
 node scripts/claims.mjs ratchet    # claims.config.json's exemptions against CLAIMS_BASE_REF, named in PR_BODY
 ```
@@ -15,7 +15,7 @@ node scripts/claims.mjs ratchet    # claims.config.json's exemptions against CLA
 Where they run:
 
 - The `ci` check runs `pnpm claims:check`, in its `checks` job. On a pull request it first runs the ratchet against the base branch, then reads the required checks at the base branch and fetches again the addresses the pull request adds to the cache or changes (`--network=changed`).[^ci] The job reads the description as it is when it runs, so after editing the description to name an exemption, re-run the job.[^live-body]
-- The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow]
+- The Claims workflow lints a pull request's title and body, and runs the ratchet, when the pull request opens and whenever its description is edited.[^claims-workflow] Before you open one, `pnpm claims:lint --pr --title "<title>" --body-file <file>` runs the same title and body check locally and lints the change fragments (`changes/*.md`) the branch adds or changes, which the full check reads only along with the other surfaces.
 - The Claim addresses workflow runs `pnpm claims:check --network` every week.[^addresses-workflow]
 
 ## What needs a source

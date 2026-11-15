@@ -19,3 +19,19 @@ test("the tool's card renders in its host, and each button reaches the host as i
   await expect(log.nth(2)).toHaveText("ui/open-link https://kitchen.example.com/recipes/rcp_lemon_orzo?do=order_ingredients");
   await expect(log).toHaveCount(3);
 });
+
+test("a composed tree in the tool's result renders in its host, and its buttons reach the host the same way", async ({ page }) => {
+  await openStory(page, "display-ouromcpapp--in-host-tree");
+  const view = page.locator('[data-ouro="ouro-mcp-app"]');
+  const log = page.locator("[data-host-log] li");
+  await expect(view.locator('[data-ouro="composed-surface"]').getByRole("heading", { level: 1 })).toHaveText("Charred Lemon Orzo");
+  await view.getByRole("button", { name: "Add ingredients to list" }).click();
+  await expect(log).toHaveText(['tools/call add_recipe_to_shopping_list {"recipe":"rcp_lemon_orzo","servings":4}']);
+  await view.getByRole("button", { name: "Share recipe" }).click();
+  const confirm = page.getByRole("alertdialog", { name: "Share recipe?" });
+  await expect(confirm).toContainText("sam@example.com");
+  await confirm.getByRole("button", { name: "Share recipe" }).click();
+  await expect(log.nth(1)).toHaveText('tools/call share_recipe {"recipe":"rcp_lemon_orzo","with":"sam@example.com"}');
+  await view.getByRole("button", { name: "Order ingredients" }).click();
+  await expect(log.nth(2)).toHaveText("ui/open-link https://kitchen.example.com/recipes/rcp_lemon_orzo?do=order_ingredients");
+});

@@ -675,20 +675,20 @@ test("on a phone the docs menu's folded lists hold no pages until they unfold, t
   const panel = group.locator("[data-ouro-collapsible-panel]");
   // Folded, the list is not in the page at all: nothing in it to style with the sheet.
   await expect(panel.locator("a")).toHaveCount(0);
-  // It slides open, not in one step: as its height transition starts, the panel held at the transition's midpoint is
+  // It slides open, not in one step: as its row transition starts, the panel held at the transition's midpoint is
   // part-way open, and the transition then runs to its end rather than being cut short. Read that way, a runner that
   // draws a frame a second still sees the slide, where a sample of each frame could miss all of it (#684). The seek
   // halves the slide's length in this test only.
-  // It assumes the Collapsible slides with a CSS transition on `height`, with no delay past half its length and no
-  // easing that overshoots: a slide moved to `max-height`, a Web Animation or script fails it and needs this test changed.
+  // It assumes the Collapsible slides with a CSS transition on `grid-template-rows`, with no delay past half its length and no
+  // easing that overshoots: a slide moved to `height` or `max-height`, a Web Animation or script fails it and needs this test changed.
   await group.evaluate((element) => {
-    const height = (event: Event) => (event as TransitionEvent).propertyName === "height" && (event.target as Element).matches("[data-ouro-collapsible-panel]");
+    const height = (event: Event) => (event as TransitionEvent).propertyName === "grid-template-rows" && (event.target as Element).matches("[data-ouro-collapsible-panel]");
     element.addEventListener("transitionrun", (event) => {
       if (!height(event) || element.dataset["midway"]) return;
       const target = event.target as HTMLElement;
-      const slide = target.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "height");
+      const slide = target.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "grid-template-rows");
       if (!slide) {
-        element.dataset["midway"] = "no height transition";
+        element.dataset["midway"] = "no row transition";
         return;
       }
       const duration = Number(slide.effect!.getComputedTiming().duration);

@@ -11,13 +11,13 @@
 
 :root {
   --color-input: var(--input);
-  --radius-sm: calc(var(--radius) * var(--ouro-radius-scale, 1) * 0.6);
-  --radius-md: calc(var(--radius) * var(--ouro-radius-scale, 1) * 0.8);
-  --radius-lg: calc(var(--radius) * var(--ouro-radius-scale, 1));
-  --radius-xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 1.4);
-  --radius-2xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 1.8);
-  --radius-3xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 2.2);
-  --radius-4xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * 2.6);
+  --radius-sm: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6);
+  --radius-md: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.8);
+  --radius-lg: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));
+  --radius-xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 1.4);
+  --radius-2xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 1.8);
+  --radius-3xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 2.2);
+  --radius-4xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 2.6);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -27,6 +27,7 @@
   --radius: 0.9375rem;
   --ouro-corner-shape: squircle;
   --ouro-radius-scale: 1;
+  --ouro-corner-fallback: 1;
   --destructive-foreground: #ffffff;
   --success: #157d3c;
   --success-foreground: #ffffff;
@@ -115,22 +116,32 @@
 
 @supports not (corner-shape: squircle) {
   :root {
-    --ouro-radius-scale: 0.7;
+    --ouro-corner-fallback: 0.7;
   }
 }
 
 @supports not (corner-shape: squircle) {
-  [data-ouro-squircle] {
+  [data-ouro-squircle][class*="bg-(--ouro-bg)"] {
     background-color: transparent;
+  }
+  [data-ouro-squircle][class*="border-(--ouro-bd)"] {
     border-color: transparent;
+  }
+  [data-ouro-squircle] {
     --tw-ring-color: transparent;
   }
   [data-ouro-squircle]::before {
     display: none;
   }
+  [data-ouro-surface],
+  [data-ouro-avatar-surface] {
+    --ouro-sq-o: 0 calc(var(--ouro-sq-r)*1), calc(var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), calc(var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), 100% calc(var(--ouro-sq-r)*1), 100% calc(100% - var(--ouro-sq-r)*1), calc(100% - var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), calc(100% - var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), 0 calc(100% - var(--ouro-sq-r)*1);
+  }
+  [data-ouro-avatar-surface] {
+    clip-path: polygon(var(--ouro-sq-o));
+  }
   [data-ouro-surface] {
     --ouro-sq-m: max(0px, calc(var(--ouro-sq-r) - var(--ouro-sq-w)));
-    --ouro-sq-o: 0 calc(var(--ouro-sq-r)*1), calc(var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), calc(var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*1) 0, calc(100% - var(--ouro-sq-r)*0.38) calc(var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*0.16) calc(var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.04) calc(var(--ouro-sq-r)*0.38), 100% calc(var(--ouro-sq-r)*1), 100% calc(100% - var(--ouro-sq-r)*1), calc(100% - var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), calc(100% - var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(100% - var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(100% - var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*1) 100%, calc(var(--ouro-sq-r)*0.38) calc(100% - var(--ouro-sq-r)*0.04), calc(var(--ouro-sq-r)*0.16) calc(100% - var(--ouro-sq-r)*0.16), calc(var(--ouro-sq-r)*0.04) calc(100% - var(--ouro-sq-r)*0.38), 0 calc(100% - var(--ouro-sq-r)*1);
     display: block;
     position: absolute;
     inset: 0;

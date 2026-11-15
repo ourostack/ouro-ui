@@ -119,7 +119,7 @@
     {
       "match": "^registry/ouro/lib/ouro/a2ui-core\\.ts$",
       "mode": "input",
-      "reason": "core's A2UI module, copied byte for byte from the ouro-ui-core release test/fixtures/a2ui/core.json pins; its claims are checked in ouro-ui-core, and an edit here fails test/a2ui.test.ts"
+      "reason": "core's A2UI module, vendored by scripts/core-bundle.mts from the ouro-ui-core release test/fixtures/a2ui/core.json pins; its claims are checked in ouro-ui-core, and an edit here fails test/a2ui.test.ts"
     },
     {
       "match": "^registry/ouro/ax/fixtures/",

@@ -5,7 +5,9 @@ import { page, userEvent } from "vitest/browser";
 import { OuroMcpApp, type OuroMcpAppProps } from "@/registry/ouro/components/ouro/mcp-app/ouro-mcp-app";
 import { A2UISurface } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-surface";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
+import { ComposedSurface } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
 import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
+import { actionButtonProps, loadCatalog, mcpAppTreeResult, type ComposedNode, type Obj } from "@/registry/ouro/lib/ouro/a2ui-core";
 import type { McpAppHostLink, McpAppMessage } from "@/registry/ouro/lib/ouro/mcp-app";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -48,6 +50,18 @@ const card = (name: string) => [
 ];
 
 const toolResult = (messages: unknown[], text = "Here is the recipe.") => ({ content: [{ type: "text", text }], structuredContent: { a2ui: { version: "1.0", catalogId: catalog.catalogId, messages } } });
+
+// The same card as Ouro's composed tree, built in code and wrapped by core's mcpAppTreeResult: no A2UI in between.
+const node = (id: string, component: string, props: Obj = {}, children: ComposedNode[] = []): ComposedNode => ({ id, component, props, children });
+const button = (id: string, action: string, input: Obj) => node(id, "ActionButton", { ...actionButtonProps(loadCatalog(catalog), action, input), emphasis: "secondary" });
+const tree = (name: string) =>
+  node("root", "Card", {}, [
+    node("name", "Heading", { text: name, level: 1 }),
+    button("shop", "add_recipe_to_shopping_list", { recipe: "rcp_1", servings: 4 }),
+    button("share", "share_recipe", { recipe: "rcp_1", with: "sam@example.com" }),
+    button("order", "order_ingredients", {}),
+  ]);
+const treeResult = (name: string, text = "Here is the recipe.") => mcpAppTreeResult({ text, catalog: loadCatalog(catalog), tree: tree(name) });
 
 type Reply = { result: object } | { error: { code: number; message: string } } | "never";
 
@@ -158,7 +172,7 @@ describe("OuroMcpApp", () => {
   it("says the card can't be shown when the tool's result carries none", async () => {
     const host = testHost();
     const { container } = await open(host);
-    for (const params of [{ content: [] }, { structuredContent: [] }, { structuredContent: { a2ui: [] } }, { structuredContent: { a2ui: { messages: {} } } }]) {
+    for (const params of [{ content: [] }, { structuredContent: [] }, { structuredContent: { a2ui: [] } }, { structuredContent: { a2ui: { messages: {} } } }, { structuredContent: { ouro: { version: "1" } } }]) {
       await host.deliver({ method: "ui/notifications/tool-result", params });
       const alert = await rendered(<Alert tone="destructive" title="This card can't be shown" description="The tool's result had no card in it." />);
       expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.innerHTML).toBe(alert.innerHTML);
@@ -396,5 +410,61 @@ describe("OuroMcpApp", () => {
     await render(<OuroMcpApp catalog={catalog} />);
     expect(post).toHaveBeenCalledWith({ jsonrpc: "2.0", id: 1, method: "ui/initialize", params: { appInfo: { name: "Ouro HX card", version: "1.0.0" }, appCapabilities: {}, protocolVersion: "2026-01-26" } }, "*");
     post.mockRestore();
+  });
+
+  it("draws a composed tree in structuredContent.ouro with ComposedSurface", async () => {
+    const host = testHost();
+    const { container } = await open(host);
+    await host.deliver({ method: "ui/notifications/tool-result", params: treeResult("Charred Lemon Orzo") });
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Charred Lemon Orzo");
+    const surface = await rendered(<ComposedSurface tree={tree("Charred Lemon Orzo")} onPress={() => {}} onHandoff={() => {}} />);
+    expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.innerHTML).toBe(surface.innerHTML);
+    expect(host.requests("ui/update-model-context")).toEqual([]);
+  });
+
+  it("calls a tree button's own tool with the prepared input, a consequential one only after the person confirms, and shows a tree the tool returns", async () => {
+    const replies = [{ result: { content: [{ type: "text", text: "Added." }] } }, { result: treeResult("Shared with Sam", "Shared.") }];
+    const host = testHost({ replies: { "tools/call": () => replies.shift()! } });
+    await open(host, { handoffUrl: ({ action }) => `https://kitchen.example.com/recipes/rcp_1?do=${action}` });
+    await host.deliver({ method: "ui/notifications/tool-result", params: treeResult("Charred Lemon Orzo") });
+    await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
+    await expect.element(page.getByText("Added.")).toBeInTheDocument();
+    await userEvent.click(page.getByRole("button", { name: "Share recipe" }));
+    const confirm = page.getByRole("alertdialog", { name: "Share recipe?" });
+    await expect.element(confirm).toBeVisible();
+    expect(host.requests("tools/call")).toHaveLength(1);
+    await userEvent.click(confirm.getByRole("button", { name: "Share recipe" }));
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Shared with Sam");
+    await expect.element(page.getByText("Shared.")).toBeInTheDocument();
+    expect(host.requests("tools/call")).toEqual([
+      { name: "add_recipe_to_shopping_list", arguments: { recipe: "rcp_1", servings: 4 } },
+      { name: "share_recipe", arguments: { recipe: "rcp_1", with: "sam@example.com" } },
+    ]);
+    await userEvent.click(page.getByRole("button", { name: "Order ingredients" }));
+    await vi.waitFor(() => expect(host.requests("ui/open-link")).toEqual([{ url: "https://kitchen.example.com/recipes/rcp_1?do=order_ingredients" }]), { timeout: 10_000 });
+    expect(host.requests("tools/call")).toHaveLength(2);
+  });
+
+  it("tells the agent what to correct when a composed tree fails the checks, and shows the person the same short alert", async () => {
+    const host = testHost({ replies: { "ui/update-model-context": () => ({ error: { code: -32000, message: "Not now" } }) } });
+    const { container } = await open(host);
+    const relabelled = tree("Charred Lemon Orzo");
+    relabelled.children[1]!.props.label = "Buy now";
+    relabelled.children.push(node("clip", "Video", { url: "https://example.com/a.mp4" }));
+    await host.deliver({ method: "ui/notifications/tool-result", params: { content: [], structuredContent: { ouro: { version: "1", catalogId: catalog.catalogId, tree: relabelled } } } });
+    const alert = await rendered(<Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />);
+    expect(container.querySelector('[data-ouro="ouro-mcp-app"]')!.innerHTML).toBe(alert.innerHTML);
+    expect(container.querySelector("button")).toBeNull();
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(1), { timeout: 10_000 });
+    const [update] = host.requests("ui/update-model-context") as { content: { type: string; text: string }[]; structuredContent: { ouroProblems: { path: string; message: string }[] } }[];
+    const problems = update!.structuredContent.ouroProblems;
+    expect(problems.map((p) => p.path)).toEqual(["/children/1/props/label", "/children/4/component"]);
+    expect(update!.content).toEqual([{ type: "text", text: `The card didn't pass the checks for composed UI: ${problems.map((p) => `${p.path}: ${p.message}`).join(" ")}` }]);
+    // A tree for another app's catalog fails too, even when its components are this one's.
+    await host.deliver({ method: "ui/notifications/tool-result", params: { structuredContent: { ouro: { version: "1", catalogId: "https://example.com/other.json", tree: tree("Charred Lemon Orzo") } } } });
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(2), { timeout: 10_000 });
+    const [, other] = host.requests("ui/update-model-context") as { structuredContent: { ouroProblems: { path: string }[] } }[];
+    expect(other!.structuredContent.ouroProblems).toEqual([{ path: "/catalogId", message: `The tree is for catalog "https://example.com/other.json"; this view draws ${catalog.catalogId}.` }]);
+    expect(container.querySelector("button")).toBeNull();
   });
 });

@@ -648,6 +648,28 @@ jobs:
           config: .github/ouro-check.json
           artifact: design-check
           install-browser: "false"
+      # Safari and macOS WebView have no corner-shape, and Playwright's WebKit and Chromium do, so the
+      # fallback (the clip-path surfaces) never shows in the shards above. Shard 1 runs the check again on
+      # the pages of every converted component with the fallback rules switched on in every engine.
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+        name: Prepare the fallback copy of the site
+        run: |
+          fallback=site/dist-fallback
+          mkdir -p "$fallback/docs"
+          cp -R site/dist/. "$fallback/"
+          find "$fallback/docs" -mindepth 1 -maxdepth 1 ! -name button ! -name card ! -name dialog ! -name text-field ! -name avatar ! -name badge ! -name toggle -exec rm -rf {} +
+          find "$fallback" -name '*.css' -exec sed -i.bak -E 's/@supports not \(corner-shape: ?squircle\)/@media all/g' {} +
+          grep -rlE '@media all' "$fallback" --include='*.css' | head -1 | grep -q .
+      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 1
+        uses: ./.github/actions/check
+        with:
+          targets: site/dist-fallback
+          sizes: 390x844,1440x900
+          themes: dark,light
+          script: registry/ouro/check/check.ts
+          config: .github/ouro-check.json
+          artifact: design-check-fallback
+          install-browser: "false"
   ci:
     # Passes when every part of it passed (checks, attribution, every design shard, every browser shard, the coverage
     # job and every script test job) and the browser shards' merged coverage reached 100%; or, on a
@@ -1502,12 +1524,16 @@ jobs:
           cache: ""
       # The prepared app is a function of the files below, so a commit that changes none of them
       # restores the app an earlier commit prepared and checked (a cache is saved only by a job that
-      # passed), and the prepare steps are skipped.
+      # passed), and the prepare steps are skipped. A commit that changes some restores the newest
+      # earlier app built from the same install scripts and fixture (the restore key), and the add
+      # below installs again only the items whose built content changed (scripts/install-delta.mjs).
       - id: prepared
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/app.tar.zst
-          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/install-delta.mjs', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+          restore-keys: |
+            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/install-delta.mjs', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
       # npm's download cache, seeded from the newest earlier one, so a changed registry file does not
       # download every package again.
       - id: npmcache
@@ -1529,11 +1555,14 @@ jobs:
           key: install-base-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', '!registry/**/*.test.ts', '!registry/**/*.test.tsx', '!registry/**/*.test-d.ts', '!registry/**/*.stories.tsx', '!registry/ouro/e2e/**', '!registry/ouro/lib/ouro/testing/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml') }}
       - if: steps.prepared.outputs.cache-hit != 'true'
         run: pnpm i --frozen-lockfile
+      - name: Restore the earlier app
+        if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key != ''
+        run: tar -I zstd -xf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")"
       - name: Restore the base
-        if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit == 'true'
+        if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key == '' && steps.base.outputs.cache-hit == 'true'
         run: tar -I zstd -xf "$RUNNER_TEMP/base.tar.zst" -C "$(dirname "$OURO_APP")"
       - name: Prepare the base
-        if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit != 'true'
+        if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key == '' && steps.base.outputs.cache-hit != 'true'
         env:
           VARIANT: ${{ matrix.variant }}
           REF: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -1543,9 +1572,9 @@ jobs:
           npm_config_fund: "false"
         run: OURO_BASE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
       - name: Pack the base
-        if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit != 'true'
+        if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key == '' && steps.base.outputs.cache-hit != 'true'
         run: tar -I zstd -cf "$RUNNER_TEMP/base.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/base.tar.zst"
-      - if: steps.prepared.outputs.cache-hit != 'true' && steps.base.outputs.cache-hit != 'true'
+      - if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key == '' && steps.base.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/base.tar.zst
@@ -1559,7 +1588,23 @@ jobs:
           npm_config_prefer_offline: "true"
           npm_config_audit: "false"
           npm_config_fund: "false"
-        run: OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+        run: |
+          status=0
+          OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF" || status=$?
+          # 75: the restored app cannot be proved to equal a full add (a file moved or went, a
+          # dependency changed), so start again from the base and add everything.
+          if [ "$status" -eq 75 ]; then
+            rm -rf "$OURO_APP"
+            if [ -f "$RUNNER_TEMP/base.tar.zst" ]; then
+              tar -I zstd -xf "$RUNNER_TEMP/base.tar.zst" -C "$(dirname "$OURO_APP")"
+            else
+              OURO_BASE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+            fi
+            rm -f "$OURO_APP/.ouro-added.json"
+            OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+          elif [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
       - name: Pack the app
         if: steps.prepared.outputs.cache-hit != 'true'
         run: tar -I zstd -cf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/app.tar.zst"

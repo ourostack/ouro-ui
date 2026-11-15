@@ -1,0 +1,1 @@
+- MediaTile's round badge now stays round where the squircle polyfill loads.

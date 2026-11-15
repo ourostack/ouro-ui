@@ -6,6 +6,7 @@ import { page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -987,10 +988,14 @@ describe("MessageList windowing", () => {
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     // A page of older messages goes into a whole list a few at a time: the oldest shows once it is in.
+    // Frames are held while the page goes in, so the oldest has not gone in yet however slow the runner (#789).
     items = [...conversation(100), ...items];
+    const frames = holdFrames();
     await act(async () => roots.at(-1)!.render(<Chat items={items} actionsRef={actions} windowing={false} />));
     expect(document.getElementById("m0")).toBeNull();
     await act(async () => void actions.current!.reveal("m0", { focus: true }));
+    expect(document.getElementById("m0")).toBeNull();
+    frames.release();
     await expect.poll(() => document.activeElement?.id).toBe("m0");
     await settle(scroller);
     expect(inView(scroller, "m0")).toBe(true);

@@ -103,6 +103,30 @@ it("does not scan a sheet before its deferred starting style leaves", async () =
   expect(popup.hasAttribute("data-starting-style")).toBe(false);
 });
 
+it("waits out a fade that starts after settle's first check (#1303)", async () => {
+  // The first check finds nothing; the fade starts only once it has read the page, as a late React commit's does.
+  const fade = document.createElement("div");
+  fade.style.cssText = "transition: opacity 400ms linear; opacity: 0; width: 10px; height: 10px;";
+  document.body.append(fade);
+  fade.getBoundingClientRect();
+  const getAnimations = document.getAnimations.bind(document);
+  let checks = 0;
+  document.getAnimations = () => {
+    const found = getAnimations();
+    if (checks++ === 0) fade.style.opacity = "1";
+    return found;
+  };
+  let opacity: number;
+  try {
+    await settle();
+    opacity = Number(getComputedStyle(fade).opacity);
+  } finally {
+    document.getAnimations = getAnimations;
+    fade.remove();
+  }
+  expect(opacity).toBe(1);
+});
+
 it.each([
   { id: "Tooltip/Playground", phase: /^with the tooltip of ".+" open$/ },
   { id: "NavigationMenu/Playground", phase: /^with the navigation panel of ".+" open$/ },
