@@ -1,7 +1,6 @@
 "use client";
 
-import { Avatar as BaseAvatar } from "@base-ui/react/avatar";
-import { Children, createContext, isValidElement, useContext, useState } from "react";
+import { Children, createContext, isValidElement, useContext, useLayoutEffect, useState } from "react";
 import type { HTMLAttributes, JSX, ReactNode, Ref } from "react";
 import { sizeFor } from "@/registry/ouro/lib/ouro/appearance-hints";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -252,6 +251,40 @@ const presences = ["available", "busy", "away", "do-not-disturb", "offline", "ou
 /** The group's size, which its avatars take. */
 const GroupSize = createContext<AvatarSize | undefined>(undefined);
 
+/**
+ * The picture's status: `idle` without one, `loading` while the browser fetches it, then `loaded`
+ * or `error`. The picture is drawn once it has loaded, so the initials show until then and after a
+ * failure. A picture the browser has already shows on the first paint.
+ */
+function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" | "error" {
+  // The status of the picture last asked for: an avatar with no picture never sets state, so it never draws twice.
+  const [fetched, setFetched] = useState<{ src: string; status: "loading" | "loaded" | "error" } | null>(null);
+  useLayoutEffect(() => {
+    if (!src) return;
+    let current = true;
+    let shown: "loading" | "loaded" | "error" | undefined;
+    // A status the avatar already shows sets no state, so a cached picture's late load event draws nothing again.
+    const settle = (status: "loading" | "loaded" | "error") => {
+      if (!current || status === shown) return;
+      shown = status;
+      setFetched({ src, status });
+    };
+    const image = new window.Image();
+    image.onload = () => settle("loaded");
+    image.onerror = () => settle("error");
+    image.src = src;
+    // Before paint, so a picture already in the browser's cache is there on the avatar's first frame.
+    // An image is complete as its address is set only when the browser holds that picture ready.
+    settle(image.complete ? "loaded" : "loading");
+    return () => {
+      current = false;
+    };
+  }, [src]);
+  if (src === undefined) return "idle";
+  if (!src) return "error";
+  return fetched?.src === src ? fetched.status : "idle";
+}
+
 /** The first letters of the first and last words, by code point so emoji stay whole. */
 // An agent with no icon or picture shows this sparkle in its hue, not an initial.
 function AgentGlyph(): ReactNode {
@@ -357,7 +390,7 @@ function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: b
  * from the name. `name` is required: screen readers hear it, and the initials come from it.
  * `presence` adds a status dot that says what it shows (`presenceLabel`), and
  * `shape="square"` marks a team, a channel, an app or a bot, and `shape="agent"` an AI
- * agent. Built on Base UI's Avatar, so server HTML holds the initials and the picture replaces
+ * agent. Server HTML holds the initials, and the picture replaces
  * them at full strength the moment it loads, with no fade: a picture already in the browser's
  * cache is there on the avatar's first frame.
  *
@@ -415,7 +448,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   const color = oneOf(colors, colorProp);
   // A team has no presence: a square draws no dot and says none.
   const presence = shape === "square" ? undefined : oneOf(presences, presenceProp);
-  const [image, setImage] = useState<string>("idle");
+  const image = useImageStatus(src);
   useAppearanceClassNameCheck(
     "Avatar",
     className,
@@ -461,7 +494,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   const tint = color === "neutral" ? neutral : color === "brand" ? brand : hueOf(idForColor ?? name);
   const [fill, ink] = tint.split(" ") as [string, string];
   return (
-    <BaseAvatar.Root
+    <span
       {...rest}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
       data-ouro="avatar"
@@ -487,20 +520,13 @@ export function Avatar(props: AvatarProps): JSX.Element {
           shape === "circle" ? "[--ouro-sq-r:44%]" : "[--ouro-sq-r:24%]",
           shape === "agent" ? agentTileClass : !nameLoading && fill,
           presence && biteClass,
+          image !== "loaded" && iconShown && !nameLoading && "*:size-[55%]",
+          nameLoading && "overflow-hidden",
         )}
       >
-      {src !== undefined && (
-        <BaseAvatar.Image
-          src={src}
-          alt=""
-          onLoadingStatusChange={setImage}
-          className="size-full rounded-[inherit] object-cover"
-        />
-      )}
-      <BaseAvatar.Fallback
-        className={cn("box-border flex size-full items-center justify-center", iconShown && !nameLoading && "*:size-[55%]", nameLoading && "overflow-hidden rounded-[inherit]")}
-      >
-        {nameLoading ? (
+        {image === "loaded" ? (
+          <img src={src} alt="" className="size-full rounded-[inherit] object-cover" />
+        ) : nameLoading ? (
           // The avatar's own box and corners, so it is the avatar's exact shape; the presence dot stays whole outside it.
           <Skeleton className="size-full [border-radius:inherit]" />
         ) : iconShown ? (
@@ -515,7 +541,6 @@ export function Avatar(props: AvatarProps): JSX.Element {
             className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic] before:content-[attr(data-ouro-avatar-initials)]"
           />
         )}
-      </BaseAvatar.Fallback>
       </span>
       {presence && (
         <span
@@ -525,7 +550,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
           <PresenceGlyph presence={presence} plain={plainSizes.includes(size)} />
         </span>
       )}
-    </BaseAvatar.Root>
+    </span>
   );
 }
 

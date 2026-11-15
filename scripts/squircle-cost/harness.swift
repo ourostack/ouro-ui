@@ -5,7 +5,6 @@ import WebKit
 // (page.tsx) at the address given, and prints one JSON object:
 //   bench: how long each frame's rendering takes while the area around 270 squircle controls repaints, with the
 //          surfaces drawn (on), hidden (off) and drawn as before #1385 (ref), alternated over the rounds;
-//   wheel: how many wheel events the page receives while a long conversation scrolls for 4 s, surfaces on and off;
 //   typing: each key's time from keydown to painted, typing into the chat's composer at 120 words a minute (fast) and
 //           a key every 90 ms (slow) while a message arrives every 400 ms.
 // Usage: harness <base URL> <rounds>
@@ -73,24 +72,6 @@ for (let i = 0; i < 200; i++) {
 }
 return out.slice(10);
 """
-// Wheel events at 125 a second over the conversation for 4 s, a second down and a second up in turn, as a trackpad
-// sends them: a page whose main thread is busy while it scrolls receives fewer.
-@MainActor func scroll() async -> Int {
-  _ = await run("window.probeWheels = 0; window.addEventListener('wheel', () => window.probeWheels++, { passive: true }); return 0")
-  let frame = window.convertToScreen(web.convert(web.bounds, to: nil))
-  let point = CGPoint(x: frame.midX, y: NSScreen.screens[0].frame.height - frame.midY)
-  let start = ProcessInfo.processInfo.systemUptime
-  while ProcessInfo.processInfo.systemUptime - start < 4 {
-    let up: Int32 = Int(ProcessInfo.processInfo.systemUptime - start) % 2 == 0 ? 1 : -1
-    let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: 30 * up, wheel2: 0, wheel3: 0)!
-    event.location = point
-    window.sendEvent(NSEvent(cgEvent: event)!)
-    await pause(8)
-  }
-  await pause(300)
-  return (await run("return window.probeWheels") as? Int) ?? 0
-}
-
 // A key's time to paint: from its keydown, as the system stamped it, to the first task after the frame that draws it.
 let arm = """
 window.probeKeys = [];
@@ -106,17 +87,12 @@ Task { @MainActor in
   await open("bench")
   report["engine"] = await run("return { userAgent: navigator.userAgent, cornerShape: CSS.supports('corner-shape', 'squircle'), surfaces: document.querySelectorAll('[data-ouro-surface]').length }")
   var bench: [String: [Double]] = ["on": [], "off": [], "ref": []]
-  var wheel: [String: [Int]] = ["on": [], "off": []]
   var fast: [Double] = [], slow: [Double] = []
   for round in 0..<rounds {
     let modes = ["on", "off", "ref"]
     for mode in round % 2 == 0 ? modes : modes.reversed() {
       await open(mode == "on" ? "bench" : "bench&" + mode)
       bench[mode]! += (await run(benchScript) as? [Double]) ?? []
-    }
-    for mode in round % 2 == 0 ? ["on", "off"] : ["off", "on"] {
-      await open(mode == "on" ? "scroll" : "scroll&off")
-      wheel[mode]!.append(await scroll())
     }
     for quick in round % 2 == 0 ? [true, false] : [false, true] {
       await open("chat")
@@ -137,7 +113,6 @@ Task { @MainActor in
     }
   }
   report["bench"] = bench
-  report["wheel"] = wheel
   report["typing"] = ["fast": fast, "slow": slow]
   print(String(data: try! JSONSerialization.data(withJSONObject: report), encoding: .utf8)!)
   exit(0)

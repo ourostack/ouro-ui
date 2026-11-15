@@ -15,7 +15,7 @@ import { dir, fixtures, page, quiet, site, two } from "./kit.mts";
 
 describe("Ouro check's blank page", () => {
   // A page whose goto fails as Playwright's does when a navigation the page started itself wins, for the first `lost` tries.
-  const racing = (lost: number, message = 'page.goto: Navigation to "about:blank" is interrupted by another navigation to "http://127.0.0.1/inp-pass.html?moved"') => {
+  const racing = (lost: number, message = 'page.goto: Navigation to "about:blank" is interrupted by another navigation to "http://127.0.0.1/inp-pass.html?moved"', at = "http://127.0.0.1/inp-pass.html?moved") => {
     const calls: string[] = [];
     return {
       calls,
@@ -26,6 +26,7 @@ describe("Ouro check's blank page", () => {
           return null;
         },
         waitForLoadState: async (state?: string) => void calls.push(`wait ${state}`),
+        url: () => at,
       },
     };
   };
@@ -43,6 +44,17 @@ describe("Ouro check's blank page", () => {
     const other = racing(1, "page.goto: Target page, context or browser has been closed");
     await assert.rejects(blank(other.page as never), /has been closed/);
     assert.deepEqual(other.calls, ["goto about:blank"]);
+  });
+
+  test("is done when the navigation that wins is to about:blank too, once the page has loaded it", async () => {
+    const toBlank = 'page.goto: Navigation to "about:blank" is interrupted by another navigation to "about:blank"';
+    const won = racing(3, toBlank, "about:blank");
+    await blank(won.page as never);
+    assert.deepEqual(won.calls, ["goto about:blank", "wait load"]);
+    // Still somewhere else once that has loaded, it tries again, and gives up after its last try.
+    const elsewhere = racing(3, toBlank);
+    await assert.rejects(blank(elsewhere.page as never), /is interrupted by another navigation to "about:blank"/);
+    assert.deepEqual(elsewhere.calls, ["goto about:blank", "wait load", "goto about:blank", "wait load", "goto about:blank", "wait load"]);
   });
 });
 

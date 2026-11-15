@@ -28,13 +28,23 @@ async function giveOrder(page: Page, name: string): Promise<void> {
   await expect(page.getByRole("menu")).toBeHidden();
 }
 
-/** Up, the feathers, and the organ: the saloon offers the way on. */
+/**
+ * Up, the feathers, and the organ: the saloon offers the way on. The win and the organ raise toasts that
+ * last 5 s, so a later press would pay for one leaving (its exit, and Base UI's observers redrawing the
+ * stack) in its own frame (#1484). They are closed here, and gone, before the press is measured.
+ */
 async function finish(page: Page): Promise<void> {
-  if (await saloon(page).locator("[data-chapter-next]").count()) return;
-  await giveOrder(page, ORDERS.surface);
-  await giveOrder(page, ORDERS.feathers);
-  await saloon(page).getByRole("button", { name: SALOON.play }).click();
-  await saloon(page).locator("[data-chapter-next]").waitFor();
+  if (!(await saloon(page).locator("[data-chapter-next]").count())) {
+    await giveOrder(page, ORDERS.surface);
+    await giveOrder(page, ORDERS.feathers);
+    await saloon(page).getByRole("button", { name: SALOON.play }).click();
+    await saloon(page).locator("[data-chapter-next]").waitFor();
+  }
+  // The organ's toast is raised just after the way on shows, so the toasts are closed until none is left.
+  await expect(async () => {
+    await page.evaluate(() => document.querySelectorAll<HTMLElement>('[data-ouro="toaster"] [data-ouro-part="close"]').forEach((close) => close.click()));
+    await expect(page.locator('[data-ouro="toast"]')).toHaveCount(0, { timeout: 1000 });
+  }).toPass();
 }
 
 /** Holds back a link's navigation, so its press can be measured on this page. */

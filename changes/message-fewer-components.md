@@ -1,0 +1,1 @@
+- Changed: Message draws [four fewer React components](registry/ouro/components/ouro/message/message.weight.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message.weight.test.tsx::Message's weight > draws $variant in no more than $elements elements and $components components)") per message, the same elements, so a chat with many messages opens faster.
