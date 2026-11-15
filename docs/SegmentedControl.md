@@ -23,6 +23,10 @@ import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-cont
 />
 ```
 
+## Usage
+
+A switch laid over content can keep out of the way with `revealOnHover`: with a mouse it shows only while the pointer rests on it or focus is in it.
+
 ## Use instead when
 
 - Use `Tabs` instead when each choice shows different content with its own panel.
@@ -45,6 +49,7 @@ Type: `SegmentedControlProps`.
 | `name` | `string` |  | Submits the checked segment's value under this name with the form it sits in, unless the control is `disabled`. |
 | `onValueChange` | `((value: string) => void)` |  | Called with the new segment's value when the person presses a segment. Pressing the pressed one does nothing. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the group element (`role="radiogroup"`). |
+| `revealOnHover` | `boolean` |  | For a secondary control laid over content, such as a switch on a slide: on a screen with a mouse the control stays transparent, keeping its room, until the pointer rests on it or focus is in it, then fades in. On a touch screen it shows from the start. Screen readers reach it while it is transparent too, and keyboard focus shows it. Pass `false` to show it again, as when the page's controls are turned on. |
 | `value` | `string` |  | The pressed segment's value, when you control it. Pair it with `onValueChange`. |
 
 ## Don't use

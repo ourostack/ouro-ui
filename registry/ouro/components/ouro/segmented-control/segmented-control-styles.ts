@@ -1,4 +1,4 @@
-export { groupClass, labelClass, ownLook, rootClass, segmentClass, thumbClass };
+export { groupClass, labelClass, ownLook, revealClass, rootClass, segmentClass, thumbClass };
 
 // Class strings for SegmentedControl, apart from the component so its file exports only
 // components (React Fast Refresh). Class strings are literal so the app's Tailwind finds
@@ -19,6 +19,9 @@ function ownLook(component: string): (token: string) => string {
  * @internal
  */
 const rootClass = "box-border grid min-w-0 content-start justify-items-start gap-2";
+
+// revealOnHover: with a mouse, transparent until the pointer rests on the control or focus is in it.
+const revealClass = "transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:[&:not(:hover,:focus-within)]:opacity-0";
 
 /**
  * The label, as Field draws it.
