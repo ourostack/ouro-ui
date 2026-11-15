@@ -5,10 +5,11 @@
 //   install-delta.mjs write <built items dir> <manifest>  records what an app now holds
 // An app holds what a full add would, item by item, when each item's built content is the same: the
 // manifest records a hash per built item and the paths it writes. Anything that does not fit (no
-// manifest, an item gone, a path an item stopped writing, a changed item the shipped tests do not
-// install) plans a full add, so the result is never a guess.
+// manifest, a package no item needs now, a changed root) plans a full add, so the result is never a guess.
+// Added, removed and moved items are not that: the files the shipped tests no longer write are removed
+// (install-delta.mjs remove) and the new and changed items are added again.
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
 const canonical = (value) =>
@@ -30,6 +31,7 @@ export function readItems(dir) {
     items[item.name] = {
       hash: createHash("sha256").update(JSON.stringify(canonical(rest))).digest("hex"),
       paths: (item.files ?? []).map((entry) => entry.target ?? entry.path).sort(),
+      packages: [...(item.dependencies ?? []), ...(item.devDependencies ?? [])].sort(),
       dependencies: (registryDependencies ?? []).map((dependency) => basename(dependency).replace(/\.json$/, "")).sort(),
     };
   }
@@ -47,32 +49,60 @@ export function closure(items, root) {
   return seen;
 }
 
+const targetsOf = (entries, names) => new Set([...names].flatMap((name) => entries[name]?.paths ?? []));
+
+// The app holds what a full add of the built items would write when the files the new closure no longer
+// writes are removed and the items that are new, changed or newly in the closure are added again. Anything
+// that cannot be proved so (a package an item stopped needing, a manifest that predates the package list,
+// a changed root) plans a full add.
 export function plan(items, manifest, root = "ouro-tests") {
   const full = (reason) => ({ mode: "full", reason });
   if (!manifest || typeof manifest.items !== "object" || manifest.items === null) return full("no manifest");
+  const before = manifest.items;
+  const oldClosure = closure(before, root);
   const installed = closure(items, root);
-  const names = Object.keys(items);
-  if (names.length !== Object.keys(manifest.items).length) return full("the item count changed");
-  const changed = [];
-  for (const name of names) {
-    const before = manifest.items[name];
-    const now = items[name];
-    // The shape of the install (its files and what it depends on) must be what the app was built from:
-    // a removed or moved file, or a changed dependency, is the base's job (its runtime checks), not a delta's.
-    // A file only added to an item (a new test beside the old ones) leaves nothing stale behind: adding the item again writes it.
-    // A dependency only gained is another item the app already holds from the full add; adding the item again links it.
-    const kept = before && before.paths.every((path) => now.paths.includes(path));
-    const dependenciesKept = before && before.dependencies.every((dependency) => now.dependencies.includes(dependency));
-    if (!before || !kept || !dependenciesKept) return full(`${name} changed its files or dependencies`);
-    if (before.hash !== now.hash || before.paths.length !== now.paths.length || before.dependencies.length !== now.dependencies.length) changed.push(name);
-  }
-  // An item the shipped tests do not install is not in the app, so its change leaves the app as a full add makes it.
-  if (changed.includes(root)) return full(`${root} changed outside the delta`);
-  return { mode: "incremental", items: changed.filter((name) => installed.has(name)).sort() };
+  if (!oldClosure.has(root) || !installed.has(root)) return full(`${root} is missing`);
+  if ([...oldClosure].some((name) => !Array.isArray(before[name].packages))) return full("the manifest lists no packages");
+  const rootBefore = before[root];
+  const rootNow = items[root];
+  if (rootBefore.hash !== rootNow.hash || rootBefore.paths.join() !== rootNow.paths.join()) return full(`${root} changed outside the delta`);
+  const add = [...installed].filter((name) => name !== root && (!oldClosure.has(name) || before[name].hash !== items[name].hash || before[name].paths.join() !== items[name].paths.join() || before[name].dependencies.join() !== items[name].dependencies.join()));
+  const kept = targetsOf(items, installed);
+  const remove = [...targetsOf(before, oldClosure)].filter((target) => !kept.has(target)).sort();
+  const packagesNow = new Set([...installed].flatMap((name) => items[name].packages));
+  const lost = [...oldClosure].flatMap((name) => before[name].packages).find((pkg) => !packagesNow.has(pkg));
+  if (lost) return full(`${lost} is no longer needed by an item the shipped tests install`);
+  return { mode: "incremental", items: add.sort(), remove };
 }
 
 export function manifestOf(items) {
-  return { items: Object.fromEntries(Object.entries(items).map(([name, { hash, paths, dependencies }]) => [name, { hash, paths, dependencies: [...dependencies].sort() }])) };
+  return { items: Object.fromEntries(Object.entries(items).map(([name, { hash, paths, dependencies, packages }]) => [name, { hash, paths, dependencies: [...dependencies].sort(), packages }])) };
+}
+
+// Where an item's target lands in an app: shadcn's aliases (@components, @lib) come from components.json and
+// the app's import alias from its tsconfig; "~" is the app's root. Null when the app does not say.
+export function appPath(target, aliases, tsPaths) {
+  const [head, ...rest] = target.split("/");
+  const fromAlias = (alias) => {
+    for (const [pattern, [to]] of Object.entries(tsPaths)) {
+      const star = pattern.replace(/\*$/, "");
+      if (alias.startsWith(star)) return join(to.replace(/\*$/, ""), alias.slice(star.length));
+    }
+    return null;
+  };
+  if (head === "~") return fromAlias(target);
+  const key = { "@components": "components", "@lib": "lib" }[head];
+  const base = key && aliases[key] ? fromAlias(aliases[key]) : null;
+  return base === null ? null : join(base, ...rest);
+}
+
+export function removeStale(app, targets) {
+  const aliases = JSON.parse(readFileSync(join(app, "components.json"), "utf8")).aliases ?? {};
+  const tsPaths = JSON.parse(readFileSync(join(app, "tsconfig.app.json"), "utf8")).compilerOptions?.paths ?? {};
+  const files = targets.map((target) => appPath(target, aliases, tsPaths));
+  if (files.includes(null)) return false;
+  for (const file of files) rmSync(join(app, file), { force: true });
+  return true;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -80,11 +110,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const items = readItems(dir);
   if (command === "write") {
     writeFileSync(manifestPath, `${JSON.stringify(manifestOf(items))}\n`);
+  } else if (command === "remove") {
+    // remove <built items dir> <app dir>: reads the plan's stale targets on stdin
+    const targets = JSON.parse(readFileSync(0, "utf8"));
+    if (!removeStale(manifestPath, targets)) process.exit(75);
   } else if (command === "plan") {
     const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
     console.log(JSON.stringify(plan(items, manifest)));
   } else {
-    console.error("usage: install-delta.mjs <plan|write> <built items dir> <manifest>");
+    console.error("usage: install-delta.mjs <plan|write|remove> <built items dir> <manifest or app dir>");
     process.exit(2);
   }
 }
