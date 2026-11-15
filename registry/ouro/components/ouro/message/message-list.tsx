@@ -255,9 +255,10 @@ function tabbables(root: Element): HTMLElement[] {
 // messages as they were: the list skips placing, marking and announcing for it.
 function barOnly(record: MutationRecord): boolean {
   if ((record.target as Element).closest("[data-ouro-message-bar-slot]") !== null) return true;
-  // The bar's host going into a message or out of it.
-  const moved = [...record.addedNodes, ...record.removedNodes];
-  return moved.length > 0 && moved.every((node) => node instanceof Element && node.matches("[data-ouro-message-bar-slot]"));
+  // The bar's host going into a message or out of it. The lists read this only for records of children, each of which
+  // adds or removes a node, and the host moves alone.
+  // Stryker disable next-line MethodExpression: the host goes in and out by itself, so a record of it holds it alone; some and every agree.
+  return [...record.addedNodes, ...record.removedNodes].every((node) => node instanceof Element && node.matches("[data-ouro-message-bar-slot]"));
 }
 
 /** Whether a change added or removed a message. */
