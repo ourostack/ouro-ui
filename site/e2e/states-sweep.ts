@@ -89,7 +89,7 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
               const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
               const deadline = Date.now() + 2_000;
               let quiet = 0;
-              while (quiet < 3 && Date.now() < deadline) {
+              while (quiet < 6 && Date.now() < deadline) {
                 await frame();
                 const running = document.getAnimations().filter((a) => a instanceof CSSTransition);
                 if (running.length === 0) quiet++;
@@ -99,7 +99,6 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
                 }
               }
             });
-            await page.waitForTimeout(250);
             if (!(await control.evaluate((el, p) => el.matches(p), pseudo)) || (await marks()) !== before) return;
             found.push(...(await broken(page, LOOK_SELECTOR, i)).map((m) => `${path} ${state}: ${m}`));
             const { looks: now, escapes } = await page.evaluate(describe, { selector: LOOK_SELECTOR, only: i });
