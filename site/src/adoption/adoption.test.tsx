@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
-import { cleanupPage, describeViolations, pageScanTimeout, renderFixture, renderPage, scan, setScheme } from "../../test/render";
+import { cleanupPage, describeViolations, pageScanTimeout, renderFixture, renderPage, scan, setScheme, settle } from "../../test/render";
 import { isNewer, SNAPSHOT, stamp, type Ledger, type Surface } from "./ledger";
 import { boardOf, checksOf } from "./checks";
 import { AdoptionPage } from "./adoption";
@@ -110,7 +110,8 @@ describe("the adoption page", () => {
     const host = await renderFixture(<AdoptionPage initial={SNAPSHOT} live={false} />);
     const first = counted.find((item) => item.id === SNAPSHOT.summary.order[0])!;
     host.querySelector<HTMLElement>(`#${first.id} a`)?.focus();
-    await expect.element(page.getByText(`${first.met} of 4 checks`)).toBeInTheDocument();
+    await settle();
+    expect(host.querySelector(".adoption-readout-sub")?.textContent).toBe(`${first.met} of 4 checks`);
     expect(host.querySelector(".adoption-readout-name")?.textContent).toBe(first.name);
     expect(host.querySelector<SVGElement>(`.adoption-star[data-id="${first.id}"]`)?.hasAttribute("data-active")).toBe(true);
   });

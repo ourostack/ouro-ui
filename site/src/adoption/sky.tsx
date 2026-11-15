@@ -42,7 +42,9 @@ const DUST = (() => {
     const y = next() * SIZE;
     const r = next();
     const o = next();
-    if (Math.hypot(x - CENTER, y - CENTER) < CENTER - 10) dots.push({ x: round(x), y: round(y), r: round(0.5 + r * 0.8), o: round(0.25 + o * 0.5) });
+    const from = Math.hypot(x - CENTER, y - CENTER);
+    // Kept off the middle, where the count is read, so no dust sits behind its text.
+    if (from < CENTER - 10 && from > 96) dots.push({ x: round(x), y: round(y), r: round(0.5 + r * 0.8), o: round(0.25 + o * 0.5) });
   }
   return dots;
 })();
