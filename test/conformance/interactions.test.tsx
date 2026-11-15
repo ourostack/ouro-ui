@@ -103,6 +103,20 @@ afterEach(async () => {
   await cleanupStories();
 });
 
+/**
+ * Waits, up to a second, for the shared announcer to write what an action asked of it. It writes about 100 ms after
+ * the call, and clears its text until then, so an empty announcer means a write still pending (or cancelled). A write
+ * that came late, after the next action's watch began, was heard in both (#1431: "Loading" twice).
+ */
+async function announcerWritten(): Promise<void> {
+  const end = performance.now() + 1000;
+  while (performance.now() < end) {
+    const region = document.querySelector("[data-ouro-announcer]");
+    if (!region || region.textContent !== "") return;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+}
+
 /** What the check finds for one story: each action after which focus was lost or a message was heard twice. */
 async function actionProblems({ Story, parameters }: StoryEntry): Promise<string[]> {
   const declared: ConformanceParameters = parameters.conformance ?? {};
@@ -132,6 +146,7 @@ async function actionProblems({ Story, parameters }: StoryEntry): Promise<string
         await userEvent.keyboard("{Escape}");
       }
       await settle();
+      await announcerWritten();
       const lost = lostFocus();
       const exit = control ? exitKey(control, name) : "";
       if (lost && control && declared.focusExit?.[exit]) exited.add(exit);
