@@ -44,8 +44,7 @@ async function render(node: ReactNode) {
   };
 }
 
-// Whole, unless a test asks for windowing: the springs move what is drawn, and these conversations are short.
-function Chat({ count, from = 0, height = 300, springy, windowing = false }: { count: number; from?: number; height?: number; springy?: boolean; windowing?: boolean }) {
+function Chat({ count, from = 0, height = 300, springy, windowing }: { count: number; from?: number; height?: number; springy?: boolean; windowing?: boolean }) {
   return (
     <div>
       <button type="button">Before</button>

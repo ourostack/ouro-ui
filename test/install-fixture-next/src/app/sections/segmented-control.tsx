@@ -2,8 +2,9 @@ import { SegmentedControl } from "@/components/ouro/segmented-control/segmented-
 
 // expect: Ouro segmented control
 // expect: aria-checked="true"
-// The thumb's place comes from the pressed index, so the server HTML already has it.
-// expect: --ouro-segment-index:1
+// The pressed segment is the thumb's anchor (CSS anchor positioning), so the server HTML already places it.
+// expect: position-anchor:--ouro-segment
+// expect: data-pressed=""
 export default function SegmentedControlSection() {
   return (
     <SegmentedControl
