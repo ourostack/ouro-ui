@@ -409,6 +409,22 @@ describe("Reorderable", () => {
       expect(element.hasAttribute("data-ouro-settling")).toBe(false);
     });
 
+    it("leaves focus with the menu in the move's own commit, and the closing menu gives it back to the handle", async () => {
+      const element = await render(list());
+      const grip = handle("Soften");
+      await userEvent.click(grip);
+      await menuOpen();
+      await menuSettled();
+      const item = move("Move to bottom").element() as HTMLElement;
+      item.focus();
+      // The move's commit takes no focus, so it lays nothing out: focus is where the press left it.
+      await act(async () => item.click());
+      expect(order(element)).toEqual(["Sear", "Deglaze", "Braise", "Soften"]);
+      expect(document.activeElement).toBe(item);
+      await menuClosed();
+      await expect.poll(() => document.activeElement).toBe(grip);
+    });
+
     it("leaves the page's scroll alone while the menu is open: its menu does not hold the page", async () => {
       // A dropdown: below 640px the menu is a phone sheet, which holds the page (Menu's own tests).
       await page.viewport(1024, 768);

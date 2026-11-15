@@ -319,12 +319,19 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
   const dragged = useRef(false);
   /** The rows a press stopped on their way to rest: they go on if the press is only a tap. */
   const caught = useRef<Array<{ row: HTMLElement; value: number; dropped: boolean }>>([]);
-  /** The row whose handle takes focus back after React moves its element, which drops focus. */
+  /**
+   * The row whose handle takes focus back after React moves its element, which drops focus. Only
+   * dropped focus is taken back: a move from the handle's menu leaves focus in the menu, which
+   * gives it back to the handle as it closes, after the move has painted. Focusing the handle in
+   * the move's own commit would lay out the page there, and set the closing menu checking what in
+   * it can still take focus.
+   */
   const refocus = useRef<string | null>(null);
   useLayoutEffect(() => {
     const id = refocus.current;
     if (id === null) return;
     refocus.current = null;
+    if (document.activeElement !== document.body) return;
     listRef.current!.children[order.indexOf(id)]!.querySelector("button")!.focus();
   });
 
@@ -420,7 +427,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
   const moveTo = (id: string, to: number) => {
     const from = order.indexOf(id);
     const next = moveItem(order, from, to);
-    // The row's element moves, which drops focus when the handle has it back from the menu.
+    // The row's element moves, which drops focus if the handle has it back from the menu already.
     refocus.current = id;
     setState({ key, order: next });
     say(movedLabel, id, to);
