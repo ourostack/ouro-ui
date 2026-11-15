@@ -35,7 +35,6 @@ const waivers: Record<string, string> = {
   "tab-bar": "the bar reads the window's inner size and visual viewport, which are cheap and force no layout, to know whether the keyboard is up; the guard counts the viewport reads, and the first frame needs the answer",
   "tabs": "the indicator and the selected tab need their offsets and scroll sizes in the first frame, and Base UI's tabs list reads sizes and calls scrollIntoViewIfNeeded for the selected tab",
   "thread-rail": "it mounts a message list, which pins the first frame to the newest message and needs scroll and client sizes to do so",
-  "time-grid": "the grid scrolls to the current time and sizes its hour rows before paint, so the first frame shows the right hours; it needs offsetHeight and the scroll sizes to do that",
   "toolbar": "the toolbar measures its items before paint so an overflowing row moves its items into the menu in the first frame; reading later would paint the overflow first",
 };
 

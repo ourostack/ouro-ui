@@ -183,12 +183,19 @@ export function keepEarlyInput(
       // fling, and a whole swipe in one instant would fling it far past where the finger left it.
       const took = Math.min(at.moved - at.at, 400);
       pressed.dispatchEvent(new PointerEvent("pointerdown", event(at.from[0], at.from[1], 1)));
-      for (let step = 1; step <= 4; step++) {
-        const x = at.from[0] + ((at.x - at.from[0]) * step) / 4;
-        const y = at.from[1] + ((at.y - at.from[1]) * step) / 4;
-        setTimeout(() => pressed.dispatchEvent(new PointerEvent("pointermove", event(x, y, 1))), (took * step) / 4);
-      }
-      setTimeout(() => pressed.dispatchEvent(new PointerEvent("pointerup", event(at.x, at.y, 0))), took + Math.min(at.rest, 200));
+      // Each step waits from the one before, and the lift from the last move: on a busy page a late move would otherwise
+      // be followed at once by the lift, a short rest that reads as a fling (#792).
+      const move = (step: number) => {
+        if (step > 4) {
+          setTimeout(() => pressed.dispatchEvent(new PointerEvent("pointerup", event(at.x, at.y, 0))), Math.min(at.rest, 200));
+          return;
+        }
+        setTimeout(() => {
+          pressed.dispatchEvent(new PointerEvent("pointermove", event(at.from[0] + ((at.x - at.from[0]) * step) / 4, at.from[1] + ((at.y - at.from[1]) * step) / 4, 1)));
+          move(step + 1);
+        }, took / 4);
+      };
+      move(1);
     }
   };
   const soon = () => {

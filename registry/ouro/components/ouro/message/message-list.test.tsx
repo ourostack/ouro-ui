@@ -176,6 +176,58 @@ describe("MessageList", () => {
     }
   });
 
+  it("draws its focus ring whole over content that sticks to an edge, and leaves the pointer to the content", async () => {
+    // Without messages the region itself is the Tab stop while it scrolls.
+    const { list, scroller } = await render(
+      <>
+        <button type="button">Before</button>
+        <MessageList label="Notes" style={{ height: 300 }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 10, height: 40, background: "var(--background)" }}>Notes</div>
+          <p>{"A long note. ".repeat(300)}</p>
+        </MessageList>
+      </>,
+    );
+    await expect.poll(() => scroller.getAttribute("tabindex")).toBe("0");
+    // At rest nothing lies over the content, so a contrast check sees the text's own background.
+    const overlay = list.querySelector<HTMLElement>("[data-ouro-message-list-focus-ring]")!;
+    expect(getComputedStyle(overlay).display).toBe("none");
+    page.getByRole("button", { name: "Before" }).element().focus();
+    await pressTab();
+    expect(document.activeElement).toBe(scroller);
+    // Scrolled, the sticky header sits over the content at the region's top edge.
+    await act(async () => void (scroller.scrollTop = 200));
+    expect(getComputedStyle(overlay).display).toBe("block");
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    // The ring's colour as pixels, and the list's pixels as the screen shows them.
+    const probe = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+    probe.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ring");
+    probe.fillRect(0, 0, 1, 1);
+    const ring = [...probe.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+    const image = new Image();
+    image.src = `data:image/png;base64,${await page.screenshot({ save: false, element: list, animations: "disabled" })}`;
+    await image.decode();
+    const shot = document.createElement("canvas");
+    shot.width = image.naturalWidth;
+    shot.height = image.naturalHeight;
+    const context = shot.getContext("2d", { willReadFrequently: true })!;
+    context.drawImage(image, 0, 0);
+    const scale = image.naturalWidth / list.getBoundingClientRect().width;
+    const { width, height } = list.getBoundingClientRect();
+    // One pixel in from the middle of each edge, inside the 2px ring.
+    const edges = { top: [width / 2, 1], bottom: [width / 2, height - 1], start: [1, height / 2], end: [width - 1, height / 2] };
+    const shown = Object.fromEntries(
+      Object.entries(edges).map(([edge, [x, y]]) => {
+        const pixel = [...context.getImageData(Math.floor(x! * scale), Math.floor(y! * scale), 1, 1).data.slice(0, 3)];
+        return [edge, pixel.every((value, index) => Math.abs(value - ring[index]!) <= 24)];
+      }),
+    );
+    expect(shown).toEqual({ top: true, bottom: true, start: true, end: true });
+    // The ring takes no pointer: a press on the sticky header lands on the header.
+    const header = scroller.querySelector<HTMLElement>("[style*='sticky']")!;
+    const box = header.getBoundingClientRect();
+    expect(document.elementFromPoint(box.left + box.width / 2, box.top + 1)).toBe(header);
+  });
+
   it("keeps its messages' parts inside its own scroll box, so focus and scrollIntoView never scroll a box around it", async () => {
     const { host, scroller } = await render(
       <div data-frame="" style={{ height: 400, overflow: "hidden" }}>
@@ -304,12 +356,12 @@ describe("MessageList", () => {
 
   it("keeps the reader's place when older history loads in the same update that changes the key of the message they are on", async () => {
     const items = history(20, 10);
-    const { scroller, rerender } = await render(<Chat items={items} />);
+    const { scroller, rerender } = await render(<Chat windowing={false} items={items} />);
     await wheel(scroller, -400);
     const before = firstVisible(scroller);
     const index = [...scroller.querySelectorAll('[data-ouro="message"]')].indexOf(before.message);
     const swapped = items.map((item, at) => (at === index ? { ...item, id: `server-${item.id}` } : item));
-    await rerender(<Chat items={[...history(10), ...swapped]} />);
+    await rerender(<Chat windowing={false} items={[...history(10), ...swapped]} />);
     await settle(scroller);
     const replacement = scroller.querySelectorAll('[data-ouro="message"]')[index + 10]!;
     expect(Math.abs(replacement.getBoundingClientRect().top - before.top)).toBeLessThanOrEqual(1);
@@ -687,13 +739,13 @@ describe("MessageList", () => {
 
   it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
     const items = history(30);
-    const { scroller, rerender } = await render(<Found items={[]} />);
-    await rerender(<Found items={items} initialAnchor="found-5" />);
+    const { scroller, rerender } = await render(<Found windowing={false} items={[]} />);
+    await rerender(<Found windowing={false} items={items} initialAnchor="found-5" />);
     await nextFrame(scroller);
     expect(inView(scroller, "found-5")).toBe(true);
     expect(inView(scroller, "found-29")).toBe(false);
     // Only the first messages open it: an anchor named later moves nothing.
-    await rerender(<Found items={items} initialAnchor="found-20" />);
+    await rerender(<Found windowing={false} items={items} initialAnchor="found-20" />);
     await settle(scroller);
     expect(inView(scroller, "found-5")).toBe(true);
   });
@@ -711,14 +763,14 @@ describe("MessageList", () => {
 
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
     const items = history(30, 10);
-    const { scroller } = await render(<Found items={[]} />);
+    const { scroller } = await render(<Found windowing={false} items={[]} />);
     let top = 0;
     await act(async () => {
-      flushSync(() => roots.at(-1)!.render(<Found items={items} initialAnchor="found-15" />));
+      flushSync(() => roots.at(-1)!.render(<Found windowing={false} items={items} initialAnchor="found-15" />));
       // The list opens as it sees the messages arrive, before the browser draws.
       await Promise.resolve();
       top = document.getElementById("found-15")!.getBoundingClientRect().top;
-      flushSync(() => roots.at(-1)!.render(<Found items={[...history(10), ...items]} initialAnchor="found-15" />));
+      flushSync(() => roots.at(-1)!.render(<Found windowing={false} items={[...history(10), ...items]} initialAnchor="found-15" />));
     });
     await settle(scroller);
     expect(Math.abs(document.getElementById("found-15")!.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
@@ -842,8 +894,8 @@ describe("MessageList", () => {
 
   it("puts a few older messages in at once", async () => {
     const items = history(30, 20);
-    const { scroller, rerender } = await render(<Found items={items} />);
-    await rerender(<Found items={[...history(20), ...items]} />);
+    const { scroller, rerender } = await render(<Found windowing={false} items={items} />);
+    await rerender(<Found windowing={false} items={[...history(20), ...items]} />);
     expect(scroller.querySelectorAll('[data-ouro="message"]')).toHaveLength(50);
   });
 
@@ -865,9 +917,9 @@ describe("MessageList", () => {
 
   it("stays at a message an app scrolls to as the first messages arrive, instead of following to the newest", async () => {
     const items = history(30);
-    const { scroller } = await render(<Found items={[]} />);
+    const { scroller } = await render(<Found windowing={false} items={[]} />);
     await act(async () => {
-      flushSync(() => roots.at(-1)!.render(<Found items={items} />));
+      flushSync(() => roots.at(-1)!.render(<Found windowing={false} items={items} />));
       // The app scrolls to a found message itself, before the list has seen its messages arrive.
       document.getElementById("found-5")!.scrollIntoView({ block: "start" });
     });
@@ -2892,12 +2944,12 @@ describe("MessageList when no message starts in view", () => {
 
   it("keeps the next message where it was when the message that fills the view goes", async () => {
     const items = [...history(30), long("long"), ...history(20, 30)];
-    const { scroller, rerender } = await render(<Chat items={items} />);
+    const { scroller, rerender } = await render(<Chat windowing={false} items={items} />);
     const messages = [...scroller.querySelectorAll('[data-ouro="message"]')];
     await into(scroller, messages[30]!);
     const next = messages[31]!;
     const top = next.getBoundingClientRect().top;
-    await rerender(<Chat items={items.filter((item) => item.id !== "long")} />);
+    await rerender(<Chat windowing={false} items={items.filter((item) => item.id !== "long")} />);
     await settle(scroller);
     expect(Math.abs(next.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
@@ -2978,7 +3030,7 @@ describe("MessageList's place, to the pixel", () => {
       );
       const rest = page(1, 40);
       const list = (posts: ReactNode[]) => (
-        <MessageList label="Channel" style={{ height: 300 }}>
+        <MessageList label="Channel" style={{ height: 300 }} windowing={false}>
           {posts}
         </MessageList>
       );
@@ -3016,6 +3068,7 @@ describe("MessageList switching conversations", () => {
     named = false,
     called,
     byIndex = false,
+    windowing,
     children,
   }: {
     open: string;
@@ -3034,10 +3087,11 @@ describe("MessageList switching conversations", () => {
     /** What follows the list, such as a composer. */
     children?: ReactNode;
     actions?: { current: MessageListActions | null };
+    windowing?: boolean;
   }) {
     return (
       <>
-      <MessageList key={keyed ? open : undefined} label={`Chat with ${open}`} style={{ height: 300 }} initialAnchor={initialAnchor} conversation={called ?? (named ? open : undefined)} actionsRef={actions}>
+      <MessageList key={keyed ? open : undefined} label={`Chat with ${open}`} style={{ height: 300 }} initialAnchor={initialAnchor} conversation={called ?? (named ? open : undefined)} actionsRef={actions} windowing={windowing}>
         {welcome && <p key="welcome">The start of your conversation</p>}
         {items.map((item, at) => (
           <Message key={byIndex ? at : item.id} id={String(item.id)} role={item.role} name={item.role === "user" ? "Ana" : open}>
@@ -3569,12 +3623,12 @@ describe("MessageList switching conversations", () => {
     const list = mount();
     const older = (name: string, count: number): Item[] => conversation(name, count);
     const mara = conversation("mara", 30);
-    await list.commit(<Switcher open="mara" keyed={false} named items={mara} />);
+    await list.commit(<Switcher windowing={false} open="mara" keyed={false} named items={mara} />);
     // Older messages arrive: the first moves up, and the edge steps toward it a frame at a time.
-    await list.commit(<Switcher open="mara" keyed={false} named items={[...older("old", 30), ...mara]} />);
+    await list.commit(<Switcher windowing={false} open="mara" keyed={false} named items={[...older("old", 30), ...mara]} />);
     // Another conversation comes, with the first message that was drawn after its own first twenty-five.
     const theo = [...conversation("theo", 25), mara[0]!, ...conversation("theo-end", 14)];
-    await list.commit(<Switcher open="theo" keyed={false} named items={theo} />);
+    await list.commit(<Switcher windowing={false} open="theo" keyed={false} named items={theo} />);
     expect(messagesOf(list.scroller)[0]!.id).toBe("theo-0");
   });
 

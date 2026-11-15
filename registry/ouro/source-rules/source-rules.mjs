@@ -26,7 +26,8 @@ import ts from "typescript";
 // - third-party-control: a JSX element from a UI-control library other than Ouro UI
 //   (THIRD_PARTY_CONTROL_PACKAGES), by named, default or namespace import or a same-file alias of
 //   one; app code reaches those libraries only through Ouro UI. Type-only imports and hooks are
-//   not elements, so they never count.
+//   not elements, so they never count. Base UI's CSPProvider counts too, and its message names
+//   the fix: <OuroProvider strictCsp>.
 // - control-state-style: class utilities for focus, press, selection, open/close or gesture state
 //   (focus:, active:, aria-pressed:, data-[state=open]:, group-data-[checked]: ...) in a className,
 //   followed through same-file constants and helpers; and stylesheet rules (or @apply) whose
@@ -331,6 +332,9 @@ export const HAND_DRAWN_CORNER_FIX =
 /** What the hand-drawn-switch rule tells an app to do. */
 export const HAND_DRAWN_SWITCH_FIX =
   "Use Switch from the registry (`<Switch label=\"...\" checked={on} onCheckedChange={setOn} />`), so it gets the Quiet glass look (the --ouro-glass tokens), focus, touch target and any change to switches.";
+/** What the third-party-control rule tells an app that wraps itself in Base UI's CSPProvider. */
+export const CSP_PROVIDER_FIX =
+  "Wrap the app in <OuroProvider strictCsp> (lib/ouro/ouro-provider) instead: it sets Base UI's disableStyleElements for you, and Ouro UI's own parts add no <style> under it either, so a page whose policy refuses inline styles (style-src 'self') breaks none of its rules.";
 
 // What each category's message says, for the categories whose fix is not an Ouro component.
 const CATEGORY_MESSAGES = {
@@ -344,6 +348,8 @@ const CATEGORY_MESSAGES = {
   "hand-drawn-corner": { headline: "New fixed corner radius", fix: HAND_DRAWN_CORNER_FIX },
   "hand-drawn-switch": { headline: "New switch drawn by hand", fix: HAND_DRAWN_SWITCH_FIX },
   "gated-load": { headline: "New load that waits for focus, visibility, idle or scrolling", fix: GATED_LOAD_FIX },
+  // Base UI's CSPProvider has an Ouro form; any other library's control takes the general message.
+  "third-party-control": (tag) => (/\.CSPProvider$/.test(tag) ? { headline: "New Base UI CSPProvider", fix: CSP_PROVIDER_FIX } : undefined),
   // Names the phrase it found, the fingerprint's tag.
   "vague-failure-copy": (phrase) => ({
     headline: `New vague failure copy ("${phrase}")`,

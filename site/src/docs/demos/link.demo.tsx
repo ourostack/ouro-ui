@@ -17,6 +17,13 @@ export default function LinkDemo(): JSX.Element {
         </Link>
         .
       </Text>
+      <nav aria-label="Chapters" className="flex gap-4">
+        <Link href="#prep">Prep</Link>
+        <Link href="#braise" current>
+          Braise
+        </Link>
+        <Link href="#serve">Serve</Link>
+      </nav>
     </div>
   );
 }
