@@ -535,6 +535,20 @@ describe("SegmentedControl", () => {
 });
 
 describe("SegmentedControl development messages", () => {
+  it("checks again when its labels change, naming the new longest label", async () => {
+    const ui = (items: SegmentedControlProps["items"]) => (
+      <div style={{ width: 200 }}>
+        <SegmentedControl label="Theme" hideLabel fullWidth items={items} />
+      </div>
+    );
+    const r = await render(ui([{ value: "light", label: "Light" }, { value: "dark", label: "Dark" }]));
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(warn).not.toHaveBeenCalled();
+    await r.rerender(ui([{ value: "light", label: "Light" }, { value: "system", label: "Follow the computer's own setting" }]));
+    await expect.poll(() => warn.mock.calls.length).toBe(1);
+    expect(warn.mock.calls[0]![0]).toMatch(/Fix: \{ value: "system", label: "Follow" \}\.$/);
+  });
+
   it("says when its labels need more room than it has, and names a shorter label for the longest", async () => {
     const r = await render(
       <div style={{ width: 150 }}>

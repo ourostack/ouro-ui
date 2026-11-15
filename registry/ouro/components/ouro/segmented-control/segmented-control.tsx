@@ -197,6 +197,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         // The group grows to its labels' width; the component's root is the room it has.
         const [need, room] = [group.offsetWidth, group.parentElement!.clientWidth];
         if (need <= room) return;
+        // Stryker disable next-line EqualityOperator: of two labels as long as each other, either makes the example
         const longest = items.reduce((a, b) => (b.label.length > a.label.length ? b : a));
         devWarn(
           "SegmentedControl",
@@ -205,8 +206,9 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
           spillKey.current,
         );
       });
-      observer.observe(group);
+      // The room is the root's width; new labels run this effect again.
       observer.observe(group.parentElement!);
+      // Stryker disable next-line ArrowFunction: an observer left on a root that is gone reports nothing more
       return () => observer.disconnect();
     }
   }, [labelId, items]);
