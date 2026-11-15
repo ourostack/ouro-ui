@@ -325,6 +325,8 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
    * can still take focus. It comes back from the handle's menu while the menu closes, or from the
    * page when the move dropped it, and only while no other menu of the list has opened since, so a
    * press that has moved on keeps its focus.
+   *
+   * @claim "It comes back from the handle's menu while the menu closes, or from the page when the move dropped it, and only while no other menu of the list has opened since, so a press that has moved on keeps its focus." registry/ouro/components/ouro/reorderable/reorderable.test.tsx verify:testExists(registry/ouro/components/ouro/reorderable/reorderable.test.tsx::Reorderable > from the handle's menu, with no drag > leaves focus where a press has moved it before the move painted: another row's menu, or a button)
    */
   const refocus = useRef<string | null>(null);
   /** The row whose menu is open now, for a hand-back that waits for paint. */
