@@ -1185,10 +1185,24 @@ describe("MessageList windowing", () => {
   it("walks up past the messages first drawn with the Up arrow, each one drawn and shown as focus reaches it", async () => {
     const { scroller } = await render(<Chat items={conversation(400, 0, true)} />);
     await act(async () => document.getElementById("m399")!.focus());
+    const t0 = performance.now();
     for (let step = 1; step <= 40; step++) {
       await userEvent.keyboard("{ArrowUp}");
       await expect.poll(() => document.activeElement?.id).toBe(`m${399 - step}`);
     }
+    // Diagnosis for #1475, not for merging: what changes, frame by frame, after the walk.
+    const walk = Math.round(performance.now() - t0);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]") ?? (scroller.firstElementChild as HTMLElement);
+    const frames: string[] = [];
+    let last = "";
+    for (let f = 0; f < 90; f++) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const focused = document.activeElement as HTMLElement;
+      const now = `top=${scroller.scrollTop} h=${scroller.scrollHeight} ids=${ids(scroller)[0]}-${ids(scroller).at(-2)}/${ids(scroller).length} tr=${content.style.translate || "-"} f=${focused.id}@${Math.round(focused.getBoundingClientRect().top)} settling=${document.querySelectorAll("[data-ouro-settling]").length} tf=${[...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].filter((m) => m.style.transform || m.style.translate).length}`;
+      if (now !== last) frames.push(`${f}:${now}`);
+      last = now;
+    }
+    expect([`walk=${walk}`, ...frames.slice(0, 40)]).toEqual([]);
     await settle(scroller);
     expect(inView(scroller, "m359")).toBe(true);
     await userEvent.keyboard("{ArrowDown}");
