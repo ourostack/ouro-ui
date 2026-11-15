@@ -261,13 +261,15 @@ const GroupSize = createContext<AvatarSize | undefined>(undefined);
 // past a few hundred.
 const readyPictures = new Map<string, HTMLImageElement>();
 const READY_PICTURES = 256;
+// Stryker disable next-line ArrowFunction: React only calls the cleanup, so one that returns undefined behaves the same.
 const subscribeNever = () => () => {};
 
 function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" | "error" {
   // In server HTML and while it hydrates, no picture is ready: the initials, as the server drew them.
   const ready = useSyncExternalStore(
     subscribeNever,
-    () => src !== undefined && readyPictures.has(src),
+    () => readyPictures.has(src as string),
+    // Stryker disable next-line ArrowFunction: undefined reads as false where ready is read.
     () => false,
   );
   // The status of the picture last asked for: an avatar with no picture never sets state, so it never draws twice.
@@ -299,8 +301,8 @@ function useImageStatus(src: string | undefined): "idle" | "loading" | "loaded" 
   }, [src, ready]);
   if (src === undefined) return "idle";
   if (!src) return "error";
-  if (ready) return "loaded";
-  return fetched?.src === src ? fetched.status : "idle";
+  if (fetched?.src === src) return fetched.status;
+  return ready ? "loaded" : "idle";
 }
 
 /** The first letters of the first and last words, by code point so emoji stay whole. */
