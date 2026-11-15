@@ -43,7 +43,7 @@ const variants: { variant: string; message: ReactElement; inList?: true; element
     variant: "a message of a picture",
     message: <Message role="assistant" variant="chat" name="Ana" attachments={<Lightbox label="Photo from Ana" layout="mosaic" images={[{ src: picture, alt: "A lake", width: 1200, height: 800 }]} />} />,
     elements: 17,
-    components: 9,
+    components: 3,
   },
   { variant: "a message with a quote", message: <Message role="assistant" variant="chat" name="Ana" quote={{ author: "Theo", excerpt: "I have one." }}>Hello there</Message>, elements: 15, components: 2 },
   {

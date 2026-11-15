@@ -863,6 +863,19 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   );
 
   const [ownOpen, setOwnOpen] = useState(false);
+  // The viewer's dialog mounts once someone may open it, on a thumbnail's first hover, focus or press, so a page of
+  // pictures mounts none until then. A thumbnail pressed with none of those first (a click from a script) mounts the
+  // dialog closed, then opens it, so its opening runs as ever.
+  const [armed, setArmed] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const arm = () => setArmed(true);
+  useEffect(() => {
+    if (!opening) return;
+    // The dialog has mounted closed: opening it now, in a commit of its own, runs its opening transition.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpening(false);
+    setOwnOpen(true);
+  }, [opening]);
   const [start, setStart] = useState(0);
   const open = controlled ? openProp : ownOpen;
   const setOpen = controlled ? (onOpenChange ?? (() => {})) : setOwnOpen;
@@ -944,7 +957,10 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       data-ouro-control="lightbox"
       data-ouro-part="thumbnail"
       {...holdPageAtPress.dialog}
+      onPointerEnter={arm}
+      onFocus={arm}
       onPointerDown={(event) => {
+        arm();
         // A mouse's press starts the image's fetch, ahead of the click that opens the viewer. A
         // finger or a pen may be starting a scroll, so it waits for a release that has not moved.
         if (event.pointerType === "touch" || event.pointerType === "pen") tapFrom.current = { x: event.clientX, y: event.clientY };
@@ -963,7 +979,12 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       className={mosaic ? mosaicThumbnailClass : thumbnailClass}
       onClick={() => {
         setStart(position);
-        setOwnOpen(true);
+        if (armed) {
+          setOwnOpen(true);
+        } else {
+          arm();
+          setOpening(true);
+        }
       }}
     >
       {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
@@ -994,7 +1015,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
             </li>
           ))}
         </ul>
-        {viewer}
+        {armed && viewer}
       </div>
     );
   }
@@ -1008,7 +1029,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
           </li>
         ))}
       </ul>
-      {viewer}
+      {armed && viewer}
     </div>
   );
 }
