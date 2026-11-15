@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { OuroMcpApp } from "@/registry/ouro/components/ouro/mcp-app/ouro-mcp-app";
+import { actionButtonProps, loadCatalog, type ComposedNode, type Obj } from "@/registry/ouro/lib/ouro/a2ui-core";
 import type { McpAppHostLink, McpAppMessage } from "@/registry/ouro/lib/ouro/mcp-app";
 
 // The view as an MCP host frames it, with the story playing the host: it answers the handshake, sends a card as the
@@ -272,6 +273,29 @@ const messages = [
   }
 ];
 
+// The same card as Ouro's composed tree, as a server builds it in code for core's mcpAppTreeResult: each button's
+// label, consent and confirm sheet come from the catalog through core's actionButtonProps.
+const node = (id: string, component: string, props: Obj = {}, children: ComposedNode[] = []): ComposedNode => ({ id, component, props, children });
+const recipes = loadCatalog(catalog);
+const button = (id: string, action: string, input: Obj, emphasis = "secondary") => node(id, "ActionButton", { ...actionButtonProps(recipes, action, input), emphasis });
+const tree = node("root", "Card", {}, [
+  node("photo", "Image", { url: ORZO, description: "A shallow pan of golden orzo with peas and charred lemon halves", aspect: "landscape" }),
+  node("name", "Heading", { text: "Charred Lemon Orzo", level: 1 }),
+  node("about", "Text", { text: "Orzo toasted in brown butter, finished with charred lemon and peas. A weeknight pan dinner.", tone: "muted" }),
+  node("buttons", "Stack", { direction: "vertical", gap: "small" }, [
+    button("open", "get_recipe", { recipe: "rcp_lemon_orzo" }, "primary"),
+    button("shop", "add_recipe_to_shopping_list", { recipe: "rcp_lemon_orzo", servings: 4 }),
+    button("share", "share_recipe", { recipe: "rcp_lemon_orzo", with: "sam@example.com" }),
+    button("order", "order_ingredients", {}),
+  ]),
+]);
+
+/** The tool's result, in either format: A2UI messages, or Ouro's composed tree. */
+const RESULTS = {
+  a2ui: { a2ui: { version: "1.0", catalogId: catalog.catalogId, messages } },
+  ouro: { ouro: { version: "1", catalogId: catalog.catalogId, tree } },
+};
+
 /** What the recipe app's tools answer. */
 const TOOLS: Record<string, string> = {
   get_recipe: "Charred Lemon Orzo: toast the orzo in brown butter, simmer, finish with peas and lemon.",
@@ -280,13 +304,13 @@ const TOOLS: Record<string, string> = {
 };
 
 /** A host in the page: answers the view as an MCP Apps host would, and logs each request. */
-function storyHost(log: (line: string) => void): McpAppHostLink {
+function storyHost(log: (line: string) => void, format: keyof typeof RESULTS): McpAppHostLink {
   let listener: ((message: unknown) => void) | undefined;
   const send = (message: object) => queueMicrotask(() => listener?.({ jsonrpc: "2.0", ...message }));
   return {
     post: (m: McpAppMessage) => {
       if (m.method === "ui/initialize") send({ id: m.id, result: { protocolVersion: "2026-01-26", hostInfo: { name: "story", version: "1.0.0" }, hostCapabilities: { openLinks: {}, serverTools: {} }, hostContext: { displayMode: "inline" } } });
-      else if (m.method === "ui/notifications/initialized") send({ method: "ui/notifications/tool-result", params: { content: [{ type: "text", text: "Here is Charred Lemon Orzo." }], structuredContent: { a2ui: { version: "1.0", catalogId: catalog.catalogId, messages } } } });
+      else if (m.method === "ui/notifications/initialized") send({ method: "ui/notifications/tool-result", params: { content: [{ type: "text", text: "Here is Charred Lemon Orzo." }], structuredContent: RESULTS[format] } });
       else if (m.method === "tools/call") {
         const { name, arguments: args } = m.params as { name: string; arguments: unknown };
         log(`tools/call ${name} ${JSON.stringify(args)}`);
@@ -305,9 +329,9 @@ function storyHost(log: (line: string) => void): McpAppHostLink {
   };
 }
 
-function HostedCard() {
+function HostedCard({ format }: { format: keyof typeof RESULTS }) {
   const [lines, setLines] = useState<string[]>([]);
-  const host = useMemo(() => storyHost((line) => setLines((all) => [...all, line])), []);
+  const host = useMemo(() => storyHost((line) => setLines((all) => [...all, line]), format), [format]);
   return (
     <div style={{ display: "grid", gap: 16, maxWidth: 420 }}>
       <OuroMcpApp catalog={catalog} host={host} appInfo={{ name: "Recipes", version: "1.0.0" }} handoffUrl={({ action }) => `https://kitchen.example.com/recipes/rcp_lemon_orzo?do=${action}`} />
@@ -327,7 +351,7 @@ const meta = {
   component: OuroMcpApp,
   parameters: { layout: "padded" },
   args: { catalog },
-  render: () => <HostedCard />,
+  render: () => <HostedCard format="a2ui" />,
 } satisfies Meta<typeof OuroMcpApp>;
 
 export default meta;
@@ -335,3 +359,6 @@ type Story = StoryObj<typeof meta>;
 
 /** The recipe card a tool returned, in its host: write buttons call their tool, Share asks first, Order opens the app. */
 export const InHost: Story = {};
+
+/** The same card as Ouro's composed tree, in the result's `structuredContent.ouro`: the view checks it, then draws it. */
+export const InHostTree: Story = { render: () => <HostedCard format="ouro" /> };

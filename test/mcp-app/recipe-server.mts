@@ -1,7 +1,8 @@
 // An example MCP server that returns agent-composed UI as an MCP App: it serves the OuroMcpApp view, built with the
 // recipe catalog, as a ui:// resource, and its show_recipe tool returns the recipe card a model composed (core's
-// conformance case recipe-card-agent.json, a synthetic recipe) through core's mcpAppToolResult. The card's other
-// buttons call the recipe app's own tools. It speaks MCP over stdio, one JSON-RPC message per line, with no SDK.
+// conformance case recipe-card-agent.json, a synthetic recipe) through core's mcpAppToolResult. Its show_recipe_tree
+// tool returns the same recipe as Ouro's composed tree, built in code, through core's mcpAppTreeResult. The card's
+// other buttons call the recipe app's own tools. It speaks MCP over stdio, one JSON-RPC message per line, with no SDK.
 //
 //   node test/mcp-app/recipe-server.mts --view <view.html>
 //
@@ -9,11 +10,27 @@
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { parseArgs } from "node:util";
-import { functionCallProblem, loadCatalog, mcpAppResource, mcpAppToolMeta, mcpAppToolResult } from "../../registry/ouro/lib/ouro/a2ui-core.ts";
+import { actionButtonProps, functionCallProblem, loadCatalog, mcpAppResource, mcpAppToolMeta, mcpAppToolResult, mcpAppTreeResult, type ComposedNode, type Obj } from "../../registry/ouro/lib/ouro/a2ui-core.ts";
 
 const fixtures = new URL("../fixtures/a2ui/", import.meta.url);
 const catalog = JSON.parse(readFileSync(new URL("recipe.catalog.json", fixtures), "utf8")) as unknown;
 const card = JSON.parse(readFileSync(new URL("cases/recipe-card-agent.json", fixtures), "utf8")) as { messages: unknown[] };
+
+// The recipe as Ouro's composed tree: each button's label, consent and confirm sheet are the catalog's.
+const recipes = loadCatalog(catalog);
+const node = (id: string, component: string, props: Obj = {}, children: ComposedNode[] = []): ComposedNode => ({ id, component, props, children });
+const button = (id: string, action: string, input: Obj, emphasis = "secondary") => node(id, "ActionButton", { ...actionButtonProps(recipes, action, input), emphasis });
+const tree = node("root", "Card", {}, [
+  node("photo", "Image", { url: "https://ui.ouroboros.bot/a2ui/v1/examples/charred-lemon-orzo.png", description: "A shallow pan of golden orzo with peas and charred lemon halves", aspect: "landscape" }),
+  node("name", "Heading", { text: "Charred Lemon Orzo", level: 1 }),
+  node("about", "Text", { text: "Orzo toasted in brown butter, finished with charred lemon and peas. A weeknight pan dinner.", tone: "muted" }),
+  node("buttons", "Stack", { direction: "vertical", gap: "small" }, [
+    button("open", "get_recipe", { recipe: "rcp_lemon_orzo" }, "primary"),
+    button("shop", "add_recipe_to_shopping_list", { recipe: "rcp_lemon_orzo", servings: 4 }),
+    button("share", "share_recipe", { recipe: "rcp_lemon_orzo", recipeTitle: "Charred Lemon Orzo", with: "sam@example.com" }),
+    button("order", "order_ingredients", {}),
+  ]),
+]);
 
 const { values } = parseArgs({ options: { view: { type: "string" } } });
 if (!values.view) throw new Error("Pass --view <view.html>: the OuroMcpApp view scripts/mcp-app.mts built with the recipe catalog.");
@@ -25,6 +42,7 @@ const viewMeta = { ui: { csp: { resourceDomains: ["https://ui.ouroboros.bot"] } 
 const recipe = { type: "object", properties: { recipe: { type: "string" } }, required: ["recipe"] };
 const tools = [
   { name: "show_recipe", description: "Show the person a recipe as a card they can act on.", inputSchema: recipe, _meta: mcpAppToolMeta(VIEW) },
+  { name: "show_recipe_tree", description: "Show the person a recipe as a card they can act on, as Ouro's composed tree.", inputSchema: recipe, _meta: mcpAppToolMeta(VIEW) },
   { name: "get_recipe", description: "Open the whole recipe.", inputSchema: recipe },
   { name: "add_recipe_to_shopping_list", description: "Add this recipe's ingredients to your shopping list.", inputSchema: { ...recipe, properties: { ...recipe.properties, servings: { type: "integer" } } } },
   { name: "share_recipe", description: "Send this recipe to someone. Ask the person first.", inputSchema: { ...recipe, properties: { ...recipe.properties, with: { type: "string" } }, required: ["recipe", "with"] } },
@@ -37,6 +55,8 @@ function callTool(name: string, args: Record<string, unknown>) {
   switch (name) {
     case "show_recipe":
       return mcpAppToolResult({ text: "Here is Charred Lemon Orzo: 25 minutes, serves 4.", catalog, messages: card.messages });
+    case "show_recipe_tree":
+      return mcpAppTreeResult({ text: "Here is Charred Lemon Orzo: 25 minutes, serves 4.", catalog: recipes, tree });
     case "get_recipe":
       return text(`Charred Lemon Orzo (${String(args.recipe)}): toast the orzo in brown butter, simmer in stock, finish with peas, parmesan and charred lemon.`);
     case "add_recipe_to_shopping_list":

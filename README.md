@@ -691,7 +691,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
 - **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
 - **MediaTile** — A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen. [Docs](docs/MediaTile.md)
-- **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
+- **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A placeholder that breathes after a second in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
 - **UnreadDot** — The dot that marks something unread: a small round dot in the theme's primary color, with a spoken label. [Docs](docs/UnreadDot.md)
