@@ -15,3 +15,15 @@ describe("disclosure classes on a touch screen", () => {
     expect(getComputedStyle(summary).fontSize).toBe("16px");
   });
 });
+
+describe("plain classes on a touch screen", () => {
+  it("show what ouro-reveal hides from a mouse from the start, and make the focused skip link 44px tall", () => {
+    host = document.createElement("div");
+    host.innerHTML = '<a class="ouro-skip-link" href="#x">Skip to main content</a><div class="ouro-reveal-host"><span class="ouro-reveal">Archive</span></div>';
+    document.body.append(host);
+    expect(getComputedStyle(host.querySelector(".ouro-reveal")!).opacity).toBe("1");
+    const link = host.querySelector("a")!;
+    link.focus();
+    expect(link.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  });
+});

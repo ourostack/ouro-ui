@@ -3,7 +3,9 @@
  * motion durations and easings, the overlay layer, and the ouro-* keyframes. Load it with a
  * theme (ouro-theme.css or themes/<name>.css). Its classes give plain markup Ouro's focus ring
  * and row states (.ouro-focus-ring, .ouro-focus-ring-inset and .ouro-row) and a disclosure that
- * needs no script (.ouro-disclosure, .ouro-disclosure-summary and .ouro-disclosure-panel).
+ * needs no script (.ouro-disclosure, .ouro-disclosure-summary and .ouro-disclosure-panel), a skip
+ * link and its target (.ouro-skip-link, .ouro-focus-target), the ring on a box whose control has
+ * focus (.ouro-focus-ring-within) and actions shown on hover or focus (.ouro-reveal, .ouro-reveal-host).
  * Tailwind utilities left out: rounded-full, press.
  * Dark mode: a .dark class on <html> as in shadcn, or, with neither .light nor .dark there,
  * the system's setting (prefers-color-scheme).
@@ -131,6 +133,66 @@
   outline-width: 2px;
 }
 
+.ouro-focus-ring-within {
+  outline-color: var(--ring);
+  outline-offset: 2px;
+}
+
+.ouro-focus-ring-within:has(:focus-visible) {
+  outline-style: solid;
+  outline-width: 2px;
+}
+
+.ouro-focus-target[tabindex="-1"]:focus {
+  outline: none;
+}
+
+.ouro-skip-link {
+  position: fixed;
+  top: 0.5rem;
+  inset-inline-start: 0.5rem;
+  z-index: var(--ouro-layer);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding-inline: 1rem;
+  border-radius: var(--radius-md);
+  --corner-shape: var(--ouro-corner-shape);
+  corner-shape: var(--ouro-corner-shape);
+  background-color: var(--background);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)), 0 0 0 1px color-mix(in oklab, var(--border) 60%, transparent);
+  outline-color: var(--ring);
+  outline-offset: 2px;
+}
+
+.ouro-skip-link:focus-visible {
+  outline-style: solid;
+  outline-width: 2px;
+}
+
+.ouro-skip-link:not(:focus) {
+  margin: 0;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  white-space: nowrap;
+  box-shadow: none;
+  clip-path: inset(50%);
+}
+
+.ouro-reveal {
+  transition: opacity var(--ouro-duration-fast) ease;
+}
+
 .ouro-row {
   cursor: pointer;
   transition: background-color var(--ouro-duration-fast) ease;
@@ -146,6 +208,24 @@
   }
   .ouro-disclosure-summary:hover {
     text-decoration-line: underline;
+  }
+  .ouro-reveal:not(:hover, :focus-within) {
+    opacity: 0;
+  }
+  .ouro-reveal-host:is(:hover, :focus-within) .ouro-reveal {
+    opacity: 1;
+  }
+}
+
+@media (pointer: coarse) {
+  .ouro-skip-link {
+    min-height: 2.75rem;
+  }
+}
+
+@media print {
+  .ouro-skip-link {
+    display: none;
   }
 }
 
@@ -233,6 +313,9 @@
 
 @media (forced-colors: active) {
   .ouro-disclosure-summary {
+    border: 1px solid;
+  }
+  .ouro-skip-link:focus {
     border: 1px solid;
   }
 }

@@ -57,7 +57,7 @@ const DOCS_URL = "https://ui.ouroboros.bot/docs";
 const components = readComponents();
 
 /** Registry files that test this repository itself and never ship. */
-const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/radius-fallback.test.tsx", "registry/ouro/theme/squircle-surface.test.tsx", "registry/ouro/theme/disclosure.touch.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
+const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/radius-fallback.test.tsx", "registry/ouro/theme/squircle-surface.test.tsx", "registry/ouro/theme/plain-classes.touch.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
 /**
  * Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA,
@@ -206,7 +206,7 @@ const foundation = [
     title: "Ouro base",
     css: "registry/ouro/theme/ouro-base.css",
     description: `${claim("Add it once per app, before your first component; no component installs it, so later adds never touch your stylesheet.", { source: { test: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" }, verify: { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" } })} ${claim(
-      "What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the focus ring, row and disclosure classes for markup that is not an Ouro component (ouro-focus-ring, ouro-row, ouro-disclosure), the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
+      "What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the focus ring, row and disclosure classes for markup that is not an Ouro component (ouro-focus-ring, ouro-row, ouro-disclosure, ouro-skip-link, ouro-reveal), the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
       {
         source: [{ test: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" }, { file: "registry/ouro/theme/ouro-base.css" }],
         verify: [

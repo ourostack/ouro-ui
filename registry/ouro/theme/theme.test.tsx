@@ -325,3 +325,69 @@ describe("disclosure classes for pages with no script", () => {
     }
   });
 });
+
+describe("skip link, focus target, focus ring within and reveal classes for plain markup", () => {
+  const ring = (element: Element) => {
+    const style = getComputedStyle(element);
+    return [style.outlineStyle, style.outlineWidth, style.outlineColor, style.outlineOffset].join(" ");
+  };
+  const control = '<button class="outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid">Control</button>';
+
+  it("hides the skip link until it has focus, then shows it with the ring, and its target takes focus with no outline, with no script", async () => {
+    const host = mount(
+      `<button id="start">Start</button>${control}<a class="ouro-skip-link" href="#plain-main">Skip to main content</a><main id="plain-main" tabindex="-1" class="ouro-focus-target">Recipes</main>`,
+    );
+    const [, button, link, main] = [...host.children] as HTMLElement[];
+    expect(link!.getBoundingClientRect().width).toBe(1);
+    expect(getComputedStyle(link!).clipPath).toBe("inset(50%)");
+    host.querySelector<HTMLElement>("#start")!.focus();
+    await pressTab();
+    const controlRing = ring(button!);
+    await pressTab();
+    expect(document.activeElement).toBe(link);
+    expect(ring(link!)).toBe(controlRing);
+    expect(getComputedStyle(link!).clipPath).toBe("none");
+    expect(link!.getBoundingClientRect().height).toBeGreaterThanOrEqual(36);
+    expect(getComputedStyle(link!).position).toBe("fixed");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.activeElement).toBe(main);
+    expect(getComputedStyle(main!).outlineStyle).toBe("none");
+    history.replaceState(null, "", location.pathname + location.search);
+  });
+
+  it("rings a label around a visually hidden radio while the radio has keyboard focus, as TextField rings its box", async () => {
+    const host = mount(
+      `<button id="start">Start</button>${control}` +
+        '<label class="ouro-focus-ring-within" style="display: inline-block; padding: 4px"><input type="radio" name="who" style="position: absolute; opacity: 0" /><span>Mine</span></label>',
+    );
+    const label = host.querySelector("label")!;
+    expect(getComputedStyle(label).outlineStyle).toBe("none");
+    host.querySelector<HTMLElement>("#start")!.focus();
+    await pressTab();
+    const controlRing = ring(host.children[1]!);
+    await pressTab();
+    expect(document.activeElement).toBe(host.querySelector("input"));
+    expect(ring(label)).toBe(controlRing);
+  });
+
+  it("shows what it reveals to a mouse only while the pointer rests on its host or focus is in it, keeping its room", async () => {
+    await commands.parkPointer();
+    const host = mount(
+      '<ul><li class="ouro-reveal-host" style="padding: 12px">Customer <span class="ouro-reveal"><button>Archive</button></span></li><li style="padding: 12px">Other</li></ul>',
+    );
+    const row = host.querySelector("li")!;
+    const actions = host.querySelector<HTMLElement>(".ouro-reveal")!;
+    const settled = () => expect.poll(() => actions.getAnimations().length).toBe(0);
+    expect(getComputedStyle(actions).opacity).toBe("0");
+    expect(actions.getBoundingClientRect().width).toBeGreaterThan(0);
+    await userEvent.hover(row);
+    await settled();
+    expect(getComputedStyle(actions).opacity).toBe("1");
+    await commands.parkPointer();
+    await settled();
+    expect(getComputedStyle(actions).opacity).toBe("0");
+    actions.querySelector("button")!.focus();
+    await settled();
+    expect(getComputedStyle(actions).opacity).toBe("1");
+  });
+});
