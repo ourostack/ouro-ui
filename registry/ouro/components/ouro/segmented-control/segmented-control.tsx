@@ -213,8 +213,6 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     }
   }, [labelId, items]);
   const thumbStyle = {
-    "--ouro-segment-count": items.length,
-    "--ouro-segment-index": Math.max(index, 0),
     opacity: index === -1 ? 0 : undefined,
   } as CSSProperties;
   return (

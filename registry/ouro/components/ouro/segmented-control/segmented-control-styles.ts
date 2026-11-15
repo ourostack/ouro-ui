@@ -30,44 +30,36 @@ const labelClass = "m-0 block text-sm leading-5 font-medium text-foreground sele
 /**
  * The track: one column per segment, each at least as wide as its label, so no label is cut. The
  * columns are equal when every label fits an equal share, as Apple's segmented control does; when
- * one doesn't, it keeps its width and the others share the rest equally. Where the browser has no
- * CSS anchor positioning, the columns stay equal. 44px tall on a coarse pointer, stepping down to
+ * one doesn't, it keeps its width and the others share the rest equally. 44px tall on a coarse pointer, stepping down to
  * 36px from `sm` with a fine pointer.
  * @claim "so no label is cut" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > shows every label whole: equal segments when they fit, and a long label keeps its width when they don't)
  * @claim "The columns are equal when every label fits" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > shows every label whole: equal segments when they fit, and a long label keeps its width when they don't)
- * @claim "Where the browser has no CSS anchor positioning" registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts verify:fileLine(registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts, /not-supports-\[anchor-name:--a\]:auto-cols-\[minmax\(0,1fr\)\]/)
  *
  * @internal
  * @claim "44px tall on a coarse pointer" registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.touch.test.tsx::keeps 44px segments with 16px text on a phone, also in landscape)
  */
 const groupClass =
   "relative isolate m-0 box-border inline-grid max-w-full grid-flow-col auto-cols-[minmax(max-content,1fr)] p-0.5 [anchor-scope:--ouro-segment] " +
-  "not-supports-[anchor-name:--a]:auto-cols-[minmax(0,1fr)] " +
   "h-(--ouro-segmented-h) [--ouro-segmented-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-segmented-h:calc(var(--spacing)*9)] " +
   "rounded-lg bg-muted forced-colors:border forced-colors:border-solid";
 
 /**
  * The raised thumb behind the pressed segment, whose edges it takes by CSS anchor positioning
- * (the pressed segment is the anchor): no measuring, and server HTML already has it right. Where
- * the browser has no anchor positioning, segments are equal, so its place is the pressed index
- * times its own width.
+ * (the pressed segment is the anchor, Baseline since January 2026): no measuring, and server
+ * HTML already has it right.
  * It slides on the ease-in-out token; with reduced motion, or on an arrow key, it moves at once.
  *
  * @internal
- * @claim "Where the browser has no anchor positioning, segments are equal" registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts verify:fileLine(registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts, /not-supports-\[anchor-name:--a\]:translate-x-\[calc\(var\(--ouro-segment-index\)\*100%\)\]/)
  * @claim "no measuring, and server HTML already has it right" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > slides the thumb under the pressed segment with a transition)
  * @claim "no measuring, and server HTML already has it right" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > keeps the label id and pressed state in server HTML and hydrates without a mismatch)
  */
 const thumbClass =
   "pointer-events-none absolute top-0.5 bottom-0.5 -z-1 rounded-md " +
   "[position-anchor:--ouro-segment] start-[anchor(start)] end-[anchor(end)] " +
-  "not-supports-[anchor-name:--a]:start-0.5 not-supports-[anchor-name:--a]:end-auto not-supports-[anchor-name:--a]:w-[calc((100%-var(--spacing)*1)/var(--ouro-segment-count))] " +
-  "not-supports-[anchor-name:--a]:translate-x-[calc(var(--ouro-segment-index)*100%)] not-supports-[anchor-name:--a]:rtl:translate-x-[calc(var(--ouro-segment-index)*-100%)] " +
   "forced-colors:bg-[Highlight] " +
   "bg-background dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] " +
   "shadow-(--shadow-sm) " +
   "[transition:inset-inline-start_var(--ouro-duration-base)_var(--ouro-ease-in-out),inset-inline-end_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease] " +
-  "not-supports-[anchor-name:--a]:[transition:translate_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease] " +
   "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_ease] in-data-ouro-keyboard:[transition:none]";
 
 /**
