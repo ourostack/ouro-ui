@@ -262,7 +262,9 @@ export async function picture(page: Page, index: number): Promise<{ data: Buffer
   // The page can change between counting and picturing; an element that is gone has no picture.
   const handle = await target.elementHandle({ timeout: 2_000 }).catch(() => null);
   if (!handle) return null;
-  await handle.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center" })).catch(() => {});
+  // The site scrolls smoothly (html's scroll-behavior), so a plain scrollIntoView is still moving when the cover check reads
+  // the element, and the picture was skipped (#1463).
+  await handle.evaluate((el) => el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" })).catch(() => {});
   const clear = await handle.evaluate((el) => {
     const r = el.getBoundingClientRect();
     const points: [number, number][] = [
