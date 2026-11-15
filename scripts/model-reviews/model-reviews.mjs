@@ -102,6 +102,13 @@ export const REVIEW_MODELS = [
 export const INFERENCE_MODES = ["direct-api", "copilot-first"];
 export const MAX_NUDGES = 5;
 export const MAX_FETCH_CHARS = 10000;
+/**
+ * The characters of search and fetch results a session may read, the same for every model (METHODOLOGY.md, rule 9).
+ * Past it, search and fetch_url return BUDGET_REACHED instead of content. It sits under the reads after which the
+ * models that compacted on 2026-11-14 did so (ourostack/ouro-ui#1225).
+ */
+export const RESEARCH_BUDGET = 450_000;
+export const BUDGET_REACHED = "Research budget reached: call final_verdict with what you have.";
 const MAX_RESPONSE_BYTES = 2_000_000;
 const EVALUATION_TIMEOUT_MS = 45 * 60 * 1000;
 export const VERDICT_FIELDS = ["verdict", "pullQuote", "testimonial", "evaluations"];
@@ -129,7 +136,7 @@ You have three tools:
 2. **fetch_url** — fetch a public URL, including GitHub directories, source files, and documentation. Follow the returned startIndex to continue reading a long document.
 3. **final_verdict** — call this exactly once when you're done researching to submit your structured evaluation.
 
-You MUST call a tool on every turn. Start by fetching each candidate's URL to learn what it is. Then go deeper through search and follow-up fetches. Take your time. Be thorough. There is no turn limit.
+You MUST call a tool on every turn. Start by fetching each candidate's URL to learn what it is. Then go deeper through search and follow-up fetches. Take your time. Be thorough. There is no turn limit, but your session can read ${RESEARCH_BUDGET.toLocaleString("en-US")} characters of search and fetch results; past that, both tools tell you to call final_verdict, so leave yourself room to read every candidate.
 
 Here are the candidates, listed by name and URL only — no description is provided. Research each one yourself by fetching its URL and any docs you find:
 
@@ -550,6 +557,7 @@ export function createTranscriptCollector(log, rounds) {
   const actionsByToolCall = new Map();
   let currentRound = null;
   let compacted = false;
+  let researched = 0;
 
   function ensureRound(apiCallId) {
     const key = apiCallId || `round-${rounds.length + 1}`;
@@ -601,6 +609,7 @@ export function createTranscriptCollector(log, rounds) {
   function recordResult(toolCallId, result, source) {
     const action = actionsByToolCall.get(toolCallId);
     if (!action) return;
+    if (action.type === "search" || action.type === "fetch") researched += result.length;
     action.result = result;
     action.resultLength = result.length;
     if (source) action.source = source;
@@ -619,7 +628,7 @@ export function createTranscriptCollector(log, rounds) {
     Object.assign(action, { type: "verdict", ...verdict });
   }
 
-  return { rounds, onEvent, ensureAction, recordResult, recordError, recordVerdict, get compacted() { return compacted; } };
+  return { rounds, onEvent, ensureAction, recordResult, recordError, recordVerdict, get compacted() { return compacted; }, get researched() { return researched; } };
 }
 
 /**
@@ -646,6 +655,33 @@ export function handleVerdict(args, invocation, { research, collector, onVerdict
   return "Verdict accepted.";
 }
 
+/**
+ * search's and fetch_url's handler. Once the session has read RESEARCH_BUDGET characters of results, the tool returns
+ * BUDGET_REACHED and reads nothing more, the same for every model (METHODOLOGY.md, rule 9). The result that crosses
+ * the budget is returned whole.
+ */
+export async function handleResearch(toolName, args, invocation, { collector, log, read }) {
+  const type = toolName === "search" ? "search" : "fetch";
+  collector.ensureAction(invocation.toolCallId, toolName, args);
+  log(type === "search" ? `Search: "${args.query}"` : `Fetch: ${args.url} (startIndex=${args.startIndex ?? 0})`);
+  if (collector.researched >= RESEARCH_BUDGET) {
+    collector.recordError(invocation.toolCallId, new Error("Research budget reached"), BUDGET_REACHED);
+    log("  BUDGET REACHED");
+    return BUDGET_REACHED;
+  }
+  try {
+    const { text, source } = await read();
+    collector.recordResult(invocation.toolCallId, text, source);
+    log(`  ${text.length} chars`);
+    return text;
+  } catch (error) {
+    const result = failedToolResult(type, error);
+    collector.recordError(invocation.toolCallId, error, result);
+    log(`  ERROR: ${error.message}`);
+    return result;
+  }
+}
+
 function createTools(sdk, collector, perplexityKey, onVerdict, log, research, candidateOrder) {
   const common = { skipPermission: true, defer: "never" };
   return [
@@ -653,41 +689,15 @@ function createTools(sdk, collector, perplexityKey, onVerdict, log, research, ca
       ...common,
       description: SEARCH_DESC,
       parameters: SEARCH_PARAMS,
-      handler: async ({ query }, invocation) => {
-        collector.ensureAction(invocation.toolCallId, "search", { query });
-        log(`Search: "${query}"`);
-        try {
-          const result = await perplexitySearch(query, perplexityKey);
-          collector.recordResult(invocation.toolCallId, result);
-          log(`  ${result.length} chars`);
-          return result;
-        } catch (error) {
-          const result = failedToolResult("search", error);
-          collector.recordError(invocation.toolCallId, error, result);
-          log(`  ERROR: ${error.message}`);
-          return result;
-        }
-      },
+      handler: ({ query }, invocation) =>
+        handleResearch("search", { query }, invocation, { collector, log, read: async () => ({ text: await perplexitySearch(query, perplexityKey) }) }),
     }),
     sdk.defineTool("fetch_url", {
       ...common,
       description: FETCH_DESC,
       parameters: FETCH_PARAMS,
-      handler: async ({ url, startIndex = 0 }, invocation) => {
-        collector.ensureAction(invocation.toolCallId, "fetch_url", { url, startIndex });
-        log(`Fetch: ${url} (startIndex=${startIndex})`);
-        try {
-          const page = await fetchUrl(url, startIndex, research);
-          collector.recordResult(invocation.toolCallId, page.text, page.source);
-          log(`  ${page.text.length} chars`);
-          return page.text;
-        } catch (error) {
-          const result = failedToolResult("fetch", error);
-          collector.recordError(invocation.toolCallId, error, result);
-          log(`  ERROR: ${error.message}`);
-          return result;
-        }
-      },
+      handler: ({ url, startIndex = 0 }, invocation) =>
+        handleResearch("fetch_url", { url, startIndex }, invocation, { collector, log, read: () => fetchUrl(url, startIndex, research) }),
     }),
     sdk.defineTool("final_verdict", {
       ...common,
@@ -736,7 +746,9 @@ async function runEvaluation(client, sdk, review, perplexityKey, log, experiment
     for (let attempt = 0; attempt <= MAX_NUDGES && !verdict; attempt++) {
       const promptText = attempt === 0
         ? "Research each candidate thoroughly. Start by fetching each candidate's URL. Then call final_verdict when ready."
-        : "You must call a tool every turn. Use search or fetch_url to continue researching, or call final_verdict when you have enough information.";
+        : collector.researched >= RESEARCH_BUDGET
+          ? "You must call a tool every turn. Your research budget is spent: call final_verdict with what you have."
+          : "You must call a tool every turn. Use search or fetch_url to continue researching, or call final_verdict when you have enough information.";
       await session.sendAndWait({ prompt: promptText }, EVALUATION_TIMEOUT_MS);
     }
   } finally {
@@ -757,7 +769,7 @@ async function runEvaluation(client, sdk, review, perplexityKey, log, experiment
     candidateOrder,
     promptSha256,
     sourceSnapshotSha256: snapshotFingerprint(experiment.candidates),
-    configuration: { contextTier: "default", reasoningEffort: "provider-default", infiniteSessions: false, largeOutputIndirection: false, systemMessageMode: "replace", tools: ["search", "fetch_url", "final_verdict"] },
+    configuration: { contextTier: "default", reasoningEffort: "provider-default", infiniteSessions: false, largeOutputIndirection: false, systemMessageMode: "replace", tools: ["search", "fetch_url", "final_verdict"], researchBudget: RESEARCH_BUDGET },
   };
 }
 

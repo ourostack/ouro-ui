@@ -16,7 +16,10 @@ import {
   compactTranscript,
   createPinnedLookup,
   createTranscriptCollector,
+  BUDGET_REACHED,
+  handleResearch,
   handleVerdict,
+  RESEARCH_BUDGET,
   discoverKeys,
   evaluationSection,
   fetchUrl,
@@ -374,6 +377,36 @@ test("a refused verdict reaches the model with its reason, so it can fix it and 
   assert.match(reply.textResultForLlm, /^Verdict refused: final_verdict\.verdict must name a known candidate\. Fix this and call final_verdict again\.$/);
   assert.equal(rounds.length === 0 || rounds.flatMap((round) => round.actions).every((action) => action.type !== "verdict"), true);
   assert.deepEqual(accepted, []);
+});
+
+test("a session reads up to the research budget, then search and fetch return the same message and read nothing", async () => {
+  const rounds = [];
+  const collector = createTranscriptCollector(() => {}, rounds);
+  const page = "x".repeat(200_000);
+  let reads = 0;
+  const read = async () => {
+    reads++;
+    return { text: page, source: { url: "https://example.com/" } };
+  };
+  const options = { collector, log: () => {}, read };
+  // Under the budget, every read returns its content, and the read that crosses the budget is returned whole.
+  for (let call = 1; call <= 3; call++) {
+    assert.equal(await handleResearch("fetch_url", { url: "https://example.com/" }, { toolCallId: `f${call}` }, options), page);
+  }
+  assert.equal(collector.researched, 600_000);
+  assert.ok(collector.researched >= RESEARCH_BUDGET);
+  // Past it, both tools answer with the same message and read nothing more.
+  assert.equal(await handleResearch("search", { query: "anything" }, { toolCallId: "s1" }, options), BUDGET_REACHED);
+  assert.equal(await handleResearch("fetch_url", { url: "https://example.com/" }, { toolCallId: "f4" }, options), BUDGET_REACHED);
+  assert.equal(reads, 3);
+  assert.equal(collector.researched, 600_000);
+  // A refused read is recorded as an error, so it never counts as reading a candidate.
+  const refused = rounds.flatMap((round) => round.actions).filter((action) => action.result === BUDGET_REACHED);
+  assert.deepEqual(refused.map(({ type, error }) => [type, error]), [["search", "Research budget reached"], ["fetch", "Research budget reached"]]);
+});
+
+test("the prompt tells every model the research budget", () => {
+  assert.match(renderSystemPrompt(CANDIDATES, "2026-11-14"), /your session can read 450,000 characters of search and fetch results/);
 });
 
 test("the pool keeps order, caps concurrency, and runs one at a time while the machine is loaded", async () => {
