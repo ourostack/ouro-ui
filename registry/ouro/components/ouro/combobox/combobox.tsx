@@ -660,9 +660,9 @@ function KeepPageExposed({ input, list }: { input: RefObject<HTMLElement | null>
     () => {
       const observer = new MutationObserver((records) => {
         const kept = [input.current, list.current];
-        const hidden = records.map(({ target }) => target as Element).filter((target) => target.hasAttribute("aria-hidden"));
-        if (hidden.some((target) => kept.some((element) => target.contains(element)))) return;
-        for (const target of hidden) if (kept.some((element) => target.parentNode!.contains(element))) target.removeAttribute("aria-hidden");
+        const targets = records.map(({ target }) => target as Element);
+        if (targets.some((target) => kept.some((element) => target.contains(element)))) return;
+        for (const target of targets) if (kept.some((element) => target.parentNode!.contains(element))) target.removeAttribute("aria-hidden");
       });
       observer.observe(document.body, { attributes: true, attributeFilter: ["aria-hidden"], subtree: true });
       // Stryker disable next-line ArrowFunction: once the list closes nothing is around it to unhide, so an observer left connected changes nothing.

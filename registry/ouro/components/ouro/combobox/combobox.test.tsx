@@ -185,13 +185,23 @@ describe("Combobox", () => {
     const heading = document.body.appendChild(document.createElement("h1"));
     mounted.push(heading);
     heading.textContent = "Recipes";
-    await render(<Combobox label="Herb" name="herb" items={herbs} />);
+    const { host } = await render(<Combobox label="Herb" name="herb" description="Pick one." items={herbs} />);
+    // What the page hides outside the list, read without the document's own search.
+    const hidden = () => [...document.body.querySelectorAll('[aria-hidden="true"]')].filter((element) => !element.closest('[data-ouro="combobox-portal"]'));
+    const before = hidden();
     const searches = vi.spyOn(document, "querySelectorAll");
     // A real press, found outside the page, so the only searches counted are the page's own.
     await commands.pointerPress({ selector: 'input[role="combobox"]', action: "click" });
     await expect.poll(popup).not.toBeNull();
-    expect(heading.hasAttribute("aria-hidden")).toBe(false);
     expect(searches).not.toHaveBeenCalled();
+    expect(hidden()).toEqual(before);
+    // A dialog opened over the list hides the page around itself in one change: the field's part
+    // of the page, the list's portal and the rest. All of it stays hidden.
+    const portal = popup()!.closest('[data-ouro="combobox-portal"]')!;
+    for (const element of [host, portal, heading]) element.setAttribute("aria-hidden", "true");
+    await new Promise((resolve) => setTimeout(resolve));
+    expect([host, portal, heading].map((element) => element.getAttribute("aria-hidden"))).toEqual(["true", "true", "true"]);
+    for (const element of [host, portal, heading]) element.removeAttribute("aria-hidden");
   });
 
   it("warns when its open list renders outside every landmark of a page that has a main", async () => {
