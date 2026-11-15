@@ -286,7 +286,18 @@ describe("Tooltip", () => {
     await renderTooltip();
     await userEvent.hover(trigger());
     await shown();
-    const rest = JSON.stringify(document.querySelector<HTMLElement>('[data-ouro="tooltip-positioner"]')!.getBoundingClientRect());
+    const place = () => JSON.stringify(document.querySelector<HTMLElement>('[data-ouro="tooltip-positioner"]')!.getBoundingClientRect());
+    // The positioner settles over a frame or two after the fade; read its rest place once two reads agree.
+    let rest = place();
+    await expect
+      .poll(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const now = place();
+        const same = now === rest;
+        rest = now;
+        return same;
+      })
+      .toBe(true);
     await commands.pointerPress({ selector: '[data-ouro="button"]', action: "down" });
     try {
       await expect.poll(() => getComputedStyle(trigger()).scale).toBe("0.97");
