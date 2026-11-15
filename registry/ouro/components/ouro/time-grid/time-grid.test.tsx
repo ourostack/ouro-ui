@@ -967,7 +967,8 @@ describe("TimeGrid", () => {
     await expect.poll(() => scroller.scrollTop / hour).toBeCloseTo(2, 1);
     scroller.scrollTop = hour * 12;
     await rerender({ now: at(12, "03:30"), events: [nine] });
-    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    // The observer's first callback follows the frame's animation callbacks, so wait out two frames.
+    for (let frame = 0; frame < 2; frame++) await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     expect(scroller.scrollTop / hour).toBeCloseTo(12, 1);
   });
 

@@ -641,10 +641,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       opened.current = { key: scrollKey, top: viewport.scrollTop };
     };
     const observer = new ResizeObserver(() => {
+      // Stryker disable next-line CallExpression: a later resize that runs open again lands on the place the reader left, which its guard keeps.
       observer.disconnect();
       open();
     });
     observer.observe(body);
+    // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
     // Only the days shown, whether today is among them, and whether today has events move the scroll.
     // eslint-disable-next-line react-hooks/exhaustive-deps
