@@ -63,8 +63,9 @@ export function plan(items, manifest, root = "ouro-tests") {
     if (!before || !same(before.paths, now.paths) || !same(before.dependencies, now.dependencies)) return full(`${name} changed its files or dependencies`);
     if (before.hash !== now.hash) changed.push(name);
   }
-  if (changed.some((name) => !installed.has(name) || name === root)) return full(`${changed.find((name) => !installed.has(name) || name === root)} changed outside the delta`);
-  return { mode: "incremental", items: changed.sort() };
+  // An item the shipped tests do not install is not in the app, so its change leaves the app as a full add makes it.
+  if (changed.includes(root)) return full(`${root} changed outside the delta`);
+  return { mode: "incremental", items: changed.filter((name) => installed.has(name)).sort() };
 }
 
 export function manifestOf(items) {
