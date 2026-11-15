@@ -87,6 +87,12 @@ const DATE = new RegExp(`\\b(?:19|20)\\d\\d-\\d\\d-\\d\\d\\b|\\b(?:${MONTH})(?:\
 const VERSION = /\bv?\d+\.\d+(?:\.\d+)*\b(?![:\d])/g;
 /** An issue or pull request reference, "#1074" or "owner/repo#1074": a name for a thread, not a count. GitHub URLs are masked as addresses already. */
 const REFERENCE = /(?:[\w.-]+\/[\w.-]+)?#\d+\b/g;
+/** A GitHub Actions run or job ID after "run" or "job" ("main run 43581029577"), which is a name, not a count. Its URL is masked as an address already. */
+const RUN_ID = /(?<=\b(?:run|job)s?\s+)\d{6,}\b/gi;
+/** A commit SHA: a run of lowercase hex characters, long enough for a short SHA, with a digit and a letter, so a plain number or a word such as "deadbeef" is not one. */
+const COMMIT = /\b(?=[0-9a-f]{7,40}\b)(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/g;
+/** The names a sentence may use for a thread, run or commit are not counts. */
+const IDENTIFIERS = [REFERENCE, RUN_ID, COMMIT];
 
 /** Numbers in words: "three themes", "a dozen helpers". Not "one", which mostly means "a" ("in one app"). */
 const NUMBER_WORDS = /\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|dozens?)\b/gi;
@@ -212,7 +218,7 @@ function triggersOf(masked) {
     found.push({ kind, words });
     text = text.replace(pattern, (match) => " ".repeat(match.length));
   };
-  text = text.replace(REFERENCE, (match) => " ".repeat(match.length));
+  for (const identifier of IDENTIFIERS) text = text.replace(identifier, (match) => " ".repeat(match.length));
   take("date", DATE);
   take("version", VERSION);
   // A digit inside a name ("e2e", "h1", "p95") is part of the name; "v2" and "x4" still count.

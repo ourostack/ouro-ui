@@ -93,6 +93,23 @@ test("triggers: issue and pull request references are not numbers, and other num
   assert.deepEqual(triggers("Fixes #1074 and adds 3 tests.")[0].words, ["3"]);
 });
 
+test("triggers: a run or job ID, a run's URL and a commit SHA are not numbers, and other counts beside them still are", () => {
+  assert.deepEqual(kinds("Evidence: run 43625890667 was green."), []);
+  assert.deepEqual(kinds("Refreshed from the main run 43581029577, which passed."), []);
+  assert.deepEqual(kinds("See https://github.com/ourostack/ouro-ui/actions/runs/43581029577/job/12345678901 for it."), []);
+  assert.deepEqual(kinds("See https://github.com/ourostack/ouro-ui/actions/runs/43581029577/attempts/2 for it."), []);
+  assert.deepEqual(kinds("Fixed in commit d8ac2bea9."), []);
+  assert.deepEqual(kinds("Deadbeef and facade are helper names."), []);
+  assert.deepEqual(lintMarkdown("Evidence: run 43625890667 was green.\n", { file: "a.md" }), []);
+  assert.deepEqual(triggers("Each ran 11 to 12 minutes in run 43558819164.").map((found) => found.words), [["11", "12"], ["Each"]]);
+  assert.deepEqual(triggers("Rebased onto 80b0b861 and cut 3 files.")[0].words, ["3"]);
+  assert.deepEqual(triggers("Built from 40 files at d8ac2bea9.")[0].words, ["40"]);
+  // A plain long number, not named as a run or job, is still a count.
+  assert.deepEqual(kinds("Uses 1234567 bytes."), ["number"]);
+  // A short number after "run" or "job" is a count, as "run 3 shards" is.
+  assert.deepEqual(triggers("Job 12 is fine.")[0].words, ["12"]);
+});
+
 test("triggers: a digit inside a word is not a number, and a number after that word still is", () => {
   assert.deepEqual(kinds("Main p95 is under budget."), []);
   assert.deepEqual(kinds("The p99 and h100 timings hold."), []);
