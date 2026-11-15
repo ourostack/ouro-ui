@@ -710,8 +710,8 @@ describe("MessageList windowing", () => {
           </MessageList>,
         ),
       );
-      // A row is 80px and the gap 16px: the commit that opens the list draws what fills a 600px window, and no more.
-      expect(renders.size).toBeLessThanOrEqual(Math.ceil(600 / 96) + 1);
+      // A row is 80px and the gap 16px: the commit that opens the list draws what fills the window, and no more.
+      expect(renders.size).toBeLessThanOrEqual(Math.ceil(window.innerHeight / 96) + 1);
       expect(renders.has(299)).toBe(true);
       const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
       await settle(scroller);
