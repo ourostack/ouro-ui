@@ -1,0 +1,1 @@
+- Message renders a text-only chat message with one wrapper element fewer, so a long list has less to style and lay out.
