@@ -147,8 +147,9 @@ function inView(scroller: HTMLElement, id: string) {
 }
 
 /**
- * Checks that the messages drawn, besides those kept, are exactly the band: one run, from the first that ends below 800px
- * above the view to the last that starts above 800px below it.
+ * Checks that the messages drawn, besides those kept, are the band and what is still drawn of the one before it: one run, from
+ * a message that ends below 1600px above the view, and no later than the first that ends below 800px, to the last that starts
+ * above 800px below it, or later within 1600px.
  */
 function expectBand(scroller: HTMLElement, kept: readonly number[]) {
   const drawn = ids(scroller).filter((id) => !kept.includes(id));
@@ -156,9 +157,9 @@ function expectBand(scroller: HTMLElement, kept: readonly number[]) {
   const view = scroller.getBoundingClientRect();
   const first = document.getElementById(`m${drawn[0]}`)!.getBoundingClientRect();
   const last = document.getElementById(`m${drawn.at(-1)}`)!.getBoundingClientRect();
-  expect(first.bottom).toBeGreaterThan(view.top - 800);
+  expect(first.bottom).toBeGreaterThan(view.top - 1600);
   expect(first.top - 16).toBeLessThanOrEqual(view.top - 800 + 1);
-  expect(last.top).toBeLessThan(view.bottom + 800);
+  expect(last.top).toBeLessThan(view.bottom + 1600);
   expect(last.bottom + 16).toBeGreaterThanOrEqual(view.bottom + 800 - 1);
 }
 
@@ -588,17 +589,49 @@ describe("MessageList windowing", () => {
     const last = document.getElementById(`m${drawn.at(-1)}`)!.getBoundingClientRect();
     expect(first.top).toBeLessThan(view.top - 400);
     expect(last.bottom).toBeGreaterThan(view.bottom + 400);
-    // Exactly the band: the first drawn ends past 800px above the view, the next one down would start 800px or more below it
-    // (each message 16px after the last), and the messages either side of the run lie outside those edges.
-    expect(first.bottom).toBeGreaterThan(view.top - 800);
+    // The band, and what is still drawn of the one before it within twice that: the first drawn ends past 1600px above the view,
+    // the next one down would start 800px or more below it (each message 16px after the last), and the last starts within 1600px.
+    expect(first.bottom).toBeGreaterThan(view.top - 1600);
     expect(last.bottom + 16).toBeGreaterThanOrEqual(view.bottom + 800 - 1);
-    expect(last.top).toBeLessThan(view.bottom + 800);
+    expect(last.top).toBeLessThan(view.bottom + 1600);
     // The newest stays drawn, for what arrives next.
     expect(document.getElementById("m999")).not.toBeNull();
     // Far up, the first messages draw, and those the scroll left go.
     await scrollTo(scroller, 0);
     expect(ids(scroller)[0]).toBe(0);
     expect(ids(scroller)).not.toContain(drawn[0]);
+  });
+
+  it("keeps a message drawn while code brings the messages after it into view, until it is twice the overscan from the view", async () => {
+    const { scroller } = await render(<Chat items={conversation(1000, 0, true)} />);
+    await scrollTo(scroller, scroller.scrollHeight / 2);
+    const keep = 2 * Math.max(800, scroller.clientHeight);
+    // The list places messages by their slots, each with the gap before it: the edge is good to a gap.
+    const slack = 16;
+    // The first message drawn while the reader goes down, then the last while they go up (not the newest, which always draws).
+    const newest = messages(scroller).at(-1)!;
+    for (const down of [true, false]) {
+      const edge = down ? messages(scroller)[0]! : messages(scroller).filter((message) => message !== newest).at(-1)!;
+      // How far the message is past the view's edge on its side.
+      const past = () => {
+        const view = scroller.getBoundingClientRect();
+        const box = edge.getBoundingClientRect();
+        return down ? view.top - box.bottom : box.top - view.bottom;
+      };
+      // Most of the way in one move the band still overlaps, then a step at a time, as a scan measuring each message does.
+      await scrollTo(scroller, scroller.scrollTop + (down ? 1 : -1) * (keep - past() - 120));
+      let distance = past();
+      expect(distance).toBeGreaterThan(keep / 2);
+      for (let step = 0; edge.isConnected; step++) {
+        expect(step).toBeLessThan(40);
+        expect(distance).toBeLessThan(keep + slack);
+        const before = scroller.scrollTop;
+        await scrollTo(scroller, before + (down ? 10 : -10));
+        distance = edge.isConnected ? past() : distance + Math.abs(scroller.scrollTop - before);
+      }
+      // It goes once it is twice the overscan away, not before.
+      expect(distance).toBeGreaterThan(keep - slack);
+    }
   });
 
   it("keeps the reader's place while messages above are measured, scrolling up through them", async () => {
