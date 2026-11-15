@@ -52,7 +52,7 @@ export const SCENES: Record<SceneName, Scene> = {
     band: 27,
     night: {
       phoneHeight: 352,
-      alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak crate on a moonlit hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
+      alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak-and-brass crate on a moonlit hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
     },
   },
   "ouro-ui-apple": {
