@@ -3,7 +3,9 @@ name: Apple release
 # (scripts/apple-release.mjs, GET /repos/ourostack/ouro-ui-apple/releases/latest), so the Apple page
 # cannot go on saying 0.2.1 after 0.4.1 is out, and the Apple release the Platforms pages pin, against
 # GitHub (scripts/platform-versions.mjs --live). Core's newest release is not checked here: the Pages
-# build writes it into the Platforms pages (pages.yml), so no release of core can make this run red.
+# build writes it into the Platforms pages (pages.yml), so no release of core can make this run red. Nor is
+# any other kit's: the same build writes the parity matrix's kits (scripts/parity-matrix.mjs --write). Only the
+# Apple components the matrix pins are held to GitHub (--live).
 # Hourly, since a release in another repository starts no workflow here, and on a change to the pages
 # that state a version. Behind on main opens, or comments on (at most daily), one "Apple pages are
 # behind" issue; an API error fails the run but is no drift.
@@ -95,10 +97,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/platform-versions.mjs --live
-      - name: The parity matrix's platforms are GitHub's
-        # scripts/parity-data/platforms.json (Apple's components, and whether an Android or Windows kit exists) against GitHub,
-        # and the parity page against it. Exits 1 on drift (fix with node scripts/parity-matrix.mjs --write), 2 when
-        # the API cannot be read.
+      - name: The parity matrix's pinned Apple components are GitHub's
+        # scripts/parity-data/platforms.json's Apple components, against the release versions.json pins, from GitHub. Exits 1 on
+        # drift (fix with node scripts/parity-matrix.mjs --write), 2 when the API cannot be read. The kits' newest releases are
+        # not checked: the Pages build writes them.
         id: parity
         if: ${{ !cancelled() }}
         env:
@@ -122,4 +124,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           QUIET_HOURS: 24
-        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple pages state a version other than the newest release of ouro-ui-apple, the Platforms pages pin an Apple release GitHub does not match, or the parity matrix misses a platform's component or kit"
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Apple pages are behind" "The Apple or Platforms pages state a version other than the newest release of ouro-ui-apple, the Platforms pages pin an Apple release GitHub does not match, or the parity matrix's pinned Apple components are not that release's"

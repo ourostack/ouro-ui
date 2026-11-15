@@ -9,9 +9,12 @@
 // - core's component and action claims (scripts/parity-data/*.claims.json, the copies the Apple page's tables use).
 //
 //   node scripts/parity-matrix.mjs           fail when the page differs from what the data renders (offline)
-//   node scripts/parity-matrix.mjs --render  rewrite the page from the data as it is, with no network (the Pages build runs it after core's copies are written)
-//   node scripts/parity-matrix.mjs --live    also fail when platforms.json differs from GitHub (network)
-//   node scripts/parity-matrix.mjs --write   read GitHub, then rewrite platforms.json and the page (network)
+//   node scripts/parity-matrix.mjs --render  rewrite the page from the data as it is, with no network (the Pages build runs it last)
+//   node scripts/parity-matrix.mjs --live    also fail when platforms.json's Apple components differ from the release versions.json pins (network)
+//   node scripts/parity-matrix.mjs --write   read GitHub, then rewrite platforms.json and the page (network; the Pages build runs it)
+//
+//   --live holds only what is pinned. The kits' newest releases are not checked: --write reads them when the Pages build
+//   runs, so no kit's release can fail --live.
 //
 //   Exits 1 on drift (and writes behind=true to GITHUB_OUTPUT), 2 when GitHub cannot be read, which is no drift.
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -239,6 +242,15 @@ export async function gather(options) {
 }
 
 
+/**
+ * What `--live` reports: platforms.json's Apple components against the components of the release versions.json pins, read
+ * from GitHub. A kit's newer release is no drift; the Pages build writes it.
+ */
+export function pinnedDrift(stored, apple) {
+  if (JSON.stringify(apple) === JSON.stringify(stored.apple)) return [];
+  return [`${PLATFORMS}'s Apple components differ from ${apple.tag} on GitHub, the release ${VERSIONS} pins. ${FIX}`];
+}
+
 async function main(args) {
   const read = (path) => readFileSync(join(root, path), "utf8");
   const report = (problems) => {
@@ -246,32 +258,42 @@ async function main(args) {
     for (const problem of problems) console.log(`::error::${problem}`);
     return problems.length > 0 ? 1 : 0;
   };
+  const unreadable = (error) => {
+    if (!(error instanceof Unreadable)) throw error;
+    console.log(`::error::${error.message}. Not drift: run it again later.`);
+    return 2;
+  };
   if (args.includes("--render")) {
     writeFileSync(join(root, PAGE), renderPage(read(PAGE), readData(read)));
     console.log(`Rendered ${PAGE} from its data.`);
     return 0;
   }
-  if (args.includes("--live") || args.includes("--write")) {
+  if (args.includes("--write")) {
     let facts;
     try {
       facts = await gather({ token: process.env.GH_TOKEN, apple: JSON.parse(read(VERSIONS)).apple });
     } catch (error) {
-      if (!(error instanceof Unreadable)) throw error;
-      console.log(`::error::${error.message}. Not drift: run it again later.`);
-      return 2;
+      return unreadable(error);
     }
-    const text = `${JSON.stringify(facts, null, 2)}\n`;
-    if (args.includes("--write")) {
-      writeFileSync(join(root, PLATFORMS), text);
-      writeFileSync(join(root, PAGE), renderPage(read(PAGE), readData(read)));
-      console.log(`Wrote ${PLATFORMS} and ${PAGE}.`);
-      return 0;
+    writeFileSync(join(root, PLATFORMS), `${JSON.stringify(facts, null, 2)}\n`);
+    writeFileSync(join(root, PAGE), renderPage(read(PAGE), readData(read)));
+    console.log(`Wrote ${PLATFORMS} and ${PAGE}.`);
+    return 0;
+  }
+  if (args.includes("--live")) {
+    let apple;
+    try {
+      apple = await gatherApple({ token: process.env.GH_TOKEN, apple: JSON.parse(read(VERSIONS)).apple });
+    } catch (error) {
+      return unreadable(error);
     }
-    if (text !== read(PLATFORMS)) return report([`${PLATFORMS} differs from GitHub (a kit's components changed, or a kit now exists). ${FIX}`]);
+    const problems = pinnedDrift(JSON.parse(read(PLATFORMS)), apple);
+    if (problems.length > 0) return report(problems);
   }
   const problems = renderPage(read(PAGE), readData(read)) === read(PAGE) ? [] : [`${PAGE} differs from what its data renders. ${FIX}`];
   if (problems.length === 0) console.log(`${PAGE} shows what its data says.`);
   return report(problems);
 }
+
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) process.exitCode = await main(process.argv.slice(2));

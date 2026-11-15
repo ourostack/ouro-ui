@@ -8,7 +8,7 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | [ourostack/ouro-ui-windows v0.1.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.1.0") |
+| Kit | this repository | [ourostack/ouro-ui-apple v0.6.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v0.6.0") | Not yet: [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android) is waiting for a builder | [ourostack/ouro-ui-windows v0.1.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.1.1") |
 
 Components: Web has 122 of 122, Apple has 8 of 122, Android has 0 of 122, Windows has 4 of 122.[^matrix]
 
@@ -167,9 +167,10 @@ Gap cells: 386.[^matrix]
 
 The rows come from data, and nothing in the matrix is typed by hand.[^generated] Web's components are the ones its registry lists. Apple's are the SwiftUI views in `Sources/OuroHX/Components` of the ouro-ui-apple release the [Platforms page](README.md) names, under web's name where Apple's differs. Windows's are the WinUI controls `Ouro<Name>` in `src/Ouro.UI.Windows` of the ouro-ui-windows release the table names, under web's name in kebab case.[^windows] The claims are core's component and action claims, the same copies the [Apple page's parity tables](https://ui.ouroboros.bot/apple/#parity) use. A component claim counts as covered on a platform when core names that platform's test for it. An action claim counts as covered where it applies to a surface that runs there. Android has no kit yet, so its cells read "Not yet" until [a kit](contributing.md) exists.[^matrix]
 
-The hourly Apple release check reads GitHub again and fails when this page falls behind: a new Apple component, or a kit that now exists.[^hourly]
+The hourly Apple release check holds the Apple components this page pins to GitHub, and fails when they differ. Each kit's newest release is written in when the Pages build runs, so a kit's new release does not fail that check.[^hourly][^pages-matrix]
 
 [^matrix]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::the parity page shows what its data renders)
 [^generated]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::the parity page shows what its data renders)
 [^hourly]: .github/workflows/apple-release.yml verify:fileLine(.github/workflows/apple-release.yml, /node scripts\/parity-matrix\.mjs --live/)
+[^pages-matrix]: .github/workflows/pages.yml verify:testExists(scripts/workflows.test.mjs::Pages writes the other kits' newest releases into the parity matrix before it builds, and keeps main's copy when GitHub cannot be read)
 [^windows]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::Windows's components are the Ouro<Name> controls that derive from a XAML control, under web's name)

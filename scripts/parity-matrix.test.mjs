@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { appleComponents, claimMatrix, componentMatrix, gather, PAGE, readData, renderMatrix, renderPage, windowsComponents } from "./parity-matrix.mjs";
+import { appleComponents, claimMatrix, componentMatrix, gather, pinnedDrift, PAGE, readData, renderMatrix, renderPage, windowsComponents } from "./parity-matrix.mjs";
 
 const real = (path) => readFileSync(path, "utf8");
 
@@ -17,6 +17,13 @@ test("the hourly Apple release check reads GitHub again for the parity matrix, a
     assert.ok(workflow.includes(`\n            ${path}\n`), `${path} in the sparse checkout`);
   }
   assert.match(workflow, /steps\.parity\.outputs\.behind == 'true'/);
+});
+
+test("--live holds Apple's pinned components to GitHub; pinnedDrift never sees a kit, so a kit's newer release is no drift", () => {
+  const apple = { repo: "o/apple", tag: "v0.6.0", commit: "c", components: [{ name: "OuroButton", web: "button" }] };
+  const stored = { apple, windows: { tag: "v0.1.0", components: [] } };
+  assert.deepEqual(pinnedDrift(stored, apple), []);
+  assert.equal(pinnedDrift(stored, { ...apple, components: [] }).length, 1);
 });
 
 test("Apple's components are the files that declare the component, under web's name", () => {
