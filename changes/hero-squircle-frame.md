@@ -1,1 +1,1 @@
-- Hero: the picture's frame [has 24px squircle corners](registry/ouro/components/ouro/hero/hero.test.tsx "verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > frames the picture with 24px squircle corners)"), Ouro's corner shape, in place of 4px round ones.
+- Hero: the picture's frame [has squircle corners](registry/ouro/components/ouro/hero/hero.test.tsx "verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > frames the picture with the theme's xl squircle corners)"), Ouro's corner shape, in place of 4px round ones.
