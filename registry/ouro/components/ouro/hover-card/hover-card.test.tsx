@@ -159,13 +159,19 @@ describe("HoverCard", () => {
   });
 
   it("keeps focus on the link as keyboard focus arms the card", async () => {
-    await renderCard();
-    await userEvent.keyboard("{Shift}");
-    await act(async () => link().focus());
-    const focused = document.activeElement;
+    await render(
+      <>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+      </>,
+    );
+    await act(async () => (page.getByRole("button", { name: "Before" }).element() as HTMLElement).focus());
+    await pressTab();
+    const focused = link();
+    expect(document.activeElement).toBe(focused);
     await shown();
     expect(document.activeElement).toBe(focused);
-    expect(focused).toBe(link());
+    expect(link()).toBe(focused);
   });
 
   it("stays open while the pointer crosses onto the card, and closes once it leaves both", async () => {

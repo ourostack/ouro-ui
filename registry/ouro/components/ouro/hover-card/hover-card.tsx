@@ -18,6 +18,7 @@ import {
 } from "@/registry/ouro/lib/ouro/floating";
 import { lastInput } from "@/registry/ouro/lib/ouro/last-input";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
@@ -163,7 +164,9 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
     setArmed(true);
     after(OPEN_DELAY, true);
   };
-  const own = trigger.props as {
+  // A Server Component's link may come wrapped (React's lazy element): the element inside is the one to give handlers.
+  const element = serverElement(trigger);
+  const own = element.props as {
     ref?: Ref<HTMLAnchorElement>;
     onPointerEnter?: (event: PointerEvent<HTMLAnchorElement>) => void;
     onPointerLeave?: (event: PointerEvent<HTMLAnchorElement>) => void;
@@ -173,7 +176,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
   const ref = useMergedRef(own.ref, triggerRef);
   // The link takes the merged ref, which nothing reads during render.
   // eslint-disable-next-line react-hooks/refs
-  const link = cloneElement(trigger as ReactElement<Record<string, unknown>>, {
+  const link = cloneElement(element as ReactElement<Record<string, unknown>>, {
     ref,
     // Stryker disable next-line StringLiteral: found by the attribute alone, never by its value.
     "data-ouro-hover-card-trigger": "",
