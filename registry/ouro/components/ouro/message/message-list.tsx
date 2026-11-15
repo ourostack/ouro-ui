@@ -1532,7 +1532,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The frame the wheel last turned in. Where a frame takes longer than the rest (a slow machine drawing much), the wheel's next
     // events wait behind it, so the wheel turns until the time has passed and a later frame has begun.
     let wheelFrame: CSSNumberish | null = null;
-    const turning = () => performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
+    // The window drawing the messages past the view for the first time, mid-way through a scroll of the reader's that the browser
+    // animates (a wheel's smooth scroll in WebKit, right after the list opens), is held the same way until that scroll ends.
+    const turning = () =>
+      (widenedMidScroll.current && reader.current.going) || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
     let resting: ReturnType<typeof setTimeout> | undefined;
     let restFrame = 0;
     // How close to an end, in px, the reader comes before the scroll position takes what is carried: a few frames of a fast wheel.
@@ -1673,6 +1676,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const windowSync = useRef<(scrolled: boolean) => void>(undefined);
   // Whether the rows past the view's edges draw: from the frame after the list opens, or another conversation opens in it.
   const wide = useRef(false);
+  // Whether the rows past the view were first drawn while a scroll of the reader's was going on.
+  const widenedMidScroll = useRef(false);
   // Whether the estimate is fixed: once the rows past the view's edges are first measured.
   // Stryker disable next-line BooleanLiteral: not equivalent; "takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not" (message-list.test.tsx) fails on it, but per-test coverage attributes the first measurement to another test, so the shard never runs it.
   const estimated = useRef(false);
@@ -1689,6 +1694,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         widening.current = null;
         // Stryker disable next-line BooleanLiteral: not equivalent; "opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint" (message-list.windowing.test.tsx) fails on it, but per-test coverage attributes this timer to another test, so the shard never runs it.
         wide.current = true;
+        widenedMidScroll.current = reader.current.going;
         // Stryker disable next-line BooleanLiteral: measuring as it widens finds the heights the last sync measured, and changes nothing.
         windowSync.current!(true);
       });
@@ -1895,7 +1901,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       windowSync.current!(true);
     };
     // The reader's scroll is over: a scroll after this is code's, unless they act again.
-    const onScrollEnd = () => void (state.going = false);
+    const onScrollEnd = () => ((state.going = false), (widenedMidScroll.current = false));
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only lets the browser scroll without waiting for this listener.
     scroller.addEventListener("scroll", onScroll, { passive: true });
     scroller.addEventListener("scrollend", onScrollEnd);
