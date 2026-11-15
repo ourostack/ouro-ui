@@ -891,8 +891,9 @@ describe("Porthole", () => {
     expect(view.panel).not.toBeNull();
     expect(getComputedStyle(view.panel!).pointerEvents).toBe("none");
     // Passing over and away before the delay opens nothing.
+    // The leave commits the close in React's next task, not in the event, so wait for it.
     await userEvent.unhover(view.spot);
-    expect(view.panel).toBeNull();
+    await expect.poll(() => view.panel).toBeNull();
     await userEvent.hover(view.spot);
     await userEvent.unhover(view.spot);
     await act(() => vi.advanceTimersByTime(PORTHOLE_HOVER_DELAY_MS));
