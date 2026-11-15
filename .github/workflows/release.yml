@@ -12,7 +12,7 @@ name: Release
 # (scripts/public-registry.mjs verify-build). When that passes, the commit is tagged, the
 # GitHub release is created and the branch is deleted (the tag keeps the commit). Because
 # main never receives the release commit, main keeps its change fragments: a release's notes list
-# only the fragment lines the last release's notes lack (scripts/changes.mjs). Afterwards a pull
+# only the fragment lines that were not at the last release's tag (scripts/changes.mjs). Afterwards a pull
 # request points main's docs at the release (docs-pin.yml), which this run starts and never waits
 # for. The run deploys Pages (the pages job: Pages' build names the newest
 # release in the site, llms.txt and the @ouro namespace) and last checks that the site's llms.txt
@@ -136,9 +136,15 @@ jobs:
       - if: steps.check.outputs.new == 'true'
         name: Check the changes
         run: |
-          # The newest release's notes, or nothing before the first release.
-          gh release view --json body --jq .body > "$RUNNER_TEMP/last-notes.md" 2>/dev/null || : > "$RUNNER_TEMP/last-notes.md"
-          node scripts/changes.mjs check changes "$RUNNER_TEMP/last-notes.md"
+          # Against the fragments at the newest release's tag, which that release or an earlier one
+          # published (its notes alone hold only its own lines); against nothing before the first release.
+          last=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          if [ -n "$last" ]; then
+            git fetch --quiet --no-tags --depth=1 origin "refs/tags/$last:refs/tags/$last"
+            node scripts/changes.mjs check changes --since "$last"
+          else
+            node scripts/changes.mjs check changes
+          fi
       - if: steps.check.outputs.new == 'true'
         name: Push the release branch
         run: |

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
@@ -79,4 +79,34 @@ export const Photos: Story = {
 /** Two slides at a time that wrap around at the ends. */
 export const SeveralPerView: Story = {
   args: { slidesPerView: 2, loop: true },
+};
+
+const onHashChange = (change: () => void) => {
+  window.addEventListener("hashchange", change);
+  return () => window.removeEventListener("hashchange", change);
+};
+
+/** A deck whose slide lives in the address: each dot is a link to `#slide-n`, and Back and Forward step through the slides. */
+function AddressDeck() {
+  const hash = useSyncExternalStore(onHashChange, () => location.hash, () => "");
+  const index = Math.min(dishes.length - 1, Math.max(0, Number(hash.replace("#slide-", "")) - 1 || 0));
+  return (
+    <Surface>
+      <Carousel
+        label="Featured recipes"
+        index={index}
+        onIndexChange={(next) => history.replaceState(null, "", `#slide-${next + 1}`)}
+        pagerHref={(position) => `#slide-${position + 1}`}
+      >
+        {dishes.map((dish) => (
+          <Card key={dish} name={dish} />
+        ))}
+      </Carousel>
+    </Surface>
+  );
+}
+
+/** Driven by the address, with a pager of links. */
+export const DrivenByAddress: Story = {
+  render: () => <AddressDeck />,
 };
