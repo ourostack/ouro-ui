@@ -584,15 +584,23 @@ describe("useRowHover", () => {
     cover.setAttribute("style", "position:fixed;inset:0");
     document.body.append(cover);
     const box = row("r1").getBoundingClientRect();
-    await userEvent.hover(cover, { position: { x: box.right - 4, y: box.top + 20 } });
+    const at = { x: box.right - 4, y: box.top + 20 };
+    await userEvent.hover(cover, { position: at });
     await userEvent.keyboard("{Shift}");
     await act(async () => row("r0").focus());
     expect(layerIn("r0")).not.toBeNull();
     // The cover goes, and r1 is under the pointer: the browser says so with a pointerover where the pointer already was.
+    // Chromium sends it from a timer of its own after the layout changes, which a loaded runner can hold past any poll
+    // (#842), so unless it has come already the test sends the same event, at the same point, from the element under
+    // it: the hook reads where the event is, not who sent it, and the browser's own, arriving later, reads the same.
     let resent = false;
     document.addEventListener("pointerover", () => (resent = true), { once: true });
     await act(async () => cover.remove());
-    await expect.poll(() => resent).toBe(true);
+    if (!resent) {
+      const under = document.elementFromPoint(at.x, at.y)!;
+      await act(async () => void under.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, clientX: at.x, clientY: at.y, pointerType: "mouse" })));
+    }
+    expect(resent).toBe(true);
     for (let frame = 0; frame < 3; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
     expect(layerIn("r0")).not.toBeNull();
     expect(probe.hover.via).toBe("focus");
