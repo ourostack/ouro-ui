@@ -274,7 +274,9 @@ const TOUCH_CEILING_MS = 2 * TOUCH_HANDLED_TIMEOUT_MS;
  * passive listeners that record the touch events the frame handles, and at most one expected
  * event. The listeners capture on `window` and, from touchstart on, also sit on the touch's
  * target, because a touch's later events go to that target even after it has left the
- * document, where they no longer reach `window`.
+ * document, where they no longer reach `window`. A settle from an earlier command, which arrives
+ * late, leaves the event that a later command expects in place.
+ * @claim "A settle from an earlier command" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a lift's late tidying of a frame never clears the watch the next gesture armed there)
  * @claim "Runs in every frame of the" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::on a page zoomed and panned by touch, the kit waits for the frame where the touch lands)
  * @claim "The listeners capture on `window` and" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::on a page zoomed and panned by touch, the kit waits for the frame where the touch lands)
  */
@@ -343,6 +345,7 @@ const TOUCH_WATCH = `(action, expected) => {
   }
   if (action === "expect") {
     state.expected = expected;
+    state.seq = expected.seq;
     state.seen = false;
     state.saw = [];
     return { children: view.length };
@@ -360,7 +363,9 @@ const TOUCH_WATCH = `(action, expected) => {
       };
     });
   }
-  // "settle": stop waiting in this frame, and stop watching once the finger is up.
+  // "settle": stop waiting in this frame, and stop watching once the finger is up. A settle from an
+  // earlier command than the watch armed here is late: that watch is a later command's, so it stays.
+  if (state.seq !== undefined && expected.seq !== undefined && expected.seq < state.seq) return null;
   state.expected = null;
   if (state.resolve) state.resolve();
   if (expected.type === "touchend") state.remove();
@@ -512,6 +517,22 @@ function within<T>(promise: Promise<T>, limit: number | Limit, message: string):
 }
 
 /**
+ * Each command's expectation is numbered when its first watch starts, in order, so that TOUCH_WATCH
+ * can tell a settle from an earlier command, one that is late, from the watch a later command armed.
+ * @claim "Each command's expectation is numbered" scripts/touch-kit-frames.test.mjs verify:testExists(scripts/touch-kit-frames.test.mjs::a lift's late tidying of a frame never clears the watch the next gesture armed there)
+ */
+let watchSeq = 0;
+const watchSeqs = new WeakMap<TouchPoint, number>();
+function seqOf(point: TouchPoint): number {
+  let seq = watchSeqs.get(point);
+  if (seq === undefined) {
+    seq = ++watchSeq;
+    watchSeqs.set(point, seq);
+  }
+  return seq;
+}
+
+/**
  * Calls `TOUCH_WATCH` in one frame. A failed call is kept, with its reason, and so is a call
  * still unanswered after `limit` (`ms`, or a command's `Limit`, so the call ends by the command's
  * ceiling): Playwright waits for a frame's document before it evaluates there, and a frame whose
@@ -519,7 +540,7 @@ function within<T>(promise: Promise<T>, limit: number | Limit, message: string):
  * @claim "A failed call is kept, with" registry/ouro/lib/ouro/testing/commands.touch.test.ts verify:testExists(registry/ouro/lib/ouro/testing/commands.touch.test.ts::a touch into an iframe that never loads does not hang)
  */
 function callWatch<T>(frame: Frame, action: TouchWatchAction, point: TouchPoint, limit: number | Limit): Promise<FrameAnswer<T>> {
-  const call = `(${TOUCH_WATCH})(${JSON.stringify(action)}, ${JSON.stringify({ ...point, type: point.type.toLowerCase() })})`;
+  const call = `(${TOUCH_WATCH})(${JSON.stringify(action)}, ${JSON.stringify({ ...point, type: point.type.toLowerCase(), seq: seqOf(point) })})`;
   const url = () => frame.url() || "a frame with no URL yet";
   const ms = typeof limit === "number" ? limit : limit.kit - kitNow();
   return within(frame.evaluate<T>(call), limit, `did not answer within ${Math.round(ms)}ms`).then(
@@ -998,12 +1019,13 @@ async function sendTraced(
   const now = <T>(call: Promise<T>) => within(call, 0, "").catch(() => undefined);
   // Tidies every frame whose watch started; a frame whose call is still out is tidied when it answers, without waiting.
   // Once a frame has handled the event, only its tidying is waited for: a busy frame elsewhere, as a
-  // cross-origin page still running its scripts, would hold the command up to TOUCH_TIDY_MS. Calls
-  // into one frame run in order, so that frame is still tidied before the next command watches it,
-  // and the next touchstart waits for a watcher armed for itself (frameAtPoint). The frame that
-  // handled a touchstart or touchmove has nothing to tidy: seeing the event ended its wait and
-  // cleared what it expected (TOUCH_WATCH), so it is not asked, which saves a round trip into the
-  // page on each step of a gesture. A lift is tidied and waited for: it ends the frame's watch.
+  // cross-origin page still running its scripts, would hold the command up to TOUCH_TIDY_MS. A tidying
+  // that a frame answers late, after a later command has armed it, does nothing: TOUCH_WATCH ignores a
+  // settle older than the watch it would clear, and the next touchstart waits for a watcher armed for
+  // itself (frameAtPoint). The frame that handled a touchstart or touchmove has nothing to tidy: seeing
+  // the event ended its wait and cleared what it expected (TOUCH_WATCH), so it is not asked, which saves
+  // a round trip into the page on each step of a gesture. A lift is tidied and waited for: it ends the
+  // frame's watch.
   const tidy = async (handled?: Frame) => {
     const answered = (await Promise.all([...calls.values()].map(now))).flatMap((answer) => (answer && answer.error === undefined ? [answer.frame] : []));
     for (const [frame, call] of calls) if (!answered.includes(frame)) void call.then(() => callWatch(frame, "settle", expected, TOUCH_TIDY_MS));

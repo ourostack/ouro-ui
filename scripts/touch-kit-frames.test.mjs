@@ -10,6 +10,9 @@ import { DRAG_SLOW_MS, drag, touchDrag, touchStep } from "../registry/ouro/lib/o
 // another process happens only now and then (CI probe run 38385210551), so a browser test of it
 // is a smoke test, not a control.
 
+/** The point a `TOUCH_WATCH` call was made with: its last argument, as the kit writes it as JSON. */
+const pointOf = (call) => JSON.parse(/\)\("\w+", (\{[^}]*\})\)$/.exec(call)[1]);
+
 /**
  * A page whose top frame holds the test's own frame, as Vitest's does, and a touch point on a frame
  * in another process given the address `url`, which Chromium's hit test stops at. Playwright lists
@@ -39,7 +42,10 @@ import { DRAG_SLOW_MS, drag, touchDrag, touchStep } from "../registry/ouro/lib/o
  * touchStart (Input.dispatchTouchEvent), as when a listener that can cancel it is busy in the page.
  * With `holds`, Chromium keeps its own record of the finger, as it does: a touchMove or touchEnd
  * while it holds none is refused ("Must send a TouchStart first"), and `letGo()` drops the finger
- * as Chromium can on its own.
+ * as Chromium can on its own. A frame with `gone` set fails every call into it, as a removed frame does.
+ * On the test's own frame, `holdNext` holds the answer to its next watch until a later watch has been
+ * issued there, as a late reply does, and that later watch is what the frame has armed in the meantime.
+ * `goOnPage()` makes the point on the test's page the one the touch lands on.
  */
 function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage = false, delays = {}, stuck, hitTestableAfter = 0, routedAfter = hitTestableAfter, reembed = false, sessionAfter = 0, busyUntil = 0, lost = false, busyOnceSent = false, sessionEarly = 0, hitTestHangs = 0, ackHangs = false, ackAfter = 0, holds = false } = {}) {
   const page = new EventEmitter();
@@ -55,6 +61,7 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
       url: () => frameUrl,
       parentFrame: () => parent,
       async evaluate(call) {
+        if (self.gone) throw new Error("frame.evaluate: Frame was detached");
         if (self.never?.(call)) return new Promise(() => {});
         // The kit's wait for the frame to draw, before a touch into a frame in another process.
         if (call.includes("requestAnimationFrame(() => requestAnimationFrame(")) {
@@ -66,6 +73,15 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
         if (action === "expect") {
           if (self === target && since() < busyUntil) await new Promise((resolve) => setTimeout(resolve, busyUntil - since()));
           self.armed = true;
+          self.expected = pointOf(call);
+          self.seq = self.expected.seq;
+          if (self.holdNext) {
+            self.holdNext = false;
+            return new Promise((resolve) => (self.releaseHeld = () => resolve(null)));
+          }
+          // A later watch has been issued: the held answer comes in after it, as a late reply does.
+          self.releaseHeld?.();
+          self.releaseHeld = undefined;
           return null;
         }
         if (action === "wait") {
@@ -73,7 +89,11 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
           return new Promise((resolve) => self.waiting.push(resolve));
         }
         if (action === "settle") {
+          // A settle from an earlier command leaves a watch a later command armed alone (TOUCH_WATCH's seq).
+          const point = pointOf(call);
+          if (point.seq !== undefined && self.seq !== undefined && point.seq < self.seq) return null;
           self.armed = false;
+          self.expected = undefined;
           for (const resolve of self.waiting.splice(0)) resolve({ seen: false, active: false, moved: false, saw: [] });
           return null;
         }
@@ -120,7 +140,12 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
         }
         held = params.type !== "touchEnd";
       }
-      if (onPage && method === "Runtime.callFunctionOn") return { result: { value: { watched: tests.armed, where: "the test page" } } };
+      if (onPage && method === "Runtime.callFunctionOn") {
+        // Watched only when armed for the point the hit test asks about.
+        const want = params.arguments[0].value;
+        const armed = Boolean(tests.expected && tests.expected.type === want.type && tests.expected.x === want.x && tests.expected.y === want.y);
+        return { result: { value: { watched: armed, where: "the test page" } } };
+      }
       if (onPage && method === "Input.dispatchTouchEvent") {
         sent.push({ type: params.type, at: Date.now() });
         if (tests.armed) {
@@ -213,7 +238,17 @@ function stage({ url = "about:srcdoc", listAfter = 150, listedUrl = "", onPage =
     begin();
     return touchDrag(ctx, { from: [100, 350], to: [100, 380], steps: 3 });
   };
-  return { ctx, sent, target, tests, start, drag, letGo: () => (held = false), stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)) };
+  return {
+    ctx,
+    sent,
+    target,
+    tests,
+    start,
+    drag,
+    letGo: () => (held = false),
+    goOnPage: () => (onPage = true),
+    stop: () => (clearTimeout(timer), clearTimeout(sessionTimer)),
+  };
 }
 
 test("a touchstart on a frame in another process that Playwright lists late waits for that frame's watcher, then reaches it", async () => {
@@ -350,6 +385,28 @@ test("a touchstart or touchmove the page handled asks nothing more of the frame 
     await touchStep(ctx, { type: "touchEnd" });
     assert.deepEqual(actions, ["expect", "wait", "settle"]);
     assert.ok(performance.now() - started >= 790, "a lift waits for the frame's tidying");
+  } finally {
+    stop();
+  }
+});
+
+test("a lift's late tidying of a frame never clears the watch the next gesture armed there", { timeout: 15_000 }, async () => {
+  // The lift's watch in the test's frame is answered only once the next gesture has armed its own, as a late reply is.
+  const { ctx, tests, target, start, goOnPage, stop } = stage({ delays: { "Runtime.callFunctionOn": 20 } });
+  try {
+    await start();
+    // The finger's frame goes away with its touch still down.
+    target.gone = true;
+    tests.holdNext = true;
+    await assert.rejects(
+      touchStep(ctx, { type: "touchEnd" }),
+      /^Error: touchStep: the watch for the touchEnd did not start in [^,]+, the frame the gesture's touchstart went to: frame\.evaluate: Frame was detached\. The touchEnd was sent, but no watcher saw it\./,
+    );
+    // The next gesture lands on the test's own page, which must still be watched for it.
+    goOnPage();
+    await touchStep(ctx, { type: "touchStart", x: 100, y: 50 });
+    await touchStep(ctx, { type: "touchEnd" });
+    assert.equal(tests.sees, "touchend");
   } finally {
     stop();
   }
