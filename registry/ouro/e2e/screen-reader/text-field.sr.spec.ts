@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { inOneSentence, INVALID, nameAndRole, REQUIRED } from "./phrases";
-import { describesFocus, heard, startReading, test } from "./screen-reader";
+import { describesFocus, heard, heardOrDescribed, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.describe("a described, required field", () => {
@@ -30,10 +30,13 @@ test.describe("an error after a submit", () => {
       await page.keyboard.press("Enter");
       await expect(name).toBeFocused();
     };
-    await heard(sr, submit, (phrase) => inOneSentence(phrase, /\byou already have a recipe called pasta\b/i), '"You already have a recipe called Pasta.", the error, as focus moves to Name');
-    await expect(name).toHaveAttribute("aria-invalid", "true");
     // The error's full stop ends VoiceOver's sentence before the state ("Pasta Name You already have a
     // recipe called Pasta. required invalid data edit text", run 43854914522), as the description does.
-    await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID), '"Name", its error, invalid, the focused field');
+    const namesTheError = (phrase: string) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID);
+    // VoiceOver often reads only the value as focus moves (ourostack/ouro-ui#1720): it is then asked to
+    // describe the field, which must name its error and invalid state.
+    await heardOrDescribed(sr, submit, (phrase) => inOneSentence(phrase, /\byou already have a recipe called pasta\b/i), namesTheError, '"You already have a recipe called Pasta.", the error, as focus moves to Name', { finding: "ourostack/ouro-ui#1720" });
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+    await describesFocus(sr, namesTheError, '"Name", its error, invalid, the focused field');
   });
 });

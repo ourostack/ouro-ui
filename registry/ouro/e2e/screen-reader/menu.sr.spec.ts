@@ -12,7 +12,7 @@ test("Menu is announced from its trigger, reads each item the arrow keys reach, 
   await heard(sr, () => trigger.focus(), saysTrigger, '"Actions", button');
   // Opened from the keyboard, the menu moves focus to its first item, Edit. As it opens, VoiceOver
   // said only its hint ("You are currently in a menu.", run 43852622500) and NVDA the group and the
-  // item: only logged, as Select's opening is; each move once it is open must be read.
+  // item: only logged, as Select's opening is (ourostack/ouro-ui#1721); each move once it is open must be read.
   const menu = page.getByRole("menu");
   const open = async () => {
     await page.keyboard.press("Enter");
