@@ -268,6 +268,39 @@ describe("Link", () => {
     }
   });
 
+  it("keeps a link with an icon in a sentence on the sentence's line, at its baseline, wrapping as text does", async () => {
+    const icon = <svg className="size-4" viewBox="0 0 16 16" aria-hidden="true" />;
+    const { host } = await render(
+      <>
+        <p data-case="plain">
+          Read <Link href="/guide">the guide</Link> <span data-next="">next</span>.
+        </p>
+        <p data-case="icon">
+          Read <Link href="/guide">{icon}the guide</Link> <span data-next="">next</span>.
+        </p>
+        <div data-case="inline">
+          Read <Link href="/guide" inline>{icon}the guide</Link> <span data-next="">next</span>.
+        </div>
+        <p data-case="long" style={{ width: 160 }}>
+          See <Link href="/kitchen">{icon}the guide to setting up a kitchen for the first time</Link> first.
+        </p>
+      </>,
+    );
+    const at = (name: string) => host.querySelector<HTMLElement>(`[data-case="${name}"]`)!;
+    const plain = at("plain").getBoundingClientRect().height;
+    for (const name of ["icon", "inline"]) {
+      const box = at(name);
+      const link = box.querySelector<HTMLAnchorElement>('[data-ouro="link"]')!;
+      expect(getComputedStyle(link).display, name).toBe("inline");
+      // The line is as tall as one without an icon, and the link's words sit on the next word's baseline.
+      expect(box.getBoundingClientRect().height, name).toBe(plain);
+      const range = document.createRange();
+      range.selectNodeContents([...link.childNodes].find((node) => node.nodeType === Node.TEXT_NODE)!);
+      expect(range.getBoundingClientRect().bottom, name).toBeCloseTo(box.querySelector("[data-next]")!.getBoundingClientRect().bottom, 0);
+    }
+    expect(at("long").querySelector('[data-ouro="link"]')!.getClientRects().length).toBeGreaterThan(1);
+  });
+
   it("lets an external link in a sentence wrap across lines, as text does", async () => {
     const { link } = await render(
       <p style={{ width: 160 }}>
