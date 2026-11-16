@@ -434,11 +434,13 @@ function watchFirstItem(popup: HTMLElement): () => void {
       });
     });
   };
-  // The popup's own arrow keys act on the item that has focus, so a key pressed in the frames gives the item focus first.
+  // A key in the frames ends them: the person has moved on. The popup's own arrow keys act on the item that has focus, so a
+  // key that finds the popup holding focus gives it back to the item first; one on an item is left to act there.
   const onKeyDown = () => {
     if (frame === 0) return;
+    cancel();
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: Base UI's own handling of the same key scrolls the item into view, so this focus scrolls nothing the page would not.
-    item!.focus({ preventScroll: true });
+    if (document.activeElement === popup) item!.focus({ preventScroll: true });
   };
   // A press in the frames is the user's, so the item does not take focus back after it.
   popup.addEventListener("focusin", onFocusIn);

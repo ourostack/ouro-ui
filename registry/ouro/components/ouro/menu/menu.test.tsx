@@ -893,6 +893,31 @@ describe("Menu focus", () => {
     frames.release();
   });
 
+  it("keys pressed one after another as the menu opens each act from the item the last one reached", async () => {
+    const frames = holdFrames();
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem>Edit</MenuItem>
+        <MenuItem>Duplicate</MenuItem>
+        <MenuSub label="Share">
+          <MenuItem>Copy link</MenuItem>
+        </MenuSub>
+      </Menu>,
+    );
+    trigger().focus();
+    const focus = recordFocus();
+    await userEvent.keyboard("{Enter}");
+    frames.until(() => focus.length === 1);
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+    expect(document.activeElement?.textContent).toBe("Share");
+    frames.step();
+    frames.step();
+    frames.step();
+    expect(focus).not.toContain("popup");
+    expect(document.activeElement?.textContent).toBe("Share");
+    frames.release();
+  });
+
   it("a key pressed before the popup takes focus keeps focus where the key put it", async () => {
     const frames = holdFrames();
     await render(<Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>);
