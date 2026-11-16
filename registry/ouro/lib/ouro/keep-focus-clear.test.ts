@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { keepFocusClear, type FocusClearHandle } from "@/registry/ouro/lib/ouro/keep-focus-clear";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // A 390 by 844 window, the toasts' stack at its bottom end: a 58px front toast over the window's
@@ -29,7 +30,12 @@ const added: Element[] = [];
 let handle: FocusClearHandle | undefined;
 let bodyMargin = "";
 
+/** The toaster's fade, as its styles have it, but long: a test ends it, or the fallback does. */
+const fadeStyle = document.createElement("style");
+fadeStyle.textContent = '[data-ouro="toaster"] { transition: opacity 60s; } [data-ouro-toaster-fading] { opacity: 0; }';
+
 beforeEach(async () => {
+  document.head.append(fadeStyle);
   await page.viewport(390, 844);
   bodyMargin = document.body.style.margin;
   document.body.style.margin = "0";
@@ -38,6 +44,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  fadeStyle.remove();
   handle?.release();
   handle = undefined;
   for (const node of added.splice(0)) node.remove();
@@ -81,7 +88,7 @@ function stage({ toasts = 2, edge = "bottom" }: { toasts?: number; edge?: string
   const bar = document.createElement("div");
   bar.dataset.ouro = "toaster";
   bar.dataset.edge = edge;
-  fixed(bar, "position: fixed; left: 16px; bottom: 16px; width: 358px; height: 0; transition: none;");
+  fixed(bar, "position: fixed; left: 16px; bottom: 16px; width: 358px; height: 0;");
   if (toasts > 0) toast(bar, "bottom: 0; left: 0; width: 358px; height: 58px;");
   if (toasts > 1) toast(bar, "bottom: 12px; left: 2px; width: 322px; height: 58px;");
   return bar;
@@ -632,6 +639,59 @@ describe("keepFocusClear", () => {
       expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
       advance(1);
       expect(stateOf(bar).moved).toBe("top");
+    });
+
+    it("lands a move on the next frame when no fade starts, without waiting for the fallback", async () => {
+      const bar = setup();
+      bar.style.transition = "none";
+      control("covered", COVERED);
+      const fades: boolean[] = [];
+      const watcher = new MutationObserver(() => fades.push(bar.hasAttribute("data-ouro-toaster-fading")));
+      watcher.observe(bar, { attributes: true, attributeFilter: ["data-ouro-toaster-fading"] });
+      // The fake clock never moves, so the fallback never runs.
+      await tab("covered");
+      await frames();
+      watcher.disconnect();
+      expect(fades).toEqual([true, false]);
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    });
+
+    it("lands a move on the next frame when only another property of the viewport transitions", async () => {
+      const bar = setup();
+      bar.style.transition = "transform 60s";
+      const style = document.createElement("style");
+      style.textContent = "[data-ouro-toaster-fading] { transform: translateY(1px); }";
+      document.head.append(style);
+      added.push(style);
+      control("covered", COVERED);
+      await tab("covered");
+      await frames();
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    });
+
+    it("does not land a move on a frame after the keeper lets go mid-fade", async () => {
+      const bar = setup();
+      bar.style.transition = "none";
+      control("covered", COVERED);
+      const held = holdFrames();
+      await pressTab();
+      held.until(() => bar.hasAttribute("data-ouro-toaster-fading"));
+      handle!.release();
+      handle = undefined;
+      held.step();
+      held.step();
+      held.release();
+      expect(bar.hasAttribute("data-ouro-toaster-moved")).toBe(false);
+    });
+
+    it("does not land a move on the cancel of the last landing's fade-in, which a new move causes", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      await tab("covered");
+      bar.dispatchEvent(new TransitionEvent("transitioncancel", { bubbles: true, propertyName: "opacity" }));
+      expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
+      advance(FADE_MS);
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     });
 
     it("does not start a second fade while one is fading", async () => {

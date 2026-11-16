@@ -2211,7 +2211,17 @@ describe("keyboard focus under the stack", () => {
     await pressTab({ shift: true });
     await until(focused, "before");
     // The top edge covers the page's first control, and the bottom does not: the stack goes back down at once.
-    await until(moved, null);
+    // It stayed up once in an app's WebKit run (ourostack/ouro-ui#1764), so a failure says what the keeper decides from.
+    await until(moved, null).catch((error: Error) => {
+      const box = caseOf("before").getBoundingClientRect();
+      const bar = viewport()!;
+      const marks = bar.getAttributeNames().filter((name) => name.startsWith("data-")).map((name) => `${name}=${bar.getAttribute(name)}`);
+      const boxes = stack();
+      throw new Error(
+        `${error.message}. Focus on ${focused()} (focus-visible ${document.activeElement?.matches(":focus-visible")}), Before at ${Math.round(box.top)} to ${Math.round(box.bottom)}, the stack at ${Math.round(Math.min(...boxes.map((item) => item.top)))} to ${Math.round(Math.max(...boxes.map((item) => item.bottom)))}, scrolled ${Math.round(scrollY)}, the viewport ${marks.join(" ")}`,
+        { cause: error },
+      );
+    });
     await pressTab();
     await pressTab();
     await until(focused, "foot-one");
@@ -2319,7 +2329,7 @@ describe("keyboard focus under the stack", () => {
     expect(runs).toEqual(["opacity", "opacity"]);
   });
 
-  it("moves the stack after the fade even when the browser runs no transition", async () => {
+  it("moves the stack on the next frame when the browser runs no fade, without waiting for the fallback", async () => {
     fakeClock();
     await longPage(
       <>
@@ -2333,10 +2343,8 @@ describe("keyboard focus under the stack", () => {
     caseOf("before").focus();
     await pressTab();
     await pressTab();
-    await until(() => viewport()!.hasAttribute("data-ouro-toaster-fading"), true);
-    expect(moved()).toBeNull();
-    await advance(300);
-    expect(moved()).toBe("top");
+    // With no fade to wait for, the move lands on the next frame: the fallback's clock never moves.
+    await until(moved, "top");
   });
 
   it("keeps the fade on until the viewport's own fade ends, not a transition of a toast in it", async () => {
@@ -2349,7 +2357,8 @@ describe("keyboard focus under the stack", () => {
       </>,
     );
     await show("Recording saved", { duration: Infinity });
-    viewport()!.style.transition = "none";
+    // A fade that runs and has not ended, so only the viewport's own end, or the fallback, lands the move.
+    viewport()!.style.transition = "opacity 60s";
     caseOf("before").focus();
     await pressTab();
     await pressTab();
