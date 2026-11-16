@@ -342,7 +342,7 @@ export const FOCUS_RING_FIX =
 
 /** What the control-state-style rule tells an app that draws a current, pressed, checked or selected state by hand in a stylesheet. */
 export const STATE_CLASSES_FIX =
-  "Give the element Ouro's class from ouro-base instead of writing the state: class=\"ouro-current\" on a link with aria-current marks it as Link's current does, class=\"ouro-toggle\" on a button with aria-pressed draws Toggle, labels with class=\"ouro-segment\" around radios or checkboxes in class=\"ouro-segmented\" draw SegmentedControl, and class=\"ouro-option\" with aria-selected draws Command's highlighted item. For a control with its own behaviour, use the Ouro component.";
+  "Give the element Ouro's class from ouro-base instead of writing the state: class=\"ouro-nav-link\" on the links of a nav marks the one with aria-current as Link's current does, class=\"ouro-toggle\" on a button with aria-pressed draws Toggle, labels with class=\"ouro-segment\" around radios or checkboxes in class=\"ouro-segmented\" draw SegmentedControl, and class=\"ouro-option\" with aria-selected draws Command's highlighted item. For a control with its own behaviour, use the Ouro component.";
 
 /** What the details-summary and control-state-style rules tell an app that draws a disclosure, or its open state, by hand. */
 export const DISCLOSURE_FIX =
@@ -460,7 +460,7 @@ const STATE_SELECTOR = new RegExp(
 // only the app's own (`.app-`, `[data-app-`) with a `hookPrefix`.
 const ANY_HOOK = /\.[\w-]|\[data-/;
 /** The classes ouro-base defines for markup that is not an Ouro component; a stylesheet rule on them is Ouro's. Any other `.ouro-` name is the app's own. */
-export const OURO_BASE_CLASSES = ["ouro-focus-ring", "ouro-focus-ring-inset", "ouro-focus-ring-within", "ouro-focus-target", "ouro-skip-link", "ouro-row", "ouro-reveal", "ouro-reveal-host", "ouro-current", "ouro-toggle", "ouro-segmented", "ouro-segment", "ouro-option", "ouro-disclosure", "ouro-disclosure-summary", "ouro-disclosure-panel"];
+export const OURO_BASE_CLASSES = ["ouro-focus-ring", "ouro-focus-ring-inset", "ouro-focus-ring-within", "ouro-focus-target", "ouro-skip-link", "ouro-row", "ouro-reveal", "ouro-reveal-host", "ouro-nav-link", "ouro-toggle", "ouro-segmented", "ouro-segment", "ouro-option", "ouro-disclosure", "ouro-disclosure-summary", "ouro-disclosure-panel"];
 const OURO_CLASS = new RegExp(`\\.(?:${OURO_BASE_CLASSES.join("|")})(?![\\w-])`, "g");
 // An ancestor that lays itself out by whether an Ouro disclosure inside it is open (`tr:has(.ouro-disclosure[open])`):
 // the open state is Ouro's, and the layout around it is the app's.

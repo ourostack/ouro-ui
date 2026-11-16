@@ -1583,12 +1583,12 @@ describe("Ouro's focus and row classes for plain markup", () => {
         const literals = [...layer.matchAll(/^\s*([\w-]+):[^;]*?(#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(\s*[\d.])/gim)].map((match) => match[0].trim());
         expect(literals).toEqual([]);
     });
-    it("names ouro-current, ouro-toggle and ouro-segment as the fix for a current, pressed or checked state written by hand", () => {
+    it("names ouro-nav-link, ouro-toggle and ouro-segment as the fix for a current, pressed or checked state written by hand", () => {
         const found = findOffendersInSource("app/app.css", '.tracker-nav a[aria-current="page"] { font-weight: 600; }\n.who-toggle[aria-pressed="true"] { background: var(--accent); }\n.segmented input:checked + span { background: var(--background); }');
         const lines = formatComparison(compareWithBaseline(found, {}));
         expect(lines).toHaveLength(3);
         for (const line of lines) expect(line).toMatch(new RegExp(`^New current, pressed or checked style written by hand: .*${STATE_CLASSES_FIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
-        expect(STATE_CLASSES_FIX).toContain('class="ouro-current"');
+        expect(STATE_CLASSES_FIX).toContain('class="ouro-nav-link"');
         expect(STATE_CLASSES_FIX).toContain('class="ouro-toggle"');
         expect(STATE_CLASSES_FIX).toContain('class="ouro-segment"');
     });

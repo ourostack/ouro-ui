@@ -208,8 +208,26 @@
     box-shadow: none;
     clip-path: inset(50%);
   }
-  /* The current link among its siblings (aria-current, any value but false), drawn as Link's current and Navbar's: semibold, in the text colour, with a 2px underline in the primary colour. */
-  .ouro-current:is([aria-current]):not([aria-current="false"]) {
+  /* A link in a nav or a list, drawn as Link in the text colour, that marks the current one (aria-current, any value but false) as Link's current and Navbar's do: semibold, with a 2px underline in the primary colour. */
+  .ouro-nav-link {
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+    text-decoration-line: underline;
+    text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    outline-color: var(--ring);
+    outline-offset: 2px;
+    transition: text-decoration-color var(--ouro-duration-fast) ease;
+  }
+  .ouro-nav-link:focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+  }
+  .ouro-nav-link:active {
+    opacity: 0.7;
+  }
+  .ouro-nav-link:is([aria-current]):not([aria-current="false"]) {
     font-weight: 600;
     color: var(--foreground);
     text-decoration-line: underline;
@@ -349,6 +367,12 @@
     .ouro-disclosure-summary:hover {
       text-decoration-line: underline;
     }
+    .ouro-nav-link:hover {
+      text-decoration-color: currentColor;
+    }
+    .ouro-nav-link:is([aria-current]):not([aria-current="false"]):hover {
+      text-decoration-color: var(--primary);
+    }
     .ouro-toggle:hover:not(:active, [aria-pressed="true"]) {
       background-color: color-mix(in oklab, currentColor 8%, transparent);
     }
@@ -468,7 +492,7 @@
     .ouro-skip-link:focus {
       border: 1px solid;
     }
-    .ouro-current:is([aria-current]):not([aria-current="false"]), .ouro-option[aria-selected="true"], .ouro-segment:has(> input:checked) {
+    .ouro-nav-link:is([aria-current]):not([aria-current="false"]), .ouro-option[aria-selected="true"], .ouro-segment:has(> input:checked) {
       forced-color-adjust: none;
       background-color: Highlight;
       color: HighlightText;

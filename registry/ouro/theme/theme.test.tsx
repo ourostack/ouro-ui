@@ -393,14 +393,16 @@ describe("skip link, focus target, focus ring within and reveal classes for plai
 });
 
 describe("current, toggle, segment and option classes for plain markup", () => {
-  it("marks the current link as Link's current does, semibold with a 2px primary underline, and leaves the others plain", () => {
-    const host = mount('<a class="ouro-current" href="#a" aria-current="page">Today</a><a class="ouro-current" href="#b">Customers</a><a class="ouro-current" href="#c" aria-current="false">Lab</a>');
+  it("draws links as Link in the text colour, and marks the current one as Link's current does, semibold with a 2px primary underline", () => {
+    const host = mount('<a class="ouro-nav-link" href="#a" aria-current="page">Today</a><a class="ouro-nav-link" href="#b">Customers</a><a class="ouro-nav-link" href="#c" aria-current="false">Lab</a>');
     const [current, other, off] = [...host.children].map((link) => getComputedStyle(link));
     expect(current!.fontWeight).toBe("600");
     expect(current!.color).toBe(color("foreground"));
     expect(current!.textDecorationColor).toBe(color("primary"));
     expect(current!.textDecorationThickness).toBe("2px");
     expect(other!.fontWeight).toBe("400");
+    expect(other!.color).toBe(color("foreground"));
+    expect(other!.textDecorationColor).toBe(paint("color-mix(in oklab, var(--foreground) 40%, transparent)"));
     expect(off!.textDecorationColor).not.toBe(color("primary"));
   });
 

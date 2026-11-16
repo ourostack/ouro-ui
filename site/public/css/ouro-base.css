@@ -6,7 +6,7 @@
  * needs no script (.ouro-disclosure, .ouro-disclosure-summary and .ouro-disclosure-panel), a skip
  * link and its target (.ouro-skip-link, .ouro-focus-target), the ring on a box whose control has
  * focus (.ouro-focus-ring-within), actions shown on hover or focus (.ouro-reveal, .ouro-reveal-host),
- * and current links, toggles, segmented choices and options (.ouro-current, .ouro-toggle,
+ * and current links, toggles, segmented choices and options (.ouro-nav-link, .ouro-toggle,
  *   .ouro-segmented and .ouro-segment, .ouro-option).
  * Tailwind utilities left out: rounded-full, press.
  * Dark mode: a .dark class on <html> as in shadcn, or, with neither .light nor .dark there,
@@ -196,7 +196,28 @@
   clip-path: inset(50%);
 }
 
-.ouro-current:is([aria-current]):not([aria-current="false"]) {
+.ouro-nav-link {
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  outline-color: var(--ring);
+  outline-offset: 2px;
+  transition: text-decoration-color var(--ouro-duration-fast) ease;
+}
+
+.ouro-nav-link:focus-visible {
+  outline-style: solid;
+  outline-width: 2px;
+}
+
+.ouro-nav-link:active {
+  opacity: 0.7;
+}
+
+.ouro-nav-link:is([aria-current]):not([aria-current="false"]) {
   font-weight: 600;
   color: var(--foreground);
   text-decoration-line: underline;
@@ -346,6 +367,12 @@
   .ouro-disclosure-summary:hover {
     text-decoration-line: underline;
   }
+  .ouro-nav-link:hover {
+    text-decoration-color: currentColor;
+  }
+  .ouro-nav-link:is([aria-current]):not([aria-current="false"]):hover {
+    text-decoration-color: var(--primary);
+  }
   .ouro-toggle:hover:not(:active, [aria-pressed="true"]) {
     background-color: color-mix(in oklab, currentColor 8%, transparent);
   }
@@ -477,7 +504,7 @@
   .ouro-skip-link:focus {
     border: 1px solid;
   }
-  .ouro-current:is([aria-current]):not([aria-current="false"]), .ouro-option[aria-selected="true"], .ouro-segment:has(> input:checked) {
+  .ouro-nav-link:is([aria-current]):not([aria-current="false"]), .ouro-option[aria-selected="true"], .ouro-segment:has(> input:checked) {
     forced-color-adjust: none;
     background-color: Highlight;
     color: HighlightText;

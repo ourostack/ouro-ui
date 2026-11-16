@@ -126,7 +126,7 @@ export function baseCss(css: string): string {
       "needs no script (.ouro-disclosure, .ouro-disclosure-summary and .ouro-disclosure-panel), a skip",
       "link and its target (.ouro-skip-link, .ouro-focus-target), the ring on a box whose control has",
       "focus (.ouro-focus-ring-within), actions shown on hover or focus (.ouro-reveal, .ouro-reveal-host),",
-      "and current links, toggles, segmented choices and options (.ouro-current, .ouro-toggle,",
+      "and current links, toggles, segmented choices and options (.ouro-nav-link, .ouro-toggle,",
       "  .ouro-segmented and .ouro-segment, .ouro-option).",
       `Tailwind utilities left out: ${utilities.join(", ")}.`,
       ...MODES,
