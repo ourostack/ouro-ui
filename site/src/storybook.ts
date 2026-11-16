@@ -46,14 +46,14 @@ export interface Scene {
 
 export const SCENES: Record<SceneName, Scene> = {
   "ouro-hx": {
-    alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak-and-brass crate on a dawn hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
-    sky: ["#cfc0d0", "#c4c1da", "#cfcbdb", "#faceb4", "#fbd9b6"],
+    alt: "On a mountain cabin's deck at dawn, a faceless glass person holding a coffee presses a big glass switch on a walnut test board while a small coral robot on a crate studies the brass gauge through a loupe, and Ouro, a smiling emerald snake curled into an O, basks on a folded cloth on the table.",
+    sky: ["#b6b4cb", "#b6b4cb", "#c4c2d1", "#f5dad0", "#c2c7de"],
     height: 512,
-    phoneHeight: 352,
+    phoneHeight: 384,
     band: 27,
     night: {
-      phoneHeight: 352,
-      alt: "A faceless glass person in a moss scarf and Loop, a small jade-and-brass glass robot, stand at an oak-and-brass crate on a moonlit hilltop. He hands over a ribboned checklist while Ouro, a smiling emerald glass snake curled into an O, watches from the crate.",
+      phoneHeight: 384,
+      alt: "On a mountain cabin's deck at night, a faceless glass person holding a coffee presses a big glass switch on a walnut test board while a small coral robot on a crate studies the brass gauge through a loupe, and Ouro, a smiling emerald snake curled into an O, basks on a folded cloth on the table.",
     },
   },
   "ouro-ui-apple": {
@@ -94,14 +94,14 @@ export const SCENES: Record<SceneName, Scene> = {
     night: { phoneHeight: 320 },
   },
   ourostack: {
-    alt: "Ouro's whole world at dawn: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
-    sky: ["#f8bcad", "#fabc9f", "#fbb59b", "#fdcb9d", "#fde99e"],
+    alt: "On a meadow hillside at dawn, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
+    sky: ["#bab2c6", "#c7bdc8", "#ddcacc", "#eecfb5", "#d4c2c0"],
     height: 512,
     phoneHeight: 384,
     band: 65,
     night: {
       phoneHeight: 384,
-      alt: "Ouro's whole world at night: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      alt: "On a meadow hillside at night, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
     },
   },
 };

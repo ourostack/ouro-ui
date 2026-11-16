@@ -257,7 +257,7 @@
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "Ouro's whole world at dawn: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "sentence": "On a meadow hillside at dawn, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
     },
     {
@@ -267,7 +267,7 @@
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "Ouro's whole world at night: Ouro curled by the footpath that links every place, a toy factory puffing steam, a desk under a blossom tree, a reading lectern, a green card on an easel, two faceless glass friends and two robots waving from a picnic blanket, and robot sheep grazing by a shepherd's crook.",
+      "sentence": "On a meadow hillside at night, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
       "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
     }
   ],
