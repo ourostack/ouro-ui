@@ -84,6 +84,7 @@ interface XrayOptions {
   inventory?: string | undefined;
   events?: string | undefined;
   commit?: string | undefined;
+  app?: string | undefined;
   failureCopyAllow?: string | undefined;
   conformance: boolean;
   state: string[];
@@ -1542,7 +1543,7 @@ interface Report {
   checker: { version: string };
   claimSet: { version: string; hash: string };
   at: string;
-  target: { commit: string | null; cli?: { name: string; calls: number; commands: number }; http?: { origin: string; routes: number; requests: number }; mcp?: { tools: number } };
+  target: { commit: string | null; app?: { name: string }; cli?: { name: string; calls: number; commands: number }; http?: { origin: string; routes: number; requests: number }; mcp?: { tools: number } };
   safety: Safety;
   inventory: { given: boolean; surfaces: ClaimSurface[] };
   effects: { surface: string; note: string }[];
@@ -1705,6 +1706,7 @@ const CHECK_FLAGS: Readonly<Record<string, FlagSpec>> = Object.freeze({
   state: { type: "string", repeat: true, placeholder: '"<args>"', description: "CLI args whose output is the state that must not change." },
   events: { type: "string", placeholder: '"<args>"', description: "CLI args that list the interface's work events, to validate." },
   commit: { type: "string", placeholder: "<sha>", description: "The commit checked, recorded in the report." },
+  app: { type: "string", placeholder: "<name>", description: "The app the report is for, recorded as target.app.name, so a report reads as its own app's." },
   "failure-copy-allow": { type: "string", placeholder: "<file>", description: 'Failure copy that is precise but holds a vague phrase, each with its reason: [{ "match": "<part of the text>", "reason": "<why it is precise>" }].' },
   name: { type: "string", placeholder: "<name>", description: "The CLI's name in its messages (default: the command's file name)." },
   volatile: { type: "list", placeholder: "<k,k>", description: "JSON keys to ignore when comparing state." },
@@ -1809,6 +1811,7 @@ function optionsOf(input: Input, json: boolean): XrayOptions {
     inventory: text("inventory"),
     events: text("events"),
     commit: text("commit"),
+    app: text("app"),
     failureCopyAllow: text("failure-copy-allow"),
     md: text("md"),
     html: text("html"),
@@ -1858,7 +1861,7 @@ async function xray(opts: XrayOptions): Promise<Report> {
   const inventory = opts.inventory ? (JSON.parse(readFileSync(opts.inventory, "utf8")) as Inventory) : null;
   const allow = opts.failureCopyAllow ? readAllow(opts.failureCopyAllow) : [];
   const ctx: Context = { rec: new Recorder(), opts, env, safety: await checkSafety(opts, guardPassed), inventory, effects: [], allow };
-  const target: Report["target"] = { commit: opts.commit ?? null };
+  const target: Report["target"] = { commit: opts.commit ?? null, ...(opts.app ? { app: { name: opts.app } } : {}) };
   if (opts.cli) target.cli = await checkCli(ctx);
   if (opts.http) target.http = await checkHttp(ctx);
   if (opts.mcp) target.mcp = await checkMcp(ctx);

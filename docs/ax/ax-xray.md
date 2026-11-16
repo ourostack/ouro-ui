@@ -158,7 +158,7 @@ interface Report {
   checker: { version: string };
   claimSet: { version: string; hash: string };
   at: string;
-  target: { commit: string | null; cli?: { name: string; calls: number; commands: number }; http?: { origin: string; routes: number; requests: number }; mcp?: { tools: number } };
+  target: { commit: string | null; app?: { name: string }; cli?: { name: string; calls: number; commands: number }; http?: { origin: string; routes: number; requests: number }; mcp?: { tools: number } };
   safety: Safety;
   inventory: { given: boolean; surfaces: ClaimSurface[] };
   effects: { surface: string; note: string }[];
@@ -260,6 +260,7 @@ interface XrayOptions {
   inventory?: string | undefined;
   events?: string | undefined;
   commit?: string | undefined;
+  app?: string | undefined;
   failureCopyAllow?: string | undefined;
   conformance: boolean;
   state: string[];
