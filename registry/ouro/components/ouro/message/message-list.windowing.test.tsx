@@ -473,6 +473,54 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
   });
 
+  it.each([
+    { start: "following the end", leave: 0 },
+    { start: "near the end, having left it", leave: 10 },
+  ])("keeps the scroll range while the wheel turns, $start, so a row above that comes in shorter never pulls the scroll position, which ends WebKit's wheel", async ({ leave }) => {
+    // 60px messages, one of which comes in 39px shorter: a row drawn in place of the space kept for it, shorter than the estimate.
+    let items = conversation(500).map((item) => ({ ...item, tall: 60 }));
+    const { scroller, root } = await render(<Chat items={items} springy={false} />);
+    if (leave > 0) {
+      await scrollTo(scroller, scroller.scrollTop - leave);
+      // A change while the wheel is at rest: the list lets its hold on the end go.
+      items = [...items.slice(0, -1), { ...items.at(-1)!, tall: 61 }];
+      await act(async () => root.render(<Chat items={items} springy={false} />));
+      await settle(scroller);
+    }
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    vi.spyOn(performance, "now").mockReturnValue(1_000_000);
+    const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    // The wheel's scroll, 20px up: closer to the end than the row will shrink.
+    const scrolled = new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
+    own.set!.call(scroller, own.get!.call(scroller) - 20);
+    await scrolled;
+    const at = scroller.scrollTop;
+    const reading = firstVisible(scroller);
+    // Any scroll from here is the browser's, pulling the position into a shorter range: no one else scrolls.
+    let pulled = 0;
+    scroller.addEventListener("scroll", () => pulled++);
+    const above = Number(reading.message.id.slice(1)) - 3;
+    items = items.map((item) => (item.id === above ? { ...item, tall: 21 } : item));
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(pulled).toBe(0);
+    expect(scroller.scrollTop).toBe(at);
+    expect(content.style.translate).not.toBe("");
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    // Once the wheel rests, what was carried goes into the scroll position and the hold on the range goes, so the end is
+    // the last message's, with no room past it.
+    vi.spyOn(performance, "now").mockReturnValue(1_010_000);
+    await expect.poll(() => content.style.translate).toBe("");
+    await settle(scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    expect(scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!.style.display).toBe("");
+    own.set!.call(scroller, scroller.scrollHeight);
+    await settle(scroller);
+    // The content's 16px padding below the last message, and not the 39px the shorter row left.
+    expect(scroller.getBoundingClientRect().bottom - messages(scroller).at(-1)!.getBoundingClientRect().bottom).toBeLessThanOrEqual(16 + ROUNDING);
+  });
+
   it("counts as the wheel's only the first scroll a turn starts, or any while it turns, never the list's own, as WebKit sends no scrollend after either, though it lands in the frame the wheel turned in", async () => {
     // As in WebKit: no scrollend from the browser, so a scroll wrongly counted as the wheel's would hold the reader's place by
     // drawing the content up, for good.
