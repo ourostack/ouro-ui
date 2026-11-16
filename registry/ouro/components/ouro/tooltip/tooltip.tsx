@@ -257,6 +257,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     };
   }, [open]);
   // A pending open must not fire after its trigger has unmounted.
+  // Stryker disable next-line ArrayDeclaration: equivalent; any constant dependency list runs this cleanup once, at unmount.
   useEffect(() => () => clearTimeout(timer.current), []);
 
   // Closed as the container it is in hides, such as a toolbar that fades out. A layout effect, so
