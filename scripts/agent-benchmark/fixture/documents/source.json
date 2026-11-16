@@ -1,0 +1,13 @@
+{
+  "repository": "ourostack/ouro-md",
+  "commit": "1841f49b8d16e24690e308d62b2f7e058f71f656",
+  "declarations": {
+    "path": "actions/document.actions.mts",
+    "sha256": "7315c2da09b391ac0f73cdb7f67f98c9f5abb88ae2975bf0a3773486d08ea8c5",
+    "importRewrite": ["../tools/ouro-actions/ouro-actions.mts", "../../vendor/ouro-actions/ouro-actions.mts"]
+  },
+  "generatedMcp": {
+    "path": "Sources/OuroMD/Generated/mcp.json",
+    "sha256": "dbe044e8e632f90db311792796033b23ad0125365d1c1333b2f921a4332035d1"
+  }
+}

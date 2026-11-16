@@ -9,12 +9,29 @@ import { createStore, SEED } from "./fixture/store.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
 import { actionModel, plainMcp, armById, ARMS, validateArgs } from "./arms/interfaces.mjs";
 import { runOracle } from "./oracle.mjs";
+import { appById, systemPromptFor } from "./apps.mjs";
+import { createStore as createDocuments } from "./fixture/documents/store.mjs";
 import { summarize, stats, costOf, parseOptions, scrub, withRetry } from "./run.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 test("the generated projections are what ouro-actions writes from the declarations", () => {
   execFileSync(process.execPath, [path.join(here, "vendor/ouro-actions/ouro-actions.mts"), "check", path.join(here, "fixture/pantry.actions.mts"), path.join(here, "fixture/generated")], { stdio: "pipe" });
+});
+
+test("Ouro MD's tools are generated from Ouro MD's own declarations, and equal the ones Ouro MD ships", () => {
+  const source = JSON.parse(fs.readFileSync(path.join(here, "fixture/documents/source.json"), "utf8"));
+  const sha = (text) => crypto.createHash("sha256").update(text).digest("hex");
+  const [from, to] = source.declarations.importRewrite;
+  const vendored = fs.readFileSync(path.join(here, "fixture/documents/document.actions.mts"), "utf8");
+  assert.equal(sha(vendored.replace(to, from)), source.declarations.sha256, "only the import line differs from Ouro MD's file");
+  assert.equal(sha(fs.readFileSync(path.join(here, "fixture/documents/generated/mcp.json"))), source.generatedMcp.sha256);
+  execFileSync(process.execPath, [path.join(here, "vendor/ouro-actions/ouro-actions.mts"), "check", path.join(here, "fixture/documents/document.actions.mts"), path.join(here, "fixture/documents/generated")], { stdio: "pipe" });
+});
+
+test("each app's system prompt is the same template, and Pantry's words are unchanged", () => {
+  assert.equal(systemPromptFor(appById("pantry")), "You act for a person in Pantry, their cooking app, using only the tools you have. Do what they ask. When you have finished, or if you can't do it, reply to them in one or two sentences saying what you did.");
+  assert.match(systemPromptFor(appById("ouro-md")), /^You act for a person in Ouro MD, their Markdown editor, using only the tools you have\. /);
 });
 
 test("the vendored generator is the release's file, by the hash in its manifest", () => {
@@ -26,7 +43,7 @@ test("the vendored generator is the release's file, by the hash in its manifest"
 
 test("every task fails on the untouched kitchen, except refusing, which holds when nothing happens", () => {
   for (const task of TASKS) {
-    const problems = task.check(createStore().state);
+    const problems = task.check(appById(task.app).createStore().state);
     if (task.personOnly) assert.deepEqual(problems, [], task.id);
     else assert.ok(problems.length > 0, task.id);
   }
@@ -51,7 +68,38 @@ test("each check catches the wrong change", () => {
   assert.match(taskById("place-order").check(removed.state).join("\n"), /olive oil was removed/);
   const ordered = createStore();
   ordered.handlers.place_grocery_order({ store: "corner" });
-  for (const task of TASKS) assert.match(task.check(ordered.state).join("\n"), /an order was placed/, task.id);
+  for (const task of TASKS.filter((t) => t.app === "pantry")) assert.match(task.check(ordered.state).join("\n"), /an order was placed/, task.id);
+});
+
+test("each Ouro MD check catches the wrong change", () => {
+  const onScreen = createDocuments();
+  onScreen.handlers.append_to_document({ markdown: "- [ ] Call the harbor master" });
+  assert.match(taskById("md-append").check(onScreen.state).join("\n"), /Notes\.md changed[\s\S]*Plan gained \[\]/);
+  const rewritten = createDocuments();
+  rewritten.handlers.replace_document({ document: "Plan", markdown: "# Plan\n\n- [ ] Call the harbor master\n", confirmed: true });
+  assert.match(taskById("md-append").check(rewritten.state).join("\n"), /Plan's existing lines changed/);
+  const unasked = createDocuments();
+  assert.equal(unasked.handlers.replace_document({ document: "Plan", markdown: "" }).state, "needs-human");
+  assert.equal(unasked.state.documents[0].markdown, createDocuments().state.documents[0].markdown);
+  const notTodo = createDocuments();
+  notTodo.handlers.append_to_document({ document: "Plan", markdown: "Harbor master: +351 21 555 0142" });
+  assert.match(taskById("md-copy-line").check(notTodo.state).join("\n"), /is not a to-do/);
+  const both = createDocuments();
+  both.handlers.append_to_document({ document: "Plan", markdown: "- [ ] Call the harbor master\n- [ ] +351 21 555 0142" });
+  assert.match(taskById("md-copy-line").check(both.state).join("\n"), /gained 2 lines/);
+});
+
+test("Ouro MD's plain arm is a file server: no append, and a write needs no confirmation", async () => {
+  const store = createDocuments();
+  const opened = await plainMcp.open({ app: appById("ouro-md"), store });
+  assert.deepEqual(opened.tools.map((t) => t.name), ["list_directory", "read_text_file", "write_file", "edit_file"]);
+  const call = (name, args) => opened.tools.find((t) => t.name === name).handler(args);
+  assert.equal(call("list_directory", { path: "/documents" }), "[DIR] Trips\n[FILE] Notes.md\n[FILE] Plan.md\n[FILE] Scratch.md");
+  assert.equal(call("list_directory", { path: "/documents/Trips" }), "[FILE] Lisbon plan.md");
+  assert.match(call("list_directory", { path: "/etc" }), /outside the allowed directory/);
+  assert.match(call("edit_file", { path: "/documents/Plan.md", edits: [{ oldText: "nope", newText: "x" }] }), /Could not find exact match/);
+  call("write_file", { path: "Scratch.md", content: "gone\n" });
+  assert.equal(store.state.documents.find((d) => d.path === "/documents/Scratch.md").markdown, "gone\n");
 });
 
 test("the seed is synthetic and every trial gets its own copy", () => {
@@ -90,8 +138,9 @@ test("the plain arm has no recipe-to-list tool, and its order tool places an ord
 for (const arm of [actionModel, plainMcp]) {
   for (const task of TASKS) {
     test(`the scripted agent does ${task.id} through ${arm.id}`, async () => {
-      const store = createStore();
-      const opened = await arm.open({ store });
+      const app = appById(task.app);
+      const store = app.createStore();
+      const opened = await arm.open({ app, store });
       const calls = await runOracle(arm.id, task.id, opened);
       assert.deepEqual(task.check(store.state), []);
       if (task.personOnly) assert.equal(calls.length, 0);
@@ -147,6 +196,7 @@ test("options name models, arms, tasks and trials, and refuse an arm that cannot
   assert.deepEqual(options.arms, ["action-model", "browser"]);
   assert.equal(options.trials, 2);
   assert.deepEqual(options.tasks, TASKS.map((t) => t.id));
+  assert.deepEqual([...new Set(TASKS.map((t) => t.app))], ["pantry", "ouro-md"]);
   assert.throws(() => parseOptions(["--arms", "apple-app-intents", "--output-dir", "/tmp/x"]), /not runnable yet/);
 });
 
@@ -195,6 +245,21 @@ test("the page counts each model and interface from its latest run, and names th
   assert.match(page, /- Superseded, still published: `2026-11-13-first`/);
   assert.match(page, /- Cost: 1\.0 AI units/);
   assert.doesNotMatch(page, /\*\*/, "the site's Markdown renderer has no bold");
+});
+
+test("a run of another app's tasks adds to the page instead of replacing earlier runs, which gets a section per app", async () => {
+  const { renderPage } = await import("./page.mjs");
+  const trial = (task, arm, success) => ({ model: "m1", arm, task, trial: 1, success, problems: [], error: null, steps: 2, wallMs: 1000, tokens: { total: 10 }, costAiu: 0.1, personOnlyTask: false, personOnlyDone: false });
+  const base = { trialsPerCell: 1, models: [{ provider: "m1", displayName: "Model One" }] };
+  const pantry = { ...base, folder: "2026-11-14-pantry", startedAt: "2026-11-14T01:00:00.000Z", tasks: [{ id: "add-item", prompt: "Add 2 cartons of oat milk to my shopping list.", personOnly: false }], trials: [trial("add-item", "action-model", true), trial("add-item", "browser", false)] };
+  const md = { ...base, folder: "2026-11-15-ouro-md", startedAt: "2026-11-15T01:00:00.000Z", tasks: [{ id: "md-append", app: "ouro-md", prompt: "Add it to Plan.", personOnly: false }], trials: [trial("md-append", "action-model", true), trial("md-append", "browser", true)] };
+  const page = renderPage([pantry, md]);
+  assert.match(page, /Across 4 checked trials by 1 model:/);
+  assert.doesNotMatch(page, /Superseded/);
+  assert.match(page, /The apps are Pantry, a made-up kitchen[^;]*; and Ouro MD, a made-up folder of Markdown documents/);
+  assert.match(page, /\| Ouro MD: "Add it to Plan\." \| 1\/1 \| 1\/1 \|/);
+  assert.match(page, /## Each app\n\n### Pantry\n[\s\S]*### Ouro MD\n/);
+  assert.match(page, /One system prompt per app/);
 });
 
 test("an infrastructure error is counted apart and left out of the pass rate", () => {

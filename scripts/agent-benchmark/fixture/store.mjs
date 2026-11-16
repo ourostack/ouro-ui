@@ -3,6 +3,7 @@
 // recipes: made-up items and recipes, no person's data. Every door (the web screen's forms, the generated MCP tools,
 // the hand-written MCP tools and the bridge) changes state only through these handlers, so a task's postcondition
 // reads the same state whichever arm ran it.
+import { AppError } from "./app-error.mjs";
 
 /** The kitchen every trial starts from. A fresh deep copy per trial, so no trial sees another's changes. */
 export const SEED = Object.freeze({
@@ -57,7 +58,7 @@ export const SEED = Object.freeze({
 });
 
 /** Thrown for input a handler refuses; every door turns it into its own error text. */
-export class PantryError extends Error {}
+export class PantryError extends AppError {}
 
 /** A new kitchen from the seed, with the handlers that change it. */
 export function createStore(seed = SEED) {

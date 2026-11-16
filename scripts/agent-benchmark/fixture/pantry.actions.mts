@@ -1,4 +1,4 @@
-// The benchmark's actions, declared once with Ouro UI's action model (the vendored ouro-actions.mts, core v0.7.2).
+// The benchmark's actions, declared once with Ouro UI's action model (the vendored ouro-actions.mts, core v0.15.0).
 // A synthetic app shaped like Spoonjoy's shopping list and recipes: not Spoonjoy's code or data. The action-model arm
 // serves the MCP tools generated from these declarations (fixture/generated/mcp.json); the web screen's controls
 // carry the generated props (fixture/generated/web.ts); every door calls the one handler in store.mjs.

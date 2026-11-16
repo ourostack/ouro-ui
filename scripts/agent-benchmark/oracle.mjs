@@ -10,6 +10,14 @@ export function refIn(snapshot, role, name) {
   return match[1];
 }
 
+/** The harbor master's phone number, read from what a tool returned: proof the arm can reach it. */
+const phoneIn = (text) => {
+  const match = /\+351[\d ]*\d/.exec(String(text));
+  if (!match) throw new Error("The harbor master's number is not in what the tool returned.");
+  return match[0];
+};
+const TODO = "- [ ] Call the harbor master";
+
 const policies = {
   "action-model": {
     "add-item": async (call) => {
@@ -22,6 +30,13 @@ const policies = {
     "check-off": async (call) => {
       const items = JSON.parse(JSON.parse(await call("get_shopping_list", {})).items);
       for (const name of ["eggs", "spinach"]) await call("set_shopping_list_item_checked", { id: items.find((item) => item.name === name).id, checked: true });
+    },
+    "md-append": async (call) => {
+      await call("append_to_document", { document: "Plan", markdown: TODO });
+    },
+    "md-copy-line": async (call) => {
+      const phone = phoneIn(await call("read_document", { document: "Notes" }));
+      await call("append_to_document", { document: "Plan", markdown: `- [ ] Call the harbor master, ${phone}` });
     },
   },
   "plain-mcp": {
@@ -36,6 +51,15 @@ const policies = {
     "check-off": async (call) => {
       const items = JSON.parse(JSON.parse(await call("list_items", {})).items);
       for (const name of ["eggs", "spinach"]) await call("update_item", { id: items.find((item) => item.name === name).id, checked: true });
+    },
+    "md-append": async (call) => {
+      const text = await call("read_text_file", { path: "/documents/Plan.md" });
+      await call("write_file", { path: "/documents/Plan.md", content: `${text.trimEnd()}\n${TODO}\n` });
+    },
+    "md-copy-line": async (call) => {
+      const phone = phoneIn(await call("read_text_file", { path: "/documents/Notes.md" }));
+      const text = await call("read_text_file", { path: "/documents/Plan.md" });
+      await call("write_file", { path: "/documents/Plan.md", content: `${text.trimEnd()}\n- [ ] Call the harbor master, ${phone}\n` });
     },
   },
   browser: {
@@ -57,6 +81,21 @@ const policies = {
       const after = await call("browser_click", { ref: refIn(page, "checkbox", "Bought eggs") });
       await call("browser_click", { ref: refIn(after, "checkbox", "Bought spinach") });
     },
+    "md-append": async (call) => {
+      const list = await call("browser_snapshot", {});
+      const plan = await call("browser_click", { ref: refIn(list, "link", "Plan") });
+      await call("browser_type", { ref: refIn(plan, "textbox", "Markdown to add"), text: TODO });
+      await call("browser_click", { ref: refIn(plan, "button", "Add to Markdown Document") });
+    },
+    "md-copy-line": async (call) => {
+      const list = await call("browser_snapshot", {});
+      const notes = await call("browser_click", { ref: refIn(list, "link", "Notes") });
+      const phone = phoneIn(notes);
+      const home = await call("browser_click", { ref: refIn(notes, "link", "Documents") });
+      const plan = await call("browser_click", { ref: refIn(home, "link", "Plan") });
+      await call("browser_type", { ref: refIn(plan, "textbox", "Markdown to add"), text: `- [ ] Call the harbor master, ${phone}` });
+      await call("browser_click", { ref: refIn(plan, "button", "Add to Markdown Document") });
+    },
   },
   bridge: {
     "add-item": async (call) => {
@@ -67,6 +106,19 @@ const policies = {
     },
     "check-off": async (call) => {
       await call("act", { steps: [{ target: "Bought eggs", action: "setChecked", value: true }, { target: "Bought spinach", action: "setChecked", value: true }] });
+    },
+    "md-append": async (call) => {
+      const list = JSON.parse(await call("snapshot", {}));
+      const plan = list.components.find((c) => c.component === "link" && c.label === "Plan");
+      await call("act", { steps: [{ target: plan.ref, action: "press" }, { target: "Markdown to add", action: "setValue", value: TODO }, { target: "Add to Markdown Document", action: "press" }] });
+    },
+    "md-copy-line": async (call) => {
+      const list = JSON.parse(await call("snapshot", {}));
+      const notes = list.components.find((c) => c.component === "link" && c.label === "Notes");
+      const phone = phoneIn(await call("act", { steps: [{ target: notes.ref, action: "press" }] }));
+      const home = JSON.parse(await call("act", { steps: [{ target: "Documents", action: "press" }] }));
+      const plan = home.components.find((c) => c.component === "link" && c.label === "Plan");
+      await call("act", { steps: [{ target: plan.ref, action: "press" }, { target: "Markdown to add", action: "setValue", value: `- [ ] Call the harbor master, ${phone}` }, { target: "Add to Markdown Document", action: "press" }] });
     },
   },
 };

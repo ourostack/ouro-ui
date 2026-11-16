@@ -34,7 +34,7 @@ function installBridge() {
     const row = el.closest("li");
     return row ? text(row) : undefined;
   };
-  const controls = () => [...document.querySelectorAll("a[href], button, input:not([type=hidden]), select")].filter((el) => !el.closest("[inert], [data-agent-hidden]"));
+  const controls = () => [...document.querySelectorAll("a[href], button, input:not([type=hidden]), select, textarea")].filter((el) => !el.closest("[inert], [data-agent-hidden]"));
   const keyOf = (el) => [kindOf(el), labelOf(el), rowOf(el) ?? ""].join("\u0000");
   const refOf = (el) => {
     const key = keyOf(el);
@@ -89,7 +89,7 @@ function installBridge() {
     const read = { title: text1("h1") };
     const messages = [...document.querySelectorAll("[role=status], [role=alert]")].map(text).filter(Boolean);
     if (messages.length) read.messages = messages;
-    const rows = [...document.querySelectorAll("li")].filter((li) => !li.querySelector("a[href], button, input, select")).map(text).filter(Boolean);
+    const rows = [...document.querySelectorAll("li")].filter((li) => !li.querySelector("a[href], button, input, select, textarea")).map(text).filter(Boolean);
     if (rows.length) read.rows = rows;
     return read;
   };

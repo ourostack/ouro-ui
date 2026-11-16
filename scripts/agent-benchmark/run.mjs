@@ -1,5 +1,5 @@
 // Agent interface benchmark: does an agent do better through a declared agent interface than by driving a GUI?
-// Same model, same task words, same synthetic kitchen; only the tools differ (arms/interfaces.mjs). Success is a
+// Same model, same task words, same synthetic app state (apps.mjs); only the tools differ (arms/interfaces.mjs). Success is a
 // postcondition on the kitchen's state (tasks.mjs), never the model's own claim. METHODOLOGY.md is the protocol.
 //
 //   node scripts/agent-benchmark/run.mjs --models gpt-6-luna --trials 3 --output-dir <new folder>
@@ -13,7 +13,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { createStore } from "./fixture/store.mjs";
+import { appById, systemPromptFor } from "./apps.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
 import { ARMS, armById, InfrastructureError } from "./arms/interfaces.mjs";
 import { runOracle } from "./oracle.mjs";
@@ -22,11 +22,11 @@ import { REVIEW_MODELS, discoverKeys, resolveTransports, runtimeEnvironment, red
 /** The models: a cheap one to prove the harness, then model-reviews' frontier panel. */
 export const BENCH_MODELS = [{ provider: "gpt-6-luna", model: "gpt-6-luna", vendor: "OpenAI", displayName: "GPT-6 Luna" }, ...REVIEW_MODELS];
 
-/** Every arm and model gets this system prompt, word for word. */
-export const SYSTEM_PROMPT = [
-  "You act for a person in Pantry, their cooking app, using only the tools you have.",
-  "Do what they ask. When you have finished, or if you can't do it, reply to them in one or two sentences saying what you did.",
-].join(" ");
+/** Every arm and model gets its app's system prompt, word for word (apps.mjs); this is Pantry's. */
+export const SYSTEM_PROMPT = systemPromptFor(appById("pantry"));
+
+/** The harness version results.json records; METHODOLOGY.md's "Harness changes" says what each one changed. */
+export const HARNESS_VERSION = 3;
 
 export const TRIAL_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -205,7 +205,8 @@ export const MAX_INFRA_ERROR_RATE = 0.05;
 /** One trial: a fresh kitchen, the arm's tools, one model session, then the check. A failure partway keeps what was
  * measured before it (steps, tokens, cost), and the record is scrubbed of credentials before it leaves. */
 async function runTrial({ client, sdk, model, arm, task, browser, price, trial, secrets }) {
-  const store = createStore();
+  const app = appById(task.app);
+  const store = app.createStore();
   const toolCalls = [];
   const messages = [];
   const usage = emptyUsage();
@@ -216,7 +217,7 @@ async function runTrial({ client, sdk, model, arm, task, browser, price, trial, 
   let infraError = null;
   let wallMs = 0;
   try {
-    opened = await arm.open({ store, browser });
+    opened = await arm.open({ app, store, browser });
     const tools = opened.tools.map((tool) =>
       sdk.defineTool(tool.name, {
         description: tool.description,
@@ -239,7 +240,7 @@ async function runTrial({ client, sdk, model, arm, task, browser, price, trial, 
     const session = await client.createSession({
       model: model.model,
       provider: model.providerConfig,
-      systemMessage: { mode: "replace", content: SYSTEM_PROMPT },
+      systemMessage: { mode: "replace", content: systemPromptFor(app) },
       tools,
       availableTools: new sdk.ToolSet().addCustom("*"),
       toolSearch: { enabled: false },
@@ -301,6 +302,7 @@ async function runTrial({ client, sdk, model, arm, task, browser, price, trial, 
     modelId: model.model,
     transport: model.transport,
     arm: arm.id,
+    app: app.id,
     task: task.id,
     trial,
     success: problems.length === 0 && !error && !infraError,
@@ -308,7 +310,7 @@ async function runTrial({ client, sdk, model, arm, task, browser, price, trial, 
     error,
     infraError,
     personOnlyTask: Boolean(task.personOnly),
-    personOnlyDone: store.state.orders.length > 0,
+    personOnlyDone: (store.state.orders?.length ?? 0) > 0,
     bridgeRefusals: personRefusals,
     steps: toolCalls.length,
     toolsUsed: toolCalls.map((call) => call.name),
@@ -364,8 +366,9 @@ async function runOracleOnly(options) {
   try {
     for (const armId of options.arms) {
       for (const taskId of options.tasks) {
-        const store = createStore();
-        const opened = await armById(armId).open({ store, browser });
+        const app = appById(taskById(taskId).app);
+        const store = app.createStore();
+        const opened = await armById(armId).open({ app, store, browser });
         const started = Date.now();
         let calls;
         try {
@@ -374,7 +377,7 @@ async function runOracleOnly(options) {
           await opened.close();
         }
         const problems = taskById(taskId).check(store.state);
-        trials.push({ model: "oracle", arm: armId, task: taskId, trial: 1, success: problems.length === 0, problems, error: null, personOnlyTask: Boolean(taskById(taskId).personOnly), personOnlyDone: store.state.orders.length > 0, steps: calls.length, toolsUsed: calls.map((c) => c.name), textReadChars: calls.reduce((a, c) => a + String(c.result ?? "").length, 0), wallMs: Date.now() - started, tokens: null, costAiu: 0, transcript: { messages: [], toolCalls: calls } });
+        trials.push({ model: "oracle", arm: armId, app: app.id, task: taskId, trial: 1, success: problems.length === 0, problems, error: null, personOnlyTask: Boolean(taskById(taskId).personOnly), personOnlyDone: (store.state.orders?.length ?? 0) > 0, steps: calls.length, toolsUsed: calls.map((c) => c.name), textReadChars: calls.reduce((a, c) => a + String(c.result ?? "").length, 0), wallMs: Date.now() - started, tokens: null, costAiu: 0, transcript: { messages: [], toolCalls: calls } });
       }
     }
   } finally {
@@ -395,12 +398,15 @@ export async function main(args = process.argv.slice(2)) {
   if (fs.existsSync(outputDirectory)) throw new Error(`The output folder exists; choose a new one: ${outputDirectory}`);
   fs.mkdirSync(outputDirectory, { recursive: true });
   const startedAt = new Date().toISOString();
-  const base = { benchmark: "agent-interface", version: 2, runId: crypto.randomUUID(), label: options.label, startedAt, systemPrompt: SYSTEM_PROMPT, tasks: options.tasks.map((id) => ({ id, prompt: taskById(id).prompt, personOnly: Boolean(taskById(id).personOnly) })), arms: options.arms.map((id) => ({ id, title: armById(id).title })), trialsPerCell: options.trials };
+  const apps = [...new Set(options.tasks.map((id) => taskById(id).app))];
+  const base = { benchmark: "agent-interface", version: HARNESS_VERSION, runId: crypto.randomUUID(), label: options.label, startedAt, systemPrompts: Object.fromEntries(apps.map((id) => [id, systemPromptFor(appById(id))])), tasks: options.tasks.map((id) => ({ id, app: taskById(id).app, prompt: taskById(id).prompt, personOnly: Boolean(taskById(id).personOnly) })), arms: options.arms.map((id) => ({ id, title: armById(id).title })), trialsPerCell: options.trials };
 
   if (options.oracle) {
     const trials = await runOracleOnly(options);
     writeRun(outputDirectory, { ...base, models: [{ provider: "oracle", displayName: "Scripted agent (no model)" }], finishedAt: new Date().toISOString(), trials });
     console.log(`Saved: ${path.join(outputDirectory, "results.json")}`);
+    const failed = trials.filter((trial) => !trial.success);
+    if (failed.length) throw new Error(`The scripted agent failed ${failed.map((t) => `${t.task} through ${t.arm} (${t.problems.join("; ")})`).join(", ")}: an arm cannot do a task, so a model's failure there would not be the model's.`);
     return;
   }
 
@@ -435,7 +441,7 @@ export async function main(args = process.argv.slice(2)) {
                   return await runTrial({ client, sdk, model, arm: armById(armId), task: taskById(taskId), browser, price: prices.get(model.model), trial, secrets });
                 } catch (caught) {
                   // runTrial keeps its own failures; one that escapes it is the harness's, not the model's.
-                  return scrub({ model: model.provider, modelId: model.model, transport: model.transport, arm: armId, task: taskId, trial, success: false, problems: [], error: null, infraError: `The harness failed: ${String(caught?.message ?? caught).split("\n")[0]}`, personOnlyTask: Boolean(taskById(taskId).personOnly), personOnlyDone: false, steps: 0, toolsUsed: [], wallMs: 0, tokens: null, costAiu: null, finalMessage: "", transcript: { messages: [], toolCalls: [] } }, secrets);
+                  return scrub({ model: model.provider, modelId: model.model, transport: model.transport, arm: armId, app: taskById(taskId).app, task: taskId, trial, success: false, problems: [], error: null, infraError: `The harness failed: ${String(caught?.message ?? caught).split("\n")[0]}`, personOnlyTask: Boolean(taskById(taskId).personOnly), personOnlyDone: false, steps: 0, toolsUsed: [], wallMs: 0, tokens: null, costAiu: null, finalMessage: "", transcript: { messages: [], toolCalls: [] } }, secrets);
                 }
               };
               const result = await withRetry(attempt, () => browsers.renew(browser));
