@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderFixture, renderPage, rerenderFixture, scan, setScheme, settle } from "../test/render";
 import { demos } from "./docs/demos";
-import { LiveDemo } from "./components/live-demo";
+import { LiveDemo, moduleLoadFailed } from "./components/live-demo";
 
 const originalForm = demos["form"]!;
 const extraNodes: HTMLElement[] = [];
@@ -50,6 +50,30 @@ describe("live demos", () => {
     expect(page.getByRole("link", { name: "Read the Form docs" }).element().getAttribute("href")).toBe("/docs/form/");
     await rerenderFixture(<main><h1>Live example page</h1><LiveDemo name="sheet" title="Sheet" /></main>);
     await expect.element(page.getByRole("button", { name: "Save to cookbook", exact: true })).toBeVisible();
+  });
+
+  it("asks for a reload, not the module's address, when the example's chunk is gone after a deploy", async () => {
+    const failures: unknown[] = [];
+    const gone = `/assets/form.demo-${Date.now()}.js`;
+    demos["form"] = lazy(() => import(/* @vite-ignore */ gone));
+    await renderFixture(<main><h1>Live example page</h1><LiveDemo name="form" title="Form" /></main>, {
+      onCaughtError: (error) => failures.push(error),
+    });
+    const alert = page.getByRole("alert");
+    await expect.element(page.getByText("The Form example did not load. The site may have just been updated.", { exact: true })).toBeVisible();
+    expect(alert.element().textContent).not.toContain(gone);
+    expect(page.getByRole("link", { name: "Reload the page", exact: true }).element().getAttribute("href")).toBe("");
+    expect(failures).toHaveLength(1);
+    expect(moduleLoadFailed(failures[0])).toBe(true);
+  });
+
+  it("knows each engine's words for a module that failed to load, and only those", () => {
+    expect(moduleLoadFailed(new TypeError("Failed to fetch dynamically imported module: https://example.com/assets/a.js"))).toBe(true);
+    expect(moduleLoadFailed(new TypeError("Importing a module script failed."))).toBe(true);
+    expect(moduleLoadFailed(new TypeError("error loading dynamically imported module: https://example.com/assets/a.js"))).toBe(true);
+    expect(moduleLoadFailed(new Error("Failed to fetch dynamically imported module: https://example.com/assets/a.js"))).toBe(false);
+    expect(moduleLoadFailed(new TypeError("Cannot read properties of undefined (reading 'Failed to fetch dynamically imported module')"))).toBe(false);
+    expect(moduleLoadFailed("Importing a module script failed.")).toBe(false);
   });
 
   it("returns normal Sheet dismissal focus to its inner trigger", async () => {
