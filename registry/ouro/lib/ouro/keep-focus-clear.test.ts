@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { keepFocusClear, type FocusClearHandle } from "@/registry/ouro/lib/ouro/keep-focus-clear";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 // A 390 by 844 window, the toasts' stack at its bottom end: a 58px front toast over the window's
@@ -653,6 +654,34 @@ describe("keepFocusClear", () => {
       watcher.disconnect();
       expect(fades).toEqual([true, false]);
       expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    });
+
+    it("lands a move on the next frame when only another property of the viewport transitions", async () => {
+      const bar = setup();
+      bar.style.transition = "transform 60s";
+      const style = document.createElement("style");
+      style.textContent = "[data-ouro-toaster-fading] { transform: translateY(1px); }";
+      document.head.append(style);
+      added.push(style);
+      control("covered", COVERED);
+      await tab("covered");
+      await frames();
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    });
+
+    it("does not land a move on a frame after the keeper lets go mid-fade", async () => {
+      const bar = setup();
+      bar.style.transition = "none";
+      control("covered", COVERED);
+      const held = holdFrames();
+      await pressTab();
+      held.until(() => bar.hasAttribute("data-ouro-toaster-fading"));
+      handle!.release();
+      handle = undefined;
+      held.step();
+      held.step();
+      held.release();
+      expect(bar.hasAttribute("data-ouro-toaster-moved")).toBe(false);
     });
 
     it("lands a move when the browser cancels the viewport's fade", async () => {

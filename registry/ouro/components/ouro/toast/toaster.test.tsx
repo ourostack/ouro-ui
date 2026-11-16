@@ -2211,7 +2211,17 @@ describe("keyboard focus under the stack", () => {
     await pressTab({ shift: true });
     await until(focused, "before");
     // The top edge covers the page's first control, and the bottom does not: the stack goes back down at once.
-    await until(moved, null);
+    // It stayed up once in an app's WebKit run (ourostack/ouro-ui#1764), so a failure says what the keeper decides from.
+    await until(moved, null).catch((error: Error) => {
+      const box = caseOf("before").getBoundingClientRect();
+      const bar = viewport()!;
+      const marks = bar.getAttributeNames().filter((name) => name.startsWith("data-")).map((name) => `${name}=${bar.getAttribute(name)}`);
+      const boxes = stack();
+      throw new Error(
+        `${error.message}. Focus on ${focused()} (focus-visible ${document.activeElement?.matches(":focus-visible")}), Before at ${Math.round(box.top)} to ${Math.round(box.bottom)}, the stack at ${Math.round(Math.min(...boxes.map((item) => item.top)))} to ${Math.round(Math.max(...boxes.map((item) => item.bottom)))}, scrolled ${Math.round(scrollY)}, the viewport ${marks.join(" ")}`,
+        { cause: error },
+      );
+    });
     await pressTab();
     await pressTab();
     await until(focused, "foot-one");
