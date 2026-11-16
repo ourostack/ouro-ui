@@ -375,6 +375,43 @@ describe("MessageList actions", () => {
     expect([post, getComputedStyle(barIn("chat")!).top]).toEqual(["-20px", "-32px"]);
   });
 
+  it("makes a message with its bar beside it a size container only while the bar is on it, so a list opens without styling each one as it lays it out", async () => {
+    const like = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
+    await render(
+      <MessageList label="Launch channel" style={{ height: 360 }}>
+        <Message id="m0" variant="reply" role="assistant" name="Grace Hopper" actions={like}>
+          A reply
+        </Message>
+        <Message id="m1" variant="chat" role="assistant" name="Ana Lind" actionsPlacement="beside" actions={like} style={{ marginTop: 4 }}>
+          A chat message
+        </Message>
+        <Message id="m2" variant="chat" role="assistant" name="Mara Quill" actions={like}>
+          A bar over its corner
+        </Message>
+      </MessageList>,
+    );
+    const containers = () => ["m0", "m1", "m2"].filter((id) => getComputedStyle(message(id)).containerType !== "normal");
+    expect(containers()).toEqual([]);
+    await ready("m0");
+    expect(containers()).toEqual(["m0"]);
+    // The room still runs from the bubble's end to the message's edge.
+    const room = barIn("m0")!.closest<HTMLElement>("[data-ouro-message-actions-room]")!;
+    const bubble = message("m0").querySelector("[data-ouro-message-content]")!.getBoundingClientRect();
+    expect(room.getBoundingClientRect().right).toBeCloseTo(message("m0").getBoundingClientRect().right, 0);
+    expect(room.getBoundingClientRect().left).toBeCloseTo(bubble.right, 0);
+    await ready("m1");
+    expect(containers()).toEqual(["m1"]);
+    // A bar over the corner measures nothing, so its message is no container.
+    await ready("m2");
+    expect(containers()).toEqual([]);
+    await userEvent.unhover(document.body);
+    await expect.poll(() => bars()).toHaveLength(0);
+    expect(containers()).toEqual([]);
+    // The containment leaves no empty style behind, and the app's own style stays.
+    expect(message("m0").hasAttribute("style")).toBe(false);
+    expect(message("m1").style.marginTop).toBe("4px");
+  });
+
   it("marks the list's bar as its layer, or the room beside a bubble that holds it, and never both", async () => {
     const like = [{ key: "like", label: "Like", icon: "👍", onClick: () => {} }];
     await render(

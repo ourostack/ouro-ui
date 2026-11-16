@@ -360,15 +360,19 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   const on = hover.row !== null && data !== undefined && slot !== null ? { row: hover.row, data } : null;
   // Each message gives the layer a new data object on every render, so new data comes with a move to another message too.
   if (on !== null && (shown === null || shown.data !== on.data)) setShown(on);
+  // The message a bar beside its bubble is on measures its width (100cqw) while the bar is there, and only then: the browser
+  // styles a container's insides as it lays the container out, which a list paid for each message it drew as it opened.
+  const [contained] = useState<{ row: HTMLElement | null }>(() => ({ row: null }));
   useLayoutEffect(() => {
     /* istanbul ignore if @preserve -- server only */
     // Stryker disable next-line ConditionalExpression: the host is null only where there is no document (a server's render), and layout effects run only in a browser.
     if (host === null) return;
     if (slot === null) host.parentNode?.removeChild(host);
     else if (host.parentNode !== slot) slot.appendChild(host);
+    contain(contained, on !== null && on.data.beside !== undefined ? on.row : null);
   });
-  // Stryker disable next-line ArrayDeclaration: host is state that is never set, so [host] and [] run this effect alike.
-  useLayoutEffect(() => () => host!.remove(), [host]);
+  // Stryker disable next-line ArrayDeclaration: host and contained are state that is never set, so [host, contained] and [] run this effect alike.
+  useLayoutEffect(() => () => (host!.remove(), contain(contained, null)), [host, contained]);
   // The menu's code, once the bar first shows, so the menu then opens at once.
   // Stryker disable next-line ConditionalExpression,EqualityOperator: the layer mounts as the first row takes it, and the bar shows in that same commit or the next, so fetching a moment before it shows is the same fetch.
   const showing = slot !== null;
@@ -421,6 +425,19 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
       )}
     </>
   );
+}
+
+/** Moves the size container, for the room beside a bubble, from the message it was on to `row`, or takes it off when `row` is null. */
+function contain(contained: { row: HTMLElement | null }, row: HTMLElement | null): void {
+  // Stryker disable next-line ConditionalExpression: taking the container off a row and putting it back leaves the same style; this only spares the writes on each render.
+  if (contained.row === row) return;
+  const previous = contained.row;
+  if (previous !== null) {
+    previous.style.removeProperty("container-type");
+    if (previous.getAttribute("style") === "") previous.removeAttribute("style");
+  }
+  row?.style.setProperty("container-type", "inline-size");
+  contained.row = row;
 }
 
 const hasMenuEntries = (data: MessageBarData) => (data.menu !== undefined && data.menu.length > 0) || (data.reactions !== undefined && data.reactions.length > 0);
