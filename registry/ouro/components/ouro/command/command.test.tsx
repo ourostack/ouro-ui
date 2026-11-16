@@ -889,6 +889,100 @@ describe("Command presentation", () => {
     await expect.poll(() => document.activeElement).toBe(trigger());
   });
 
+  it("puts focus in the phone sheet's search after a click below 640px, so the keys typed next land in it", async () => {
+    await page.viewport(390, 844);
+    await openPalette();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    await expect.poll(() => document.activeElement).toBe(input().element());
+    await userEvent.keyboard("import");
+    await expect.poll(options).toEqual(["Import from a link"]);
+  });
+
+  it("puts focus in the phone sheet's search after a key press below 640px", async () => {
+    await page.viewport(390, 844);
+    await render(<KeyOpened seen={{ focus: null }} />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    await settled();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    await expect.poll(() => document.activeElement).toBe(input().element());
+  });
+
+  it("puts focus in the phone sheet's search in the key's own task below 640px, before a frame is drawn", async () => {
+    await page.viewport(390, 844);
+    const seen = { focus: null as Element | null };
+    await render(<KeyOpened seen={seen} />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    await expect.poll(() => seen.focus).not.toBeNull();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(seen.focus).toBe(input().element());
+  });
+
+  it.each(["touch", "pen"])("focuses the phone sheet itself, not its search, after a %s tap below 640px, so no keyboard pops up", async (pointerType) => {
+    await page.viewport(390, 844);
+    await render(<KeyOpened seen={{ focus: null }} />);
+    const opener = document.querySelector<HTMLElement>("[data-test-harness]")!;
+    await act(() => opener.dispatchEvent(new PointerEvent("pointerdown", { pointerType, bubbles: true })));
+    await act(() => opener.dispatchEvent(new MouseEvent("click", { detail: 1, bubbles: true })));
+    await settled();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    await expect.poll(() => document.activeElement).toBe(popup());
+  });
+
+  it("leaves focus where Tab moved it before the phone sheet's first frame, below 640px", async () => {
+    await page.viewport(390, 844);
+    function TabbedAtOnce() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button
+            type="button"
+            data-test-harness=""
+            onKeyDown={(event) => {
+              if (event.key !== "k") return;
+              event.preventDefault();
+              flushSync(() => setOpen(true));
+              // Tab from the search goes to the sheet's close button; here it lands before the sheet's first frame.
+              queueMicrotask(() => queueMicrotask(() => document.querySelector<HTMLElement>("[data-ouro-sheet-close]")!.focus()));
+            }}
+          >
+            Page
+          </button>
+          <Command title="Command palette" items={entries()} open={open} onOpenChange={setOpen} />
+        </>
+      );
+    }
+    await render(<TabbedAtOnce />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    const close = document.querySelector<HTMLElement>("[data-ouro-sheet-close]")!;
+    await expect.poll(() => document.activeElement).toBe(close);
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    expect(document.activeElement).toBe(close);
+  });
+
+  it("puts focus in the phone sheet's search when the palette mounts already open below 640px", async () => {
+    await page.viewport(390, 844);
+    function OnDemand() {
+      const [shown, setShown] = useState(false);
+      return (
+        <>
+          <button type="button" data-test-harness="" onClick={() => setTimeout(() => setShown(true))}>
+            Search
+          </button>
+          {shown && <Command title="Command palette" items={entries()} open onOpenChange={setShown} />}
+        </>
+      );
+    }
+    await render(<OnDemand />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(input()).toBeInTheDocument();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    await expect.poll(() => document.activeElement).toBe(input().element());
+  });
+
   it("stays open when a resize crosses 640px", async () => {
     await openPalette();
     await page.viewport(390, 844);
