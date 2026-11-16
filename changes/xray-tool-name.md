@@ -1,1 +1,1 @@
-- Fixed: the Ouro AX X-ray names a CLI by the `tool` in its own help JSON, not its file name, so a `bin.mts` entry no longer fails its name checks (found by ourostack/ouro-work-substrate, whose mail-control door failed three of them).
+- Fixed: the Ouro AX X-ray names a CLI by the `tool` in its own help JSON, not its file name, so a `bin.mts` entry no longer fails its name checks (found by ourostack/ouro-work-substrate, whose mail-control door hit them).
