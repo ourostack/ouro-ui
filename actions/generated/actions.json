@@ -1,0 +1,89 @@
+{
+  "generator": "ouro-actions 0.16.0",
+  "set": "ouro-ui-registry",
+  "tool": "ouro-ui",
+  "actions": [
+    {
+      "id": "list_registry_items",
+      "consent": "read",
+      "label": "List items",
+      "description": "List the Ouro UI registry items you can add to an app.",
+      "agent": "List the names of the Ouro UI registry items, in registry order. Pass filter to keep only the names that contain it, such as 'dialog' or 'button'. Use a name from this list with get_item_install or get_item_docs.",
+      "input": {
+        "filter": {
+          "label": "Filter",
+          "description": "Keep only the items whose name contains this text, ignoring case.",
+          "optional": true,
+          "maxLength": 80,
+          "kind": "string"
+        }
+      },
+      "output": {
+        "names": {
+          "label": "Names",
+          "description": "The names of the matching registry items, in registry order, separated by commas.",
+          "kind": "string"
+        }
+      },
+      "cli": "list"
+    },
+    {
+      "id": "get_item_install",
+      "consent": "read",
+      "label": "Install command",
+      "description": "Get the command that adds an Ouro UI item to an app.",
+      "agent": "Return the shadcn command that adds one registry item to an app, pinned to the newest Ouro UI release. Run the command as it is; it installs the item and the Ouro items it needs. The name is one from list_registry_items.",
+      "input": {
+        "name": {
+          "label": "Item",
+          "description": "The registry item's name, such as dialog.",
+          "arg": true,
+          "maxLength": 80,
+          "kind": "string"
+        }
+      },
+      "output": {
+        "command": {
+          "label": "Command",
+          "description": "The command that adds the item, pinned to a release.",
+          "kind": "string"
+        },
+        "release": {
+          "label": "Release",
+          "description": "The release tag the command pins, such as v1.3.204.",
+          "kind": "string"
+        }
+      },
+      "cli": "install"
+    },
+    {
+      "id": "get_item_docs",
+      "consent": "read",
+      "label": "Item docs",
+      "description": "Read the docs for one Ouro UI item.",
+      "agent": "Return the docs page address for one registry item and, when the docs are in the repository, the page's Markdown: its purpose, props, examples and when to use something else. The name is one from list_registry_items.",
+      "input": {
+        "name": {
+          "label": "Item",
+          "description": "The registry item's name, such as dialog.",
+          "arg": true,
+          "maxLength": 80,
+          "kind": "string"
+        }
+      },
+      "output": {
+        "url": {
+          "label": "Docs address",
+          "description": "The item's docs page on the Ouro UI site.",
+          "kind": "string"
+        },
+        "markdown": {
+          "label": "Docs",
+          "description": "The item's docs in Markdown, or an empty string when the repository has none for it.",
+          "kind": "string"
+        }
+      },
+      "cli": "docs"
+    }
+  ]
+}

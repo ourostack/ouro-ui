@@ -42,7 +42,7 @@ const allowed = (rel, name) =>
 
 const ROOTS = ["registry", "docs", "site/src", "site/scripts", "scripts", "README.md", "AGENTS.md"];
 /** Recorded agent runs keep the words they were written with, and a vendored or generated file is its source's words; Git carries their history. */
-const SKIP = ["scripts/agent-usability/runs/", "scripts/agent-benchmark/results/", "scripts/agent-benchmark/vendor/", "scripts/agent-benchmark/fixture/generated/"];
+const SKIP = ["scripts/agent-usability/runs/", "scripts/agent-benchmark/results/", "scripts/agent-benchmark/vendor/", "scripts/agent-benchmark/fixture/generated/", "scripts/ouro-actions/"];
 const TEXT = /\.(ts|tsx|mts|mjs|js|json|jsonl|md|mdx|html|txt)$/;
 
 /** The text files under a root, walked with treeFiles, which never enters a folder .gitignore ignores. */
