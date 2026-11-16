@@ -208,6 +208,30 @@ describe("MessageList windowing", () => {
     for (const space of scroller.querySelectorAll("[data-ouro-message-list-space]")) expect(space.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("draws only what the view shows in the commit a reader's scroll makes, and the rows past its edges in a later one", async () => {
+    const { scroller } = await render(<Chat items={conversation(500)} />);
+    // How tall the messages drawn above the newest are, together, right after each commit.
+    const span = () => {
+      const drawn = messages(scroller).filter((message) => message.id !== "m499");
+      return drawn.length === 0 ? 0 : drawn.at(-1)!.getBoundingClientRect().bottom - drawn[0]!.getBoundingClientRect().top;
+    };
+    const commits: { ids: number[]; span: number }[] = [];
+    const watch = new MutationObserver(() => commits.push({ ids: ids(scroller), span: span() }));
+    watch.observe(scroller, { childList: true, subtree: true });
+    // The reader's wheel, then their scroll far up, past every row drawn: outside act, so React draws it as it would in a page,
+    // a commit at a time.
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -4000 }));
+    scroller.scrollTop = scroller.scrollHeight / 2;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    watch.disconnect();
+    const view = scroller.clientHeight;
+    // The first commit with rows of the new place draws the view's (a row more at each edge at most); later ones add the rest.
+    const first = commits.find((commit) => commit.ids.some((id) => id < 400))!;
+    expect(first.span).toBeLessThanOrEqual(view + 200);
+    expect(span()).toBeGreaterThan(view * 2);
+  });
+
   it("puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length", async () => {
     for (const count of [10, 200]) {
       const items = conversation(count);

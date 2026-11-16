@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Children, isValidElement, startTransition, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -1898,14 +1898,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const shift = nearTop - (near > 0 ? measured.gap : 0) - sums[near]!;
       // Stryker disable next-line ArithmeticOperator: the shift is the content's 16px padding, which moves the band's edges by twice that against an 800px overscan.
       const starts = sums.map((at) => at + shift);
-      // The band: from the first child that ends below the overscan's top to the last that starts above its bottom. The child
-      // the band is placed by is in view, so both stop by it.
-      let from = 0;
-      // Stryker disable next-line EqualityOperator: a child that ends exactly at the overscan's edge draws or not, and the next scroll corrects it.
-      while (starts[from]! + extent(from) <= viewTop - over) from++;
-      let to = keys.length - 1;
-      // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
-      while (starts[to]! >= viewBottom + over) to--;
       // The band drawn now, by index: NaN, which no keep range holds and no band meets, where there is none or its edge went.
       const drawnFrom = band === null ? NaN : (indexes.get(band.from) ?? NaN);
       const drawnTo = band === null ? NaN : (indexes.get(band.to) ?? NaN);
@@ -1921,15 +1913,38 @@ export function MessageList(props: MessageListProps): JSX.Element {
       let keepTo = keys.length - 1;
       // Stryker disable next-line EqualityOperator: a child that starts exactly at the keep distance stays or goes, and the next scroll settles it.
       while (starts[keepTo]! >= viewBottom + keep) keepTo--;
-      // Stryker disable next-line EqualityOperator,ArithmeticOperator: a band that meets the new one only within a child draws that child or not, and the next scroll settles it.
-      const meets = !code || (drawnFrom <= to + 1 && drawnTo >= from - 1);
-      if (meets && drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
-      if (meets && drawnTo <= keepTo) to = Math.max(to, drawnTo);
-      const inBand = keys.slice(from, to + 1);
-      // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
-      const id = inBand.join("\n");
-      // The same band again changes nothing.
-      setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
+      // The band `reach` pixels past the view: from the first child that ends below its top to the last that starts above its
+      // bottom, with the children drawn that are still within keep. The child the band is placed by is in view, so both stop by it.
+      const reaching = (reach: number): [number, number] => {
+        let from = 0;
+        // Stryker disable next-line EqualityOperator: a child that ends exactly at the overscan's edge draws or not, and the next scroll corrects it.
+        while (starts[from]! + extent(from) <= viewTop - reach) from++;
+        let to = keys.length - 1;
+        // Stryker disable next-line EqualityOperator: a child that starts exactly at the overscan's edge draws or not, and the next scroll corrects it.
+        while (starts[to]! >= viewBottom + reach) to--;
+        // Stryker disable next-line EqualityOperator,ArithmeticOperator: a band that meets the new one only within a child draws that child or not, and the next scroll settles it.
+        const meets = !code || (drawnFrom <= to + 1 && drawnTo >= from - 1);
+        if (meets && drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
+        if (meets && drawnTo <= keepTo) to = Math.max(to, drawnTo);
+        return [from, to];
+      };
+      const draw = ([from, to]: [number, number], later = false) => {
+        const inBand = keys.slice(from, to + 1);
+        // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
+        const id = inBand.join("\n");
+        // The same band again changes nothing, and asks for no render: one asked for while a band drawn later waits would
+        // render again, and its commit would come back here. A band drawn later gives way to any band set since (the view's,
+        // a switch's): the commit of that one comes back here and finds its own.
+        if (band?.id === id) return;
+        setBand((now) => (now?.id === id || (later && now !== band) ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
+      };
+      // What the view shows draws at once; the rows past its edges follow when the browser has time (a transition, which
+      // React draws in slices and gives up for the reader's next input), so a scroll or a key that moves the view draws only
+      // what it shows in its own frame. The commit after the view's rows draw comes back here, and they are drawn by then.
+      const [viewFrom, viewTo] = reaching(0);
+      if (over > 0 && drawnFrom <= viewFrom && drawnTo >= viewTo) startTransition(() => draw(reaching(over), true));
+      // A band whose edge went (its children re-keyed or deleted) draws whole at once, as it holds the reader's place by them.
+      else draw(Number.isNaN(drawnFrom + drawnTo) ? reaching(over) : [viewFrom, viewTo]);
     };
     const now = viewRef.current;
     const last = synced.current;
