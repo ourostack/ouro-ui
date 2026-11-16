@@ -234,12 +234,61 @@ async function updateCorePin(pin, text, release, ctx) {
   return { files: { [vendored]: bytes, [pin.file]: `${JSON.stringify(next, null, 2)}\n` }, notes: [] };
 }
 
+/** Where a JSON string value sits in `text`: the first `"key": "…"` at or after `from` and before `to`. */
+function valueAt(text, key, from, to) {
+  const pattern = new RegExp(String.raw`"${key}"\s*:\s*"([^"\\]*)"`, "g");
+  pattern.lastIndex = from;
+  const match = pattern.exec(text);
+  if (!match || match.index >= to) return null;
+  const start = match.index + match[0].length - match[1].length - 1;
+  return { start, end: start + match[1].length, value: match[1] };
+}
+
+/**
+ * The lock file with only the source's commit and its files' sha256 values changed, every other byte as it was, so a
+ * repository's own layout (one file to a line, say) and its checks of it survive. Null when the text is laid out in a
+ * way this cannot follow; the caller then writes the file whole.
+ */
+export function editLock(text, sourceId, commit, shas) {
+  const id = new RegExp(String.raw`"id"\s*:\s*"${sourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).exec(text);
+  if (!id) return null;
+  const nextId = /"id"\s*:\s*"/g;
+  nextId.lastIndex = id.index + id[0].length;
+  const end = nextId.exec(text)?.index ?? text.length;
+  const edits = [];
+  // The commit is the source's own key, so it is looked for before its first file.
+  const firstFile = text.indexOf('"sourcePath"', id.index);
+  const commitAt = valueAt(text, "commit", id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
+  if (!commitAt) return null;
+  edits.push({ ...commitAt, next: commit });
+  for (const [sourcePath, sha] of Object.entries(shas)) {
+    let at = id.index;
+    let found = null;
+    for (;;) {
+      const path = valueAt(text, "sourcePath", at, end);
+      if (!path) break;
+      at = path.end;
+      if (JSON.parse(`"${path.value}"`) !== sourcePath) continue;
+      const following = valueAt(text, "sourcePath", path.end, end);
+      found = valueAt(text, "sha256", path.end, following ? following.start : end);
+      break;
+    }
+    if (!found) return null;
+    edits.push({ ...found, next: sha });
+  }
+  edits.sort((a, b) => b.start - a.start);
+  let out = text;
+  for (const edit of edits) out = out.slice(0, edit.start) + edit.next + out.slice(edit.end);
+  return out;
+}
+
 /** Files vendored from a commit (`upstream-sources.lock.json`: each source path, where it is written, and its sha256). */
 async function updateVendorLock(pin, text, release, ctx) {
   const lock = JSON.parse(text);
   const next = await ctx.tarball(pin.follows, release.tag);
   const files = {};
   const missing = [];
+  const shas = {};
   for (const source of lock.sources) {
     if (source.id !== pin.source) continue;
     source.commit = release.sha;
@@ -250,11 +299,21 @@ async function updateVendorLock(pin, text, release, ctx) {
         continue;
       }
       file.sha256 = sha256(bytes);
+      shas[file.sourcePath] = file.sha256;
       files[file.generatedPath] = bytes;
     }
   }
   if (missing.length) throw new Error(`${pin.file}: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not in ${REPOS[pin.follows]} ${release.tag}`);
-  files[pin.file] = `${JSON.stringify(lock, null, 2)}\n`;
+  // Only this source's values change; the edit is kept when it reads back as the lock this run means to write.
+  const edited = editLock(text, pin.source, release.sha, shas);
+  const same = (value) => {
+    try {
+      return JSON.stringify(JSON.parse(value)) === JSON.stringify(lock);
+    } catch {
+      return false;
+    }
+  };
+  files[pin.file] = edited !== null && same(edited) ? edited : `${JSON.stringify(lock, null, 2)}\n`;
   return { files, notes: [] };
 }
 

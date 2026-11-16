@@ -16,6 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
 import { NAMES, REPOS, UPDATERS, asBytes, findPins, isBehind, isCandidate } from "./pins.mjs";
+import { RULES_PATH, applyRules } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
 export const BRANCH = "ouro-current/update";
@@ -188,6 +189,30 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
     notes.push(...update.notes);
   }
   const name = title(behind, releases);
+  // What the repository asks of every change (.github/ouro-current.json): a new version, a changelog fragment.
+  const read = async (path) => {
+    try {
+      const file = await gh.get(`repos/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${head}`);
+      return Buffer.from(file.content, "base64").toString("utf8");
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+  };
+  const rulesText = await read(RULES_PATH);
+  const rules = rulesText === null ? null : JSON.parse(rulesText);
+  const latestRelease = async () => {
+    try {
+      return (await gh.get(`repos/${repo}/releases/latest`)).tag_name ?? null;
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+  };
+  const newest = [...new Set(behind.map((pin) => pin.follows))].sort().map((follows) => `${NAMES[follows]} ${releases[follows].tag}`);
+  const asked = await applyRules(rules, { read, latestRelease, releases: newest.join(" and "), newest: releases[behind[0].follows].tag });
+  Object.assign(files, asked.files);
+  notes.push(...asked.notes);
   if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes } };
   const existing = await branchState(gh, repo);
   const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\nOuro Current: ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`, existing);

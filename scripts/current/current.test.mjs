@@ -148,6 +148,42 @@ test("a vendored source moves to the release's commit with each file's new bytes
   assert.equal(written.sources[0].files[0].sha256, sha256("cli v2"));
 });
 
+test("a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out", async () => {
+  // One file to a line, and a source Ouro Current does not follow, as a repository's own lock check may expect.
+  const text = [
+    "{",
+    '  "schemaVersion": 1,',
+    '  "sources": [',
+    "    {",
+    '      "id": "other",',
+    '      "repository": "someone/else",',
+    '      "commit": "1111111",',
+    '      "files": [',
+    '        {"sourcePath": "LICENSE", "generatedPath": "plugins/other/LICENSE", "sha256": "aaa"}',
+    "      ]",
+    "    },",
+    "    {",
+    '      "id": "ax",',
+    '      "repository": "ourostack/ouro-ui",',
+    '      "commit": "old",',
+    '      "files": [',
+    '        {"sourcePath": "registry/ouro/ax/cli.ts", "generatedPath": "lib/ax/cli.ts", "sha256": "x", "upstreamPath": "lib/ax/upstream/cli.ts"},',
+    '        {"sourcePath": "LICENSE", "generatedPath": "lib/ax/LICENSE", "sha256": "aaa"}',
+    "      ]",
+    "    }",
+    "  ]",
+    "}",
+    "",
+  ].join("\n");
+  const ctx = { tarball: async () => new Map([["registry/ouro/ax/cli.ts", Buffer.from("cli v2")], ["LICENSE", Buffer.from("MIT 2")]]) };
+  const update = await UPDATERS["vendor-lock"]({ kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "web", source: "ax" }, text, RELEASES.web, ctx);
+  const expected = text
+    .replace('"commit": "old"', `"commit": "${RELEASES.web.sha}"`)
+    .replace('"sha256": "x"', `"sha256": "${sha256("cli v2")}"`)
+    .replace('"generatedPath": "lib/ax/LICENSE", "sha256": "aaa"', `"generatedPath": "lib/ax/LICENSE", "sha256": "${sha256("MIT 2")}"`);
+  assert.equal(update.files["upstream-sources.lock.json"], expected, "the other source's LICENSE hash, equal to this one's old hash, is left alone");
+});
+
 test("a vendored core file comes from the new release's asset", async () => {
   const pin = { tag: "v0.13.1", release: "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.13.1", asset: "ouro-ui-core-v0.13.1-dist.zip", path: "web/themes/cookbook.css", sha256: "x" };
   const asked = [];
@@ -165,7 +201,7 @@ test("the title names each release a pull request moves to", () => {
 
 // ---- A GitHub in memory: one repository, its refs, commits, trees, blobs and pull requests ----------------
 
-function fakeRepo(files, { mergeMethods = ["SQUASH"] } = {}) {
+function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null } = {}) {
   let next = 1;
   const id = () => `${(next++).toString(16).padStart(40, "0")}`;
   const blobs = new Map();
@@ -232,6 +268,11 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"] } = {}) {
       refs.set(match[1], input.sha);
       return ok({});
     }
+    if ((match = /^repos\/o\/r\/contents\/([^?]+)\?ref=(.+)$/.exec(path)) && method === "GET") {
+      const sha = trees.get(commits.get(match[2]).tree).get(decodeURIComponent(match[1]));
+      return sha ? ok({ content: blobs.get(sha).toString("base64") }) : missing();
+    }
+    if (path === "repos/o/r/releases/latest") return latestRelease ? ok({ tag_name: latestRelease }) : missing();
     if (path.startsWith("repos/o/r/pulls?state=open")) return ok(pulls.filter((pr) => pr.state === "open"));
     if (path === "repos/o/r/pulls" && method === "POST") {
       const pr = { number: pulls.length + 1, node_id: `PR${pulls.length + 1}`, html_url: `https://example.test/pull/${pulls.length + 1}`, state: "open", title: input.title, body: input.body, head: input.head, autoMerge: null };
@@ -286,6 +327,34 @@ test("one pull request per repository: opened once, left alone when nothing chan
   assert.equal(repo.pulls.length, 1);
   assert.equal(repo.pulls[0].title, "Update to Ouro UI for Apple v0.10.0");
   assert.equal(repo.fileAt(BRANCH, "Package.swift"), SWIFT.replace("0.6.0", "0.10.0"));
+});
+
+test("a repository's own rules ride along: its version moves past its latest release, and its changelog fragment is added", async () => {
+  const rules = {
+    version: [
+      { path: "Sources/App/Release.swift", pattern: 'static let version = "([0-9]+\\.[0-9]+\\.[0-9]+)"' },
+      { path: "README.md", pattern: "^> \\*\\*Status:\\*\\* v([0-9]+\\.[0-9]+\\.[0-9]+)" },
+    ],
+    changelog: { path: "changes/ouro-ui-{version}.md", text: "---\ntestflight: Uses {releases}.\n---\n" },
+  };
+  const swift = 'enum Release {\n  static let version = "0.9.118"\n}\n';
+  const readme = "# App\n\n> **Status:** v0.9.118. Reads Markdown.\n";
+  const repo = fakeRepo({ "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify(rules), "Sources/App/Release.swift": swift, "README.md": readme }, { latestRelease: "v0.9.118" });
+  const result = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(result.state, "pr");
+  assert.equal(repo.fileAt(BRANCH, "Sources/App/Release.swift"), swift.replace("0.9.118", "0.9.119"));
+  assert.equal(repo.fileAt(BRANCH, "README.md"), readme.replace("0.9.118", "0.9.119"));
+  assert.equal(repo.fileAt(BRANCH, "changes/ouro-ui-0.9.0.md"), "---\ntestflight: Uses Ouro UI for Apple v0.9.0.\n---\n");
+  assert.match(repo.pulls[0].body, /moves to `0\.9\.119`, after its latest release `v0\.9\.118`/);
+
+  // A version already past the latest release (a bump waiting to ship) is left as it is.
+  const ahead = fakeRepo({ "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify({ version: rules.version }), "Sources/App/Release.swift": swift, "README.md": readme }, { latestRelease: "v0.9.117" });
+  await keepRepo(ahead.gh, "o/r", RELEASES, {});
+  assert.equal(ahead.fileAt(BRANCH, "Sources/App/Release.swift"), swift);
+  // A repository without the file gets the pins alone.
+  const plain = fakeRepo({ "Package.swift": SWIFT, "README.md": readme }, { latestRelease: "v0.9.118" });
+  await keepRepo(plain.gh, "o/r", RELEASES, {});
+  assert.equal(plain.fileAt(BRANCH, "README.md"), readme);
 });
 
 test("a repository that caught up on its own has its stale pull request closed", async () => {

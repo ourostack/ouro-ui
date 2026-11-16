@@ -8,6 +8,16 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
 - **Moves each pin to the newest release** and writes what that release would install.[^versions] An Ouro HX file takes the new tag's source, rewritten to the app's aliases as the shadcn CLI rewrites it, and the install record keeps the source's hash.[^hx] Each file stays where the install record has it, so an app that keeps Ouro check in `lib/ouro/check/` apart from its components in `src/` is updated in place, and a file an item gains goes beside that item's other files.[^placement]
 - **Keeps one pull request per repository** on the branch `ouro-current/update`, and updates it in place when a newer release comes.[^one-pr] It pushes nothing when the update is already there, and closes its pull request when the repository caught up on its own.[^caught-up]
 - **Writes a pull request a claims check accepts**: versions and file names in code spans, no counts, so a repository that runs Ouro UI's claims check on pull requests does not fail the update.[^claims]
+- **Keeps a lock file's layout**: in `upstream-sources.lock.json` it changes only the followed source's commit and its files' hashes, and every other byte stays as the repository wrote it.[^lock]
+- **Does what the repository asks of a change**, when it declares that in `.github/ouro-current.json`, the way Dependabot reads `.github/dependabot.yml`.[^rules] `version` lists the files that carry the app's version, with a pattern whose first group is the version; when the repository has a published release at or past it, the update moves those files to the next patch.[^rules] `changelog` is a fragment to add, its `path` and `text` taking `{version}` and `{releases}`.[^rules]
+
+  ```json
+  {
+    "version": [{ "path": "Sources/App/Release.swift", "pattern": "static let version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"" }],
+    "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" }
+  }
+  ```
+
 - **Turns on auto-merge**, squash where the repository allows it, else a merge commit.[^auto-merge] The repository's own checks decide whether it merges.
 
 ## What it leaves alone
@@ -41,3 +51,5 @@ GH_TOKEN=$(gh auth token) node scripts/current/current.mjs --with-token --only o
 [^retry]: test:scripts/current/current.test.mjs::requests are retried on a server error or rate limit, and not on a refusal verify:testExists(scripts/current/current.test.mjs::requests are retried on a server error or rate limit, and not on a refusal)
 [^failure]: .github/workflows/ouro-current.yml verify:fileLine(.github/workflows/ouro-current.yml, /Ouro Current could not update a repository/)
 [^claims]: test:scripts/current/current.test.mjs::the pull request's title and body pass Ouro UI's claims check, which a repository may run on pull requests verify:testExists(scripts/current/current.test.mjs::the pull request's title and body pass Ouro UI's claims check, which a repository may run on pull requests)
+[^lock]: test:scripts/current/current.test.mjs::a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out verify:testExists(scripts/current/current.test.mjs::a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out)
+[^rules]: test:scripts/current/current.test.mjs::a repository's own rules ride along: its version moves past its latest release, and its changelog fragment is added verify:testExists(scripts/current/current.test.mjs::a repository's own rules ride along: its version moves past its latest release, and its changelog fragment is added)
