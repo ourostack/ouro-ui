@@ -907,8 +907,8 @@ describe("MessageList springs at rest", () => {
     // The pill floats over the scroller, which Chromium on macOS gives a layer of its own for good: it is no spring's, so it is
     // left out. And which elements have layers is compared, not their sizes: the content's height changes as rows replace
     // their estimates, by how the platform's fonts measure.
+    // compositedLayers reads a tree Chromium draws after the call, so the hidden pill is out of it.
     jump.parentElement!.style.display = "none";
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const after = await commands.compositedLayers();
     expect(messageLayers(after)).toEqual([]);
     const elements = (layers: { element: string | null }[]) => layers.map((layer) => layer.element);
