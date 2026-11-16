@@ -94,9 +94,18 @@ function gaveBack(surface: Surface): Omit<Check, "key" | "label"> {
 
 const READERS: Record<CheckKey, (surface: Surface) => Omit<Check, "key" | "label">> = { current, oneAction, must, gaveBack };
 
+const CELL_OF: Record<CheckKey, keyof Surface["cells"]> = { current: "pins", oneAction: "actions", must: "xray", gaveBack: "giveBack" };
+
+/** A check the ledger counts as held because it does not apply (the upstream's give-back, AX on a site with no agent interface). */
+function notApplicable(surface: Surface, key: CheckKey): Omit<Check, "key" | "label"> | null {
+  const cell = surface.cells[CELL_OF[key]] as LedgerCell<unknown>;
+  if (!surface.conditions[key].met || cell.value !== null || !/^n\/a\b/i.test(cell.note ?? "")) return null;
+  return { state: "na", why: reason(cell, "does not apply"), source: cell.source };
+}
+
 /** A product's four checks, in the page's column order. */
 export function checksOf(surface: Surface): Check[] {
-  return CHECK_KEYS.map((key) => ({ key, label: surface.conditions[key].label, ...READERS[key](surface) }));
+  return CHECK_KEYS.map((key) => ({ key, label: surface.conditions[key].label, ...(notApplicable(surface, key) ?? READERS[key](surface)) }));
 }
 
 /** A line every counted product shares for one check, said once on the page instead of on every row. */
