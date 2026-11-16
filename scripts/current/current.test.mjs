@@ -115,6 +115,29 @@ test("Ouro HX takes the new tag's source as the CLI would write it, adds files i
   assert.ok(update.notes.some((note) => note.includes("alert.tsx") && /edited here/.test(note)));
 });
 
+test("Ouro HX keeps each file where the install record has it, as a site keeps Ouro check apart from its components", async () => {
+  const registry = (gained) => ({ items: [
+    { name: "button", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }, { path: "registry/ouro/lib/ouro/cn.ts", target: "@lib/ouro/cn.ts" }] },
+    { name: "ouro-check", files: [{ path: "registry/ouro/check/check.ts", target: "@lib/ouro/check/check.ts" }, ...(gained ? [{ path: "registry/ouro/check/fades.ts", target: "@lib/ouro/check/fades.ts" }] : [])] },
+  ] });
+  const files = (v, gained) => new Map(Object.entries({ "registry.json": JSON.stringify(registry(gained)), "registry/ouro/components/ouro/button/button.tsx": `button ${v}`, "registry/ouro/lib/ouro/cn.ts": `cn ${v}`, "registry/ouro/check/check.ts": `check ${v}`, ...(gained ? { "registry/ouro/check/fades.ts": `fades ${v}` } : {}) }).map(([k, v]) => [k, Buffer.from(v)]));
+  const record = { tag: "v1.3.117", tagCommit: "old", files: { "src/components/ouro/button/button.tsx": sha256("button v1"), "src/lib/ouro/cn.ts": sha256("cn v1"), "lib/ouro/check/check.ts": sha256("check v1") } };
+  const consumer = new Map([
+    ["components.json", Buffer.from(JSON.stringify({ aliases: { components: "@/components", lib: "@/lib" } }))],
+    ["src/components/ouro/button/button.tsx", Buffer.from("button v1")],
+    ["src/lib/ouro/cn.ts", Buffer.from("cn v1")],
+    ["lib/ouro/check/check.ts", Buffer.from("check v1")],
+  ]);
+  const ctx = { tarball: async (follows, tag) => (tag === "v1.3.117" ? files("v1", false) : files("v2", true)), consumerFiles: async () => consumer };
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.equal(update.files["lib/ouro/check/check.ts"]?.toString(), "check v2", "updated where it is, not reported as edited");
+  assert.equal(update.files["lib/ouro/check/fades.ts"]?.toString(), "fades v2", "a file the item gained goes beside its other files");
+  assert.equal(update.files["src/lib/ouro/check/check.ts"], undefined);
+  assert.equal(update.files["src/components/ouro/button/button.tsx"].toString(), "button v2");
+  assert.deepEqual(update.notes.filter((note) => /edited here/.test(note)), []);
+});
+
 test("a vendored source moves to the release's commit with each file's new bytes and hash", async () => {
   const lock = { schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [{ sourcePath: "registry/ouro/ax/cli.ts", generatedPath: "lib/ouro-ui/registry/ouro/ax/cli.ts", sha256: "x" }] }] };
   const ctx = { tarball: async () => new Map([["registry/ouro/ax/cli.ts", Buffer.from("cli v2")]]) };

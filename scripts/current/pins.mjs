@@ -134,14 +134,31 @@ export function installRewrite(componentsJson) {
   };
 }
 
-/** Each consumer path an item installs to, with its registry source, at one tag. */
+/** The part of a target after its alias (`ouro/check/check.ts` for `@lib/ouro/check/check.ts`). */
+const afterAlias = (target) => target.replace(/^(@[a-z]+|~)\//, "");
+
+/**
+ * Each consumer path an item installs to, with its registry source, at one tag. A file the install record holds stays
+ * where the record says, even when the app keeps it apart from the rest of its alias (Ouro check in `lib/ouro/check/`
+ * beside components in `src/`); a file the record lacks goes beside its item's other files, else under its alias.
+ */
 function installedPaths(tarball, installed) {
-  const targets = registryTargets(tarball);
+  const targets = registryTargets(tarball).filter((entry) => tarball.has(entry.path));
   const roots = aliasRoots(targets, installed);
   const byPath = new Map();
+  const itemRoots = new Map();
   for (const entry of targets) {
-    const path = resolveTarget(entry.target, roots);
-    if (path && tarball.has(entry.path)) byPath.set(path, entry);
+    const rest = afterAlias(entry.target);
+    const path = installed.find((candidate) => candidate === rest || candidate.endsWith(`/${rest}`));
+    if (!path) continue;
+    byPath.set(path, entry);
+    if (!itemRoots.has(entry.item)) itemRoots.set(entry.item, { alias: entry.target.slice(0, entry.target.length - rest.length), root: path.slice(0, path.length - rest.length) });
+  }
+  for (const entry of targets) {
+    if ([...byPath.values()].includes(entry)) continue;
+    const sibling = itemRoots.get(entry.item);
+    const path = sibling && entry.target.startsWith(sibling.alias) ? `${sibling.root}${afterAlias(entry.target)}` : resolveTarget(entry.target, roots);
+    if (path && !byPath.has(path)) byPath.set(path, entry);
   }
   return byPath;
 }
