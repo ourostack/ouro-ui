@@ -2834,9 +2834,11 @@ describe("Message pending", () => {
     });
 
     it("counts the second from pendingSince for a message drawn again within it", async () => {
+      // The page's clock stands still too, so however long the mount takes, the message was sent 400 ms before it.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"], now: 1_000_000 });
       const announced = watchAnnouncements();
       try {
-        const { host } = await mount(sending(true, undefined, Date.now() - 400));
+        const { host } = await mount(sending(true, undefined, 999_600));
         await wait(590);
         expect(host.querySelector("[data-ouro-message-pending]")).toBeNull();
         await wait(20);
