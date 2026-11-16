@@ -24,6 +24,7 @@ import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import type { MenuEntry, MenuShortcut } from "@/registry/ouro/components/ouro/menu/menu";
 import type { MessageActionBar, MessageBarData } from "@/registry/ouro/components/ouro/message/message-parts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
+import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { RowLayerContext } from "@/registry/ouro/lib/ouro/row-hover";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -316,6 +317,30 @@ export interface MessageOwnProps {
    * @claim "It appears at once, with no" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message not sent > shows the marker at once, with nothing animating, under reduced motion too)
    */
   failed?: MessageFailed | false | undefined;
+  /**
+   * The person sent it and the app has not heard back yet. Only a send that takes longer than a
+   * second shows it: a small clock fades in beside the message, or after the time on a post or
+   * reply, taking no room, so a quick send never flashes and confirming it moves nothing. Screen
+   * readers hear "Sending" once, after that second, and as the message's description while it
+   * lasts. `failed` takes its place.
+   * @claim "a small clock fades in beside the message" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > shows a %s %s message's clock %s its bubble after a second, taking no room)
+   * @claim "or after the time on a post or" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > puts a pending %s's clock after its time, on the same line, taking no room)
+   * @claim "taking no room" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > puts a continued reply's clock in its gutter, clear of a long first line)
+   * @claim "Only a send that takes longer" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > still waits its second inside OuroProvider's reduced motion, which ends every transition)
+   * @claim "once, after that second" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > announcements > says Sending once a second has passed, once for every message pending together)
+   * @claim "once, after that second" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > announcements > says nothing for a send confirmed within the second)
+   * @claim "`failed` takes its place" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > describes a pending message as Sending once it shows, gives way to failed, and drops the description once confirmed)
+   */
+  pending?: boolean | undefined;
+  /**
+   * When the pending send started, as `Date.now()` gave it. A `MessageList` draws a long
+   * conversation's messages again as the reader scrolls; with this, a pending message drawn again
+   * after its second shows its clock at once and says nothing again.
+   * @claim "with this, a pending message drawn again" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message pending > announcements > shows the clock at once and says nothing for a message drawn again after its second)
+   */
+  pendingSince?: number | undefined;
+  /** What screen readers hear for a `pending` message, for other languages. @default "Sending" */
+  pendingLabel?: string | undefined;
   /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
   failedLabel?: string | undefined;
   /** The name of a `failed` message's retry button, for other languages. @default "Retry" */
@@ -584,6 +609,9 @@ export function Message(props: MessageProps): JSX.Element {
     streaming = false,
     streamingLabel = "Writing",
     failed = false,
+    pending = false,
+    pendingLabel = "Sending",
+    pendingSince,
     failedLabel = "Not sent",
     retryLabel = "Retry",
     deleteLabel = "Delete",
@@ -689,7 +717,33 @@ export function Message(props: MessageProps): JSX.Element {
   // Not sent: a line under the bubble that says so, with Retry and Delete, and the message's description.
   const failedId = useId();
   const isFailed = failed !== false;
-  const describedBy = isFailed ? [rest["aria-describedby"], failedId].filter(Boolean).join(" ") : rest["aria-describedby"];
+  // Sending: a marker that shows once the send has taken a while, and the same once for screen readers.
+  const pendingId = useId();
+  const isPending = pending && !isFailed && role !== "system";
+  // The second is timed here, not by a CSS delay, so an app's own reduced motion (OuroProvider's, which ends every
+  // transition at once) never shows a quick send's clock.
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!isPending) return;
+    let quiet: (() => void) | undefined;
+    const show = () => {
+      setShown(true);
+      quiet = announce(pendingLabel);
+    };
+    // A message drawn again after its second was already heard: its clock shows at once, and nothing is said.
+    const waited = pendingSince === undefined ? 0 : Date.now() - pendingSince;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (waited >= PENDING_DELAY) setShown(true);
+    const timer = waited >= PENDING_DELAY ? undefined : setTimeout(show, PENDING_DELAY - waited);
+    return () => {
+      clearTimeout(timer);
+      quiet?.();
+      setShown(false);
+    };
+  }, [isPending, pendingSince, pendingLabel]);
+  const showing = isPending && shown;
+  const marker = isFailed ? failedId : showing ? pendingId : undefined;
+  const describedBy = marker ? [rest["aria-describedby"], marker].filter(Boolean).join(" ") : rest["aria-describedby"];
   // Retry pressed: when the app clears failed, the marker goes with the focused button, so focus
   // goes to the message rather than the page.
   // Stryker disable next-line BooleanLiteral: the first run of the effect below, at mount, finds no element yet and clears it either way.
@@ -703,6 +757,16 @@ export function Message(props: MessageProps): JSX.Element {
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: it keeps the page where the reader pressed Retry; whether a browser scrolls a partly shown message into view on focus differs by engine, so no test can tell.
     article.focus({ preventScroll: true });
   }, [isFailed]);
+  // Beside a bubble, out of the flow, or after a post's or reply's time on its line: it takes no room, so going moves nothing.
+  const sending = (place: string) =>
+    showing && (
+      <span data-ouro-message-pending="" className={cn(pendingClass, place)}>
+        <PendingIcon aria-hidden="true" className="size-3.5 shrink-0" />
+        <span id={pendingId} className="sr-only">
+          {pendingLabel}
+        </span>
+      </span>
+    );
   const notSent = failed !== false && (
     <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
       <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
@@ -834,7 +898,7 @@ export function Message(props: MessageProps): JSX.Element {
         {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel, "mb-0.5"))}
         <div
           className={cn(
-            "flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
+            "relative flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
             role === "user" ? "items-end" : role === "system" ? "items-center" : "items-start",
           )}
         >
@@ -867,6 +931,7 @@ export function Message(props: MessageProps): JSX.Element {
             </div>
           )}
           {notSent}
+          {sending(role === "user" ? "absolute end-full bottom-0 me-2" : "absolute start-full bottom-0 ms-2")}
           {extra("footer", role === "user", false, footer)}
           {extra("thread", role === "user", false, thread)}
         </div>
@@ -900,6 +965,7 @@ export function Message(props: MessageProps): JSX.Element {
           {time}
         </time>
       )}
+      {people && sending("self-center")}
     </span>
   );
   // A chat's bubble; a post's and a reply's text sits on the page, unboxed.
@@ -955,7 +1021,11 @@ export function Message(props: MessageProps): JSX.Element {
       {!end && avatar !== false && (
         <span data-ouro-message-gutter="" className="flex w-8 shrink-0 justify-center">
           {continued ? (
-            time !== undefined && (
+            showing ? (
+              // A continued reply's line holds its text, so its clock sits in the gutter, where its time shows on hover.
+              <PendingIcon data-ouro-message-pending-gutter="" aria-hidden="true" className={cn(pendingClass, "mt-1.5 size-3.5")} />
+            ) : (
+              time !== undefined && (
               <time
                 aria-hidden="true"
                 dateTime={dateTime}
@@ -963,6 +1033,7 @@ export function Message(props: MessageProps): JSX.Element {
               >
                 {time}
               </time>
+              )
             )
           ) : (
             avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel)
@@ -996,6 +1067,7 @@ export function Message(props: MessageProps): JSX.Element {
           </div>
         )}
         {notSent}
+        {shape === "chat" && sending(end ? "absolute end-full bottom-0 me-1.5" : "absolute start-full bottom-0 ms-1.5")}
         {extra("footer", end, post, footer)}
         {extra("thread", end, post, thread)}
         {post && bar}
@@ -1081,6 +1153,23 @@ function extra(slot: "footer" | "thread", end: boolean, post: boolean, children:
 }
 
 /** A circle with an exclamation mark: the message did not send. */
+/** How long a send runs before it shows as pending. */
+const PENDING_DELAY = 1000;
+
+// Fades in as it mounts (from @starting-style): an opacity change, so it runs with reduced motion too.
+const pendingClass =
+  "pointer-events-none flex shrink-0 items-center text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] " +
+  "transition-opacity duration-(--ouro-duration-fast) ease-[ease] starting:opacity-0";
+
+function PendingIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...props}>
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M10 6v4l2.5 2" />
+    </svg>
+  );
+}
+
 function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...props}>

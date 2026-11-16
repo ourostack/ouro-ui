@@ -15,6 +15,8 @@ import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/regist
 import { createRowLayer, RowLayerContext, type RowLayer } from "@/registry/ouro/lib/ouro/row-hover";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 
 /** Tab from the top of the page, as from a fresh load: blur() alone leaves Chromium 158 tabbing on from the blurred element. */
 async function tabFromTop() {
@@ -2583,4 +2585,267 @@ describe("Message not sent", () => {
   it("shows the marker at once, with nothing animating", () => appearsAtOnce("no-preference"));
 
   it("shows the marker at once, with nothing animating, under reduced motion too", () => appearsAtOnce("reduce"));
+});
+
+describe("Message pending", () => {
+  const markerOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-pending]");
+  const rect = (element: Element) => element.getBoundingClientRect();
+  // The page's timers stand still until a test moves them on: the second before the clock shows is one of them.
+  beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+  afterEach(() => vi.useRealTimers());
+  const wait = (ms: number) => act(async () => vi.advanceTimersByTime(ms));
+  const mount = async (node: ReactNode) => {
+    const host = document.createElement("div");
+    host.style.width = "600px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(node));
+    return { host, rerender: (next: ReactNode) => act(async () => root.render(next)), message: () => host.querySelector<HTMLElement>('[data-ouro="message"]')! };
+  };
+  const pair = ({ variant, role = "user", continued = false, text = "On my way" }: { variant: "default" | "chat" | "reply" | "post"; role?: "user" | "assistant"; continued?: boolean; text?: string }) => (
+    <>
+      <Message variant={variant} role={role} continued={continued} name="Priya Okafor" time="9:45 AM" pending>
+        {text}
+      </Message>
+      <Message variant={variant} role={role} continued={continued} name="Priya Okafor" time="9:45 AM">
+        {text}
+      </Message>
+    </>
+  );
+
+  it.each([
+    ["default", "user", "before"],
+    ["default", "assistant", "after"],
+    ["chat", "user", "before"],
+    ["chat", "assistant", "after"],
+  ] as const)("shows a %s %s message's clock %s its bubble after a second, taking no room", async (variant, role, side) => {
+    const { host } = await mount(pair({ variant, role }));
+    const [pending, sent] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    await wait(999);
+    expect(markerOf(pending!)).toBeNull();
+    await wait(1);
+    const marker = markerOf(pending!)!;
+    expect(marker.querySelector("svg[aria-hidden='true'] circle")).not.toBeNull();
+    // Out of the flow: the pending message is laid out exactly as the sent one.
+    expect(rect(pending!).height).toBe(rect(sent!).height);
+    expect(rect(bubbleOf(pending!)).width).toBe(rect(bubbleOf(sent!)).width);
+    const bubble = rect(bubbleOf(pending!));
+    if (side === "before") expect(rect(marker).right).toBeLessThanOrEqual(bubble.left);
+    else expect(rect(marker).left).toBeGreaterThanOrEqual(bubble.right);
+    expect(rect(marker).width).toBeGreaterThan(0);
+    expect(markerOf(sent!)).toBeNull();
+  });
+
+  it.each(["reply", "post"] as const)("puts a pending %s's clock after its time, on the same line, taking no room", async (variant) => {
+    const { host } = await mount(pair({ variant }));
+    await wait(1000);
+    const [pending, sent] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    expect(pending!.querySelectorAll("[data-ouro-message-pending]")).toHaveLength(1);
+    const marker = rect(markerOf(pending!)!);
+    expect(rect(pending!).height).toBe(rect(sent!).height);
+    const time = rect(pending!.querySelector("time")!);
+    expect(marker.left).toBeGreaterThan(time.right);
+    // Centred on the time's line, not sat on its baseline.
+    expect(Math.abs(marker.top + marker.height / 2 - (time.top + time.height / 2))).toBeLessThanOrEqual(1);
+    expect(marker.bottom).toBeLessThanOrEqual(rect(bubbleOf(pending!)).top);
+  });
+
+  it("puts a continued reply's clock in its gutter, clear of a long first line", async () => {
+    const long = "I will bring the printed mockups, the colour swatches and the spare cable for the projector in the big room.";
+    const { host } = await mount(pair({ variant: "reply", continued: true, text: long }));
+    await wait(1000);
+    const [pending, sent] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
+    const clock = pending!.querySelector("[data-ouro-message-gutter] [data-ouro-message-pending-gutter]")!;
+    expect(rect(clock).right).toBeLessThanOrEqual(rect(bubbleOf(pending!)).left);
+    expect(rect(clock).width).toBeGreaterThan(0);
+    expect(rect(pending!).height).toBe(rect(sent!).height);
+    // The words screen readers hear are in the hidden header, as the message's description.
+    expect(document.getElementById(pending!.getAttribute("aria-describedby")!)!.textContent).toBe("Sending");
+  });
+
+  it("puts the clock before a user's bubble right to left too", async () => {
+    const { message } = await mount(
+      <div dir="rtl">
+        <Message variant="chat" role="user" name="Priya Okafor" pending>
+          On my way
+        </Message>
+      </div>,
+    );
+    await wait(1000);
+    expect(rect(markerOf(message())!).left).toBeGreaterThanOrEqual(rect(bubbleOf(message())).right);
+  });
+
+  it.each(["no-preference", "reduce"] as const)("fades the clock in as it shows, changing only its opacity, motion %s", async (reducedMotion) => {
+    await commands.emulateMedia({ reducedMotion });
+    const { message } = await mount(
+      <Message variant="chat" role="user" name="Priya Okafor" pending>
+        On my way
+      </Message>,
+    );
+    await wait(1000);
+    const marker = markerOf(message())!;
+    const transitions = marker.getAnimations() as CSSTransition[];
+    expect(transitions.map((transition) => transition.transitionProperty)).toEqual(["opacity"]);
+    expect(Number(getComputedStyle(marker).opacity)).toBeLessThan(1);
+    await expect.poll(() => getComputedStyle(marker).opacity).toBe("1");
+  });
+
+  it("still waits its second inside OuroProvider's reduced motion, which ends every transition", async () => {
+    const { message } = await mount(
+      <OuroProvider motion="reduced">
+        <Message variant="chat" role="user" name="Priya Okafor" pending>
+          On my way
+        </Message>
+      </OuroProvider>,
+    );
+    await wait(999);
+    expect(markerOf(message())).toBeNull();
+    await wait(1);
+    expect(getComputedStyle(markerOf(message())!).opacity).toBe("1");
+  });
+
+  it("describes a pending message as Sending once it shows, gives way to failed, and drops the description once confirmed", async () => {
+    const { message, rerender } = await mount(
+      <Message variant="chat" role="user" name="Ana" pending pendingLabel="Enviando">
+        Hola
+      </Message>,
+    );
+    expect(message().hasAttribute("aria-describedby")).toBe(false);
+    await wait(1000);
+    expect(document.getElementById(message().getAttribute("aria-describedby")!)!.textContent).toBe("Enviando");
+    await rerender(
+      <Message variant="chat" role="user" name="Ana" pending failed={{ onRetry: () => {} }}>
+        Hola
+      </Message>,
+    );
+    expect(markerOf(message())).toBeNull();
+    expect(document.getElementById(message().getAttribute("aria-describedby")!)!.textContent).toBe("Not sent");
+    await rerender(
+      <Message variant="chat" role="user" name="Ana">
+        Hola
+      </Message>,
+    );
+    expect(message().hasAttribute("aria-describedby")).toBe(false);
+    // Pending again, as after Retry: it waits its second again.
+    await rerender(
+      <Message variant="chat" role="user" name="Ana" pending>
+        Hola
+      </Message>,
+    );
+    expect(markerOf(message())).toBeNull();
+    await wait(1000);
+    expect(markerOf(message())).not.toBeNull();
+  });
+
+  it("shows no clock on a system note", async () => {
+    const { message } = await mount(
+      <Message role="system" name="Ouro" pending>
+        Ana joined
+      </Message>,
+    );
+    await wait(1000);
+    expect(markerOf(message())).toBeNull();
+    expect(message().hasAttribute("aria-describedby")).toBe(false);
+  });
+
+  describe("announcements", () => {
+    const sending = (pending: boolean, label?: string, since?: number) => (
+      <>
+        <Message variant="chat" role="user" name="Ana" pending={pending} pendingLabel={label} pendingSince={since}>
+          Hola
+        </Message>
+        <Message variant="chat" role="user" name="Ana" pending={pending} pendingLabel={label} pendingSince={since}>
+          ¿Vienes?
+        </Message>
+      </>
+    );
+
+    it("says Sending once a second has passed, once for every message pending together", async () => {
+      const announced = watchAnnouncements();
+      try {
+        await mount(sending(true));
+        await wait(999);
+        expect(announced.count("Sending")).toBe(0);
+        await wait(101);
+        await expect.poll(() => announced.count("Sending")).toBe(1);
+        await wait(5000);
+        expect(announced.count("Sending")).toBe(1);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("says nothing for a send confirmed within the second", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender } = await mount(sending(true, "Enviando"));
+        await wait(600);
+        await rerender(sending(false, "Enviando"));
+        await wait(5000);
+        await act(async () => {});
+        expect(announced.count("Enviando")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("shows the clock at once and says nothing for a message drawn again after its second", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { host } = await mount(sending(true, undefined, Date.now() - 5000));
+        expect(host.querySelectorAll("[data-ouro-message-pending]")).toHaveLength(2);
+        await wait(5000);
+        await act(async () => {});
+        expect(announced.count("Sending")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("says nothing for a send confirmed just as its clock shows, before Sending is spoken", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { rerender, host } = await mount(sending(true));
+        await wait(1050);
+        expect(host.querySelector("[data-ouro-message-pending]")).not.toBeNull();
+        await rerender(sending(false));
+        await wait(5000);
+        await act(async () => {});
+        expect(announced.count("Sending")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("shows the clock at once and says nothing for a message drawn again exactly a second after it was sent", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"], now: 1_000_000 });
+      const announced = watchAnnouncements();
+      try {
+        const { host } = await mount(sending(true, undefined, 999_000));
+        expect(host.querySelectorAll("[data-ouro-message-pending]")).toHaveLength(2);
+        await wait(5000);
+        await act(async () => {});
+        expect(announced.count("Sending")).toBe(0);
+      } finally {
+        announced.stop();
+      }
+    });
+
+    it("counts the second from pendingSince for a message drawn again within it", async () => {
+      const announced = watchAnnouncements();
+      try {
+        const { host } = await mount(sending(true, undefined, Date.now() - 400));
+        await wait(590);
+        expect(host.querySelector("[data-ouro-message-pending]")).toBeNull();
+        await wait(20);
+        expect(host.querySelectorAll("[data-ouro-message-pending]")).toHaveLength(2);
+        await wait(100);
+        await expect.poll(() => announced.count("Sending")).toBe(1);
+      } finally {
+        announced.stop();
+      }
+    });
+  });
 });

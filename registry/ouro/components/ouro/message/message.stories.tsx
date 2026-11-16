@@ -587,6 +587,23 @@ export const NotSent: Story = {
   render: () => <NotSentConversation />,
 };
 
+/**
+ * The user's own message the app has sent and not yet heard back about (`pending`). After a
+ * second a small clock fades in beside it; a send confirmed sooner never shows one.
+ */
+export const Pending: Story = {
+  render: () => (
+    <Surface>
+      <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-05-04T09:41">
+        Are you joining the design review?
+      </Message>
+      <Message variant="chat" role="user" name="Priya Okafor" time="9:43 AM" dateTime="2026-05-04T09:43" pending>
+        Yes, I will be there.
+      </Message>
+    </Surface>
+  ),
+};
+
 // Made-up image emoji, drawn here, for names and messages that hold emoji.
 const svg = (body: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">${body}</svg>`)}`;
 const emoji: EmojiCatalogue = {
