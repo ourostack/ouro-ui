@@ -1,0 +1,1 @@
+- Button: on a button wider than its label, such as one with fullWidth, an endIcon sits at the inline end instead of right after the label.
