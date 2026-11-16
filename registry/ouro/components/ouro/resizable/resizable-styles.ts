@@ -129,18 +129,20 @@ function limits(sizes: readonly number[], index: number, panels: readonly PanelL
  */
 function clampSize(sizes: readonly number[], index: number, size: number, panels: readonly PanelLimits[]): number[] {
   const result = [...sizes];
+  const shrinking = size < sizes[index]!;
+  const growing = size > sizes[index]!;
   // A press that moves nothing changes nothing, even from a size the default sizes left in a gap.
-  if (size === sizes[index]) return result;
+  if (!shrinking && !growing) return result;
   const { min, max } = limits(sizes, index, panels);
   const before = panels[index]!;
   const after = panels[index + 1]!;
   const total = sizes[index]! + sizes[index + 1]!;
   let next = Math.min(Math.max(size, min), max);
-  const shrinking = size < sizes[index]!;
-  // The snap targets: 0 and minSize for a collapsible panel before the handle, total - minSize and total for one after it.
+  // The snap targets: 0 and minSize for a panel before the handle, total - minSize and total for one after it. A non-collapsible
+  // panel's limits keep its size out of these gaps, so they need no check of their own.
   let ends: readonly number[] | undefined;
-  if (before.collapsible && next > 0 && next < before.minSize) ends = [0, before.minSize];
-  else if (after.collapsible && next > total - after.minSize && next < total) ends = [total - after.minSize, total];
+  if (next < before.minSize) ends = [0, before.minSize];
+  else if (next > total - after.minSize && next < total) ends = [total - after.minSize, total];
   if (ends) {
     // On a tie the handle's direction decides: a shrinking handle closes the panel before it and opens the one after it to minSize; a growing one the reverse.
     const target = next;

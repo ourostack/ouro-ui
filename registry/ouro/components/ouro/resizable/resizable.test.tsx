@@ -574,6 +574,27 @@ describe("Resizable handle (window splitter)", () => {
     expect(widths(after.panels)).toEqual([80, 319]);
   });
 
+  it("closes a collapsible panel whose pair is too small for its minSize, and leaves the panel after it its size", async () => {
+    const screen = await render(
+      <Resizable>
+        <ResizablePanel label="Draft" defaultSize={75}>
+          Draft
+        </ResizablePanel>
+        <ResizablePanel label="Notes" defaultSize={12.5} minSize={20} collapsible>
+          Notes
+        </ResizablePanel>
+        <ResizablePanel label="Files" defaultSize={12.5} minSize={10}>
+          Files
+        </ResizablePanel>
+      </Resizable>,
+    );
+    // Notes and Files share 25%: at 20% Files would be left under its minSize, so the only size Notes can take is 0.
+    screen.handles[1]!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(screen.handles[1]!.getAttribute("aria-valuenow")).toBe("0");
+    expect(screen.panels[2]!.getBoundingClientRect().width).toBeGreaterThan(90);
+  });
+
   it("reaches the true end of a panel with a decimal minSize, by End and by a drag past it", async () => {
     const onLayout = vi.fn();
     const screen = await render(
