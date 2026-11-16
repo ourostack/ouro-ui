@@ -372,7 +372,13 @@
         "Desk plugin",
         "Desk MCP"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/desk",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "desk-browser",
