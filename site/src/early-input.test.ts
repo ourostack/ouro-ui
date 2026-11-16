@@ -120,9 +120,11 @@ describe("keepEarlyInput", () => {
     expect(control.style.opacity).toBe("0.8");
     heard.length = 0;
     hydrate(control);
-    await frames3();
-    // On the control, from where it came down to where it lifted, with the button held along the way.
-    expect(heard).toEqual(["pointerdown 20 0 1", "pointermove 52.5 0 1", "pointermove 85 0 1", "pointermove 117.5 0 1", "pointermove 150 0 1", "pointerup 150 0 0"]);
+    // On the control, from where it came down to where it lifted, with the button held along the way. Each step of the
+    // replay waits on a timer after the one before, which a loaded runner can hold past any fixed number of frames (#1637).
+    await expect
+      .poll(() => heard)
+      .toEqual(["pointerdown 20 0 1", "pointermove 52.5 0 1", "pointermove 85 0 1", "pointermove 117.5 0 1", "pointermove 150 0 1", "pointerup 150 0 0"]);
     expect(window.__ouroEarlyInput).toBe(0);
   });
 
