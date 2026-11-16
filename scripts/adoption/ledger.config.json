@@ -388,7 +388,8 @@
         {
           "repo": "ourostack/desk",
           "workflow": "ax-xray.yml",
-          "branch": "main"
+          "branch": "main",
+          "app": "Desk MCP"
         }
       ]
     },
@@ -397,14 +398,20 @@
       "name": "Desk Browser (desk-web)",
       "kind": "MCP tool",
       "repo": "ourostack/desk",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "An agent tool with no screen of its own."
       },
       "ax": {
-        "kind": "none",
-        "reason": "Part of the Desk MCP; no AX kit use found in the desk-web tools.",
         "search": "defineCommand OR bindAx OR ax-mcp",
         "exclude": "lib/ouro-ui/"
       },
@@ -412,7 +419,14 @@
         "desk-web",
         "Desk Browser"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/desk",
+          "workflow": "ax-xray.yml",
+          "branch": "main",
+          "app": "Desk Browser"
+        }
+      ]
     },
     {
       "id": "factory",
