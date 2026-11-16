@@ -27,3 +27,17 @@ describe("plain classes on a touch screen", () => {
     expect(link.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
   });
 });
+
+describe("state classes on a touch screen", () => {
+  it("make a segment and an option at least 44px tall, at the 16px text size", () => {
+    host = document.createElement("div");
+    host.innerHTML = '<div class="ouro-segmented"><label class="ouro-segment"><input type="radio" name="t" /> A</label></div><div role="option" class="ouro-option" aria-selected="false">Contoso</div>';
+    document.body.append(host);
+    const segment = host.querySelector(".ouro-segment")!;
+    expect(segment.getBoundingClientRect().height).toBeGreaterThanOrEqual(40);
+    expect(segment.getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
+    expect(host.querySelector(".ouro-segmented")!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    expect(host.querySelector(".ouro-option")!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    expect(getComputedStyle(segment).fontSize).toBe("16px");
+  });
+});
