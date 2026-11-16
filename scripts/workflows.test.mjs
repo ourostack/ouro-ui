@@ -2388,8 +2388,8 @@ test("Docs pin points main's docs at the newest release through one pull request
   assert.match(docsPin, /^on:\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n/m);
   assert.match(docsPin, /^concurrency:\n {2}group: docs-pin\n {2}cancel-in-progress: false$/m);
   const pin = docsPin.split("\n  pin:\n")[1];
-  assert.deepEqual(permissionsOf(pin), { contents: "write", "pull-requests": "write" });
-  assert.doesNotMatch(docsPin, /actions: write|\/approve|required-producers/);
+  assert.deepEqual(permissionsOf(pin), { actions: "write", contents: "write", "pull-requests": "write" });
+  assert.doesNotMatch(docsPin, /required-producers/);
   const pushToken = "${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}";
   assert.ok(pin.includes(`\n          token: ${pushToken}\n`), "the checkout pushes with the app's token, else DOCS_PIN_TOKEN");
   assert.ok(pin.includes(`\n          GH_TOKEN: ${pushToken}\n`), "the pull request is opened with the same token");
@@ -2419,21 +2419,62 @@ test("Docs pin pushes as the Ouro Current app when it is installed here, so CI s
   assert.ok(pin.indexOf("- id: app") < pin.indexOf("actions/checkout@"), "the token is made before the checkout that pushes with it");
 });
 
-test("Docs pin asks a maintainer for an empty commit only when its push could not start CI", () => {
+test("Docs pin's pull request body asks no one for anything, since the workflow starts its CI itself", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
   const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
-  const bodyOf = (startsCi) => {
-    const dir = scratchDir("ouro-docs-pin-");
-    const gh = `gh() {\n  printf 'gh %s\\n' "$*" >> "$LOG"\n  case "$*" in\n    "pr list"*) echo 7 ;;\n  esac\n}`;
-    const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", STARTS_CI: startsCi, GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
-    assert.equal(result.status, 0, result.stdout + result.calls);
-    return readFileSync(join(dir, "gh.log"), "utf8");
-  };
-  const started = bodyOf("true");
-  assert.match(started, /Release opened this pull request after it tagged v1\.3\.56/);
-  assert.doesNotMatch(started, /empty commit|DOCS_PIN_TOKEN/);
-  const held = bodyOf("false");
-  assert.match(held, /a maintainer pushes an empty commit to docs\/point-at-release/);
+  const dir = scratchDir("ouro-docs-pin-");
+  const gh = `gh() {\n  printf 'gh %s\\n' "$*" >> "$LOG"\n  case "$*" in\n    "pr list"*) echo 7 ;;\n  esac\n}`;
+  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+  assert.equal(result.status, 0, result.stdout + result.calls);
+  const calls = readFileSync(join(dir, "gh.log"), "utf8");
+  assert.match(calls, /Release opened this pull request after it tagged v1\.3\.56/);
+  assert.doesNotMatch(calls, /empty commit|DOCS_PIN_TOKEN/);
+  assert.equal(result.output.number, "7");
+});
+
+/** Runs Docs pin's CI step with a stand-in gh whose run list for the pushed commit is `runs` on each read in turn (the last repeats). */
+function startCi(...runs) {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Start the pull request's CI, and fail when it has not started");
+  const dir = scratchDir("ouro-docs-pin-");
+  const reads = join(dir, "reads");
+  writeFileSync(reads, "0");
+  runs.forEach((list, index) => writeFileSync(join(dir, `runs-${index}`), list.map((run) => run.join("\t")).join("\n")));
+  const gh = `gh() {
+  printf 'gh %s\\n' "$*" >> "$LOG"
+  case "$*" in
+    "api repos/"*"/actions/runs?head_sha="*)
+      n=$(cat "${reads}"); echo $((n + 1)) > "${reads}"
+      [ "$n" -lt ${runs.length} ] || n=${runs.length - 1}
+      cat "${dir}/runs-$n"; echo ;;
+  esac
+}`;
+  const result = runStep(`${gh}\n${script}`, { SHA: "abc", NUMBER: "7", BRANCH: "docs/point-at-release", POLLS: "3", INTERVAL: "0", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+  return { ...result, gh: readFileSync(join(dir, "gh.log"), "utf8") };
+}
+
+test("Docs pin approves its pull request's held runs, and passes once CI has started (#1757)", () => {
+  const held = [["11", "CI", "action_required"], ["12", "Claims", "action_required"]];
+  const started = startCi(held, [["11", "CI", ""], ["12", "Claims", ""]]);
+  assert.equal(started.status, 0, started.stdout + started.gh);
+  assert.match(started.gh, /^gh api -X POST repos\/ourostack\/ouro-ui\/actions\/runs\/11\/approve$/m);
+  assert.match(started.gh, /^gh api -X POST repos\/ourostack\/ouro-ui\/actions\/runs\/12\/approve$/m);
+  // A push that started CI itself, as the app's does, approves nothing.
+  const app = startCi([["11", "CI", ""]]);
+  assert.equal(app.status, 0, app.stdout + app.gh);
+  assert.doesNotMatch(app.gh, /approve/);
+});
+
+test("Docs pin fails, and says so on the pull request, when CI has not started by its last look (#1757)", () => {
+  const none = startCi([]);
+  assert.equal(none.status, 1, none.stdout + none.gh);
+  assert.match(none.stdout, /::error::CI has not started on #7 \(abc\)/);
+  assert.match(none.gh, /^gh pr comment 7 --body CI has not started on #7/m);
+  const stillHeld = startCi([["11", "CI", "action_required"]]);
+  assert.equal(stillHeld.status, 1, stillHeld.stdout + stillHeld.gh);
+  // The guard waits 15 minutes in Docs pin itself.
+  const step = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  assert.match(step, /\n {10}POLLS: 90\n {10}INTERVAL: 10\n/);
 });
 
 test("Docs pin changes nothing for a tag that is not the newest release, and says whether main already names it", () => {
