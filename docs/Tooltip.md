@@ -2,7 +2,7 @@
 
 # Tooltip
 
-A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut. It never opens on touch, and screen readers don't read it, so it only repeats or adds to what the page already says. Inside `OuroProvider`, tooltips share one delay: once one shows, its neighbours open instantly.
+A short label that appears beside its trigger on hover and keyboard focus, for an icon button's purpose or a control's shortcut. It never opens on touch, and screen readers don't read it, so it only repeats or adds to what the page already says. Inside `OuroProvider`, tooltips share one delay: once one shows, its neighbours open instantly. A press on the trigger closes it, and it stays closed while the trigger's menu or popover is open.
 
 ```tsx
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
