@@ -486,10 +486,13 @@ describe("Tooltip", () => {
     await shown();
   });
 
-  it("keeps its tooltip open when a disclosure expands under it", async () => {
+  it.each([
+    ["no aria-haspopup", undefined],
+    ['aria-haspopup="false"', false],
+  ] as const)("keeps its tooltip open when a disclosure with %s expands under it", async (_label, haspopup) => {
     const toggle = (expanded: "true" | "false") => (
       <Tooltip content="Collapse panel">
-        <Button aria-expanded={expanded} aria-haspopup={false}>
+        <Button aria-expanded={expanded} aria-haspopup={haspopup}>
           Collapse
         </Button>
       </Tooltip>
@@ -499,7 +502,7 @@ describe("Tooltip", () => {
     await shown();
     await act(async () => roots.at(-1)!.render(toggle("true")));
     await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
-    expect(tooltip()).not.toBeNull();
+    expect(tooltip()!.hasAttribute("data-open")).toBe(true);
   });
 
   it("clears a pending open when its trigger unmounts before the delay", async () => {
@@ -507,12 +510,12 @@ describe("Tooltip", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     try {
       await userEvent.hover(trigger());
+      expect(vi.getTimerCount()).toBe(1);
       await act(async () => roots.pop()!.unmount());
-      await act(async () => vi.advanceTimersByTime(1000));
+      expect(vi.getTimerCount()).toBe(0);
     } finally {
       vi.useRealTimers();
     }
-    expect(tooltip()).toBeNull();
   });
 
   it("does not throw when a pending open fires for a trigger that never took its ref", async () => {

@@ -273,9 +273,10 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   const childExpanded = (child.props as Record<string, unknown>)["aria-expanded"] ?? (forwarded as Record<string, unknown>)["aria-expanded"];
   const childHaspopup = (child.props as Record<string, unknown>)["aria-haspopup"] ?? (forwarded as Record<string, unknown>)["aria-haspopup"];
   const expanded = popupOpen(childExpanded, childHaspopup);
+  // Closing as the popup shuts finds nothing to close: the guard keeps a tooltip shut while its trigger's popup is open.
   useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (expanded) close();
+    close();
   }, [expanded]);
 
   const portal = usePortalContainer("Tooltip");
