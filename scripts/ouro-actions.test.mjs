@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "./scratch.mjs";
 
 // The registry's agent door (actions/, scripts/ouro-actions/): the vendored generator matches its release, the
 // generated projections match their declarations, and the MCP server answers from the registry.
@@ -91,4 +92,20 @@ test("the server speaks MCP over stdio and prints its tool names for the X-ray's
 
   const tools = spawnSync(process.execPath, ["actions/server/registry-mcp.mts", "--tools"], { cwd: root, encoding: "utf8" });
   assert.deepEqual(JSON.parse(tools.stdout), ["list_registry_items", "get_item_install", "get_item_docs"]);
+});
+
+test("the X-ray over the registry door holds every must claim, so a change that breaks one fails CI", () => {
+  const dir = scratchDir("ax-xray-");
+  const tools = spawnSync(process.execPath, ["actions/server/registry-mcp.mts", "--tools"], { cwd: root, encoding: "utf8" });
+  const inventory = join(dir, "inventory.json");
+  writeFileSync(inventory, JSON.stringify({ mcp: JSON.parse(tools.stdout) }));
+  const run = spawnSync(
+    process.execPath,
+    ["registry/ouro/ax/xray.ts", "--mcp", "node actions/server/registry-mcp.mts", "--inventory", inventory, "--conformance", "--home", join(dir, "home"), "--json"],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 << 20 },
+  );
+  const summary = JSON.parse(run.stdout).summary;
+  assert.ok(summary.must > 0, "no must claims were checked");
+  assert.equal(summary.mustHolding, summary.must, run.stderr);
+  assert.equal(run.status, 0, run.stderr);
 });
