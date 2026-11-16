@@ -263,31 +263,31 @@
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/aed92a9585bd1bc29488de4151ebf21edeeb394e/Package.swift#L1-L9": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/Package.swift#L1-L9": {
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/aed92a9585bd1bc29488de4151ebf21edeeb394e/Package.swift#L19-L38": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/Package.swift#L19-L38": {
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/aed92a9585bd1bc29488de4151ebf21edeeb394e/README.md#agent-composed-ui-a2ui": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui": {
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/aed92a9585bd1bc29488de4151ebf21edeeb394e/README.md#siri-ai": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#siri-ai": {
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/aed92a9585bd1bc29488de4151ebf21edeeb394e/README.md#whats-in-the-box": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box": {
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/aed92a9585bd1bc29488de4151ebf21edeeb394e/README.md#x-ray-your-apps-app-intents": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#x-ray-your-apps-app-intents": {
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/aed92a9585bd1bc29488de4151ebf21edeeb394e/core-provenance.json": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/core-provenance.json": {
     "status": 200,
     "checked": "2026-11-15"
   },
@@ -295,7 +295,7 @@
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.11.0": {
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.0.0": {
     "status": 200,
     "checked": "2026-11-15"
   },
