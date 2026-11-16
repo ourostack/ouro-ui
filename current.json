@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-16T14:04:51.831Z",
+  "generatedAt": "2026-11-16T14:40:55.314Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
-      "tag": "v1.3.223",
-      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.223"
+      "tag": "v1.3.224",
+      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.224"
     },
     "core": {
       "name": "Ouro UI core",
