@@ -1615,6 +1615,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       wheelStarts = true;
       // The scroll range the wheel turns in holds until it rests (see setFloor): at least the content's height now.
       const height = content.offsetHeight;
+      // Stryker disable next-line EqualityOperator: a floor set to the height it already holds writes nothing.
       if (height > Math.max(floor, scroller.clientHeight)) setFloor(height);
       rest();
       // A wheel pushing at an end scrolls nothing, so no scroll event says the reader got there.

@@ -474,9 +474,11 @@ describe("MessageList windowing", () => {
   });
 
   it.each([
-    { start: "following the end", leave: 0 },
-    { start: "near the end, having left it", leave: 10 },
-  ])("keeps the scroll range while the wheel turns, $start, so a row above that comes in shorter never pulls the scroll position, which ends WebKit's wheel", async ({ leave }) => {
+    { start: "following the end", leave: 0, row: "a row above" },
+    { start: "near the end, having left it", leave: 10, row: "a row above" },
+    { start: "following the end", leave: 0, row: "the last message, below the reader," },
+  ])("keeps the scroll range while the wheel turns, $start, so $row that comes in shorter never pulls the scroll position, which ends WebKit's wheel", async ({ leave, row }) => {
+    const below = row.startsWith("the last");
     // 60px messages, one of which comes in 39px shorter: a row drawn in place of the space kept for it, shorter than the estimate.
     let items = conversation(500).map((item) => ({ ...item, tall: 60 }));
     const { scroller, root } = await render(<Chat items={items} springy={false} />);
@@ -500,24 +502,44 @@ describe("MessageList windowing", () => {
     // Any scroll from here is the browser's, pulling the position into a shorter range: no one else scrolls.
     let pulled = 0;
     scroller.addEventListener("scroll", () => pulled++);
-    const above = Number(reading.message.id.slice(1)) - 3;
-    items = items.map((item) => (item.id === above ? { ...item, tall: 21 } : item));
+    const shrinks = below ? items.at(-1)!.id : Number(reading.message.id.slice(1)) - 3;
+    items = items.map((item) => (item.id === shrinks ? { ...item, tall: 21 } : item));
     await act(async () => root.render(<Chat items={items} springy={false} />));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // The wheel turns again: the range it holds stays, though the content is now shorter.
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     expect(pulled).toBe(0);
     expect(scroller.scrollTop).toBe(at);
-    expect(content.style.translate).not.toBe("");
+    // Above, held by drawing the content down; below, nothing the reader sees moved.
+    expect(content.style.translate === "").toBe(below);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
     // Once the wheel rests, what was carried goes into the scroll position and the hold on the range goes, so the end is
     // the last message's, with no room past it.
     vi.spyOn(performance, "now").mockReturnValue(1_010_000);
     await expect.poll(() => content.style.translate).toBe("");
     await settle(scroller);
-    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    // A row above that came in shorter left the reader's place where it was; a shorter last message ends the range sooner, and
+    // a reader that near the end comes down with it, the wheel at rest.
+    if (!below) expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
     expect(scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!.style.display).toBe("");
     own.set!.call(scroller, scroller.scrollHeight);
     await settle(scroller);
     // The content's 16px padding below the last message, and not the 39px the shorter row left.
+    expect(scroller.getBoundingClientRect().bottom - messages(scroller).at(-1)!.getBoundingClientRect().bottom).toBeLessThanOrEqual(16 + ROUNDING);
+  });
+
+  it("lets the hold on the end go at a change once the reader has left it with no wheel turning, so a last message that comes in shorter leaves no room past it", async () => {
+    let items = conversation(500).map((item) => ({ ...item, tall: 60 }));
+    const { scroller, root } = await render(<Chat items={items} springy={false} />);
+    // Up by the scrollbar, well away from the end.
+    await scrollTo(scroller, scroller.scrollTop - 1000);
+    items = items.map((item, index) => (index === items.length - 1 ? { ...item, tall: 21 } : item));
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    await settle(scroller);
+    expect(scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!.style.display).toBe("");
+    await scrollTo(scroller, scroller.scrollHeight);
+    // The content's 16px padding below the last message, and not the 39px it lost.
     expect(scroller.getBoundingClientRect().bottom - messages(scroller).at(-1)!.getBoundingClientRect().bottom).toBeLessThanOrEqual(16 + ROUNDING);
   });
 
