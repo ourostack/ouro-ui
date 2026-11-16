@@ -281,9 +281,9 @@ function movesItems(record: MutationRecord): boolean {
 }
 
 /**
- * The messages in the content and each child of a slot that holds none (a day's heading), in the order they come in the page:
- * walked slot by slot, as a `:has()` selector over the whole content restyles nothing but reads every element against
- * every message (16 ms for 7,500 elements on a 4x slower CPU), on each scroll that lands where nothing is drawn yet.
+ * The messages in the content, and each child of a slot that holds none (a day's heading), in page order: found slot by slot,
+ * rather than with a `:has()` selector over the whole content, which a scroll landing where nothing is drawn yet would pay for.
+ * @claim "The messages in the content, and each child of a slot that holds none" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place over rows not drawn yet without a :has() selector over the whole conversation, which reads every element against every message)
  */
 function itemsAndChildren(content: Element): Element[] {
   const found: Element[] = [];
