@@ -1,1 +1,0 @@
-- Menu: opened from the keyboard, VoiceOver reads its first item, not only that it is in a menu.

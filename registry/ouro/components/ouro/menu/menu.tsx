@@ -5,7 +5,6 @@ import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { Menubar } from "@base-ui/react/menubar";
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -404,71 +403,6 @@ function pressing(on: boolean) {
   return (event: TouchEvent<HTMLElement>) => event.currentTarget.toggleAttribute("data-ouro-pressing", on);
 }
 
-// Base UI focuses a keyboard-opened menu's first item in the frame the menu opens, and VoiceOver misses focus that lands
-// as the menu appears, so it says only that it is in a menu. The popup takes focus at once, and two frames later the
-// item takes it back, if focus is still on the popup: a key, a press or a close in between is left as it went.
-function watchFirstItem(popup: HTMLElement): () => void {
-  let opening = true;
-  let item: HTMLElement | undefined;
-  let frame = 0;
-  const cancel = () => {
-    cancelAnimationFrame(frame);
-    frame = 0;
-  };
-  const onFocusIn = (event: FocusEvent) => {
-    const first = opening;
-    opening = false;
-    const target = event.target as HTMLElement;
-    // A phone's sheet keeps the first focus Base UI gives it, and a context menu, which focuses its popup, has no item to read.
-    if (!first || target === popup || popup.getAttribute("data-ouro-presentation") === "sheet" || !target.matches(":focus-visible")) return;
-    item = target;
-    // VoiceOver read the item again only when the popup took focus a frame after the item had it, not in the same task.
-    frame = requestAnimationFrame(() => {
-      if (!popup.hasAttribute("data-open") || document.activeElement !== target) return void (frame = 0);
-      popup.focus({ preventScroll: true });
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(() => {
-          frame = 0;
-          if (popup.hasAttribute("data-open") && document.activeElement === popup) target.focus({ preventScroll: true });
-        });
-      });
-    });
-  };
-  // A key that finds the popup holding focus was meant for the item: the item takes focus back and gets the key, so Enter
-  // chooses it, the arrow keys move from it and Tab leaves from it. A key on an item is left to act there. The frames go on, and each finds
-  // where the key left focus: a key that ended them would also end the pass through the popup that VoiceOver needs.
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (frame === 0 || document.activeElement !== popup) return;
-    // Stryker disable next-line ObjectLiteral,BooleanLiteral: Base UI's own handling of the same key scrolls the item into view, so this focus scrolls nothing the page would not.
-    item!.focus({ preventScroll: true });
-    // Tab moves focus natively, from the element that has it once the key's handlers have run: now the item.
-    if (event.key === "Tab") return;
-    event.stopImmediatePropagation();
-    event.preventDefault();
-    const { key, code, location, repeat, ctrlKey, shiftKey, altKey, metaKey } = event;
-    item!.dispatchEvent(new KeyboardEvent("keydown", { key, code, location, repeat, ctrlKey, shiftKey, altKey, metaKey, bubbles: true }));
-  };
-  // A press in the frames is the user's, so the item does not take focus back after it.
-  popup.addEventListener("focusin", onFocusIn);
-  popup.addEventListener("keydown", onKeyDown);
-  popup.addEventListener("pointerdown", cancel);
-  // The popup leaves the page with its listeners, and a popup that has left has no focus for a frame to take back.
-  return cancel;
-}
-
-// The ref for a popup: it watches the popup from its mount, so its first focus is seen, until the popup unmounts.
-function useFirstItemFocus(): (popup: HTMLElement | null) => void {
-  const stop = useRef<(() => void) | undefined>(undefined);
-  return useCallback(
-    (popup: HTMLElement | null) => {
-      stop.current?.();
-      stop.current = popup === null ? undefined : watchFirstItem(popup);
-    },
-    // Stryker disable next-line ArrayDeclaration: the ref reads only `stop`, a ref, so the callback never has a dependency to change.
-    [],
-  );
-}
-
 /** The portal, positioner and popup of a menu or submenu, beside its trigger or as a phone sheet. */
 function MenuSurface({
   sheet,
@@ -514,7 +448,6 @@ function MenuSurface({
   const inBar = useContext(MenuBarContext);
   const inside = inMenu || inBar;
   const guards = useRef<HTMLSpanElement | null>(null);
-  const focusFirst = useFirstItemFocus();
   useLayoutEffect(() => {
     const holder = guards.current;
     if (holder === null) return;
@@ -553,7 +486,6 @@ function MenuSurface({
           {...(align ? { align } : {})}
         >
           <BaseMenu.Popup
-            ref={focusFirst}
             data-ouro="menu"
             data-ouro-presentation={sheet ? "sheet" : "menu"}
             aria-label={label}
@@ -604,13 +536,11 @@ function MenuSurface({
  *
  * A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab
  * goes on from wherever focus went.
- * Opened from the keyboard, a menu makes VoiceOver read its first item, not only that it is in a menu.
  * In a right-to-left page (`dir="rtl"` on `<html>`) a submenu opens to the left, with ArrowLeft.
  *
  *
  * @group Menus
  * @claim "In a right-to-left page" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu items > opens a submenu with ArrowLeft in a right-to-left page, where it opens to the left, and closes it with ArrowRight)
- * @claim "Opened from the keyboard, a menu makes VoiceOver read its first item" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus > opened from the keyboard, focus goes through the popup and back to the first item two frames later)
  * @see https://ui.ouroboros.bot/docs/menu
  *
  * @example
