@@ -9,8 +9,8 @@
  * with no popup to show), each is answered a frame after it is first seen hydrated, in a task of its own.
  */
 
-/** The controls whose press needs the page's JavaScript. Links answer on their own. */
-export const EARLY_CONTROLS = 'button, [role="button"], [role="checkbox"], [role="switch"], [role="radio"], [role="tab"], input[type="checkbox"], input[type="radio"]';
+/** The controls whose press needs the page's JavaScript, Select's div trigger among them. Links answer on their own. */
+export const EARLY_CONTROLS = 'button, [role="button"], [role="combobox"], [role="checkbox"], [role="switch"], [role="radio"], [role="tab"], input[type="checkbox"], input[type="radio"]';
 
 /** The fields whose text React would set back to its own when it hydrates them. */
 export const EARLY_FIELDS = 'input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), textarea, select';
