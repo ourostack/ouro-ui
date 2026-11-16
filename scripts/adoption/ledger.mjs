@@ -292,7 +292,11 @@ function readArtifactReport(ctx, repo, artifact, tmp) {
   return ctx.memo(`artifact:${repo}:${artifact.id}`, () => {
     const file = join(tmp, `${artifact.id}.zip`);
     writeFileSync(file, ctx.gh(["api", `repos/${repo}/actions/artifacts/${artifact.id}/zip`], { binary: true }));
-    const out = execFileSync("unzip", ["-p", file, "report.json"], { maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] });
+    // `report.json` at the artifact's root, or in a folder when the upload named several paths (`xray/report.json`).
+    const names = execFileSync("unzip", ["-Z1", file], { maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] }).toString("utf8").split("\n").filter((name) => /(^|\/)report\.json$/.test(name));
+    const name = names.sort((a, b) => a.split("/").length - b.split("/").length)[0];
+    if (!name) throw new Error(`artifact ${artifact.name} has no report.json`);
+    const out = execFileSync("unzip", ["-p", file, name], { maxBuffer: 256 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] });
     return JSON.parse(out.toString("utf8"));
   });
 }
