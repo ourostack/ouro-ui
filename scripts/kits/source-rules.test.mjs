@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_BASE_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, STATE_CLASSES_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_BASE_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -1582,6 +1582,15 @@ describe("Ouro's focus and row classes for plain markup", () => {
         const layer = base.slice(base.indexOf("@layer base"));
         const literals = [...layer.matchAll(/^\s*([\w-]+):[^;]*?(#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(\s*[\d.])/gim)].map((match) => match[0].trim());
         expect(literals).toEqual([]);
+    });
+    it("names ouro-current, ouro-toggle and ouro-segment as the fix for a current, pressed or checked state written by hand", () => {
+        const found = findOffendersInSource("app/app.css", '.tracker-nav a[aria-current="page"] { font-weight: 600; }\n.who-toggle[aria-pressed="true"] { background: var(--accent); }\n.segmented input:checked + span { background: var(--background); }');
+        const lines = formatComparison(compareWithBaseline(found, {}));
+        expect(lines).toHaveLength(3);
+        for (const line of lines) expect(line).toMatch(new RegExp(`^New current, pressed or checked style written by hand: .*${STATE_CLASSES_FIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
+        expect(STATE_CLASSES_FIX).toContain('class="ouro-current"');
+        expect(STATE_CLASSES_FIX).toContain('class="ouro-toggle"');
+        expect(STATE_CLASSES_FIX).toContain('class="ouro-segment"');
     });
     it("still counts a hand-written state beside an Ouro class, and names the Ouro classes as the fix for focus and press", () => {
         const found = findOffendersInSource("app/app.css", "li[data-go]:focus-visible { outline: 2px solid; }\n.my-row.ouro-row:active { background: red; }");
