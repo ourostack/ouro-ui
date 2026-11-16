@@ -337,7 +337,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
         target = ((side === "trailing") !== rtl ? -1 : 1) * strip.getBoundingClientRect().width;
       } else if (root.querySelector("[data-ouro-swipe-actions-side] :focus")) {
         // Focus on an action about to become inert moves to the actions button, not to the page.
-        root.querySelector<HTMLElement>("[data-ouro-swipe-actions-menu] button")?.focus();
+        root.querySelector<HTMLElement>("[data-ouro-swipe-actions-menu] button")!.focus();
       }
       setOpen(side && strip ? side : null);
       if (x.current === target) return;
