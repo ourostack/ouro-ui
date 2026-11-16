@@ -37,6 +37,8 @@ import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swip
 
 ## Usage
 
+An action that removes its row (Delete, chosen from the actions menu by keyboard) hands focus to the next row's actions button, or the row before's when it was the last, so a keyboard or screen reader user keeps their place in the list.
+
 The first action of each side is its primary one: it sits at the outer edge, and a swipe past 60% of the row runs it on release, with no confirmation. So make a destructive primary action undoable: delete, then offer Undo in a toast, as in the example.
 
 The row follows the finger. A quick flick opens or closes it however short, by the direction it was moving at release; a slow release opens it past half the actions' width. A flick alone never runs an action: that takes the distance. The row springs to rest from where it was let go, and a new swipe can catch it on the way.
