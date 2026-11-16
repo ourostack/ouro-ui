@@ -434,11 +434,11 @@ function watchFirstItem(popup: HTMLElement): () => void {
       });
     });
   };
-  // A key in the frames ends them: the person has moved on. The popup's own arrow keys act on the item that has focus, so a
-  // key that finds the popup holding focus gives it back to the item first; one on an item is left to act there.
+  // The popup's own arrow keys act on the item that has focus, so a key that finds the popup holding focus gives it back to
+  // the item first; one on an item is left to act there. The frames go on, and each finds where the key left focus: a key
+  // that ended them would also end the pass through the popup that VoiceOver needs.
   const onKeyDown = () => {
     if (frame === 0) return;
-    cancel();
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: Base UI's own handling of the same key scrolls the item into view, so this focus scrolls nothing the page would not.
     if (document.activeElement === popup) item!.focus({ preventScroll: true });
   };

@@ -934,7 +934,7 @@ describe("Menu focus", () => {
     frames.release();
   });
 
-  it("a key that leaves focus on the first item before the popup takes focus ends the wait, so the popup never takes it", async () => {
+  it("a key that leaves focus on the first item before the popup takes focus still passes focus through the popup and back", async () => {
     const frames = holdFrames();
     await render(<Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>);
     trigger().focus();
@@ -945,7 +945,7 @@ describe("Menu focus", () => {
     frames.step();
     frames.step();
     frames.step();
-    expect(focus).toEqual(["Edit"]);
+    expect(focus).toEqual(["Edit", "popup", "Edit"]);
     frames.release();
   });
 
