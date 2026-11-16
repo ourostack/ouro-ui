@@ -152,6 +152,22 @@ describe("Command", () => {
     await expect.element(page.getByText("Nothing found")).toBeVisible();
   });
 
+  it("centres the empty state in the room the results had, and gives the results all of it again", async () => {
+    await openPalette({ emptyLabel: "Nothing found" });
+    const room = document.querySelector<HTMLElement>("[data-ouro-command-list]")!;
+    const middle = (element: Element) => {
+      const { top, height } = element.getBoundingClientRect();
+      return top + height / 2;
+    };
+    await userEvent.type(input(), "zzz");
+    await expect.element(page.getByText("Nothing found")).toBeVisible();
+    expect(Math.abs(middle(document.querySelector("[data-ouro-command-empty]")!) - middle(room))).toBeLessThanOrEqual(1);
+    await userEvent.clear(input());
+    await expect.poll(() => document.querySelector("[data-ouro-command-empty]")).toBeNull();
+    // The empty state's live region stays in the list's room, taking none of it.
+    expect(room.querySelector('[role="status"]')!.getBoundingClientRect().height).toBe(0);
+  });
+
   it("hides the empty list from assistive technology while nothing matches, so the gate passes with only the empty state", async () => {
     await openPalette({ emptyLabel: "Nothing found" });
     await userEvent.type(input(), "zzz");

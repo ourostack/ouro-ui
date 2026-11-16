@@ -1,6 +1,7 @@
 export {
   commandCloseClass,
   commandEmptyClass,
+  commandEmptyRoomClass,
   commandGroupLabelClass,
   commandInputClass,
   commandItemClass,
@@ -128,6 +129,18 @@ const commandCloseClass =
  * @internal
  */
 const commandEmptyClass = "box-border px-2 py-8 text-center text-sm leading-5 text-muted-foreground";
+
+/**
+ * Around the empty state in the dialog: while it shows, it takes the room the results had and centres
+ * the message in it, so it does not hang at the top of a blank box. With results it takes none. The phone
+ * sheet's results have no fixed room, so there the message stays at the top, above the keyboard.
+ *
+ * @internal
+ * @claim "while it shows, it takes the room" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > centres the empty state in the room the results had, and gives the results all of it again)
+ * @claim "With results it takes none" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > centres the empty state in the room the results had, and gives the results all of it again)
+ * @claim "The phone sheet's results have no fixed room" registry/ouro/components/ouro/command/command.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/command/command.touch.test.tsx, /The empty state sits right under the search/)
+ */
+const commandEmptyRoomClass = "flex flex-col justify-center has-[>[data-ouro-command-empty]]:flex-1";
 
 /** Lower case, without accents, so "Thème" matches "theme". */
 function fold(text: string): string {
