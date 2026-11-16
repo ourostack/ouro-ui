@@ -1,23 +1,18 @@
 /* global URL, setTimeout, window */
-// The four ways an agent reaches Pantry, and the hook for a fifth. Each arm opens on one trial's store and returns the
+// The four ways an agent reaches an app (apps.mjs), and the hook for a fifth. Each arm opens on one trial's app and
+// store (`open({ app, store, browser })`, the app Pantry when none is given) and returns the
 // tools the model gets: `{ name, description, parameters, handler(args) -> string }`. The runner gives every arm the
 // same model, system prompt and task words; only these tools differ. Each tool's text is all the model sees.
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { PantryError } from "../fixture/store.mjs";
-import { startServer } from "../fixture/server.mjs";
+import { AppError } from "../fixture/app-error.mjs";
+import { appById } from "../apps.mjs";
 import { BRIDGE_SOURCE } from "./bridge-page.mjs";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const generatedMcp = JSON.parse(fs.readFileSync(path.join(here, "..", "fixture", "generated", "mcp.json"), "utf8"));
 
 const json = (value) => JSON.stringify(value);
 
 /** A failure of the machine (the browser, the page), not of the model: such a trial is retried once, never scored. */
 export class InfrastructureError extends Error {}
 const failure = (error) => {
-  if (error instanceof PantryError) return json({ error: error.message });
+  if (error instanceof AppError) return json({ error: error.message });
   throw error;
 };
 
@@ -34,7 +29,7 @@ export function validateArgs(schema, args) {
     }
     if (value === undefined || value === null) continue;
     const type = spec.type === "integer" ? "number" : spec.type;
-    if (typeof value !== type) problems.push(`${name} must be a ${spec.type}`);
+    if (type === "array" ? !Array.isArray(value) : typeof value !== type) problems.push(`${name} must be a${/^[aeiou]/.test(spec.type) ? "n" : ""} ${spec.type}`);
     else if (spec.enum && !spec.enum.includes(value)) problems.push(`${name} must be one of ${spec.enum.join(", ")}`);
     else if (typeof spec.minimum === "number" && value < spec.minimum) problems.push(`${name} must be at least ${spec.minimum}`);
   }
@@ -43,11 +38,12 @@ export function validateArgs(schema, args) {
 
 // ---- 1. the action model: MCP tools generated from defineAction --------------------------------------------------
 
-/** Ouro UI's action model: the MCP tools `ouro-actions generate` wrote from fixture/pantry.actions.mts, unchanged. */
+/** Ouro UI's action model: the MCP tools `ouro-actions generate` wrote from the app's declarations, unchanged. */
 export const actionModel = {
   id: "action-model",
   title: "Ouro UI action model (generated MCP tools)",
-  async open({ store }) {
+  async open({ app = appById("pantry"), store }) {
+    const generatedMcp = app.mcp;
     const tools = generatedMcp.tools.map((tool) => ({
       name: tool.name,
       description: tool.description,
@@ -69,51 +65,6 @@ export const actionModel = {
 
 // ---- 4. a plain, hand-written MCP server with no GUI parity ------------------------------------------------------
 
-const plainTools = [
-  {
-    name: "list_items",
-    description: "Get shopping list items.",
-    parameters: { type: "object", properties: {}, required: [] },
-    run: (handlers) => handlers.get_shopping_list({}),
-  },
-  {
-    name: "add_item",
-    description: "Add item to shopping list.",
-    parameters: { type: "object", properties: { name: { type: "string" }, quantity: { type: "number" }, unit: { type: "string" } }, required: ["name"] },
-    run: (handlers, args) => handlers.add_shopping_list_item(args),
-  },
-  {
-    name: "update_item",
-    description: "Update a shopping list item.",
-    parameters: { type: "object", properties: { id: { type: "string" }, checked: { type: "boolean" } }, required: ["id"] },
-    run: (handlers, args) => (args.checked === undefined ? {} : handlers.set_shopping_list_item_checked(args)),
-  },
-  {
-    name: "delete_item",
-    description: "Delete a shopping list item.",
-    parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
-    run: (handlers, args) => handlers.remove_shopping_list_item(args),
-  },
-  {
-    name: "search_recipes",
-    description: "Search recipes.",
-    parameters: { type: "object", properties: { q: { type: "string" } }, required: ["q"] },
-    run: (handlers, args) => handlers.search_recipes({ query: args.q }),
-  },
-  {
-    name: "get_recipe",
-    description: "Get a recipe with its ingredients.",
-    parameters: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
-    run: (handlers, args) => handlers.get_recipe(args),
-  },
-  {
-    name: "place_order",
-    description: "Place a grocery order for the list.",
-    parameters: { type: "object", properties: { store: { type: "string", enum: ["corner", "market"] } }, required: ["store"] },
-    run: (handlers, args) => handlers.place_grocery_order(args),
-  },
-];
-
 /**
  * A plain MCP server written by hand, apart from the screen: CRUD over the list and the recipes, terse descriptions,
  * no consent classes. It has no tool for the screen's "Add ingredients to list", and its order tool is a tool like any
@@ -123,8 +74,8 @@ const plainTools = [
 export const plainMcp = {
   id: "plain-mcp",
   title: "Plain hand-written MCP tools",
-  async open({ store }) {
-    const tools = plainTools.map((tool) => ({
+  async open({ app = appById("pantry"), store }) {
+    const tools = app.plainTools.map((tool) => ({
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
@@ -132,7 +83,8 @@ export const plainMcp = {
         const problems = validateArgs(tool.parameters, args);
         if (problems.length) return json({ error: `${problems.join("; ")}.` });
         try {
-          return json(tool.run(store.handlers, args ?? {}));
+          const result = tool.run(store.handlers, args ?? {}, store.state);
+          return typeof result === "string" ? result : json(result);
         } catch (error) {
           return failure(error);
         }
@@ -160,10 +112,10 @@ export function oneAtATime(tools) {
   }));
 }
 
-async function openScreen({ store, browser }) {
+async function openScreen({ app = appById("pantry"), store, browser }) {
   if (!browser) throw new Error("This arm needs a browser: pass one from playwright's chromium.launch().");
   if (!browser.isConnected()) throw new InfrastructureError("The browser is not connected.");
-  const server = await startServer(store);
+  const server = await app.startServer(store);
   let context = null;
   let infraError = null;
   const onDisconnected = () => {
@@ -183,7 +135,7 @@ async function openScreen({ store, browser }) {
     });
     page.setDefaultTimeout(5_000);
     await page.goto(server.url);
-    return { server, page, close, infraError: () => infraError };
+    return { app, server, page, close, infraError: () => infraError };
   } catch (error) {
     await close();
     throw new InfrastructureError(`The screen did not open: ${String(error.message).split("\n")[0]}`);
@@ -247,7 +199,7 @@ export const browser = {
       },
       {
         name: "browser_navigate",
-        description: "Navigate the tab to a path in the app, such as /recipes.",
+        description: `Navigate the tab to a path in the app, such as ${screen.app.navigateExample}.`,
         parameters: { type: "object", properties: { url: { type: "string", description: "The path or URL to go to." } }, required: ["url"] },
         handler: step(async ({ url }) => {
           await page.goto(new URL(String(url), screen.server.url).href);

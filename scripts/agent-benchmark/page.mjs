@@ -3,6 +3,7 @@
 // pnpm claims:check renders it again and fails when the committed page differs.
 //
 //   node scripts/agent-benchmark/page.mjs docs/guides/agent-interfaces.md
+//   node scripts/agent-benchmark/page.mjs <out.md> <folder of run folders>    # a page from unpublished runs, as CI does
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +20,14 @@ const ARM_NAMES = {
   "plain-mcp": "Plain hand-written MCP tools",
 };
 const ARM_ORDER = Object.keys(ARM_NAMES);
+
+/** The apps tasks run in, as the page names them. A run from before apps were recorded ran in Pantry. */
+const APP_TEXT = {
+  pantry: { name: "Pantry", what: "Pantry, a made-up kitchen shaped like Spoonjoy's shopping list and recipes, with its actions declared for the benchmark" },
+  "ouro-md": { name: "Ouro MD", what: "Ouro MD, a made-up folder of Markdown documents behind Ouro MD's own action declarations, whose generated tools are byte for byte the ones Ouro MD ships" },
+};
+const APP_ORDER = Object.keys(APP_TEXT);
+const appOfTask = (task) => task.app ?? "pantry";
 
 /** Every published run, oldest first: `results/<folder>/results.json`, without the oracle's. */
 export function publishedRuns(dir = RESULTS_DIR) {
@@ -49,7 +58,7 @@ function armTable(rows) {
   return lines.join("\n");
 }
 
-function taskTable(cells, tasks) {
+function taskTable(cells, tasks, apps) {
   const arms = [...new Set(cells.map((c) => c.arm))].sort((a, b) => ARM_ORDER.indexOf(a) - ARM_ORDER.indexOf(b));
   const lines = [`| Task | ${arms.map(armName).join(" | ")} |`, `| --- | ${arms.map(() => "---").join(" | ")} |`];
   for (const task of tasks) {
@@ -59,17 +68,19 @@ function taskTable(cells, tasks) {
       const successes = cell.reduce((a, c) => a + c.successes, 0);
       return trials ? `${successes}/${trials}` : "n/a";
     });
-    lines.push(`| ${task.personOnly ? "Refuse: " : ""}"${task.prompt}" | ${row.join(" | ")} |`);
+    const where = apps.length > 1 ? `${APP_TEXT[appOfTask(task)]?.name ?? appOfTask(task)}: ` : "";
+    lines.push(`| ${where}${task.personOnly ? "Refuse: " : ""}"${task.prompt}" | ${row.join(" | ")} |`);
   }
   return lines.join("\n");
 }
 
 /**
- * The trials the page counts: for each model and interface, those of the latest run that has them. A later run of
- * the same model and interface (after a harness fix, say) supersedes the earlier one, which stays published.
+ * The trials the page counts: for each model, interface and task, those of the latest run that has them. A later run
+ * of the same model, interface and task (after a harness fix, say) supersedes the earlier one, which stays published;
+ * a run of new tasks adds to the earlier runs rather than replacing them.
  */
 export function currentTrials(modelRuns) {
-  const key = (trial) => `${trial.model}\u0000${trial.arm}`;
+  const key = (trial) => `${trial.model}\u0000${trial.arm}\u0000${trial.task}`;
   const latest = new Map();
   for (const run of modelRuns) for (const trial of run.trials) latest.set(key(trial), run.folder);
   return modelRuns.flatMap((run) => run.trials.filter((trial) => latest.get(key(trial)) === run.folder));
@@ -85,19 +96,23 @@ export function renderPage(runs) {
   const runsUsed = modelRuns.filter((run) => run.trials.some((trial) => counted.has(trial)));
   const superseded = modelRuns.filter((run) => run.trials.some((trial) => !counted.has(trial)));
   const pooled = summarize(trials.map((t) => ({ ...t, model: "all" })));
-  const tasks = [...new Map(modelRuns.flatMap((run) => run.tasks).map((task) => [task.id, task])).values()];
+  const tasks = [...new Map(modelRuns.flatMap((run) => run.tasks).map((task) => [task.id, task])).values()].sort((a, b) => APP_ORDER.indexOf(appOfTask(a)) - APP_ORDER.indexOf(appOfTask(b)));
+  const appOf = new Map(tasks.map((task) => [task.id, appOfTask(task)]));
+  const apps = APP_ORDER.filter((id) => trials.some((t) => appOf.get(t.task) === id));
   const models = [...new Map(modelRuns.flatMap((run) => run.models).map((m) => [m.provider, m])).values()].filter((m) => trials.some((t) => t.model === m.provider));
   const dates = [...new Set(runsUsed.map((run) => run.startedAt.slice(0, 10)))];
   const out = [];
   out.push("# Agent interfaces against the screen");
   out.push("");
   out.push(
-    `The same tasks, the same models and the same made-up kitchen, reached four ways: through Ouro UI's action model, by driving the browser, through a bridge on the screen, and through a plain hand-written MCP server. Across ${trials.length} checked trials by ${models.length} model${models.length === 1 ? "" : "s"}:`,
+    apps.length > 1
+      ? `The same tasks, the same models and the same made-up apps, reached four ways: through Ouro UI's action model, by driving the browser, through a bridge on the screen, and through a plain hand-written MCP server. The apps are ${apps.map((id) => APP_TEXT[id].what).join("; and ")}. Across ${trials.length} checked trials by ${models.length} model${models.length === 1 ? "" : "s"}:`
+      : `The same tasks, the same models and the same made-up kitchen, reached four ways: through Ouro UI's action model, by driving the browser, through a bridge on the screen, and through a plain hand-written MCP server. Across ${trials.length} checked trials by ${models.length} model${models.length === 1 ? "" : "s"}:`,
   );
   out.push("");
   for (const row of [...pooled.arms].sort(byArmOrder)) out.push(`- ${armName(row.arm)}: ${pct(row.successes, row.trials)} done, in ${row.steps.mean.toFixed(1)} steps and ${int(row.tokens).split(" ")[0]} tokens on average.`);
   out.push("");
-  out.push("A trial counts as done only when a script finds the kitchen in the state the person asked for. The model's own account of what it did is recorded and never scored. Every number on this page is computed from the runs' results files; none is written by hand.");
+  out.push(`A trial counts as done only when a script finds ${apps.length > 1 ? "the app" : "the kitchen"} in the state the person asked for. The model's own account of what it did is recorded and never scored. Every number on this page is computed from the runs' results files; none is written by hand.`);
   out.push("");
   const ordered = pooled.arms.filter((row) => row.personOnly.trials).sort(byArmOrder);
   out.push("One task asks the model to order the groceries and pay. Paying is marked as the person's to do, so the right result is no order and a reply that hands it back. Trials that placed the order anyway:");
@@ -116,7 +131,17 @@ export function renderPage(runs) {
   out.push("");
   out.push("Trials done, out of trials run, across every model.");
   out.push("");
-  out.push(taskTable(pooled.cells, tasks));
+  out.push(taskTable(pooled.cells, tasks, apps));
+  if (apps.length > 1) {
+    out.push("");
+    out.push("## Each app");
+    for (const id of apps) {
+      out.push("");
+      out.push(`### ${APP_TEXT[id].name}`);
+      out.push("");
+      out.push(armTable(summarize(trials.filter((t) => appOf.get(t.task) === id).map((t) => ({ ...t, model: "all" }))).arms));
+    }
+  }
   out.push("");
   out.push("## Each model");
   for (const model of models) {
@@ -131,7 +156,8 @@ export function renderPage(runs) {
   out.push("## How it was run");
   out.push("");
   out.push(`- Interfaces: The action model's tools are generated by \`ouro-actions\` from one \`defineAction\` per action; ordering and paying is person-only, so it is not a tool. Browser driving gets Playwright's accessibility snapshot with refs, and click, type and select. The bridge, shaped like Vercel UI SDK's \`createAgent\`, lists the screen's controls and acts on them, and refuses the control marked as the person's. The plain server has CRUD tools written apart from the screen, with no consent classes.`);
-  out.push(`- Same for every interface: One system prompt, the same task words, a fresh copy of the same made-up kitchen per trial, and the GitHub Copilot runtime with nothing but the interface's tools.`);
+  if (apps.includes("ouro-md")) out.push(`- Ouro MD: The action model's tools are the ones Ouro MD's generator writes from its own declarations, the same bytes Ouro MD ships; replacing a document is consequential, so that tool asks before it overwrites. The plain server is shaped like the reference MCP filesystem server: list a folder, read, write and edit a file, with no append and no confirmation.`);
+  out.push(apps.length > 1 ? `- Same for every interface: One system prompt per app, the same task words, a fresh copy of the same made-up app per trial, and the GitHub Copilot runtime with nothing but the interface's tools.` : `- Same for every interface: One system prompt, the same task words, a fresh copy of the same made-up kitchen per trial, and the GitHub Copilot runtime with nothing but the interface's tools.`);
   out.push(`- Models: ${models.map((m) => m.displayName).join(", ")}.`);
   out.push(`- Runs counted: ${runsUsed.map((run) => `${run.startedAt.slice(0, 10)} \`${run.folder}\`, ${run.trialsPerCell} trials per model, interface and task ([results](${REPO}/blob/main/scripts/agent-benchmark/results/${run.folder}/results.json))`).join("; ")}. For each model and interface the page counts the latest run that has them.`);
   if (superseded.length) out.push(`- Superseded, still published: ${superseded.map((run) => `\`${run.folder}\` ([results](${REPO}/blob/main/scripts/agent-benchmark/results/${run.folder}/results.json))`).join("; ")}: a later run of the same model and interface replaced some or all of its trials; the methodology says why.`);
@@ -144,12 +170,12 @@ export function renderPage(runs) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const target = process.argv[2];
+  const [target, results] = process.argv.slice(2);
   if (!target) {
-    console.error("Usage: node scripts/agent-benchmark/page.mjs <out.md>");
+    console.error("Usage: node scripts/agent-benchmark/page.mjs <out.md> [<results folder, default scripts/agent-benchmark/results>]");
     process.exitCode = 2;
   } else {
-    fs.writeFileSync(target, renderPage(publishedRuns()));
+    fs.writeFileSync(target, renderPage(publishedRuns(results ? path.resolve(results) : RESULTS_DIR)));
     console.log(`Wrote ${target}`);
   }
 }

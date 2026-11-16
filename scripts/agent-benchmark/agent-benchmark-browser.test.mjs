@@ -6,6 +6,7 @@ import { createStore } from "./fixture/store.mjs";
 import { TASKS, taskById } from "./tasks.mjs";
 import { browser as browserArm, bridge } from "./arms/interfaces.mjs";
 import { runOracle, refIn } from "./oracle.mjs";
+import { appById } from "./apps.mjs";
 
 let browser;
 before(async () => {
@@ -18,8 +19,9 @@ after(async () => {
 for (const arm of [browserArm, bridge]) {
   for (const task of TASKS) {
     test(`the scripted agent does ${task.id} on the screen through ${arm.id}`, async () => {
-      const store = createStore();
-      const opened = await arm.open({ store, browser });
+      const app = appById(task.app);
+      const store = app.createStore();
+      const opened = await arm.open({ app, store, browser });
       try {
         await runOracle(arm.id, task.id, opened);
       } finally {
