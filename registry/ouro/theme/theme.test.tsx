@@ -391,3 +391,56 @@ describe("skip link, focus target, focus ring within and reveal classes for plai
     expect(getComputedStyle(actions).opacity).toBe("1");
   });
 });
+
+describe("current, toggle, segment and option classes for plain markup", () => {
+  it("marks the current link as Link's current does, semibold with a 2px primary underline, and leaves the others plain", () => {
+    const host = mount('<a class="ouro-current" href="#a" aria-current="page">Today</a><a class="ouro-current" href="#b">Customers</a><a class="ouro-current" href="#c" aria-current="false">Lab</a>');
+    const [current, other, off] = [...host.children].map((link) => getComputedStyle(link));
+    expect(current!.fontWeight).toBe("600");
+    expect(current!.color).toBe(color("foreground"));
+    expect(current!.textDecorationColor).toBe(color("primary"));
+    expect(current!.textDecorationThickness).toBe("2px");
+    expect(other!.fontWeight).toBe("400");
+    expect(off!.textDecorationColor).not.toBe(color("primary"));
+  });
+
+  it("draws a pressed toggle as Toggle's outline variant does, tinted with the primary colour", () => {
+    const host = mount('<button class="ouro-toggle" aria-pressed="true">Mine</button><button class="ouro-toggle" aria-pressed="false">All</button>');
+    const [pressed, unpressed] = [...host.children].map((button) => getComputedStyle(button));
+    expect(pressed!.backgroundColor).toBe(paint("color-mix(in oklab, var(--primary) 10%, transparent)"));
+    expect(pressed!.color).toBe(paint("color-mix(in oklab, var(--primary) 80%, var(--foreground))"));
+    expect(unpressed!.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(unpressed!.borderTopColor).toBe(color("border"));
+  });
+
+  it("selects the segment whose radio is checked, by click or arrow key, and rings it on keyboard focus", async () => {
+    const host = mount(
+      '<button id="start">Start</button><div class="ouro-segmented"><label class="ouro-segment"><input type="radio" name="who" checked /> Mine</label><label class="ouro-segment"><input type="radio" name="who" /> Everyone</label></div>',
+    );
+    const [mine, everyone] = [...host.querySelectorAll("label")];
+    const settled = () => expect.poll(() => document.getAnimations().length).toBe(0);
+    await settled();
+    expect(getComputedStyle(mine!).backgroundColor).toBe(paint("var(--ouro-segment-selected)"));
+    expect(getComputedStyle(everyone!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    await userEvent.click(everyone!);
+    await settled();
+    expect(everyone!.querySelector("input")!.checked).toBe(true);
+    expect(getComputedStyle(everyone!).backgroundColor).toBe(paint("var(--ouro-segment-selected)"));
+    host.querySelector<HTMLElement>("#start")!.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(everyone!.querySelector("input"));
+    expect(getComputedStyle(everyone!).outlineStyle).toBe("solid");
+    await userEvent.keyboard("{ArrowLeft}");
+    await settled();
+    expect(mine!.querySelector("input")!.checked).toBe(true);
+    expect(getComputedStyle(mine!).backgroundColor).toBe(paint("var(--ouro-segment-selected)"));
+  });
+
+  it("highlights the selected option as Command does", () => {
+    const host = mount('<div role="listbox" aria-label="Customers"><div role="option" class="ouro-option" aria-selected="true">Contoso</div><div role="option" class="ouro-option" aria-selected="false">Fabrikam</div></div>');
+    const [selected, other] = [...host.querySelectorAll(".ouro-option")].map((option) => getComputedStyle(option));
+    expect(selected!.backgroundColor).toBe(color("accent"));
+    expect(selected!.color).toBe(color("accent-foreground"));
+    expect(other!.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+});
