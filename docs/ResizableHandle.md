@@ -2,7 +2,7 @@
 
 # ResizableHandle
 
-The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. Drag it, or focus it and use the arrow keys (10% a press), Home and End (that panel's smallest and largest size) and Enter (collapse the panel to its smallest size and back). It has a 44px hit area on touch screens.
+The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. Drag it, or focus it and use the arrow keys (10% a press), Home and End (that panel's smallest and largest size) and Enter (collapse the panel to its smallest size and back; a `collapsible` panel's smallest is 0). It has a 44px hit area on touch screens.
 
 ```tsx
 import { ResizableHandle } from "@/registry/ouro/components/ouro/resizable/resizable";

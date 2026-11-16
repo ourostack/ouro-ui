@@ -28,6 +28,7 @@ Type: `ResizablePanelProps`.
 | --- | --- | --- | --- |
 | `children` | `ReactNode` |  | The panel's content. It scrolls when it is larger than the panel. |
 | `className` | `string` |  | Layout only: padding (`p-4`). Appearance classes warn in development. |
+| `collapsible` | `boolean` | `false` | Lets a drag or key take the panel all the way to 0, closing it. Below `minSize` it snaps: to 0 at or under half of `minSize`, else to `minSize`. |
 | `defaultSize` | `number` |  | The starting size, in percent of the group. Panels without one share what is left. |
 | `id` | `string` |  | The panel's id, which the handle's `aria-controls` points at. One is made up when you leave it out. |
 | `label` (required) | `string` |  | Names the panel; the handle after it is called "Resize {label}" for screen readers. It is always required. |

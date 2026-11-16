@@ -49,6 +49,18 @@ function Editor(props: Partial<Parameters<typeof Resizable>[0]>) {
   );
 }
 
+/** Two panels: Notes, collapsible, 30% by default with a 20% minSize, beside Draft. */
+function Closing(props: Partial<Parameters<typeof Resizable>[0]>) {
+  return (
+    <Resizable {...props}>
+      <ResizablePanel label="Notes" defaultSize={30} minSize={20} collapsible>
+        Notes
+      </ResizablePanel>
+      <ResizablePanel label="Draft">Draft</ResizablePanel>
+    </Resizable>
+  );
+}
+
 /** Drags a handle's center by (dx, dy) with a real mouse. */
 async function dragHandle(handle: HTMLElement, dx: number, dy: number) {
   const rect = handle.getBoundingClientRect();
@@ -85,6 +97,20 @@ describe("Resizable layout", () => {
     expect(screen.group.getAttribute("data-orientation")).toBe("vertical");
     expect(heights(screen.panels)).toEqual([60, 139]);
     expect(screen.handles[0]!.getAttribute("aria-orientation")).toBe("horizontal");
+  });
+
+  it("starts a collapsible panel closed at a defaultSize of 0", async () => {
+    const screen = await render(
+      <Resizable>
+        <ResizablePanel label="Notes" defaultSize={0} collapsible>
+          Notes
+        </ResizablePanel>
+        <ResizablePanel label="Draft">Draft</ResizablePanel>
+      </Resizable>,
+    );
+    expect(screen.handles[0]!.getAttribute("aria-valuenow")).toBe("0");
+    expect(widths(screen.panels)).toEqual([0, 399]);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("shares the space left over between panels without a defaultSize", async () => {
@@ -391,6 +417,159 @@ describe("Resizable handle (window splitter)", () => {
     expect(screen.handles.map((handle) => handle.getAttribute("aria-valuenow"))).toEqual(["50", "25"]);
   });
 
+  it("lets the keys take a collapsible panel to 0 and back, and Home to 0", async () => {
+    const screen = await render(<Closing />);
+    const handle = screen.handles[0]!;
+    expect(handle.getAttribute("aria-valuemin")).toBe("0");
+    handle.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("20");
+    // A press from minSize lands at 10, half of minSize, which closes the panel.
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("0");
+    expect(handle.getAttribute("aria-valuemin")).toBe("0");
+    expect(screen.panels[0]!.hasAttribute("data-collapsed")).toBe(true);
+    expect(widths(screen.panels)).toEqual([0, 399]);
+    // From 0, a press opens the panel to its minSize, not to 10.
+    await userEvent.keyboard("{ArrowRight}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("20");
+    expect(screen.panels[0]!.hasAttribute("data-collapsed")).toBe(false);
+    // Enter closes the panel and opens it again at the size it had.
+    await userEvent.keyboard("{Enter}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("0");
+    await userEvent.keyboard("{Enter}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("20");
+    await userEvent.keyboard("{Home}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("0");
+  });
+
+  it("snaps a drag that lands under a collapsible panel's minSize to 0 or to minSize, by half", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(<Closing onLayout={onLayout} />);
+    const handle = screen.handles[0]!;
+    // 30% less 22% is 8%, under half of minSize: the panel closes.
+    await dragHandle(handle, -88, 0);
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe("0");
+    expect(widths(screen.panels)[0]).toBe(0);
+    expect(screen.panels[0]!.hasAttribute("data-collapsed")).toBe(true);
+    // Dragged on by 12%, over half of minSize: the panel opens to minSize.
+    await dragHandle(handle, 48, 0);
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe("20");
+    expect(onLayout.mock.calls).toEqual([
+      [[0, 100]],
+      [[20, 80]],
+    ]);
+  });
+
+  it("keeps a panel that is not collapsible at its minSize, on either side of a handle", async () => {
+    const screen = await render(<Editor />);
+    const handle = screen.handles[0]!;
+    await dragHandle(handle, -300, 0);
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe("20");
+    expect(screen.panels[0]!.hasAttribute("data-collapsed")).toBe(false);
+    expect(screen.panels[0]!.inert).toBe(false);
+    const pair = await render(
+      <Resizable>
+        <ResizablePanel label="Draft" defaultSize={50}>
+          Draft
+        </ResizablePanel>
+        <ResizablePanel label="Notes" defaultSize={50} minSize={30}>
+          Notes
+        </ResizablePanel>
+      </Resizable>,
+    );
+    pair.handles[0]!.focus();
+    await userEvent.keyboard("{End}");
+    expect(pair.handles[0]!.getAttribute("aria-valuenow")).toBe("70");
+  });
+
+  it("lets a drag or End take the panel after a handle to 0, and reopens it at minSize", async () => {
+    const screen = await render(
+      <Resizable>
+        <ResizablePanel label="Draft" defaultSize={70}>
+          Draft
+        </ResizablePanel>
+        <ResizablePanel label="Notes" defaultSize={30} minSize={20} collapsible>
+          Notes
+        </ResizablePanel>
+      </Resizable>,
+    );
+    const handle = screen.handles[0]!;
+    // A drag that leaves the panel between 0 and minSize sets it back to minSize.
+    await dragHandle(handle, 60, 0);
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe("80");
+    handle.focus();
+    await userEvent.keyboard("{End}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("100");
+    expect(widths(screen.panels)).toEqual([399, 0]);
+    expect(screen.panels[1]!.hasAttribute("data-collapsed")).toBe(true);
+    // A press from 0 opens the panel to its minSize.
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("80");
+    expect(widths(screen.panels)).toEqual([319, 80]);
+    await dragHandle(handle, 400, 0);
+    await expect.poll(() => handle.getAttribute("aria-valuenow")).toBe("100");
+    expect(screen.panels[1]!.hasAttribute("data-collapsed")).toBe(true);
+  });
+
+  it("keeps the separator focusable and named while its panel is collapsed, and the panel inert", async () => {
+    const screen = await render(
+      <Resizable>
+        <ResizablePanel label="Notes" defaultSize={30} minSize={20} collapsible>
+          <button type="button">Share</button>
+        </ResizablePanel>
+        <ResizablePanel label="Draft">Draft</ResizablePanel>
+      </Resizable>,
+    );
+    const handle = screen.handles[0]!;
+    handle.focus();
+    await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+    expect(handle.getAttribute("aria-valuenow")).toBe("0");
+    expect(document.activeElement).toBe(handle);
+    expect(handle.tabIndex).toBe(0);
+    expect(handle.getAttribute("aria-label")).toBe("Resize Notes");
+    expect(handle.getBoundingClientRect().height).toBeGreaterThan(0);
+    const panel = screen.panels[0]!;
+    expect(panel.getAttribute("data-collapsed")).toBe("");
+    expect(panel.inert).toBe(true);
+    expect(getComputedStyle(panel.querySelector<HTMLElement>('[data-ouro-part="panel"]')!).display).toBe("none");
+    const share = panel.querySelector("button")!;
+    share.focus();
+    expect(document.activeElement).not.toBe(share);
+  });
+
+  it("keeps both panels within their maxSize at a collapsible panel's gap", async () => {
+    const before = await render(
+      <Resizable>
+        <ResizablePanel label="Draft" defaultSize={80} maxSize={90}>
+          Draft
+        </ResizablePanel>
+        <ResizablePanel label="Notes" defaultSize={20} minSize={20} collapsible>
+          Notes
+        </ResizablePanel>
+      </Resizable>,
+    );
+    before.handles[0]!.focus();
+    // 90% would close Notes at 10%, which is past Draft's maxSize: Notes stays at minSize instead.
+    await userEvent.keyboard("{ArrowRight}");
+    expect(before.handles[0]!.getAttribute("aria-valuenow")).toBe("80");
+    expect(widths(before.panels)).toEqual([319, 80]);
+    const after = await render(
+      <Resizable>
+        <ResizablePanel label="Notes" defaultSize={20} minSize={20} collapsible>
+          Notes
+        </ResizablePanel>
+        <ResizablePanel label="Draft" defaultSize={80} maxSize={90}>
+          Draft
+        </ResizablePanel>
+      </Resizable>,
+    );
+    after.handles[0]!.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(after.handles[0]!.getAttribute("aria-valuenow")).toBe("20");
+    expect(widths(after.panels)).toEqual([80, 319]);
+  });
+
   it("gives the handle a hit area wider than its line", async () => {
     const screen = await render(<Editor />);
     const handle = screen.handles[0]!;
@@ -497,6 +676,34 @@ describe("Resizable autoSaveId", () => {
     localStorage.setItem("ouro-resizable:editor", JSON.stringify([50, 50]));
     await act(async () => dispatchEvent(new StorageEvent("storage", { key: "ouro-resizable:editor" })));
     expect(screen.handles[0]!.getAttribute("aria-valuenow")).toBe("50");
+  });
+
+  it("restores a collapsible panel closed from a saved 0, but not a panel that cannot close", async () => {
+    localStorage.setItem("ouro-resizable:closing", JSON.stringify([0, 100]));
+    const closing = await render(<Closing autoSaveId="closing" />);
+    await expect.poll(() => closing.handles[0]!.getAttribute("aria-valuenow")).toBe("0");
+    expect(closing.panels[0]!.hasAttribute("data-collapsed")).toBe(true);
+    // A saved size between 0 and minSize is not a closed panel: it opens to minSize.
+    localStorage.setItem("ouro-resizable:closing", JSON.stringify([5, 95]));
+    const open = await render(<Closing autoSaveId="closing" />);
+    await expect.poll(() => open.handles[0]!.getAttribute("aria-valuenow")).toBe("20");
+    expect(open.panels[0]!.hasAttribute("data-collapsed")).toBe(false);
+    // The closed panel after a handle restores too, with the panel before it keeping the rest.
+    localStorage.setItem("ouro-resizable:after", JSON.stringify([100, 0]));
+    const after = await render(
+      <Resizable autoSaveId="after">
+        <ResizablePanel label="Draft">Draft</ResizablePanel>
+        <ResizablePanel label="Notes" minSize={20} collapsible>
+          Notes
+        </ResizablePanel>
+      </Resizable>,
+    );
+    await expect.poll(() => after.handles[0]!.getAttribute("aria-valuenow")).toBe("100");
+    expect(after.panels[1]!.hasAttribute("data-collapsed")).toBe(true);
+    localStorage.setItem("ouro-resizable:editor", JSON.stringify([0, 100]));
+    const editor = await render(<Editor autoSaveId="editor" />);
+    await expect.poll(() => editor.handles[0]!.getAttribute("aria-valuenow")).toBe("20");
+    expect(editor.panels[0]!.hasAttribute("data-collapsed")).toBe(false);
   });
 
   it("starts at the default sizes when nothing is saved yet", async () => {
