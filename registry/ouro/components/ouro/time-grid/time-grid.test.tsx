@@ -1519,10 +1519,12 @@ describe("TimeGrid background events", () => {
     const before = getComputedStyle(spokenAs("All hands")).outlineStyle;
     await rerender({ events: [forum], backgroundEvents: [hands], onEventSelect: select, expandedId: "hands" });
     expect(events().map((element) => element.getAttribute("aria-expanded"))).toEqual([null, "true"]);
+    expect(events().map((element) => element.getAttribute("aria-haspopup"))).toEqual([null, "dialog"]);
     expect([before, getComputedStyle(spokenAs("All hands")).outlineStyle]).toEqual(["none", "solid"]);
     expect(spokenAs("All hands").querySelector<HTMLElement>("[data-ouro-time-grid-bar]")!.offsetWidth).toBe(6);
     await rerender({ events: [forum], backgroundEvents: [hands], onEventSelect: select, expandedId: null });
     expect(events().map((element) => element.getAttribute("aria-expanded"))).toEqual([null, null]);
+    expect(events().map((element) => element.getAttribute("aria-haspopup"))).toEqual([null, null]);
   });
 
   it("puts the app's summary under each day's header, where screen readers read it", async () => {

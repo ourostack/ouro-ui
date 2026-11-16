@@ -91,6 +91,12 @@ function essential(detail: string): readonly [string, string] {
   ];
 }
 
+// Base UI's Menu and Popover triggers set aria-haspopup and aria-expanded while their popup is open. A disclosure (an
+// accordion's toggle) sets aria-expanded alone, and an expanded one holds nothing a tooltip would cover.
+function popupOpen(expanded: unknown, haspopup: unknown): boolean {
+  return (expanded === true || expanded === "true") && haspopup !== undefined && haspopup !== null && haspopup !== false && haspopup !== "false";
+}
+
 /**
  * A short label that appears beside its trigger on hover and keyboard focus, for an
  * icon button's purpose or a control's shortcut. It never opens on touch, and screen
@@ -128,6 +134,7 @@ function essential(detail: string): readonly [string, string] {
  * @claim "It never opens on touch, and" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > opens on mouse hover after a touch elsewhere, as on a laptop with a touchscreen)
  * @claim "A press on the trigger closes it" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > closes on Enter when the press opens something and focus stays on the trigger)
  * @claim "it stays closed while the trigger's menu or popover is open" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > closes on a click, and stays closed while its trigger's menu is open)
+ * @claim "it stays closed while the trigger's menu or popover is open" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > closes on a click, and stays closed while its trigger's popover is open)
  */
 export function Tooltip(props: TooltipProps): JSX.Element {
   const {
@@ -229,8 +236,9 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const show = (how: "delay" | "focus" | "now") => {
     // Never after a touch: a tap that focuses the trigger would otherwise show it, and a phone has no way to hover it away.
-    // Nor while the trigger's own popup or menu is open: the person is using that, so the tooltip waits until it closes.
-    if (lastInput() !== "touch" && triggerRef.current?.getAttribute("aria-expanded") !== "true") setOpen(how);
+    // Nor while the trigger's own menu or popover is open: the person is using that, so the tooltip waits until it closes.
+    const element = triggerRef.current;
+    if (lastInput() !== "touch" && !popupOpen(element?.getAttribute("aria-expanded"), element?.getAttribute("aria-haspopup"))) setOpen(how);
   };
   const after = (delay: number, act: () => void) => {
     clearTimeout(timer.current);
@@ -248,6 +256,8 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       shown.closedAt = performance.now();
     };
   }, [open]);
+  // A pending open must not fire after its trigger has unmounted.
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   // Closed as the container it is in hides, such as a toolbar that fades out. A layout effect, so
   // the close is asked in the same commit that hides the container, not a frame later.
@@ -261,9 +271,9 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   // A popup the trigger opens while the tooltip shows (not by a press, which already closed it) closes the tooltip. The
   // trigger's props come from a parent's `trigger` (Popover's or Menu's) or the child itself, the child's winning.
   const childExpanded = (child.props as Record<string, unknown>)["aria-expanded"] ?? (forwarded as Record<string, unknown>)["aria-expanded"];
-  const expanded = childExpanded === true || childExpanded === "true";
+  const childHaspopup = (child.props as Record<string, unknown>)["aria-haspopup"] ?? (forwarded as Record<string, unknown>)["aria-haspopup"];
+  const expanded = popupOpen(childExpanded, childHaspopup);
   useLayoutEffect(() => {
-    // Stryker disable next-line ConditionalExpression: equivalent; a tooltip shows only while the trigger's popup is closed, so closing on its close has nothing to close.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (expanded) close();
   }, [expanded]);

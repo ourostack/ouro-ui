@@ -782,6 +782,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       "aria-label": spoken(piece, shownTime, !bar && lines >= 3, background ? backgroundLabel : null, words[status]),
       "aria-current": event.id === selectedId ? ("true" as const) : undefined,
       "aria-expanded": event.id === expandedId ? true : undefined,
+      "aria-haspopup": event.id === expandedId ? ("dialog" as const) : undefined,
       className: cn(
         eventClass,
         eventHitClass,
