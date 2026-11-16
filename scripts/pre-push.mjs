@@ -7,10 +7,11 @@
 //
 //   node scripts/pre-push.mjs
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readStdin } from "./read-stdin.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -56,4 +57,4 @@ export function main(env = process.env, input = "") {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(main(process.env, process.stdin.isTTY ? "" : readFileSync(0, "utf8")));
+if (import.meta.url === `file://${process.argv[1]}`) process.exit(main(process.env, process.stdin.isTTY ? "" : await readStdin()));

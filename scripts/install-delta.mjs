@@ -11,6 +11,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { readStdin } from "./read-stdin.mjs";
 
 const canonical = (value) =>
   Array.isArray(value)
@@ -112,7 +113,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     writeFileSync(manifestPath, `${JSON.stringify(manifestOf(items))}\n`);
   } else if (command === "remove") {
     // remove <built items dir> <app dir>: reads the plan's stale targets on stdin
-    const targets = JSON.parse(readFileSync(0, "utf8"));
+    const targets = JSON.parse(await readStdin());
     if (!removeStale(manifestPath, targets)) process.exit(75);
   } else if (command === "plan") {
     const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;

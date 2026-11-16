@@ -3,6 +3,7 @@
 // fewest so far, and prints the items of group <part>. Usage: split-items.mjs <items dir> <parts> <part>
 import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { readStdin } from "./read-stdin.mjs";
 
 export function split(items, weight, parts) {
   const groups = Array.from({ length: parts }, () => ({ total: 0, items: [] }));
@@ -18,7 +19,7 @@ export function split(items, weight, parts) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [dir, parts, part] = process.argv.slice(2);
-  const items = readFileSync(0, "utf8").split("\n").filter(Boolean);
+  const items = (await readStdin()).split("\n").filter(Boolean);
   const weight = (item) => {
     const file = join(dir, basename(item).replace(/\.json$/, "") + ".json");
     return JSON.parse(readFileSync(file, "utf8")).files?.length ?? 1;
