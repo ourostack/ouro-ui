@@ -254,6 +254,20 @@ describe("Sidebar", () => {
     expect(page.getByRole("button", { name: "Collapse sidebar" }).query()).toBeNull();
   });
 
+  it("takes its width from --ouro-sidebar-w, set on it or around it, and is still a rail when collapsed", async () => {
+    const own = await render(<Sidebar label="Main" sections={sections} className="[--ouro-sidebar-w:12rem]" />);
+    expect(own.nav!.getBoundingClientRect().width).toBe(192);
+    const around = await render(
+      <div style={{ ["--ouro-sidebar-w" as string]: "20rem" }}>
+        <Sidebar label="Side" sections={sections} defaultCollapsed />
+      </div>,
+    );
+    const nav = around.host.querySelector<HTMLElement>('nav[aria-label="Side"]')!;
+    expect(nav.getBoundingClientRect().width).toBe(61);
+    await userEvent.click(page.getByRole("button", { name: "Collapse sidebar", pressed: true }));
+    await expect.poll(() => nav.getBoundingClientRect().width).toBe(320);
+  });
+
   it("changes width at once: layout does not animate", async () => {
     const { nav } = await render(<Sidebar label="Main" sections={sections} />);
     await userEvent.click(page.getByRole("button", { name: "Collapse sidebar" }));

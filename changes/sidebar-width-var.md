@@ -1,0 +1,1 @@
+- Sidebar: its width reads `--ouro-sidebar-w`, so an app can set another width on the Sidebar or around it.

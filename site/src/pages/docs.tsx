@@ -102,7 +102,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       <Lead>{prose(purpose)}</Lead>
       <section
         aria-label="Live demo"
-        className="flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 sm:px-10 dark:bg-muted/65"
+        className="flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 lg:px-10 dark:bg-muted/65"
       >
         <LiveDemo name={item.name} title={item.title} />
       </section>
