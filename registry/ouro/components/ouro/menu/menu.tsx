@@ -435,14 +435,16 @@ function watchFirstItem(popup: HTMLElement): () => void {
     });
   };
   // A key that finds the popup holding focus was meant for the item: the item takes focus back and gets the key, so Enter
-  // chooses it and the arrow keys move from it. A key on an item is left to act there. The frames go on, and each finds
+  // chooses it, the arrow keys move from it and Tab leaves from it. A key on an item is left to act there. The frames go on, and each finds
   // where the key left focus: a key that ended them would also end the pass through the popup that VoiceOver needs.
   const onKeyDown = (event: KeyboardEvent) => {
     if (frame === 0 || document.activeElement !== popup) return;
-    event.stopImmediatePropagation();
-    event.preventDefault();
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: Base UI's own handling of the same key scrolls the item into view, so this focus scrolls nothing the page would not.
     item!.focus({ preventScroll: true });
+    // Tab moves focus natively, from the element that has it once the key's handlers have run: now the item.
+    if (event.key === "Tab") return;
+    event.stopImmediatePropagation();
+    event.preventDefault();
     const { key, code, location, repeat, ctrlKey, shiftKey, altKey, metaKey } = event;
     item!.dispatchEvent(new KeyboardEvent("keydown", { key, code, location, repeat, ctrlKey, shiftKey, altKey, metaKey, bubbles: true }));
   };

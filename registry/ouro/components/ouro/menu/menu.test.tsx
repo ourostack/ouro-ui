@@ -994,6 +994,26 @@ describe("Menu focus", () => {
     frames.release();
   });
 
+  it("Tab pressed while the popup holds focus moves on from the first item, as it would from the item", async () => {
+    const frames = holdFrames();
+    await render(
+      <>
+        <Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>
+        <button type="button">After</button>
+      </>,
+    );
+    trigger().focus();
+    const focus = recordFocus();
+    await userEvent.keyboard("{Enter}");
+    frames.until(() => focus.length === 2);
+    expect(document.activeElement?.matches('[data-ouro="menu"]')).toBe(true);
+    await pressTab();
+    expect(document.activeElement?.textContent).toBe("After");
+    // The item had focus again before Tab moved it on; between them, only Base UI's focus guards (no text) take it.
+    expect(focus.filter((name) => name !== "")).toEqual(["Edit", "popup", "Edit", "After"]);
+    frames.release();
+  });
+
   it("a key while another item has taken focus leaves focus on that item", async () => {
     const { frames, focus } = await openFromKeyboard("{Enter}");
     expect(focus).toEqual(["Edit", "popup"]);
