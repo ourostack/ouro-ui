@@ -19,6 +19,8 @@ import { ThreadLayout } from "@/registry/ouro/components/ouro/thread-layout/thre
 
 ## Usage
 
+When a thread that holds focus closes, focus goes back to the control in the conversation that opened it. When none did (a thread opened from a link, or its opener gone since), focus comes to the conversation's heading, or else to the conversation pane itself, a region named by `conversationLabel`, so focus never falls to the page.
+
 Use `ThreadRail` for the thread itself.
 
 ## Use instead when
@@ -29,11 +31,12 @@ Use `ThreadRail` for the thread itself.
 
 Type: `ThreadLayoutProps`.
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `className` | `string` | Layout only: the box's size and margins. Appearance classes warn in development; the colors come from the theme. |
-| `conversation` (required) | `ReactNode` | The main pane: the list and its reply box. It stays mounted while a thread covers it, so its scroll position and its draft stay. |
-| `thread` | `ReactNode` | The thread, usually a `ThreadRail`. Pass `null` when no thread is open, and the conversation takes the whole box. |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Layout only: the box's size and margins. Appearance classes warn in development; the colors come from the theme. |
+| `conversation` (required) | `ReactNode` |  | The main pane: the list and its reply box. It stays mounted while a thread covers it, so its scroll position and its draft stay. |
+| `conversationLabel` | `string` | `"Conversation pane"` | The conversation pane's name, which a screen reader hears when focus comes to the pane: when a thread closes that no control in the conversation opened and the conversation has no heading to take focus. Name it apart from the MessageList inside it, which is a region too. Translate it with the rest of your interface. |
+| `thread` | `ReactNode` |  | The thread, usually a `ThreadRail`. Pass `null` when no thread is open, and the conversation takes the whole box. |
 
 ## Don't use
 
