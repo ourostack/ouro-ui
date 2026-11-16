@@ -29,7 +29,7 @@
 // docs/<Component>.md.
 //
 // Two rules keep an add from undoing an app's setup (scripts/registry.test.mjs):
-// - Only ouro-base and ouro-theme carry cssVars or css, and no item depends on them. The CLI
+// - Only ouro-base, ouro-plain and ouro-theme carry cssVars or css, and no item depends on them. The CLI
 //   rewrites the whole stylesheet (adds @custom-variant dark, re-adds missing defaults,
 //   collapses blank lines, drops the final newline) whenever any item it resolves has either,
 //   and leaves the file alone otherwise, so an app adds ouro-base once and later adds never
@@ -206,8 +206,8 @@ const foundation = [
     name: "ouro-base",
     title: "Ouro base",
     css: "registry/ouro/theme/ouro-base.css",
-    description: `${claim("Add it once per app, before your first component; no component installs it, so later adds never touch your stylesheet.", { source: { test: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" }, verify: { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" } })} ${claim(
-      "What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the focus ring, row and disclosure classes for markup that is not an Ouro component (ouro-focus-ring, ouro-row, ouro-disclosure, ouro-skip-link, ouro-reveal, ouro-nav-link, ouro-toggle, ouro-segment), the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
+    description: `${claim("Add it once per app, before your first component; no component installs it, so later adds never touch your stylesheet.", { source: { test: "scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them" }, verify: { testExists: "scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them" } })} ${claim(
+      "What every Ouro UI component needs in the app's CSS: success and warning colors, a destructive foreground, the field border color (--input) and --radius when your theme has none, the motion tokens, the press utility, the keyframes for spinners, progress bars and skeletons, and --ouro-layer, the z-index of sheets and dialogs (50; raise it in a :root rule of your own if your app has fixed bars above z-50).",
       {
         source: [{ test: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" }, { file: "registry/ouro/theme/ouro-base.css" }],
         verify: [
@@ -219,8 +219,21 @@ const foundation = [
     )}`,
     docs: `Ouro UI's base tokens are in your CSS. Your theme's values win: a variable you already had keeps its value, and you edit the new ones like any shadcn variable. ${claim(
       "This add rewrote your stylesheet's spacing once (shadcn does that for any item with CSS); no component add touches it again.",
-      { source: { test: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" }, verify: { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" } },
+      { source: { test: "scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them" }, verify: { testExists: "scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them" } },
     )} Docs: ${INSTALLING_URL}`,
+  },
+  {
+    name: "ouro-plain",
+    title: "Ouro plain markup",
+    css: "registry/ouro/theme/ouro-plain.css",
+    description: `${claim(
+      "Ouro UI's states as classes, for markup that is not an Ouro component, such as rows and controls a page builds as strings or prerenders to read without a script: the focus ring, a linked row, a disclosure, a skip link, actions shown on hover or focus, current links, toggles, segmented choices and options.",
+      {
+        source: [{ file: "registry/ouro/theme/ouro-plain.css" }, { test: "scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > exempts exactly the classes ouro-plain defines, and counts an app's own .ouro- class like any other" }],
+        verify: [{ testExists: "scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > exempts exactly the classes ouro-plain defines, and counts an app's own .ouro- class like any other" }],
+      },
+    )} Add it once, after ouro-base, only if your app has such markup.`,
+    docs: `Ouro UI's classes for plain markup are in your CSS: ouro-focus-ring, ouro-row, ouro-disclosure, ouro-skip-link, ouro-reveal, ouro-nav-link, ouro-toggle, ouro-segmented, ouro-option and the rest. Docs: ${INSTALLING_URL}`,
   },
   {
     name: "ouro-theme",

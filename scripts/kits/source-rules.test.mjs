@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, STATE_CLASSES_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_BASE_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, STATE_CLASSES_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_PLAIN_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -1561,25 +1561,24 @@ describe("isControlStateClass", () => {
     });
 });
 describe("Ouro's focus and row classes for plain markup", () => {
-    it("counts ouro-base's own rules in the app's stylesheet as Ouro's, and the classes in markup as no control state", () => {
-        const base = readFileSync("registry/ouro/theme/ouro-base.css", "utf8");
+    it("counts ouro-plain's own rules in the app's stylesheet as Ouro's, and the classes in markup as no control state", () => {
+        const base = readFileSync("registry/ouro/theme/ouro-plain.css", "utf8");
         expect(base).toContain(".ouro-focus-ring:focus-visible");
         expect(findOffendersInSource("app/app.css", base).filter((offender) => offender.category === "control-state-style")).toEqual([]);
         const markup = 'export const rows = (items) => items.map((item) => `<li class="ouro-row ouro-focus-ring-inset" tabindex="0" data-go="${item.id}">${item.name}</li>`).join("");\nexport const Tip = () => <span className="ouro-focus-ring" tabIndex={0}>?</span>;';
         expect(categories(markup)).not.toContain("control-state-style");
     });
-    it("exempts exactly the classes ouro-base defines, and counts an app's own .ouro- class like any other", () => {
-        const base = readFileSync("registry/ouro/theme/ouro-base.css", "utf8");
-        expect([...new Set([...base.matchAll(/^\s*\.(ouro-[\w-]+)/gm)].map((match) => match[1]))].sort()).toEqual([...OURO_BASE_CLASSES].sort());
+    it("exempts exactly the classes ouro-plain defines, and counts an app's own .ouro- class like any other", () => {
+        const base = readFileSync("registry/ouro/theme/ouro-plain.css", "utf8");
+        expect([...new Set([...base.matchAll(/^\s*\.(ouro-[\w-]+)/gm)].map((match) => match[1]))].sort()).toEqual([...OURO_PLAIN_CLASSES].sort());
         const found = findOffendersInSource("app/app.css", ".ouro-mine:focus-visible { outline: 2px solid; }\n.ouro-row-x:active { background: red; }\n.ouro-row:active { background: var(--muted); }");
         expect(found.map((offender) => offender.fingerprint)).toEqual([
             "app/app.css::(stylesheet)::control-state-style::.ouro-mine:focus-visible::",
             "app/app.css::(stylesheet)::control-state-style::.ouro-row-x:active::",
         ]);
     });
-    it("names no literal colour in ouro-base's classes, so an app's guard against raw colours passes them", () => {
-        const base = readFileSync("registry/ouro/theme/ouro-base.css", "utf8");
-        const layer = base.slice(base.indexOf("@layer base"));
+    it("names no literal colour in ouro-plain's classes, so an app's guard against raw colours passes them", () => {
+        const layer = readFileSync("registry/ouro/theme/ouro-plain.css", "utf8");
         const literals = [...layer.matchAll(/^\s*([\w-]+):[^;]*?(#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(\s*[\d.])/gim)].map((match) => match[0].trim());
         expect(literals).toEqual([]);
     });
@@ -1606,7 +1605,7 @@ describe("Ouro's focus and row classes for plain markup", () => {
         expect(formatComparison(selected)[0]).toMatch(/^New hand-rolled control: /);
     });
 });
-describe("ouro-base's disclosure for pages with no script", () => {
+describe("ouro-plain's disclosure for pages with no script", () => {
     it("counts <details class=\"ouro-disclosure\"> and its <summary class=\"ouro-disclosure-summary\"> as Ouro's, and names them as the fix for a hand-drawn one", () => {
         const ours = 'export const More = () => <details className="ouro-disclosure more"><summary className="ouro-disclosure-summary">Why</summary><div className="ouro-disclosure-panel">Because</div></details>;';
         expect(categories(ours)).not.toContain("details-summary");

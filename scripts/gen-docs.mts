@@ -767,7 +767,7 @@ const readmeItems = [
   `Once per app: \`ouro-base\`, ${claim("the tokens every component needs in your stylesheet.", {
     source: { test: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
     verify: { testExists: "scripts/install-check.test.mjs::a missing token, rule or file, or an unrewritten import, fails" },
-  })} Optional: \`ouro-theme\`, the Ouro look.`,
+  })} Optional: \`ouro-theme\`, the Ouro look, and \`ouro-plain\`, classes for markup that is not an Ouro component.`,
   "",
   `Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool \`ax-example\`, \`ouro-ax-tests\` with their \`<name>-tests\` items, and \`ouro-ax\`, which is:\n${axItemNames.map(code).join(",\n")}.`,
   "",

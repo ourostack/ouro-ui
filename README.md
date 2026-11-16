@@ -71,7 +71,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.204
 npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.204
 ```
 
-- Add `ouro-base` once, before your first component. It is the only item that writes to your stylesheet (apart from the optional `ouro-theme`), so no later add touches it (from v0.8.0; in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.8.0][^v0.7.0] [Installing](docs/guides/installing.md) says what it writes.
+- Add `ouro-base` once, before your first component. It and two optional items are the only ones that write to your stylesheet: `ouro-theme`, Ouro's look, and `ouro-plain`, classes for markup that is not an Ouro component, such as rows built as strings.[^ouro-base-only] So no later add touches it (from v0.8.0; in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.8.0][^v0.7.0] [Installing](docs/guides/installing.md) says what it writes.
 
 - Pass `--base base`: Ouro HX is built on Base UI. Don't pass `-t`/`--template` in an existing app; it adds shadcn's `components/ui/button.tsx`.
 - New Vite app? Add `@tailwindcss/vite`, `@import "tailwindcss";`, a Vite `@` alias, and `"paths": { "@/*": ["./src/*"] }` in both `tsconfig.json` and `tsconfig.app.json` (no `baseUrl` on TypeScript 6) before `init`. shadcn reads the root file, and `tsc -b` builds the app one.
@@ -218,6 +218,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 - **After v1.3.49 (Dialog):** a `Dialog` opened from the keyboard whose body has nothing to focus now gives first focus to a field in its footer (an input, a text area or a select), where it gave it to Close, so a test that expected Close there now finds the field.[^upgrade-dialog-footer-field]
 - **Surfaces (Button, Card, Dialog, TextField, Badge, Toggle):** where a browser lacks `corner-shape`, Button, Card, Dialog, TextField, Badge and Toggle paint their fill and border on a `[data-ouro-surface]` span inside the element. A `bg-*` or `border-*` class an app passes still wins, because the element then paints its own colour.[^upgrade-surface-override]
 
+- **ouro-plain (classes for plain markup):** the classes for markup that is not an Ouro component (`ouro-focus-ring`, `ouro-row`, `ouro-disclosure`, `ouro-skip-link`, `ouro-reveal`, `ouro-nav-link` and the rest) moved from `ouro-base` into their own item, `ouro-plain`, so an app built only from components no longer carries their CSS.[^upgrade-plain] An app that uses them adds `ouro-plain` once, after `ouro-base`: `npx shadcn@latest add ourostack/ouro-ui/ouro-plain#v1.3.204`. Adding `ouro-base` again leaves the rules it wrote before in your stylesheet, so nothing is lost before you add `ouro-plain`, and adding `ouro-plain` merges into them.[^upgrade-plain]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -281,7 +283,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-v0.3.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0) verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-layer: 50;/)
 [^upgrade-v0.3.1]: https://github.com/ourostack/ouro-ui/releases/tag/v0.3.1 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.3.1)
 [^upgrade-v0.7.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0)
-[^upgrade-v0.8.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0) verify:testExists(scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports)
+[^upgrade-v0.8.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0) verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports)
 [^upgrade-v1.0.0]: https://github.com/ourostack/ouro-ui/releases/tag/v1.0.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.0.0)
 [^upgrade-v1.0.2]: https://github.com/ourostack/ouro-ui/releases/tag/v1.0.2 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.0.2) verify:fileLine(registry/ouro/lib/ouro/form-answer.ts, /Snapshot arrays are readonly/)
 [^upgrade-v1.1.0]: https://github.com/ourostack/ouro-ui/releases/tag/v1.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.1.0) verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-shadow-sheet-/) verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-duration-draw:/)
@@ -330,6 +332,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-wrap-checks]: registry/ouro/check/wrap-check.ts verify:fileLine(registry/ouro/check/check.ts, /^import \{ findWrapIssues, readHeroArt, type HeroArt \} from "\.\/wrap-check\.ts";$/) verify:testExists(test/check-wrap-in-page.test.ts::findWrapIssues: lone-word > finds a block whose last line holds one word, a hyphen's piece included, in a scroller too, named by its words)
 [^upgrade-dialog-footer-field]: registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::first focus with a field in the footer > puts first focus on a footer field, not on Close, when the body has no control)
 [^upgrade-surface-override]: registry/ouro/theme/squircle-surface.test.tsx verify:testExists(registry/ouro/theme/squircle-surface.test.tsx::squircle surface where the engine has no corner-shape > lets an app's own fill and border classes on a Button win, with and without corner-shape)
+[^upgrade-plain]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(site/scripts/static-css.test.mjs::ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS)
 <!-- upgrade:end -->
 
 ### Items
@@ -464,7 +467,7 @@ Components:
 
 Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.
 
-Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look.
+Once per app: `ouro-base`, the tokens every component needs in your stylesheet. Optional: `ouro-theme`, the Ouro look, and `ouro-plain`, classes for markup that is not an Ouro component.
 
 Ouro AX, for the interfaces agents use ([Ouro AX](#ouro-ax)): the example tool `ax-example`, `ouro-ax-tests` with their `<name>-tests` items, and `ouro-ax`, which is:
 `ax-checks`,
@@ -840,7 +843,7 @@ MIT
 
 [^tailwind-4]: test/install-fixture/package.json verify:fileLine(test/install-fixture/package.json, /"tailwindcss": "\^4\./) verify:ciJob(install)
 [^runtime-deps]: package.json; registry.json verify:fileLine(test/install-fixture/package.json, /"react": "\^19\./) verify:fileLine(registry.json, /"@base-ui\/react@/) verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
-[^ouro-base-only]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them)
+[^ouro-base-only]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them)
 [^v0.8.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0) verify:fileLine(UPGRADING.md, /\*\*v0\.8\.0:\*\* no component installs `ouro-base`/)
 [^v0.7.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0)
 [^provider-deps]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::a component that renders links brings OuroProvider, which only the app imports) verify:fileLine(scripts/registry.mts, /entry\.name === "lib-router-link" \|\| entry\.name === "tooltip"/)
