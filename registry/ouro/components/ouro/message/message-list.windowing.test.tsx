@@ -405,8 +405,17 @@ describe("MessageList windowing", () => {
     vi.spyOn(performance, "now").mockImplementation(() => now);
     // The list's own writes to the scroll position, which would stop the browser's scroll.
     let writes = 0;
+    // The trace a failure prints (#1646): each scroll, `translate` change, write to the scroll position and `scrollend`, in real ms.
+    const log: string[] = [];
+    const real = () => Math.round(Date.now() - window.performance.timeOrigin);
     const own = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
-    Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => own.get!.call(scroller), set: (value: number) => (writes++, own.set!.call(scroller, value)) });
+    const top = () => Math.round(own.get!.call(scroller));
+    Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => own.get!.call(scroller), set: (value: number) => (writes++, log.push(`w${real()} ${top()}->${Math.round(value)}`), own.set!.call(scroller, value)) });
+    scroller.addEventListener("scroll", (event) => log.push(`s${real()} ${top()} ${content.style.translate || "-"} ${event.isTrusted ? "T" : "u"}`));
+    scroller.addEventListener("scrollend", () => log.push(`e${real()} ${top()} ${content.style.translate || "-"}`));
+    const translates = new MutationObserver(() => log.push(`t${real()} ${content.style.translate || "-"} ${top()}`));
+    translates.observe(content, { attributes: true, attributeFilter: ["style"] });
+    onTestFinished(() => translates.disconnect());
     // In the browser's own scroll, past the wheel's rest, before it ends: a message above grows, or shrinks.
     const grow = () => {
       // Once the scroll has left the end, which the list follows while it is there, by more than a message shrinks: the browser
@@ -427,7 +436,7 @@ describe("MessageList windowing", () => {
       scroller.scrollBy({ top: -300, behavior: "smooth" });
       atEnd = await ended;
     });
-    delete (scroller as { scrollTop?: number }).scrollTop;
+    log.push(`end writes=${atEnd.writes} translate=${atEnd.translate || "-"}`);
     // Held by drawing the content up, never by writing the scroll position, until the scroll ended.
     expect(atEnd.writes).toBe(0);
     expect(atEnd.translate).not.toBe("");
@@ -435,8 +444,10 @@ describe("MessageList windowing", () => {
     now += 100;
     await expect.poll(() => content.style.translate).toBe("");
     await settle(scroller);
+    delete (scroller as { scrollTop?: number }).scrollTop;
+    log.push(`final top=${Math.round(reading.message.getBoundingClientRect().top)} want=${Math.round(reading.top + 300)} scrollTop=${Math.round(scroller.scrollTop)}`);
     // Where the reader's scroll took it, the growth above taken out.
-    expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top + 300))).toBeLessThanOrEqual(ROUNDING);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top + 300)), log.join(" | ")).toBeLessThanOrEqual(ROUNDING);
   });
 
   it.each([
