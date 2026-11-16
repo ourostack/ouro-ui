@@ -11,8 +11,19 @@ describe("Navigation docs on JavaScript", () => {
     ["Sidebar", sidebar],
     ["SidebarLayout", sidebarLayout],
     ["StackedLayout", stackedLayout],
-  ])("%s's docs say the phone menu opens once JavaScript has loaded, and the links are in the server HTML from 640px up", (_name, doc) => {
+  ])("%s's docs say the phone menu opens once JavaScript has loaded", (_name, doc) => {
     expect(doc).toContain("opens once JavaScript has loaded");
+  });
+
+  it.each([
+    ["Sidebar", sidebar],
+    ["SidebarLayout", sidebarLayout],
+    ["StackedLayout", stackedLayout],
+  ])("%s's docs say the links are in the server HTML from 640px up", (_name, doc) => {
     expect(doc).toContain("in the server HTML from 640px up");
+  });
+
+  it("says Navbar's menu button and links are both in the server HTML, so the bar does not change on hydration", () => {
+    expect(navbar).toContain("Both the links and the menu button are in the server HTML");
   });
 });
