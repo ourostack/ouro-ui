@@ -548,6 +548,19 @@ export const Quote: Story = {
 };
 
 /**
+ * A chat's reply in a thread, with the line that says where it stands (`context`) above the message it replied to.
+ */
+export const ReplyInThread: Story = {
+  render: () => (
+    <Surface>
+      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" context="Replied in thread" quote={{ author: "Theo Brandt", excerpt: "I have one. I will bring it with the speakers." }}>
+        Perfect, thank you.
+      </Message>
+    </Surface>
+  ),
+};
+
+/**
  * A reply's action bar, shown by keyboard focus: just past the reply's text and level with its
  * top, clear of the name and time above it, however wide the thread.
  */

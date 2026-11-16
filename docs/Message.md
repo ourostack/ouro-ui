@@ -40,6 +40,7 @@ The props the modes share. Type: `MessageProps`.
 | `bubble` | `"filled" \| "raised"` | `"filled"` on a `chat` message; unboxed on a `reply` | How a `chat` message's bubble looks. `filled`, the default, is a messaging app's: the user's own message filled as a primary button is (`--ouro-action`, else the primary color), others' on the muted surface, each round with a smaller corner toward its sender, with an edge that forced colors draw. Inside the user's own bubble, the theme's colors follow the fill, so a link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link or mention in the primary color is a shade nearer the text color, so it keeps 4.5:1 on the muted surface. `raised` is a workplace chat's: others' messages on a raised card with a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a `bubble` is laid out as a chat's message, for a thread that reads as a chat: the user's own at the end, others' at the start under their name, each in a bubble of that look. A `reply` without one stays unboxed, and `default` and `post` ignore it. |
 | `children` | `ReactNode` |  | The message: text, or rich content such as a list or a code block. |
 | `className` | `string` |  | Layout only: margins (`mt-4`). Appearance classes warn in development; the colors follow `role`. |
+| `context` | `ReactNode` |  | A short line above the message, before its quote and its text, saying where the message stands, such as "Replied in thread" over the message it replied to. Screen readers hear it first in the message's content, before the quote. Nothing shows when it is undefined, null, false or empty. For example: `<Message role="user" name="Ana" context="Replied in thread" quote={{ author: "Fen", excerpt: "Ship it?" }}>Yes</Message>`. |
 | `continued` | `boolean` |  | The message follows one from the same author: no avatar and no name line, so a run of messages reads as one. Its time shows beside it on hover and focus. Screen readers still hear the name and time. Not for `post`: every post shows its author. |
 | `dateTime` | `string` |  | The same moment for machines, as an ISO date (`2026-05-01T09:41`): the `<time>` element's `dateTime`. |
 | `deleteLabel` | `string` | `"Delete"` | The name of a `failed` message's delete button, for other languages. |
@@ -397,6 +398,13 @@ interface MessageOwnProps {
   subject?: ReactNode;
   /** The message: text, or rich content such as a list or a code block. */
   children?: ReactNode;
+  /**
+   * A short line above the message, before its quote and its text, saying where the message
+   * stands, such as "Replied in thread" over the message it replied to. Screen readers hear it
+   * first in the message's content, before the quote. Nothing shows when it is undefined, null,
+   * false or empty. For example: `<Message role="user" name="Ana" context="Replied in thread" quote={{ author: "Fen", excerpt: "Ship it?" }}>Yes</Message>`.
+   */
+  context?: ReactNode | undefined;
   /**
    * The message this one replies to, at the top of the bubble or post, above the text: a bar,
    * the author and a line of what they wrote, as Composer's `quote` shows it before the reply

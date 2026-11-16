@@ -1,0 +1,1 @@
+- New: Message's `context` shows a short line above the message, before its quote and text, such as "Replied in thread".
