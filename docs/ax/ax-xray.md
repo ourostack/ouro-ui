@@ -260,6 +260,7 @@ interface XrayOptions {
   inventory?: string | undefined;
   events?: string | undefined;
   commit?: string | undefined;
+  app?: string | undefined;
   failureCopyAllow?: string | undefined;
   conformance: boolean;
   state: string[];
