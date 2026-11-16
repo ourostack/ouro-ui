@@ -95,7 +95,7 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     name().focus();
     await flow.submit();
     if (!immediate) {
-      expect(email().getAttribute("aria-invalid")).toBeNull();
+      expect(email().getAttribute("aria-invalid")).toBe("false");
       expect(alert()).toBe(first);
       expect(focus).not.toHaveBeenCalled();
       await flow.arrive();
@@ -111,7 +111,7 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     await flow.submit(); await flow.arrive(); await edit();
     const first = alert();
     await flow.submit();
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     name().focus();
     await flow.arrive();
@@ -125,7 +125,7 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     await flow.submit(); await flow.arrive(); await edit();
     const first = alert();
     await flow.submit(); await flow.arrive();
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
   });
 
@@ -135,7 +135,7 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     const first = alert();
     const focus = vi.spyOn(email(), "focus");
     await flow.submit();
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     expect(focus).not.toHaveBeenCalled();
     await flow.arrive();
@@ -172,7 +172,7 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     const focus = vi.spyOn(email(), "focus");
     await act(() => host!.querySelector<HTMLButtonElement>('button[type="submit"]')!.click());
     expect(action).not.toHaveBeenCalled();
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     expect(alert()!.textContent).toBe("Client message.");
     expect(document.activeElement).toBe(name());
@@ -184,9 +184,9 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     await flow.submit(); await flow.arrive(); await edit();
     const first = alert();
     await flow.submit();
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     await flow.arrive();
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
   });
 });
@@ -201,7 +201,7 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
     await render(value(answer, messages())); await edit();
     for (const node of [value(answer, { form: "The server is down." }), value(answer, {}), value(undefined, {}), value(answer, messages())]) {
       await rerender(node);
-      expect(email().getAttribute("aria-invalid")).toBeNull();
+      expect(email().getAttribute("aria-invalid")).toBe("false");
     }
     await rerender(value({}, messages()));
     expect(email().getAttribute("aria-invalid")).toBe("true");
@@ -219,7 +219,7 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
     await edit(); name().focus();
     const focus = vi.spyOn(email(), "focus");
     await rerender(value(answer, projection("#changed", nextHandler)));
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     expect(alert()!.querySelector("a")!.getAttribute("href")).toBe("#changed");
     await act(() => alert()!.querySelector("a")!.click());
@@ -260,7 +260,7 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
     await render(keyed(source, 0)); await edit();
     const first = alert();
     await rerender(keyed({}, 0));
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     await rerender(keyed(source, 1));
     expect(email().getAttribute("aria-invalid")).toBe("true");
@@ -292,7 +292,7 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
     await render(node(transport())); await edit();
     const first = alert();
     await rerender(node(transport()));
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     expect(JSON.stringify(transport())).not.toContain("UNSELECTED_SERIALIZATION_SENTINEL");
     await rerender(node({ ...transport(), key: 1 }));
@@ -306,10 +306,10 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
     const first = alert();
     name().focus();
     await rerender(<Form errors={{ ...messages() }}>{fields}</Form>);
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     await rerender(value(answer, messages()));
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     expect(document.activeElement).toBe(name());
   });
@@ -334,7 +334,7 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
     name().focus();
     const focus = vi.spyOn(email(), "focus");
     await rerender(node({ ...messages(), form: "Updated presentation." }));
-    expect(email().getAttribute("aria-invalid")).toBeNull();
+    expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
     expect(focus).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(name());
