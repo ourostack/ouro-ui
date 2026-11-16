@@ -5,6 +5,7 @@ import "../themes/presets.generated.css";
 import "../themes/by-preset.css";
 import type { JSX, ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { agentExamples } from "../agents/examples";
@@ -152,12 +153,12 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       <Markdown blocks={body} link={(target) => siteLink(target, `docs/${item.title}.md`)} />
 
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
-        <a href={`${GITHUB}/blob/main/${(itemSources as Record<string, string>)[item.name]}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+        <Link href={`${GITHUB}/blob/main/${(itemSources as Record<string, string>)[item.name]}`} tone="secondary">
           Source on GitHub
-        </a>
-        <a href={href(`/docs/${item.name}.md`)} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+        </Link>
+        <Link href={href(`/docs/${item.name}.md`)} tone="secondary" reloadDocument>
           This page as Markdown
-        </a>
+        </Link>
       </div>
     </DocsShell>
   );
@@ -272,12 +273,12 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
       <Lead>{prose(lead.text, link)}</Lead>
       <Markdown blocks={body} link={link} />
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
-        <a href={`${GITHUB}/blob/main/${page.file}`} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+        <Link href={`${GITHUB}/blob/main/${page.file}`} tone="secondary">
           Source on GitHub
-        </a>
-        <a href={href(`/docs/${page.name}.md`)} className="text-muted-foreground underline underline-offset-4 hover:text-foreground">
+        </Link>
+        <Link href={href(`/docs/${page.name}.md`)} tone="secondary" reloadDocument>
           This page as Markdown
-        </a>
+        </Link>
       </div>
     </DocsShell>
   );
