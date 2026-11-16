@@ -661,7 +661,15 @@
       "name": "ouro-work-substrate",
       "kind": "server apps",
       "repo": "ourostack/ouro-work-substrate",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "Server apps with no screens of their own."
@@ -672,7 +680,13 @@
       "giveBackTerms": [
         "ouro-work-substrate"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/ouro-work-substrate",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "drift-remote",
