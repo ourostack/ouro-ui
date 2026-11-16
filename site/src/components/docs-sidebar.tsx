@@ -46,6 +46,8 @@ export default function DocsSidebar({ current }: { current: string }): JSX.Eleme
       <Sidebar
         label="Docs"
         collapsible={false}
+        // Narrower from 640px to 768px, with the page's column (docs-shell.tsx): a tablet's page is no narrower than a phone's.
+        className="[--ouro-sidebar-w:12rem] md:[--ouro-sidebar-w:16rem]"
         currentPath={href(current)}
         header={<DocsFilter value={filter} onChange={setFilter} empty={sections.length === 0} />}
         sections={sections.length > 0 ? sections : [{ items: [] }]}

@@ -20,15 +20,16 @@ const DocsSidebar = lazy(() => import("./docs-sidebar"));
 const DocsHeader = lazy(() => import("./docs-header"));
 
 /** The sidebar's column and the page's: the title and its picture open the page's column, over the words they name. */
-const COLUMNS = "sm:grid sm:grid-cols-[16rem_minmax(0,1fr)] sm:gap-8 lg:gap-12";
+// From 640px a narrower sidebar, so a tablet's page column is no narrower than a phone's; the full one from 768px.
+const COLUMNS = "sm:grid sm:grid-cols-[12rem_minmax(0,1fr)] md:grid-cols-[16rem_minmax(0,1fr)] sm:gap-8 lg:gap-12";
 
 /**
- * The page's column, which the picture fills: the window less its gutters, and from 640px less the sidebar too, until the
+ * The page's column, which the picture fills: the window less its gutters, and from 640px less the sidebar too (narrower until 768px), until the
  * container stops at 79rem. In rem, so a larger browser font never makes the browser pick too small a file. A sizes
  * length counts rem at the browser's default, not at the page's larger type from 150rem and 200rem (styles.css), so those
  * steps give the column's width there in px: 56rem at 112.5% and at 125%.
  */
-const COLUMN_SIZES = "(min-width: 200rem) 1120px, (min-width: 150rem) 1008px, (min-width: 79rem) 56rem, (min-width: 64rem) calc(100vw - 23rem), (min-width: 40rem) calc(100vw - 22rem), calc(100vw - 2rem)";
+const COLUMN_SIZES = "(min-width: 200rem) 1120px, (min-width: 150rem) 1008px, (min-width: 79rem) 56rem, (min-width: 64rem) calc(100vw - 23rem), (min-width: 48rem) calc(100vw - 22rem), (min-width: 40rem) calc(100vw - 18rem), calc(100vw - 2rem)";
 
 /** A docs page's arrival: its eyebrow and title, over the storybook scene it opens on. */
 export interface DocsOpener {
