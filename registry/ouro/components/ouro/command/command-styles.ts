@@ -158,8 +158,10 @@ function fold(text: string): string {
  * @claim "Whether `typed` becomes `word` with at" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > forgives one slip in a word of four letters or more: a letter dropped, added, changed, or two swapped)
  */
 function oneEditApart(typed: string, word: string): boolean {
+  // Stryker disable next-line ConditionalExpression: equivalent; words two or more letters apart fail every comparison below, as their rests differ in length.
   if (Math.abs(typed.length - word.length) > 1) return false;
   let same = 0;
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent; queryMatch asks only about a word the text lacks, so typed is never the same as word and the two differ, or one ends, before typed does.
   while (same < typed.length && typed[same] === word[same]) same++;
   const rest = (from: number, to: number) => typed.slice(from) === word.slice(to);
   if (typed.length < word.length) return rest(same, same + 1);

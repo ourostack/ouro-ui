@@ -150,6 +150,12 @@ describe("Command", () => {
       await userEvent.type(input(), typed);
       await expect.poll(options).toEqual(["Dialog guide", "Dialog"]);
     }
+    // Two letters swapped is one slip; two neighbouring letters changed, or one changed beside a letter that moved, is two.
+    for (const typed of ["daxlog", "dxylog"]) {
+      await userEvent.clear(input());
+      await userEvent.type(input(), typed);
+      await expect.poll(options, typed).toEqual([]);
+    }
     // A word of four letters, after the first word of a label.
     await userEvent.clear(input());
     await userEvent.type(input(), "shet");
