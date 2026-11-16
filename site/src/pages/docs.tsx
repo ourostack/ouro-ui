@@ -121,7 +121,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`} />
         <Text size="sm" tone="muted">
           Then the component.{" "}
-          {claim("From v0.8.0 it installs only the helpers it imports and never touches your stylesheet", { source: { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, verify: [{ urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" }, { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }] })} (
+          {claim("From v0.8.0 it installs only the helpers it imports and never touches your stylesheet", { source: { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, verify: [{ urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" }, { testExists: "scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them" }, { testExists: "scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports" }] })} (
           <a href={href("/docs/installing/")} className="text-primary underline underline-offset-4">Installing</a>):
         </Text>
         <Command command={`npx shadcn@latest add ourostack/ouro-ui/${item.name}#${latestRelease}`} />

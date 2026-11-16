@@ -78,7 +78,7 @@ Ouro Feel and Ouro Reins shipped in ouro-ui-apple 0.4.1 as the OuroFeel and Ouro
 ## Sources
 
 [^tailwind-4]: test/install-fixture/package.json verify:fileLine(test/install-fixture/package.json, /"tailwindcss": "\^4\./) verify:ciJob(install)
-[^ouro-base-only]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them)
+[^ouro-base-only]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them)
 [^v0.7.0]: https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0)
 [^vite-app]: test/install-fixture/package.json; test/install-fixture/tsconfig.json; test/install-fixture/tsconfig.app.json verify:fileLine(test/install-fixture/package.json, /"typescript": "~6\./) verify:fileLine(test/install-fixture/tsconfig.app.json, /"paths"/) verify:fileLine(test/install-fixture/vite.config.ts, /tailwindcss\(\)/) verify:ciJob(install)
 [^release-pins]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::--release pins every same-repo dependency to the release tag and records the version)
