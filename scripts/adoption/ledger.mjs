@@ -12,6 +12,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { currentTrials } from "../agent-benchmark/page.mjs";
+import { summarize } from "../agent-benchmark/run.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const configPath = join(here, "ledger.config.json");
@@ -407,6 +409,33 @@ export function parseSteps(body) {
   return rows;
 }
 
+const BENCHMARK_ARMS = { "action-model": "Action model", browser: "browser driving", bridge: "SDK-style bridge", "plain-mcp": "plain MCP" };
+export const BENCHMARK_PAGE = "https://ui.ouroboros.bot/docs/agent-interfaces/";
+
+/**
+ * The agent interface benchmark's published runs on the web repository's main branch, counted as its page counts
+ * them (scripts/agent-benchmark/page.mjs): for each model, interface and task, the latest run. The value is each
+ * interface's tasks done out of trials run, across every model and task.
+ */
+export function measureBenchmark(ctx, config) {
+  const repo = config.latest.web.repo;
+  const dir = "scripts/agent-benchmark/results";
+  return attempt(ctx, BENCHMARK_PAGE, () => {
+    const folders = ctx.api(`repos/${repo}/contents/${dir}`).filter((entry) => entry.type === "dir").map((entry) => entry.name).sort();
+    const runs = folders
+      .map((folder) => ({ folder, ...JSON.parse(ctx.text(`repos/${repo}/contents/${dir}/${folder}/results.json`)) }))
+      .filter((run) => !run.invalid && !run.models.every((model) => model.provider === "oracle"))
+      .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+    const trials = currentTrials(runs);
+    if (!trials.length) return unmeasured(ctx, `no published run in ${repo}'s ${dir}`, BENCHMARK_PAGE);
+    const arms = summarize(trials.map((trial) => ({ ...trial, model: "all" }))).arms.filter((row) => BENCHMARK_ARMS[row.arm]);
+    arms.sort((a, b) => Object.keys(BENCHMARK_ARMS).indexOf(a.arm) - Object.keys(BENCHMARK_ARMS).indexOf(b.arm));
+    const models = new Set(trials.map((trial) => trial.model)).size;
+    const value = arms.map((row) => `${BENCHMARK_ARMS[row.arm]} ${row.successes} of ${row.trials} done`).join("; ");
+    return cell(ctx, value, { note: `Tasks done, checked on the app's state, across ${trials.length} trials by ${models} models in the published runs. The page has steps, time, tokens and every transcript.`, source: BENCHMARK_PAGE });
+  });
+}
+
 export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCount, treeCount) {
   const programIssue = issues.program;
   const source = programIssue?.url ?? `https://github.com/${config.home}/issues?q=label%3A${config.label}`;
@@ -418,7 +447,7 @@ export function measureProgram(ctx, config, issues, latest, prsAll, giveBackCoun
   add("components", "Ouro HX components in the registry", treeCount.value, treeCount.note, `https://github.com/${config.latest.web.repo}/tree/main/registry/ouro/components/ouro`);
   add("merged-prs", "Merged pull requests across the three Ouro UI repositories", prsAll.length, "Counted from each repository's merged pull requests.", `https://github.com/${config.latest.web.repo}/pulls?q=is%3Apr+is%3Amerged`);
   add("give-back", "Merged pull requests that name a product", giveBackCount, "Distinct pull requests counted by the give-back column.", `https://github.com/${config.home}/issues?q=label%3A${config.label}`);
-  add("benchmark", "Benchmark against browser driving, an SDK-style bridge and plain MCP", null, stepState("benchmark") === "done" ? "Not measured yet: the step is marked done but no result is read." : "not measured yet: the benchmark step is not done.", source);
+  headline.push({ key: "benchmark", label: "Benchmark against browser driving, an SDK-style bridge and plain MCP", ...measureBenchmark(ctx, config) });
   add("model-reviews", "Frontier models pick Ouro UI in the model-reviews run", null, stepState("model-reviews-headline") === "done" ? "Not measured yet: the step is marked done but no result is read." : "not measured yet: the model-reviews headline step is not done.", source);
   return { issue: programIssue ? issueView(programIssue) : null, steps, headline, source, note: programIssue ? null : "not measured: the program tracking issue was not found" };
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measurePrevious, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
 
 const NOW = new Date("2026-11-13T22:00:00Z");
 const releases = {
@@ -295,4 +295,30 @@ test("the ledger carries the checks of a day before, read from the data branch's
   assert.equal(measurePrevious(none, NOW.toISOString()), null, "no history yet");
   const failing = createContext({ gh: () => { throw new Error("HTTP 502"); }, now: () => NOW, sleep: () => {}, searchGapMs: 0 });
   assert.equal(measurePrevious(failing, NOW.toISOString()), null, "a failed read leaves it out rather than failing the run");
+});
+
+test("the benchmark cell counts the published runs as the benchmark's page does: the latest run per model, interface and task", () => {
+  const trial = (model, arm, task, success) => ({ model, arm, task, success, steps: 1, wallMs: 1000, tokens: { total: 10 }, costAiu: 0, personOnlyTask: false, personOnlyDone: false });
+  const runs = {
+    "2026-11-14-first": { startedAt: "2026-11-14T01:00:00Z", models: [{ provider: "m1" }], trials: [trial("m1", "action-model", "add-item", true), trial("m1", "browser", "add-item", false)] },
+    "2026-11-14-oracle": { startedAt: "2026-11-14T00:00:00Z", models: [{ provider: "oracle" }], trials: [trial("oracle", "browser", "add-item", true)] },
+    "2026-11-15-screens": { startedAt: "2026-11-15T01:00:00Z", models: [{ provider: "m1" }], trials: [trial("m1", "browser", "add-item", true)] },
+    "2026-11-16-other-app": { startedAt: "2026-11-16T01:00:00Z", models: [{ provider: "m2" }], trials: [trial("m2", "plain-mcp", "md-append", true)] },
+    "2026-11-16-broken": { startedAt: "2026-11-16T02:00:00Z", invalid: "too many infrastructure errors", models: [{ provider: "m1" }], trials: [trial("m1", "action-model", "add-item", false)] },
+  };
+  const gh = (args) => {
+    const path = args.at(-1);
+    if (path.endsWith("/results")) return JSON.stringify([...Object.keys(runs).map((name) => ({ name, type: "dir" })), { name: "README.md", type: "file" }]);
+    const folder = /results\/([^/]+)\/results\.json$/.exec(path)?.[1];
+    if (folder) return b64(runs[folder]);
+    throw new Error(`unexpected ${path}`);
+  };
+  const config = JSON.parse(readFileSync(configPath, "utf8"));
+  const measured = measureBenchmark(createContext({ gh, now: () => NOW }), config);
+  assert.equal(measured.value, "Action model 1 of 1 done; browser driving 1 of 1 done; plain MCP 1 of 1 done");
+  assert.match(measured.note, /across 3 trials by 2 models/);
+  assert.equal(measured.source, "https://ui.ouroboros.bot/docs/agent-interfaces/");
+  const failing = measureBenchmark(createContext({ gh: () => { throw new Error("HTTP 404"); }, now: () => NOW }), config);
+  assert.equal(failing.value, null);
+  assert.match(failing.note, /^not measured: HTTP 404/);
 });
