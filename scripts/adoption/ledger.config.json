@@ -308,7 +308,7 @@
         },
         {
           "repo": "ourostack/gatefold",
-          "workflow": "app.yml",
+          "workflow": "actions.yml",
           "branch": "main"
         }
       ]
