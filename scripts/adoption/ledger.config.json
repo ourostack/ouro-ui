@@ -326,7 +326,13 @@
         "ouroboros-agent-harness",
         "@ouro.bot/cli"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/ouroboros",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "desk",
@@ -385,7 +391,15 @@
       "name": "Factory site",
       "kind": "web site",
       "repo": "ourostack/factory",
-      "pins": [],
+      "pins": [
+        {
+          "label": "Ouro HX",
+          "latest": "web",
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
+        }
+      ],
       "hx": {
         "kind": "web",
         "treeDirs": "(^|/)components/ouro/([^/]+)/[^/]+\\.tsx$",
@@ -485,7 +499,13 @@
         "exclude": "(^registry/ouro/ax/|\\.test\\.|fixtures?/|example|^docs/|\\.md$)"
       },
       "giveBackTerms": [],
-      "xray": [],
+      "xray": [
+        {
+          "repo": "ourostack/ouro-ui",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ],
       "upstream": true
     },
     {
