@@ -17,7 +17,7 @@ The hourly run is [`.github/workflows/adoption-ledger.yml`](../../.github/workfl
 
 ## What it reads
 
-- [`ledger.config.json`](ledger.config.json): the hand-kept list of the [surfaces](scripts/adoption/ledger.config.json "verify:count(scripts/adoption/ledger.config.json#surfaces)=20") and the [work items](scripts/adoption/ledger.config.json "verify:count(scripts/adoption/ledger.config.json#cards)=15"), and how a column is measured for a product. Add a product here, with its repository and a tracking issue.
+- [`ledger.config.json`](ledger.config.json): the hand-kept list of the [surfaces](scripts/adoption/ledger.config.json "verify:count(scripts/adoption/ledger.config.json#surfaces)=20") and the [work items](scripts/adoption/ledger.config.json "verify:count(scripts/adoption/ledger.config.json#cards)=16"), and how a column is measured for a product. Add a product here, with its repository and a tracking issue.
 - Live: GitHub releases, repository files and trees, code search, Actions artifacts, merged pull requests, and the issues labelled `adoption`.
 
 An issue is found by a hidden marker in its body: `<!-- adoption:card=<id> -->` for a work item (the ids are in the config), `<!-- adoption:program -->` for the program. The program issue holds a table, `| Step | Depends on | Repo | State | Evidence |`, which becomes `program.steps` in `ledger.json`; the page shows only the products, so read the steps there or in the issue. Edit the issue to change a step's state; the next run records it.
@@ -50,7 +50,7 @@ A product is confirmed when these hold together:
 
 A product whose config says AX is `n/a`, with its reason (a site with no CLI, MCP or other agent interface of its own), has no actions to declare and nothing for the X-ray to check, so the action and must checks hold for it as `n/a`, the way give-back holds for the upstream, and those cells are not counted as unmeasured.[^ax-na] The page draws them as "does not apply", not as passing.[^ax-na-page] A product with an agent interface still needs both.
 
-Ari then signs the product off; the ledger only says whether the evidence is there. The page counts products "in scope". A product marked `inScope: false` in the config is listed but not counted: Hackamore, a roadmap item with an empty repository, and Drift Remote, a private repository the public ledger cannot read.
+Ari then signs the product off; the ledger only says whether the evidence is there. The page counts products "in scope". A product marked `inScope: false` in the config is listed but not counted: Drift Remote, a private repository the public ledger cannot read.
 
 ## The program section
 

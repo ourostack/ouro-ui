@@ -29,6 +29,8 @@ In a list of chapters, steps or sections, `current` marks the one you are on (`a
 
 Keyboard focus draws an outline around a link that stands alone.
 
+An icon you put in the link (a back arrow before "Recipes") stays on its text's line, a little apart, wherever the link is laid out; mark it `aria-hidden` so the link's name is its text.
+
 ## Use instead when
 
 - Use `Button` with `href` instead when the link is the main action and should look like a button.

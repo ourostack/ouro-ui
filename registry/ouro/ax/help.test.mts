@@ -41,6 +41,16 @@ test("a command's help is generated from its definition, and an others command s
   assert.ok(text.split("\n").every((l) => l.length <= 100));
 });
 
+test("help --json marks only a protocol command, with protocol: true", () => {
+  const c = defineCli({ name: "proto", about: ["proto"], commands: [
+    defineCommand({ name: "relay", summary: "Serve a request.", effect: "others", protocol: true }),
+    defineCommand({ name: "post", summary: "Post.", effect: "others" }),
+  ] });
+  const j = helpJson(c);
+  assert.equal(j.commands.find((x) => x.name === "relay")!.protocol, true);
+  assert.equal("protocol" in j.commands.find((x) => x.name === "post")!, false);
+});
+
 test("help --json is the manifest: effect, who sees it, whether it reads, why, schema, exit codes, error shape", () => {
   const j = helpJson(cli);
   const post = j.commands.find((c) => c.name === "post")!;

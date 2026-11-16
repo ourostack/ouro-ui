@@ -16,6 +16,12 @@
 //
 // It never passes a range it could not read: a missing or unknown commit, or an empty range, fails.
 //
+// On a pull request CI also sets PR_TITLE and PR_BODY: GitHub copies the co-author trailers a cloud session's
+// commit signer forces onto branch commits into the squash commit unless the merge passes its own message (gh ouro-pr
+// does, and so does Desk's merge-when-green relay), so the commits' authors and committers are judged but their
+// messages are not, and the pull request's title and body are, as the message that lands. The merge queue's squash
+// commits, and any run without PR_TITLE, are judged in full.
+//
 //   node scripts/attribution.mjs <base> <head>   checks the commits in base..head
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -67,7 +73,7 @@ export const UNCREDIT = `remove the line from the pull request's commit messages
  * The problems with these commits (`{ sha, authorName, authorEmail, committerName, committerEmail, message }`),
  * each `{ sha, field, problem, fix }`.
  */
-export function problems(commits) {
+export function problems(commits, { messages = true } = {}) {
   const found = [];
   for (const commit of commits) {
     const report = (field, problem, fix) => found.push({ sha: commit.sha, field, problem, fix });
@@ -88,6 +94,7 @@ export function problems(commits) {
         if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) return report(field, `"${raw.trim()}" says an AI tool wrote it`, REWORD);
       }
     };
+    if (!messages) continue;
     const before = found.length;
     commit.message.split(LINE_TERMINATOR).forEach((raw, index) => read(raw, `message line ${index + 1}`));
     if (found.length === before && commit.message.includes("\u0085")) commit.message.split(/\r\n|[\n\r\u2028\u2029]/).forEach((raw, index) => read(raw, `message line ${index + 1}`));
@@ -121,7 +128,14 @@ export function readCommits(base, head, git = runGit) {
 }
 
 /** Checks base..head, printing each problem; returns the exit status. */
-export function main([base, head] = [], { git = runGit, log = console.log, actions = Boolean(process.env.GITHUB_ACTIONS) } = {}) {
+/** The pull request's title and body, judged as the one message that lands when the merge passes its own. */
+export const textProblems = (title, body) =>
+  problems([{ sha: "pull request", authorName: MAINTAINER.name, authorEmail: MAINTAINER.email, committerName: MAINTAINER.name, committerEmail: MAINTAINER.email, message: `${title}\n\n${body}` }]).map((found) => ({
+    ...found,
+    fix: "edit the pull request's title or body to remove the line, then merge with gh ouro-pr, which passes them as the commit message",
+  }));
+
+export function main([base, head] = [], { git = runGit, log = console.log, actions = Boolean(process.env.GITHUB_ACTIONS), env = process.env } = {}) {
   const prefix = actions ? "::error::" : "";
   let commits;
   try {
@@ -130,7 +144,9 @@ export function main([base, head] = [], { git = runGit, log = console.log, actio
     log(`${prefix}attribution: ${error.message}`);
     return 1;
   }
-  const found = problems(commits);
+  const text = env.PR_TITLE !== undefined;
+  const found = problems(commits, { messages: !text });
+  if (text) found.push(...textProblems(env.PR_TITLE, env.PR_BODY ?? ""));
   for (const { sha, field, problem, fix } of found) log(`${prefix}attribution: commit ${sha.slice(0, 12)}, ${field}: ${problem}. Fix: ${fix}`);
   if (found.length === 0) log(`attribution: ${base}..${head} holds ${commits.length} commit${commits.length === 1 ? "" : "s"}, with no AI attribution, all written by the maintainer, release.yml, Dependabot (dependency files only) or GitHub.`);
   return found.length === 0 ? 0 : 1;

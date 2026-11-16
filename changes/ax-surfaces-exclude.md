@@ -1,0 +1,1 @@
+- New: `ax-surfaces` can leave a folder or file out of what it extracts (`exclude`, and `surfaces extract --exclude <path,path>`), so a repository that vendors the kit under its own folder holds its own words to the checks and not the kit's.

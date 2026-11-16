@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
@@ -129,4 +130,13 @@ test("the preload wraps the global fetch in a process that imports it", () => {
   const result = spawnSync(process.execPath, ["--import", preload, "-e", "console.log(globalThis.fetch.name)"], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout.trim(), "retryingFetch");
+});
+
+test("every shadcn add from GitHub in the install test goes through add_retrying_raw_fetch", () => {
+  const script = readFileSync(fileURLToPath(new URL("./install-test.sh", import.meta.url)), "utf8");
+  const lines = script.split("\n").filter((line) => !/^\s*#/.test(line));
+  // A direct add of a GitHub address fails on one dropped raw fetch, as the upgrade variant's v0.1.0 add did on main (run 43939020664).
+  assert.deepEqual(lines.filter((line) => /\badd\b/.test(line) && /ourostack\/ouro-ui\//.test(line) && !/^\s*add_retrying_raw_fetch /.test(line)), []);
+  assert.ok(lines.some((line) => /^\s*add_retrying_raw_fetch "\$\{shadcn\[2\]\}" "ourostack\/ouro-ui\/dialog#v0\.1\.0"$/.test(line)));
+  assert.ok(lines.some((line) => /^\s*add_retrying_raw_fetch "\$\{shadcn\[2\]\}" "ourostack\/ouro-ui\/ouro-theme#\$ref"$/.test(line)));
 });

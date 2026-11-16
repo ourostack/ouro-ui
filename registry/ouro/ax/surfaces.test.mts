@@ -233,6 +233,11 @@ test("extract reads the words after a throw, an Error constructor or an error pr
   writeFileSync(join(dir, "src", "node_modules", "dep.js"), 'throw new Error("A dependency failure text here");');
   writeFileSync(join(dir, "src", "send.test.js"), 'throw new Error("A test-only failure text here");');
   const { errors } = extractSurfaces({ root: dir, paths: ["src"], tool: "notes" });
+  assert.deepEqual(extractSurfaces({ root: dir, paths: ["src"], tool: "notes", exclude: ["src/send.js"] }).errors, [], "an excluded file is left out");
+  assert.deepEqual(extractSurfaces({ root: dir, paths: ["src"], tool: "notes", exclude: ["src"] }).errors, [], "an excluded folder is left out");
+  assert.deepEqual(extractSurfaces({ root: dir, paths: ["src"], tool: "notes", exclude: ["src/other"] }).errors!.length > 0, true, "another path leaves it in");
+  const left = JSON.parse((await call("extract", "src", "--root", dir, "--exclude", "src/send.js,src/other")).out);
+  assert.deepEqual(left.errors, []);
   assert.deepEqual(
     errors!.map((e) => [e.id, e.text, e.code, e.where]),
     [

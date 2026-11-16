@@ -141,6 +141,14 @@
       "title": "The Ouro UI rule in every repository's AGENTS.md",
       "outcome": "Add the \"Interfaces follow Ouro UI\" rule to the AGENTS.md of every repository in the ledger that is silent today.",
       "surfaces": []
+    },
+    {
+      "id": "hackamore-on-ax-kit",
+      "title": "Hackamore on the AX kit",
+      "outcome": "Run Hackamore's CLI on the Ouro AX kit from an Ouro UI release, declare its commands on the one-action model, and run the X-ray and the action-claims report in CI with `must` claims passing.",
+      "surfaces": [
+        "hackamore"
+      ]
     }
   ],
   "surfaces": [
@@ -308,7 +316,7 @@
         },
         {
           "repo": "ourostack/gatefold",
-          "workflow": "app.yml",
+          "workflow": "actions.yml",
           "branch": "main"
         }
       ]
@@ -801,21 +809,36 @@
     {
       "id": "hackamore",
       "name": "Hackamore",
-      "kind": "roadmap",
+      "kind": "CLI",
       "repo": "ourostack/hackamore",
-      "inScope": false,
-      "scopeNote": "On the roadmap and the repository is empty, so it is listed but not counted.",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
-        "reason": "No code yet."
+        "reason": "A CLI only."
       },
       "ax": {
-        "kind": "na",
-        "reason": "No code yet."
+        "search": "defineCommand OR bindAx OR ax-mcp",
+        "exclude": "lib/ouro-ui/"
       },
-      "giveBackTerms": [],
-      "xray": []
+      "giveBackTerms": [
+        "hackamore",
+        "ourostack/hackamore"
+      ],
+      "xray": [
+        {
+          "repo": "ourostack/hackamore",
+          "workflow": "xray.yml",
+          "branch": "main"
+        }
+      ]
     }
   ],
   "program": {

@@ -132,9 +132,36 @@ test("a release commit's site build takes the install line from its own registry
   const module = plugin.load(plugin.resolveId("virtual:site-proof"));
   assert.ok(module.includes(`export const install = ${JSON.stringify(expected)};`), module);
   // Another tag still comes from git, and one that origin lacks fails.
-  // One that origin lacks fails after a second try, naming what git said.
-  assert.throws(() => registryAt("v9.9.8", dir, 0), /git fetch of v9\.9\.8 failed twice, 0 ms apart\. First: .*refs\/tags\/v9\.9\.8.*\. Then: .*refs\/tags\/v9\.9\.8/s);
+  // One that origin lacks fails after its tries, naming what git said first and last.
+  assert.throws(() => registryAt("v9.9.8", dir, 0), /git fetch of v9\.9\.8 failed 4 times, 0 ms apart\. First: .*refs\/tags\/v9\.9\.8.*\. Last: .*refs\/tags\/v9\.9\.8/s);
 });
+
+test("a tag another process fetched while this one's fetch lost the shallow lock is read, not fetched again", () => {
+  const dir = releaseCheckout("9.9.9");
+  // A stand-in git whose fetch does what the winning process's fetch does (the tag arrives) and then fails as the
+  // loser's does on the held .git/shallow.lock; every other command is the real git.
+  const bin = scratchDir("ouro-proof-git-");
+  const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+  const calls = join(bin, "fetches");
+  writeFileSync(join(bin, "git"), `#!/bin/sh
+if [ "$1" = fetch ]; then
+  echo x >> "${calls}"
+  "${realGit}" tag v9.9.7 >/dev/null 2>&1
+  echo "fatal: Unable to create '.git/shallow.lock': File exists." >&2
+  exit 128
+fi
+exec "${realGit}" "$@"
+`, { mode: 0o755 });
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    assert.equal(registryAt("v9.9.7", dir, 0), readFileSync(join(dir, "registry.json"), "utf8"));
+  } finally {
+    process.env.PATH = path;
+  }
+  assert.equal(readFileSync(calls, "utf8"), "x\n");
+});
+
 
 test("the install command switches to Checklist once a release has it", () => {
   const registry = (names) => JSON.stringify({ items: names.map((name) => ({ name, type: "registry:ui" })) });

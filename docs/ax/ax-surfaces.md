@@ -12,7 +12,7 @@ What a repository hands the checker: its agent-facing words as one JSON file a r
 An `id` is stable across edits to the wording (a code, a tool name, or `file#first-words`), because the ratchet records findings by it.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-surfaces#v1.3.222
+npx shadcn@latest add ourostack/ouro-ui/ax-surfaces#v1.3.229
 ```
 
 It installs `lib/ouro/ax/surfaces.ts`, with `ax-dev-commands`, `ax-exit-codes`, `ax-problem`. Its tests are `ax-surfaces-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -66,16 +66,16 @@ interface ErrorSurface {
 
 ### `extractSurfaces`
 
-The error texts in JavaScript and TypeScript source: the first string (or strings joined with `+`) after a throw, an `Error` constructor, `console.error`, a stderr write, `die`, `fail`, `refuse`, or an `error:` or `message:` property, outside tests, when it has several words. An id is `<path>#<first words>`, with `~2` for a repeat, so rewording an error's end keeps its id. A `code:` on the same line, or on the line before or after, gives the error its code. It reads the source as text, so it can miss a text built elsewhere and read a string that is not an error: its manifest is a start to edit, and the ratchet works from the manifest you keep.
+The error texts in JavaScript and TypeScript source: the first string (or strings joined with `+`) after a throw, an `Error` constructor, `console.error`, a stderr write, `die`, `fail`, `refuse`, or an `error:` or `message:` property, outside tests, when it has several words. An id is `<path>#<first words>`, with `~2` for a repeat, so rewording an error's end keeps its id. A `code:` on the same line, or on the line before or after, gives the error its code. It reads the source as text, so it can miss a text built elsewhere and read a string that is not an error: its manifest is a start to edit, and the ratchet works from the manifest you keep. `exclude` lists folders or files, relative to `root`, to leave out, such as a copy of the kit your repository vendors.
 
 ```ts
-function extractSurfaces(options: { root: string; paths: readonly string[]; tool: string; }): Surfaces
+function extractSurfaces(options: { root: string; paths: readonly string[]; tool: string; exclude?: readonly string[] | undefined; }): Surfaces
 ```
 
 Example:
 
 ```ts
-extractSurfaces({ root: ".", paths: ["src"], tool: "notes" }).errors;
+extractSurfaces({ root: ".", paths: ["src"], tool: "notes", exclude: ["src/lib/ouro"] }).errors;
 ```
 
 ### `FIX_VERBS`

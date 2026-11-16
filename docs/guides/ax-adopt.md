@@ -5,8 +5,8 @@ Ouro AX checks the interface an agent uses from outside, the way an agent calls 
 ## 1. Copy in the kit
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.222
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.222
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.229
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.229
 ```
 
 The files land in `lib/ouro/ax/`, as TypeScript that Node runs as it is.[^node] Keep them as they are: when you need a change, make it in Ouro UI and copy the next tag, so your copy and the X-ray never drift apart.
@@ -82,6 +82,10 @@ Give fresh agents real tasks against your mock, with only your CLI allowed, and 
 - **A fresh agent waits forever before its first call.** Pass `--no-config-plugins` with `--allow-tool` when you run an agent in prompt mode. With an allow-list, the agent CLI stops approving every tool, so the host's plugin extensions are denied and the run waits for an approval nobody can give until it times out.[^hang] Give each run minutes, not seconds, on a busy machine.
 - **`null` and missing are different answers.** Print "nothing yet" for a field that is `null` and "not known" for one that is absent, and test both.
 - **Unlisted means unfound.** Put every command in the help overview, and group commands on one line when the overview gets long, rather than leaving one out.[^v13]
+- **Repeat flags and trailing words are yours to add.** Spread a generated command into `defineCommand` and set them there, as in `flags: { ...def.flags, fetch: { ...def.flags.fetch, repeat: true } }` and `args: [{ name: "words", description: "...", rest: "list" }]`. A wrapper that passes its words on to another program takes `rest: "list"`, and hands the words to the kit only for its own help or commands, so the other program keeps its `--json` and `--help`.
+- **`--dry-run` is the kit's.** An action input named `dryRun` is refused by `ouro-actions`; give it `flag: "preview"` and, in the command you build, rename the flag back (`{ ...flags, "dry-run": preview }`) when the tool already documents `--dry-run`.
+- **A check that finds something exits with the findings code.** Declare `exits: defineExitCodes([...BASE_EXIT_CODES, FINDINGS_EXIT_CODE])` and `exit: (r) => (r.ok ? "ok" : "findings")`, so a plain error still means the tool itself broke.
+- **Hooks and libraries that import the tool must not load the kit.** Import `cli.ts` and `command.ts` with `await import()` inside `main`, so a file that other code loads for its functions starts no faster or slower, and a host that runs an older Node fails only when the command runs.
 - **Real names leak.** Use made-up people and role names (`inbox-agent`) in examples and fixtures, never the name of a real product or person.
 
 [^node]: test:scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX verify:testExists(scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX)
