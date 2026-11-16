@@ -204,7 +204,6 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
     onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => {
       own.onKeyDown?.(event);
       if (event.key !== "Escape" || !open) return;
-      // Stryker disable next-line CallExpression: equivalent; Base UI's own Escape listener on the document, in the capture phase, closes the card too.
       after(0, false);
       event.preventDefault();
       event.stopPropagation();
@@ -216,8 +215,12 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
       {link}
       <PreviewCard.Root
         open={open}
-        // Base UI asks only to close a card it holds no trigger for: on Escape or a press outside it.
-        onOpenChange={(next) => after(0, next)}
+        // Base UI asks only to close a card it holds no trigger for: on Escape or a press outside it. The link is not its
+        // trigger, so a press on it counts as outside; the card stays for it, as it does on Base UI's own trigger, and the
+        // link takes Escape itself.
+        onOpenChange={(next, details) => {
+          if (!triggerRef.current!.contains(details.event.target as Node)) after(0, next);
+        }}
       >
         <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
           <PortalScope>
