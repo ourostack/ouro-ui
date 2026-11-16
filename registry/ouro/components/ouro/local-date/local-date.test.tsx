@@ -96,6 +96,22 @@ describe("LocalDate", () => {
     expect(host.querySelector("time")!.textContent).toBe(local({ dateStyle: "medium", timeStyle: "short" }));
   });
 
+  it("hydrates without a mismatch when the server's engine wrote the UTC text differently from this browser's", async () => {
+    const node = <LocalDate value={instant} format="datetime" locale="en-US" />;
+    const utc = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(instant);
+    // Node writes "Jun 1, 2026, 11:30 PM"; Safari writes "Jun 1, 2026 at 11:30 PM" for the same options.
+    const html = renderToString(node).replace(`>${utc} UTC<`, ">Jun 1, 2026 at 11:30 PM UTC<");
+    expect(html).toContain(">Jun 1, 2026 at 11:30 PM UTC</time>");
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const onRecoverableError = vi.fn();
+    await act(async () => void roots.push(hydrateRoot(host, node, { onRecoverableError })));
+    expect(onRecoverableError).not.toHaveBeenCalled();
+    expect(host.querySelector("time")!.textContent).toBe(local({ dateStyle: "medium", timeStyle: "short" }));
+  });
+
   it("labels a time UTC on the server, and drops the label once the browser shows the local time", async () => {
     const node = <LocalDate value={instant} format="time" locale="en-US" />;
     const html = renderToString(node);
