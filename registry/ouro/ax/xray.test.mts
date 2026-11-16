@@ -219,6 +219,17 @@ test("a CLI that breaks the claims fails them, each with what it saw", async () 
   assert.match(md, /Does not conform yet: \d+ must claims not holding; no inventory given/);
 });
 
+test("a CLI is named by its own help JSON, not its file name, when --name is not given", async () => {
+  const cli = fixture("tool-named-differently.mjs");
+  const named = await xray(base({ cli, env: { TOOL_MODE: "named" } }));
+  assert.match(JSON.stringify(named), /tracker (help|there)/);
+  assert.ok(!JSON.stringify(named).includes("tool-named-differently"), "the file name must not name the tool");
+  for (const mode of ["unnamed", "text", "broken"]) {
+    const fallback = await xray(base({ cli, env: { TOOL_MODE: mode } }));
+    assert.ok(JSON.stringify(fallback).includes("tool-named-differently "), `${mode}: the file name names the tool`);
+  }
+});
+
 test("a doctor built with ax-checks: its verdict leads its text and matches its --json, and its piped output is plain", async () => {
   const envs: Record<string, string>[] = [{}, { DOCTOR_BROKEN: "1" }];
   for (const env of envs) {
