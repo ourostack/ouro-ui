@@ -13,8 +13,9 @@ test.describe("a described, required field", () => {
     // here. required … edit text"), and its full stop ends the sentence, so the label is asked for with
     // the description, and the role with the required state. On a second visit it read the placeholder
     // instead of the description (run 43852622500): the first is the one that counts. Untouched, the
-    // field is not invalid: WebKit read an empty required input's native invalidity (run 43857057791).
-    await heard(sr, () => email.focus(), (phrase) => inOneSentence(phrase, /\bemail\b/i, /\bwe send the shopping list here\b/i) && inOneSentence(phrase, /\b(edit|text field)\b/i, REQUIRED, VALID), '"Email", its description, edit text, required, and not invalid before anything is typed');
+    // field is not invalid: WebKit read an empty required input's native invalidity (run 43857057791). VoiceOver on
+    // macOS 26 names the role of an email input "email field" (run 43960490168).
+    await heard(sr, () => email.focus(), (phrase) => inOneSentence(phrase, /\bemail\b/i, /\bwe send the shopping list here\b/i) && inOneSentence(phrase, /\b(edit|text field|email field)\b/i, REQUIRED, VALID), '"Email", its description, edit text, required, and not invalid before anything is typed');
   });
 });
 
