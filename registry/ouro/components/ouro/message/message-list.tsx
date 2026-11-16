@@ -1472,7 +1472,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // When no message shows, what a child draws that holds none (a day's heading) holds the place: it may be all the view
       // shows, as when it is revealed in a windowed list, with the messages around it not drawn yet.
       // An anchor is never wholly above the view (those that reach into it are the ones taken), so it shows when it starts above the view's end.
-      // Stryker disable next-line EqualityOperator: a message whose edge meets the view's to the pixel shows none of itself either way.
+      // Stryker disable next-line EqualityOperator,MethodExpression: a message whose edge meets the view's to the pixel shows none of itself either way; and where some anchors show, looking again with the children that hold no message finds those same messages showing, which hold the place alike.
       if (!anchors.some(({ node }) => boxOf(node).top < view.bottom)) anchors = find(itemsAndChildren(content));
       end = farthest();
       taken = scroller.scrollTop;
