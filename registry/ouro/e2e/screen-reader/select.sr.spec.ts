@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
-import { inOneSentence } from "./phrases";
-import { describesFocus, heard, said, saysValue, startReading, test } from "./screen-reader";
+import { inOneSentence, saysValue } from "./phrases";
+import { describesFocus, heard, said, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.use({ storyId: storyIds.select });
@@ -18,10 +18,10 @@ test("Select is announced with its label, role and state, and its new value when
   await list.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
   await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bmain\b/i), '"Main", the next option');
   await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bside\b/i), '"Side", the option after it');
-  // VoiceOver says the value clipped, as the list closes and on request (ourostack/ouro-ui#113),
-  // so the value is read from the focused control, as a person checks it.
+  // The value is read from the focused control, as a person checks it, and must be whole: VoiceOver
+  // clipped it while the trigger was a <button role="combobox"> (ourostack/ouro-ui#113).
   await said(sr, () => page.keyboard.press("Enter"), "as the list closes");
   await expect(course).toHaveText("Side");
   await expect(page.getByRole("listbox")).toBeHidden();
-  await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bcourse\b/i, (sentence) => saysValue(sr, sentence, "Side", "Course")), '"Course" with "Side", the chosen value');
+  await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bcourse\b/i, (sentence) => saysValue(sentence, "Side")), '"Course" with "Side", the chosen value');
 });

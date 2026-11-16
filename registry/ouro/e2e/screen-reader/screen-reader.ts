@@ -3,7 +3,7 @@ import { test as base, expect, type BrowserContext, type BrowserContextOptions, 
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
-import { firstMatch, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, saysValue as valueSaid, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -363,13 +363,6 @@ export async function describesFocus(sr: ScreenReader, matches: (phrase: string)
     }
   }
   throw new Error(`[sr] no utterance matched ${what}; heard: ${phrases.map((phrase) => `"${phrase}"`).join(" | ") || "nothing"}`);
-}
-
-/** Whether `sentence` gives the combo box's value, as this screen reader says it (phrases.ts, ourostack/ouro-ui#113). */
-export function saysValue(sr: ScreenReader, sentence: string, value: string, label: string): boolean {
-  const said = valueSaid(sentence, value, label, isVoiceOver(sr));
-  if (said && !new RegExp(`\\b${value}\\b`, "i").test(sentence)) console.log(`[sr] finding (ourostack/ouro-ui#113): VoiceOver read the value "${value}" as "${value.slice(0, -3)}"`);
-  return said;
 }
 
 /** A locator's accessible name, from its ARIA snapshot (`- checkbox "Rolled oats"`). */

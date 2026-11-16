@@ -88,14 +88,13 @@ export const RADIO_CHECKED = (sentence: string): boolean => CHECKED(sentence) ||
 export const CHECKBOX = /\bcheck ?box\b/i;
 
 /**
- * Whether a sentence gives a combo box's value. NVDA says it whole. VoiceOver with WebKit says a
- * combo box's value without its last three characters (", Choose a cou Course list box pop up",
- * ", S Course list box pop up" for "Side") in every run, while it reads the options whole
- * (ourostack/ouro-ui#113): that form counts too, on VoiceOver only, right before the label.
+ * Whether a sentence gives a combo box's value, whole. VoiceOver once said Select's value without its
+ * last three characters (", S Course list box pop up" for "Side"), a WebKit bug with a
+ * `<button role="combobox">` (ourostack/ouro-ui#113); Select's trigger is a div now, and that form
+ * does not count.
  */
-export function saysValue(sentence: string, value: string, label: string, voiceOver: boolean): boolean {
-  if (new RegExp(`\\b${escape(value)}\\b`, "i").test(sentence)) return true;
-  return voiceOver && value.length > 3 && sentence.toLowerCase().includes(`, ${value.slice(0, -3)} ${label}`.toLowerCase());
+export function saysValue(sentence: string, value: string): boolean {
+  return new RegExp(`\\b${escape(value)}\\b`, "i").test(sentence);
 }
 
 /** How screen-reader.ts's VoiceOver watcher marks each phrase it logs. */

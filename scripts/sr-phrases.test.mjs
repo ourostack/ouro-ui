@@ -116,12 +116,11 @@ test("the dialog's title and role, the select's label, role and state, the optio
   assert.equal(inOneSentence("Recipe saved Find it in your cookbook.. Notifications", /\brecipe saved\b/i), true);
 });
 
-test("a combo box's value is said whole, or on VoiceOver clipped by its last three characters (ourostack/ouro-ui#113)", () => {
-  const chosen = (phrase, voiceOver) => inOneSentence(phrase, (sentence) => /\bcourse\b/i.test(sentence) && saysValue(sentence, "Side", "Course", voiceOver));
-  assert.equal(chosen("Course, combo box, Side, focused, collapsed, opens list", false), true);
-  assert.equal(chosen(", S Course list box pop up collapsed combo box has keyboard focus Insertion at beginning of text.", true), true);
-  assert.equal(chosen(", S Course list box pop up collapsed combo box", false), false);
-  assert.equal(chosen(", M Course list box pop up collapsed combo box", true), false);
+test("a combo box's value counts only whole, not clipped as VoiceOver read a button combobox's (ourostack/ouro-ui#113)", () => {
+  const chosen = (phrase) => inOneSentence(phrase, (sentence) => /\bcourse\b/i.test(sentence) && saysValue(sentence, "Side"));
+  assert.equal(chosen("Course, combo box, Side, focused, collapsed, opens list"), true);
+  assert.equal(chosen("Side Course list box pop up collapsed combo box has keyboard focus Insertion at beginning of text."), true);
+  assert.equal(chosen(", S Course list box pop up collapsed combo box has keyboard focus Insertion at beginning of text."), false);
 });
 
 test("every spec's matcher goes through inOneSentence, and the lane counts only speech", () => {

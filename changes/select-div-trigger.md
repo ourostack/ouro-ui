@@ -1,0 +1,1 @@
+- Select: its trigger is a [`<div role="combobox">`](registry/ouro/components/ouro/select/select.tsx "verify:fileLine(registry/ouro/components/ouro/select/select.tsx, /render=\{<div \/>\}/)"), not a `<button>`, so VoiceOver reads its whole value; on a button it dropped the last three characters, a WebKit bug (ourostack/ouro-ui#113).
