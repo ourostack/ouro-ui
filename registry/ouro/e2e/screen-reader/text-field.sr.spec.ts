@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { inOneSentence, INVALID, nameAndRole, REQUIRED, VALID } from "./phrases";
-import { describesFocus, heard, heardOrDescribed, startReading, test } from "./screen-reader";
+import { describesFocus, heard, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.describe("a described, required field", () => {
@@ -30,11 +30,9 @@ test.describe("an error after a submit", () => {
       await page.keyboard.press("Enter");
       await expect(name).toBeFocused();
     };
-    // The error's full stop ends VoiceOver's sentence before the state ("Pasta Name You already have a
-    // recipe called Pasta. required invalid data edit text", run 43854914522), as the description does.
-    // VoiceOver often reads only the value as focus moves (ourostack/ouro-ui#1720): it is then asked to
-    // describe the field, which must name its error and invalid state.
-    await heardOrDescribed(sr, submit, (phrase) => inOneSentence(phrase, /\byou already have a recipe called pasta\b/i), (phrase) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID), '"You already have a recipe called Pasta.", the error, as focus moves to Name', { finding: "ourostack/ouro-ui#1720" });
+    // Form's alert says what went wrong as the submit's answer arrives, whichever reader: VoiceOver
+    // often read only the focused field's value ("Pasta.") and never its error (ourostack/ouro-ui#1720).
+    await heard(sr, submit, (phrase) => inOneSentence(phrase, /\bcouldn't save\b/i, /\b1 problem\b/i) && /\byou already have a recipe called pasta\b/i.test(phrase), '"Couldn\'t save: 1 problem. Name: You already have a recipe called Pasta.", the alert');
     await expect(name).toHaveAttribute("aria-invalid", "true");
     await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID), '"Name", its error, invalid, the focused field');
   });
