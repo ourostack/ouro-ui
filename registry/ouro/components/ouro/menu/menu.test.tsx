@@ -662,6 +662,8 @@ describe("Menu items", () => {
       }
       await settled();
       await expect.poll(() => menus().length).toBe(1);
+      // A keyboard-opened menu hands focus back to its first item a few frames on; wait for that, so the focus on Share stays.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)))));
       page.getByRole("menuitem", { name: "Share" }).element().focus();
       await userEvent.keyboard("{ArrowRight}");
       await expect.poll(() => menus().length).toBe(2);
