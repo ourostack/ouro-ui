@@ -116,6 +116,14 @@ const inTextFocus =
   "in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:focus-visible:decoration-2";
 const inlineFocus = "focus-visible:outline-transparent focus-visible:decoration-ring focus-visible:decoration-2";
 
+// An icon of the app's own (a back arrow) stays on its text's line, a little apart: the base styles make an svg a
+// block, which a link laid out as a block (in a column) puts on a line of its own. The rules sit in a nested layer, so
+// the app's own display class still wins; the external icon, inline in running text, is left out.
+const withIcon =
+  "[@layer_ouro-reset]:has-[>svg:not([data-ouro-external])]:inline-flex " +
+  "[@layer_ouro-reset]:has-[>svg:not([data-ouro-external])]:items-center " +
+  "[@layer_ouro-reset]:has-[>svg:not([data-ouro-external])]:gap-1.5";
+
 const tones = {
   primary: "text-primary",
   secondary: "text-foreground",
@@ -167,6 +175,9 @@ function linkHint(token: string): string {
  * Keyboard focus draws an outline around a link that stands alone. In running text it thickens
  * the underline in the ring's colour instead, since an outline would cover the next character.
  *
+ * An icon you put in the link (a back arrow before "Recipes") stays on its text's line, a little
+ * apart, wherever the link is laid out; mark it `aria-hidden` so the link's name is its text.
+ *
  * @group Text
  * @see https://ui.ouroboros.bot/docs/link
  *
@@ -180,6 +191,7 @@ function linkHint(token: string): string {
  * @claim "On a touch screen a link" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link with a mouse > is as tall as its text with a fine pointer, standing alone or in a sentence)
  * @claim "On a touch screen a link" registry/ouro/components/ouro/link/link.touch.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.touch.test.tsx::gives a link on its own line a 44px box, centred on its text)
  * @claim "Keyboard focus draws an outline" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link > marks keyboard focus in running text with a thick underline in the ring's colour, not an outline drawn over the next character)
+ * @claim "An icon you put in the" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link > keeps an icon of the app's own on its text's line, a little apart, wherever the link is laid out)
  * @claim "With a mouse every link is" registry/ouro/components/ouro/link/link.test.tsx verify:testExists(registry/ouro/components/ouro/link/link.test.tsx::Link with a mouse > is as tall as its text with a fine pointer, standing alone or in a sentence)
  */
 export function Link(props: LinkProps): JSX.Element {
@@ -250,13 +262,14 @@ export function Link(props: LinkProps): JSX.Element {
       data-inline={inlineProp ? "" : undefined}
       {...(current ? { "aria-current": current } : {})}
       data-current={marked ? "" : undefined}
-      className={cn(base, inlineProp === undefined ? [standalone, inTextFocus] : inlineProp ? inlineFocus : alwaysStandalone, tones[tone], currentClass, className)}
+      className={cn(base, withIcon, inlineProp === undefined ? [standalone, inTextFocus] : inlineProp ? inlineFocus : alwaysStandalone, tones[tone], currentClass, className)}
     >
       {children}
       {external && (
         <>
           <svg
             aria-hidden="true"
+            data-ouro-external=""
             viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
