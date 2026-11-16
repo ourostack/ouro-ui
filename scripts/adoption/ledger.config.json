@@ -325,6 +325,13 @@
           "from": "lock",
           "file": "upstream-sources.lock.json",
           "source": "ourostack-ouro-ui-ax"
+        },
+        {
+          "label": "Ouro HX (mailbox UI)",
+          "latest": "web",
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
         }
       ],
       "hx": {
