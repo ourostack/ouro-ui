@@ -203,7 +203,8 @@ test("checkSafety accepts an executable stub inside the home or the repository, 
   const plain = join(home, "bin", "not-executable");
   writeFileSync(plain, "data");
   chmodSync(plain, 0o644);
-  assert.match((await names({ env: { M365CRAWL_WORKIQ_BIN: plain } }, true))[0]!, /^stub: .* is not executable/);
+  assert.deepEqual(await names({ mock: `${mockUrl}/ mock=true`, env: { TOOL_CONFIG: plain } }, false), []);
+  assert.equal((await checkSafety(base({ mock: undefined, env: { M365CRAWL_WORKIQ_BIN: stub } }), false)).ok, false);
   assert.match((await names({ env: { M365CRAWL_WORKIQ_BIN: "/no/such/stub" } }, true))[0]!, /^loopback: no address to check/);
 });
 

@@ -437,10 +437,12 @@ const at = (value: unknown, path: string): unknown => path.split(".").reduce<unk
  *
  * @claim "may call what other people see" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock)
  */
-/** Whether a stub is an executable file inside the X-ray's home or the repository (the working folder), never elsewhere. */
-const isFileSync = (path: string): boolean => {
+/** Whether a path is an existing executable file: the only kind of --env value the X-ray takes as a stub. */
+const isExecutableFileSync = (path: string): boolean => {
   try {
-    return statSync(path).isFile();
+    if (!statSync(path).isFile()) return false;
+    accessSync(path, constants.X_OK);
+    return true;
   } catch {
     return false;
   }
@@ -477,8 +479,9 @@ async function checkSafety(opts: XrayOptions, guardPassed: boolean): Promise<Saf
   const [mockUrl, mockExpect] = opts.mock ? splitCommand(opts.mock) : [];
   const urls = [opts.http, mockUrl, ...Object.values(opts.env).filter((v) => /^https?:\/\//i.test(v))].filter((u): u is string => typeof u === "string" && u !== "");
   const far = urls.filter((u) => !isLoopback(u));
-  // A stub is an --env value naming an existing file: a program the CLI is pointed at instead of the real service.
-  const stubs = Object.values(opts.env).filter((v) => isAbsolute(v) && isFileSync(v));
+  // A stub is an --env value naming an executable file: a program the CLI is pointed at instead of the real service.
+  // Other files (a config or data path) are not stubs and are ignored.
+  const stubs = Object.values(opts.env).filter((v) => isAbsolute(v) && isExecutableFileSync(v));
   const roots = [opts.home, process.cwd()].filter((r): r is string => typeof r === "string" && r !== "").map((r) => resolve(r));
   const stubProblems = stubs.map((s) => stubProblem(s, roots)).filter((p): p is string => p !== null);
   if (stubs.length) checks.push({ name: "stub", ok: stubProblems.length === 0, note: stubProblems.length ? stubProblems.join("; ") : `${stubs.length} stub${stubs.length === 1 ? "" : "s"} inside the home or the repository` });
