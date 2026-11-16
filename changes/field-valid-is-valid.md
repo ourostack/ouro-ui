@@ -1,0 +1,1 @@
+- Field, TextField, TextArea and the other Field-wired controls: a control without an error now has aria-invalid="false", so Safari with VoiceOver no longer reads an empty required field as invalid before anyone types.
