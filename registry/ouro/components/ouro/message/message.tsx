@@ -908,8 +908,9 @@ export function Message(props: MessageProps): JSX.Element {
   const filled = shape === "chat" && bubble === "filled";
   const ownColors = filled ? (mine ? bubbleColors : mutedColors) : undefined;
   const surfaceColors = filled ? (mine ? filledColors : mutedInk) : undefined;
-  // A bar beside the bubble measures the message's width (100cqw), so the message is a container.
-  const containerStyle = hasBar && beside !== undefined ? { containerType: "inline-size" as const } : undefined;
+  // A bar beside the bubble measures the message's width (100cqw), so the message is a container. In a MessageList the
+  // list makes it one only while its bar is on it.
+  const containerStyle = hasBar && !layered && beside !== undefined ? { containerType: "inline-size" as const } : undefined;
   const articleStyle = { ...rest.style, ...ownColors, ...containerStyle };
   const titled = post && subject !== undefined && subject !== null;
   // A message of pictures or files alone draws no empty bubble above them.
