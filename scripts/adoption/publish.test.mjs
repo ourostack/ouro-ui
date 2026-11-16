@@ -52,3 +52,17 @@ esac
   assert.match(sent.message, /^Ledger \d{4}-\d{2}-\d{2}T\d{2}:\d{2}Z$/);
   assert.deepEqual(JSON.parse(Buffer.from(sent.content, "base64").toString("utf8")), ledger);
 });
+
+test("the hourly run rebuilds the site after it publishes, so /adoption/ opens on that hour's ledger", () => {
+  const dir = scratchDir("adoption-pages-");
+  writeFileSync(join(dir, "gh"), `#!/usr/bin/env bash\necho "$*" >> "${dir}/calls"\n`);
+  chmodSync(join(dir, "gh"), 0o755);
+  execFileSync("bash", ["-c", stepScript("Rebuild the site with this hour's ledger")], {
+    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, REPO: "ourostack/ouro-ui", GH_TOKEN: "x" },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  assert.equal(readFileSync(join(dir, "calls"), "utf8").trim(), "workflow run pages.yml --repo ourostack/ouro-ui --ref main");
+  const steps = [...workflow.matchAll(/- name: (.+)/g)].map((match) => match[1]);
+  assert.ok(steps.indexOf("Rebuild the site with this hour's ledger") > steps.indexOf("Publish to the adoption-data branch"), "it rebuilds after it publishes");
+  assert.match(workflow, /actions: write # to rebuild the site/);
+});
