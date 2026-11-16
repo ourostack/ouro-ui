@@ -4,8 +4,8 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { rmSync, writeFileSync } from "node:fs";
+import { scratchDir } from "../scratch.mjs";
 import { join } from "node:path";
 
 const NOW = new Date("2026-11-13T22:00:00Z");
@@ -352,7 +352,7 @@ test("the benchmark cell counts the published runs as the benchmark's page does:
 });
 
 test("an app's X-ray and its action claims report add up, the newest report of each checker counting once", () => {
-  const dir = mkdtempSync(join(tmpdir(), "ledger-xray-"));
+  const dir = scratchDir("ledger-xray-");
   try {
     const zipOf = (report) => {
       writeFileSync(join(dir, "report.json"), JSON.stringify(report));
