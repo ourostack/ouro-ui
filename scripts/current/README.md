@@ -20,13 +20,15 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
 
 [`.github/workflows/ouro-current.yml`](../../.github/workflows/ouro-current.yml) runs on a release here, and twice an hour for core and Apple releases. It signs in as the app (a JWT from the private key in `OURO_CURRENT_PRIVATE_KEY`, the app ID in `OURO_CURRENT_APP_ID`), takes a short-lived token for each installation, and keeps every repository that installation can see.[^jwt] A failed GitHub request is tried again.[^retry] A repository that still fails is reported while the others go on, and the run opens or comments on one issue, "Ouro Current could not update a repository", which it closes after a clean run.[^failure]
 
-The list of who it keeps current is `current.json` on the `adoption-data` branch.
+The list of who it keeps current is `current.json` on the `adoption-data` branch. For a repository the app is not installed on yet, `--with-token` opens the same pull request with your own token.[^with-token]
 
 ```sh
 node --test scripts/current/current.test.mjs                                   # the tests, with GitHub faked
 GH_TOKEN=$(gh auth token) node scripts/current/current.mjs --dry-run --only owner/repo   # what it would change; writes nothing
+GH_TOKEN=$(gh auth token) node scripts/current/current.mjs --with-token --only owner/repo   # the same pull request, opened with your token
 ```
 
+[^with-token]: test:scripts/current/current.test.mjs::--with-token opens the update with GH_TOKEN, only for the repositories named verify:testExists(scripts/current/current.test.mjs::--with-token opens the update with GH_TOKEN, only for the repositories named)
 [^find]: test:scripts/current/current.test.mjs::pins are found by file name in every format Ouro UI is taken in verify:testExists(scripts/current/current.test.mjs::pins are found by file name in every format Ouro UI is taken in)
 [^versions]: test:scripts/current/current.test.mjs::version pins move to the release, written the way the file writes them verify:testExists(scripts/current/current.test.mjs::version pins move to the release, written the way the file writes them)
 [^hx]: test:scripts/current/current.test.mjs::Ouro HX takes the new tag's source as the CLI would write it, adds files its items gained, and leaves an edited file alone verify:testExists(scripts/current/current.test.mjs::Ouro HX takes the new tag's source as the CLI would write it, adds files its items gained, and leaves an edited file alone)

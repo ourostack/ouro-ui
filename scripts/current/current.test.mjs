@@ -4,7 +4,7 @@ import { createHash, createVerify, generateKeyPairSync } from "node:crypto";
 import { test } from "node:test";
 import { gzipSync } from "node:zlib";
 import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-check.mjs";
-import { BRANCH, body, keepCurrent, keepRepo, publicView, title } from "./current.mjs";
+import { BRANCH, body, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
 import { UPDATERS, findPins, isBehind, isCandidate } from "./pins.mjs";
 import { readTarball } from "./tar.mjs";
@@ -376,4 +376,10 @@ test("the pull request's title and body pass Ouro UI's claims check, which a rep
   const notes = ["Leaves `app/lib/x.ts` at `v1.3.117`, because it is not what the CLI wrote for `v1.3.117` (edited here, or rewritten in a way Ouro Current does not reproduce). Install it again with the CLI, or move the change into Ouro UI.", "Adds what installed items now include: `app/lib/y.ts`.", "Keeps what the registry no longer has: `app/lib/z.ts`."];
   assert.deepEqual(lintPlain(title(behind, releases), { file: "pull request title" }), []);
   assert.deepEqual(lintMarkdown(body(behind, releases, notes), { file: "pull request body" }), []);
+});
+
+test("--with-token opens the update with GH_TOKEN, only for the repositories named", async () => {
+  await assert.rejects(main(["--with-token"], {}), /--with-token needs --only/);
+  await assert.rejects(main(["--with-token", "--only", "org/app", "--dry-run"], { GH_TOKEN: "t" }), /is not --dry-run/);
+  await assert.rejects(main(["--with-token", "--only", "org/app"], {}), /--with-token needs GH_TOKEN/);
 });
