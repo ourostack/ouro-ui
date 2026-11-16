@@ -396,7 +396,10 @@ function ToastList({ closeLabel }: { closeLabel: string }): JSX.Element {
       {toasts.map((item) => (
         <ToastItem key={item.id} item={item} closeLabel={closeLabel} />
       ))}
-      {toasts.length > 0 && <FocusClear toasts={toasts} />}
+      {
+        // Stryker disable next-line ConditionalExpression,EqualityOperator: with no toasts the keeper measures nothing and moves nothing; the check only spares its listeners while none show.
+        toasts.length > 0 && <FocusClear toasts={toasts} />
+      }
     </>
   );
 }
