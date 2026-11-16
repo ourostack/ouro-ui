@@ -1073,7 +1073,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // A page of older messages that comes at once goes in a chunk a frame, those nearest the reader first: each frame's
   // work stays short, and the reader's place is kept as each chunk goes in. A few go in at once.
-  const all = Children.toArray(children);
+  // Read again only when the app hands in new children, not on the list's own renders as it measures and places them.
+  const all = useMemo(() => Children.toArray(children), [children]);
   const top = keyOf(all[0]);
   // Above WINDOW_ABOVE children, only the messages near the view draw; see "The window" below.
   const windowed = windowing && all.length > WINDOW_ABOVE;
@@ -1086,7 +1087,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
   if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
   const shown = windowed ? all : all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
-  const keys = all.map((child, index) => String(keyOf(child) ?? index));
+  const keys = useMemo(() => all.map((child, index) => String(keyOf(child) ?? index)), [all]);
 
   // The window: which children draw, and the space kept for the others. Each child sits in a slot of its own that draws
   // no box, so the list's spacing and the continued messages' margins work as without one.
@@ -1124,8 +1125,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [waitingKeys, setWaitingKeys] = useState("");
   // The key of the child focus was last in, kept drawn so focus stays as the reader scrolls away.
   const [focusKey, setFocusKey] = useState<string | null>(null);
-  const estimate = measured.estimate;
-  const sizeOf = (index: number) => measured.heights.get(keys[index]!) ?? cache.get(`${keys[index]!}\0${measured.bucket}`) ?? estimate;
+  // Each child's height, read again only when the children or the heights measured change: the window reads every child's on
+  // every scroll, and a cached height's key is text built from the child's key and the width.
+  const sizes = useMemo(() => keys.map((key) => measured.heights.get(key) ?? cache.get(`${key}\0${measured.bucket}`) ?? measured.estimate), [keys, measured, cache]);
+  const sizeOf = (index: number) => sizes[index]!;
   // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
   const indexes = useIndexByKey(keys);
   // How much the first draw takes before the view is measured: in server HTML and as it hydrates, FIRST_VIEW, so the two
@@ -1196,7 +1199,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   });
   // The newest always draws, so no run is left after it.
   // What the window's effects read: the latest render's.
-  const view = { windowed, all, keys, measured, band, reach, sizeOf };
+  const view = { windowed, all, keys, indexes, measured, band, reach, sizeOf };
   const viewRef = useRef(view);
   useLayoutEffect(() => {
     viewRef.current = view;
@@ -1786,7 +1789,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       springsRef.current?.moved(scroller.scrollTop - before);
     };
     windowSync.current = (scrolled) => {
-      const { windowed, keys, measured, band, reach, sizeOf } = viewRef.current;
+      const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
       // A list inside a hidden panel draws nothing to measure or place; it does once it shows, and resizes.
       if (windowed && content.getClientRects().length === 0) return;
       if (windowed && !scrolled) {
@@ -1871,7 +1874,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const over = wide.current ? Math.max(OVERSCAN, scroller.clientHeight) : 0;
       // Stryker disable next-line ConditionalExpression: widening a list already wide only draws the same band again, a frame later.
       if (!wide.current) widen();
-      const indexes = new Map(keys.map((key, index) => [key, index]));
       const placed = tops.current.entries().next().value;
       // Every child drawn draws nothing (the app hid them all): nothing to place by, until one draws.
       /* istanbul ignore if @preserve -- the newest message always draws; this only keeps a list whose messages are all hidden from drawing every child */
@@ -1879,13 +1881,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (placed === undefined) return;
       const near = indexes.get(placed[0])!;
       const nearTop = placed[1].top;
-      const sizeAt = (index: number) => tops.current.get(keys[index]!)?.size ?? sizeOf(index);
-      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
-      const extent = (index: number) => sizeAt(index) + (index > 0 && sizeAt(index) > 0 ? measured.gap : 0);
+      // Each child's height with the gap before it, read once for the walks below: on every scroll, for every child.
+      const extents = keys.map((key, index) => {
+        const size = tops.current.get(key)?.size ?? sizeOf(index);
+        // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.
+        return size + (index > 0 && size > 0 ? measured.gap : 0);
+      });
+      const extent = (index: number) => extents[index]!;
       let sum = 0;
-      const sums = keys.map((_, index) => {
+      const sums = extents.map((each) => {
         const at = sum;
-        sum += extent(index);
+        sum += each;
         return at;
       });
       // Stryker disable next-line ConditionalExpression,EqualityOperator: a gap more or less moves the band's edges by the gap, against an overscan fifty times it.

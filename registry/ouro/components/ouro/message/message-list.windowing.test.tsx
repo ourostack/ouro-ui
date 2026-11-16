@@ -1,4 +1,4 @@
-import { Fragment, createRef, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
+import { Fragment, Profiler, createRef, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -1178,6 +1178,34 @@ describe("MessageList windowing", () => {
     );
     // A row is 80px and the gap 16px: the 400px view the first list measured, filled.
     expect(first).toBeGreaterThanOrEqual(Math.floor(400 / 96));
+  });
+
+  it("reads each cached height once a render at most, and none on a scroll, so a long conversation's window costs little to find", async () => {
+    const count = 1000;
+    let reads = 0;
+    let renders = 0;
+    class Counted extends Map<string, number> {
+      override get(key: string) {
+        reads++;
+        return super.get(key);
+      }
+    }
+    const cache = new Counted();
+    const { scroller } = await render(
+      <Profiler id="list" onRender={() => void renders++}>
+        <MessageList label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+          {conversation(count).map((item) => (
+            <Message key={item.id} id={`m${item.id}`} role={item.id % 2 ? "assistant" : "user"} name={item.id % 2 ? "Ouro" : "Ana"}>
+              {item.text}
+            </Message>
+          ))}
+        </MessageList>
+      </Profiler>,
+    );
+    reads = 0;
+    renders = 0;
+    for (let step = 1; step <= 5; step++) await scrollTo(scroller, scroller.scrollTop - 4);
+    expect(reads).toBeLessThanOrEqual(renders * count);
   });
 
   it("keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was", async () => {
