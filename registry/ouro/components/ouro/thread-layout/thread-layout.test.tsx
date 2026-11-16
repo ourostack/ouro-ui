@@ -2,6 +2,8 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ThreadLayout, type ThreadLayoutProps } from "@/registry/ouro/components/ouro/thread-layout/thread-layout";
+import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -174,6 +176,32 @@ describe("ThreadLayout", () => {
     const pane = host.querySelector<HTMLElement>('[role="region"][aria-label="Design reviews"]')!;
     expect(document.activeElement).toBe(pane);
     expect(pane.contains(host.querySelector("button"))).toBe(true);
+  });
+
+  it.each([
+    ["one inside a message", <MessageList key="list" label="Messages"><Message role="user" name="Ana"><h3>Agenda</h3></Message></MessageList>],
+    ["a hidden one", <h2 key="hidden" hidden>Design reviews</h2>],
+    ["a hidden one with a tabindex of its own", <h2 key="own" hidden tabIndex={0}>Design reviews</h2>],
+  ])("moves focus to the pane, not to %s, when a thread closes that nothing opened", async (_, conversation) => {
+    const rail = (open: boolean) => (open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null);
+    const { host, rerender } = await render(<ThreadLayout conversation={conversation} thread={rail(true)} />, 640);
+    await rerender(<ThreadLayout conversation={conversation} thread={rail(false)} />);
+    expect(document.activeElement).toBe(host.querySelector('[role="region"][aria-label="Conversation pane"]'));
+    // The heading keeps the tabindex it had, or none.
+    expect(host.querySelector("h2, h3")!.getAttribute("tabindex")).toBe(_.includes("of its own") ? "0" : null);
+  });
+
+  it("moves focus to the conversation's heading without scrolling the page to it", async () => {
+    const title = <h2>Design reviews</h2>;
+    const rail = (open: boolean) => (open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null);
+    // A layout taller than the box that scrolls it, scrolled past the conversation's top.
+    const { host, rerender } = await render(<ThreadLayout conversation={title} thread={rail(true)} className="h-[2000px]" />, 640);
+    host.style.height = "200px";
+    host.style.overflow = "auto";
+    host.scrollTop = 1000;
+    await rerender(<ThreadLayout conversation={title} thread={rail(false)} className="h-[2000px]" />);
+    expect(document.activeElement).toBe(host.querySelector("h2"));
+    expect(host.scrollTop).toBe(1000);
   });
 
   it("keeps a heading's own tabindex when it moves focus to it", async () => {

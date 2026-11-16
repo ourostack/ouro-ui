@@ -19,10 +19,10 @@ export interface ThreadLayoutProps {
   thread?: ReactNode | undefined;
   /**
    * The conversation pane's name, which a screen reader hears when focus comes to the pane: when a thread closes that
-   * no control in the conversation opened and the conversation has no heading to take focus. Translate it with the rest
-   * of your interface.
+   * no control in the conversation opened and the conversation has no heading to take focus. Name it apart from the
+   * MessageList inside it, which is a region too. Translate it with the rest of your interface.
    * @claim "The conversation pane's name, which a" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > moves focus to the conversation pane, named, when a thread closes that nothing opened and the conversation has no heading)
-   * @default "Conversation"
+   * @default "Conversation pane"
    */
   conversationLabel?: string | undefined;
   /** Layout only: the box's size and margins. Appearance classes warn in development; the colors come from the theme. */
@@ -59,7 +59,7 @@ export interface ThreadLayoutProps {
  * @claim "The widths follow the layout's own box, not the window" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > keeps the conversation mounted and its draft while a narrow box hides it)
  */
 export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
-  const { conversation, thread, conversationLabel = "Conversation", className, rail } = props;
+  const { conversation, thread, conversationLabel = "Conversation pane", className, rail } = props;
   // `Children.toArray` drops null, undefined and booleans, the nodes that render nothing.
   const open = Children.toArray(thread).length > 0;
 
@@ -96,11 +96,18 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
     if (!open && document.activeElement === document.body) lastFocused.current?.focus();
     const held = threadHeldFocus.current;
     threadHeldFocus.current = false;
-    if (!held || document.activeElement !== document.body) return;
-    const heading = pane.current!.querySelector<HTMLElement>("h1, h2, h3, h4, h5, h6");
-    if (heading === null) return pane.current!.focus();
-    if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
-    heading.focus();
+    if (open || !held || document.activeElement !== document.body) return;
+    // The conversation's own heading: not one inside a message, which would scroll the list away from the newest.
+    const heading = [...pane.current!.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6")].find((element) => element.closest('[data-ouro="message-list"], [data-ouro="message"]') === null);
+    if (heading !== undefined) {
+      const added = !heading.hasAttribute("tabindex");
+      if (added) heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+      // A heading that cannot take focus (hidden) is left as it was.
+      if (added && document.activeElement !== heading) heading.removeAttribute("tabindex");
+    }
+    // No heading, or one that cannot take focus: the pane itself.
+    if (document.activeElement !== heading) pane.current!.focus();
   }, [open]);
   const remember = (event: FocusEvent<HTMLElement>) => void (lastFocused.current = event.target);
 
