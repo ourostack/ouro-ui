@@ -52,7 +52,7 @@ Ari then signs the product off; the ledger only says whether the evidence is the
 
 ## The program section
 
-The steps come from the program issue's table and are recorded in `ledger.json` (`program.steps`), not drawn on the page. Ouro UI's own numbers are: the latest release of the Ouro UI repositories, the number of Ouro HX components in the registry, the merged pull requests across them, the pull requests the give-back column counted, and the benchmark and the model-reviews result, which are `null` ("not measured yet") until those steps produce one.
+The steps come from the program issue's table and are recorded in `ledger.json` (`program.steps`), not drawn on the page. Ouro UI's own numbers are: the latest release of the Ouro UI repositories, the number of Ouro HX components in the registry, the merged pull requests across them, the pull requests the give-back column counted, the benchmark, which is each interface's tasks done out of trials run in the agent interface benchmark's published runs on main, counted as its page counts them,[^benchmark-cell] and the model-reviews result, which is `null` ("not measured yet") until that step produces one.
 
 ## What cannot be measured here
 
@@ -72,3 +72,4 @@ The steps come from the program issue's table and are recorded in `ledger.json` 
 [^search-budget]: test:scripts/adoption/ledger.test.mjs::code search stops waiting once its time budget is spent, so the hourly run finishes verify:testExists(scripts/adoption/ledger.test.mjs::code search stops waiting once its time budget is spent, so the hourly run finishes)
 [^late]: test:scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more verify:testExists(scripts/adoption/ledger.test.mjs::the summary adds up the releases products are behind, and names each product a day late or more)
 [^late-issue]: .github/workflows/adoption-ledger.yml verify:fileLine(.github/workflows/adoption-ledger.yml, /Products are more than a day behind Ouro UI/)
+[^benchmark-cell]: test:scripts/adoption/ledger.test.mjs::the benchmark cell counts the published runs as the benchmark's page does: the latest run per model, interface and task verify:testExists(scripts/adoption/ledger.test.mjs::the benchmark cell counts the published runs as the benchmark's page does: the latest run per model, interface and task)
