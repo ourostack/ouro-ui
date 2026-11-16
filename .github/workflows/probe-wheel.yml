@@ -11,14 +11,22 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
       options: --user 1001
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [main, fix]
+    name: probe (${{ matrix.variant }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - if: matrix.variant == 'main'
+        run: git checkout origin/main -- registry/ouro/components/ouro/message/message-list.tsx
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
-      - run: pnpm exec playwright test -c probe/pw.config.ts --workers 2 2>&1 | grep -E "PROBE|passed|failed"
+      - run: pnpm test:e2e registry/ouro/e2e/ouro/message-list.spec.ts --project webkit -g "wheel scrolls the messages and moves none|spring as the wheel scrolls" --repeat-each 20 --retries 0 --reporter line 2>&1 | grep -E "✘|[0-9]+ (passed|failed|flaky)" | tail -45 || true
