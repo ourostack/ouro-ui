@@ -20,10 +20,11 @@
   }
   .adoption-layout {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: calc(var(--spacing) * 8);
     padding-block: calc(var(--spacing) * 8) calc(var(--spacing) * 16);
   }
-  @media (min-width: 1024px) {
+  @media (min-width: 64rem) {
     .adoption-layout {
       grid-template-columns: minmax(18rem, 21rem) minmax(0, 1fr);
       gap: calc(var(--spacing) * 12);
@@ -57,7 +58,7 @@
     background-color: var(--adoption-night);
     box-shadow: inset 0 0 0 6px color-mix(in oklab, var(--adoption-night-deep) 60%, transparent);
   }
-  @media (min-width: 1024px) {
+  @media (min-width: 64rem) {
     .adoption-ring {
       margin-inline: 0;
     }
@@ -245,7 +246,7 @@
     align-items: end;
     text-wrap: balance;
   }
-  @media (min-width: 640px) {
+  @media (min-width: 40rem) {
     .adoption {
       --adoption-col: 4rem;
     }
@@ -339,7 +340,7 @@
   .adoption-gap-key {
     color: var(--adoption-quiet);
   }
-  @media (min-width: 1280px) {
+  @media (min-width: 80rem) {
     .adoption-head {
       grid-template-columns: 11rem repeat(4, var(--adoption-col)) minmax(0, 1fr);
     }
@@ -354,6 +355,30 @@
     .adoption-members {
       grid-column: auto;
       margin: 0 0 0 calc(var(--spacing) * 4);
+    }
+  }
+  /* With large text on a phone the name and four columns cannot sit side by side: the name takes its own line, and the
+     columns share the row. 18rem is the name's least room and the four columns at a phone's width. */
+  .adoption-board {
+    container-type: inline-size;
+  }
+  @container (width < 18rem) {
+    .adoption-head,
+    .adoption-row,
+    .adoption-marks {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      column-gap: 0;
+    }
+    .adoption-head span:first-child {
+      display: none;
+    }
+    .adoption-head span {
+      overflow-wrap: anywhere;
+      hyphens: auto;
+    }
+    .adoption-name,
+    .adoption-marks {
+      grid-column: 1 / -1;
     }
   }
   .adoption-shared,
