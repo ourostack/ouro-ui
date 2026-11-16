@@ -59,6 +59,9 @@ describe("Command on a phone", () => {
     await userEvent.type(input(), "zz");
     await expect.poll(() => document.querySelectorAll('[role="option"]').length).toBe(0);
     expect(input().getBoundingClientRect().top).toBe(top);
+    // The empty state sits right under the search, above where the keyboard rises, not in the middle of the sheet.
+    const empty = document.querySelector("[data-ouro-command-empty]")!.getBoundingClientRect();
+    expect(empty.top - input().getBoundingClientRect().bottom).toBeLessThan(24);
   });
 
   it("scrolls the list with the search input pinned at the top", async () => {

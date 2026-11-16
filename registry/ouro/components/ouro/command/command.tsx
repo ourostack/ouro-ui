@@ -32,6 +32,7 @@ import {
 import {
   commandCloseClass,
   commandEmptyClass,
+  commandEmptyRoomClass,
   commandGroupLabelClass,
   commandInputClass,
   commandItemClass,
@@ -680,7 +681,7 @@ export function Command(props: CommandProps): JSX.Element {
         </div>
         <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
           {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
-          <Autocomplete.Empty>
+          <Autocomplete.Empty className={commandEmptyRoomClass}>
             <div data-ouro-command-empty="" className={commandEmptyClass}>
               {empty ?? emptyLabel}
               {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
