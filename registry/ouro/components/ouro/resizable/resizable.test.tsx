@@ -595,6 +595,26 @@ describe("Resizable handle (window splitter)", () => {
     expect(screen.panels[2]!.getBoundingClientRect().width).toBeGreaterThan(90);
   });
 
+  it("never snaps a panel below its minSize, when the pair cannot hold both minSizes", async () => {
+    const screen = await render(
+      <Resizable>
+        <ResizablePanel label="Draft" defaultSize={75}>
+          Draft
+        </ResizablePanel>
+        <ResizablePanel label="Notes" defaultSize={25} minSize={20}>
+          Notes
+        </ResizablePanel>
+        <ResizablePanel label="Files" defaultSize={0} minSize={10} collapsible>
+          Files
+        </ResizablePanel>
+      </Resizable>,
+    );
+    // Notes and Files share 25%: Notes at 15% would be under its minSize, and Files cannot open to 10% beside it. Nothing moves.
+    screen.handles[1]!.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(screen.handles[1]!.getAttribute("aria-valuenow")).toBe("25");
+  });
+
   it("closes the panel after a handle when a press grows the panel before it onto half its minSize", async () => {
     const screen = await render(
       <Resizable>
