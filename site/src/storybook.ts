@@ -85,13 +85,16 @@ export const SCENES: Record<SceneName, Scene> = {
     },
   },
   "ouroboros-skills": {
-    alt: "A little robot reads an unrolled scroll beside a bookshelf full of ribboned scrolls and books, while Ouro hands another scroll to a second robot.",
-    sky: ["#ebb7ae", "#f1c3a0", "#fcc4a8", "#fcda9d", "#fdeca2"],
+    alt: "In a bright kitchen on a sunny morning, a small blue robot in an apron reads a blank recipe card while a small apricot robot in a chef's cap whisks batter, and Ouro the green snake watches from a folded tea towel.",
+    sky: ["#937f64", "#cfbcaf", "#ceddda", "#d0cfc0", "#d3d7b2"],
     height: 576,
-    phoneHeight: 320,
+    phoneHeight: 576,
     band: 25,
     shortY: 8,
-    night: { phoneHeight: 320 },
+    night: {
+      phoneHeight: 576,
+      alt: "In a kitchen in the evening, under warm kitchen lights with a deep blue night sky in the windows, a small blue robot in an apron reads a blank recipe card while a small apricot robot in a chef's cap whisks batter, and Ouro the green snake watches from a folded tea towel.",
+    },
   },
   ourostack: {
     alt: "On a meadow hillside at dawn, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
