@@ -68,6 +68,7 @@ const componentFiles = [
   "registry/ouro/lib/ouro/toast.ts",
   "registry/ouro/lib/ouro/color-scheme.ts",
   "registry/ouro/lib/ouro/color-scheme-script.ts",
+  "registry/ouro/lib/ouro/hero-preload-script.ts",
   "registry/ouro/lib/ouro/use-timer.ts",
   "registry/ouro/lib/ouro/feedback.ts",
   "registry/ouro/lib/ouro/share.ts",

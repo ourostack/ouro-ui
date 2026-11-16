@@ -103,18 +103,24 @@ export interface HeroPicture {
  *
  * `priority` decides how the twin that shows loads. A twin without it is lazy, and a hidden lazy
  * image is never fetched. Give `priority` to the twin most of your visitors see, and it loads
- * straight from the HTML at high fetch priority while the other stays lazy. Give it to both when
- * the page preloads the art for its scheme: both wait in the HTML, and an inline script after them,
- * which runs once the page's CSS has loaded, loads the one that shows, so neither scheme downloads
- * both. A preload for the dark twin, which follows the system setting, is
- * `<link rel="preload" as="image" fetchpriority="high" media="(prefers-color-scheme: dark)" imagesrcset="/night-960.avif 960w, /night.avif 1920w" imagesizes="100vw">`,
- * with exactly the twin's `srcSet` and `sizes` (and a `type` for a `sources` format); a page that
- * stores the person's choice adds the link from the script in its `<head>` that applies the choice.
+ * straight from the HTML at high fetch priority while the other stays lazy. Give it to both to
+ * fetch the twin for the page's scheme once: add `heroPreloadScript` to the `<head>` right after
+ * `colorSchemeScript`, with the same `picture`, as
+ * `<script dangerouslySetInnerHTML={{ __html: colorSchemeScript() + heroPreloadScript({ light, dark }) }} />`.
+ * The HTML then holds neither twin's address. An inline script after the pictures copies the shown
+ * twin's address onto it, and the hidden twin stays empty until the page hydrates.
+ * Without JavaScript, both twins sit in a `<noscript>`, and the CSS shows the one for the page's scheme.
+ * A page that can't run inline scripts gets its picture from React after hydration.
  *
  * @claim "Hero shows `light`" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > shows the dark picture only while the page is in dark mode)
  * @claim "and a hidden lazy" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority)
  * @claim "and it loads" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > keeps a lone priority twin eager in the HTML and the other lazy, at high fetch priority)
- * @claim "loads the one that shows" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > loads the twin shown at first paint eagerly from server HTML, and leaves the hidden one lazy)
+ * @claim "fetch the twin for the page's scheme once" site/e2e/hero-preload.spec.ts verify:testExists(site/e2e/hero-preload.spec.ts::a hero whose twins both have priority > fetches the twin for the page's scheme once, for a stored dark choice with the system in light)
+ * @claim "The HTML then holds neither twin's address" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > holds neither twin's address in the HTML of a pair both priority, until the script copies the shown one's)
+ * @claim "copies the shown twin's address onto it" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > copies the shown twin's addresses onto it from server HTML, and leaves the hidden one empty)
+ * @claim "the hidden twin stays empty until the page hydrates" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > copies the shown twin's addresses onto it from server HTML, and leaves the hidden one empty)
+ * @claim "both twins sit in a `<noscript>`" site/e2e/hero-preload.spec.ts verify:testExists(site/e2e/hero-preload.spec.ts::a hero whose twins both have priority > without JavaScript, the noscript twins are the pictures shown, and each file loads once)
+ * @claim "A page that can't run inline" registry/ouro/components/ouro/hero/hero.test.tsx verify:testExists(registry/ouro/components/ouro/hero/hero.test.tsx::Hero > gives the shown twin its address after hydration where the page's scripts did not run)
  * @claim "redefines it, as the theming guide's" docs/guides/theming.md verify:fileLine(docs/guides/theming.md, /@custom-variant dark/)
  */
 export interface HeroPictures {
@@ -294,10 +300,12 @@ const layoutMedia: Record<HeroLayout, string> = {
 const schemeClass = { light: "dark:hidden", dark: "hidden dark:block" } as const;
 
 // Run as the parser reaches it, after the pictures and once the page's CSS has loaded: it marks the
-// frame `data-loaded` once the picture shown has loaded, and for urgent twins (`u`) it loads that
-// picture now, leaving the hidden one lazy, so it is never fetched.
-const firstPaintScript = (urgent: boolean) =>
-  `(function(s,u){var f=s.parentNode,p=f.children;for(var i=0;i<p.length;i++){var g=p[i].tagName==="PICTURE"&&getComputedStyle(p[i]).display!=="none"&&p[i].querySelector("img");if(g){if(u&&g.loading==="lazy")g.loading="eager";var d=function(){f.setAttribute("data-loaded","")};if(g.complete&&g.naturalWidth)d();else g.addEventListener("load",d)}}})(document.currentScript,${urgent ? 1 : 0})`;
+// frame `data-loaded` once the picture shown has loaded. For urgent twins (`u`) it loads that
+// picture now, leaving the hidden one lazy, so it is never fetched. For a deferred pair (`d`) the
+// HTML holds the addresses in `data-` attributes, and it copies the shown twin's onto its sources
+// and `<img>`, sources first, so the browser picks the same candidate the preload did.
+const firstPaintScript = (urgent: boolean, deferred?: boolean) =>
+  `(function(s,u,d){function c(e,a){var v=e.getAttribute("data-"+a);if(v!==null)e.setAttribute(a,v)}var f=s.parentNode,p=f.children;for(var i=0;i<p.length;i++){var g=p[i].tagName==="PICTURE"&&getComputedStyle(p[i]).display!=="none"&&p[i].querySelector("img");if(g){if(d){for(var j=0,q=p[i].querySelectorAll("source");j<q.length;j++)c(q[j],"srcset");c(g,"srcset");c(g,"src")}if(u&&g.loading==="lazy")g.loading="eager";var e2=function(){f.setAttribute("data-loaded","")};if(g.complete&&g.naturalWidth)e2();else g.addEventListener("load",e2)}}})(document.currentScript,${urgent ? 1 : 0},${deferred ? 1 : 0})`;
 
 /** Whether the picture holding this image is the one shown, rather than its twin for the other scheme. */
 const isShown = (image: HTMLImageElement) => getComputedStyle(image.parentElement!).display !== "none";
@@ -307,48 +315,68 @@ const noSubscription = () => () => {};
 const clientScriptType = () => "text/plain";
 const serverScriptType = () => undefined;
 
+// A deferred pair's server HTML, and hydration, hold no addresses; a client render has them.
+const clientHasAddresses = () => true;
+// Stryker disable next-line ArrowFunction: undefined reads as false, the same "no addresses yet".
+const serverHasAddresses = () => false;
+
 /**
  * The script, in the server's HTML only. A client render marks it as data, which React neither runs
  * nor warns about; hydration keeps the server's type until it has adopted the script, which has run.
  */
-function FirstPaintScript({ urgent }: { urgent: boolean }): JSX.Element {
+function FirstPaintScript({ urgent, deferred }: { urgent: boolean; deferred?: boolean }): JSX.Element {
   const type = useSyncExternalStore(noSubscription, clientScriptType, serverScriptType);
-  return <script type={type} dangerouslySetInnerHTML={{ __html: firstPaintScript(urgent) }} />;
+  return <script type={type} dangerouslySetInnerHTML={{ __html: firstPaintScript(urgent, deferred) }} />;
 }
 
 // The dark twin is the same scene as `day`, so it takes day's alt text, decorative flag and focus unless it has its own.
 // `eager` loads it straight from the HTML; `urgent` fetches it first once it loads, and lets the script flip it.
+// `deferred` is set on a twin of a pair both `priority`: `data` keeps its addresses in `data-` attributes for the
+// first-paint script to copy, and `live` renders them as a client render does. Such a twin is hidden without scripts.
 function renderPicture(
   picture: HeroPicture,
   crop: string | undefined,
   scheme: "light" | "dark" | undefined,
-  load: { eager: boolean; urgent: boolean; onLoad: (image: HTMLImageElement) => void },
+  load: { eager: boolean; urgent: boolean; onLoad: (image: HTMLImageElement) => void; deferred?: "data" | "live" | undefined },
   day?: HeroPicture,
 ): JSX.Element {
   const decorative = picture.decorative ?? day?.decorative;
+  const data = load.deferred === "data";
   return (
     <picture
       key={scheme}
       data-scheme={scheme}
       aria-hidden={decorative ? true : undefined}
-      className={cn("block", scheme && schemeClass[scheme])}
+      className={cn("block", scheme && schemeClass[scheme], load.deferred !== undefined && "[@media(scripting:none)]:hidden")}
     >
       {picture.sources?.map((source) => {
         // Stryker disable next-line LogicalOperator,StringLiteral: the key only keeps React's list stable; no output reads it.
         const key = `${source.type ?? ""}-${source.media ?? ""}-${source.srcSet}`;
-        return <source key={key} srcSet={source.srcSet} type={source.type} media={source.media} sizes={source.sizes} width={source.width} height={source.height} />;
+        const addresses = data ? { "data-srcset": source.srcSet } : { srcSet: source.srcSet };
+        return (
+          <source
+            key={key}
+            {...addresses}
+            type={source.type}
+            media={source.media}
+            sizes={source.sizes}
+            width={source.width}
+            height={source.height}
+            suppressHydrationWarning={data}
+          />
+        );
       })}
       <img
         data-slot="image"
-        src={picture.src}
-        srcSet={picture.srcSet}
+        // Before the addresses: WebKit fetches an image given its address while it is still eager, as a hydrated twin is.
+        loading={load.eager ? undefined : "lazy"}
+        {...(data ? { "data-src": picture.src, "data-srcset": picture.srcSet } : { src: picture.src, srcSet: picture.srcSet })}
         sizes={picture.sizes}
         width={picture.width}
         height={picture.height}
         alt={decorative ? "" : (picture.alt ?? day?.alt)}
         draggable={false}
         fetchPriority={load.urgent ? "high" : undefined}
-        loading={load.eager ? undefined : "lazy"}
         decoding={load.urgent ? undefined : "async"}
         // The first-paint script may have set loading="eager" before React hydrates.
         suppressHydrationWarning={load.urgent}
@@ -360,6 +388,42 @@ function renderPicture(
         )}
       />
     </picture>
+  );
+}
+
+/**
+ * A pair both `priority`. Its server HTML holds neither twin's addresses, so nothing loads until the first-paint
+ * script copies the shown twin's onto it. A `<noscript>` carries both twins for a page without scripts. A client
+ * render, and a page once it hydrates, has the addresses, both lazy: the shown twin, on screen, loads, and the
+ * hidden one loads only on a change of scheme.
+ */
+function TwinPictures({
+  light,
+  dark,
+  crop,
+  onLoad,
+}: {
+  light: HeroPicture;
+  dark: HeroPicture;
+  crop: string | undefined;
+  onLoad: (image: HTMLImageElement) => void;
+}): JSX.Element {
+  const live = useSyncExternalStore(noSubscription, clientHasAddresses, serverHasAddresses);
+  // Stryker disable next-line StringLiteral: renderPicture tests only "data" and undefined, so "live" and any other value render alike.
+  const deferred = live ? "live" : "data";
+  // In the HTML both wait eager, for the script to give the shown one its addresses. With addresses both are lazy:
+  // the shown one, on screen, loads (or has loaded), and the hidden one waits for a change of scheme. Which one shows
+  // is the page's CSS's to say, so it is not guessed from a class here.
+  return (
+    <>
+      {renderPicture(light, crop, "light", { eager: !live, urgent: true, onLoad, deferred })}
+      {renderPicture(dark, crop, "dark", { eager: !live, urgent: true, onLoad, deferred }, light)}
+      <FirstPaintScript urgent deferred />
+      <noscript>
+        {renderPicture(light, crop, "light", { eager: false, urgent: true, onLoad })}
+        {renderPicture(dark, crop, "dark", { eager: false, urgent: true, onLoad }, light)}
+      </noscript>
+    </>
   );
 }
 
@@ -504,15 +568,20 @@ export function Hero(props: HeroProps): JSX.Element {
       ? ({ maxWidth: `${mediaWidth}px` } as CSSProperties)
       : undefined;
   // Untyped code can still leave out the dark art: it is warned, and the light art then shows in both modes.
-  // A twin with `priority` loads from the HTML unless both have it; then only the one shown at first paint loads.
+  // A twin with `priority` loads from the HTML unless both have it; then the first-paint script loads the one shown.
   const urgent = light?.priority === true || dark?.priority === true;
+  const deferred = light?.priority === true && dark?.priority === true;
   const shown = light ? (
     dark ? (
-      <>
-        {renderPicture(light, crop, "light", { eager: light.priority === true && dark.priority !== true, urgent, onLoad: onImageLoad })}
-        {renderPicture(dark, crop, "dark", { eager: dark.priority === true && light.priority !== true, urgent, onLoad: onImageLoad }, light)}
-        <FirstPaintScript urgent={urgent} />
-      </>
+      deferred ? (
+        <TwinPictures light={light} dark={dark} crop={crop} onLoad={onImageLoad} />
+      ) : (
+        <>
+          {renderPicture(light, crop, "light", { eager: light.priority === true, urgent, onLoad: onImageLoad })}
+          {renderPicture(dark, crop, "dark", { eager: dark.priority === true, urgent, onLoad: onImageLoad }, light)}
+          <FirstPaintScript urgent={urgent} />
+        </>
+      )
     ) : (
       <>
         {renderPicture(light, crop, undefined, { eager: light.priority === true, urgent, onLoad: onImageLoad })}
