@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { inOneSentence, INVALID, nameAndRole, REQUIRED } from "./phrases";
+import { inOneSentence, INVALID, nameAndRole, REQUIRED, VALID } from "./phrases";
 import { describesFocus, heard, heardOrDescribed, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
@@ -14,7 +14,7 @@ test.describe("a described, required field", () => {
     // the description, and the role with the required state. On a second visit it read the placeholder
     // instead of the description (run 43852622500): the first is the one that counts. Untouched, the
     // field is not invalid: WebKit read an empty required input's native invalidity (run 43857057791).
-    await heard(sr, () => email.focus(), (phrase) => inOneSentence(phrase, /\bemail\b/i, /\bwe send the shopping list here\b/i) && inOneSentence(phrase, /\b(edit|text field)\b/i, REQUIRED) && !INVALID.test(phrase), '"Email", its description, edit text, required, and not invalid before anything is typed');
+    await heard(sr, () => email.focus(), (phrase) => inOneSentence(phrase, /\bemail\b/i, /\bwe send the shopping list here\b/i) && inOneSentence(phrase, /\b(edit|text field)\b/i, REQUIRED, VALID), '"Email", its description, edit text, required, and not invalid before anything is typed');
   });
 });
 
@@ -32,11 +32,10 @@ test.describe("an error after a submit", () => {
     };
     // The error's full stop ends VoiceOver's sentence before the state ("Pasta Name You already have a
     // recipe called Pasta. required invalid data edit text", run 43854914522), as the description does.
-    const namesTheError = (phrase: string) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID);
     // VoiceOver often reads only the value as focus moves (ourostack/ouro-ui#1720): it is then asked to
     // describe the field, which must name its error and invalid state.
-    await heardOrDescribed(sr, submit, (phrase) => inOneSentence(phrase, /\byou already have a recipe called pasta\b/i), namesTheError, '"You already have a recipe called Pasta.", the error, as focus moves to Name', { finding: "ourostack/ouro-ui#1720" });
+    await heardOrDescribed(sr, submit, (phrase) => inOneSentence(phrase, /\byou already have a recipe called pasta\b/i), (phrase) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID), '"You already have a recipe called Pasta.", the error, as focus moves to Name', { finding: "ourostack/ouro-ui#1720" });
     await expect(name).toHaveAttribute("aria-invalid", "true");
-    await describesFocus(sr, namesTheError, '"Name", its error, invalid, the focused field');
+    await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID), '"Name", its error, invalid, the focused field');
   });
 });

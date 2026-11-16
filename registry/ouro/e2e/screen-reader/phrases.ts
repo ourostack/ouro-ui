@@ -72,6 +72,9 @@ export const REQUIRED = /\brequired\b/i;
 /** `aria-invalid`: VoiceOver says "invalid data", NVDA "invalid entry". */
 export const INVALID = /\binvalid\b/i;
 
+/** No `aria-invalid` said in the sentence: VoiceOver says "invalid data" in the role's sentence when it reads one. */
+export const VALID = (sentence: string): boolean => !INVALID.test(sentence);
+
 /** "unselected" or "not selected". */
 const UNSELECTED = /\b(unselected|not selected)\b/i;
 
