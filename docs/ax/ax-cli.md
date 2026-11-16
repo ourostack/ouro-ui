@@ -91,6 +91,7 @@ interface CommandManifest {
   aliases: readonly string[];
   effect: "private" | "others";
   whoSees: string;
+  protocol?: true;
   readOnly: boolean;
   needsWhy: boolean;
   dryRun: boolean;
