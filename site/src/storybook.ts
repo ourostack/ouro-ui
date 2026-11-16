@@ -58,7 +58,7 @@ export const SCENES: Record<SceneName, Scene> = {
   },
   "ouro-ui-apple": {
     alt: "In a calm, bright studio by a window onto a city park, a small white robot in a blue apron checks the same settings card on a phone, a tablet and a laptop lined up on a long pale table, while Ouro, a smiling emerald snake curled into an O, watches from a folded cloth.",
-    sky: ["#dcdadd", "#d3d3d8", "#e7effb", "#dddfe5", "#dbdadd"],
+    sky: ["#e6ecf4", "#dce5f3", "#e7eefa", "#e5eaf2", "#e3e8ef"],
     height: 576,
     phoneHeight: 576,
     band: 16,
@@ -67,7 +67,7 @@ export const SCENES: Record<SceneName, Scene> = {
   },
   "ouro-ui-core": {
     alt: "In a bright colour library under a skylight, a small lilac robot lays a row of colour chips on a glowing white table while a faceless glass designer holds a green chip up to the light, and Ouro, a smiling emerald snake curled into an O, rests on a felt pad at the table's end.",
-    sky: ["#a59386", "#b4afb1", "#c4b9b6", "#727b47", "#d1cbcc"],
+    sky: ["#bbb2b1", "#bfb8b7", "#d7e4f0", "#b4ada2", "#d5dce6"],
     height: 576,
     phoneHeight: 576,
     band: 60,
