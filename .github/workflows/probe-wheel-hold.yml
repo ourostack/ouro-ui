@@ -1,0 +1,35 @@
+name: probe-wheel-hold
+on:
+  pull_request:
+    paths: [".github/workflows/probe-wheel-hold.yml"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [1, 2, 3, 4]
+    name: probe (${{ matrix.lane }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - name: Repeat the held-message cases in WebKit
+        run: |
+          pass=0; fail=0
+          for i in $(seq 1 15); do
+            if pnpm exec vitest run --project ouro-webkit registry/ouro/components/ouro/message/message-list.windowing.test.tsx -t "holds a message above the reader that changes size" > run.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); grep -E "×|AssertionError" run.log | head -6; fi
+          done
+          echo "RESULT lane ${{ matrix.lane }}: pass $pass fail $fail"
