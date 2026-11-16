@@ -35,12 +35,14 @@ export interface DocsLink {
  */
 export function componentGroups(filter = "", exports = false): Array<{ label: string; links: DocsLink[] }> {
   const wanted = searchable(filter);
-  // 0: the name holds the filter; 1: a filter of four letters or more is one slip from the name, or from its start
-  // ("dialg" finds Dialog); undefined: no match. Slips come after the names that hold the filter.
+  // 0: the name holds the filter; 1: a filter of four letters or more is one slip from the name, or one of five or
+  // more from its start ("dialg" finds Dialog); undefined: no match. Slips come after the names that hold the filter.
   const rank = (...texts: string[]): 0 | 1 | undefined => {
     const names = texts.map(searchable);
     if (names.some((name) => name.includes(wanted))) return 0;
-    const near = (name: string) => [name, name.slice(0, wanted.length - 1), name.slice(0, wanted.length), name.slice(0, wanted.length + 1)].some((part) => oneEditApart(wanted, part));
+    // A filter of five letters or more may be a slip of a name's start; a shorter one only of a whole name.
+    const starts = (name: string) => (wanted.length >= 5 ? [name.slice(0, wanted.length - 1), name.slice(0, wanted.length), name.slice(0, wanted.length + 1)] : []);
+    const near = (name: string) => [name, ...starts(name)].some((part) => oneEditApart(wanted, part));
     return wanted.length >= 4 && names.some(near) ? 1 : undefined;
   };
   const ranked = <T,>(pages: T[], name: (page: T) => [string, string], path: (page: T) => string): DocsLink[] =>

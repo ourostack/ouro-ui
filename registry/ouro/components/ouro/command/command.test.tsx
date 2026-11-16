@@ -141,6 +141,8 @@ describe("Command", () => {
         { label: "Dialog", onSelect: actions.theme },
         { label: "Confirmation", onSelect: actions.signOut },
         { label: "Opt-out", onSelect: actions.signOut },
+        { label: "Operator settings", onSelect: actions.signOut },
+        { label: "किताबें", onSelect: actions.signOut },
       ],
     });
     for (const typed of ["dialg", "dialogg", "dialig", "dailog"]) {
@@ -152,6 +154,14 @@ describe("Command", () => {
     await userEvent.clear(input());
     await userEvent.type(input(), "shet");
     await expect.poll(options).toEqual(["Edit sheet"]);
+    // A word of four letters is a slip of a whole word only, not of every word sharing its first three letters.
+    await userEvent.clear(input());
+    await userEvent.type(input(), "opem");
+    await expect.poll(options).toEqual([]);
+    // A word keeps its vowel signs, so a slip in Devanagari is found too.
+    await userEvent.clear(input());
+    await userEvent.type(input(), "कताबें");
+    await expect.poll(options).toEqual(["किताबें"]);
     // A word after a hyphen is a word too.
     await userEvent.clear(input());
     await userEvent.type(input(), "ouut");

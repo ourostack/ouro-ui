@@ -574,8 +574,15 @@ export function Command(props: CommandProps): JSX.Element {
   // slip away (queryMatch). A server search ranks its own results.
   const ranked = useMemo(() => {
     if (onQueryChange) return groups;
+    // Each command ranked once, then sorted by rank: the sort compares far more often than there are commands.
     const rank = (item: CommandItem) => queryMatch(item.label, [item.description ?? "", ...(item.keywords ?? [])], query) ?? 3;
-    return groups.map((group) => ({ ...group, items: [...group.items].sort((a, b) => rank(a) - rank(b)) }));
+    return groups.map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => ({ item, at: rank(item) }))
+        .sort((a, b) => a.at - b.at)
+        .map(({ item }) => item),
+    }));
   }, [groups, query, onQueryChange]);
   // "Searching…" is announced for the first load of each opening only, and then cleared,
   // so typing on while results load is not announced again.
