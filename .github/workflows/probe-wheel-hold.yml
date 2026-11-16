@@ -26,10 +26,10 @@ jobs:
           node-version: 24
           cache: ""
       - run: pnpm i --frozen-lockfile
-      - name: Repeat the held-message cases in WebKit
+      - name: Repeat the whole windowing file in WebKit
         run: |
           pass=0; fail=0
-          for i in $(seq 1 15); do
-            if pnpm exec vitest run --project ouro-webkit registry/ouro/components/ouro/message/message-list.windowing.test.tsx -t "holds a message above the reader that changes size" > run.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); grep -E "×|AssertionError" run.log | head -6; fi
+          for i in $(seq 1 8); do
+            if pnpm exec vitest run --project ouro-webkit registry/ouro/components/ouro/message/message-list.windowing.test.tsx > run.log 2>&1; then pass=$((pass+1)); else fail=$((fail+1)); grep -E "×|AssertionError" run.log | head -8; fi
           done
           echo "RESULT lane ${{ matrix.lane }}: pass $pass fail $fail"
