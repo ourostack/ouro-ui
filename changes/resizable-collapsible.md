@@ -1,1 +1,1 @@
-- New: ResizablePanel's [collapsible](registry/ouro/components/ouro/resizable/resizable.test.tsx "verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > lets the keys take a collapsible panel to 0 and back, and Home to 0)") lets a drag or key close a panel to 0, and back.
+- New: ResizablePanel takes collapsible, so a drag or key can close a panel completely and open it again.

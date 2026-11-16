@@ -141,8 +141,10 @@ function clampSize(sizes: readonly number[], index: number, size: number, panels
   // The snap targets: 0 and minSize for a panel before the handle, total - minSize and total for one after it. A non-collapsible
   // panel's limits keep its size out of these gaps, so they need no check of their own.
   let ends: readonly number[] | undefined;
+  // Stryker disable next-line EqualityOperator: at the edge itself the nearer end is the size it already has, so >= snaps it to where it is.
+  const intoAfterGap = next > total - after.minSize;
   if (next < before.minSize) ends = [0, before.minSize];
-  else if (next > total - after.minSize) ends = [total - after.minSize, total];
+  else if (intoAfterGap) ends = [total - after.minSize, total];
   if (ends) {
     // On a tie the handle's direction decides: a shrinking handle closes the panel before it and opens the one after it to minSize; a growing one the reverse.
     const target = next;
