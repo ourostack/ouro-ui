@@ -324,7 +324,12 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
       <p id={labelId} data-ouro-live-captions-label="" className={hideLabel ? "sr-only" : labelClass}>
         {label}
       </p>
-      <div data-ouro-live-captions-window="" className={cn(linesClass, linesSizes[size])}>
+      <div
+        data-ouro-live-captions-window=""
+        data-ouro-allow="clipped-text"
+        data-ouro-allow-why="The window scrolls older lines out of view on purpose"
+        className={cn(linesClass, linesSizes[size])}
+      >
         <div ref={trackRef} data-ouro-live-captions-track="" className={trackClass}>
           {shown.map((line) => (
             <p key={line.id} data-ouro-live-captions-line={line.id} data-final={line.final ? "" : undefined} className="m-0">

@@ -152,6 +152,93 @@ describe("findSizeIssues: clipped-text", () => {
   });
 });
 
+describe("findSizeIssues: clipped-text, cut by an ancestor's box", () => {
+  const card = (inner: string) => `<article style="position:relative;overflow:hidden;width:240px;height:150px;padding:0 16px;border:1px solid #c9d3df">${inner}</article>`;
+  const title = (margin: string) => `<h3 style="margin:${margin};height:26px;font:600 20px/26px system-ui">Card title</h3>`;
+  const clipped = async () => (await findSizeIssues()).filter((issue) => issue.rule === "clipped-text");
+
+  it("finds a title pushed partly out of the card that hides its overflow, named with how much shows", async () => {
+    render(card(`${title("-18px 0 0")}<p>Body</p>`));
+    expect(await clipped()).toMatchObject([{ rule: "clipped-text", element: 'h3 "Card title"', detail: expect.stringMatching(/^shown \d+px\/26px$/) }]);
+    const [issue] = await clipped();
+    expect(Number(issue!.detail.match(/^shown (\d+)px/)![1])).toBeLessThan(26 * 0.9);
+  });
+
+  it("finds a title cut by a card hidden on one axis, whose other axis computes to auto", async () => {
+    render(`<article style="position:relative;overflow-x:hidden;width:240px;height:150px;padding:0 16px">${title("-18px 0 0")}<p>Body</p></article>`);
+    expect(await clipped()).toMatchObject([{ rule: "clipped-text", element: 'h3 "Card title"' }]);
+  });
+
+  it("finds text cut by a box that clips one axis only, and a picture pushed past the edge of one that clips sideways", async () => {
+    render(`<article style="overflow-y:clip;width:240px;height:150px;padding:0 16px"><h3 style="position:relative;top:-18px;margin:0;height:26px;font:600 20px/26px system-ui">Card title</h3><p>Body</p></article>`);
+    expect(await clipped()).toMatchObject([{ element: 'h3 "Card title"', detail: expect.stringMatching(/^shown \d+px\/26px$/) }]);
+    host.remove();
+    const url = await picture(960, 540);
+    render(`<article style="overflow-x:clip;width:240px;height:150px;padding:0 16px"><img src="${url}" alt="A picture past the edge" style="display:block;max-width:none;width:300px;height:150px;margin-left:-40px;object-fit:cover"></article>`);
+    await decodeImages();
+    expect(await clipped()).toMatchObject([{ element: 'img "A picture past the edge"', detail: "shown 240px/300px" }]);
+  });
+
+  it("reports a block cut inside a cut block once, at the outermost, and a block cut on its own", async () => {
+    render(card(`<ul style="margin:-18px 0 0;padding:0"><li style="list-style:none;height:26px"><p style="margin:0;height:26px">Nested line</p></li></ul><p style="position:absolute;top:-18px;left:16px;margin:0;height:26px">Stand-alone line</p>`));
+    expect((await clipped()).map(({ element }) => element)).toEqual(['li "Nested line"', 'p "Stand-alone line"']);
+  });
+
+  it("names a long title by its first 60 characters, and a picture with no words by its tag alone", async () => {
+    const long = "A title that runs on well past the sixty characters a name keeps, so the name ends in an ellipsis";
+    render(card(`<h3 style="margin:-18px 0 0;height:26px;white-space:nowrap;font:600 20px/26px system-ui">${long}</h3>`));
+    expect((await clipped()).map(({ element }) => element)).toEqual([`h3 "${long.slice(0, 60)}…"`]);
+    host.remove();
+    const url = await picture(960, 540);
+    render(`<div style="width:240px;height:150px;overflow:hidden"><picture style="display:block"><img src="${url}" style="display:block;width:240px;height:150px;margin-top:-40px"></picture></div>`);
+    await decodeImages();
+    expect(await clipped()).toMatchObject([{ element: "picture", detail: "shown 110px/150px" }]);
+    host.remove();
+    render(`<div style="width:240px;height:150px;overflow:hidden"><picture style="display:block;width:240px;height:150px;margin-top:-40px"><source srcset="${url}"></picture></div>`);
+    expect(await clipped()).toMatchObject([{ element: "picture", detail: "shown 110px/150px" }]);
+  });
+
+  it("passes text in a plain horizontal scroller, which scrolls it rather than cuts it", async () => {
+    render('<div style="display:flex;gap:12px;overflow-x:auto;width:200px"><div style="flex:0 0 180px"><p>Slide one</p></div><div style="flex:0 0 180px"><p>Slide two</p></div></div>');
+    expect(await clipped()).toEqual([]);
+  });
+
+  it("passes a title inside its card, and a cut one the page allows with a reason", async () => {
+    render(card(`${title("16px 0 4px")}<p>Body</p>`));
+    expect(await clipped()).toEqual([]);
+    host.remove();
+    render(card(`<h3 data-ouro-allow="clipped-text" data-ouro-allow-why="a title that rises on purpose" style="margin:-18px 0 0;height:26px;font:600 20px/26px system-ui">Card title</h3>`));
+    expect(await clipped()).toEqual([]);
+  });
+
+  it("passes a visually hidden label that its card would cut: clipped with inset(50%), or the 1px sr-only pattern", async () => {
+    render(card(`${title("16px 0 4px")}<p style="position:absolute;top:-20px;left:0;width:200px;height:26px;margin:0;clip-path:inset(50%)">Label for the card</p>`));
+    expect(await clipped()).toEqual([]);
+    host.remove();
+    render(card(`${title("16px 0 4px")}<span class="sr-only" style="position:absolute;top:-20px;left:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap"><p style="margin:0">Label for the card</p></span><p style="position:absolute;top:-20px;left:0;width:1px;height:1px;margin:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">Second label</p>`));
+    expect(await clipped()).toEqual([]);
+  });
+
+  it("passes text in a horizontally scrolling carousel, which scrolls the text rather than cuts it", async () => {
+    render(
+      '<div style="overflow:hidden;width:200px"><div role="region" aria-roledescription="carousel" aria-label="Featured" style="display:flex;gap:12px;overflow-x:auto;width:200px">' +
+        '<div style="flex:0 0 180px"><p>Slide one</p></div><div style="flex:0 0 180px"><p>Slide two</p></div></div></div>',
+    );
+    expect(await clipped()).toEqual([]);
+  });
+
+  it("passes a picture cropped by object-fit inside a frame whose box fits it, and finds one whose box the frame cuts", async () => {
+    const url = await picture(960, 540);
+    render(`<div style="width:240px;height:150px;overflow:hidden"><img src="${url}" alt="A cropped picture" style="display:block;width:240px;height:150px;object-fit:cover"></div>`);
+    await decodeImages();
+    expect(await clipped()).toEqual([]);
+    host.remove();
+    render(`<div style="width:240px;height:150px;overflow:hidden"><img src="${url}" alt="A cropped picture" style="display:block;max-width:none;width:300px;height:150px;object-fit:cover"></div>`);
+    await decodeImages();
+    expect((await clipped()).map(({ element, detail }) => [element, detail])).toEqual([['img "A cropped picture"', "shown 240px/300px"]]);
+  });
+});
+
 describe("findSizeIssues: blurry-image", () => {
   it("holds a picture to the screen's own density, at most 2, unless told another", async () => {
     const small = await picture(100, 50);
