@@ -741,3 +741,11 @@ test("a tool with one command conforms: its reads take the folder with no comman
   assert.deepEqual([verdictOf(report, "cli.help-parses", "help"), verdictOf(report, "cli.command-help", "sizes"), verdictOf(report, "cli.read-json", "sizes")], ["pass", "pass", "pass"]);
   assert.match(report.results.find((r) => r.claim === "cli.read-json" && r.surface === "sizes")!.note, /^`images site\/showcase --json` → one JSON document/);
 });
+
+test("ourostack/desk: --app records the app in target.app.name, and leaves target.app out otherwise", async () => {
+  const state = join(scratch, "notes.json");
+  const named = await xray(base({ cli: fixture("notes.mts"), name: "notes", env: { NOTES_STATE: state }, state: ["state"], app: "Notes" }));
+  assert.deepEqual(named.target.app, { name: "Notes" });
+  const bare = await xray(base({ cli: fixture("notes.mts"), name: "notes", env: { NOTES_STATE: state }, state: ["state"] }));
+  assert.equal(bare.target.app, undefined);
+});
