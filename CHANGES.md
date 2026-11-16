@@ -1,0 +1,4 @@
+# Changes in this release
+
+- ouro-plain: a new item for markup that is not an Ouro component. The classes for that markup (`ouro-focus-ring`, `ouro-row`, `ouro-disclosure`, `ouro-skip-link`, `ouro-reveal`, `ouro-nav-link`, `ouro-toggle`, `ouro-segment`, `ouro-option` and the rest) moved from `ouro-base` into it, so an app built only from components no longer carries their CSS. An app that uses them adds `ouro-plain` once, after `ouro-base`; adding `ouro-base` again keeps the rules it wrote before, so an update drops nothing. The plain stylesheet `site/public/css/ouro-plain.css` has them for a page without Tailwind.
+- New: ResizablePanel takes collapsible, so a drag or key can close a panel completely and open it again.
