@@ -8,8 +8,9 @@ name: Docs pin
 # The branch is pushed, and the pull request opened, as the Ouro Current GitHub App when it is
 # installed on this repository (a token from OURO_CURRENT_APP_ID and OURO_CURRENT_PRIVATE_KEY), or
 # else with the DOCS_PIN_TOKEN secret. A push with either starts CI at once, with no approval
-# (#1610). A push with the workflow's own token starts no CI run, so with neither a maintainer must
-# push an empty commit to the branch to start CI; the pull request body says so only then.
+# (#1610). With neither, the push uses the workflow's own token, whose pull request runs GitHub holds
+# for approval, so the workflow approves them itself (#1757). Either way it then waits for CI to
+# start on the pushed commit, and fails, saying so on the pull request, when it has not in 15 minutes.
 on:
   workflow_dispatch:
     inputs:
@@ -25,6 +26,7 @@ jobs:
   pin:
     runs-on: ubuntu-latest
     permissions:
+      actions: write # approve the pull request's held runs
       contents: write # push the docs branch, and delete it when main already names the release
       pull-requests: write # open, retitle, close and auto-merge the pull request
     timeout-minutes: 30
@@ -88,21 +90,13 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git push -q --force origin "$BRANCH"
       - if: steps.pin.outputs.result == 'changed'
+        id: pr
         name: Open or update the pull request, and turn auto-merge on
         env:
           GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
-          STARTS_CI: ${{ steps.app.outputs.token != '' || secrets.DOCS_PIN_TOKEN != '' }}
         run: |
           title="Point the docs at a release"
-          lead="Release opened this pull request after it tagged $TAG, to point the docs at that tag with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`.[^latest]"
-          notes="[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG"
-          if [ "$STARTS_CI" = true ]; then
-            body=$(printf '%s\n\n%s\n' "$lead" "$notes")
-          else
-            body=$(printf '%s\n\n%s\n\n%s\n' "$lead" "If CI has not started on this pull request, a maintainer pushes an empty commit to $BRANCH to start it. That is needed when the Ouro Current app is not installed here and the repository has no DOCS_PIN_TOKEN secret, since a push with the workflow's own token starts no CI.[^token][^github]" "$notes
-          [^token]: .github/workflows/docs-pin.yml verify:fileLine(.github/workflows/docs-pin.yml, /DOCS_PIN_TOKEN/)
-          [^github]: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow verify:urlOk(https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)")
-          fi
+          body=$(printf '%s\n\n%s\n' "Release opened this pull request after it tagged $TAG, to point the docs at that tag with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`.[^latest]" "[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG")
           number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
           if [ -n "$number" ]; then
             gh pr edit "$number" --title "$title" --body "$body"
@@ -114,6 +108,35 @@ jobs:
             [ "$(gh pr view "$number" --json state --jq .state)" = MERGED ] || { echo "::error::Could not turn auto-merge on for #$number."; exit 1; }
           fi
           echo "Auto-merge is on for #$number: it merges once the checks main's ruleset requires pass." >> "$GITHUB_STEP_SUMMARY"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+      - if: steps.pin.outputs.result == 'changed'
+        name: Start the pull request's CI, and fail when it has not started
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.push.outputs.sha }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+          POLLS: 90
+          INTERVAL: 10
+        run: |
+          # A push with the workflow's own token leaves the pull request's runs held for approval, which
+          # this token may give (actions: write). CI has started once it has a run on the pushed commit and
+          # no run there is still held.
+          for _ in $(seq 1 "$POLLS"); do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$SHA&per_page=100" --jq '.workflow_runs[] | [.id, .name, (.conclusion // "")] | @tsv') || runs=
+            held=$(awk -F '\t' '$3 == "action_required" { print $1 }' <<<"$runs")
+            for id in $held; do
+              gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" >/dev/null && echo "Approved held run $id." || echo "::warning::Could not approve held run $id."
+            done
+            if [ -z "$held" ] && awk -F '\t' '$2 == "CI" { found = 1 } END { exit !found }' <<<"$runs"; then
+              echo "CI started on #$NUMBER ($SHA)." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep "$INTERVAL"
+          done
+          message="CI has not started on #$NUMBER ($SHA) $((POLLS * INTERVAL / 60)) minutes after its push, so it cannot merge. Approve its held runs in Actions, or push an empty commit to $BRANCH."
+          echo "::error::$message"
+          gh pr comment "$NUMBER" --body "$message" || true
+          exit 1
       - if: steps.pin.outputs.result == 'current'
         name: Close the docs pull request, since main already names the release
         env:
