@@ -142,7 +142,7 @@ function clampSize(sizes: readonly number[], index: number, size: number, panels
   // panel's limits keep its size out of these gaps, so they need no check of their own.
   let ends: readonly number[] | undefined;
   if (next < before.minSize) ends = [0, before.minSize];
-  else if (next > total - after.minSize && next < total) ends = [total - after.minSize, total];
+  else if (next > total - after.minSize) ends = [total - after.minSize, total];
   if (ends) {
     // On a tie the handle's direction decides: a shrinking handle closes the panel before it and opens the one after it to minSize; a growing one the reverse.
     const target = next;
