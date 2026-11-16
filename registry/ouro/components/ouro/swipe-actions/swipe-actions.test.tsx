@@ -923,6 +923,24 @@ describe("SwipeActions", () => {
     expect(blurs).not.toHaveBeenCalled();
   });
 
+  it("hands focus on from a row with no actions, which has no actions button, as it leaves", async () => {
+    await render(
+      <ItemGroup label="Recipes">
+        <SwipeActions label="Shakshuka">
+          <Item href="#shakshuka" title="Shakshuka" />
+        </SwipeActions>
+        <Item href="#short-ribs" title="Short ribs" />
+      </ItemGroup>,
+    );
+    page.getByRole("link", { name: "Shakshuka" }).element().focus();
+    await render(
+      <ItemGroup label="Recipes">
+        <Item href="#short-ribs" title="Short ribs" />
+      </ItemGroup>,
+    );
+    await expect.poll(() => document.activeElement?.textContent).toBe("Short ribs");
+  });
+
   it("runs an action from its button and closes, moving focus from the button to the actions button", async () => {
     const spies = calls();
     const element = await render(row(spies));
