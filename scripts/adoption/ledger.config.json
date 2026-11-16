@@ -225,6 +225,11 @@
           "repo": "ourostack/ouro-ui-apple",
           "workflow": "xray-apps.yml",
           "app": "Spoonjoy"
+        },
+        {
+          "repo": "spoonjoy/spoonjoy-apple",
+          "workflow": "actions.yml",
+          "branch": "main"
         }
       ]
     },
@@ -260,6 +265,11 @@
           "repo": "ourostack/ouro-ui-apple",
           "workflow": "xray-apps.yml",
           "app": "Ouro MD"
+        },
+        {
+          "repo": "ourostack/ouro-md",
+          "workflow": "ci.yml",
+          "branch": "main"
         }
       ]
     },
@@ -513,7 +523,15 @@
       "name": "Housesitter",
       "kind": "CLI",
       "repo": "ourostack/housesitter",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "A CLI only."
@@ -525,7 +543,13 @@
         "housesitter",
         "ourostack/housesitter"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/housesitter",
+          "workflow": "ax.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "m365crawl",
