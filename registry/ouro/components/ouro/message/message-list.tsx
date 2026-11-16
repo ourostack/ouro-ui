@@ -1469,7 +1469,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // change of height resizes the content, and the resize observer moves the mark with it before the browser draws. Once
     // the reader has left the end, the next change lets it go, which moves nothing, since what it holds is past the
     // content's end; not the scroll itself, since moving the mark then stops WebKit's own scroll anchoring where an app has
-    // it on.
+    // it on. While the wheel turns, it holds at least the content's height at each turn, and goes only once the wheel rests:
+    // a reader still within a change's height of the end would otherwise be pulled up as a row above comes in shorter, and
+    // the browser's pull, like any scroll position written, ends WebKit's wheel.
     const floorMark = floorRef.current!;
     let floor = 0;
     const setFloor = (px: number) => {
@@ -1575,8 +1577,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
       clearTimeout(resting);
       const by = carriedRef.current;
+      // Once the wheel rests, the end the list is not following is held no more: what was carried goes first, so nothing is pulled.
+      const letGo = () => void (!pinned.current && !turning() && setFloor(0));
       // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
-      if (by === 0) return;
+      if (by === 0) return letGo();
       carriedRef.current = 0;
       content.style.removeProperty("translate");
       const before = scroller.scrollTop;
@@ -1587,6 +1591,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The anchors sit where they did in the content, which a scroll does not move: only the list's own scroll since they were
       // taken is left out of the reader's, so a change waiting for the resize observer is still held.
       taken += applied;
+      letGo();
     };
     // Pays once the wheel has rested: after the rest, in a frame, so a page drawing nothing still begins one to tell by.
     const rest = () => {
@@ -1608,6 +1613,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       wheelAt = now;
       wheelFrame = document.timeline.currentTime;
       wheelStarts = true;
+      // The scroll range the wheel turns in holds until it rests (see setFloor): at least the content's height now.
+      const height = content.offsetHeight;
+      // Stryker disable next-line EqualityOperator: a floor set to the height it already holds writes nothing.
+      if (height > Math.max(floor, scroller.clientHeight)) setFloor(height);
+      rest();
       // A wheel pushing at an end scrolls nothing, so no scroll event says the reader got there.
       // Stryker disable next-line ConditionalExpression,LogicalOperator: with nothing carried, paying pays nothing; the check only spares reading the layout on every turn of the wheel.
       if (carriedRef.current !== 0 && nearEnd()) pay();
@@ -1631,7 +1641,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (pinned.current) {
         owed = 0;
         followEnd();
-      } else setFloor(0);
+      } else if (!turning()) setFloor(0);
       if (!pinned.current && near && !native) {
         // Each message held that is still in the page, with where it sat in the content and how far it moved since. With each, how many
         // of the others it passed or fell behind: a message that moved on its own (a post that a reply moved to the end) passed them.
