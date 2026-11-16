@@ -29,6 +29,7 @@ The props the modes share. Type: `BadgeProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The label: a short word, or a count. |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-2`). Appearance classes warn in development; use `tone` and `variant`. |
+| `dot` | `boolean` | `false` | A status dot before the label, in the tone's colour: `<Badge tone="success" dot>Published</Badge>`. The dot is decorative; the label names the status. |
 | `icon` | `BadgeIcon` |  | Icon before the label. Pass the component, not an element: `icon={CheckIcon}`. |
 | `onClick` | `MouseEventHandler<HTMLElement>` |  | Runs when the badge is pressed. Without `href` it makes the badge a `<button>` (pass `aria-pressed` too when it toggles a filter); with `href` it runs before the link navigates. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"secondary"` | Color role from the theme, named after its token. `secondary` is a quiet neutral label; use `success`, `warning` and `destructive` for status. shadcn's `variant="destructive"` is `tone="destructive"`. |
