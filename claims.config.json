@@ -237,7 +237,7 @@
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "One morning in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      "sentence": "Inside a sleek high-speed train in low golden morning sun, two small robots type at their laptops across a window table while a faceless glass person in a sage hoodie leans back across the aisle, hands in pocket, with Ouro the green snake curled on the seat beside them, under a station clock on the end wall.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
     },
     {
@@ -247,7 +247,7 @@
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "One night in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      "sentence": "Inside a sleek high-speed train late at night under warm ceiling lights, two small robots type at their laptops across a window table while a faceless glass person in a sage hoodie leans back across the aisle, hands in pocket, with Ouro the green snake curled on the seat beside them, under a station clock on the end wall.",
       "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
     },
     {
