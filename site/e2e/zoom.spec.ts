@@ -18,3 +18,33 @@ test.describe("at 200% zoom on a laptop", () => {
     });
   }
 });
+
+// A browser's own font size setting (Chrome's "Very large"), or text-only zoom, doubles the default font: rem-based
+// breakpoints move with it, so a laptop gets the one-column layout a narrower screen does. Chromium only: Playwright
+// sets the default font through Chromium's DevTools protocol.
+test.describe("with the default font doubled", () => {
+  test.beforeEach(async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium", "the default font size is set through Chromium's DevTools protocol");
+    const devtools = await page.context().newCDPSession(page);
+    await devtools.send("Page.enable");
+    await devtools.send("Page.setFontSizes", { fontSizes: { standard: 32, fixed: 26 } });
+  });
+
+  test("/adoption/ fits a laptop's width, its list under the count", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("adoption/");
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  });
+
+  test("/adoption/ keeps each product's marks inside the list on a phone", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("adoption/");
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    const outside = await page.evaluate(() => {
+      const board = document.querySelector(".adoption-board")!.getBoundingClientRect();
+      return [...document.querySelectorAll(".adoption-marks, .adoption-head")].filter((marks) => marks.getBoundingClientRect().right > board.right + 0.5).length;
+    });
+    expect(outside).toBe(0);
+  });
+});
