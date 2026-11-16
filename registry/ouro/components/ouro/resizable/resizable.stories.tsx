@@ -120,3 +120,19 @@ export const LongContent: Story = {
     </Frame>
   ),
 };
+
+/** A side panel that closes: drag its handle, or focus the handle and press Enter, to close the notes. */
+export const Collapsible: Story = {
+  render: () => (
+    <Frame>
+      <Resizable>
+        <ResizablePanel label="Draft" defaultSize={70} minSize={30}>
+          <Pane title="Draft">Soften the peppers, add the tomatoes, then crack in the eggs.</Pane>
+        </ResizablePanel>
+        <ResizablePanel label="Notes" defaultSize={30} minSize={20} collapsible>
+          <Pane title="Notes">Less salt next time.</Pane>
+        </ResizablePanel>
+      </Resizable>
+    </Frame>
+  ),
+};

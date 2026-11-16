@@ -24,6 +24,7 @@ interface PanelLimits {
   defaultSize: number | undefined;
   minSize: number;
   maxSize: number;
+  collapsible: boolean;
 }
 
 /** How far one arrow key press moves a handle, in percent of the group. @internal */
@@ -40,7 +41,7 @@ const groupClass = {
 
 /** A panel's scroll box: it fills the panel and scrolls its own content when the content is larger. @internal */
 const panelClass =
-  "peer relative box-border min-h-0 min-w-0 flex-1 overflow-auto outline-none focus-visible:isolate " +
+  "peer relative box-border min-h-0 min-w-0 flex-1 overflow-auto outline-none focus-visible:isolate [[data-collapsed]>&]:hidden " +
   "forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1";
 
 /**
@@ -110,23 +111,52 @@ function initialSizes(panels: readonly PanelLimits[]): number[] {
  */
 function limits(sizes: readonly number[], index: number, panels: readonly PanelLimits[]): { min: number; max: number } {
   const total = sizes[index]! + sizes[index + 1]!;
+  const before = panels[index]!;
+  const after = panels[index + 1]!;
   return {
-    min: Math.max(panels[index]!.minSize, total - panels[index + 1]!.maxSize),
-    max: Math.min(panels[index]!.maxSize, total - panels[index + 1]!.minSize),
+    min: before.collapsible && total <= after.maxSize ? 0 : Math.max(before.minSize, total - after.maxSize),
+    max: after.collapsible && before.maxSize >= total ? total : Math.min(before.maxSize, total - after.minSize),
   };
 }
 
 /**
  * New sizes with the panel before handle `index` at `size`, kept within both panels'
- * limits; the panel after it takes up the difference.
+ * limits; the panel after it takes up the difference. A collapsible panel's size between 0
+ * and its minSize snaps to the nearer of the two; on a tie the handle's direction decides.
  *
  * @internal
+ * @claim "A collapsible panel's size between 0" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > snaps a drag that lands under a collapsible panel's minSize to 0 or to minSize, by half)
  */
 function clampSize(sizes: readonly number[], index: number, size: number, panels: readonly PanelLimits[]): number[] {
-  const { min, max } = limits(sizes, index, panels);
-  const total = sizes[index]! + sizes[index + 1]!;
-  const next = Math.min(Math.max(size, min), max);
   const result = [...sizes];
+  const shrinking = size < sizes[index]!;
+  const growing = size > sizes[index]!;
+  // A press that moves nothing changes nothing, even from a size the default sizes left in a gap.
+  if (!shrinking && !growing) return result;
+  const { min, max } = limits(sizes, index, panels);
+  const before = panels[index]!;
+  const after = panels[index + 1]!;
+  const total = sizes[index]! + sizes[index + 1]!;
+  let next = Math.min(Math.max(size, min), max);
+  // The snap targets: 0 and minSize for a panel before the handle, total - minSize and total for one after it. A non-collapsible
+  // panel's limits keep its size out of these gaps, so they need no check of their own.
+  let ends: readonly number[] | undefined;
+  // Stryker disable next-line EqualityOperator: at the edge itself the nearer end is the size it already has, so >= snaps it to where it is.
+  const intoAfterGap = next > total - after.minSize;
+  if (next < before.minSize) ends = [0, before.minSize];
+  else if (intoAfterGap) ends = [total - after.minSize, total];
+  if (ends) {
+    // On a tie the handle's direction decides: a shrinking handle closes the panel before it and opens the one after it to minSize; a growing one the reverse.
+    const target = next;
+    let gap = Infinity;
+    for (const end of shrinking ? ends : [...ends].reverse()) {
+      const distance = Math.abs(end - target);
+      if (end >= min && end <= max && distance < gap) {
+        next = end;
+        gap = distance;
+      }
+    }
+  }
   result[index] = next;
   result[index + 1] = total - next;
   return result;
@@ -166,6 +196,14 @@ function readSavedText(autoSaveId: string | undefined): string | null {
 }
 
 /**
+ * The smallest size a saved panel keeps: 0 for a collapsible panel saved closed, else its minSize.
+ *
+ * @internal
+ * @claim "The smallest size a saved panel keeps" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable autoSaveId > restores a collapsible panel closed from a saved 0, but not a panel that cannot close)
+ */
+const floorOf = (panel: PanelLimits, size: number) => (panel.collapsible && size === 0 ? 0 : panel.minSize);
+
+/**
  * The saved layout for `panels`, or `null` when the text is missing or is not a layout for
  * that many panels. A layout outside the panels' limits (saved before an app changed
  * `minSize` or `maxSize`) is fitted into them: each size is clamped, and the difference
@@ -182,10 +220,10 @@ function parseSaved(text: string | null, panels: readonly PanelLimits[]): number
     return null;
   }
   if (!isSavedLayout(saved, panels.length)) return null;
-  const sizes = saved.map((size, index) => Math.min(Math.max(size, panels[index]!.minSize), panels[index]!.maxSize));
+  const sizes = saved.map((size, index) => Math.min(Math.max(size, floorOf(panels[index]!, size)), panels[index]!.maxSize));
   let rest = 100 - sizes.reduce((sum, size) => sum + size, 0);
   sizes.forEach((size, index) => {
-    const room = rest > 0 ? panels[index]!.maxSize - size : panels[index]!.minSize - size;
+    const room = rest > 0 ? panels[index]!.maxSize - size : floorOf(panels[index]!, size) - size;
     const change = rest > 0 ? Math.min(rest, room) : Math.max(rest, room);
     sizes[index] = size + change;
     rest -= change;

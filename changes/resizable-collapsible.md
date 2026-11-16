@@ -1,0 +1,1 @@
+- New: ResizablePanel takes collapsible, so a drag or key can close a panel completely and open it again.

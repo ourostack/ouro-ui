@@ -150,6 +150,7 @@ export function ResizableGroupFrame({
     defaultSize: props.defaultSize,
     minSize: props.minSize ?? 10,
     maxSize: props.maxSize ?? 100,
+    collapsible: props.collapsible === true,
   }));
   const defaults = initialSizes(panels);
   const defined = panels.filter((panel) => panel.defaultSize !== undefined);
@@ -316,6 +317,14 @@ export interface ResizablePanelProps {
    * @claim "The largest size a drag or" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.test.tsx, /maxSize=\{60\}/)
    */
   maxSize?: number | undefined;
+  /**
+   * Lets a drag or key take the panel all the way to 0, closing it. Below `minSize` it snaps: to 0 at or under half of `minSize`, else to `minSize`. @default false
+   *
+   * @claim "Lets a drag or key take the panel all the way to 0" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > lets the keys take a collapsible panel to 0 and back, and Home to 0)
+   * @claim "Below `minSize` it snaps" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > snaps a drag that lands under a collapsible panel's minSize to 0 or to minSize, by half)
+   * @claim "Below `minSize` it snaps" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > keeps a panel that is not collapsible at its minSize, on either side of a handle)
+   */
+  collapsible?: boolean | undefined;
   /** The panel's id, which the handle's `aria-controls` points at. One is made up when you leave it out. */
   id?: string | undefined;
   /** Layout only: padding (`p-4`). Appearance classes warn in development. */
@@ -366,12 +375,16 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const scrollRef = useKeyboardScrollable<HTMLDivElement>(true);
+  // A collapsed panel (size 0) takes no room and is inert, so its content cannot take focus; its scroll box is hidden (panelClass).
+  const collapsed = group.sizes[index] === 0;
   // The panel is the flex item the group sizes; its scroll box fills it and takes the app's className (padding) and ref.
   // The focus ring is a sibling drawn over the scroll box, so content that sticks to an edge inside it never covers it.
   return (
     <div
       id={group.ids[index]}
       data-ouro="resizable-panel"
+      data-collapsed={collapsed ? "" : undefined}
+      inert={collapsed}
       style={{ flexGrow: group.sizes[index], flexShrink: 1, flexBasis: 0 }}
       className="relative box-border flex min-h-0 min-w-0 flex-col"
     >
@@ -410,8 +423,8 @@ export interface ResizableHandleProps {
  * The draggable line between two panels in a `ResizablePanelGroup`, a focusable window
  * splitter (`role="separator"`) for the panel before it. Drag it, or focus it and use the
  * arrow keys (10% a press), Home and End (that panel's smallest and largest size) and
- * Enter (collapse the panel to its smallest size and back). It has a 44px hit area on
- * touch screens.
+ * Enter (collapse the panel to its smallest size and back; a `collapsible` panel's smallest
+ * is 0). It has a 44px hit area on touch screens.
  *
  * Use `Resizable` instead, which places these for you.
  *
@@ -423,6 +436,7 @@ export interface ResizableHandleProps {
  * <ResizableHandle aria-label="Resize the preview" />
  * @claim "The draggable line between two panels" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > gives the handle a hit area wider than its line)
  * @claim "It has a 44px hit area on touch screens" registry/ouro/components/ouro/resizable/resizable.tsx verify:fileLine(registry/ouro/components/ouro/resizable/resizable.tsx, /<TouchTarget/)
+ * @claim "a `collapsible` panel's smallest is 0" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > lets the keys take a collapsible panel to 0 and back, and Home to 0)
  */
 export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: ResizableHandleProps): JSX.Element | null {
   const group = useContext(GroupContext);
