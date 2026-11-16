@@ -727,9 +727,12 @@ export function Message(props: MessageProps): JSX.Element {
   const hasContext = context !== undefined && context !== null && typeof context !== "boolean" && context !== "";
   // Muted as the quote's excerpt is, except on a default message's own primary bubble: that bubble does not re-point
   // the muted token, and a muted line on the primary fill fails 4.5:1, so it takes the bubble's text color.
-  const contextTone = role === "user" && variant === "default" ? "" : "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+  const primaryBubble = role === "user" && variant === "default";
   const contextLine = hasContext ? (
-    <div data-ouro-message-context="" className={cn("m-0 mb-1 text-xs", contextTone)}>
+    <div
+      data-ouro-message-context=""
+      className={cn("m-0 mb-1 text-xs", !primaryBubble && "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]")}
+    >
       {context}
     </div>
   ) : null;
