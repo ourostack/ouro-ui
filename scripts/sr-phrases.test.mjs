@@ -305,7 +305,7 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118) and th
   assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
   // The Menu's opening is only logged on macOS 15's VoiceOver, and must be read everywhere else (#1721).
   const menuSpec = readFileSync(join(dir, "menu.sr.spec.ts"), "utf8");
-  assert.match(menuSpec, /process\.platform === "darwin" && Number\(release\(\)\.split\("\."\)\[0\]\) < 25\) \{\n {4}await said\(sr, open,/);
+  assert.match(menuSpec, /if \(onOlderMacOS\(\)\) \{\n {4}await said\(sr, open,/);
   assert.match(menuSpec, /\} else \{\n {4}await heard\(sr, open,/);
   // A field Form focuses after a submit needs no fallback: Form's alert says the error for every reader (#1720).
   const textField = readFileSync(join(dir, "text-field.sr.spec.ts"), "utf8");
