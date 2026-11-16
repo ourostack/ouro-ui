@@ -419,6 +419,20 @@ describe("Combobox multiple", () => {
 });
 
 describe("Combobox allowCustomValue", () => {
+  it("shows the end of long text on End in a right-to-left page, where the end is on the left", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { input } = await render(<Combobox label="Cuisine" allowCustomValue items={["Thai"]} defaultValue={"Cooking with ".repeat(12)} />);
+      input.focus();
+      input.setSelectionRange(0, 0);
+      await userEvent.keyboard("{End}");
+      expect(input.scrollWidth).toBeGreaterThan(input.clientWidth);
+      expect(input.scrollLeft).toBeLessThan(0);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("keeps what people type and suggests matching items", async () => {
     const onValueChange = vi.fn();
     const { input, host } = await render(

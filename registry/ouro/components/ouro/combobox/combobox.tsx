@@ -392,6 +392,7 @@ const ChevronIcon = () => (
  * (`customValueLabel`). The sheet opens with focus on itself, not the search input, so the
  * keyboard does not cover the list until people tap the search (as Base UI does for touch).
  * In a right-to-left page (`dir="rtl"` on `<html>`) the arrow keys move between chips from the right: ArrowRight goes from the input to the last chip.
+ * There, End also scrolls long typed text to its end, on the left.
  *
  * Use `Select` instead for a short list people don't need to search, and `TextField` for
  * free text with no suggestions.
@@ -406,6 +407,7 @@ const ChevronIcon = () => (
  * <Combobox label="Cuisine" name="cuisine" allowCustomValue items={["Italian", "Thai"]} />
  * @claim "On a phone (below 640px with" registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > is a button in the field that opens a sheet titled with the label)
  * @claim "In a right-to-left page" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox multiple > moves between its chips with the arrow keys of a right-to-left page, where the last chip sits right of the input)
+ * @claim "There, End also scrolls long" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox allowCustomValue > shows the end of long text on End in a right-to-left page, where the end is on the left)
  * @claim "On a phone (below 640px with" registry/ouro/components/ouro/combobox/combobox.touch.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.touch.test.tsx::Combobox on a phone > clears a single pick with a clear button beside the field, by tap or from the keyboard)
  */
 export function Combobox(props: ComboboxProps): JSX.Element {
@@ -983,7 +985,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
   const resetInputRef = useRef<HTMLInputElement>(null);
   const setInputRef = useMergedRef(inputRef, resetInputRef);
   useCustomReset(resetInputRef, value, props.onReset);
-  return (
+  const directed = (
     <BaseAutocomplete.Root
       items={suggestions}
       inputRef={markInput}
@@ -1030,4 +1032,6 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
       </Popup>
     </BaseAutocomplete.Root>
   );
+  // End scrolls the input to its end, which in a right-to-left input is a negative scrollLeft.
+  return <PageDirection of={resetInputRef}>{directed}</PageDirection>;
 }
