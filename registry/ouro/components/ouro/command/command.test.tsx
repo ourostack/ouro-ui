@@ -154,7 +154,7 @@ describe("Command", () => {
     for (const typed of ["daxlog", "dxylog"]) {
       await userEvent.clear(input());
       await userEvent.type(input(), typed);
-      await expect.poll(options, typed).toEqual([]);
+      await expect.poll(options).toEqual([]);
     }
     // A word of four letters, after the first word of a label.
     await userEvent.clear(input());
