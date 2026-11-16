@@ -2,7 +2,7 @@
 
 import { Radio as BaseRadio } from "@base-ui/react/radio";
 import { RadioGroup as BaseRadioGroup } from "@base-ui/react/radio-group";
-import type { JSX, ReactNode, Ref } from "react";
+import { useRef, type JSX, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { choicesClass, contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
@@ -10,6 +10,8 @@ import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { dotClass, radioClass } from "@/registry/ouro/components/ouro/radio-group/radio-group-styles";
 
 /** One choice in a {@link RadioGroup}'s `options`. */
@@ -220,21 +222,25 @@ function Choices(props: {
   children: ReactNode;
 }): JSX.Element {
   const { value, defaultValue, onValueChange, orientation, ref, children } = props;
+  const group = useRef<HTMLDivElement>(null);
+  const merged = useMergedRef(ref, group);
   const field = useField()!;
   return (
-    <BaseRadioGroup
-      ref={ref}
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onValueChange && ((next) => onValueChange(next as string))}
-      required={field.required}
-      // Set here, not left to Base UI's effects, so the server HTML names and describes the group.
-      aria-labelledby={field.labelId}
-      aria-describedby={field.describedBy}
-      className={choicesClass[orientation]}
-    >
-      {children}
-    </BaseRadioGroup>
+    <PageDirection of={group}>
+      <BaseRadioGroup
+        ref={merged}
+        value={value}
+        defaultValue={defaultValue}
+        onValueChange={onValueChange && ((next) => onValueChange(next as string))}
+        required={field.required}
+        // Set here, not left to Base UI's effects, so the server HTML names and describes the group.
+        aria-labelledby={field.labelId}
+        aria-describedby={field.describedBy}
+        className={choicesClass[orientation]}
+      >
+        {children}
+      </BaseRadioGroup>
+    </PageDirection>
   );
 }
 
@@ -246,8 +252,11 @@ function Choices(props: {
  *
  * Use `CheckboxGroup` instead when several choices may be picked, `Select` for a long list,
  * and `Switch` for on or off.
+ * In a right-to-left page (`dir="rtl"`) a row of radios follows it: ArrowLeft moves to the next.
+ *
  *
  * @group Forms
+ * @claim "In a right-to-left page" registry/ouro/components/ouro/radio-group/radio-group.test.tsx verify:testExists(registry/ouro/components/ouro/radio-group/radio-group.test.tsx::RadioGroup > moves to the next radio with ArrowLeft in a right-to-left page, laid out in a row)
  * @see https://ui.ouroboros.bot/docs/radio-group
  *
  * @example

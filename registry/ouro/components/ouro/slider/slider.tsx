@@ -369,7 +369,7 @@ function SliderControl({
   );
   const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
   return (
-    <PageDirection>
+    <PageDirection of={rootRef}>
       <BaseSlider.Root
         ref={rootRef}
         {...shared}

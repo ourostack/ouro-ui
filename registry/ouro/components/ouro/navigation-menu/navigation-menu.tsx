@@ -1,7 +1,7 @@
 "use client";
 
 import { NavigationMenu as BaseNavigationMenu } from "@base-ui/react/navigation-menu";
-import { useState, type JSX, type MouseEvent as ReactMouseEvent, type ReactNode, type Ref } from "react";
+import { useRef, useState, type JSX, type MouseEvent as ReactMouseEvent, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { currentHref, samePath } from "@/registry/ouro/lib/ouro/current-path";
@@ -10,6 +10,7 @@ import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 
 /** One link inside a NavigationMenu panel. */
 export interface NavigationMenuLink {
@@ -291,6 +292,8 @@ function isPanel(item: NavigationMenuItem): item is NavigationMenuPanelItem {
  */
 export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element {
   const { label, items, currentPath, className, ref, oneLine, listRef } = props;
+  const nav = useRef<HTMLElement>(null);
+  const mergedNav = useMergedRef(ref, nav);
   // Controlled, so a link in a panel's content can close it.
   const [value, setValue] = useState<number | null>(null);
   const [instant, setInstant] = useState(false);
@@ -315,9 +318,9 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
 
   const portal = usePortalContainer("NavigationMenu");
   return (
-    <PageDirection>
+    <PageDirection of={nav}>
       <BaseNavigationMenu.Root
-        ref={ref}
+        ref={mergedNav}
         data-ouro="navigation-menu"
         aria-label={label}
         value={value}

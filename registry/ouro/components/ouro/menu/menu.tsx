@@ -754,7 +754,7 @@ export function Menu(props: MenuProps): JSX.Element {
 
   return (
     // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides.
-    <PageDirection>
+    <PageDirection of={triggerRef}>
       <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
         {label !== undefined ? (
           <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
@@ -843,14 +843,15 @@ export interface MenuBarProps extends Omit<HTMLAttributes<HTMLDivElement>, "clas
  * @claim "Each child is a `Menu` with" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu dev messages > throws the exact fix for label outside a MenuBar, and for a trigger inside one)
  */
 export function MenuBar({ children, className, ...rest }: MenuBarProps): JSX.Element {
+  const bar = useRef<HTMLDivElement>(null);
   useAppearanceClassNameCheck(
     "MenuBar",
     className,
     process.env.NODE_ENV !== "production" ? "wrap the MenuBar in an element with that class" : /* istanbul ignore next @preserve -- production only */ "",
   );
   return (
-    <PageDirection>
-      <Menubar {...rest} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
+    <PageDirection of={bar}>
+      <Menubar {...rest} ref={bar} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
         <MenuBarContext.Provider value>{children}</MenuBarContext.Provider>
       </Menubar>
     </PageDirection>

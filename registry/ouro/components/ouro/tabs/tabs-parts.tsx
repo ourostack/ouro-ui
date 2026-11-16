@@ -72,12 +72,15 @@ export function TabsRoot(props: TabsRootProps): JSX.Element {
  *
  * @internal
  */
-export function TabsRootUnchecked({ className, onPointerDownCapture, ...props }: TabsRootProps): JSX.Element {
+export function TabsRootUnchecked({ className, onPointerDownCapture, ref, ...props }: TabsRootProps): JSX.Element {
+  const root = useRef<HTMLDivElement>(null);
+  const merged = useMergedRef(ref, root);
   return (
     <TabsContext.Provider value>
-      <PageDirection>
+      <PageDirection of={root}>
         <BaseTabs.Root
           {...props}
+          ref={merged}
           data-ouro="tabs"
           // A pointer anywhere inside (a tab, or a control in a panel) ends the keyboard's quiet spell.
           onPointerDownCapture={(event) => {

@@ -1,5 +1,5 @@
 import { DirectionProvider, useDirection } from "@base-ui/react/direction-provider";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
@@ -11,6 +11,18 @@ const hosts: HTMLElement[] = [];
 
 function Shown({ id }: { id: string }) {
   return <output data-testid={id}>{useDirection()}</output>;
+}
+
+/** A component that follows the direction where its own element, inside it, stands. */
+function Placed({ id }: { id: string }) {
+  const element = useRef<HTMLDivElement>(null);
+  return (
+    <PageDirection of={element}>
+      <div ref={element}>
+        <Shown id={id} />
+      </div>
+    </PageDirection>
+  );
 }
 
 async function render(node: ReactNode) {
@@ -39,11 +51,7 @@ describe("PageDirection", () => {
         <Shown id="a" />
       </PageDirection>,
     );
-    await render(
-      <PageDirection>
-        <Shown id="b" />
-      </PageDirection>,
-    );
+    await render(<Placed id="b" />);
     expect([shown("a"), shown("b")]).toEqual(["rtl", "rtl"]);
     await act(async () => void (document.documentElement.dir = "ltr"));
     await expect.poll(() => [shown("a"), shown("b")]).toEqual(["ltr", "ltr"]);
@@ -53,7 +61,24 @@ describe("PageDirection", () => {
     await expect.poll(() => shown("b")).toBe("rtl");
   });
 
-  it("leaves an app's own direction in a left-to-right page, and renders left to right on the server", async () => {
+  it("follows its own element's direction: a left-to-right section in a right-to-left page, and the reverse", async () => {
+    document.documentElement.dir = "rtl";
+    await render(
+      <div dir="ltr">
+        <Placed id="section" />
+      </div>,
+    );
+    expect(shown("section")).toBe("ltr");
+    document.documentElement.dir = "ltr";
+    await render(
+      <div dir="rtl">
+        <Placed id="island" />
+      </div>,
+    );
+    expect(shown("island")).toBe("rtl");
+  });
+
+  it("leaves an app's own direction in a left-to-right page, and renders it on the server", async () => {
     await render(
       <DirectionProvider direction="rtl">
         <PageDirection>
@@ -62,7 +87,6 @@ describe("PageDirection", () => {
       </DirectionProvider>,
     );
     expect(shown("own")).toBe("rtl");
-    document.documentElement.dir = "rtl";
     expect(
       renderToString(
         <PageDirection>

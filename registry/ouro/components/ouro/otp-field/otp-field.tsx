@@ -7,6 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
 import {
   defaultSlotLabel,
   otpValidationTypes,
@@ -168,31 +169,33 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
   const invalid = field.invalid;
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
   return (
-    <OTPField.Root
-      {...rest}
-      ref={setRef}
-      length={length}
-      required={field.required}
-      aria-describedby={field.describedBy}
-      onValueChange={onValueChange && ((next) => onValueChange(next))}
-      onValueComplete={onValueComplete && ((next) => onValueComplete(next))}
-      className={slotsClass}
-    >
-      {Array.from({ length }, (_, index) => (
-        <Fragment key={index}>
-          {index > 0 && index % groups === 0 && <OTPField.Separator data-ouro-otp-separator="" className={separatorClass} />}
-          <OTPField.Input
-            data-ouro-otp-slot=""
-            data-ouro-control="otp-field"
-            data-ouro-part="slot"
-            aria-label={index === 0 ? undefined : slotLabel(index + 1, length)}
-            aria-describedby={field.describedBy}
-            {...(invalid ? { "aria-invalid": true } : {})}
-            className={slotClass}
-          />
-        </Fragment>
-      ))}
-    </OTPField.Root>
+    <PageDirection of={rootRef}>
+      <OTPField.Root
+        {...rest}
+        ref={setRef}
+        length={length}
+        required={field.required}
+        aria-describedby={field.describedBy}
+        onValueChange={onValueChange && ((next) => onValueChange(next))}
+        onValueComplete={onValueComplete && ((next) => onValueComplete(next))}
+        className={slotsClass}
+      >
+        {Array.from({ length }, (_, index) => (
+          <Fragment key={index}>
+            {index > 0 && index % groups === 0 && <OTPField.Separator data-ouro-otp-separator="" className={separatorClass} />}
+            <OTPField.Input
+              data-ouro-otp-slot=""
+              data-ouro-control="otp-field"
+              data-ouro-part="slot"
+              aria-label={index === 0 ? undefined : slotLabel(index + 1, length)}
+              aria-describedby={field.describedBy}
+              {...(invalid ? { "aria-invalid": true } : {})}
+              className={slotClass}
+            />
+          </Fragment>
+        ))}
+      </OTPField.Root>
+    </PageDirection>
   );
 }
 
@@ -204,8 +207,11 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
  *
  * Use `TextField` with `inputMode="numeric"` instead for a number with no fixed length, and
  * `TextField type="password"` for a password.
+ * In a right-to-left page (`dir="rtl"`) the slots run from the right, and ArrowLeft moves to the next.
+ *
  *
  * @group Forms
+ * @claim "In a right-to-left page" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > moves between slots the way they run in a right-to-left page: ArrowLeft to the next)
  * @see https://ui.ouroboros.bot/docs/otp-field
  *
  * @example

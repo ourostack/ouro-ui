@@ -15,6 +15,10 @@ import { OtpField } from "@/registry/ouro/components/ouro/otp-field/otp-field";
 <OtpField label="Recovery code" validationType="alphanumeric" length={8} groupSize={4} />
 ```
 
+## Usage
+
+In a right-to-left page (`dir="rtl"`) the slots run from the right, and ArrowLeft moves to the next.
+
 ## Use instead when
 
 - Use `TextField` with `inputMode="numeric"` instead for a number with no fixed length, and `TextField type="password"` for a password.
