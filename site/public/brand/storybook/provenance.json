@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@a051a878f06602fdff4650855211f5a7ce1c8b5c:brand/",
+  "origin": "ourostack/.github@23ec576319817e748781cc5102237b3977a83de9:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -37,11 +37,11 @@
     },
     {
       "file": "headers/ourostack-dark.webp",
-      "sha256": "7177b335b4abfa60fae156c017b1035c9fb87ef18d54c7a6f556d3724a35e325"
+      "sha256": "618ab6778550d35d59f13993768154c4ef4ff0eb2964fd6b8bdcf75cd7572f5c"
     },
     {
       "file": "headers/ourostack.webp",
-      "sha256": "049edf3dba66a5cd3a398feccef72d344bc484f0148efbf9fb66e309b9a81b50"
+      "sha256": "1a20ba40f2d424ac554f03e52a781c6f0bd88a0fc82c156602938c18a8ab8c6a"
     },
     {
       "file": "headers/playwright-focus-proof-dark.webp",
@@ -345,67 +345,67 @@
     },
     {
       "file": "phone/ourostack-1152.avif",
-      "sha256": "2d508d0e7f874b45b8e647347928b5762e9538345035c294b2e13cebad812bde"
+      "sha256": "ecba75d6d5da2f10e4fc928eab7d82f096967666fae944b7ecd4e91bfc1f07e0"
     },
     {
       "file": "phone/ourostack-1152.webp",
-      "sha256": "0afcaaf9bbe1d66ecc8c2843d75be147235e0b865e19e746fcda0f9f60088c36"
+      "sha256": "f4ecaaa6876f8d8236f1e781e77a599d07d33f2d172cb0893b90281b44769bb4"
     },
     {
       "file": "phone/ourostack-1536.avif",
-      "sha256": "fa1406305486822422226b0a3f332769e050855044224ae52409cc3436f91288"
+      "sha256": "70eca9f324920bdcadff9694a3d78ae95a83a1d308311cfe175a9a2a9af28be4"
     },
     {
       "file": "phone/ourostack-1536.webp",
-      "sha256": "73cb06ff68ee06c7eb494a4db321c974b3e1efb39a18a94cd5167ac35ebf964b"
+      "sha256": "f9ba799b64225323a4c139c1a47b33a1f0b6a17dcf348ba13f28405f695c2fda"
     },
     {
       "file": "phone/ourostack-384.avif",
-      "sha256": "611d3481db74ea100377149f549dbf3c4a5bf577acf9024ce5976897fb01a88a"
+      "sha256": "bb88782ac6e7bf70fac04cb15683981692f534a3aca4c9f1aea2a867d19b3d80"
     },
     {
       "file": "phone/ourostack-384.webp",
-      "sha256": "89e5388ed55f309b68bebde38cf33da802514879a4cf09e8cb4875788779e136"
+      "sha256": "3d98b89a46aecd7114176feb46a5c8e44eaa3c212e5e854b6a4212119955e54a"
     },
     {
       "file": "phone/ourostack-768.avif",
-      "sha256": "dda7c1ee269488201e1ac1d52f067c163b87e542020692a47878a59872480c25"
+      "sha256": "e8d70902db15e8dcaee84ac32493f749a270581d2276d9eeec1570b00c021927"
     },
     {
       "file": "phone/ourostack-768.webp",
-      "sha256": "d968336ab875f9f0eb07229d03a5ea4a6cb85e214564feecd6ab4cf82feef1a7"
+      "sha256": "af23847a9a07a84c1890af171f6323622e651968d9eedc6ab0e7c5b52fb9f0a7"
     },
     {
       "file": "phone/ourostack-dark-1152.avif",
-      "sha256": "c19d331f913474743d9b5da64634f971175dbc6d1c85c7c2e59f1f63c0afcded"
+      "sha256": "57c8461046495cc06051b8a306a69ceebfdfd05c3cff11155feacbeef93467fd"
     },
     {
       "file": "phone/ourostack-dark-1152.webp",
-      "sha256": "444e8c4100844bf1a0e6d6a438a626e25282d518aaa5fcc485b30b4b8df5a545"
+      "sha256": "cae42ae6732ff3d4507231876f27f6dc6ce49a0e461da41bf95ce7d00cec5017"
     },
     {
       "file": "phone/ourostack-dark-1536.avif",
-      "sha256": "06ac6e653db79b7ee7678001ce70b102dc0302bfb6223aea0f7369b58ae8a284"
+      "sha256": "023d0034645eb7211ad038f4d76342ec71d9742bdd9327580d8e0a44da71c281"
     },
     {
       "file": "phone/ourostack-dark-1536.webp",
-      "sha256": "e68ef3bb113af5d3344a076711320b1472566e64353db4309ac7ffa682a4a807"
+      "sha256": "889ec39a39a24715a01b5b6c641e8cc0bade8fbf04c0a067d543afadd7e723d3"
     },
     {
       "file": "phone/ourostack-dark-384.avif",
-      "sha256": "e76cc99b051a5c55377f0f6750cfdbd05e70ce5d7b5ea8e472f722c02aecfbfa"
+      "sha256": "e4de46aecf50fbd3a65791b9ea0dcdfa591dee0dcc279b59c11c98564c593e5f"
     },
     {
       "file": "phone/ourostack-dark-384.webp",
-      "sha256": "a2af536774c12f3591fab6497feba1d2ede53724b4601606a20d5160340f0c90"
+      "sha256": "8ee0aa98b47d106c9b4cbed0cbab03d6b988f0c4b595d5606bb1f44365aed925"
     },
     {
       "file": "phone/ourostack-dark-768.avif",
-      "sha256": "e1969b4b5642ac921f1921011fc69f47795a34229545dd114c7da07aff6c1c44"
+      "sha256": "3f0b411347d8cce09f5977db16152197551c6350fe7c28810c2ad91f1a4cf0b9"
     },
     {
       "file": "phone/ourostack-dark-768.webp",
-      "sha256": "72cb7ec6f610e016a09738351397901a5c50f396aae26f7c2c056ae97453268a"
+      "sha256": "23517dd68d11077c4a2048a6697c5aef5d6ac83b72ff339d21f9cb8039188332"
     },
     {
       "file": "phone/playwright-focus-proof-1152.avif",
@@ -697,59 +697,59 @@
     },
     {
       "file": "scenes/ourostack-1536.avif",
-      "sha256": "8db2a9beae1e5a7ecb51807260369a46339747b4574af63372b05faa2c12ea0b"
+      "sha256": "309aed7b14f67e5f283ac93168359a1d0ef0aa3b9418a1d42d5f7415c4419ee0"
     },
     {
       "file": "scenes/ourostack-3072.avif",
-      "sha256": "c32d04973081ff01c7bfbe565b19d50f79f6ce707f9fa5243dfdd14928d7d7c6"
+      "sha256": "585c61cda5534137672287803de50ec272dbc6295a4df8d5ecf504603ffe8d86"
     },
     {
       "file": "scenes/ourostack-3072.webp",
-      "sha256": "1f90c4a9fa528e8b5a02189556c73216142db125209dce9b850246d2c4af62c1"
+      "sha256": "e197efd35ff457ebdabc1cb9c5d08f17944a0a491d48a58cecf9fdb4ee7c9818"
     },
     {
       "file": "scenes/ourostack-640.avif",
-      "sha256": "6a7ce4cb9591a1f9ec39a62b62f49a3f0fd0a5d278cf4c5041c0b765f82201fa"
+      "sha256": "6f067e70f5da718e1ead5eeee1247d477d3e6a6f8465e26f40ba6010f1a63475"
     },
     {
       "file": "scenes/ourostack-640.webp",
-      "sha256": "790c61dc64d544906a1a9e57d12e3ea8388cb7d98cf5f76db64a1a756a9ba81d"
+      "sha256": "7fe7240c9f1a1979ce50082fd99c484253819f1132acffd64a59e47574c2060b"
     },
     {
       "file": "scenes/ourostack-960.avif",
-      "sha256": "1a5da7b85aa995fc542d9a9f6fd95989344db1ec7d87c80c05022a27f080b88c"
+      "sha256": "28e853df740cb687a0aa272bf961b335e80cda13dc99ba28d5c9344c60c7ea03"
     },
     {
       "file": "scenes/ourostack-960.webp",
-      "sha256": "724d509c9bc04f0340a3b89554540ebf2330122a2d963c91079125d40a6a7cab"
+      "sha256": "266cefae7641c353dea7b5b520389742d274cd0855f6281f6d08c214d92581b5"
     },
     {
       "file": "scenes/ourostack-dark-1536.avif",
-      "sha256": "31c29f327e674cd611e33e9f333b61c14433c5cf36ea535bf52f057d5f6b82d1"
+      "sha256": "f17df43a21c3b5dfef807be638284fde6bc4d5fa07599b541a39ad24bdb3d3c0"
     },
     {
       "file": "scenes/ourostack-dark-3072.avif",
-      "sha256": "8f1a3e9fb09bbfbee53faa15f6da4cd4c73f1ecfdacb940d9d01c485a9cd8281"
+      "sha256": "09769edd072b35611588cfbf80cdbfe312dfac9ed09807d147c63e07da590e3e"
     },
     {
       "file": "scenes/ourostack-dark-3072.webp",
-      "sha256": "c575c19a4be55e1f80c7bc367016d2ef0ff6a8850314eb438c0361900ef22b55"
+      "sha256": "97188ed5dc47ccffaa0146c088efa740f12752ebde915a300ac22a6ecd37e340"
     },
     {
       "file": "scenes/ourostack-dark-640.avif",
-      "sha256": "244a0f432f8df349ead51de0576364061f64ea8a524e083509b06db4297a2154"
+      "sha256": "daccb84277c14016e8721824d8bdb6ac6b335918e3eff4aaa57572799a247d39"
     },
     {
       "file": "scenes/ourostack-dark-640.webp",
-      "sha256": "f18f143fc4bcc76879eb6e1cea6b5894ce3425fe5803eab09e255533b2f095b0"
+      "sha256": "219a44a951a7d251313eeeb99c993d97df8e301ff9c9f438e751375171874649"
     },
     {
       "file": "scenes/ourostack-dark-960.avif",
-      "sha256": "9a99e1db9c59290421e87b3fc2723236ec889e7ddea43e31cd99f9c22c2efb34"
+      "sha256": "e504883a91e04f300907e9d05caf5cfa7973ceb634ac3279e4827462c23ab16c"
     },
     {
       "file": "scenes/ourostack-dark-960.webp",
-      "sha256": "b741ab0be6b0910673c47c6ab656129c6f5fb7f634a3a040fbf4981cb5ad9442"
+      "sha256": "8cc3484c12ea1816430ecd07dd7676c4fae8147a920e926f04a142f1764c79b3"
     },
     {
       "file": "scenes/playwright-focus-proof-1536.avif",
