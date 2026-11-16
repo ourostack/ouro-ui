@@ -1972,6 +1972,11 @@ describe("keyboard focus under the stack", () => {
     expect(covered(caseOf("foot-one"))).toBe(false);
     await show("Second", { duration: Infinity });
     expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    // An inline bottom, as avoid's lift writes, says a toaster is at the bottom, but not one moved to the top: a resize reads the edge again.
+    viewport()!.style.bottom = "120px";
+    await act(async () => window.dispatchEvent(new Event("resize")));
+    expect(viewport()!.getAttribute("data-edge")).toBe("top");
+    viewport()!.style.removeProperty("bottom");
     await pressTab({ shift: true });
     await until(focused, "middle");
     await frames();
