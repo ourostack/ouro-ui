@@ -430,13 +430,6 @@ function childEnv(opts: XrayOptions): Record<string, string> {
 /** Reads `a.b.c` from a JSON value. */
 const at = (value: unknown, path: string): unknown => path.split(".").reduce<unknown>((v, k) => (isRecord(v) ? v[k] : undefined), value);
 
-/**
- * Whether the X-ray may call what other people see, failing closed: every address it can see is loopback, the home is
- * isolated, the target proves it is a mock (`--mock "<url> <key>=<value>"`, or the adopter's `--guard`, which already
- * passed), and no credential is passed to it. Any missing proof refuses those checks and says why.
- *
- * @claim "may call what other people see" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock)
- */
 /** Whether a path is an existing executable file: the only kind of --env value the X-ray takes as a stub. */
 const isExecutableFileSync = (path: string): boolean => {
   try {
@@ -448,6 +441,7 @@ const isExecutableFileSync = (path: string): boolean => {
   }
 };
 
+/** Why a stub is not inside the X-ray's home or the repository, or null when it is. */
 function stubProblem(path: string, roots: readonly string[]): string | null {
   let real: string;
   try {
@@ -474,6 +468,13 @@ function stubProblem(path: string, roots: readonly string[]): string | null {
   return null;
 }
 
+/**
+ * Whether the X-ray may call what other people see, failing closed: every address it can see is loopback, the home is
+ * isolated, the target proves it is a mock (`--mock "<url> <key>=<value>"`, or the adopter's `--guard`, which already
+ * passed), and no credential is passed to it. Any missing proof refuses those checks and says why.
+ *
+ * @claim "may call what other people see" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock)
+ */
 async function checkSafety(opts: XrayOptions, guardPassed: boolean): Promise<Safety> {
   const checks: Safety["checks"] = [];
   const [mockUrl, mockExpect] = opts.mock ? splitCommand(opts.mock) : [];
