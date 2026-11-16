@@ -281,21 +281,19 @@ function movesItems(record: MutationRecord): boolean {
 }
 
 /**
- * The messages in the content, and each child of a slot that holds none (a day's heading), in page order: found slot by slot,
+ * The messages, with each child of a slot that holds none (a day's heading), in page order: the children found slot by slot,
  * rather than with a `:has()` selector over the whole content, which a scroll landing where nothing is drawn yet would pay for.
- * @claim "The messages in the content, and each child of a slot that holds none" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place over rows not drawn yet without a :has() selector over the whole conversation, which reads every element against every message)
+ * @claim "The messages, with each child of a slot that holds none" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place over rows not drawn yet without a :has() selector over the whole conversation, which reads every element against every message)
  */
-function itemsAndChildren(content: Element): Element[] {
-  const found: Element[] = [];
+function withBareChildren(content: Element, messages: readonly Element[]): Element[] {
+  const bare: Element[] = [];
   for (const slot of content.children) {
-    if (!slot.hasAttribute(SLOT)) continue;
     for (const child of slot.children) {
-      const inside = child.querySelectorAll(items);
-      if (child.matches(items) || inside.length === 0) found.push(child);
-      found.push(...inside);
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: a message listed twice, or a child of the app's listed with the messages it holds (it starts where the first does and moves with them), holds the place as the messages alone do.
+      if (!child.matches(items) && child.querySelector(items) === null) bare.push(child);
     }
   }
-  return found;
+  return [...messages, ...bare].sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
 }
 
 /** Sets an attribute only when its value differs, so marking the messages again changes nothing in the page. */
@@ -1468,12 +1466,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
         }
         return held;
       };
-      anchors = find([...content.querySelectorAll(items)]);
+      const messages = [...content.querySelectorAll(items)];
+      anchors = find(messages);
       // When no message shows, what a child draws that holds none (a day's heading) holds the place: it may be all the view
       // shows, as when it is revealed in a windowed list, with the messages around it not drawn yet.
       // An anchor is never wholly above the view (those that reach into it are the ones taken), so it shows when it starts above the view's end.
       // Stryker disable next-line EqualityOperator,MethodExpression: a message whose edge meets the view's to the pixel shows none of itself either way; and where some anchors show, looking again with the children that hold no message finds those same messages showing, which hold the place alike.
-      if (!anchors.some(({ node }) => boxOf(node).top < view.bottom)) anchors = find(itemsAndChildren(content));
+      if (!anchors.some(({ node }) => boxOf(node).top < view.bottom)) anchors = find(withBareChildren(content, messages));
       end = farthest();
       taken = scroller.scrollTop;
     };
