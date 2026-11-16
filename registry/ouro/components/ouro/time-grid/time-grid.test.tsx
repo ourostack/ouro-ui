@@ -1122,6 +1122,41 @@ describe("TimeGrid", () => {
     expect(scroller.scrollTop).toBeGreaterThan(8 * 48);
   });
 
+  it("hydrates without a mismatch when the server's engine spaced a time range differently from this browser's", async () => {
+    const props = {
+      ...base,
+      timeZone: undefined,
+      view: "day" as const,
+      events: [
+        { id: "e", title: "Sync", start: "2026-03-12T14:00:00Z", end: "2026-03-12T16:00:00Z" },
+        { id: "trip", title: "Trip", start: "2026-03-11T14:00:00Z", end: "2026-03-13T16:00:00Z" },
+        { id: "fair", title: "Fair", start: "2026-03-11", end: "2026-03-13" },
+      ],
+    };
+    // The server is Node, whose ICU writes "2:00\u2009–\u20094:00\u202fPM" where Chrome and Safari write "2:00 – 4:00 PM".
+    const { formatRange } = Intl.DateTimeFormat.prototype;
+    const spy = vi.spyOn(Intl.DateTimeFormat.prototype, "formatRange").mockImplementation(function (this: Intl.DateTimeFormat, start, end) {
+      return formatRange.call(this, start, end).replace(" – ", "\u2009–\u2009").replace(/ ([AP]M)/, "\u202f$1");
+    });
+    let html: string;
+    try {
+      html = renderToString(<TimeGrid {...props} />);
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+    expect(html).toContain("2:00 – 4:00 PM");
+    expect(html).toContain("Wednesday, March 11 at 2:00 PM – Friday, March 13 at 4:00 PM");
+    expect(html).toMatch(/Wednesday, March 11 – \w+day, March 1\d/);
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const onRecoverableError = vi.fn();
+    await act(async () => void roots.push(hydrateRoot(host, <TimeGrid {...props} />, { onRecoverableError })));
+    expect(onRecoverableError).not.toHaveBeenCalled();
+  });
+
   it("draws no now line before the browser knows the time, even on the first day of 1970", () => {
     const html = renderToString(<TimeGrid {...base} now={undefined} timeZone="UTC" date="1970-01-01" view="day" events={[]} />);
     expect(html).not.toContain("data-ouro-time-grid-now");

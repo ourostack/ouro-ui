@@ -340,6 +340,8 @@ interface Piece {
 }
 
 const utcDate = (day: string) => new Date(`${day}T00:00:00Z`);
+// Node's ICU spaces a range with thin (U+2009) and narrow (U+202F) spaces where browsers put plain ones.
+const plainSpaces = (text: string) => text.replace(/[\u2009\u202f]/g, " ");
 const between = (low: number, value: number, high: number) => Math.min(high, Math.max(low, value));
 /** A length in minutes as a share of the grid's hour height. */
 const minutesTall = (minutes: number) => `calc(var(--ouro-time-grid-hour) * ${minutes / 60})`;
@@ -446,9 +448,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   const todayIndex = nowAt ? days.indexOf(nowAt.day) : -1;
 
   const words = { ...defaultStatusLabels, ...statusLabels };
-  // Two times of day. Across midnight Intl would add both dates, so the times are joined instead.
+  // Two times of day. Across midnight Intl would add both dates, so the times are joined instead. Node's ICU spaces a
+  // range with thin and narrow spaces where browsers put plain ones, so a server's range would not hydrate: it is
+  // written with plain spaces everywhere (plainSpaces).
   const rangeText = (format: Intl.DateTimeFormat, start: Date, end: Date) =>
-    formats.clock.at(start.getTime()).day === formats.clock.at(end.getTime()).day ? format.formatRange(start, end) : `${format.format(start)} – ${format.format(end)}`;
+    formats.clock.at(start.getTime()).day === formats.clock.at(end.getTime()).day
+      ? plainSpaces(format.formatRange(start, end))
+      : `${format.format(start)} – ${format.format(end)}`;
   // The events cut into what each shown day draws, in the order the arrow keys take them. Laid out once per change
   // to the events, the days or their formats, not on every render (an arrow key, a clock tick, a measure).
   const { pieces, problems, allDay, timed, behind, hasBackground } = useMemo(() => {
@@ -457,7 +463,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const allDaySpans: Array<{ key: string; first: number; last: number }> = [];
     const timedItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
     // An all-day event's days: its weekday, or the dates it runs between.
-    const daysText = (first: string, last: string) => (first === last ? formats.weekdayLong.format(utcDate(first)) : formats.fullDay.formatRange(utcDate(first), utcDate(last)));
+    const daysText = (first: string, last: string) => (first === last ? formats.weekdayLong.format(utcDate(first)) : plainSpaces(formats.fullDay.formatRange(utcDate(first), utcDate(last))));
     // The shown days from `from` to `to`, as indexes, or null when none of them shows.
     const spanOf = (from: string, to: string) => {
       const first = days.findIndex((day) => day >= from);
@@ -514,13 +520,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           const span = spanOf(from.day, lastDay);
           if (!span) continue;
           const key = `all:${id}`;
-          const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [formats.acrossDays.formatRange(start, end)];
+          const when = from.minutes === 0 && to.minutes === 0 ? [daysText(from.day, lastDay), allDayLabel] : [plainSpaces(formats.acrossDays.formatRange(start, end))];
           pieces.push({ key, event, status, background, day: span.first, start: -1, end: dayLength, when });
           allDaySpans.push({ key, ...span });
           continue;
         }
         // The time itself is heard as the event shows it, right after its title.
-        const when = from.day === lastDay ? [formats.weekdayLong.format(utcDate(from.day))] : [formats.acrossDays.formatRange(start, end)];
+        const when = from.day === lastDay ? [formats.weekdayLong.format(utcDate(from.day))] : [plainSpaces(formats.acrossDays.formatRange(start, end))];
         days.forEach((day, column) => {
           if (day < from.day || day > lastDay) return;
           const key = `${prefix}${column}:${id}`;
