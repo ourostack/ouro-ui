@@ -45,6 +45,7 @@ import {
   commandSheetListClass,
   commandSheetSearchClass,
   matchesQuery,
+  queryMatch,
   queryRanges,
   type TextRange,
 } from "@/registry/ouro/components/ouro/command/command-styles";
@@ -319,6 +320,9 @@ interface Group {
 
 const itemsFix = '<Command items={[{ label: "New recipe", onSelect: create }]}>';
 
+/** What the search reads in a command besides its label: its description and its keywords. */
+const searchedWords = (item: CommandItem): string[] => [item.description ?? "", ...(item.keywords ?? [])];
+
 /**
  * Groups as given, with each run of loose commands in a group without a heading.
  *
@@ -370,7 +374,9 @@ function SearchIcon(): JSX.Element {
 
 /**
  * A command palette: a searchable list of every action in the app, in a dialog. Typing
- * filters the commands by label and keywords (ignoring case and accents), the arrow keys
+ * filters the commands by label and keywords (ignoring case and accents, and forgiving one slip
+ * in a word of four letters or more: "dialg" finds Dialog). Within each group, the commands whose
+ * label starts with the search come first, then those that hold it, then those a slip away. The arrow keys
  * move the highlight, and Enter runs the highlighted command. Commands come in labelled
  * groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px
  * it is a full-height bottom sheet, whose search input stays put while the results filter.
@@ -422,6 +428,8 @@ function SearchIcon(): JSX.Element {
  *     mark: chat.unread > 0 && <Badge>{chat.unread}</Badge>,
  *   }))}
  * />
+ * @claim "Typing filters the commands by label" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > forgives one slip in a word of four letters or more: a letter dropped, added, changed, or two swapped)
+ * @claim "Within each group, the commands whose" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > ranks a command that starts with the search first, then one that holds it, then one a slip away)
  * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > widens to fit a longer command, up to 40rem)
  * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > keeps the width it opened at while results filter)
  * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > keeps the width it opened at while a server search's results change, and cuts a longer result with an ellipsis)
@@ -565,6 +573,20 @@ export function Command(props: CommandProps): JSX.Element {
     setWasOpen(isOpenNow);
     if (isOpenNow) setQuery("");
   }
+  // Within each group, the commands whose label starts with the search come first, then those that hold it, then those a
+  // slip away (queryMatch). A server search ranks its own results.
+  const ranked = useMemo(() => {
+    if (onQueryChange) return groups;
+    // Each command ranked once, then sorted by rank: the sort compares far more often than there are commands.
+    const rank = (item: CommandItem) => queryMatch(item.label, searchedWords(item), query) ?? 3;
+    return groups.map((group) => ({
+      ...group,
+      items: group.items
+        .map((item) => ({ item, at: rank(item) }))
+        .sort((a, b) => a.at - b.at)
+        .map(({ item }) => item),
+    }));
+  }, [groups, query, onQueryChange]);
   // "Searching…" is announced for the first load of each opening only, and then cleared,
   // so typing on while results load is not announced again.
   const [announcement, setAnnouncement] = useState<"idle" | "on" | "done">("idle");
@@ -650,13 +672,13 @@ export function Command(props: CommandProps): JSX.Element {
 
   const palette = (inSheet: boolean) => (
     <Autocomplete.Root
-      items={groups}
+      items={ranked}
       inline
       open
       autoHighlight="always"
       keepHighlight
       // A server search filters on the server: the items are already the results.
-      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, [item.description ?? "", ...(item.keywords ?? [])], text)}
+      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, searchedWords(item), text)}
       value={query}
       inputRef={markInput}
       onItemHighlighted={(item: CommandItem | undefined) => {

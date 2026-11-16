@@ -22,6 +22,10 @@ import { RadioGroup } from "@/registry/ouro/components/ouro/radio-group/radio-gr
 />
 ```
 
+## Usage
+
+In a right-to-left page (`dir="rtl"`) a row of radios follows it: ArrowLeft moves to the next.
+
 ## Use instead when
 
 - Use `CheckboxGroup` instead when several choices may be picked, `Select` for a long list, and `Switch` for on or off.

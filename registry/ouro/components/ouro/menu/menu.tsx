@@ -19,6 +19,7 @@ import {
 } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import {
@@ -533,8 +534,11 @@ function MenuSurface({
  *
  * A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab
  * goes on from wherever focus went.
+ * In a right-to-left page (`dir="rtl"` on `<html>`) a submenu opens to the left, with ArrowLeft.
+ *
  *
  * @group Menus
+ * @claim "In a right-to-left page" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu items > opens a submenu with ArrowLeft in a right-to-left page, where it opens to the left, and closes it with ArrowRight)
  * @see https://ui.ouroboros.bot/docs/menu
  *
  * @example
@@ -663,6 +667,7 @@ export function Menu(props: MenuProps): JSX.Element {
   // Where focus went outside the open menu, as a chosen item moving it does; Base UI then focuses the item again.
   const movedTo = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const contextRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     // An anchored menu has no trigger: its page is the one it runs in.
     const doc = anchor !== undefined ? document : triggerRef.current?.ownerDocument;
@@ -704,7 +709,7 @@ export function Menu(props: MenuProps): JSX.Element {
     // Focus goes back in `changed`, once the closing event is over and any chosen item has run.
     // Stryker disable next-line ArrowFunction: with no trigger, Base UI has no focus of its own to give back, so a finalFocus that says nothing does as false does.
     const finalFocus = () => false;
-    return (
+    const directed = (
       <BaseMenu.Root {...control} actionsRef={actions} modal={sheet}>
         <MenuSurface
           sheet={sheet}
@@ -722,12 +727,15 @@ export function Menu(props: MenuProps): JSX.Element {
         </MenuSurface>
       </BaseMenu.Root>
     );
+    // An element the menu opens beside decides its direction; a point or a box measured once, the page.
+    return <PageDirection of={anchor instanceof Element ? anchor : null}>{directed}</PageDirection>;
   }
 
   if (context) {
-    return (
+    const directed = (
       <ContextMenu.Root {...control}>
         <ContextMenu.Trigger
+          ref={contextRef}
           render={contextTrigger}
           className={menuContextTriggerClass}
           {...holdPageAtPress.contextMenu}
@@ -742,10 +750,11 @@ export function Menu(props: MenuProps): JSX.Element {
         </MenuSurface>
       </ContextMenu.Root>
     );
+    return <PageDirection of={contextRef}>{directed}</PageDirection>;
   }
 
-  return (
-    // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides.
+  // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides. It takes the bar's direction too.
+  const menu = (
     <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
       {label !== undefined ? (
         <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
@@ -767,6 +776,7 @@ export function Menu(props: MenuProps): JSX.Element {
       </MenuSurface>
     </BaseMenu.Root>
   );
+  return label !== undefined ? menu : <PageDirection of={triggerRef}>{menu}</PageDirection>;
 }
 
 /**
@@ -833,16 +843,18 @@ export interface MenuBarProps extends Omit<HTMLAttributes<HTMLDivElement>, "clas
  * @claim "Each child is a `Menu` with" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu dev messages > throws the exact fix for label outside a MenuBar, and for a trigger inside one)
  */
 export function MenuBar({ children, className, ...rest }: MenuBarProps): JSX.Element {
+  const bar = useRef<HTMLDivElement>(null);
   useAppearanceClassNameCheck(
     "MenuBar",
     className,
     process.env.NODE_ENV !== "production" ? "wrap the MenuBar in an element with that class" : /* istanbul ignore next @preserve -- production only */ "",
   );
-  return (
-    <Menubar {...rest} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
+  const directed = (
+    <Menubar {...rest} ref={bar} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
       <MenuBarContext.Provider value>{children}</MenuBarContext.Provider>
     </Menubar>
   );
+  return <PageDirection of={bar}>{directed}</PageDirection>;
 }
 
 /** Props for {@link MenuItem}. */

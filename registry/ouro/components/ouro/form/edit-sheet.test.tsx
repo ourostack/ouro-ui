@@ -163,7 +163,7 @@ describe("EditSheet", () => {
     await userEvent.click(dialogButton("Save"));
     await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
     await userEvent.fill(page.getByRole("textbox", { name: "Name" }), "Stew");
-    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(field("name").getAttribute("aria-invalid")).toBe("false");
     expect(description(field("name"))).not.toContain("Taken.");
     await userEvent.click(dialogButton("Save"));
     expect(onSubmit).toHaveBeenCalledTimes(2);
@@ -185,7 +185,7 @@ describe("EditSheet", () => {
     const focus = vi.spyOn(field("name"), "focus");
     await userEvent.click(dialogButton("Save"));
     expect(dialogButton("Save").element().getAttribute("aria-busy")).toBe("true");
-    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(field("name").getAttribute("aria-invalid")).toBe("false");
     expect(focus).not.toHaveBeenCalled();
     await act(async () => second.resolve(refusal));
     await expect.poll(() => field("name").getAttribute("aria-invalid")).toBe("true");
@@ -219,7 +219,7 @@ describe("EditSheet", () => {
     await expect.poll(() => document.activeElement).toBe(field("servings"));
     // Fixing the field clears its error.
     await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
-    expect(field("servings").getAttribute("aria-invalid")).toBeNull();
+    expect(field("servings").getAttribute("aria-invalid")).toBe("false");
   });
 
   it("ignores a second submit while the first is pending", async () => {
@@ -283,7 +283,7 @@ describe("EditSheet", () => {
     await settled();
     await act(async () => pending.resolve({ name: "Taken." }));
     expect(popup()!.hasAttribute("data-open")).toBe(true);
-    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(field("name").getAttribute("aria-invalid")).toBe("false");
     expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
   });
 
@@ -305,14 +305,14 @@ describe("EditSheet", () => {
     await settled();
     await userEvent.click(dialogButton("Save"));
     await settled();
-    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(field("name").getAttribute("aria-invalid")).toBe("false");
     expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
     if (mode === "resolve") await act(async () => pending.resolve({ name: "Old refusal." }));
     if (mode === "reject") {
       await act(async () => pending.reject(new Error("Old failure")));
       await expect.poll(() => warn.mock.calls.some((call: unknown[]) => String(call[0]).includes("after the user had left"))).toBe(true);
     }
-    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(field("name").getAttribute("aria-invalid")).toBe("false");
     expect(popup()!.querySelector('[role="alert"]')).toBeNull();
     expect(dialogButton("Save").element().hasAttribute("aria-busy")).toBe(false);
   });
@@ -368,7 +368,7 @@ describe("EditSheet", () => {
     await expect.poll(() => popup()).toBeNull();
     await userEvent.click(trigger());
     await settled();
-    expect(field("name").getAttribute("aria-invalid")).toBeNull();
+    expect(field("name").getAttribute("aria-invalid")).toBe("false");
   });
 
   it("closes a controlled sheet through onOpenChange when the save succeeds", async () => {

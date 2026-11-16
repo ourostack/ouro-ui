@@ -133,6 +133,85 @@ describe("Command", () => {
     await expect.poll(options).toEqual(["Switch theme"]);
   });
 
+  it("forgives one slip in a word of four letters or more: a letter dropped, added, changed, or two swapped", async () => {
+    await openPalette({
+      items: [
+        { label: "Dialog guide", onSelect: actions.newRecipe },
+        { label: "Edit sheet", onSelect: actions.import },
+        { label: "Dialog", onSelect: actions.theme },
+        { label: "Confirmation", onSelect: actions.signOut },
+        { label: "Opt-out", onSelect: actions.signOut },
+        { label: "Operator settings", onSelect: actions.signOut },
+        { label: "किताबें", onSelect: actions.signOut },
+      ],
+    });
+    for (const typed of ["dialg", "dialogg", "dialig", "dailog"]) {
+      await userEvent.clear(input());
+      await userEvent.type(input(), typed);
+      await expect.poll(options).toEqual(["Dialog guide", "Dialog"]);
+    }
+    // Two letters swapped is one slip; two neighbouring letters changed, or one changed beside a letter that moved, is two.
+    for (const typed of ["daxlog", "dxilog", "dxylog"]) {
+      await userEvent.clear(input());
+      await userEvent.type(input(), typed);
+      await expect.poll(options).toEqual([]);
+    }
+    // A word of four letters, after the first word of a label.
+    await userEvent.clear(input());
+    await userEvent.type(input(), "shet");
+    await expect.poll(options).toEqual(["Edit sheet"]);
+    // A word of four letters is a slip of a whole word only, not of every word sharing its first three letters.
+    await userEvent.clear(input());
+    await userEvent.type(input(), "opem");
+    await expect.poll(options).toEqual([]);
+    // A word keeps its vowel signs, so a slip in Devanagari is found too.
+    await userEvent.clear(input());
+    await userEvent.type(input(), "कताबें");
+    await expect.poll(options).toEqual(["किताबें"]);
+    // A word after a hyphen is a word too.
+    await userEvent.clear(input());
+    await userEvent.type(input(), "ouut");
+    await expect.poll(options).toEqual(["Opt-out"]);
+    // A slip in the start of a longer word: two letters swapped, one dropped, one added.
+    for (const typed of ["confr", "confrim", "confrma", "confiirm"]) {
+      await userEvent.clear(input());
+      await userEvent.type(input(), typed);
+      await expect.poll(options).toEqual(["Confirmation"]);
+    }
+    // Two slips find nothing.
+    await userEvent.clear(input());
+    await userEvent.type(input(), "dalg");
+    await expect.poll(options).toEqual([]);
+    // A word of three letters must be exact: "edt" is one slip from "edit".
+    await userEvent.clear(input());
+    await userEvent.type(input(), "edt");
+    await expect.poll(options).toEqual([]);
+  });
+
+  it("ranks a command that starts with the search first, then one that holds it, then one a slip away", async () => {
+    await openPalette({
+      items: [
+        { label: "Dialog", onSelect: actions.newRecipe },
+        { label: "Edit dialg notes", onSelect: actions.import },
+        { label: "Dialg notes", onSelect: actions.theme },
+      ],
+    });
+    await userEvent.type(input(), "dialg");
+    await expect.poll(options).toEqual(["Dialg notes", "Edit dialg notes", "Dialog"]);
+  });
+
+  it("ranks a command whose keywords or description hold the search above one a slip away", async () => {
+    await openPalette({
+      items: [
+        { label: "Thema", onSelect: actions.newRecipe },
+        { label: "Look", keywords: ["theme"], onSelect: actions.import },
+        { label: "Paint", description: "Pick a theme", onSelect: actions.theme },
+      ],
+    });
+    await userEvent.type(input(), "theme");
+    await expect.poll(options).toEqual(["Look", "Paint", "Thema"]);
+  });
+
   it("finds a command by words in its description, and only the commands whose description has them", async () => {
     await openPalette({
       items: [

@@ -102,6 +102,23 @@ describe("OtpField", () => {
     expect(valueOf(slots)).toBe("123");
   });
 
+  it("moves between slots the way they run in a right-to-left page: ArrowLeft to the next", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { slots } = await render(<OtpField label="Code" length={4} />);
+      expect(slots[1]!.getBoundingClientRect().left).toBeLessThan(slots[0]!.getBoundingClientRect().left);
+      await userEvent.click(slots[0]!);
+      await userEvent.keyboard("12");
+      expect(document.activeElement).toBe(slots[2]);
+      await userEvent.keyboard("{ArrowRight}");
+      expect(document.activeElement).toBe(slots[1]);
+      await userEvent.keyboard("{ArrowLeft}");
+      expect(document.activeElement).toBe(slots[2]);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("fills every slot from a pasted code, ignoring spaces", async () => {
     const onValueComplete = vi.fn();
     const { slots } = await render(<OtpField label="Code" onValueComplete={onValueComplete} />);

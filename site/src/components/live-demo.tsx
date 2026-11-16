@@ -2,14 +2,34 @@ import { Component, Suspense, useEffect, useLayoutEffect, useRef, useSyncExterna
 import { demos } from "../docs/demos";
 import { href } from "../routes";
 
-class DemoBoundary extends Component<{ name: string; title: string; children: ReactNode }, { failed: boolean; reason: string }> {
-  override state = { failed: false, reason: "" };
+/**
+ * Whether an error is the browser failing to load a module, as an example's chunk fails once a deploy has replaced it
+ * under an open page. Chromium, WebKit and Firefox each word it their own way, always as a TypeError.
+ */
+export function moduleLoadFailed(error: unknown): boolean {
+  return error instanceof TypeError &&
+    /^(Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module)\b/.test(error.message);
+}
 
-  static getDerivedStateFromError(error: unknown): { failed: boolean; reason: string } {
-    return { failed: true, reason: (error instanceof Error ? error.message : String(error)).replace(/\.$/, "") };
+type BoundaryState = { failed: boolean; reason: string; stale: boolean };
+
+class DemoBoundary extends Component<{ name: string; title: string; children: ReactNode }, BoundaryState> {
+  override state = { failed: false, reason: "", stale: false };
+
+  static getDerivedStateFromError(error: unknown): BoundaryState {
+    return { failed: true, reason: (error instanceof Error ? error.message : String(error)).replace(/\.$/, ""), stale: moduleLoadFailed(error) };
   }
 
   override render(): ReactNode {
+    if (this.state.failed && this.state.stale) {
+      // The page is older than the site: only a reload brings the new example, so say that, not the module's address.
+      return (
+        <div role="alert">
+          <p>The {this.props.title} example did not load. The site may have just been updated.</p>
+          <a href="" className="text-primary underline underline-offset-4">Reload the page</a>
+        </div>
+      );
+    }
     if (this.state.failed) {
       const known = Object.hasOwn(demos, this.props.name);
       return (

@@ -124,7 +124,7 @@ describe("constraints still block under display-only errors", () => {
     await userEvent.fill(req, "ok");
     // The browser's message keeps its space while it fades out, and Save moves up when it goes:
     // a click that presses before the move and releases after it clicks nothing.
-    await expect.poll(() => !req.element().hasAttribute("aria-invalid") && document.querySelector("[data-ending-style]") === null).toBe(true);
+    await expect.poll(() => req.element().getAttribute("aria-invalid") === "false" && document.querySelector("[data-ending-style]") === null).toBe(true);
     await userEvent.click(save());
     await act(async () => {});
     expect(sent).toHaveBeenCalledTimes(1);

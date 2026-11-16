@@ -32,7 +32,7 @@ import { Tabs } from "@/registry/ouro/components/ouro/tabs/tabs";
 
 When each tab is a view of one page with a URL of its own (a section's pages, a search's scopes), give each item an `href` instead of `content`: the tabs render as a `<nav>` of links in the same look, through your router's link, with the current one marked `aria-current="page"` from `currentPath`, and Tab moves between them as between any links.
 
-Use the parts in `tabs-parts` when `items` cannot express your layout.
+Use the parts in `tabs-parts` when `items` cannot express your layout. In a right-to-left page (`dir="rtl"` on `<html>`) the arrow keys follow the row: ArrowLeft moves to the next tab.
 
 ## Use instead when
 

@@ -33,7 +33,7 @@ Each part checks that it sits inside `<FieldRoot>`: outside it, a part throws in
 
 | Part | What it is |
 | --- | --- |
-| `FieldControl` | The control, a text `<input>` by default. It takes the field's id, `name`, `disabled` and `required`, `aria-invalid` from its error, and `aria-describedby` from its description and error. Render another element with `render={<textarea />}`. |
+| `FieldControl` | The control, a text `<input>` by default. It takes the field's id, `name`, `disabled` and `required`, `aria-invalid` from its error (`false` without one, so WebKit does not read an empty required field as invalid before anyone types), and `aria-describedby` from its description and error. Render another element with `render={<textarea />}`. |
 | `FieldDescription` | Supporting text for the control, read after its label through `aria-describedby`. |
 | `FieldError` | The error message, linked to the control through `aria-describedby`. Without children it shows the browser's validation message, or a Base UI `Form` error for the field's `name`; with `match` and children it always shows them. It fades and slides in. |
 | `FieldLabel` | The control's label. It points at the control by id. A required field shows a marker after it, drawn by CSS on the element around the label, so the label's text and the control's name stay exactly what you wrote (screen readers hear "required" from the control). `className` goes on that element, where `[data-ouro-required]` is too; hide the label visually with `className="sr-only"`. `style`, `id`, `data-*` attributes and event handlers go on the `<label>`. |
