@@ -2,7 +2,7 @@
 
 # Alert
 
-An inline message in the page: something saved, something failed, something to know before going on. It has a title, an optional description and action, and a close button when you pass `onDismiss`. Destructive and warning alerts are spoken at once (`role="alert"`); the others politely (`role="status"`).
+An inline message in the page: something saved, something failed, something to know before going on. It has a title, an optional description and action, and a close button when you pass `onDismiss`. Destructive and warning alerts are spoken at once (`role="alert"`); the others politely (`role="status"`). A long word in the title or description, such as an address in an error, wraps inside the alert however narrow it is.
 
 ```tsx
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";

@@ -2,7 +2,7 @@
 
 # AttentionCard
 
-Something that waits on the person: a mention, a question asked of them or a request still unanswered. A badge says why, then where and when, who is asking and what they wrote, with buttons to act on it. Screen readers hear the card by its reason and where it happened ("Asked you, Design review"). With `onOpen` the message is a button that opens where it happened.
+Something that waits on the person: a mention, a question asked of them or a request still unanswered. A badge says why, then where and when, who is asking and what they wrote, with buttons to act on it. Screen readers hear the card by its reason and where it happened ("Asked you, Design review"). With `onOpen` the message is a button that opens where it happened. When an action removes the card (Dismiss, Done), focus moves on to the next card, or the one before when it was the last, so a keyboard user keeps their place in the list.
 
 ```tsx
 import { AttentionCard } from "@/registry/ouro/components/ouro/attention-card/attention-card";
