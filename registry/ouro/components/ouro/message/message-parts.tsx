@@ -361,8 +361,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   // Each message gives the layer a new data object on every render, so new data comes with a move to another message too.
   if (on !== null && (shown === null || shown.data !== on.data)) setShown(on);
   // The message a bar beside its bubble is on measures its width (100cqw) while the bar is there, and only then: the browser
-  // styles a container's insides as it lays the container out, so a list whose every message was one paid that for each
-  // message it drew, as it opened.
+  // styles a container's insides as it lays the container out, which a list paid for each message it drew as it opened.
   const [contained] = useState<{ row: HTMLElement | null }>(() => ({ row: null }));
   useLayoutEffect(() => {
     /* istanbul ignore if @preserve -- server only */
@@ -428,7 +427,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
   );
 }
 
-/** Makes `row` the one message that is a size container, for the room beside its bubble; none when `row` is null. */
+/** Moves the size container, for the room beside a bubble, from the message it was on to `row`, or takes it off when `row` is null. */
 function contain(contained: { row: HTMLElement | null }, row: HTMLElement | null): void {
   if (contained.row === row) return;
   const previous = contained.row;
