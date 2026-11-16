@@ -684,15 +684,13 @@ describe("keepFocusClear", () => {
       expect(bar.hasAttribute("data-ouro-toaster-moved")).toBe(false);
     });
 
-    it("lands a move when the browser cancels the viewport's fade", async () => {
+    it("does not land a move on the cancel of the last landing's fade-in, which a new move causes", async () => {
       const bar = setup();
       control("covered", COVERED);
       await tab("covered");
-      expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
-      bar.querySelector('[data-ouro="toast"]')!.dispatchEvent(new TransitionEvent("transitioncancel", { bubbles: true, propertyName: "opacity" }));
-      bar.dispatchEvent(new TransitionEvent("transitioncancel", { bubbles: true, propertyName: "transform" }));
-      expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
       bar.dispatchEvent(new TransitionEvent("transitioncancel", { bubbles: true, propertyName: "opacity" }));
+      expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
+      advance(FADE_MS);
       expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     });
 
