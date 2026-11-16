@@ -22,6 +22,8 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
+import type { Platform } from "@/registry/ouro/lib/ouro/platform";
+import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 import {
   floatingAligns,
   floatingHint,
@@ -909,10 +911,10 @@ function shortcutWarning(component: string, shortcut: unknown): readonly [string
   );
 }
 
-/** The `aria-keyshortcuts` attribute for an item's shortcut, which its `Kbd` (hidden from the accessible name) shows. */
-function keyShortcutProps(shortcut: MenuShortcut | undefined): { "aria-keyshortcuts"?: string } {
+/** The `aria-keyshortcuts` attribute for an item's shortcut, in the platform's form, which its `Kbd` (hidden from the accessible name) shows. */
+function keyShortcutProps(shortcut: MenuShortcut | undefined, platform: Platform): { "aria-keyshortcuts"?: string } {
   const keys = shortcutKeys(shortcut);
-  return keys ? { "aria-keyshortcuts": ariaKeyShortcuts(keys) } : {};
+  return keys ? { "aria-keyshortcuts": ariaKeyShortcuts(keys, platform) } : {};
 }
 
 /** The item's text, then its shortcut at the end. */
@@ -944,6 +946,7 @@ function ItemBody({ children, shortcut }: { children: ReactNode; shortcut: MenuS
  */
 export function MenuItem(props: MenuItemProps): JSX.Element {
   const { children, onClick, href, current, shortcut, tone: toneProp, disabled, axAction, onSelect, variant, asChild, checked } = props;
+  const platform = usePlatform();
   useMenuPart("MenuItem", "<MenuItem>Edit</MenuItem>");
   const tone = toneProp === "destructive" ? "destructive" : undefined;
   useDevWarnings(
@@ -962,7 +965,7 @@ export function MenuItem(props: MenuItemProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const shared = { className: menuItemClass, "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, "data-ax-action": axAction, ...keyShortcutProps(shortcut), ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
+  const shared = { className: menuItemClass, "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, "data-ax-action": axAction, ...keyShortcutProps(shortcut, platform), ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
   const body = <ItemBody shortcut={shortcut}>{children}</ItemBody>;
   // A disabled link is a disabled item: nothing to follow.
   if (href !== undefined && !disabled) {
@@ -1018,13 +1021,14 @@ export interface MenuCheckboxItemProps {
  * <MenuCheckboxItem checked={showNotes} onCheckedChange={setShowNotes}>Show notes</MenuCheckboxItem>
  */
 export function MenuCheckboxItem({ children, shortcut, onCheckedChange, axAction, ...rest }: MenuCheckboxItemProps): JSX.Element {
+  const platform = usePlatform();
   useMenuPart("MenuCheckboxItem", "<MenuCheckboxItem>Pin</MenuCheckboxItem>");
   useDevWarnings(
     "MenuCheckboxItem",
     process.env.NODE_ENV !== "production" ? () => [shortcutWarning("MenuCheckboxItem", shortcut)] : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <BaseMenu.CheckboxItem data-ouro-control="menu" data-ouro-part="checkbox-item" data-ax-action={axAction} {...rest} {...keyShortcutProps(shortcut)} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
+    <BaseMenu.CheckboxItem data-ouro-control="menu" data-ouro-part="checkbox-item" data-ax-action={axAction} {...rest} {...keyShortcutProps(shortcut, platform)} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
       <span data-ouro-menu-indicator="" className={menuIndicatorClass}>
         <BaseMenu.CheckboxItemIndicator className="flex">
           <CheckIcon />
@@ -1097,6 +1101,7 @@ export interface MenuRadioItemProps {
  * <MenuRadioItem value="name">Name</MenuRadioItem>
  */
 export function MenuRadioItem({ children, shortcut, ...rest }: MenuRadioItemProps): JSX.Element {
+  const platform = usePlatform();
   if (!useContext(RadioGroupContext)) {
     devThrow(
       "MenuRadioItem",
@@ -1111,7 +1116,7 @@ export function MenuRadioItem({ children, shortcut, ...rest }: MenuRadioItemProp
     process.env.NODE_ENV !== "production" ? () => [shortcutWarning("MenuRadioItem", shortcut)] : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <BaseMenu.RadioItem data-ouro-control="menu" data-ouro-part="radio-item" {...rest} {...keyShortcutProps(shortcut)} className={menuItemClass}>
+    <BaseMenu.RadioItem data-ouro-control="menu" data-ouro-part="radio-item" {...rest} {...keyShortcutProps(shortcut, platform)} className={menuItemClass}>
       <span data-ouro-menu-indicator="" className={menuIndicatorClass}>
         <BaseMenu.RadioItemIndicator className="flex">
           <CheckIcon />

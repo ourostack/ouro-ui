@@ -14,6 +14,7 @@ import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
@@ -441,6 +442,7 @@ function SearchIcon(): JSX.Element {
  * @claim "It never fires while an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:fileLine(registry/ouro/lib/ouro/use-command-shortcut.test.tsx, /never\stakes\sa\sshortcut\swithout\smod,\smeta\sor\sctrl\sfrom\styping\sin/)
  */
 export function Command(props: CommandProps): JSX.Element {
+  const platform = usePlatform();
   const {
     title,
     items,
@@ -733,7 +735,7 @@ export function Command(props: CommandProps): JSX.Element {
                       data-ouro-control="command"
                       data-ouro-part="item"
                       className={commandItemClass}
-                      {...(item.shortcut ? { "aria-keyshortcuts": ariaKeyShortcuts(item.shortcut) } : {})}
+                      {...(item.shortcut ? { "aria-keyshortcuts": ariaKeyShortcuts(item.shortcut, platform) } : {})}
                     >
                       {item.avatar !== undefined ? (
                         <span data-ouro-command-avatar="" className="flex shrink-0">
