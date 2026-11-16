@@ -15,6 +15,10 @@ import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 <Slider label="Price" name="price" defaultValue={[10, 40]} format={{ style: "currency", currency: "USD" }} showValue />
 ```
 
+## Usage
+
+In a right-to-left page (`dir="rtl"` on `<html>`) the track runs from the right, and ArrowLeft raises the value.
+
 ## Use instead when
 
 - Use `NumberField` instead when people need an exact number, and `RadioGroup` for a few named choices.

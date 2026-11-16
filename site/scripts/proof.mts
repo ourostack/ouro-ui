@@ -145,15 +145,35 @@ export function pickInstall(release: string, registry: string): Install {
  * tag's version (scripts/registry.mts --release), it is this checkout's own: CI on that commit runs
  * before the tag exists, and has to pass for the tag to be pushed.
  */
-export function registryAt(tag: string, root = repo): string {
+export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 4): string {
   const own = reader(root)("registry.json");
   if (tag === `v${(JSON.parse(own) as { version?: string }).version}`) return own;
   const show = () => execFileSync("git", ["show", `${tag}:registry.json`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
   try {
     return show();
   } catch {
-    execFileSync("git", ["fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], { cwd: root, stdio: "ignore" });
-    return show();
+    // A shallow checkout lacks the tag. A runner's fetch of it can fail for a moment while every other job's succeeds
+    // (ourostack/ouro-ui#1715), and processes that fetch it at once contend for .git/shallow.lock, so the loser's fetch
+    // fails while the winner's brings the tag in (ourostack/ouro-ui#1746). So after a failed fetch the tag is read
+    // again before the next try, and a failure says what git said first and last.
+    const fetch = () => execFileSync("git", ["fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], { cwd: root, stdio: ["ignore", "ignore", "pipe"] });
+    const said = (error: unknown) => String((error as { stderr?: Buffer }).stderr ?? "").trim() || String(error);
+    const failures: unknown[] = [];
+    for (let attempt = 0; attempt < tries; attempt++) {
+      if (attempt > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, retryAfter);
+      try {
+        fetch();
+        return show();
+      } catch (error) {
+        failures.push(error);
+        try {
+          return show();
+        } catch {
+          // still missing: try the fetch again
+        }
+      }
+    }
+    throw new Error(`git fetch of ${tag} failed ${tries} times, ${retryAfter} ms apart. First: ${said(failures[0])}. Last: ${said(failures.at(-1))}`, { cause: failures.at(-1) });
   }
 }
 

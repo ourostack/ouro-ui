@@ -10,6 +10,7 @@ import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { useRowHover, type RowLayer, type RowMenuAt } from "@/registry/ouro/lib/ouro/row-hover";
+import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 
 // The action bar: a small raised pill above the bubble's top corner (over a post's top end)
 // or beside the bubble's top end, shown on hover (a mouse's only), while focus is in the message,
@@ -149,6 +150,7 @@ export function MessageActionBar({
   /** The message a shared bar is on; the Tab stop the bar remembers belongs to that message. */
   row?: Element | undefined;
 }): JSX.Element {
+  const platform = usePlatform();
   const [menuOpen, setMenuOpen] = useState(false);
   // Menu, once this bar's menu button has been pressed: until then the button stands alone.
   const [M, setM] = useState<MenuModule | undefined>(undefined);
@@ -210,7 +212,7 @@ export function MessageActionBar({
             variant="plain"
             size="sm"
             aria-label={action.label}
-            aria-keyshortcuts={action.shortcut === undefined ? undefined : ariaKeyShortcuts(action.shortcut as readonly string[])}
+            aria-keyshortcuts={action.shortcut === undefined ? undefined : ariaKeyShortcuts(action.shortcut as readonly string[], platform)}
             disabled={action.disabled}
             tabIndex={action.key === tabStop ? 0 : -1}
             onClick={action.onClick}

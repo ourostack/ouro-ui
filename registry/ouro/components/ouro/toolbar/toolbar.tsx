@@ -12,7 +12,9 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { TooltipsHidden } from "@/registry/ouro/lib/ouro/portal-container";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
+import type { Platform } from "@/registry/ouro/lib/ouro/platform";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
+import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { fitCount, splitEntries, toolbarSizes, type ToolbarSize } from "@/registry/ouro/components/ouro/toolbar/toolbar-styles";
 
@@ -319,12 +321,13 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const delay = Number.isFinite(autoHide) && (autoHide as number) > 0 ? (autoHide as number) : undefined;
   useToolbarChecks(props, sizeProp, size, delay);
   const toggles = useToggles();
+  const platform = usePlatform();
   const { rootRef, setRef, probe, shown } = useOverflow(ref, items, size);
   const { hidden, faded } = useAutoHide(rootRef, delay, autoHideArea, hiddenProp, onHiddenChange);
   const { visible, overflow } = splitEntries(items, shown);
   const withMore = probe || overflow.length > 0;
   const stop = useTabStop(visible, withMore);
-  const context: ControlContext = { size, keepFocus, disabled, toggles, stop: stop.key };
+  const context: ControlContext = { size, keepFocus, disabled, toggles, stop: stop.key, platform };
   const more = moreButton(moreLabel, size, disabled, stop.key === MORE);
 
   return (
@@ -844,11 +847,13 @@ interface ControlContext {
   toggles: Toggles;
   /** The label of the control that is the row's tab stop. */
   stop: string | undefined;
+  /** The platform the row's shortcuts are shown in, once the page knows it. */
+  platform: Platform;
 }
 
 /** A control in the row: a Toggle or a Button, with a tooltip when it hides its label or has a shortcut. */
 function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: ControlContext, key: string | number, index?: number): JSX.Element {
-  const { size, keepFocus, disabled, toggles, stop } = context;
+  const { size, keepFocus, disabled, toggles, stop, platform } = context;
   const Icon = entry.icon;
   const iconOnly = Boolean(entry.hideLabel && Icon);
   const shortcut = keysOf(entry);
@@ -856,7 +861,7 @@ function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: Contro
   const shared = {
     ...rowStop(entry.label, stop === entry.label, off),
     "data-ouro-toolbar-entry": index,
-    "aria-keyshortcuts": shortcut && ariaKeyShortcuts(shortcut),
+    "aria-keyshortcuts": shortcut && ariaKeyShortcuts(shortcut, platform),
     "data-ax-action": entry.axAction,
     onMouseDown: keepFocus ? keepFocusOnPress : undefined,
     className: "aria-disabled:cursor-not-allowed aria-disabled:opacity-50",

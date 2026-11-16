@@ -77,7 +77,15 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  delete (navigator as { platform?: unknown }).platform;
 });
+
+/** Pretends the browser runs on a Mac, through the modern API and the legacy one, so a shortcut's form is deterministic. */
+function onMac() {
+  Object.defineProperty(navigator, "userAgentData", { configurable: true, value: { platform: "macOS" } });
+  Object.defineProperty(navigator, "platform", { configurable: true, value: "MacIntel" });
+}
 
 describe("Message", () => {
   it("shows nameContent as the author's name, while screen readers hear name and the initials come from it", async () => {
@@ -1841,6 +1849,17 @@ describe("Message actions", () => {
     await expect.poll(() => document.querySelector('[data-ouro="menu"]')).toBeNull();
     await userEvent.click(more());
     await expect.poll(() => document.querySelector('[data-ouro-message-menu-reactions]')?.nextElementSibling?.getAttribute("role")).toBe("separator");
+  });
+
+  it("names an action's mod as the platform's modifier, not both", async () => {
+    onMac();
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Jonah Vale" actions={[{ key: "edit", label: "Edit", icon: "✎", onClick: () => {}, shortcut: ["mod", "e"] }]}>
+        Agenda
+      </Message>,
+    );
+    await expect.poll(() => barOf(message).querySelector('[data-ouro-message-action="edit"]')).not.toBeNull();
+    expect(barOf(message).querySelector('[data-ouro-message-action="edit"]')!.getAttribute("aria-keyshortcuts")).toBe("Meta+E");
   });
 
   it("shows each action's shortcut in its tooltip and under its reaction in the menu, and gives it to screen readers", async () => {

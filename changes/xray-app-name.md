@@ -1,0 +1,1 @@
+- New: `ax-xray --app <name>` records the app in the report as `target.app.name`, so a report reads as its own app's. Give-back from ourostack/desk.

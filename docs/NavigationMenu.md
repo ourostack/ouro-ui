@@ -29,7 +29,7 @@ import { NavigationMenu } from "@/registry/ouro/components/ouro/navigation-menu/
 
 ## Usage
 
-Use `Menu` for actions rather than pages, and `Sidebar` for a column of links.
+Use `Menu` for actions rather than pages, and `Sidebar` for a column of links. In a right-to-left page (`dir="rtl"` on `<html>`) ArrowLeft moves to the next button.
 
 ## Use instead when
 

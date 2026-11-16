@@ -115,7 +115,7 @@ describe("DatePicker", () => {
     expect(input.required).toBe(true);
     expect(input.getAttribute("aria-required")).toBe("true");
     await rerender(<DatePicker label="Delivery date" error={["", ""]} disabled name="delivery" />);
-    expect(input.hasAttribute("aria-invalid")).toBe(false);
+    expect(input.getAttribute("aria-invalid")).toBe("false");
     expect(input.disabled).toBe(true);
     expect(trigger().disabled).toBe(true);
     expect(host.querySelector<HTMLInputElement>("input[hidden]")!.disabled).toBe(true);
@@ -300,7 +300,7 @@ describe("DatePicker", () => {
     await open();
     await userEvent.click(day("2026-10-20"));
     await expect.poll(() => popup()).toBeNull();
-    expect(input.getAttribute("aria-invalid")).toBeNull();
+    expect(input.getAttribute("aria-invalid")).toBe("false");
     expect(submitted(host.querySelector("form")!).date).toBe("2026-10-20");
   });
 
@@ -316,7 +316,7 @@ describe("DatePicker", () => {
     expect(input.getAttribute("aria-invalid")).toBe("true");
     await act(async () => host.querySelector("form")!.reset());
     expect(submitted(host.querySelector("form")!).date).toBe("2026-10-11");
-    expect(input.getAttribute("aria-invalid")).toBeNull();
+    expect(input.getAttribute("aria-invalid")).toBe("false");
   });
 
   it("ignores another form's reset bubbling through its owning form", async () => {

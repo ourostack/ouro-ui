@@ -402,7 +402,7 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
 test("the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value", async () => {
   const h = io();
   assert.equal(await main(["help"], h.io), 0);
-  assert.match(h.o.out, /^ax-xray 1\.5\.0: checks an agent-facing interface/);
+  assert.match(h.o.out, /^ax-xray 1\.6\.0: checks an agent-facing interface/);
   assert.match(h.o.out, /--env K=V\.\.\./);
   const u = io();
   assert.equal(await main(["--cli", "x", "--jsn", "--json"], u.io), 2);
@@ -745,6 +745,14 @@ test("a CLI whose failures say something went wrong fails copy.precise-failure o
   assert.equal(parseArgs(["--cli", "x", "--failure-copy-allow", "a.json"]).failureCopyAllow, "a.json");
 });
 
+test("a protocol command may print its JSON reply on stdout, but an undeclared command may not, and a protocol command still gets one stderr line", async () => {
+  const report = await xray(base({ cli: fixture("protocol-cli.mjs"), name: "proto" }));
+  const verdicts = (cmd: string) => report.results.filter((r) => r.claim === "cli.one-line-error" && r.surface.startsWith(`${cmd} (`)).map((r) => r.verdict);
+  assert.deepEqual(verdicts("relay"), ["pass"]);
+  assert.deepEqual(verdicts("post"), ["fail"]);
+  assert.deepEqual(verdicts("loud"), ["fail"]);
+});
+
 test("a CLI that asks for developer commands fails cli.no-dev-commands once per command, and a step marked sourceCheckout passes", async () => {
   const report = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
   const results = report.results.filter((r) => r.claim === "cli.no-dev-commands");
@@ -768,4 +776,12 @@ test("a tool with one command conforms: its reads take the folder with no comman
   assert.equal(report.conformant, true);
   assert.deepEqual([verdictOf(report, "cli.help-parses", "help"), verdictOf(report, "cli.command-help", "sizes"), verdictOf(report, "cli.read-json", "sizes")], ["pass", "pass", "pass"]);
   assert.match(report.results.find((r) => r.claim === "cli.read-json" && r.surface === "sizes")!.note, /^`images site\/showcase --json` → one JSON document/);
+});
+
+test("ourostack/desk: --app records the app in target.app.name, and leaves target.app out otherwise", async () => {
+  const state = join(scratch, "notes.json");
+  const named = await xray(base({ cli: fixture("notes.mts"), name: "notes", env: { NOTES_STATE: state }, state: ["state"], app: "Notes" }));
+  assert.deepEqual(named.target.app, { name: "Notes" });
+  const bare = await xray(base({ cli: fixture("notes.mts"), name: "notes", env: { NOTES_STATE: state }, state: ["state"] }));
+  assert.equal(bare.target.app, undefined);
 });

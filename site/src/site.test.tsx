@@ -442,6 +442,23 @@ describe("docs", () => {
     await expect.element(nav.getByRole("status")).toHaveTextContent("No component is called that.");
   });
 
+  it("forgives one slip in a filter of four letters or more, after the names that hold it", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const filter = nav.getByRole("searchbox", { name: "Filter components" });
+    for (const typed of ["dialg", "dailog"]) {
+      await userEvent.fill(filter, typed);
+      expect(nav.getByRole("link").elements().map((link) => link.textContent)).toContain("Dialog");
+    }
+    // A slip of "sheet".
+    await userEvent.fill(filter, "shet");
+    expect(nav.getByRole("link").elements().map((link) => link.textContent)).toContain("Sheet");
+    // Three letters must be exact.
+    await userEvent.fill(filter, "dlg");
+    expect(nav.getByRole("link").elements()).toHaveLength(0);
+  });
+
   it("has a page for every registry item at docs/<name>", () => {
     const names = registry.items.filter((item) => item.type === "registry:ui").map((item) => item.name);
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));
@@ -597,7 +614,7 @@ describe("head tags", () => {
   it("give a component page Open Graph and Twitter tags with the docs card, a 1200x630 storybook scene", async () => {
     const route = { path: "/docs/sheet/", title: "Sheet · Ouro HX", description: 'Install "sheet" & go' };
     const tags = headTags(route, true);
-    const alt = "Ouro HX docs: Every component, with a live demo to poke. A little glass robot paints six colours onto a palette at an easel while a faceless glass person with a mug looks on. On the bench beside them a phone, a laptop and a tablet already show the same six colours, and Ouro lies at their feet.";
+    const alt = "Ouro HX docs: Every component, with a live demo to poke. In a bright colour library under a skylight, a small lilac robot lays a row of colour chips on a glowing white table while a faceless glass designer holds a green chip up to the light, and Ouro, a smiling emerald snake curled into an O, rests on a felt pad at the table's end.";
     for (const tag of [
       '<meta property="og:title" content="Sheet · Ouro HX" />',
       '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',

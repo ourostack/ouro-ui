@@ -14,7 +14,10 @@ export {
   commandSheetSearchClass,
   commandMarkClass,
   matchesQuery,
+  oneEditApart,
+  queryMatch,
   queryRanges,
+  type QueryMatch,
   type TextRange,
 };
 
@@ -148,17 +151,65 @@ function fold(text: string): string {
 }
 
 /**
+ * Whether `typed` becomes `word` with at most one edit: a letter dropped, added or changed, or two
+ * neighbouring letters swapped.
+ *
+ * @internal
+ * @claim "Whether `typed` becomes `word` with at" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > forgives one slip in a word of four letters or more: a letter dropped, added, changed, or two swapped)
+ */
+function oneEditApart(typed: string, word: string): boolean {
+  // Stryker disable next-line ConditionalExpression: equivalent; words two or more letters apart fail every comparison below, as their rests differ in length.
+  if (Math.abs(typed.length - word.length) > 1) return false;
+  let same = 0;
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent; queryMatch asks only about a word the text lacks, so typed is never the same as word and the two differ, or one ends, before typed does.
+  while (same < typed.length && typed[same] === word[same]) same++;
+  const rest = (from: number, to: number) => typed.slice(from) === word.slice(to);
+  if (typed.length < word.length) return rest(same, same + 1);
+  if (typed.length > word.length) return rest(same + 1, same);
+  return rest(same + 1, same + 1) || (typed[same] === word[same + 1] && typed[same + 1] === word[same] && rest(same + 2, same + 2));
+}
+
+/**
+ * How well a command matches a query, best first: 0 when its label starts with the query, 1 when it holds the query's
+ * words, 2 when a word is one slip away.
+ *
+ * @claim "How well a command matches a" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > ranks a command that starts with the search first, then one that holds it, then one a slip away)
+ */
+type QueryMatch = 0 | 1 | 2;
+
+/**
+ * How a command matches the query, or undefined when it does not: every word of the query appears
+ * in its label or keywords, ignoring case and accents (0 when the label starts with the first
+ * word, else 1), or else each word that does not is four letters or more and one edit from a word
+ * there, or from the start of one (2).
+ *
+ * @internal
+ * @claim "How a command matches the query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > ranks a command that starts with the search first, then one that holds it, then one a slip away)
+ */
+function queryMatch(label: string, keywords: readonly string[], query: string): QueryMatch | undefined {
+  const text = fold([label, ...keywords].join(" "));
+  // Stryker disable next-line Regex: an empty word between two spaces is in every text, as the one empty word they make is.
+  const words = fold(query).split(/\s+/);
+  if (words.every((word) => text.includes(word))) return fold(label).startsWith(words[0]!) ? 0 : 1;
+  // Words split on anything but letters, their marks and digits, so a Devanagari vowel sign stays in its word.
+  const tokens = text.split(/[^\p{L}\p{M}\p{N}]/u);
+  // A word of five letters or more may also be a slip of a word's start ("confrim" for Confirmation); a shorter one
+  // only of a whole word, or it would find every word sharing its first three letters.
+  // Stryker disable next-line ArrayDeclaration: a word shorter than five letters is one edit from no part but the token, whatever the list holds.
+  const starts = (word: string, token: string) => (word.length >= 5 ? [token.slice(0, word.length - 1), token.slice(0, word.length), token.slice(0, word.length + 1)] : []);
+  const near = (word: string) => word.length >= 4 && tokens.some((token) => [token, ...starts(word, token)].some((part) => oneEditApart(word, part)));
+  return words.every((word) => text.includes(word) || near(word)) ? 2 : undefined;
+}
+
+/**
  * Whether a command matches the query: every word of the query appears in its label or
- * keywords, ignoring case and accents.
+ * keywords, ignoring case and accents, or is one slip from a word there (`queryMatch`).
  *
  * @internal
  * @claim "Whether a command matches the query" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > filters by label and keywords, ignoring case and accents, and hides empty groups)
  */
 function matchesQuery(label: string, keywords: readonly string[], query: string): boolean {
-  const text = fold([label, ...keywords].join(" "));
-  return fold(query)
-    .split(/\s+/)
-    .every((word) => text.includes(word));
+  return queryMatch(label, keywords, query) !== undefined;
 }
 
 /**

@@ -18,3 +18,21 @@ for (const path of ["docs/button/", "docs/installing/"]) {
     });
   });
 }
+
+// From 640px the sidebar sits beside the page. Until 768px it is narrower, so a tablet's page column is as wide as a
+// phone's, and a live example has a phone's room: TabBar's labels show whole.
+test.describe("on a small tablet", () => {
+  test.use({ viewport: { width: 640, height: 900 } });
+
+  test("the page's column is at least a 375px phone's, and TabBar's example shows each label whole", async ({ page }) => {
+    await page.goto("docs/tab-bar/");
+    await expect(page.locator("[data-site-demo-ready]")).toBeAttached();
+    const column = (await page.getByRole("main").boundingBox())!;
+    // A 375px phone's column: the window less its 1rem gutters.
+    expect(column.width).toBeGreaterThanOrEqual(375 - 32);
+    const cut = await page.locator('[data-site-demo] [data-ouro="tab-bar"]').evaluate((bar) =>
+      [...bar.querySelectorAll("a, button")].filter((tab) => [...tab.querySelectorAll("span")].some((label) => label.clientWidth > 2 && label.scrollWidth > label.clientWidth + 1)).length,
+    );
+    expect(cut).toBe(0);
+  });
+});
