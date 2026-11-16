@@ -752,8 +752,6 @@ describe("Hero", () => {
     expect(lone.part("image")!.getAttribute("fetchpriority")).toBe("high");
     const loneLazy = await render(<Hero title="Lone lazy" picture={{ light: wide } as unknown as HeroPictures} />);
     expect(loneLazy.part("image")!.getAttribute("loading")).toBe("lazy");
-    const both = await render(<Hero title="Both" picture={{ light: { ...wide, priority: true }, dark: { ...night, priority: true } }} />);
-    expect([...both.part("media")!.querySelectorAll("img")].map((img) => img.getAttribute("loading"))).toEqual(["lazy", "lazy"]);
     const plain = await render(<Hero title="Plain" picture={{ light: wide, dark: night }} />);
     for (const twin of plain.part("media")!.querySelectorAll("img")) {
       expect(twin.getAttribute("loading")).toBe("lazy");
@@ -762,7 +760,7 @@ describe("Hero", () => {
     }
   });
 
-  it("loads the twin shown at first paint eagerly from server HTML, and leaves the hidden one lazy", async () => {
+  it("copies the shown twin's addresses onto it from server HTML, and leaves the hidden one empty", async () => {
     // Inserted as the parser would run it: the fragment's inline script runs where it stands.
     const serve = (node: ReactNode) => {
       const host = document.createElement("div");
@@ -771,19 +769,68 @@ describe("Hero", () => {
       host.append(document.createRange().createContextualFragment(renderToString(node)));
       return [...host.querySelectorAll("img")];
     };
-    const twins = { light: { ...wide, priority: true }, dark: { ...night, priority: true } };
+    const sourced = svg(768, 288);
+    const twins = { light: { ...wide, priority: true, sources: [{ srcSet: sourced, type: "image/svg+xml" }] }, dark: { ...night, priority: true } };
     const [lightByDay, darkByDay] = serve(<Hero title="Day" picture={twins} />);
-    expect(lightByDay!.loading).toBe("eager");
-    expect(darkByDay!.loading).toBe("lazy");
+    expect(lightByDay!.getAttribute("src")).toBe(wide.src);
+    expect(lightByDay!.previousElementSibling!.getAttribute("srcset")).toBe(sourced);
+    expect(darkByDay!.hasAttribute("src")).toBe(false);
+    expect(darkByDay!.hasAttribute("srcset")).toBe(false);
+    await expect.poll(() => lightByDay!.closest('[data-slot="media"]')!.hasAttribute("data-loaded")).toBe(true);
     document.documentElement.classList.add("dark");
     const [lightAtNight, darkAtNight] = serve(<Hero title="Night" picture={twins} />);
-    expect(lightAtNight!.loading).toBe("lazy");
-    expect(darkAtNight!.loading).toBe("eager");
+    expect(lightAtNight!.hasAttribute("src")).toBe(false);
+    expect(darkAtNight!.getAttribute("src")).toBe(night.src);
     await expect.poll(() => darkAtNight!.complete && darkAtNight!.currentSrc).toBe(night.src);
     const [, lone] = serve(<Hero title="Lone" picture={{ light: { ...wide, priority: true }, dark: night }} />);
     expect(lone!.loading).toBe("eager");
     const plain = serve(<Hero title="Plain" picture={{ light: wide, dark: night }} />);
     expect(plain.map((twin) => twin.loading)).toEqual(["lazy", "lazy"]);
+  });
+
+  it("holds neither twin's address in the HTML of a pair both priority, until the script copies the shown one's", () => {
+    const twins = { light: { ...wide, priority: true }, dark: { ...night, priority: true } };
+    // A template's content is inert: nothing in it loads, and its scripts do not run.
+    const inert = document.createElement("template");
+    inert.innerHTML = renderToString(<Hero title="Pair" picture={twins} />);
+    const [light, dark] = [...inert.content.querySelectorAll('[data-slot="media"] > picture > img')];
+    for (const twin of [light!, dark!]) {
+      expect(twin.hasAttribute("src")).toBe(false);
+      expect(twin.hasAttribute("srcset")).toBe(false);
+      expect(twin.hasAttribute("loading")).toBe(false);
+      expect(twin.getAttribute("fetchpriority")).toBe("high");
+      expect(twin.hasAttribute("decoding")).toBe(false);
+    }
+    expect([light!.getAttribute("data-src"), dark!.getAttribute("data-src")]).toEqual([wide.src, night.src]);
+    expect(inert.content.querySelector('[data-slot="media"] > picture')!.className).toContain("[@media(scripting:none)]:hidden");
+  });
+
+  it("renders both twins in a noscript at their own addresses, lazy, for a page without scripts", () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(<Hero title="Pair" picture={{ light: { ...wide, priority: true }, dark: { ...night, priority: true } }} />);
+    // With scripts on, a noscript's content is text: the HTML it holds is parsed here, inert.
+    const inert = document.createElement("template");
+    inert.innerHTML = host.querySelector("noscript")!.textContent!;
+    const pictures = [...inert.content.querySelectorAll("picture")];
+    expect(pictures.map((picture) => picture.getAttribute("data-scheme"))).toEqual(["light", "dark"]);
+    expect(pictures.map((picture) => picture.className)).toEqual([expect.stringContaining("dark:hidden"), expect.stringContaining("dark:block")]);
+    for (const picture of pictures) expect(picture.className).not.toContain("scripting");
+    const twins = [...inert.content.querySelectorAll("img")];
+    expect(twins.map((img) => img.getAttribute("src"))).toEqual([wide.src, night.src]);
+    expect(twins.map((img) => img.getAttribute("loading"))).toEqual(["lazy", "lazy"]);
+    expect(twins.map((img) => img.getAttribute("fetchpriority"))).toEqual(["high", "high"]);
+  });
+
+  it("gives a client-only render both twins' addresses, both lazy, and loads the one shown", async () => {
+    const twins = { light: { ...wide, priority: true }, dark: { ...night, priority: true } };
+    const day = await render(<Hero title="Client day" picture={twins} />);
+    const [light, dark] = [...day.part("media")!.querySelectorAll("img")];
+    expect([light!.getAttribute("src"), dark!.getAttribute("src")]).toEqual([wide.src, night.src]);
+    expect([light!.getAttribute("loading"), dark!.getAttribute("loading")]).toEqual(["lazy", "lazy"]);
+    await expect.poll(() => day.part("media")!.hasAttribute("data-loaded")).toBe(true);
+    document.documentElement.classList.add("dark");
+    const atNight = await render(<Hero title="Client night" picture={twins} />);
+    await expect.poll(() => atNight.part("media")!.hasAttribute("data-loaded")).toBe(true);
   });
 
   it("marks the frame data-loaded once the picture shown has loaded, from server HTML with no hydration", async () => {
@@ -870,12 +917,64 @@ describe("Hero", () => {
     document.body.append(host);
     mounted.push(host);
     host.append(document.createRange().createContextualFragment(renderToString(node)));
-    expect(host.querySelector("img")!.loading).toBe("eager");
+    expect(host.querySelector("img")!.getAttribute("src")).toBe(wide.src);
     const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
     roots.push(root);
     await act(async () => {});
     expect(host.querySelector("script")!.getAttribute("type")).toBe("text/plain");
+    // Once hydrated, the hidden twin has its address and waits lazily, so a change of scheme loads it.
+    const [shownLight, hiddenDark] = [...host.querySelectorAll("img")];
+    expect([shownLight!.getAttribute("src"), shownLight!.getAttribute("loading")]).toEqual([wide.src, "lazy"]);
+    expect([hiddenDark!.getAttribute("src"), hiddenDark!.getAttribute("loading")]).toEqual([night.src, "lazy"]);
     await render(node);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])("never fetches the hidden twin of a pair both priority, through the first-paint script and hydration (dark %s)", async (isDark) => {
+    document.documentElement.classList.toggle("dark", isDark);
+    const tag = `${Date.now()}-${isDark ? "dark" : "light"}`;
+    const files = { light: `/site/public/og.png?day-${tag}`, dark: `/site/public/og.png?night-${tag}` };
+    const node = <Hero title="Fetched once" picture={{ light: { ...wide, priority: true, src: files.light }, dark: { ...night, priority: true, src: files.dark } }} />;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    host.innerHTML = renderToString(node);
+    // innerHTML runs no scripts, so the first-paint script is run as the parser would run it.
+    const script = host.querySelector("script")!;
+    const run = document.createElement("script");
+    run.textContent = script.textContent;
+    script.replaceWith(run);
+    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    await expect.poll(() => media.hasAttribute("data-loaded")).toBe(true);
+    run.replaceWith(script);
+    const root = hydrateRoot(host, node);
+    roots.push(root);
+    await act(async () => {});
+    const hidden = media.querySelector<HTMLImageElement>(`[data-scheme="${isDark ? "light" : "dark"}"] img`)!;
+    await expect.poll(() => hidden.getAttribute("src")).toBe(isDark ? files.light : files.dark);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const fetched = (file: string) => performance.getEntriesByType("resource").filter((entry) => entry.name.endsWith(file)).length;
+    expect(fetched(isDark ? files.dark : files.light)).toBe(1);
+    expect(fetched(isDark ? files.light : files.dark)).toBe(0);
+  });
+
+  it("gives the shown twin its address after hydration where the page's scripts did not run", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const blocked = { light: { ...wide, priority: true, src: `${wide.src}%3C!--blocked--%3E` }, dark: { ...night, priority: true } };
+    const node = <Hero title="Blocked" picture={blocked} />;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    // innerHTML runs no scripts, as on a page whose content security policy blocks inline ones.
+    host.innerHTML = renderToString(node);
+    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    expect(media.querySelector("img")!.hasAttribute("src")).toBe(false);
+    const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
+    roots.push(root);
+    await act(async () => {});
+    await expect.poll(() => media.hasAttribute("data-loaded")).toBe(true);
+    expect(media.querySelector("img")!.getAttribute("src")).toBe(blocked.light.src);
+    expect([...media.querySelectorAll("img")].map((img) => img.getAttribute("loading"))).toEqual(["lazy", "lazy"]);
     expect(error).not.toHaveBeenCalled();
   });
 
