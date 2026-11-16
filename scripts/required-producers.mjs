@@ -10,6 +10,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { jobGraph } from "./ci-budget.mjs";
+import { readStdin } from "./read-stdin.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -37,7 +38,7 @@ export function requiredProducers(contexts, workflows) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const contexts = readFileSync(0, "utf8").split("\n").map((line) => line.trim()).filter(Boolean);
+  const contexts = (await readStdin()).split("\n").map((line) => line.trim()).filter(Boolean);
   const { producers, problems } = requiredProducers(contexts, readWorkflows());
   for (const problem of problems) console.error(`::error::${problem}.`);
   if (problems.length > 0) process.exit(1);

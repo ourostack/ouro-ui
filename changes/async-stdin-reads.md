@@ -1,0 +1,1 @@
+- Fixed: The claims check, the install script and the commands in the upgrade guide read standard input asynchronously, so a pipe that delivers short reads no longer crashes them on newer Node.

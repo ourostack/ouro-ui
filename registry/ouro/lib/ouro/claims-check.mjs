@@ -21,6 +21,7 @@
 // reads the URL cache, which `--network` refreshes; a link only a pull request or a draft cites
 // is fetched each time instead. claims.config.json at the root sets the
 // surfaces, the exemptions and the required jobs and checks (docs: claim, in Ouro UI's docs).
+import { Buffer } from "node:buffer";
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -1352,6 +1353,12 @@ export function policyProblems({ base, head, body = "", baseChecks = [], headChe
 // ---------------------------------------------------------------------------------------
 // Command line
 
+async function readStdin() {
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(chunk);
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 /** Runs a command (check, lint, show, ratchet) in `root`; returns the exit code. */
 export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}, guide = "the claim docs" } = {}) {
   const [command, ...rest] = argv;
@@ -1397,7 +1404,7 @@ export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}
       failures.push(...result.findings);
     }
     if (flag("--stdin")) {
-      const result = readMarkdown(readFileSync(0, "utf8"), { file: option("--name") ?? "stdin", verbs });
+      const result = readMarkdown(await readStdin(), { file: option("--name") ?? "stdin", verbs });
       claims.push(...result.claims);
       failures.push(...result.findings);
     }
