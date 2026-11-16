@@ -57,6 +57,24 @@ export const UNCHECKED = /\b(unchecked|not checked)\b/i;
 /** "checked", and neither "unchecked" nor "not checked". */
 export const CHECKED = (sentence: string): boolean => /\bchecked\b/i.test(sentence) && !UNCHECKED.test(sentence);
 
+/** The role word for a switch: "switch" (VoiceOver, NVDA), or "toggle button" where NVDA reads it as one. */
+export const SWITCH = /\b(switch|toggle button)\b/i;
+
+/** A switch that is off: "off" (VoiceOver, NVDA), or "not pressed" for a toggle button. */
+export const OFF = /\b(off|not pressed)\b/i;
+
+/** A switch that is on: "on" or "pressed", and neither "off" nor "not pressed". */
+export const ON = (sentence: string): boolean => /\b(on|pressed)\b/i.test(sentence) && !OFF.test(sentence);
+
+/** `required`: both readers say "required". */
+export const REQUIRED = /\brequired\b/i;
+
+/** `aria-invalid`: VoiceOver says "invalid data", NVDA "invalid entry". */
+export const INVALID = /\binvalid\b/i;
+
+/** No `aria-invalid` said in the sentence: VoiceOver says "invalid data" in the role's sentence when it reads one. */
+export const VALID = (sentence: string): boolean => !INVALID.test(sentence);
+
 /** "unselected" or "not selected". */
 const UNSELECTED = /\b(unselected|not selected)\b/i;
 

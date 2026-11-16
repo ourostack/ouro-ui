@@ -295,7 +295,7 @@ test("a miss lists what VoiceOver said, so a wrong state it said fails instead o
   assert.equal(hint.some((phrase) => inOneSentence(phrase, CHECKED) || UNCHECKED.test(phrase)), false);
 });
 
-test("the describe fallback is the Checkbox and Checklist toggles' (#118) and the Dialog opening's (#119) alone, once each", () => {
+test("the describe fallback is the Checkbox and Checklist toggles' (#118), the Dialog opening's (#119) and a field Form focuses after a submit (#1720) alone, once each", () => {
   const dir = join(import.meta.dirname, "../registry/ouro/e2e/screen-reader");
   const uses = Object.fromEntries(
     readdirSync(dir)
@@ -303,7 +303,10 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118) and th
       .map((file) => [file, (readFileSync(join(dir, file), "utf8").match(/heardOrDescribed\(/g) ?? []).length])
       .filter(([, count]) => count > 0),
   );
-  assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
+  assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1, "text-field.sr.spec.ts": 1 });
+  // The TextField's is the submit that moves focus to the field with the error, and it describes the field itself.
+  const textField = readFileSync(join(dir, "text-field.sr.spec.ts"), "utf8");
+  assert.match(textField, /heardOrDescribed\(sr, submit,[^\n]*finding: "ourostack\/ouro-ui#1720" \}/);
   const checkbox = readFileSync(join(dir, "checkbox.sr.spec.ts"), "utf8");
   assert.match(checkbox, /ourostack\/ouro-ui#118/);
   assert.doesNotMatch(checkbox, /from: "container"/);
@@ -317,6 +320,7 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118) and th
   const guide = readFileSync(join(import.meta.dirname, "../docs/guides/screen-reader-lane.md"), "utf8");
   assert.match(guide, /ourostack\/ouro-ui#118/);
   assert.match(guide, /ourostack\/ouro-ui#119/);
+  assert.match(guide, /ourostack\/ouro-ui#1720/);
 });
 
 test("the opened dialog, described, must name it as a web dialog in one sentence (#119)", () => {
