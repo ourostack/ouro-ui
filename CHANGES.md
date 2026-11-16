@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Tooltip: a click or key press on its trigger closes it, and it stays closed while the trigger's menu or popover is open.
