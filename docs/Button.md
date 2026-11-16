@@ -34,7 +34,7 @@ The props the modes share. Type: `ButtonProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The label. For an icon-only button, also pass `aria-label`. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Your classes always win over Ouro UI's. Appearance classes warn in development; use `tone`, `variant` and `size` instead. |
-| `endIcon` | `ButtonIcon` |  | Icon after the label. Pass the component, not an element: `endIcon={ArrowRightIcon}`. |
+| `endIcon` | `ButtonIcon` |  | Icon after the label. Pass the component, not an element: `endIcon={ArrowRightIcon}`. On a button wider than its label, such as one with `fullWidth`, it sits at the end and the label stays centred in the rest. |
 | `fullWidth` | `boolean` |  | Stretches the button to the width of its container. |
 | `loading` | `boolean` |  | Shows a centered spinner, keeps the width, sets `aria-busy` and disables the button. It stays focusable, so focus is not lost when a pressed button turns busy. |
 | `loadingLabel` | `string` | `"Loading"` | What screen readers hear, politely, when `loading` turns on. It is spoken through a shared live region, so the button's name stays its label. Use the action in progress: `loadingLabel="Saving recipe"`. |
