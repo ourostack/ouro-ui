@@ -3,14 +3,14 @@ name: Agent benchmark
 # write access can rerun it: the scripted agent through every arm and task first, which needs no model, then the
 # chosen models. Model inference goes through GitHub Copilot with the COPILOT_GITHUB_TOKEN repository secret (a
 # fine-grained personal access token with the "Copilot Requests" permission); MiniMax M3 needs MINIMAX_API_KEY. With
-# no models chosen it runs the scripted agent only. The results, every transcript and the page those runs render are
+# models set to none it runs the scripted agent only. The results, every transcript and the page those runs render are
 # uploaded as the agent-benchmark artifact and the page goes into the job summary; publishing a run is a pull request
 # that copies it into scripts/agent-benchmark/results/. It never runs on pull requests or pushes.
 on:
   workflow_dispatch:
     inputs:
       models:
-        description: "Models, comma-separated (scripts/agent-benchmark/run.mjs BENCH_MODELS); empty runs only the scripted agent"
+        description: "Models, comma-separated (scripts/agent-benchmark/run.mjs BENCH_MODELS), or none for the scripted agent only"
         required: false
         default: "gpt-6-luna"
       arms:
@@ -62,7 +62,7 @@ jobs:
           if [ -n "$TASKS" ]; then args+=(--tasks "$TASKS"); fi
           node scripts/agent-benchmark/run.mjs "${args[@]}"
       - name: The models
-        if: inputs.models != ''
+        if: inputs.models != 'none' && inputs.models != ''
         env:
           MODELS: ${{ inputs.models }}
           ARMS: ${{ inputs.arms }}
@@ -75,7 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$COPILOT_GITHUB_TOKEN" ]; then
-            echo "::error title=Missing secret::The repository has no COPILOT_GITHUB_TOKEN secret, so no model can run. Add a fine-grained personal access token with the Copilot Requests permission as that secret (Settings > Secrets and variables > Actions), or run with no models for the scripted agent only."
+            echo "::error title=Missing secret::The repository has no COPILOT_GITHUB_TOKEN secret, so no model can run. Add a fine-grained personal access token with the Copilot Requests permission as that secret (Settings > Secrets and variables > Actions), or run with models set to none for the scripted agent only."
             exit 1
           fi
           npm i --prefix "$RUNNER_TEMP/copilot-sdk" --no-save --no-audit --no-fund @github/copilot-sdk@1.0.13
