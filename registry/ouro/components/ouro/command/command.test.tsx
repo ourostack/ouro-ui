@@ -908,6 +908,17 @@ describe("Command presentation", () => {
     await expect.poll(() => document.activeElement).toBe(input().element());
   });
 
+  it("puts focus in the phone sheet's search in the key's own task below 640px, before a frame is drawn", async () => {
+    await page.viewport(390, 844);
+    const seen = { focus: null as Element | null };
+    await render(<KeyOpened seen={seen} />);
+    document.querySelector<HTMLElement>("[data-test-harness]")!.focus();
+    await userEvent.keyboard("k");
+    await expect.poll(() => seen.focus).not.toBeNull();
+    expect(popup()!.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(seen.focus).toBe(input().element());
+  });
+
   it("focuses the phone sheet itself, not its search, after a pen tap below 640px, so no keyboard pops up", async () => {
     await page.viewport(390, 844);
     await render(<KeyOpened seen={{ focus: null }} />);

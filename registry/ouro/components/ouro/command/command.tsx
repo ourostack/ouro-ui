@@ -632,17 +632,16 @@ export function Command(props: CommandProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: a frame left to run after a close holds the width of a palette that is hidden, which the next opening lets go of
     return () => cancelAnimationFrame(frame);
   }, [keepMounted, isOpenNow]);
-  // Every key typed straight after the palette opens goes in its search: the search takes focus as the dialog shows, in
-  // the same task as the key or click that opened it. Base UI focuses it a frame later, and a busy computer draws that
-  // frame late, so the first keys went to whatever had focus behind the dialog.
-  // Never after a touch or pen tap, which opens the palette focused on itself, so no software keyboard pops up. The phone
-  // sheet below 640px takes the same choice in its initialFocus, below.
+  // Every key typed straight after the palette opens goes in its search: the search takes focus as the dialog or the
+  // phone sheet shows, in the same task as the key or click that opened it. Base UI focuses it a frame later, and a busy
+  // computer draws that frame late, so the first keys went to whatever had focus behind the palette.
+  // Never after a touch or pen tap, which opens the palette focused on itself, so no software keyboard pops up.
   useLayoutEffect(() => {
-    if (!isOpenNow || sheet || lastInput() === "touch" || lastInput() === "pen") return;
-    // Base UI shows the dialog in the commit just after this one, which a microtask comes after: still in the task of
+    if (!isOpenNow || lastInput() === "touch" || lastInput() === "pen") return;
+    // Base UI shows the palette in the commit just after this one, which a microtask comes after: still in the task of
     // the key that opened it, before any later key. A palette shut again by then has no search to focus, or a hidden one.
-    // Stryker disable next-line OptionalChaining: Base UI mounts the dialog in the commit before this microtask; the check only keeps a dialog it mounts later from throwing
-    queueMicrotask(() => popupRef.current?.querySelector("input")!.focus());
+    // Stryker disable next-line OptionalChaining: Base UI mounts the palette in the commit before this microtask; the check only keeps one it mounts later from throwing
+    queueMicrotask(() => searchInputRef.current?.focus());
   }, [isOpenNow, sheet]);
   const emptyOnceClosed = (next: boolean) => {
     if (next || !keepMounted) return;
@@ -801,11 +800,12 @@ export function Command(props: CommandProps): JSX.Element {
           open={isOpenNow}
           onOpenChange={setOpen}
           presentation="sheet"
-          // After a key press or a click the search takes focus, as it does in the dialog, so the keys typed next land in
-          // it; after a touch or pen tap the sheet focuses itself, so no software keyboard pops up.
+          // The sheet itself after a touch or pen tap, so no software keyboard pops up. Once the search has focus (above),
+          // Base UI focuses nothing: its focus comes a frame later and would pull back a Tab pressed before that frame.
           initialFocus={() => {
             const search = searchInputRef.current!;
-            return lastInput() === "touch" || lastInput() === "pen" ? search.closest<HTMLElement>('[data-ouro="sheet"]') : search;
+            if (lastInput() === "touch" || lastInput() === "pen") return search.closest<HTMLElement>('[data-ouro="sheet"]');
+            return document.activeElement === search ? false : search;
           }}
           {...finalFocus}
         >
