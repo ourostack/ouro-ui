@@ -284,10 +284,12 @@ export type CommandWithTriggerProps = CommandBaseProps & {
 /** A controlled Command palette, usually opened by `useCommandShortcut`. */
 export type CommandControlledProps = CommandBaseProps & {
   /**
-   * Whether the palette is open. After a key press it focuses the search input; after a
-   * touch or pen tap it focuses itself, so no software keyboard pops up.
-   * @claim "After a key press it focuses" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::controlled Command > focuses the palette, not the input, after a pen tap, so no keyboard pops up)
-   * @claim "After a key press it focuses" registry/ouro/components/ouro/command/command.touch.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.touch.test.tsx::Command on a phone > opens from a tap as a full-height sheet focused on itself, with 44px commands and a 16px search input)
+   * Whether the palette is open. After a key press or a click it focuses the search input, in the
+   * dialog and in the phone sheet alike; after a touch or pen tap it focuses itself, so no software keyboard pops up.
+   * @claim "After a key press or a click it focuses" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::controlled Command > focuses the palette, not the input, after a pen tap, so no keyboard pops up)
+   * @claim "After a key press or a click it focuses" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > puts focus in the phone sheet's search after a key press below 640px)
+   * @claim "after a touch or pen tap it focuses itself" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > focuses the phone sheet itself, not its search, after a pen tap below 640px, so no keyboard pops up)
+   * @claim "After a key press or a click it focuses" registry/ouro/components/ouro/command/command.touch.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.touch.test.tsx::Command on a phone > opens from a tap as a full-height sheet focused on itself, with 44px commands and a 16px search input)
    */
   open: boolean;
   /** Called with `false` when the user closes the palette (Escape, outside press, swipe), and when a command runs. */
@@ -520,6 +522,7 @@ export function Command(props: CommandProps): JSX.Element {
 
   const triggerRef = useRef<HTMLElement>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   // The dialog fits the commands it opens with, from 32rem to 40rem, and then keeps that width while it is open: taken as
   // it mounts with its rows, so filtering or a server's answer never moves the input or the rows sideways.
   const holdOnOpen = useCallback(
@@ -632,7 +635,8 @@ export function Command(props: CommandProps): JSX.Element {
   // Every key typed straight after the palette opens goes in its search: the search takes focus as the dialog shows, in
   // the same task as the key or click that opened it. Base UI focuses it a frame later, and a busy computer draws that
   // frame late, so the first keys went to whatever had focus behind the dialog.
-  // Never after a touch or pen tap, which opens the palette focused on itself, so no software keyboard pops up.
+  // Never after a touch or pen tap, which opens the palette focused on itself, so no software keyboard pops up. The phone
+  // sheet below 640px takes the same choice in its initialFocus, below.
   useLayoutEffect(() => {
     if (!isOpenNow || sheet || lastInput() === "touch" || lastInput() === "pen") return;
     // Base UI shows the dialog in the commit just after this one, which a microtask comes after: still in the task of
@@ -696,7 +700,7 @@ export function Command(props: CommandProps): JSX.Element {
       <div data-ouro="command" className="flex min-h-0 flex-1 flex-col">
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
-          <Autocomplete.Input aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
+          <Autocomplete.Input ref={searchInputRef} aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
           {loading && <SearchingLabel label={loadingLabel} />}
 
           <span data-ouro-command-status="" role="status" aria-live="polite" className="sr-only">
@@ -797,6 +801,12 @@ export function Command(props: CommandProps): JSX.Element {
           open={isOpenNow}
           onOpenChange={setOpen}
           presentation="sheet"
+          // After a key press or a click the search takes focus, as it does in the dialog, so the keys typed next land in
+          // it; after a touch or pen tap the sheet focuses itself, so no software keyboard pops up.
+          initialFocus={() => {
+            const search = searchInputRef.current!;
+            return lastInput() === "touch" || lastInput() === "pen" ? search.closest<HTMLElement>('[data-ouro="sheet"]') : search;
+          }}
           {...finalFocus}
         >
           {palette(true)}

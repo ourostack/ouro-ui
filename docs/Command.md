@@ -80,7 +80,7 @@ A controlled Command palette, usually opened by `useCommandShortcut`.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user closes the palette (Escape, outside press, swipe), and when a command runs. |
-| `open` (required) | `boolean` | Whether the palette is open. After a key press it focuses the search input; after a touch or pen tap it focuses itself, so no software keyboard pops up. |
+| `open` (required) | `boolean` | Whether the palette is open. After a key press or a click it focuses the search input, in the dialog and in the phone sheet alike; after a touch or pen tap it focuses itself, so no software keyboard pops up. |
 
 Not in this mode (typed `never`):
 
