@@ -900,16 +900,20 @@ describe("MessageList springs at rest", () => {
     const moving = await commands.compositedLayers();
     expect(messageLayers(moving).length).toBeGreaterThan(3);
     frames.until(() => scroller.querySelector("[data-ouro-settling]") === null);
+    console.log("PROBE released", performance.now());
     frames.release();
     // Off the list's end, the jump button fades in, on a layer of its own until its fade ends: wait for that, not for a frame.
     const jump = scroller.closest('[data-ouro="message-list"]')!.querySelector<HTMLElement>('[data-ouro-part="jump"]')!;
     await Promise.all(jump.getAnimations().map((animation) => animation.finished));
+    console.log("PROBE anims", performance.now());
     // The pill floats over the scroller, which Chromium on macOS gives a layer of its own for good: it is no spring's, so it is
     // left out. And which elements have layers is compared, not their sizes: the content's height changes as rows replace
     // their estimates, by how the platform's fonts measure.
     jump.parentElement!.style.display = "none";
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    console.log("PROBE frames", performance.now());
     const after = await commands.compositedLayers();
+    console.log("PROBE layers", performance.now());
     expect(messageLayers(after)).toEqual([]);
     const elements = (layers: { element: string | null }[]) => layers.map((layer) => layer.element);
     expect(elements(after)).toEqual(elements(before));

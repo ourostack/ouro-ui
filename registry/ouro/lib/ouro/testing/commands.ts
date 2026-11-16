@@ -1434,7 +1434,9 @@ export const compositedLayers: BrowserCommand<[]> = async (ctx) => {
     const { result } = await session.send("Runtime.evaluate", { expression: 'document.getElementById("ouro-compositor-probe")' });
     probeId = (await session.send("DOM.describeNode", { objectId: result.objectId! })).node.backendNodeId;
     const probed = () => trees.filter((layers) => layers.some((layer) => layer.backendNodeId === probeId)).at(-1);
+    console.log("PROBE cmd start", trees.length);
     for (let attempt = 0; attempt < 30 && probed() === undefined; attempt++) await frames();
+    console.log("PROBE cmd probed", trees.length, probed() !== undefined);
     // Two frames more, so a change the page made just before the call is in the tree too.
     await frames();
     tree = probed();
