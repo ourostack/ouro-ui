@@ -41,9 +41,10 @@ test.describe("with the default font doubled", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("adoption/");
     await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    // The board and the screen both: the list may not grow past the phone and carry its marks off with it.
     const outside = await page.evaluate(() => {
-      const board = document.querySelector(".adoption-board")!.getBoundingClientRect();
-      return [...document.querySelectorAll(".adoption-marks, .adoption-head")].filter((marks) => marks.getBoundingClientRect().right > board.right + 0.5).length;
+      const edge = Math.min(document.querySelector(".adoption-board")!.getBoundingClientRect().right, document.documentElement.clientWidth);
+      return [...document.querySelectorAll(".adoption-board, .adoption-marks, .adoption-head")].filter((part) => part.getBoundingClientRect().right > edge + 0.5).length;
     });
     expect(outside).toBe(0);
   });
