@@ -29,7 +29,12 @@ const added: Element[] = [];
 let handle: FocusClearHandle | undefined;
 let bodyMargin = "";
 
+/** The toaster's fade, as its styles have it, but long: a test ends it, or the fallback does. */
+const fadeStyle = document.createElement("style");
+fadeStyle.textContent = '[data-ouro="toaster"] { transition: opacity 60s; } [data-ouro-toaster-fading] { opacity: 0; }';
+
 beforeEach(async () => {
+  document.head.append(fadeStyle);
   await page.viewport(390, 844);
   bodyMargin = document.body.style.margin;
   document.body.style.margin = "0";
@@ -38,6 +43,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  fadeStyle.remove();
   handle?.release();
   handle = undefined;
   for (const node of added.splice(0)) node.remove();
@@ -81,7 +87,7 @@ function stage({ toasts = 2, edge = "bottom" }: { toasts?: number; edge?: string
   const bar = document.createElement("div");
   bar.dataset.ouro = "toaster";
   bar.dataset.edge = edge;
-  fixed(bar, "position: fixed; left: 16px; bottom: 16px; width: 358px; height: 0; transition: none;");
+  fixed(bar, "position: fixed; left: 16px; bottom: 16px; width: 358px; height: 0;");
   if (toasts > 0) toast(bar, "bottom: 0; left: 0; width: 358px; height: 58px;");
   if (toasts > 1) toast(bar, "bottom: 12px; left: 2px; width: 322px; height: 58px;");
   return bar;
@@ -632,6 +638,33 @@ describe("keepFocusClear", () => {
       expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
       advance(1);
       expect(stateOf(bar).moved).toBe("top");
+    });
+
+    it("lands a move on the next frame when no fade starts, without waiting for the fallback", async () => {
+      const bar = setup();
+      bar.style.transition = "none";
+      control("covered", COVERED);
+      const fades: boolean[] = [];
+      const watcher = new MutationObserver(() => fades.push(bar.hasAttribute("data-ouro-toaster-fading")));
+      watcher.observe(bar, { attributes: true, attributeFilter: ["data-ouro-toaster-fading"] });
+      // The fake clock never moves, so the fallback never runs.
+      await tab("covered");
+      await frames();
+      watcher.disconnect();
+      expect(fades).toEqual([true, false]);
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    });
+
+    it("lands a move when the browser cancels the viewport's fade", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      await tab("covered");
+      expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
+      bar.querySelector('[data-ouro="toast"]')!.dispatchEvent(new TransitionEvent("transitioncancel", { bubbles: true, propertyName: "opacity" }));
+      bar.dispatchEvent(new TransitionEvent("transitioncancel", { bubbles: true, propertyName: "transform" }));
+      expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
+      bar.dispatchEvent(new TransitionEvent("transitioncancel", { bubbles: true, propertyName: "opacity" }));
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     });
 
     it("does not start a second fade while one is fading", async () => {

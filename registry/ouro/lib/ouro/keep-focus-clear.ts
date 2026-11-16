@@ -179,13 +179,20 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
     fading = true;
     viewport.setAttribute("data-ouro-toaster-fading", "");
     const timer = setTimeout(() => land(next), FADE_FALLBACK_MS);
+    // A fade that ends, or that the browser cancels, lands the move; so does one that never started (transitions off,
+    // or a style the browser had not drawn yet), on the next frame, rather than after the fallback.
     const onEnd = (event: TransitionEvent) => {
       if (event.target === viewport && event.propertyName === "opacity") land(next);
     };
+    const started = viewport.getAnimations().some((animation) => (animation as CSSTransition).transitionProperty === "opacity");
+    const frame = started ? 0 : requestAnimationFrame(() => land(next));
     viewport.addEventListener("transitionend", onEnd);
+    viewport.addEventListener("transitioncancel", onEnd);
     stopFade = () => {
       clearTimeout(timer);
+      cancelAnimationFrame(frame);
       viewport.removeEventListener("transitionend", onEnd);
+      viewport.removeEventListener("transitioncancel", onEnd);
     };
   }
 

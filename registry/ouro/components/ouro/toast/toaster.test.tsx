@@ -2319,7 +2319,7 @@ describe("keyboard focus under the stack", () => {
     expect(runs).toEqual(["opacity", "opacity"]);
   });
 
-  it("moves the stack after the fade even when the browser runs no transition", async () => {
+  it("moves the stack on the next frame when the browser runs no fade, without waiting for the fallback", async () => {
     fakeClock();
     await longPage(
       <>
@@ -2333,10 +2333,8 @@ describe("keyboard focus under the stack", () => {
     caseOf("before").focus();
     await pressTab();
     await pressTab();
-    await until(() => viewport()!.hasAttribute("data-ouro-toaster-fading"), true);
-    expect(moved()).toBeNull();
-    await advance(300);
-    expect(moved()).toBe("top");
+    // With no fade to wait for, the move lands on the next frame: the fallback's clock never moves.
+    await until(moved, "top");
   });
 
   it("keeps the fade on until the viewport's own fade ends, not a transition of a toast in it", async () => {
@@ -2349,7 +2347,8 @@ describe("keyboard focus under the stack", () => {
       </>,
     );
     await show("Recording saved", { duration: Infinity });
-    viewport()!.style.transition = "none";
+    // A fade that runs and has not ended, so only the viewport's own end, or the fallback, lands the move.
+    viewport()!.style.transition = "opacity 60s";
     caseOf("before").focus();
     await pressTab();
     await pressTab();
