@@ -1804,9 +1804,14 @@ test("the screen-reader lane reads the repository and nothing more, and holds no
   assert.match(jobs.report, /scripts\/sr-infra-issue\.sh "\$RUN_URL" "nightly"/);
 });
 
-test("the screen-reader lane runs VoiceOver on macos-15 and NVDA on windows-2025, at the commit it was given", () => {
+test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory, at the commit it was given", () => {
   const lane = srJobs().lane;
-  assert.match(lane, /- os: macos-15\n {12}project: voiceover\n {10}- os: windows-2025\n {12}project: nvda\n/);
+  assert.match(lane, /- os: macos-26\n {12}project: voiceover\n {12}advisory: false\n {10}- os: macos-15\n {12}project: voiceover\n {12}advisory: true\n {10}- os: windows-2025\n {12}project: nvda\n {12}advisory: false\n/);
+  // An advisory job's failure does not fail the run, whose conclusion release.yml reads; each job keeps its own artifact.
+  assert.match(lane, /^ {4}continue-on-error: \$\{\{ matrix\.advisory \}\}$/m);
+  assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}\n/);
+  // At most two macOS runners at once.
+  assert.equal((lane.match(/- os: macos-/g) ?? []).length, 2);
   assert.match(lane, /^ {4}runs-on: \$\{\{ matrix\.os \}\}$/m);
   assert.match(lane, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}ref: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}\n {10}persist-credentials: false\n/);
   assert.match(lane, /^ {6}SOURCE_SHA: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}$/m);

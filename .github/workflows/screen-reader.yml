@@ -26,15 +26,25 @@ concurrency:
   cancel-in-progress: false
 jobs:
   lane:
+    # VoiceOver on macos-26, what current users run, and NVDA gate the run. VoiceOver on macos-15 runs
+    # beside them so the run shows what older macOS's users hear, but it is advisory: its failure does not
+    # fail the run, which release.yml reads. Two macOS runners at most at once.
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         include:
+          - os: macos-26
+            project: voiceover
+            advisory: false
           - os: macos-15
             project: voiceover
+            advisory: true
           - os: windows-2025
             project: nvda
-    name: ${{ matrix.project }} (${{ matrix.os }})
+            advisory: false
+    name: ${{ matrix.project }} (${{ matrix.os }})${{ matrix.advisory && ', advisory' || '' }}
+    continue-on-error: ${{ matrix.advisory }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     defaults:
@@ -103,7 +113,7 @@ jobs:
       - if: always() && steps.classify.outcome != 'skipped'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: screen-reader-${{ matrix.project }}
+          name: screen-reader-${{ matrix.project }}-${{ matrix.os }}
           path: |
             ${{ runner.temp }}/sr.log
             ${{ runner.temp }}/sr-class.txt
