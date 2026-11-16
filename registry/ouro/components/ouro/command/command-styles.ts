@@ -137,6 +137,8 @@ const commandEmptyClass = "box-border px-2 py-8 text-center text-sm leading-5 te
  *
  * @internal
  * @claim "while it shows, it takes the room" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > centres the empty state in the room the results had, and gives the results all of it again)
+ * @claim "With results it takes none" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > centres the empty state in the room the results had, and gives the results all of it again)
+ * @claim "The phone sheet's results have no fixed room" registry/ouro/components/ouro/command/command.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/command/command.touch.test.tsx, /The empty state sits right under the search/)
  */
 const commandEmptyRoomClass = "flex flex-col justify-center has-[>[data-ouro-command-empty]]:flex-1";
 
