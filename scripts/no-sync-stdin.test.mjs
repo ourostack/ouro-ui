@@ -1,12 +1,12 @@
 // A synchronous read of a pipe that returns short reads overflows the heap on Node 24 and 26.8+ (nodejs/node#66341), so no tool reads stdin synchronously.
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -26,17 +26,13 @@ const run = async (script, args, chunks) => {
 };
 
 test("split-items reads every line of input that arrives in small, delayed chunks", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "ouro-stdin-"));
-  try {
-    writeFileSync(join(dir, "alpha.json"), JSON.stringify({ files: [1] }));
-    writeFileSync(join(dir, "beta.json"), JSON.stringify({ files: [1, 2] }));
-    const text = "alpha.json\nbeta.json\n";
-    const result = await run("scripts/split-items.mjs", [dir, "1", "0"], text.match(/.{1,3}/gs));
-    assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.stdout.trim().split("\n").sort(), ["alpha.json", "beta.json"]);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const dir = scratchDir("ouro-stdin-");
+  writeFileSync(join(dir, "alpha.json"), JSON.stringify({ files: [1] }));
+  writeFileSync(join(dir, "beta.json"), JSON.stringify({ files: [1, 2] }));
+  const text = "alpha.json\nbeta.json\n";
+  const result = await run("scripts/split-items.mjs", [dir, "1", "0"], text.match(/.{1,3}/gs));
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split("\n").sort(), ["alpha.json", "beta.json"]);
 });
 
 test("no tracked file reads stdin synchronously", () => {
