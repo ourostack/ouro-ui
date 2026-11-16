@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
+import ouroPlain from "./ouro-plain.css?inline";
 
-// Runs in the `touch` project: Chromium as a phone with a coarse pointer, where ouro-base's disclosure title is a full touch target.
+// Runs in the `touch` project: Chromium as a phone with a coarse pointer, where ouro-plain's classes keep their touch targets. ouro-plain.css is an app's choice, so app.css leaves it out and this file loads it.
+const plainSheet = document.createElement("style");
+plainSheet.textContent = ouroPlain;
+document.head.append(plainSheet);
 let host: HTMLElement | undefined;
 afterEach(() => host?.remove());
 

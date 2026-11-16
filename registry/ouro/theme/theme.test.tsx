@@ -2,12 +2,18 @@ import { spring } from "motion";
 import { afterEach, describe, expect, it } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import ouroPlain from "./ouro-plain.css?inline";
 
 // The Ouro look (ouro-theme.css) over ouro-base.css, both loaded through app.css, which vitest.config.ts loads before every test.
 // Colors are read through getComputedStyle, so the browser really evaluates the
 // variables. Elements are painted with the variables themselves, not utilities, so a
 // pair no component uses yet (`card`) is still checked; `soft` mixes the tone the way
 // Tailwind compiles `bg-primary/10`.
+
+// ouro-plain.css is an app's choice, so app.css leaves it out; the classes' tests below load it themselves.
+const plainSheet = document.createElement("style");
+plainSheet.textContent = ouroPlain;
+document.head.append(plainSheet);
 
 type Rgb = [number, number, number];
 /** Tones whose text sits on their own soft tint (`variant="soft"`) and on the page. */
