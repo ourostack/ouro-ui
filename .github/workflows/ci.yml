@@ -592,6 +592,9 @@ jobs:
           EVENT: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          # The message that lands when the merge passes its own, so it is judged in place of the branch commits' messages.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
           QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
           QUEUE_HEAD: ${{ github.event.merge_group.head_sha }}
         run: |

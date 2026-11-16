@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { AUTHORS, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, problems, readCommits, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
+import { AUTHORS, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "attribution.mjs");
@@ -301,4 +301,23 @@ test("attribution sees through the vertical tab, form feed and NEL hidden in a c
     assert.ok(problems([commit({ message: `Button: a fix (#1)\n\nCo-authored-by: Cl${separator}aude <noreply@anthropic.com>` })]).length > 0, JSON.stringify(separator));
     assert.ok(problems([commit({ message: `Button: a fix (#1)\n\nCo-auth${separator}ored-by: Claude <noreply@anthropic.com>` })]).length > 0, JSON.stringify(separator));
   }
+});
+
+test("on a pull request attribution judges the title and body that land, not the branch commits' messages a signer forced", () => {
+  const forced = commit({ message: "Fix\n\nCo-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>" });
+  assert.deepEqual(problems([forced], { messages: false }), []);
+  assert.equal(problems([forced]).length, 1);
+  // Authors and committers are still judged.
+  assert.deepEqual(problems([commit({ authorEmail: "x@example.com" })], { messages: false }).map(({ field }) => field), ["author"]);
+  assert.deepEqual(textProblems("Fix a thing", "Why it matters."), []);
+  const bad = textProblems("Fix", "Why.\n\nCo-authored-by: Claude <noreply@anthropic.com>");
+  assert.equal(bad.length, 1);
+  assert.match(bad[0].fix, /title or body.*gh ouro-pr/);
+  const lines = [];
+  const run = (env) => main(["b", "h"], { git: (args) => (args[0] === "rev-parse" ? "" : `\x1e${"a".repeat(40)}\x1fA\x1f${MAINTAINER.email}\x1fG\x1f${GITHUB}\x1f${forced.message}\x1f\nfile\n`), log: (line) => lines.push(line), actions: false, env });
+  assert.equal(run({ PR_TITLE: "Fix", PR_BODY: "Clean body" }), 0);
+  assert.equal(run({ PR_TITLE: "Fix" }), 0);
+  assert.equal(run({ PR_TITLE: "Fix", PR_BODY: "Assisted-by: Claude" }), 1);
+  assert.match(lines.at(-1), /pull request.*Assisted-by: Claude/);
+  assert.equal(run({}), 1, "without PR_TITLE (the merge queue) the commit messages are judged");
 });
