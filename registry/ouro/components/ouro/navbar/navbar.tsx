@@ -113,8 +113,10 @@ export interface NavbarProps {
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
+// Below 640px the links are always behind the menu button, so a wrap there changes no measure of theirs; from 640px
+// the links' room decides whether the menu button shows, and a wrap would change that room.
 const bar =
-  "box-border flex min-h-14 flex-wrap items-center gap-2 py-1 border-0 border-b border-solid border-border bg-background text-foreground " +
+  "box-border flex min-h-14 items-center gap-2 border-0 max-sm:flex-wrap max-sm:py-1 border-b border-solid border-border bg-background text-foreground " +
   "ps-[max(1rem,env(safe-area-inset-left,0px))] pe-[max(1rem,env(safe-area-inset-right,0px))]";
 
 // A link: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
@@ -137,9 +139,9 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * the current page marked `aria-current="page"`, and the link of the section it is in `aria-current="true"`, both underlined in the primary colour as in `FamilyBar`, distinct from hover and press highlights. A group of links (`{ label, links }`)
  * opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on
  * a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from
- * the side, with each group under its name; the brand and `actions` stay in the bar. When even
- * the brand and `actions` do not fit side by side (large text on a phone), the actions move to a
- * second row rather than off the screen. Links render through `OuroProvider`'s `linkComponent`,
+ * the side, with each group under its name; the brand and `actions` stay in the bar. When, below
+ * 640px, even the brand and `actions` do not fit side by side (large text on a phone), the actions
+ * move to a second row rather than off the screen. Links render through `OuroProvider`'s `linkComponent`,
  * so your router navigates.
  *
  * The phone menu opens once JavaScript has loaded (after hydration); the links are in the
@@ -174,7 +176,7 @@ const example = '<Navbar label="Main" items={[{ label: "Recipes", href: "/recipe
  * @claim "The phone menu opens once JavaScript" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar at tablet widths and with groups > puts a group's button and the bar's links in the server HTML)
  * @claim "this site's head script keeps a tap" site/e2e/early-input.spec.ts verify:fileLine(site/e2e/early-input.spec.ts, /a tap on the menu button before the page's script has run opens the menu/) verify:fileLine(site/src/early-input.ts, /export function keepEarlyInput/)
  * @claim "the sheet is built while the page is" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > builds the sheet while the page is idle once the menu button shows, and keeps it, hidden, between opens)
- * @claim "When even the brand and `actions` do not fit side by side" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > moves its actions to a second row when they and the brand do not fit beside each other, as with large text)
+ * @claim "When, below 640px, even the brand and `actions` do not fit side by side" registry/ouro/components/ouro/navbar/navbar.test.tsx verify:testExists(registry/ouro/components/ouro/navbar/navbar.test.tsx::Navbar > moves its actions to a second row when they and the brand do not fit beside each other, as with large text)
  */
 export function Navbar(props: NavbarProps): JSX.Element {
   const {
