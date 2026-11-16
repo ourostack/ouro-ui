@@ -87,8 +87,10 @@ function distance(a: string, b: string): number {
  */
 function didYouMean(word: string, candidates: readonly string[]): string | null {
   if (word === "") return null;
+  // A four-letter word two edits from a name is usually another word (nope, type), so it gets one edit; others keep two.
+  const limit = word.length === 4 ? 1 : 2;
   let best: string | null = null;
-  let bestDistance = Math.min(3, Math.max(2, Math.floor(word.length / 2)) + 1);
+  let bestDistance = limit + 1;
   for (const c of candidates) {
     const d = distance(word, c);
     if (d < bestDistance) {

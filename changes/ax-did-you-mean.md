@@ -1,0 +1,1 @@
+- Fixed: the AX kit's did-you-mean no longer suggests an unrelated name for a four-letter word that is two edits away. `nope` used to get `type`, and now gets no fix. Found by [housesitter](https://github.com/ourostack/housesitter), which declares its CLI with the kit.

@@ -25,6 +25,12 @@ test("didYouMean: the nearest within a couple of edits, else a unique prefix, el
   assert.equal(didYouMean("", ["a"]), null);
 });
 
+test("didYouMean: a short word two edits from a name is no near match, so no unrelated fix", () => {
+  // housesitter: `nope` is two substitutions from `type`, which the old threshold called close.
+  assert.equal(didYouMean("nope", ["type", "key", "look", "status"]), null);
+  assert.equal(didYouMean("sttus", ["type", "key", "look", "status"]), "status");
+});
+
 test("didYouMean: a closer name wins over a longer unique prefix", () => {
   assert.equal(didYouMean("n", ["names", "in", "limit"]), "in");
 });
