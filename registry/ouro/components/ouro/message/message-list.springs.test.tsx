@@ -700,10 +700,15 @@ describe("MessageList springs", () => {
     expect(scroller.querySelector("[data-ouro-settling]")).not.toBeNull();
     await rerender(<Chat count={40} springy={false} />);
     expectAtRest(messages());
+    // A spring asks for its frame as the wheel turns, so each check reads only a span with no wait in it: across a real
+    // scroll, the wheel's rest timer and the window's next rows may ask for frames that move no message (#1631).
     asked.mockClear();
     wheel(scroller, 30, pointer);
     frames.step(16);
+    expect(asked).not.toHaveBeenCalled();
+    expectAtRest(messages());
     await scrollInCode(scroller, 0);
+    asked.mockClear();
     scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -80, clientY: pointer, bubbles: true }));
     frames.step(16);
     expect(asked).not.toHaveBeenCalled();
