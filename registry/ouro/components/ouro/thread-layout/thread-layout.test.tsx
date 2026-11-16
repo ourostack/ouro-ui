@@ -151,11 +151,71 @@ describe("ThreadLayout", () => {
     expect(document.activeElement).toBe(opener);
   });
 
-  it("leaves focus on the page when a thread closes and nothing in the conversation had focus", async () => {
+  it.each([360, 640])("moves focus to the conversation's heading when a thread closes that nothing in the conversation opened (%dpx)", async (width) => {
     const rail = (open: boolean) => (open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null);
-    const { host, rerender } = await render(<ThreadLayout conversation={<button type="button">Show thread</button>} thread={rail(true)} />, 360);
+    const conversation = (
+      <>
+        <h2>Design reviews</h2>
+        <button type="button">Show thread</button>
+      </>
+    );
+    const { host, rerender } = await render(<ThreadLayout conversation={conversation} thread={rail(true)} />, width);
     expect(host.querySelector('[data-ouro="thread-rail"]')!.contains(document.activeElement)).toBe(true);
-    await rerender(<ThreadLayout conversation={<button type="button">Show thread</button>} thread={rail(false)} />);
+    await rerender(<ThreadLayout conversation={conversation} thread={rail(false)} />);
+    expect(document.activeElement).toBe(host.querySelector("h2"));
+    expect(host.querySelector("h2")!.tabIndex).toBe(-1);
+  });
+
+  it("moves focus to the conversation pane, named, when a thread closes that nothing opened and the conversation has no heading", async () => {
+    const rail = (open: boolean) => (open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null);
+    const conversation = <button type="button">Show thread</button>;
+    const { host, rerender } = await render(<ThreadLayout conversation={conversation} conversationLabel="Design reviews" thread={rail(true)} />, 360);
+    await rerender(<ThreadLayout conversation={conversation} conversationLabel="Design reviews" thread={rail(false)} />);
+    const pane = host.querySelector<HTMLElement>('[role="region"][aria-label="Design reviews"]')!;
+    expect(document.activeElement).toBe(pane);
+    expect(pane.contains(host.querySelector("button"))).toBe(true);
+  });
+
+  it("keeps a heading's own tabindex when it moves focus to it", async () => {
+    const rail = (open: boolean) => (open ? <ThreadRail label="Thread" title="Replies" onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null);
+    const conversation = <h2 tabIndex={0}>Design reviews</h2>;
+    const { host, rerender } = await render(<ThreadLayout conversation={conversation} thread={rail(true)} />, 640);
+    await rerender(<ThreadLayout conversation={conversation} thread={rail(false)} />);
+    expect(document.activeElement).toBe(host.querySelector("h2"));
+    expect(host.querySelector("h2")!.tabIndex).toBe(0);
+  });
+
+  it("forgets that a closed thread held focus once its opener took it back, so a later thread that opens without focus takes none", async () => {
+    function Opened({ open, focus = true }: { open: boolean; focus?: boolean }) {
+      return (
+        <ThreadLayout
+          conversation={
+            <>
+              <h2>Design reviews</h2>
+              <button type="button">Show thread</button>
+            </>
+          }
+          thread={open ? <ThreadRail label="Thread" title="Replies" autoFocus={focus} onClose={() => {}}><p>Meet at eight.</p></ThreadRail> : null}
+        />
+      );
+    }
+    const { host, rerender } = await render(<Opened open={false} />, 640);
+    host.querySelector("button")!.focus();
+    await rerender(<Opened open />);
+    await rerender(<Opened open={false} />);
+    expect(document.activeElement).toBe(host.querySelector("button"));
+    (document.activeElement as HTMLElement).blur();
+    await rerender(<Opened open focus={false} />);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("leaves focus on the page when it first shows without a thread, and when a thread opens without taking focus and closes", async () => {
+    const conversation = <h2>Design reviews</h2>;
+    const { rerender } = await render(<ThreadLayout conversation={conversation} thread={null} />, 640);
+    expect(document.activeElement).toBe(document.body);
+    await rerender(<ThreadLayout conversation={conversation} thread={<Thread />} />);
+    expect(document.activeElement).toBe(document.body);
+    await rerender(<ThreadLayout conversation={conversation} thread={null} />);
     expect(document.activeElement).toBe(document.body);
   });
 

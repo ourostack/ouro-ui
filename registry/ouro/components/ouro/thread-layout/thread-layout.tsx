@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, useLayoutEffect, useRef, type FocusEvent, type JSX, type ReactNode } from "react";
+import { Children, useCallback, useLayoutEffect, useRef, type FocusEvent, type JSX, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -17,6 +17,14 @@ export interface ThreadLayoutProps {
    * takes the whole box.
    */
   thread?: ReactNode | undefined;
+  /**
+   * The conversation pane's name, which a screen reader hears when focus comes to the pane: when a thread closes that
+   * no control in the conversation opened and the conversation has no heading to take focus. Translate it with the rest
+   * of your interface.
+   * @claim "The conversation pane's name, which a" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > moves focus to the conversation pane, named, when a thread closes that nothing opened and the conversation has no heading)
+   * @default "Conversation"
+   */
+  conversationLabel?: string | undefined;
   /** Layout only: the box's size and margins. Appearance classes warn in development; the colors come from the theme. */
   className?: string | undefined;
 
@@ -28,6 +36,11 @@ export interface ThreadLayoutProps {
  * A conversation beside its thread. From 32rem up the conversation takes the rest of the width and
  * the thread its own 20rem. Below that, an open thread takes the whole box and the conversation is
  * hidden, not unmounted. The widths follow the layout's own box, not the window.
+ *
+ * When a thread that holds focus closes, focus goes back to the control in the conversation that
+ * opened it. When none did (a thread opened from a link, or its opener gone since), focus comes to
+ * the conversation's heading, or else to the conversation pane itself, a region named by
+ * `conversationLabel`, so focus never falls to the page.
  *
  * Use `ThreadRail` for the thread itself. Use `Sheet` instead when the thread should cover the page
  * as a modal panel, and `Resizable` instead when the person sizes the panes.
@@ -41,10 +54,12 @@ export interface ThreadLayoutProps {
  * @claim "From 32rem up the conversation takes the rest of the width and the thread its own 20rem" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > puts the conversation and the rail side by side from 32rem up, the rail at 20rem)
  * @claim "Below that, an open thread takes the whole box and the conversation is hidden, not unmounted" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > gives the rail the whole box below 32rem, and hides the conversation)
  * @claim "Below that, an open thread takes the whole box and the conversation is hidden, not unmounted" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > keeps the conversation mounted and its draft while a narrow box hides it)
+ * @claim "When a thread that holds focus closes" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > gives focus back to the conversation's control that opened the thread, once a narrow box shows it again)
+ * @claim "When none did (a thread opened" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > moves focus to the conversation's heading when a thread closes that nothing in the conversation opened (%dpx)) verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > moves focus to the conversation pane, named, when a thread closes that nothing opened and the conversation has no heading)
  * @claim "The widths follow the layout's own box, not the window" registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx verify:testExists(registry/ouro/components/ouro/thread-layout/thread-layout.test.tsx::ThreadLayout > keeps the conversation mounted and its draft while a narrow box hides it)
  */
 export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
-  const { conversation, thread, className, rail } = props;
+  const { conversation, thread, conversationLabel = "Conversation", className, rail } = props;
   // `Children.toArray` drops null, undefined and booleans, the nodes that render nothing.
   const open = Children.toArray(thread).length > 0;
 
@@ -70,10 +85,22 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
 
   // A thread that closes gives focus back as it unmounts, which in a narrow box is before the conversation shows again, so
   // the control it gives focus to is still hidden and focus falls to the page. Once the conversation shows, the last control
-  // focused in it takes focus back, if nothing else has it.
+  // focused in it takes focus back, if nothing else has it. When no control there opened the thread (a thread opened from
+  // a link, or one gone since), focus comes to the conversation's heading, or else the conversation pane itself, by name.
   const lastFocused = useRef<HTMLElement | null>(null);
+  const pane = useRef<HTMLDivElement>(null);
+  // Whether the thread held focus as it closed: read as its box leaves, before the rail gives focus back.
+  const threadHeldFocus = useRef(false);
+  const threadBox = useCallback((box: HTMLDivElement) => () => void (threadHeldFocus.current = box.contains(document.activeElement)), []);
   useLayoutEffect(() => {
     if (!open && document.activeElement === document.body) lastFocused.current?.focus();
+    const held = threadHeldFocus.current;
+    threadHeldFocus.current = false;
+    if (!held || document.activeElement !== document.body) return;
+    const heading = pane.current!.querySelector<HTMLElement>("h1, h2, h3, h4, h5, h6");
+    if (heading === null) return pane.current!.focus();
+    if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
+    heading.focus();
   }, [open]);
   const remember = (event: FocusEvent<HTMLElement>) => void (lastFocused.current = event.target);
 
@@ -81,10 +108,22 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
   // inside it, so no element has a display utility and a display variant at once.
   return (
     <div data-ouro="thread-layout" className={cn("@container flex h-full min-h-0 w-full", className)}>
-      <div className={cn("min-w-0 flex-1", open && "@max-lg:hidden")} onFocus={remember}>
+      <div
+        ref={pane}
+        role="region"
+        aria-label={conversationLabel}
+        tabIndex={-1}
+        data-ouro-thread-layout-conversation=""
+        className={cn("min-w-0 flex-1 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid", open && "@max-lg:hidden")}
+        onFocus={remember}
+      >
         <div className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
       </div>
-      {open && <div className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-80">{thread}</div>}
+      {open && (
+        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-80">
+          {thread}
+        </div>
+      )}
     </div>
   );
 }
