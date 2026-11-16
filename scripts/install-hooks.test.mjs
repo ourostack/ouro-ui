@@ -4,7 +4,7 @@ import { chmodSync, mkdirSync, readFileSync, statSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { test } from "node:test";
 import { installHooks } from "./install-hooks.mjs";
-import { main, pullRequestText } from "./pre-push.mjs";
+import { main, pullRequestText, pushedBranch } from "./pre-push.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const repo = () => {
@@ -35,6 +35,11 @@ test("install-hooks leaves a pre-push hook it did not write alone, and installs 
   assert.deepEqual(installHooks(repo(), { CI: "true" }), []);
 });
 
+test("pre-push takes the branch being pushed from git's lines, so a detached checkout still finds its pull request", () => {
+  assert.equal(pushedBranch(`refs/heads/local ${"1".repeat(40)} refs/heads/fix-typo ${"0".repeat(40)}\n`), "fix-typo");
+  assert.equal(pushedBranch(`refs/tags/v1 ${"1".repeat(40)} refs/tags/v1 ${"0".repeat(40)}\nrefs/heads/a ${"1".repeat(40)} refs/heads/b ${"0".repeat(40)}\n`), "b");
+});
+
 test("pre-push lints the open pull request's title and body, and nothing when gh can't say", () => {
   const gh = (stdout, status = 0) => () => ({ status, stdout });
   assert.deepEqual(pullRequestText("b", gh('{"title":"T","body":"B","state":"OPEN"}')), { title: "T", body: "B" });
@@ -50,7 +55,8 @@ test("the pre-push hook stops a push whose pull request the claims lint would fa
   const fake = (body) => {
     writeFileSync(join(bin, "gh"), `#!/bin/sh\nprintf '%s' '${JSON.stringify({ title: "Docs: fix a typo", body, state: "OPEN" })}'\n`);
     chmodSync(join(bin, "gh"), 0o755);
-    return spawnSync(process.execPath, ["scripts/pre-push.mjs"], { encoding: "utf8", env: { ...process.env, CI: "", PATH: `${bin}:${process.env.PATH}` } });
+    const input = `refs/heads/docs-typo ${"1".repeat(40)} refs/heads/docs-typo ${"0".repeat(40)}\n`;
+    return spawnSync(process.execPath, ["scripts/pre-push.mjs"], { input, encoding: "utf8", env: { ...process.env, CI: "", PATH: `${bin}:${process.env.PATH}` } });
   };
   const failing = fake("This pull request makes the site 40 percent faster.");
   assert.notEqual(failing.status, 0, failing.stdout + failing.stderr);

@@ -7,7 +7,7 @@
 //
 //   node scripts/pre-push.mjs
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,9 +27,21 @@ export function pullRequestText(branch, run = spawnSync) {
   }
 }
 
-export function main(env = process.env) {
+/**
+ * The branch being pushed, from the lines git gives a pre-push hook on its standard input
+ * (`<local ref> <local sha> <remote ref> <remote sha>`), or else the checked-out branch.
+ */
+export function pushedBranch(input) {
+  for (const line of input.split("\n")) {
+    const remote = line.trim().split(/\s+/)[2] ?? "";
+    if (remote.startsWith("refs/heads/")) return remote.slice("refs/heads/".length);
+  }
+  return spawnSync("git", ["symbolic-ref", "--quiet", "--short", "HEAD"], { cwd: root, encoding: "utf8" }).stdout?.trim() ?? "";
+}
+
+export function main(env = process.env, input = "") {
   if (env.CI) return 0;
-  const branch = spawnSync("git", ["symbolic-ref", "--quiet", "--short", "HEAD"], { cwd: root, encoding: "utf8" }).stdout?.trim() ?? "";
+  const branch = pushedBranch(input);
   const { title, body } = pullRequestText(branch);
   const dir = mkdtempSync(join(tmpdir(), "ouro-pre-push-"));
   try {
@@ -44,4 +56,4 @@ export function main(env = process.env) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) process.exit(main());
+if (import.meta.url === `file://${process.argv[1]}`) process.exit(main(process.env, process.stdin.isTTY ? "" : readFileSync(0, "utf8")));
