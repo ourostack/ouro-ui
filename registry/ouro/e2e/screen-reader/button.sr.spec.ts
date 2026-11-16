@@ -10,7 +10,7 @@ test("Button is announced with its name and role, and its busy state from the li
   const save = page.getByRole("button", { name: "Save to cookbook" }).first();
   await heard(sr, () => save.focus(), (phrase) => inOneSentence(phrase, nameAndRole("Save to cookbook", "button")), '"Save to cookbook", button');
   // The story's save lasts 1.6 s, so the busy state is read right after the press, inside the action.
-  // real clock: the live region writes "Loading" on a page timer, which a held clock would stop.
+  // The clock is not held: the live region writes "Loading" on a page timer, which a held clock would stop.
   const press = async () => {
     await page.keyboard.press("Enter");
     // real clock: read at once after the press, well inside the story's 1.6 s save.
