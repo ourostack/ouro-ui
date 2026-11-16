@@ -53,6 +53,8 @@ The props the modes share. Type: `MessageProps`.
 | `nameContent` | `ReactNode` |  | What shows as the author's name in place of `name`, when plain text cannot draw it: their name with its emoji as pictures (`<EmojiText text={person.name} catalogue={catalogue} />`). `name` stays what screen readers hear and the avatar's initials come from. |
 | `nameLoadingLabel` | `string` | `"Name loading"` | What screen readers hear while `name` is `null`, for other languages. |
 | `nameTag` | `string` |  | A quiet tag after the author's name, such as "AI agent" for an agent or "Guest": small and muted beside the name, not a badge, and read after it ("Halden, AI agent"). Where the name is hidden (a `continued` message, the user's own `chat` messages) the tag is too, and both are still read. |
+| `pending` | `boolean` |  | The person sent it and the app has not heard back yet. Only a send that takes longer than a second shows it: a small clock fades in beside the message, taking no room, so a quick send never flashes and confirming it moves nothing. Screen readers hear "Sending" once, after that second, and as the message's description while it lasts. `failed` takes its place. |
+| `pendingLabel` | `string` | `"Sending"` | What screen readers hear for a `pending` message, for other languages. |
 | `quickReactions` | `readonly MessageAction[]` |  | Reactions at the top of the message's menu, as a row of emoji: each an action whose `icon` is the emoji and whose `label` names it ("Like"). Left and right move along the row. Put one that opens a picker of every reaction last ("More reactions"). |
 | `quickReactionsLabel` | `string` | `"Reactions"` | What screen readers hear for the row of reactions in the menu, for other languages. |
 | `quote` | `MessageQuote` |  | The message this one replies to, at the top of the bubble or post, above the text: a bar, the author and a line of what they wrote, as Composer's `quote` shows it before the reply is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a button, to show the quoted message. |
@@ -482,6 +484,15 @@ interface MessageOwnProps {
    * `Composer` instead, set the Composer's `value` to it and delete the message.
    */
   failed?: MessageFailed | false | undefined;
+  /**
+   * The person sent it and the app has not heard back yet. Only a send that takes longer than a
+   * second shows it: a small clock fades in beside the message, taking no room, so a quick send
+   * never flashes and confirming it moves nothing. Screen readers hear "Sending" once, after that
+   * second, and as the message's description while it lasts. `failed` takes its place.
+   */
+  pending?: boolean | undefined;
+  /** What screen readers hear for a `pending` message, for other languages. @default "Sending" */
+  pendingLabel?: string | undefined;
   /** What the marker under a `failed` message says, for other languages. @default "Not sent" */
   failedLabel?: string | undefined;
   /** The name of a `failed` message's retry button, for other languages. @default "Retry" */

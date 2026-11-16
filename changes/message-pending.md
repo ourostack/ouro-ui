@@ -1,0 +1,1 @@
+- New: Message's pending marks a sent message the app has not confirmed: after a second a quiet clock fades in beside it, and screen readers hear "Sending" once.
