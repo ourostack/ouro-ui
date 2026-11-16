@@ -1577,6 +1577,12 @@ describe("Ouro's focus and row classes for plain markup", () => {
             "app/app.css::(stylesheet)::control-state-style::.ouro-row-x:active::",
         ]);
     });
+    it("names no literal colour in ouro-base's classes, so an app's guard against raw colours passes them", () => {
+        const base = readFileSync("registry/ouro/theme/ouro-base.css", "utf8");
+        const layer = base.slice(base.indexOf("@layer base"));
+        const literals = [...layer.matchAll(/^\s*([\w-]+):[^;]*?(#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(\s*[\d.])/gim)].map((match) => match[0].trim());
+        expect(literals).toEqual([]);
+    });
     it("still counts a hand-written state beside an Ouro class, and names the Ouro classes as the fix for focus and press", () => {
         const found = findOffendersInSource("app/app.css", "li[data-go]:focus-visible { outline: 2px solid; }\n.my-row.ouro-row:active { background: red; }");
         expect(found.map((offender) => offender.fingerprint)).toEqual([

@@ -1,0 +1,1 @@
+- ouro-base: `ouro-skip-link` draws its hairline as a theme-coloured border and its shadow from `--shadow-lg` alone, with no literal colour, so an app that guards against raw colours accepts it.
