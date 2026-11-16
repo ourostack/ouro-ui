@@ -5,9 +5,11 @@ name: Docs pin
 # request open on one branch, "Point the docs at a release" (a title the claims lint accepts), force-updating it, and turns auto-merge on, so
 # the pull request merges once the checks main's ruleset requires pass. Release auto starts nothing
 # for the commit it makes (scripts/pin-only.mjs).
-# The branch is pushed with DOCS_PIN_TOKEN when the repository has that secret. A push with the
-# workflow's own token starts no CI run, so without the secret a maintainer must push an empty
-# commit to the branch to start CI; the pull request body says so.
+# The branch is pushed, and the pull request opened, as the Ouro Current GitHub App when it is
+# installed on this repository (a token from OURO_CURRENT_APP_ID and OURO_CURRENT_PRIVATE_KEY), or
+# else with the DOCS_PIN_TOKEN secret. A push with either starts CI at once, with no approval
+# (#1610). A push with the workflow's own token starts no CI run, so with neither a maintainer must
+# push an empty commit to the branch to start CI; the pull request body says so only then.
 on:
   workflow_dispatch:
     inputs:
@@ -27,15 +29,24 @@ jobs:
       pull-requests: write # open, retitle, close and auto-merge the pull request
     timeout-minutes: 30
     env:
-      GH_TOKEN: ${{ secrets.DOCS_PIN_TOKEN || github.token }}
       GH_REPO: ${{ github.repository }}
       TAG: ${{ inputs.tag }}
       BRANCH: docs/point-at-release
     steps:
+      # Fails when the app is not installed here; the job then goes on with DOCS_PIN_TOKEN or its own token.
+      - id: app
+        name: Sign in as the Ouro Current app, if it is installed here
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.OURO_CURRENT_APP_ID }}
+          private-key: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
-          token: ${{ secrets.DOCS_PIN_TOKEN || github.token }}
+          token: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -45,6 +56,8 @@ jobs:
         run: pnpm i --frozen-lockfile
       - id: pin
         name: Point the docs at the release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tag must be a release tag such as v1.3.56, not '$TAG'."; exit 1; }
           gh release view "$TAG" --json tagName >/dev/null || { echo "::error::$TAG is not a published release."; exit 1; }
@@ -76,11 +89,20 @@ jobs:
           git push -q --force origin "$BRANCH"
       - if: steps.pin.outputs.result == 'changed'
         name: Open or update the pull request, and turn auto-merge on
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
+          STARTS_CI: ${{ steps.app.outputs.token != '' || secrets.DOCS_PIN_TOKEN != '' }}
         run: |
           title="Point the docs at a release"
-          body=$(printf '%s\n\n%s\n\n%s\n' "Release opened this pull request after it tagged $TAG, to point the docs at that tag with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`.[^latest]" "If CI has not started on this pull request, a maintainer pushes an empty commit to $BRANCH to start it. That is needed when the repository has no DOCS_PIN_TOKEN secret, since a push with the workflow's own token starts no CI.[^token][^github]" "[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG
+          lead="Release opened this pull request after it tagged $TAG, to point the docs at that tag with \`node scripts/latest-release.mjs set $TAG\` and \`pnpm run docs\`.[^latest]"
+          notes="[^latest]: package.json verify:equals(package.json#ouro.latestRelease)=$TAG"
+          if [ "$STARTS_CI" = true ]; then
+            body=$(printf '%s\n\n%s\n' "$lead" "$notes")
+          else
+            body=$(printf '%s\n\n%s\n\n%s\n' "$lead" "If CI has not started on this pull request, a maintainer pushes an empty commit to $BRANCH to start it. That is needed when the Ouro Current app is not installed here and the repository has no DOCS_PIN_TOKEN secret, since a push with the workflow's own token starts no CI.[^token][^github]" "$notes
           [^token]: .github/workflows/docs-pin.yml verify:fileLine(.github/workflows/docs-pin.yml, /DOCS_PIN_TOKEN/)
           [^github]: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow verify:urlOk(https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)")
+          fi
           number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
           if [ -n "$number" ]; then
             gh pr edit "$number" --title "$title" --body "$body"
@@ -94,6 +116,8 @@ jobs:
           echo "Auto-merge is on for #$number: it merges once the checks main's ruleset requires pass." >> "$GITHUB_STEP_SUMMARY"
       - if: steps.pin.outputs.result == 'current'
         name: Close the docs pull request, since main already names the release
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
         run: |
           for number in $(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[].number'); do
             gh pr close "$number" --comment "main already points its docs at $TAG, so this pull request is not needed."
