@@ -402,7 +402,7 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
 test("the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value", async () => {
   const h = io();
   assert.equal(await main(["help"], h.io), 0);
-  assert.match(h.o.out, /^ax-xray 1\.5\.0: checks an agent-facing interface/);
+  assert.match(h.o.out, /^ax-xray 1\.6\.0: checks an agent-facing interface/);
   assert.match(h.o.out, /--env K=V\.\.\./);
   const u = io();
   assert.equal(await main(["--cli", "x", "--jsn", "--json"], u.io), 2);
