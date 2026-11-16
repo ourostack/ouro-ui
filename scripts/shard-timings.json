@@ -896,7 +896,8 @@
     "site/e2e/states-light-5.spec.ts": 134883,
     "site/e2e/states-light-6.spec.ts": 131936,
     "site/e2e/states-light-7.spec.ts": 208105,
-    "site/e2e/states-light-8.spec.ts": 109662
+    "site/e2e/states-light-8.spec.ts": 109662,
+    "site/e2e/docs-page.spec.ts": 4000
   },
   "subset": {
     "button": 52812,
