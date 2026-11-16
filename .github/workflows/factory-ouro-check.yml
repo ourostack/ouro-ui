@@ -1,0 +1,72 @@
+name: Factory Ouro check
+
+# Once a day, runs Ouro check over the factory site as GitHub Pages serves it
+# (https://ourostack.github.io/factory/), at the screen sizes, light and dark, that the Ouro UI
+# repository's own pages use. No factory code runs here: the site is only read over HTTPS, and the
+# waivers come from factory's main branch, so the factory repository keeps its no-browser rule.
+# The waivers' reasons are in factory's ouro-check.json. Their page keys name the site's own paths,
+# so this job prefixes each with /factory before the check reads them.
+#
+# A finding that is not waived, or a check that cannot run, fails the run. The report job then opens,
+# or comments on, one "Factory Ouro check failed" issue (scripts/scheduled-failure.sh).
+on:
+  schedule:
+    - cron: "11 8 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    name: check factory
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FACTORY_URL: https://ourostack.github.io/factory
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - name: Read factory's waivers from its main branch
+        run: |
+          set -euo pipefail
+          gh api "repos/ourostack/factory/contents/ouro-check.json?ref=main" --jq .content | base64 -d > "$RUNNER_TEMP/factory-ouro-check.raw.json"
+          # The https rule is about the host, ourostack.github.io, which GitHub Pages serves and factory does not
+          # control (its plain-HTTP answer and HSTS). Waived on the host's own page, "/", not on the factory's pages.
+          jq '.waive |= with_entries(.key |= (if . == "**" then . elif startswith("/") then "/factory" + . else . end)) | .waive["/"] = {"https": "ourostack.github.io is GitHub Pages'"'"' host: it answers plain HTTP with a 404, not a redirect, and sends no HSTS, and factory cannot set either. Checked by the factory adoption lane."}' "$RUNNER_TEMP/factory-ouro-check.raw.json" > "$RUNNER_TEMP/factory-ouro-check.json"
+          jq -e '.waive | type == "object"' "$RUNNER_TEMP/factory-ouro-check.json" > /dev/null
+      - name: Ouro check over the live site
+        uses: ./.github/actions/check
+        with:
+          targets: ${{ env.FACTORY_URL }}/ ${{ env.FACTORY_URL }}/evidence.html
+          script: registry/ouro/check/check.ts
+          config: ${{ runner.temp }}/factory-ouro-check.json
+          artifact: factory-ouro-check
+
+  report:
+    # One issue for any failure, opened or commented on (scripts/scheduled-failure.sh).
+    needs: check
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: scripts/scheduled-failure.sh "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "Factory Ouro check failed" "The daily Ouro check of the factory site failed"
