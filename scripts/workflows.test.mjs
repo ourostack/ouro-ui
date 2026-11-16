@@ -2384,8 +2384,9 @@ test("Docs pin points main's docs at the newest release through one pull request
   const pin = docsPin.split("\n  pin:\n")[1];
   assert.deepEqual(permissionsOf(pin), { contents: "write", "pull-requests": "write" });
   assert.doesNotMatch(docsPin, /actions: write|\/approve|required-producers/);
-  assert.match(pin, /\n {10}token: \$\{\{ secrets\.DOCS_PIN_TOKEN \|\| github\.token \}\}\n/);
-  assert.match(pin, /\n {6}GH_TOKEN: \$\{\{ secrets\.DOCS_PIN_TOKEN \|\| github\.token \}\}\n/);
+  const pushToken = "${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}";
+  assert.ok(pin.includes(`\n          token: ${pushToken}\n`), "the checkout pushes with the app's token, else DOCS_PIN_TOKEN");
+  assert.ok(pin.includes(`\n          GH_TOKEN: ${pushToken}\n`), "the pull request is opened with the same token");
   assert.match(pin, /\n {6}BRANCH: docs\/point-at-release\n/);
   assert.deepEqual(
     stepScript(pin, "Point the docs at the release").split("\n").filter((line) => /^(node|pnpm) /.test(line)),
@@ -2399,6 +2400,34 @@ test("Docs pin points main's docs at the newest release through one pull request
   assert.match(open, /gh pr edit "\$number" --title "\$title"/);
   assert.match(open, /gh pr create --base main --head "\$BRANCH"/);
   assert.match(open, /gh pr merge "\$number" --auto --squash/);
+});
+
+test("Docs pin pushes as the Ouro Current app when it is installed here, so CI starts with no approval (#1610), and goes on without it", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const app = pin.split("\n      - id: app\n")[1].split("\n      - ")[0];
+  assert.match(app, /continue-on-error: true/);
+  assert.match(app, /uses: actions\/create-github-app-token@[0-9a-f]{40} # v\d+\.\d+\.\d+/);
+  assert.match(app, /app-id: \$\{\{ vars\.OURO_CURRENT_APP_ID \}\}/);
+  assert.match(app, /private-key: \$\{\{ secrets\.OURO_CURRENT_PRIVATE_KEY \}\}/);
+  assert.match(app, /permission-contents: write\n {10}permission-pull-requests: write/);
+  assert.ok(pin.indexOf("- id: app") < pin.indexOf("actions/checkout@"), "the token is made before the checkout that pushes with it");
+});
+
+test("Docs pin asks a maintainer for an empty commit only when its push could not start CI", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
+  const bodyOf = (startsCi) => {
+    const dir = scratchDir("ouro-docs-pin-");
+    const gh = `gh() {\n  printf 'gh %s\\n' "$*" >> "$LOG"\n  case "$*" in\n    "pr list"*) echo 7 ;;\n  esac\n}`;
+    const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", STARTS_CI: startsCi, GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+    assert.equal(result.status, 0, result.stdout + result.calls);
+    return readFileSync(join(dir, "gh.log"), "utf8");
+  };
+  const started = bodyOf("true");
+  assert.match(started, /Release opened this pull request after it tagged v1\.3\.56/);
+  assert.doesNotMatch(started, /empty commit|DOCS_PIN_TOKEN/);
+  const held = bodyOf("false");
+  assert.match(held, /a maintainer pushes an empty commit to docs\/point-at-release/);
 });
 
 test("Docs pin changes nothing for a tag that is not the newest release, and says whether main already names it", () => {
