@@ -430,10 +430,11 @@
       "repo": "arimendelow/mendelow.me",
       "pins": [
         {
-          "label": "installed Ouro HX",
+          "label": "Ouro HX",
           "latest": "web",
-          "from": "none",
-          "reason": "Installed as source with no recorded tag."
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
         }
       ],
       "hx": {
@@ -599,6 +600,8 @@
       "kind": "native app",
       "repo": "arimendelow/drift-remote",
       "privateRepo": true,
+      "inScope": false,
+      "scopeNote": "A private repository, so the public ledger cannot measure it; it is listed but not counted, and Ouro Current still keeps it on current Ouro UI.",
       "pins": [],
       "hx": {
         "kind": "apple",
