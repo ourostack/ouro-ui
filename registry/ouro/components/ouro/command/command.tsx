@@ -800,12 +800,14 @@ export function Command(props: CommandProps): JSX.Element {
           open={isOpenNow}
           onOpenChange={setOpen}
           presentation="sheet"
-          // The sheet itself after a touch or pen tap, so no software keyboard pops up. Once the search has focus (above),
-          // Base UI focuses nothing: its focus comes a frame later and would pull back a Tab pressed before that frame.
+          // The sheet itself after a touch or pen tap, so no software keyboard pops up. Otherwise the search, unless focus
+          // is in the sheet already: the search took it above, and Base UI's focus, a frame later, would pull back a Tab
+          // pressed before that frame. A sheet that mounts already open mounts after that, so here its search takes focus.
           initialFocus={() => {
             const search = searchInputRef.current!;
-            if (lastInput() === "touch" || lastInput() === "pen") return search.closest<HTMLElement>('[data-ouro="sheet"]');
-            return document.activeElement === search ? false : search;
+            const popup = search.closest<HTMLElement>('[data-ouro="sheet"]')!;
+            if (lastInput() === "touch" || lastInput() === "pen") return popup;
+            return popup.contains(document.activeElement) ? false : search;
           }}
           {...finalFocus}
         >
