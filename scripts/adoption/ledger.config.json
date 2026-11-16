@@ -305,6 +305,11 @@
           "repo": "ourostack/ouro-ui-apple",
           "workflow": "xray-apps.yml",
           "app": "Gatefold"
+        },
+        {
+          "repo": "ourostack/gatefold",
+          "workflow": "app.yml",
+          "branch": "main"
         }
       ]
     },
