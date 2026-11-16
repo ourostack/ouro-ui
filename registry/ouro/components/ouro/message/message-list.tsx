@@ -1825,6 +1825,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
           estimated.current = wide.current;
           return;
         }
+        // Rows past the view's edges that were measured already (the first draw's) fix the estimate as new ones would: left
+        // free, it would follow the next rows a scroll draws, and the space for every row above would change with it.
+        estimated.current ||= wide.current;
         holdRef.current!();
       }
       if (reach !== null && !scrolled) {
@@ -1943,8 +1946,22 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // what it shows in its own frame. The commit after the view's rows draw comes back here, and they are drawn by then.
       const [viewFrom, viewTo] = reaching(0);
       if (over > 0 && drawnFrom <= viewFrom && drawnTo >= viewTo) startTransition(() => draw(reaching(over), true));
-      // A band whose edge went (its children re-keyed or deleted) draws whole at once, as it holds the reader's place by them.
-      else draw(Number.isNaN(drawnFrom + drawnTo) ? reaching(over) : [viewFrom, viewTo]);
+      // As it opens (no overscan yet), and when its band's edge went (its children re-keyed or deleted), the band draws whole at once: the list
+      // holds the reader's place by those rows.
+      else if (over === 0 || Number.isNaN(drawnFrom + drawnTo)) draw(reaching(over));
+      else {
+        // The view's rows are found from heights partly estimated, so half a view more draws on each side, and every row drawn
+        // that the view shows, found by where it is, stays.
+        let [from, to] = reaching(scroller.clientHeight / 2);
+        for (const [key, at] of tops.current) {
+          // Stryker disable next-line EqualityOperator: a row whose edge meets the view's to the pixel shows none of itself either way.
+          if (at.top >= viewBottom || at.top + at.size <= viewTop) continue;
+          const index = indexes.get(key)!;
+          from = Math.min(from, index);
+          to = Math.max(to, index);
+        }
+        draw([from, to]);
+      }
     };
     const now = viewRef.current;
     const last = synced.current;

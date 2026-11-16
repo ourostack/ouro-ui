@@ -226,10 +226,11 @@ describe("MessageList windowing", () => {
     await settle(scroller);
     watch.disconnect();
     const view = scroller.clientHeight;
-    // The first commit with rows of the new place draws the view's (a row more at each edge at most); later ones add the rest.
+    // The first commit with rows of the new place draws the view's, with half a view more on each side (a row more at each
+    // edge at most); later ones add the rest, out to the overscan.
     const first = commits.find((commit) => commit.ids.some((id) => id < 400))!;
-    expect(first.span).toBeLessThanOrEqual(view + 200);
-    expect(span()).toBeGreaterThan(view * 2);
+    expect(first.span).toBeLessThanOrEqual(view * 2 + 200);
+    expect(span()).toBeGreaterThan(view * 2 + 800);
   });
 
   it("puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length", async () => {
