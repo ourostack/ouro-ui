@@ -2147,6 +2147,155 @@ describe("keyboard focus under the stack", () => {
     await until(() => Math.round(Math.min(...stack().map((box) => box.top))), 16);
   });
 
+  it("moves a collapsed stack to the top once the top edge is clear", async () => {
+    await page.viewport(390, 844);
+    await render(
+      <>
+        <button type="button" data-case="before">
+          Before
+        </button>
+        <button type="button" data-case="peek" style={{ position: "fixed", top: 0, left: 16, width: 120, height: 8, zIndex: 40 }}>
+          Peek
+        </button>
+        <button type="button" data-case="front" style={{ position: "fixed", left: 16, width: 120, height: 40, zIndex: 40 }}>
+          Front
+        </button>
+        <div data-case="header" aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: 760 }} />
+        <Toaster />
+      </>,
+    );
+    await show("Older", { duration: Infinity });
+    await show("Newer", { duration: Infinity });
+    const front = toasts()[0]!.getBoundingClientRect();
+    const top = Math.min(...stack().map((box) => box.top));
+    caseOf("peek").style.top = `${(top + front.top) / 2 - 4}px`;
+    caseOf("front").style.top = `${front.top + 10}px`;
+    caseOf("before").focus();
+    await pressTab();
+    await until(() => viewport()!.hasAttribute("data-ouro-toaster-collapsed"), true);
+    // The header no longer reaches the window's top edge, so the top edge is clear.
+    caseOf("header").style.display = "none";
+    await pressTab();
+    await until(focused, "front");
+    await until(moved, "top");
+  });
+
+  it("measures the stack again when a toast's words grow, so the scroll padding keeps its height", async () => {
+    await page.viewport(390, 844);
+    await render(<Toaster />);
+    await show("Short", { id: "grow", duration: Infinity });
+    const padded = () => Math.round(parseFloat(document.documentElement.style.scrollPaddingBottom));
+    const expected = () => Math.round(innerHeight - Math.min(...stack().map((box) => box.top)));
+    await until(padded, expected());
+    const before = expected();
+    await act(async () => {
+      toast("A longer message, long enough to wrap over several lines of the toast, so that the stack grows taller than it was before", { id: "grow", duration: Infinity });
+    });
+    await until(padded, expected());
+    expect(expected()).toBeGreaterThan(before);
+  });
+
+  it("moves the stack back to the bottom when focus lands under the top stack, and up again for a control the bottom covers", async () => {
+    fakeClock();
+    await longPage(
+      <button type="button" data-case="foot-one">
+        One
+      </button>,
+    );
+    await show("Recording saved", { duration: Infinity });
+    caseOf("before").focus();
+    await pressTab();
+    await pressTab();
+    await until(moved, "top");
+    await pressTab({ shift: true });
+    await pressTab({ shift: true });
+    await until(focused, "before");
+    // The top edge covers the page's first control, and the bottom does not: the stack goes back down at once.
+    await until(moved, null);
+    await pressTab();
+    await pressTab();
+    await until(focused, "foot-one");
+    await until(moved, "top");
+  });
+
+  it("collapses from the top when the bottom stack would still cover the control", async () => {
+    await page.viewport(390, 844);
+    await render(
+      <>
+        <button type="button" data-case="before">
+          Before
+        </button>
+        <button type="button" data-case="low" style={{ position: "fixed", bottom: 16, left: 16, width: 120, height: 40, zIndex: 40 }}>
+          Low
+        </button>
+        <button type="button" data-case="big" style={{ position: "fixed", top: 16, left: 16, width: 120, zIndex: 40 }}>
+          Big
+        </button>
+        <Toaster />
+      </>,
+    );
+    await show("Older", { duration: Infinity });
+    await show("Newer", { duration: Infinity });
+    // Reaches down to the front toast's top: under the bottom stack, but not under the front toast.
+    caseOf("big").style.height = `${toasts()[0]!.getBoundingClientRect().top - 16}px`;
+    caseOf("before").focus();
+    await pressTab();
+    await until(focused, "low");
+    await until(moved, "top");
+    await pressTab();
+    await until(focused, "big");
+    await until(() => viewport()!.hasAttribute("data-ouro-toaster-collapsed"), true);
+    expect(moved()).toBeNull();
+  });
+
+  it("moves the stack back at once when focus falls to nothing after it has rested", async () => {
+    fakeClock();
+    await longPage(
+      <button type="button" data-case="foot-one">
+        One
+      </button>,
+    );
+    await show("Recording saved", { duration: Infinity });
+    caseOf("before").focus();
+    await pressTab();
+    await pressTab();
+    await until(moved, "top");
+    await advance(600);
+    await frames();
+    expect(moved()).toBe("top");
+    (document.activeElement as HTMLElement).blur();
+    await until(moved, null);
+  });
+
+  it("keeps the stack at the top while focus moves between two controls under the bottom stack, once it has rested", async () => {
+    fakeClock();
+    await longPage(
+      <>
+        <button type="button" data-case="foot-one">
+          One
+        </button>
+        <button type="button" data-case="foot-two">
+          Two
+        </button>
+      </>,
+    );
+    await show("Recording saved", { duration: Infinity });
+    caseOf("before").focus();
+    await pressTab();
+    await pressTab();
+    await until(moved, "top");
+    await advance(600);
+    const changes: string[] = [];
+    const watcher = new MutationObserver((records) => changes.push(...records.map((record) => String(record.attributeName))));
+    watcher.observe(viewport()!, { attributes: true, attributeFilter: ["data-ouro-toaster-fading", "data-ouro-toaster-moved"] });
+    await pressTab();
+    await until(focused, "foot-two");
+    await frames(10);
+    watcher.disconnect();
+    expect(changes).toEqual([]);
+    expect(moved()).toBe("top");
+  });
+
   it("cross-fades the move in opacity only under reduced motion", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await longPage(

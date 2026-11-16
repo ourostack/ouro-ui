@@ -251,13 +251,15 @@ function FocusClear({ toasts }: { toasts: readonly unknown[] }): JSX.Element {
   useLayoutEffect(() => {
     keeper.current?.refresh();
   }, [toasts]);
-  useEffect(() => {
-    keeper.current = keepFocusClear(mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!);
-    return () => {
-      keeper.current?.release();
-      keeper.current = undefined;
-    };
-  }, []);
+  useEffect(
+    () => {
+      const handle = keepFocusClear(mark.current!.closest<HTMLElement>('[data-ouro="toaster"]')!);
+      keeper.current = handle;
+      return () => handle.release();
+    },
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
+    [],
+  );
   return <span ref={mark} hidden data-ouro-toaster-focus-clear="" />;
 }
 

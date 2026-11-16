@@ -36,7 +36,8 @@ const FADE_FALLBACK_MS = 300;
 /** The places a stack may move to from its current place, in the order they are tried. */
 const CANDIDATES: Record<Place, Place[]> = {
   bottom: ["top", "collapsed"],
-  collapsed: ["top", "bottom"],
+  // The full stack at the bottom covers wherever the front toast does, so it is never a place to move to from here.
+  collapsed: ["top"],
   top: ["bottom", "collapsed"],
 };
 
@@ -224,6 +225,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   // A browser that scrolls a focused control into view does it as the focus moves, so the check waits
   // for the next frame, after the control is where the browser left it.
   const onFocusIn = () => {
+    // Stryker disable next-line CallExpression: two checks in one frame decide the same, and the second finds the first's move already made or nothing to move.
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(decide);
   };
