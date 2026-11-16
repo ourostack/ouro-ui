@@ -1111,4 +1111,19 @@ describe("ConversationList row menu", () => {
     await expect.poll(() => document.activeElement).toBe(row("Ana Lind"));
     await expect.poll(() => page.getByRole("menu").query()).toBeNull();
   });
+
+  it("puts focus back on the row after Escape when focus met one of the menu's focus guards while it was open", async () => {
+    await render(<ConversationList label="Chats" items={withMenu(() => {})} onSelect={() => {}} />);
+    await act(async () => row("Ana Lind").focus());
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+    await expect.element(page.getByRole("menu", { name: "Ana Lind" })).toBeVisible();
+    await expect.poll(() => document.activeElement?.closest('[role="menu"]') !== null).toBe(true);
+    const guard = document.querySelector<HTMLElement>("[data-base-ui-focus-guard]");
+    expect(guard).not.toBeNull();
+    // Focus meeting a guard, as Base UI's focus management does on its way back into the menu, is not focus moving away.
+    await act(async () => guard!.dispatchEvent(new FocusEvent("focusin", { bubbles: true })));
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.activeElement).toBe(row("Ana Lind"));
+    await expect.poll(() => page.getByRole("menu").query()).toBeNull();
+  });
 });
