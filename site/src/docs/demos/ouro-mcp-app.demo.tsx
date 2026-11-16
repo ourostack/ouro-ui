@@ -46,7 +46,8 @@ export default function OuroMcpAppDemo(): JSX.Element {
   return (
     <div className="grid max-w-md gap-3">
       <OuroMcpApp catalog={catalog} host={host} handoffUrl={({ action }) => `https://kitchen.example.com/recipes/rcp_lemon_orzo?do=${action}`} />
-      <Text tone="muted" aria-live="polite">
+      {/* An address the view asks to open is one long word: it wraps anywhere, so it never widens the page. */}
+      <Text tone="muted" aria-live="polite" className="[overflow-wrap:anywhere]">
         {last}
       </Text>
     </div>
