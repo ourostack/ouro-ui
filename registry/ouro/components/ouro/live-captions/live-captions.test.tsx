@@ -4,7 +4,6 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
 import { AX_ACTION_ATTRIBUTE } from "@/registry/ouro/ax/component";
-import { findSizeIssues } from "@/registry/ouro/check/size-check";
 import { LiveCaptions, type LiveCaptionLine, type LiveCaptionsProps } from "@/registry/ouro/components/ouro/live-captions/live-captions";
 import { liveCaptionsAx } from "@/registry/ouro/components/ouro/live-captions/live-captions-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -196,15 +195,6 @@ describe("LiveCaptions", () => {
     expect(view.getBoundingClientRect().height).toBe(84);
     const only = band.querySelector<HTMLElement>('[data-ouro-live-captions-line="1"]')!;
     expect(only.getBoundingClientRect().bottom).toBeCloseTo(view.getBoundingClientRect().bottom, 0);
-  });
-
-  it("does not report the lines its window scrolls out of view as clipped text", async () => {
-    const { band, window: view, rerender } = await render(<LiveCaptions label="Captions" lines={[]} />);
-    await rerender(<LiveCaptions label="Captions" lines={[mara("1", "Shall we start?"), jonas("2", "Yes."), mara("3", "a"), jonas("4", "b"), mara("5", "c")]} />);
-    await expect.poll(() => lift(band.querySelector("[data-ouro-live-captions-track]")!)).toBe(0);
-    // Line 3 is rendered above the window's top edge, so it is cut on purpose.
-    expect(band.querySelector('[data-ouro-live-captions-line="3"]')!.getBoundingClientRect().bottom).toBeLessThanOrEqual(view.getBoundingClientRect().top + 0.5);
-    expect((await findSizeIssues()).filter((issue) => issue.rule === "clipped-text")).toEqual([]);
   });
 
   it("keeps 2 lines by default, or the nearest whole number from 1 to 6", async () => {

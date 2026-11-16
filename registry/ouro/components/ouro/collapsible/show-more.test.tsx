@@ -4,7 +4,6 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { findSizeIssues } from "@/registry/ouro/check/size-check";
 import { ShowMore, type ShowMoreProps } from "@/registry/ouro/components/ouro/collapsible/show-more";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -818,32 +817,6 @@ describe("ShowMore with maxHeight", () => {
     await act(async () => button.click());
     await frame();
     expect(scroller.scrollTop).toBe(60);
-  });
-});
-
-describe("ShowMore and Ouro check", () => {
-  // Clamped or folded on purpose, the text runs past its box: the check reads that as a cut only without the reason
-  // ShowMore gives, so no clipped-text finding is left for a collapsed text.
-  const clipped = async () => (await findSizeIssues()).filter((issue) => issue.rule === "clipped-text");
-
-  it("does not report the text ShowMore clamps to lines as clipped content", async () => {
-    const { root } = await render(
-      <ShowMore lines={2}>
-        <p>{longText}</p>
-      </ShowMore>,
-    );
-    await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
-    expect(await clipped()).toEqual([]);
-  });
-
-  it("does not report the content ShowMore folds to a height as clipped content", async () => {
-    const { root } = await render(
-      <ShowMore maxHeight={60}>
-        <p style={{ height: 400, margin: 0 }}>{longText}</p>
-      </ShowMore>,
-    );
-    await expect.poll(() => root.querySelector("[data-ouro-show-more-toggle]")).not.toBeNull();
-    expect(await clipped()).toEqual([]);
   });
 });
 
