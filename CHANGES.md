@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fix: Alert [wraps a long word in its title or description inside its box](registry/ouro/components/ouro/alert/alert.test.tsx "verify:testExists(registry/ouro/components/ouro/alert/alert.test.tsx::Alert > wraps a long word in its title and description inside its box, as an address in an error is)"), such as an address in an error message, where it used to run past the alert's edge and widen a phone's page.
+- Command's empty state [sits in the middle of the room the results had](registry/ouro/components/ouro/command/command.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > centres the empty state in the room the results had, and gives the results all of it again)") in the dialog, instead of hanging at the top of a blank box; on a phone it stays at the top, above the keyboard.
