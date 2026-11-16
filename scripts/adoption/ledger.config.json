@@ -832,7 +832,13 @@
         "hackamore",
         "ourostack/hackamore"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/hackamore",
+          "workflow": "xray.yml",
+          "branch": "main"
+        }
+      ]
     }
   ],
   "program": {
