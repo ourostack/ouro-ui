@@ -1,0 +1,1 @@
+- Navbar: when the brand and actions do not fit side by side (large text on a phone), the actions move to a second row instead of running off the screen.
