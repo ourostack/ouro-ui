@@ -12,11 +12,14 @@ export function newest(current, candidate) {
   return ok && Date.parse(candidate.generatedAt) > Date.parse(current.generatedAt) ? candidate : current;
 }
 
-async function main([url, file]) {
+export async function main([url, file]) {
   const current = JSON.parse(readFileSync(file, "utf8"));
   let candidate;
   try {
-    const response = await globalThis.fetch(url);
+    // The contents API answers with the branch's current file; raw.githubusercontent.com may serve a copy minutes old.
+    const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+    const api = url.startsWith("https://api.github.com/");
+    const response = await globalThis.fetch(url, api ? { headers: { accept: "application/vnd.github.raw+json", ...(token ? { authorization: `Bearer ${token}` } : {}) } } : undefined);
     if (!response.ok) throw new Error(`${url} answered ${response.status}`);
     candidate = await response.json();
   } catch (error) {
