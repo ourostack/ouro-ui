@@ -606,6 +606,90 @@ describe("Message quote", () => {
   });
 });
 
+describe("Message context", () => {
+  it.each(["default", "chat", "post", "reply"] as const)("shows the context above the quote and the text, first in the content: %s", async (variant) => {
+    const { message } = await render(
+      <Message variant={variant} role="assistant" name="Mara Quill" subject={variant === "post" ? "Friday" : undefined} context="Replied in thread" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?" }}>
+        <span data-line="">Count me in.</span>
+      </Message>,
+    );
+    const content = bubbleOf(message);
+    const context = message.querySelector<HTMLElement>("[data-ouro-message-context]")!;
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    const text = message.querySelector<HTMLElement>("[data-line]")!;
+    expect(message.hasAttribute("context"), variant).toBe(false);
+    expect(content.firstElementChild, variant).toBe(context);
+    expect(context.textContent, variant).toBe("Replied in thread");
+    expect(visible(context), variant).toBe(true);
+    expect(context.getBoundingClientRect().bottom, variant).toBeLessThanOrEqual(quote.getBoundingClientRect().top);
+    expect(context.getBoundingClientRect().bottom, variant).toBeLessThanOrEqual(text.getBoundingClientRect().top);
+  });
+
+  it("is read before the quote and the text", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="user" name="Priya Okafor" context="Replied in thread" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?" }}>
+        Count me in.
+      </Message>,
+    );
+    expect(bubbleOf(message).textContent).toBe("Replied in threadQuoting Ana Lind: Ana LindLunch on Friday?Count me in.");
+  });
+
+  it.each([undefined, null, false, ""])("renders no context for %j", async (context) => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" context={context}>
+        Hi
+      </Message>,
+    );
+    expect(message.querySelector("[data-ouro-message-context]")).toBeNull();
+    expect(bubbleOf(message).textContent).toBe("Hi");
+  });
+
+  it.each(["default", "chat", "reply"] as const)("shows the context on a continued %s message too", async (variant) => {
+    const { message } = await render(
+      <Message variant={variant} role="assistant" name="Mara Quill" continued context="Replied in thread" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?" }}>
+        Count me in.
+      </Message>,
+    );
+    const context = message.querySelector<HTMLElement>("[data-ouro-message-context]")!;
+    expect(message.hasAttribute("data-continued"), variant).toBe(true);
+    expect(visible(context), variant).toBe(true);
+    expect(bubbleOf(message).firstElementChild, variant).toBe(context);
+  });
+
+  it.each(["chat", "post", "reply"] as const)("shows a context on a message with no text, so the line is not hidden: %s", async (variant) => {
+    const { message } = await render(<Message variant={variant} role="user" name="Priya Okafor" context="Replied in thread" />);
+    expect(bubbleOf(message).hidden, variant).toBe(false);
+    expect(visible(message.querySelector("[data-ouro-message-context]")!), variant).toBe(true);
+  });
+
+  it("takes the bubble's text color on a default user's primary bubble, where a muted line would fail contrast", async () => {
+    const { message } = await render(
+      <Message role="user" name="Priya Okafor" context="Replied in thread">
+        Count me in.
+      </Message>,
+    );
+    const context = message.querySelector<HTMLElement>("[data-ouro-message-context]")!;
+    expect(getComputedStyle(context).color).toBe(getComputedStyle(bubbleOf(message)).color);
+  });
+
+  it("keeps the context muted on other surfaces, such as an assistant's default bubble and a raised chat bubble", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Mara Quill" context="Replied in thread">
+        Count me in.
+      </Message>,
+    );
+    const context = message.querySelector<HTMLElement>("[data-ouro-message-context]")!;
+    expect(getComputedStyle(context).color).not.toBe(getComputedStyle(bubbleOf(message)).color);
+    const raised = await render(
+      <Message variant="chat" role="user" bubble="raised" name="Priya Okafor" context="Replied in thread">
+        Count me in.
+      </Message>,
+    );
+    const raisedContext = raised.message.querySelector<HTMLElement>("[data-ouro-message-context]")!;
+    expect(getComputedStyle(raisedContext).color).not.toBe(getComputedStyle(bubbleOf(raised.message)).color);
+  });
+});
+
 describe("Message chat", () => {
   it("shows that a wide table or a long line of code in a bubble scrolls sideways, with a fade where it goes on", async () => {
     const columns = ["Task", "Owner", "Status", "Due", "Notes"];

@@ -209,6 +209,15 @@ export interface MessageOwnProps {
   /** The message: text, or rich content such as a list or a code block. */
   children?: ReactNode;
   /**
+   * A short line above the message, before its quote and its text, saying where the message
+   * stands, such as "Replied in thread" over the message it replied to. Screen readers hear it
+   * first in the message's content, before the quote. Nothing shows when it is undefined, null,
+   * false or empty. For example: `<Message role="user" name="Ana" context="Replied in thread" quote={{ author: "Fen", excerpt: "Ship it?" }}>Yes</Message>`.
+   *
+   * @claim "Screen readers hear it first in the message's content" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message context > is read before the quote and the text)
+   */
+  context?: ReactNode | undefined;
+  /**
    * The message this one replies to, at the top of the bubble or post, above the text: a bar,
    * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
    * is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a
@@ -559,6 +568,7 @@ export function Message(props: MessageProps): JSX.Element {
     continued: continuedProp = false,
     subject,
     children,
+    context,
     quote,
     attachments,
     footer,
@@ -713,6 +723,16 @@ export function Message(props: MessageProps): JSX.Element {
   const empty = children === undefined || children === null || children === false || children === "";
   const body = streaming && empty ? typing(streamingLabel) : children;
   const quoted = quote && quoteBox(quote);
+  // A context that is nothing draws no line and leaves no gap above the quote.
+  const hasContext = context !== undefined && context !== null && typeof context !== "boolean" && context !== "";
+  // Muted as the quote's excerpt is, except on a default message's own primary bubble: that bubble does not re-point
+  // the muted token, and a muted line on the primary fill fails 4.5:1, so it takes the bubble's text color.
+  const contextTone = role === "user" && variant === "default" ? "" : "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
+  const contextLine = hasContext ? (
+    <div data-ouro-message-context="" className={cn("m-0 mb-1 text-xs", contextTone)}>
+      {context}
+    </div>
+  ) : null;
   // The bar's code, with Tooltip, loads in the browser for a message that has a bar.
   const [Bar, setBar] = useState<typeof MessageActionBar | undefined>(undefined);
   useEffect(() => {
@@ -783,6 +803,7 @@ export function Message(props: MessageProps): JSX.Element {
     const bubble = (
       // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: on a fine pointer the article is text-sm already; the touch tests hold the system note's smaller text.
       <div data-ouro-message-content="" className={cn("max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], role === "system" && "text-sm")}>
+        {contextLine}
         {quoted}
         {body}
       </div>
@@ -889,10 +910,11 @@ export function Message(props: MessageProps): JSX.Element {
   const articleStyle = { ...rest.style, ...ownColors, ...containerStyle };
   const titled = post && subject !== undefined && subject !== null;
   // A message of pictures or files alone draws no empty bubble above them.
-  const worded = !empty || streaming || quote !== undefined || titled;
+  const worded = !empty || streaming || quote !== undefined || titled || hasContext;
   // Hidden rather than left out when empty: MessageList reads every message's text from it.
   const contentBox = (
     <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+      {contextLine}
       {titled && (
         <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
           {subject}
