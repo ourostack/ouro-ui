@@ -265,8 +265,8 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
  * describes the element around it (`describesContainer`). A miss in which VoiceOver said something
  * `contradicts` accepts (the old state, say) fails as it is: the fallback is for silence, not for a
  * wrong announcement. Only for a step VoiceOver is known to skip at times: the Checkbox and
- * Checklist toggles (ourostack/ouro-ui#118), the Dialog's opening (ourostack/ouro-ui#119) and the
- * Menu's opening from the keyboard (ourostack/ouro-ui#1721). On NVDA it is `heard`.
+ * Checklist toggles (ourostack/ouro-ui#118) and the Dialog's opening (ourostack/ouro-ui#119). On NVDA
+ * it is `heard`.
  */
 export async function heardOrDescribed(
   sr: ScreenReader,
