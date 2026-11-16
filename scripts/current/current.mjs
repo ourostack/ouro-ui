@@ -4,6 +4,7 @@
 //
 //   OURO_CURRENT_APP_ID=… OURO_CURRENT_PRIVATE_KEY=… node scripts/current/current.mjs [--out current.json] [--only owner/repo]
 //   GH_TOKEN=… node scripts/current/current.mjs --dry-run --only owner/repo   # what it would change; writes nothing
+//   GH_TOKEN=… node scripts/current/current.mjs --with-token --only owner/repo   # the same pull request, opened with that token
 //
 // It never pushes to a default branch, never touches a branch other than its own, and never merges anything itself:
 // the repository's own checks and auto-merge decide.
@@ -264,8 +265,30 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === "--out") args.out = resolve(argv[++index]);
     else if (argv[index] === "--dry-run") args.dryRun = true;
+    else if (argv[index] === "--with-token") args.withToken = true;
     else if (argv[index] === "--only") args.only = argv[++index].split(",");
     else throw new Error(`unknown argument ${argv[index]}`);
+  }
+  if (args.withToken) {
+    // The same pull request, opened with GH_TOKEN for the repositories named: a repository the app is not installed on
+    // yet is kept current by hand with exactly what the app would write.
+    if (!args.only || args.dryRun) throw new Error("--with-token needs --only <owner/repo>[,<owner/repo>], and is not --dry-run");
+    const token = env.GH_TOKEN ?? env.GITHUB_TOKEN;
+    if (!token) throw new Error("--with-token needs GH_TOKEN: a token that can push a branch and open a pull request in each repository");
+    const gh = createGitHub({ token });
+    const releases = await latestReleases(gh);
+    const sources = createSources(gh);
+    let failed = 0;
+    for (const repo of args.only) {
+      try {
+        const kept = await keepRepo(gh, repo, releases, sources);
+        console.log(`${repo}: ${kept.state}${kept.pr ? ` ${kept.pr.url}${kept.pr.autoMerge ? " (auto-merge on)" : ` (auto-merge off: ${kept.pr.note})`}` : ""}`);
+      } catch (error) {
+        failed += 1;
+        console.log(`${repo}: failed: ${error.message}`);
+      }
+    }
+    return failed ? 1 : 0;
   }
   if (args.dryRun) {
     // Reads only, with GH_TOKEN, for the repositories named: what the bot would change, without the app or a write.
