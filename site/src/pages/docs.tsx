@@ -248,8 +248,16 @@ export function PlatformTitle({ title }: { title: string }): JSX.Element {
   if (at === -1) return <>{title}</>;
   return (
     <>
-      {/* The product's name stays whole, so a phone breaks before "for", not inside "Ouro HX & AX". */}
-      <span className="whitespace-nowrap">{title.slice(0, at)}</span>{" "}
+      {/* Each product's name stays whole, so a narrow column breaks before "& AX" or "for", never inside "Ouro HX". */}
+      {title
+        .slice(0, at)
+        .split(" & ")
+        .map((name, index) => (
+          <span key={name}>
+            {index > 0 && " "}
+            <span className="whitespace-nowrap">{index > 0 ? `& ${name}` : name}</span>
+          </span>
+        ))}{" "}
       <span data-platform-for="" className="text-[0.6em] font-medium text-muted-foreground">
         {title.slice(at + 1)}
       </span>
