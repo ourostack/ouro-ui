@@ -271,6 +271,18 @@ describe("keepFocusClear", () => {
       expect(movedTop(bar)).toBe("116px");
     });
 
+    it("counts a fixed bar below the window's top edge whose child reaches it, and moves the stack below the bar", async () => {
+      const bar = setup();
+      const lower = header({ left: 0, top: 40, width: 390, height: 40 });
+      const reach = document.createElement("div");
+      reach.style.cssText = "position: absolute; left: 0; top: -40px; width: 390px; height: 10px;";
+      lower.append(reach);
+      control("covered", COVERED);
+      await tab("covered");
+      advance(FADE_MS);
+      expect(movedTop(bar)).toBe("96px");
+    });
+
     it("counts a sticky header at the window's top, and moves the stack below it", async () => {
       const bar = setup();
       const sticky = document.createElement("div");
@@ -416,6 +428,7 @@ describe("keepFocusClear", () => {
       expect(stateOf(bar).fading).toBe(true);
       advance(FADE_MS);
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
+      expect(movedTop(bar)).toBe("");
     });
 
     it("measures the settle time from each landing, so an earlier move's timer does not end a later rest", async () => {
@@ -503,6 +516,33 @@ describe("keepFocusClear", () => {
       advance(FADE_MS);
       advance(SETTLE_MS);
       await tab("covered-too");
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    });
+
+    it("stays at the top when focus moves to a control only the full stack at the bottom covers, once it has rested", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      control("peek", { left: 100, top: 752, width: 100, height: 17 });
+      await tab("covered");
+      advance(FADE_MS);
+      advance(SETTLE_MS);
+      await tab("peek");
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    });
+
+    it("moves the stack again for a control it covers once it has come back to the bottom", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      control("middle", MIDDLE);
+      control("covered-again", { left: 100, top: 800, width: 100, height: 20 });
+      await tab("covered");
+      advance(FADE_MS);
+      await tab("middle");
+      advance(SETTLE_MS);
+      advance(FADE_MS);
+      expect(stateOf(bar).moved).toBeNull();
+      await tab("covered-again");
+      advance(FADE_MS);
       expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     });
 

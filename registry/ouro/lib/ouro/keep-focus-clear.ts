@@ -114,8 +114,8 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
             checked.add(node);
             const { position } = getComputedStyle(node);
             if (viewport.contains(node) || (position !== "fixed" && position !== "sticky")) continue;
-            const box = node.getBoundingClientRect();
-            if (box.top <= 0 && node.checkVisibility({ visibilityProperty: true })) bottom = Math.max(bottom, box.bottom);
+            // An element under the window's top edge, or one whose child reaches it, keeps the stack below its bottom.
+            if (node.checkVisibility({ visibilityProperty: true })) bottom = Math.max(bottom, node.getBoundingClientRect().bottom);
           }
         }
       }
@@ -131,7 +131,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
       return { left, right, top, bottom: top + height };
     }
     const bottom = innerHeight - gap;
-    return { left, right, top: bottom - (next === "collapsed" ? front : height), bottom };
+    return { left, right, top: bottom - (next === "bottom" ? height : front), bottom };
   }
 
   /** Whether the box shares area with the window area. */
@@ -162,12 +162,16 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   /** Puts the stack in `next` place and its state attributes; a stack at the top hangs from the top edge, as an app's top toaster does. */
   function apply(next: Place): void {
     place = next;
-    if (next === "top") viewport.setAttribute("data-ouro-toaster-moved", "top");
-    else viewport.removeAttribute("data-ouro-toaster-moved");
+    if (next === "top") {
+      viewport.setAttribute("data-ouro-toaster-moved", "top");
+      viewport.style.setProperty("--ouro-toaster-moved-top", `${clearance()}px`);
+    } else {
+      viewport.removeAttribute("data-ouro-toaster-moved");
+      viewport.style.removeProperty("--ouro-toaster-moved-top");
+    }
     if (next === "collapsed") viewport.setAttribute("data-ouro-toaster-collapsed", "");
     else viewport.removeAttribute("data-ouro-toaster-collapsed");
     viewport.setAttribute("data-edge", next === "top" ? "top" : "bottom");
-    if (next === "top") viewport.style.setProperty("--ouro-toaster-moved-top", `${clearance()}px`);
   }
 
   /** Cross-fades the stack out, moves it to `next` where it is invisible, and fades it back in. */
