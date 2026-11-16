@@ -24,9 +24,9 @@ test("a reader in another process never sees a file writeAtomic is rewriting cut
   writeFileSync(path, text);
   const helper = pathToFileURL(join(import.meta.dirname, "write-atomic.mjs")).href;
   const writer = spawn(process.execPath, ["--input-type=module", "-e", `
-    import { writeFileSync } from "node:fs";
+    import { readFileSync, writeFileSync } from "node:fs";
     import { writeAtomic } from ${JSON.stringify(helper)};
-    const text = ${JSON.stringify(text)};
+    const text = readFileSync(${JSON.stringify(path)}, "utf8");
     for (let round = 0; round < 60; round++) writeAtomic(${JSON.stringify(path)}, text);
     writeFileSync(${JSON.stringify(done)}, "");
   `]);
