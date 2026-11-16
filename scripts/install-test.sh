@@ -756,7 +756,13 @@ npx playwright install ${deps[@]+"${deps[@]}"} chromium webkit
 # overlapped).
 workers=()
 [ -z "${OURO_SHARD:-}" ] || workers=(--maxWorkers=2)
-npx vitest run ${workers[@]+"${workers[@]}"} ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
+# In CI a shard's run also fails a stall in minutes, naming the tests in flight, as the repository's own shards do: a hang
+# outside a test body otherwise runs silently to the job's limit (#671). Only where this tree has the reporter.
+stall=()
+if [ -n "${CI:-}" ] && [ -n "${OURO_SHARD:-}" ] && [ -f "$root/scripts/stall-reporter-default.mts" ]; then
+  stall=(--reporter=default "--reporter=$root/scripts/stall-reporter-default.mts")
+fi
+npx vitest run ${workers[@]+"${workers[@]}"} ${stall[@]+"${stall[@]}"} ${lenient_vitest[@]+"${lenient_vitest[@]}"} ${vitest_shard[@]+"${vitest_shard[@]}"} ${vitest_filters[@]+"${vitest_filters[@]}"}
 echo "::endgroup::"
 
 echo "::group::Shipped Playwright specs"

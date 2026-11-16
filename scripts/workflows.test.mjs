@@ -1633,6 +1633,11 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   assert.doesNotMatch(image.stdout, /--with-deps|install-deps|slept/);
   assert.match(ciJobs()["install-shard"], /^ {8}OURO_SYSTEM_PACKAGES: image$/m);
   assert.doesNotMatch(ciJobs()["install-shard"], /OURO_BROWSER_DEPS|browser-deps/);
+  // In CI a shard's run adds the stall reporter, so a hang in the installed app fails in minutes and names what hung (#671).
+  const watched = run({ CI: "1", OURO_SYSTEM_PACKAGES: "image", OURO_SHARD: "2/2" }, [...shipped, ...specs]);
+  assert.equal(watched.status, 0, watched.stderr);
+  assert.match(watched.stdout, new RegExp(`^npx vitest run --maxWorkers=2 --reporter=default --reporter=${escaped([join(root, "scripts/stall-reporter-default.mts")])} ${escaped(mine)}$`, "m"));
+  assert.doesNotMatch(all.stdout + shard.stdout, /stall-reporter/);
   const some = run({ OURO_COMPONENTS: "checkbox,checkbox-group", OURO_SHARD: "1/3" });
   assert.equal(some.status, 0, some.stderr);
   assert.match(some.stdout, /^npx vitest run --maxWorkers=2 --passWithNoTests --shard=1\/3 components\/ouro\/checkbox\/$/m);
