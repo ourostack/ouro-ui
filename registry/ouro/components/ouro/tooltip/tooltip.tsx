@@ -96,7 +96,7 @@ function essential(detail: string): readonly [string, string] {
  * icon button's purpose or a control's shortcut. It never opens on touch, and screen
  * readers don't read it, so it only repeats or adds to what the page already says.
  * Inside `OuroProvider`, tooltips share one delay: once one shows, its neighbours open
- * instantly.
+ * instantly. A press on the trigger closes it, and it stays closed while the trigger's menu or popover is open.
  *
  * Use `Popover` instead for anything the user needs or can act on (it opens on tap and
  * holds controls), `HoverCard` for a preview of a link, and plain text on the page for
@@ -126,6 +126,8 @@ function essential(detail: string): readonly [string, string] {
  * @claim "It stacks above the page at" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /^\s+--ouro-layer:\s50;/)
  * @claim "It never opens on touch, and" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > never opens after a touch on the trigger, even when the touch focuses it)
  * @claim "It never opens on touch, and" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > opens on mouse hover after a touch elsewhere, as on a laptop with a touchscreen)
+ * @claim "A press on the trigger closes it" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > closes on Enter when the press opens something and focus stays on the trigger)
+ * @claim "it stays closed while the trigger's menu or popover is open" registry/ouro/components/ouro/tooltip/tooltip.test.tsx verify:testExists(registry/ouro/components/ouro/tooltip/tooltip.test.tsx::Tooltip > closes on a click, and stays closed while its trigger's menu is open)
  */
 export function Tooltip(props: TooltipProps): JSX.Element {
   const {
@@ -227,7 +229,8 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const show = (how: "delay" | "focus" | "now") => {
     // Never after a touch: a tap that focuses the trigger would otherwise show it, and a phone has no way to hover it away.
-    if (lastInput() !== "touch") setOpen(how);
+    // Nor while the trigger's own popup or menu is open: the person is using that, so the tooltip waits until it closes.
+    if (lastInput() !== "touch" && triggerRef.current?.getAttribute("aria-expanded") !== "true") setOpen(how);
   };
   const after = (delay: number, act: () => void) => {
     clearTimeout(timer.current);
@@ -255,6 +258,16 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     if (hidden) close();
   }, [hidden]);
 
+  // A popup the trigger opens while the tooltip shows (not by a press, which already closed it) closes the tooltip. The
+  // trigger's props come from a parent's `trigger` (Popover's or Menu's) or the child itself, the child's winning.
+  const childExpanded = (child.props as Record<string, unknown>)["aria-expanded"] ?? (forwarded as Record<string, unknown>)["aria-expanded"];
+  const expanded = childExpanded === true || childExpanded === "true";
+  useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: equivalent; a tooltip shows only while the trigger's popup is closed, so closing on its close has nothing to close.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (expanded) close();
+  }, [expanded]);
+
   const portal = usePortalContainer("Tooltip");
   const trigger = cloneElement(
     child,
@@ -263,8 +276,9 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     // eslint-disable-next-line react-hooks/refs
     mergeProps(forwarded as object, child.props as object, {
       ref: mergedRef,
+      // Only while open: a closed tooltip leaves a parent's data-popup-open (its menu's, say) as it is.
       // Stryker disable next-line StringLiteral: read by the attribute alone, as Base UI's open trigger is.
-      "data-popup-open": open ? "" : undefined,
+      ...(open ? { "data-popup-open": "" } : {}),
       // Marks the trigger as Base UI's own tooltip trigger did, so a nested trigger and tests still find it.
       // Stryker disable next-line StringLiteral: read by the attribute alone.
       "data-base-ui-tooltip-trigger": "",
@@ -291,8 +305,10 @@ export function Tooltip(props: TooltipProps): JSX.Element {
         event.preventDefault();
         event.stopPropagation();
       },
-      // A press closes it, and keeps a pending one from opening.
+      // A press closes it, and keeps a pending one from opening. A click closes it too: Enter or Space on a trigger that
+      // opens something without moving focus off it would otherwise leave the tooltip over what it opened.
       onPointerDown: close,
+      onClick: close,
     }) as Record<string, unknown>,
   );
   if (!armed) return trigger;
