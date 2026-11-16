@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: in WebKit, a MessageList wheel scroll near the end could stop after a few pixels when a row above came in shorter than its estimate, as the browser pulled the scroll position into the shorter range; the list now keeps that range until the wheel rests.
