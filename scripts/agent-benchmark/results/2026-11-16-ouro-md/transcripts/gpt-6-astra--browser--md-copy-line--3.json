@@ -1,0 +1,93 @@
+{
+  "model": "gpt-6-astra",
+  "modelId": "gpt-6-astra",
+  "transport": "copilot",
+  "arm": "browser",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "browser_snapshot",
+    "browser_click",
+    "browser_navigate",
+    "browser_type",
+    "browser_click"
+  ],
+  "textReadChars": 4343,
+  "wallMs": 10825,
+  "modelCalls": 6,
+  "tokens": {
+    "input": 7219,
+    "output": 183,
+    "cacheRead": 4064,
+    "cacheWrite": 2045,
+    "reasoning": 0,
+    "total": 7402
+  },
+  "costAiu": 4.98765,
+  "costSource": "runtime",
+  "finalMessage": "Added a new to-do at the end of your Plan: “Call harbor master Ines Duarte: +351 21 555 0142.”",
+  "transcript": {
+    "messages": [
+      "Added a new to-do at the end of your Plan: “Call harbor master Ines Duarte: +351 21 555 0142.”"
+    ],
+    "toolCalls": [
+      {
+        "name": "browser_snapshot",
+        "args": {},
+        "ms": 17,
+        "resultChars": 893,
+        "result": "- Page URL: /\n- Page Title: Documents · Ouro MD\n- Page Snapshot:\n```yaml\n- generic [active] [ref=e1]:\n  - navigation \"Ouro MD\" [ref=e2]:\n    - link \"Documents\" [ref=e3] [cursor=pointer]:\n      - /url: /\n  - main [ref=e4]:\n    - heading \"Documents\" [level=1] [ref=e5]\n    - list \"Documents\" [ref=e6]:\n      - listitem [ref=e7]:\n        - link \"Plan\" [ref=e8] [cursor=pointer]:\n          - /url: /document?path=%2Fdocuments%2FPlan.md\n      - listitem [ref=e9]:\n        - link \"Notes\" [ref=e10] [cursor=pointer]:\n          - /url: /document?path=%2Fdocuments%2FNotes.md\n      - listitem [ref=e11]:\n        - link \"Lisbon plan\" [ref=e12] [cursor=pointer]:\n          - /url: /document?path=%2Fdocuments%2FTrips%2FLisbon%20plan.md\n        - text: in Trips\n      - listitem [ref=e13]:\n        - link \"Scratch\" [ref=e14] [cursor=pointer]:\n          - /url: /document?path=%2Fdocuments%2FScratch.md\n```"
+      },
+      {
+        "name": "browser_click",
+        "args": {
+          "ref": "e10",
+          "element": "Notes"
+        },
+        "ms": 36,
+        "resultChars": 851,
+        "result": "- Page URL: /document\n- Page Title: Notes · Ouro MD\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f1e1]:\n  - navigation \"Ouro MD\" [ref=f1e2]:\n    - link \"Documents\" [ref=f1e3] [cursor=pointer]:\n      - /url: /\n  - main [ref=f1e4]:\n    - heading \"Notes\" [level=1] [ref=f1e5]\n    - generic [ref=f1e6]:\n      - paragraph [ref=f1e7]:\n        - text: Markdown\n        - textbox \"Markdown\" [ref=f1e8]: \"# Notes Harbor master: Ines Duarte, +351 21 555 0142. The ferry leaves at 07:40 from pier 3.\"\n      - paragraph [ref=f1e9]:\n        - button \"Save\" [ref=f1e10]\n    - heading \"Add to Markdown Document\" [level=2] [ref=f1e11]\n    - generic [ref=f1e12]:\n      - paragraph [ref=f1e13]:\n        - text: Markdown to add\n        - textbox \"Markdown to add\" [ref=f1e14]\n      - paragraph [ref=f1e15]:\n        - button \"Add to Markdown Document\" [ref=f1e16]\n```"
+      },
+      {
+        "name": "browser_navigate",
+        "args": {
+          "url": "/document?path=%2Fdocuments%2FPlan.md"
+        },
+        "ms": 15,
+        "resultChars": 806,
+        "result": "- Page URL: /document\n- Page Title: Plan · Ouro MD\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f2e1]:\n  - navigation \"Ouro MD\" [ref=f2e2]:\n    - link \"Documents\" [ref=f2e3] [cursor=pointer]:\n      - /url: /\n  - main [ref=f2e4]:\n    - heading \"Plan\" [level=1] [ref=f2e5]\n    - generic [ref=f2e6]:\n      - paragraph [ref=f2e7]:\n        - text: Markdown\n        - textbox \"Markdown\" [ref=f2e8]: \"# Plan - [x] Book the ferry - [ ] Pack the charts\"\n      - paragraph [ref=f2e9]:\n        - button \"Save\" [ref=f2e10]\n    - heading \"Add to Markdown Document\" [level=2] [ref=f2e11]\n    - generic [ref=f2e12]:\n      - paragraph [ref=f2e13]:\n        - text: Markdown to add\n        - textbox \"Markdown to add\" [ref=f2e14]\n      - paragraph [ref=f2e15]:\n        - button \"Add to Markdown Document\" [ref=f2e16]\n```"
+      },
+      {
+        "name": "browser_type",
+        "args": {
+          "ref": "f2e14",
+          "element": "Markdown to add",
+          "text": "\n- [ ] Call harbor master Ines Duarte: +351 21 555 0142.\n"
+        },
+        "ms": 5,
+        "resultChars": 865,
+        "result": "- Page URL: /document\n- Page Title: Plan · Ouro MD\n- Page Snapshot:\n```yaml\n- generic [ref=f2e1]:\n  - navigation \"Ouro MD\" [ref=f2e2]:\n    - link \"Documents\" [ref=f2e3] [cursor=pointer]:\n      - /url: /\n  - main [ref=f2e4]:\n    - heading \"Plan\" [level=1] [ref=f2e5]\n    - generic [ref=f2e6]:\n      - paragraph [ref=f2e7]:\n        - text: Markdown\n        - textbox \"Markdown\" [ref=f2e8]: \"# Plan - [x] Book the ferry - [ ] Pack the charts\"\n      - paragraph [ref=f2e9]:\n        - button \"Save\" [ref=f2e10]\n    - heading \"Add to Markdown Document\" [level=2] [ref=f2e11]\n    - generic [ref=f2e12]:\n      - paragraph [ref=f2e13]:\n        - text: Markdown to add\n        - textbox \"Markdown to add\" [active] [ref=f2e14]: \"- [ ] Call harbor master Ines Duarte: +351 21 555 0142.\"\n      - paragraph [ref=f2e15]:\n        - button \"Add to Markdown Document\" [ref=f2e16]\n```"
+      },
+      {
+        "name": "browser_click",
+        "args": {
+          "ref": "f2e16",
+          "element": "Add to Markdown Document"
+        },
+        "ms": 41,
+        "resultChars": 928,
+        "result": "- Page URL: /document\n- Page Title: Plan · Ouro MD\n- Page Snapshot:\n```yaml\n- generic [active] [ref=f3e1]:\n  - navigation \"Ouro MD\" [ref=f3e2]:\n    - link \"Documents\" [ref=f3e3] [cursor=pointer]:\n      - /url: /\n  - main [ref=f3e4]:\n    - heading \"Plan\" [level=1] [ref=f3e5]\n    - status [ref=f3e6]: Added 55 characters to the end of Plan.\n    - generic [ref=f3e7]:\n      - paragraph [ref=f3e8]:\n        - text: Markdown\n        - textbox \"Markdown\" [ref=f3e9]: \"# Plan - [x] Book the ferry - [ ] Pack the charts - [ ] Call harbor master Ines Duarte: +351 21 555 0142.\"\n      - paragraph [ref=f3e10]:\n        - button \"Save\" [ref=f3e11]\n    - heading \"Add to Markdown Document\" [level=2] [ref=f3e12]\n    - generic [ref=f3e13]:\n      - paragraph [ref=f3e14]:\n        - text: Markdown to add\n        - textbox \"Markdown to add\" [ref=f3e15]\n      - paragraph [ref=f3e16]:\n        - button \"Add to Markdown Document\" [ref=f3e17]\n```"
+      }
+    ]
+  },
+  "redacted": false
+}

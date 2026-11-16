@@ -1,0 +1,52 @@
+{
+  "model": "gpt-6-astra",
+  "modelId": "gpt-6-astra",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "append_to_document"
+  ],
+  "textReadChars": 119,
+  "wallMs": 3949,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 1187,
+    "output": 51,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 0,
+    "total": 1238
+  },
+  "costAiu": 1.442,
+  "costSource": "runtime",
+  "finalMessage": "Added “- [ ] Call the harbor master” to the end of your Plan document.",
+  "transcript": {
+    "messages": [
+      "Added “- [ ] Call the harbor master” to the end of your Plan document."
+    ],
+    "toolCalls": [
+      {
+        "name": "append_to_document",
+        "args": {
+          "markdown": "- [ ] Call the harbor master",
+          "document": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 28 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

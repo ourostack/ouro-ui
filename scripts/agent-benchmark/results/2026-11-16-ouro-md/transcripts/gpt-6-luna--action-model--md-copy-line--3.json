@@ -1,0 +1,92 @@
+{
+  "model": "gpt-6-luna",
+  "modelId": "gpt-6-luna",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 3,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "list_documents",
+    "list_documents",
+    "read_document",
+    "read_document",
+    "append_to_document"
+  ],
+  "textReadChars": 562,
+  "wallMs": 4712,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 3000,
+    "output": 166,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 0,
+    "total": 3166
+  },
+  "costAiu": 0.0383,
+  "costSource": "runtime",
+  "finalMessage": "Added a new to-do at the end of Plan with the harbor master’s phone number: +351 21 555 0142.",
+  "transcript": {
+    "messages": [
+      "Added a new to-do at the end of Plan with the harbor master’s phone number: +351 21 555 0142."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_documents",
+        "args": {
+          "query": "Notes"
+        },
+        "ms": 0,
+        "resultChars": 52,
+        "result": "{\"documents\":\"Notes  /documents/Notes.md\",\"count\":1}"
+      },
+      {
+        "name": "list_documents",
+        "args": {
+          "query": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 96,
+        "result": "{\"documents\":\"Plan  /documents/Plan.md\\nLisbon plan  /documents/Trips/Lisbon plan.md\",\"count\":2}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Notes"
+        },
+        "ms": 0,
+        "resultChars": 171,
+        "result": "{\"markdown\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"name\":\"Notes\",\"path\":\"/documents/Notes.md\",\"length\":95}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 124,
+        "result": "{\"markdown\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"name\":\"Plan\",\"path\":\"/documents/Plan.md\",\"length\":51}"
+      },
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "Plan",
+          "markdown": "- [ ] Call harbor master: +351 21 555 0142"
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 42 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

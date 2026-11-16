@@ -1,0 +1,84 @@
+{
+  "model": "gemini-4-hydrogen",
+  "modelId": "gemini-4-hydrogen",
+  "transport": "copilot",
+  "arm": "bridge",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "snapshot",
+    "act",
+    "act"
+  ],
+  "textReadChars": 1696,
+  "wallMs": 9049,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 3092,
+    "output": 513,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 364,
+    "total": 3605
+  },
+  "costAiu": 0.84855,
+  "costSource": "runtime",
+  "finalMessage": "I opened your Plan document, added `- [ ] Call the harbor master` to the end of it, and saved the changes.",
+  "transcript": {
+    "messages": [
+      "I opened your Plan document, added `- [ ] Call the harbor master` to the end of it, and saved the changes."
+    ],
+    "toolCalls": [
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 4,
+        "resultChars": 436,
+        "result": "{\"page\":\"/\",\"text\":{\"title\":\"Documents\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Plan\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Notes\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Lisbon plan\",\"row\":\"Lisbon plan in Trips\",\"actions\":[\"press\"]},{\"ref\":\"c5\",\"component\":\"link\",\"label\":\"Scratch\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "press",
+              "target": "c2"
+            }
+          ]
+        },
+        "ms": 15,
+        "resultChars": 585,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c2\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "setValue",
+              "target": "c6",
+              "value": "# Plan\n\n- [x] Book the ferry\n- [ ] Pack the charts\n- [ ] Call the harbor master\n"
+            },
+            {
+              "action": "press",
+              "target": "c7"
+            }
+          ]
+        },
+        "ms": 11,
+        "resultChars": 675,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c6\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c7\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\",\"messages\":[\"Saved.\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n- [ ] Call the harbor master\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  },
+  "redacted": false
+}

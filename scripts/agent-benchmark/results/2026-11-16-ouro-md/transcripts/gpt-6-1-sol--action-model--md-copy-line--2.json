@@ -1,0 +1,72 @@
+{
+  "model": "gpt-6-1-sol",
+  "modelId": "gpt-6.1-sol",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "read_document",
+    "read_document",
+    "append_to_document"
+  ],
+  "textReadChars": 414,
+  "wallMs": 6331,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 2106,
+    "output": 127,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 0,
+    "total": 2233
+  },
+  "costAiu": 0.5482,
+  "costSource": "runtime",
+  "finalMessage": "Added a new to-do at the end of Plan: “Call the harbor master, Ines Duarte: +351 21 555 0142.”",
+  "transcript": {
+    "messages": [
+      "Added a new to-do at the end of Plan: “Call the harbor master, Ines Duarte: +351 21 555 0142.”"
+    ],
+    "toolCalls": [
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Notes"
+        },
+        "ms": 0,
+        "resultChars": 171,
+        "result": "{\"markdown\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"name\":\"Notes\",\"path\":\"/documents/Notes.md\",\"length\":95}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 124,
+        "result": "{\"markdown\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"name\":\"Plan\",\"path\":\"/documents/Plan.md\",\"length\":51}"
+      },
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "Plan",
+          "markdown": "- [ ] Call the harbor master, Ines Duarte: +351 21 555 0142."
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 60 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

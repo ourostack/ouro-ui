@@ -1,0 +1,122 @@
+{
+  "model": "claude-opus-5-5",
+  "modelId": "claude-opus-5.5",
+  "transport": "copilot",
+  "arm": "bridge",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 6,
+  "toolsUsed": [
+    "snapshot",
+    "act",
+    "snapshot",
+    "act",
+    "act",
+    "act"
+  ],
+  "textReadChars": 3425,
+  "wallMs": 8660,
+  "modelCalls": 6,
+  "tokens": {
+    "input": 10648,
+    "output": 526,
+    "cacheRead": 8432,
+    "cacheWrite": 2202,
+    "reasoning": 64,
+    "total": 11174
+  },
+  "costAiu": 2.32724,
+  "costSource": "runtime",
+  "finalMessage": "I added a new to-do at the end of your Plan and saved it: \"- [ ] Call the harbor master, Ines Duarte: +351 21 555 0142\". I used the document named \"Plan\", not \"Lisbon plan\".",
+  "transcript": {
+    "messages": [
+      "I added a new to-do at the end of your Plan and saved it: \"- [ ] Call the harbor master, Ines Duarte: +351 21 555 0142\". I used the document named \"Plan\", not \"Lisbon plan\"."
+    ],
+    "toolCalls": [
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 5,
+        "resultChars": 436,
+        "result": "{\"page\":\"/\",\"text\":{\"title\":\"Documents\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Plan\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Notes\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Lisbon plan\",\"row\":\"Lisbon plan in Trips\",\"actions\":[\"press\"]},{\"ref\":\"c5\",\"component\":\"link\",\"label\":\"Scratch\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "c3",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 15,
+        "resultChars": 631,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c3\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Notes\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 15,
+        "resultChars": 573,
+        "result": "{\"page\":\"/document\",\"text\":{\"title\":\"Notes\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "press",
+              "target": "c1"
+            }
+          ]
+        },
+        "ms": 13,
+        "resultChars": 494,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c1\",\"result\":\"done\"}],\"page\":\"/\",\"text\":{\"title\":\"Documents\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Plan\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Notes\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Lisbon plan\",\"row\":\"Lisbon plan in Trips\",\"actions\":[\"press\"]},{\"ref\":\"c5\",\"component\":\"link\",\"label\":\"Scratch\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "press",
+              "target": "c2"
+            }
+          ]
+        },
+        "ms": 10,
+        "resultChars": 585,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c2\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "action": "setValue",
+              "target": "c6",
+              "value": "# Plan\n\n- [x] Book the ferry\n- [ ] Pack the charts\n- [ ] Call the harbor master, Ines Duarte: +351 21 555 0142\n"
+            },
+            {
+              "action": "press",
+              "target": "c7"
+            }
+          ]
+        },
+        "ms": 12,
+        "resultChars": 706,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c6\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c7\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\",\"messages\":[\"Saved.\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n- [ ] Call the harbor master, Ines Duarte: +351 21 555 0142\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  },
+  "redacted": false
+}

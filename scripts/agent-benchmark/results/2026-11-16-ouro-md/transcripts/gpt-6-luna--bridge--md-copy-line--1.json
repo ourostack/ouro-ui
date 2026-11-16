@@ -1,0 +1,129 @@
+{
+  "model": "gpt-6-luna",
+  "modelId": "gpt-6-luna",
+  "transport": "copilot",
+  "arm": "bridge",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 6,
+  "toolsUsed": [
+    "snapshot",
+    "act",
+    "act",
+    "act",
+    "act",
+    "act"
+  ],
+  "textReadChars": 3415,
+  "wallMs": 10291,
+  "modelCalls": 7,
+  "tokens": {
+    "input": 6138,
+    "output": 355,
+    "cacheRead": 2284,
+    "cacheWrite": 1614,
+    "reasoning": 145,
+    "total": 6493
+  },
+  "costAiu": 0.062609,
+  "costSource": "runtime",
+  "finalMessage": "Added a new to-do at the end of Plan with the harbor master’s number: +351 21 555 0142.",
+  "transcript": {
+    "messages": [
+      "Added a new to-do at the end of Plan with the harbor master’s number: +351 21 555 0142."
+    ],
+    "toolCalls": [
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 5,
+        "resultChars": 436,
+        "result": "{\"page\":\"/\",\"text\":{\"title\":\"Documents\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Plan\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Notes\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Lisbon plan\",\"row\":\"Lisbon plan in Trips\",\"actions\":[\"press\"]},{\"ref\":\"c5\",\"component\":\"link\",\"label\":\"Scratch\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "Notes",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 18,
+        "resultChars": 631,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c3\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Notes\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "Documents",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 13,
+        "resultChars": 494,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c1\",\"result\":\"done\"}],\"page\":\"/\",\"text\":{\"title\":\"Documents\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Plan\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Notes\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Lisbon plan\",\"row\":\"Lisbon plan in Trips\",\"actions\":[\"press\"]},{\"ref\":\"c5\",\"component\":\"link\",\"label\":\"Scratch\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "Plan",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 6,
+        "resultChars": 550,
+        "result": "{\"ok\":false,\"error\":{\"step\":0,\"message\":\"\\\"Plan\\\" matches 2 components (c2, c4); name one by its ref.\"},\"steps\":[],\"page\":\"/\",\"text\":{\"title\":\"Documents\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Plan\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Notes\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Lisbon plan\",\"row\":\"Lisbon plan in Trips\",\"actions\":[\"press\"]},{\"ref\":\"c5\",\"component\":\"link\",\"label\":\"Scratch\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "c2",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 10,
+        "resultChars": 585,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c2\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "Markdown to add",
+              "action": "setValue",
+              "value": "- [ ] Harbor master: +351 21 555 0142"
+            },
+            {
+              "target": "Add to Markdown Document",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 15,
+        "resultChars": 719,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c8\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c9\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\",\"messages\":[\"Added 37 characters to the end of Plan.\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\\n- [ ] Harbor master: +351 21 555 0142\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  },
+  "redacted": false
+}

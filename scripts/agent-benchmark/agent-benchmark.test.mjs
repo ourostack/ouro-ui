@@ -255,6 +255,9 @@ test("a run of another app's tasks adds to the page instead of replacing earlier
   const md = { ...base, folder: "2026-11-15-ouro-md", startedAt: "2026-11-15T01:00:00.000Z", tasks: [{ id: "md-append", app: "ouro-md", prompt: "Add it to Plan.", personOnly: false }], trials: [trial("md-append", "action-model", true), trial("md-append", "browser", true)] };
   const page = renderPage([pantry, md]);
   assert.match(page, /Across 4 checked trials by 1 model:/);
+  const two = { ...pantry, folder: "2026-11-14-two", models: [{ provider: "m2", displayName: "Model Two" }], trials: [{ ...trial("add-item", "action-model", true), model: "m2" }] };
+  assert.match(renderPage([pantry, two, md]), /- Not run: Model Two on Ouro MD's tasks\./);
+  assert.doesNotMatch(page, /Not run/);
   assert.doesNotMatch(page, /Superseded/);
   assert.match(page, /The apps are Pantry, a made-up kitchen[^;]*; and Ouro MD, a made-up folder of Markdown documents/);
   assert.match(page, /\| Ouro MD: "Add it to Plan\." \| 1\/1 \| 1\/1 \|/);

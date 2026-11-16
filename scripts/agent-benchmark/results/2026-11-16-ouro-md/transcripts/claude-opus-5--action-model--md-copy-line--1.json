@@ -1,0 +1,83 @@
+{
+  "model": "claude-opus-5",
+  "modelId": "claude-opus-5",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 4,
+  "toolsUsed": [
+    "list_documents",
+    "list_documents",
+    "read_document",
+    "append_to_document"
+  ],
+  "textReadChars": 438,
+  "wallMs": 5890,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 6765,
+    "output": 326,
+    "cacheRead": 6073,
+    "cacheWrite": 684,
+    "reasoning": 0,
+    "total": 7091
+  },
+  "costAiu": 1.55015,
+  "costSource": "runtime",
+  "finalMessage": "I added \"- [ ] Call the harbor master, Ines Duarte, at +351 21 555 0142\" to the end of Plan, taken from your Notes.",
+  "transcript": {
+    "messages": [
+      "I'll look for those documents first.",
+      "I added \"- [ ] Call the harbor master, Ines Duarte, at +351 21 555 0142\" to the end of Plan, taken from your Notes."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_documents",
+        "args": {
+          "query": "Notes"
+        },
+        "ms": 0,
+        "resultChars": 52,
+        "result": "{\"documents\":\"Notes  /documents/Notes.md\",\"count\":1}"
+      },
+      {
+        "name": "list_documents",
+        "args": {
+          "query": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 96,
+        "result": "{\"documents\":\"Plan  /documents/Plan.md\\nLisbon plan  /documents/Trips/Lisbon plan.md\",\"count\":2}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "/documents/Notes.md"
+        },
+        "ms": 0,
+        "resultChars": 171,
+        "result": "{\"markdown\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"name\":\"Notes\",\"path\":\"/documents/Notes.md\",\"length\":95}"
+      },
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "/documents/Plan.md",
+          "markdown": "- [ ] Call the harbor master, Ines Duarte, at +351 21 555 0142"
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 62 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

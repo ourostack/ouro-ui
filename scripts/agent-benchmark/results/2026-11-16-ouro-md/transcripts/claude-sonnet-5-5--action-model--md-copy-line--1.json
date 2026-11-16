@@ -1,0 +1,72 @@
+{
+  "model": "claude-sonnet-5-5",
+  "modelId": "claude-sonnet-5.5",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 3,
+  "toolsUsed": [
+    "read_document",
+    "read_document",
+    "append_to_document"
+  ],
+  "textReadChars": 414,
+  "wallMs": 3613,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 4957,
+    "output": 255,
+    "cacheRead": 4356,
+    "cacheWrite": 593,
+    "reasoning": 0,
+    "total": 5212
+  },
+  "costAiu": 0.44841,
+  "costSource": "runtime",
+  "finalMessage": "I added a new to-do at the end of your Plan: \"Call harbor master Ines Duarte: +351 21 555 0142\". I read the document back afterward to check the edit saved.",
+  "transcript": {
+    "messages": [
+      "I added a new to-do at the end of your Plan: \"Call harbor master Ines Duarte: +351 21 555 0142\". I read the document back afterward to check the edit saved."
+    ],
+    "toolCalls": [
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Notes"
+        },
+        "ms": 0,
+        "resultChars": 171,
+        "result": "{\"markdown\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"name\":\"Notes\",\"path\":\"/documents/Notes.md\",\"length\":95}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 124,
+        "result": "{\"markdown\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"name\":\"Plan\",\"path\":\"/documents/Plan.md\",\"length\":51}"
+      },
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "Plan",
+          "markdown": "- [ ] Call harbor master Ines Duarte: +351 21 555 0142"
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 54 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

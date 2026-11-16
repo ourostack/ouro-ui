@@ -1,0 +1,52 @@
+{
+  "model": "gemini-4-hydrogen",
+  "modelId": "gemini-4-hydrogen",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "append_to_document"
+  ],
+  "textReadChars": 119,
+  "wallMs": 4842,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 1795,
+    "output": 224,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 163,
+    "total": 2019
+  },
+  "costAiu": 0.43725,
+  "costSource": "runtime",
+  "finalMessage": "I added `- [ ] Call the harbor master` to the end of your Plan document and saved it.",
+  "transcript": {
+    "messages": [
+      "I added `- [ ] Call the harbor master` to the end of your Plan document and saved it."
+    ],
+    "toolCalls": [
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "Plan",
+          "markdown": "- [ ] Call the harbor master"
+        },
+        "ms": 1,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 28 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}
