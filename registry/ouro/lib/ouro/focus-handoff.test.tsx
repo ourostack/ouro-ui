@@ -134,6 +134,14 @@ describe("handOffFocus", () => {
     expect(document.activeElement).toBe(document.body);
   });
 
+  it("does nothing for the page's own root element, which has nothing around it", async () => {
+    const host = page("<button>a</button>");
+    button(host, "a").focus();
+    expect(() => handOffFocus(document.documentElement)).not.toThrow();
+    await Promise.resolve();
+    expect(document.activeElement).toBe(button(host, "a"));
+  });
+
   it("leaves focus on the page when no control is left anywhere", async () => {
     const host = page('<p id="gone"><button>gone</button></p>');
     const gone = host.querySelector("#gone")!;
