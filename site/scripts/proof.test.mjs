@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { URL } from "node:url";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { currentInstall, currentProof, deriveProof, EVIDENCE, pickInstall, PREFERRED_INSTALL, proofPlugin, registryAt } from "./proof.mts";
 import { release } from "../../scripts/registry.mts";
 import { scratchDir } from "../../scripts/scratch.mjs";
@@ -131,9 +131,33 @@ test("a release commit's site build takes the install line from its own registry
   const plugin = proofPlugin(dir);
   const module = plugin.load(plugin.resolveId("virtual:site-proof"));
   assert.ok(module.includes(`export const install = ${JSON.stringify(expected)};`), module);
-  // Another tag still comes from git, and one that origin lacks fails.
-  // One that origin lacks fails after a second try, naming what git said.
-  assert.throws(() => registryAt("v9.9.8", dir, 0), /git fetch of v9\.9\.8 failed twice, 0 ms apart\. First: .*refs\/tags\/v9\.9\.8.*\. Then: .*refs\/tags\/v9\.9\.8/s);
+  // A tag that origin lacks fails after its tries, naming what git said each time.
+  assert.throws(() => registryAt("v9.9.8", dir, 0, 3), /git fetch of v9\.9\.8 failed 3 times, 0 ms apart: .*refs\/tags\/v9\.9\.8.* \| .*refs\/tags\/v9\.9\.8.* \| .*refs\/tags\/v9\.9\.8/s);
+});
+
+test("a tag fetch that loses the shallow lock to another process takes the tag that process brought in", () => {
+  const dir = releaseCheckout("9.9.9");
+  const origin = execFileSync("git", ["remote", "get-url", "origin"], { cwd: dir, encoding: "utf8" }).trim();
+  // The tag on origin, at a commit whose registry.json is another release's.
+  const other = scratchDir("ouro-proof-other-");
+  const git = (cwd, ...args) => execFileSync("git", args, { cwd, stdio: "ignore" });
+  git(other, "init", "--quiet");
+  writeFileSync(join(other, "registry.json"), '{"version":"9.9.7"}\n');
+  git(other, "add", ".");
+  git(other, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "--quiet", "-m", "v9.9.7");
+  git(other, "tag", "v9.9.7");
+  git(other, "push", "--quiet", origin, "refs/tags/v9.9.7");
+  // Another process holds the lock, so this fetch fails; meanwhile it brings the tag in, then takes the lock again,
+  // so only reading the tag again finds it.
+  const lock = join(dir, ".git", "shallow.lock");
+  writeFileSync(lock, "");
+  const winner = spawn("sh", ["-c", `sleep 0.3; rm -f .git/shallow.lock; git fetch --quiet origin refs/tags/v9.9.7:refs/tags/v9.9.7; : > .git/shallow.lock`], { cwd: dir, stdio: "ignore" });
+  try {
+    assert.equal(registryAt("v9.9.7", dir, 1500, 2), '{"version":"9.9.7"}\n');
+  } finally {
+    winner.kill();
+    rmSync(lock, { force: true });
+  }
 });
 
 test("the install command switches to Checklist once a release has it", () => {
