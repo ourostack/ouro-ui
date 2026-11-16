@@ -208,6 +208,38 @@ describe("MessageList windowing", () => {
     for (const space of scroller.querySelectorAll("[data-ouro-message-list-space]")) expect(space.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("keeps the reader's place over rows not drawn yet without a :has() selector over the whole conversation, which reads every element against every message", async () => {
+    // Messages, some wrapped in an element of the app's, and a day's heading before every tenth.
+    const children = conversation(400).flatMap((item) => [
+      item.id % 10 === 0 ? <h3 key={`day-${item.id}`} style={{ margin: 0 }}>{`Day ${item.id / 10}`}</h3> : null,
+      item.id % 3 === 0 ? (
+        <div key={item.id}>
+          <Message id={`m${item.id}`} role="assistant" name="Ouro">{item.text}</Message>
+        </div>
+      ) : (
+        <Message key={item.id} id={`m${item.id}`} role="assistant" name="Ouro">{item.text}</Message>
+      ),
+    ]);
+    const { scroller } = await render(<MessageList label="Conversation" style={{ height: 400, width: 360 }}>{children}</MessageList>);
+    const selectors: string[] = [];
+    const all = Element.prototype.querySelectorAll;
+    vi.spyOn(Element.prototype, "querySelectorAll").mockImplementation(function (this: Element, selector: string) {
+      selectors.push(selector);
+      return all.call(this, selector);
+    } as typeof Element.prototype.querySelectorAll);
+    // The reader's wheel, far up, where nothing is drawn yet: the list holds its place by what shows, which is no message.
+    for (const top of [scroller.scrollTop / 2, scroller.scrollTop / 4]) {
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -4000 }));
+      scroller.scrollTop = top;
+      scroller.dispatchEvent(new Event("scroll"));
+      await settle(scroller);
+    }
+    expect(selectors.length).toBeGreaterThan(0);
+    expect(selectors.filter((selector) => selector.includes(":has("))).toEqual([]);
+    // It still lands on messages.
+    expect(firstVisible(scroller).message).toBeDefined();
+  });
+
   it("puts each child in a slot that draws no box, keeping a continued message's spacing, in a list of any length", async () => {
     for (const count of [10, 200]) {
       const items = conversation(count);

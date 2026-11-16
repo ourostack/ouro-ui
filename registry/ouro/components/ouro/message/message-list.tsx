@@ -280,6 +280,24 @@ function movesItems(record: MutationRecord): boolean {
   );
 }
 
+/**
+ * The messages in the content and each child of a slot that holds none (a day's heading), in the order they come in the page:
+ * walked slot by slot, as a `:has()` selector over the whole content restyles nothing but reads every element against
+ * every message (16 ms for 7,500 elements on a 4x slower CPU), on each scroll that lands where nothing is drawn yet.
+ */
+function itemsAndChildren(content: Element): Element[] {
+  const found: Element[] = [];
+  for (const slot of content.children) {
+    if (!slot.hasAttribute(SLOT)) continue;
+    for (const child of slot.children) {
+      const inside = child.querySelectorAll(items);
+      if (child.matches(items) || inside.length === 0) found.push(child);
+      found.push(...inside);
+    }
+  }
+  return found;
+}
+
 /** Sets an attribute only when its value differs, so marking the messages again changes nothing in the page. */
 function mark(element: Element, name: string, value: string): void {
   // Stryker disable next-line ConditionalExpression: setting the value an attribute already has changes nothing in the page.
@@ -1455,7 +1473,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // shows, as when it is revealed in a windowed list, with the messages around it not drawn yet.
       // An anchor is never wholly above the view (those that reach into it are the ones taken), so it shows when it starts above the view's end.
       // Stryker disable next-line EqualityOperator: a message whose edge meets the view's to the pixel shows none of itself either way.
-      if (!anchors.some(({ node }) => boxOf(node).top < view.bottom)) anchors = find([...content.querySelectorAll(`${items}, [${SLOT}] > :not(${items}):not(:has(${items}))`)]);
+      if (!anchors.some(({ node }) => boxOf(node).top < view.bottom)) anchors = find(itemsAndChildren(content));
       end = farthest();
       taken = scroller.scrollTop;
     };
