@@ -66,14 +66,17 @@ const CANDIDATES: Record<Place, Place[]> = {
 function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   const root = document.documentElement;
   let place: Place = "bottom";
+  // Stryker disable next-line ObjectLiteral: every read of size follows a measure() that overwrites it, and a move only follows one.
   let size: Size = { left: 0, right: 0, height: 0, front: 0, gap: 0 };
   // False from a move until it has rested SETTLE_MS; only a move back waits for it.
+  // Stryker disable next-line BooleanLiteral: ready is read only once the stack has moved, and a move's land sets it false before anything else runs.
   let ready = false;
   let fading = false;
   let stopFade = () => {};
   let settle: ReturnType<typeof setTimeout> | undefined;
   let frame = 0;
   let padded = false;
+  // Stryker disable next-line StringLiteral: restorePadding reads saved only once setPadding has stored the app's own value, which it does before padded is set.
   let saved = "";
 
   /** Whether the stack may move: it is at the bottom edge, or it has moved from there to the top. */
@@ -86,8 +89,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
    */
   function measure(): boolean {
     const boxes = [...viewport.querySelectorAll<HTMLElement>('[data-ouro="toast"]')].filter((toast) => toast.offsetHeight > 0).map((toast) => toast.getBoundingClientRect());
-    // The stack is mounted only while toasts are on the page, and each one is laid out by then.
-    /* istanbul ignore if @preserve -- a mounted stack always has a toast laid out; nothing reaches this without one */
+    // A stack with no toast laid out (none shows yet, or all are hidden) measures nothing.
     if (boxes.length === 0) return false;
     const left = Math.min(...boxes.map((box) => box.left));
     const right = Math.max(...boxes.map((box) => box.right));
