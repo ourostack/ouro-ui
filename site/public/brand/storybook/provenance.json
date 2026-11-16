@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@a3e90ade682ef87af4fedc6ac4a4b91cfb0c72b2:brand/",
+  "origin": "ourostack/.github@5abc3863ab43cd2e71b162d117c3c3de35cdb3f0:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -21,35 +21,35 @@
     },
     {
       "file": "headers/ouro-ui-core-dark.webp",
-      "sha256": "ee6564b6e35c57d2dbee5a1473853d24fd304b4484e80886c1507ee80744979c"
+      "sha256": "045cc49f915fadb12310d57d619de304b18abc645d3aa1cf6dd636006452402a"
     },
     {
       "file": "headers/ouro-ui-core.webp",
-      "sha256": "ed1c94ec17d8d1c23ca6648bf5459408145c198de524e5e26e226c2acc5fc9c1"
+      "sha256": "73bf31d3bba656c54ee77d5d0c8691b98c06b2cf4ee4490b59f4c4fe07141fc8"
     },
     {
       "file": "headers/ouroboros-skills-dark.webp",
-      "sha256": "13d5493da9e6e7174c7d42c2a5558ae0fe6b254393745e7826b11773cdbcbc98"
+      "sha256": "6c395331761f03626d0ffca8f6463441c4f44ebc6318aa130e26d1dc4b6e85e7"
     },
     {
       "file": "headers/ouroboros-skills.webp",
-      "sha256": "07ee142eae3d46d306d7016c39dad23316637a07c1234ffc123bd1cf554ed43b"
+      "sha256": "300ffe7223ae6d2cfba7d1f48c70182c759458b071ba6a8252a98e8adaebafd2"
     },
     {
       "file": "headers/ourostack-dark.webp",
-      "sha256": "c4c1123153dba4984f4fd27c940c92c0138716b02a17329142794d934f05e550"
+      "sha256": "7177b335b4abfa60fae156c017b1035c9fb87ef18d54c7a6f556d3724a35e325"
     },
     {
       "file": "headers/ourostack.webp",
-      "sha256": "5025e41bebdaba6d9a52a3ae5115a4e08ec095df20caffacf35127c4681d939b"
+      "sha256": "049edf3dba66a5cd3a398feccef72d344bc484f0148efbf9fb66e309b9a81b50"
     },
     {
       "file": "headers/playwright-focus-proof-dark.webp",
-      "sha256": "e12457ae377476a6b1aba95255a71256a97226801d69586ed5af104f7d681c25"
+      "sha256": "16e5c5a7728aafe5e0d889cb561ae3d0cd4393173a054c2807df39c58d7ca11d"
     },
     {
       "file": "headers/playwright-focus-proof.webp",
-      "sha256": "e5c0b4ef9e2310937ef0bb4852a865074c81526823fe8bd677a3e25930abe82d"
+      "sha256": "7ff59bab71a510ecc252dba82d0ca483e9b23fe72bd39bf00de8127dbf44345a"
     },
     {
       "file": "icons/ouro-hx-180.png",
@@ -77,15 +77,15 @@
     },
     {
       "file": "og/ouro-ui-core.jpg",
-      "sha256": "7f19ef21ace8d2eacd36dcf38712798fcbdbadad09b186b9725f7f534013ebe8"
+      "sha256": "c73fb74e6e66466bd6ae205c15c7ad97fcf6c70fc72ffeba90dc06a1e45baaa7"
     },
     {
       "file": "og/ouroboros-skills.jpg",
-      "sha256": "f18d347c349e5cf4f0791d703620cf9d8e7b266acd61a231b671f000621496d7"
+      "sha256": "56437e217d661e8ba90f1361073d4b5eb406b08d32a7c014bbd96c0931e1929c"
     },
     {
       "file": "og/playwright-focus-proof.jpg",
-      "sha256": "549d416d00e1f036abf19c3ed9962b6c42a95fcac6636c12d9472164bf23f8cc"
+      "sha256": "c37134dce7daf8d897d9848208b2f2eeb80c384ec9cf0c61ad80191f6dad6ed6"
     },
     {
       "file": "phone/ouro-hx-1152.avif",
@@ -217,259 +217,259 @@
     },
     {
       "file": "phone/ouro-ui-core-1152.avif",
-      "sha256": "5b31a9936a177e0233d1cac2050e86bd6249da231897802ad99cf23e4d1c09e7"
+      "sha256": "7c3eec664838c65da3a28581bc657b3ebffbd263d75e7d669a55467395c28dd1"
     },
     {
       "file": "phone/ouro-ui-core-1152.webp",
-      "sha256": "5b66e4abcd88bb9f44abf13705565d8677395b202f777242101edd673112006a"
+      "sha256": "598d857d62c395285e8a2c1758ebefc954e2f49f7e7da569783c0c047df99ab0"
     },
     {
       "file": "phone/ouro-ui-core-1536.avif",
-      "sha256": "75ee286b04362ce82c14e5d69345aaa0844a30d9a1df104cc67d6a01f23b5a2e"
+      "sha256": "09315c23b8731ea233d11501a2eb56c1ec25dcb6c0dfab87981e5012ba91a959"
     },
     {
       "file": "phone/ouro-ui-core-1536.webp",
-      "sha256": "60a27bbe917ff993da15d73ec837ca3eddc3728df05491594b9fd8557cd15bcd"
+      "sha256": "d9d6bbb1999a910945e4fd2cf97fb458a6d4322d81df5e0b90020dd880f8d43c"
     },
     {
       "file": "phone/ouro-ui-core-384.avif",
-      "sha256": "ec0350ad988aa0a051f0ce87d6d07fcfbe937c272b846cb16bc53ad303c872fa"
+      "sha256": "1ef477955448fc4840a596280caa81d7168b1a21bd49b750b3e5506e7e70b7a9"
     },
     {
       "file": "phone/ouro-ui-core-384.webp",
-      "sha256": "e2209b68d81c5af63d5ebd02a72cd2e5d7e44d00bbb8feb2bad9331bc34a6a54"
+      "sha256": "60d5dbdbf10f0e83fe66473f95e8e0496e14a1e386e22cf85741982e85eba2b2"
     },
     {
       "file": "phone/ouro-ui-core-768.avif",
-      "sha256": "97a30636ff67e681fd31747ad4a1c97621e2edb68798fc82037136163e295edc"
+      "sha256": "43437c70e0cc74152e8dc2c922512a7da7fe153da4971113d761a8ec22a46358"
     },
     {
       "file": "phone/ouro-ui-core-768.webp",
-      "sha256": "95ad484d2f2da17d87942cb5c4acc6109bac306203ba05ac4a2cc544828aa118"
+      "sha256": "48b9f4677ca45ae2ee9e345f8cf326510eb761bb8272e2e83aea41f0db69281b"
     },
     {
       "file": "phone/ouro-ui-core-dark-1152.avif",
-      "sha256": "921928dde185b12f2d1bdf5daf5a66e10fcb2b31101b469523ea8f17e4c940b3"
+      "sha256": "f36c4987d2696b12c74ef76154bc1769ce21ca711218e45f6a0c87b5b5d9a981"
     },
     {
       "file": "phone/ouro-ui-core-dark-1152.webp",
-      "sha256": "c7f0e14906ac46a8297e7aea3bbdb6d01ea2e12b079871a322f4377f2219f7fe"
+      "sha256": "66093cdce4b5cd2912e4f2f478a411199422c7f0122ab14bd5adbd5bff284949"
     },
     {
       "file": "phone/ouro-ui-core-dark-1536.avif",
-      "sha256": "49f54be423eb280e85b246879c70332cee556dd1474560becdcbfe9ca7699607"
+      "sha256": "b0541b6c665080096b3804b8accfb297f17b269dfebc4293c2a6fd6a4061e484"
     },
     {
       "file": "phone/ouro-ui-core-dark-1536.webp",
-      "sha256": "5f65765f8450673efdbea3fe53b0bf34d8a59b84fd382044eaac2aa8bfd60e48"
+      "sha256": "fb0276f1e5fe02c7b465093a14c5e358ba7fe205890bdf186dd5ace53e8e1b42"
     },
     {
       "file": "phone/ouro-ui-core-dark-384.avif",
-      "sha256": "b1379e4ce29a88d594a0a80909a9c2be72233db2bc244457b79d014deab5b791"
+      "sha256": "25e2b976da436e276db5598f9027d84a7c4284f8d97469d33ebb46b41a686df3"
     },
     {
       "file": "phone/ouro-ui-core-dark-384.webp",
-      "sha256": "0f45a32de057f9c747b1aab6d6c7c1c4b258b649dbe22866436c3fbd5c176cbc"
+      "sha256": "f3d56a2697cd6172e066c22333969bd62ccf3be9082b388c66effaebe9364e5b"
     },
     {
       "file": "phone/ouro-ui-core-dark-768.avif",
-      "sha256": "850139dd17c1445163a404e924b6eac4a886d1a074e76aab72e41dc72dc4f300"
+      "sha256": "3d2a6ce1bc125ad9dd6da459c8e0dd2ce5c330fb390f67e8ce1b8afbf8c0ecee"
     },
     {
       "file": "phone/ouro-ui-core-dark-768.webp",
-      "sha256": "9f47c89efb33251998a726b974e9af87c44b2e79e761b57a00fdbff273f4ee7d"
+      "sha256": "05b5dede052387ba97939bec75a30254643f84ac8e768ac7524e5e78af94a12e"
     },
     {
       "file": "phone/ouroboros-skills-1152.avif",
-      "sha256": "0ea631465ce920de73adadf8779c1602585205c872bc2e8f12408045f580d2e2"
+      "sha256": "be4e8cd1e84743829362face88820584c3b383c8ce047e2048a367308fc4768a"
     },
     {
       "file": "phone/ouroboros-skills-1152.webp",
-      "sha256": "26c4e9b6d0804e8c2c27181a895fe9cffa4c229ef9087df72fb1212c85383023"
+      "sha256": "eeb477dc4146c2c626ac144a9ffae46f0c04090f5a02136bfad08eef3915a2e7"
     },
     {
       "file": "phone/ouroboros-skills-1536.avif",
-      "sha256": "fcd636a8925b626487474fd52823131a25a0c93640348f6217375778ed992478"
+      "sha256": "82a4877e0f0ca2f51bbfc4ba8627bc9b38cab3e312ec1d928d29e622289fe8bd"
     },
     {
       "file": "phone/ouroboros-skills-1536.webp",
-      "sha256": "d9d8c14aea48bdfea9ce79264cfb90adff760196267e25079aaee7508f87582a"
+      "sha256": "1482e99c08cc13a23e73a0b40e68c3b8c3cfc2e7d4f8a950bba496ecf6f02e35"
     },
     {
       "file": "phone/ouroboros-skills-384.avif",
-      "sha256": "aa45b5352fc2c80da75d488c55bb2217d1913d1a805a9d03d49f406e0021cf65"
+      "sha256": "200ff478c6140724213b016509f15625130e7b72f0a97f7f2dc029283b9c484a"
     },
     {
       "file": "phone/ouroboros-skills-384.webp",
-      "sha256": "20b66e48d67a2a7ff88d10a8fc5865824e75a95100c67d27f345541433c2981d"
+      "sha256": "4f6cf866124dad810bede6b6f723c23c666fd3901ceaccac7b372436698fb93e"
     },
     {
       "file": "phone/ouroboros-skills-768.avif",
-      "sha256": "cf94532da531c829d2d60960dab6b64eca23a23f38a12880144772a72e40a596"
+      "sha256": "fbdd58452c082d7423ef7c654a5a817f8e317b319f50713b9a1b340f494a9c65"
     },
     {
       "file": "phone/ouroboros-skills-768.webp",
-      "sha256": "50c53f2b99ea4e4d0ee32647c35109cb3838305238f00c5c2200d41033df4fbc"
+      "sha256": "dc4cc521af7813effd3f68d02d3e109ad32c52b727eb2d58a887b5fa4c29eecd"
     },
     {
       "file": "phone/ouroboros-skills-dark-1152.avif",
-      "sha256": "1c895d80c3654173bc5fdf74a783ba7be7da55866958f45d54ffd4d40df3f616"
+      "sha256": "dc4f77dedab026dce9f40a23622c113be6f807574701a633ceb0d22ef0b11d67"
     },
     {
       "file": "phone/ouroboros-skills-dark-1152.webp",
-      "sha256": "f2c786dd6a40dce3c7c83c773d888517d7bfbb0639caff34eaff69990bf4ca43"
+      "sha256": "05aab12c1c11999d06c08954990b9d1a217d2f59145e11bc14893dd7dfe1926d"
     },
     {
       "file": "phone/ouroboros-skills-dark-1536.avif",
-      "sha256": "04d5b3075e7947bcb00c27104a13dde42cf354c6316b3d4d6a499fae7caaf0d8"
+      "sha256": "abce5fc15efc6d33f1e29feedd2c9b3dfb2328b42d26a74f444dab84698d9503"
     },
     {
       "file": "phone/ouroboros-skills-dark-1536.webp",
-      "sha256": "17fda12b1323f90641382cdde6178bd0c89891940fded9e48d28b12f48b34fae"
+      "sha256": "f54fe90051112f44f6083857f4410a14c19fba9ff3478a098bf84b3d88b2a1d9"
     },
     {
       "file": "phone/ouroboros-skills-dark-384.avif",
-      "sha256": "99ef85e70c7349d5c8a81f35c5edce4031212c0aba1d1712fd258d72d704be45"
+      "sha256": "05d973feb1ae714cc2a72d598c959ee7db781afe7cc3cf2dbb3a364b41b0d631"
     },
     {
       "file": "phone/ouroboros-skills-dark-384.webp",
-      "sha256": "f678c39bba6b5713a3781137c68e7bc8d737f8ee9155b5f04c723c28717a99a5"
+      "sha256": "e94d20bc53fbbc217b8f037f7562634737e696dc454426a532472cec703dbf54"
     },
     {
       "file": "phone/ouroboros-skills-dark-768.avif",
-      "sha256": "6ea304edf36ca371bd9a29a9f1c68a35712c0f0582b8bd06e271d8596e412ebe"
+      "sha256": "cdb2adf611fb0edd392a2382309b00928751a7dd474b5447f795906ed0d82854"
     },
     {
       "file": "phone/ouroboros-skills-dark-768.webp",
-      "sha256": "e3bc57d3b85593770bb2e08c764085b26634250e4de678d9fef680554de948c2"
+      "sha256": "94964580530c56a2bfda8cac04a64bc690f9a5e8242acffb52e652b204d05875"
     },
     {
       "file": "phone/ourostack-1152.avif",
-      "sha256": "0a370041ec8ed6e31b25e8d1bc18fc65f545192e86b8544ad3da0120da1bbd1a"
+      "sha256": "2d508d0e7f874b45b8e647347928b5762e9538345035c294b2e13cebad812bde"
     },
     {
       "file": "phone/ourostack-1152.webp",
-      "sha256": "69f27857ffcde8c1eb5ff200d68fea3f7d8c2b378cb40ec67fc1ed0dd3582ec3"
+      "sha256": "0afcaaf9bbe1d66ecc8c2843d75be147235e0b865e19e746fcda0f9f60088c36"
     },
     {
       "file": "phone/ourostack-1536.avif",
-      "sha256": "1a24d679558448fe5956c0bc1a390da0ba53bcc357ab9ad95253934cd4628c31"
+      "sha256": "fa1406305486822422226b0a3f332769e050855044224ae52409cc3436f91288"
     },
     {
       "file": "phone/ourostack-1536.webp",
-      "sha256": "4125e6d78262d3e8871463151e655d6fbb72afa8c0c3754d88779ae651304369"
+      "sha256": "73cb06ff68ee06c7eb494a4db321c974b3e1efb39a18a94cd5167ac35ebf964b"
     },
     {
       "file": "phone/ourostack-384.avif",
-      "sha256": "1ce72027974dbaa03dfe98a688ccbcedd93f9dd18961b899a39010fbf54edeac"
+      "sha256": "611d3481db74ea100377149f549dbf3c4a5bf577acf9024ce5976897fb01a88a"
     },
     {
       "file": "phone/ourostack-384.webp",
-      "sha256": "27479b7339153d9ecbffb5f6ffaa82090b1f8c8ca5c63fcb32ef862643ebdc42"
+      "sha256": "89e5388ed55f309b68bebde38cf33da802514879a4cf09e8cb4875788779e136"
     },
     {
       "file": "phone/ourostack-768.avif",
-      "sha256": "b18ed77ef2134432899a9757ea3eff25ba59cd0781c2b2a2c1854d790b9e0204"
+      "sha256": "dda7c1ee269488201e1ac1d52f067c163b87e542020692a47878a59872480c25"
     },
     {
       "file": "phone/ourostack-768.webp",
-      "sha256": "720a724e4933f22e5f1eefc5bd15bc231d91b415656444f922ea511a751f4d4d"
+      "sha256": "d968336ab875f9f0eb07229d03a5ea4a6cb85e214564feecd6ab4cf82feef1a7"
     },
     {
       "file": "phone/ourostack-dark-1152.avif",
-      "sha256": "5260cf15335bdba50c5da3b4c9b60c41626dbe887d24c41d1a615e482cc35e55"
+      "sha256": "c19d331f913474743d9b5da64634f971175dbc6d1c85c7c2e59f1f63c0afcded"
     },
     {
       "file": "phone/ourostack-dark-1152.webp",
-      "sha256": "7252da35e22e9df5fa833f33c849daad8e3da1d0617b4a5700bcd4dd17a2ddb1"
+      "sha256": "444e8c4100844bf1a0e6d6a438a626e25282d518aaa5fcc485b30b4b8df5a545"
     },
     {
       "file": "phone/ourostack-dark-1536.avif",
-      "sha256": "b027a8f6066e661dacc86ee622bc74575ebb3cce2a3f3a1aa072c4163c7410ad"
+      "sha256": "06ac6e653db79b7ee7678001ce70b102dc0302bfb6223aea0f7369b58ae8a284"
     },
     {
       "file": "phone/ourostack-dark-1536.webp",
-      "sha256": "bed2787c1ae7b2928d0f181ed6f3d92813bf3d317feab4ddbe3c58cbdd29149e"
+      "sha256": "e68ef3bb113af5d3344a076711320b1472566e64353db4309ac7ffa682a4a807"
     },
     {
       "file": "phone/ourostack-dark-384.avif",
-      "sha256": "57525d9fee7964148bb016fbd0f227e4a6efdd32fab45c6aef4f7e95d152fc37"
+      "sha256": "e76cc99b051a5c55377f0f6750cfdbd05e70ce5d7b5ea8e472f722c02aecfbfa"
     },
     {
       "file": "phone/ourostack-dark-384.webp",
-      "sha256": "38158a05d89d96bdf1969e9b61a59519a890b229d4a620735dba73a62662dbbe"
+      "sha256": "a2af536774c12f3591fab6497feba1d2ede53724b4601606a20d5160340f0c90"
     },
     {
       "file": "phone/ourostack-dark-768.avif",
-      "sha256": "9f12042d023897249d4bd9e97b4fe5f8921bf52aee3657373f40361b7ace4c0e"
+      "sha256": "e1969b4b5642ac921f1921011fc69f47795a34229545dd114c7da07aff6c1c44"
     },
     {
       "file": "phone/ourostack-dark-768.webp",
-      "sha256": "ddb291df201d5af00b07c701a16702e737d49294c2109013f6080009133c9e6f"
+      "sha256": "72cb7ec6f610e016a09738351397901a5c50f396aae26f7c2c056ae97453268a"
     },
     {
       "file": "phone/playwright-focus-proof-1152.avif",
-      "sha256": "d0775ea02e4aaf6f25924169eaafa4b3db696ca223db0f8f671536449c90f51f"
+      "sha256": "a67513148149cb92e9f8ae3542a31220f0068983a3d10d25d1e20644c0d67e39"
     },
     {
       "file": "phone/playwright-focus-proof-1152.webp",
-      "sha256": "7e78eecd556367d0a5a330854e6d53b29a0740ed7fa1d21d516df2ab65d477c7"
+      "sha256": "63232e0e067fbc47be2add6f59b308ff2a3a4927724fe97def6d69530074679b"
     },
     {
       "file": "phone/playwright-focus-proof-1536.avif",
-      "sha256": "e23349cde89af6c10d51ae3ffbfb490c9d6c1a1d265a349c3f5a94e865d46caa"
+      "sha256": "00ca83b76be815ef0388c6a01ed9485556468060d8ce1a3ebe439c16b1de5c71"
     },
     {
       "file": "phone/playwright-focus-proof-1536.webp",
-      "sha256": "fa0cb2a0daea4cdf1b908736c0974637bf5839eb7c8c8e0c078390d9f9958ec8"
+      "sha256": "9438b06dffff23ad27871631d64f571f2b9eb4fbba8ca6627b2c0d5763603f38"
     },
     {
       "file": "phone/playwright-focus-proof-384.avif",
-      "sha256": "fd07e171d8958bed5374bd853c6d12839e9f5860203f68f0fbf24226a780f7f2"
+      "sha256": "a91b7b8a7faa38adf9ae2162f64902a39f3e4662d69cbd810753f277cacba26e"
     },
     {
       "file": "phone/playwright-focus-proof-384.webp",
-      "sha256": "175c0e57df906775cafb2ad626de7bb87109c0159cc1a671ab11d793c1ae1229"
+      "sha256": "5a299b4c182a94e72e44f08dc6dc1ace3efdb5fd483f86000d33b94a1ad3ac0e"
     },
     {
       "file": "phone/playwright-focus-proof-768.avif",
-      "sha256": "4a56e73705f863d3a2e1dbdd7361d0312b1ea5098a46731bf5b59709c16846a6"
+      "sha256": "a09d7041348c76cc2987ce29cb8af63d97485de9bc1a5ebb187378592435abac"
     },
     {
       "file": "phone/playwright-focus-proof-768.webp",
-      "sha256": "2077f07a64788a919a6e9cae42dcdea86013a2b952ee802fcd01caa00ff1659c"
+      "sha256": "db4727ed96a0956d89b2044c36cff13fef1d54c1344510558c7fb4bbd4c00dfa"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1152.avif",
-      "sha256": "68524769f882ef5b858dc636c4e6614e98b6767ee282bcf9f6cec2cd5fbe942f"
+      "sha256": "9c611b48deb4ecc135944ca979a8843ad15a0e1eca17f4ed3af7d30aaf02907c"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1152.webp",
-      "sha256": "223e3efc239d876f3c1170b98f78de63a7dc877a16536ed02163ff27a5b669b4"
+      "sha256": "46c42fcb45fa4e33a9afdefa562029d56c3d6e7e3314effd9c36a41845309167"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1536.avif",
-      "sha256": "11a06de1c1d6ce51c2c1b7a672a9783c75eb317a4442ece17815aaf8238259c7"
+      "sha256": "988caf66dabe2f3cc4b431d9806f09ecd3a9e0068ed57bf6eac68184c2b94d8e"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1536.webp",
-      "sha256": "4ce3ced22190082883fc557809d352d21215384a3bd0caef9b0939d200d96e5f"
+      "sha256": "484834179699de3d387e93c25c2df44f0cbeb357e8c9f600849097b68028f0a1"
     },
     {
       "file": "phone/playwright-focus-proof-dark-384.avif",
-      "sha256": "9f04f39aefe215593bbfe956325d301dc941b3725303feefe088ab74587e1594"
+      "sha256": "063a7d2fa079868d43fcd79b8c1f57a377b05c2b5609cbf71a458f157d9b1470"
     },
     {
       "file": "phone/playwright-focus-proof-dark-384.webp",
-      "sha256": "3ee4621e99825e422454d592c668dfbd17b2d0465347cacce06f8873e15b47c7"
+      "sha256": "0363f8219c3338a6836debd8263a80bf8decdd25b9878bd0493ab942f7d4782a"
     },
     {
       "file": "phone/playwright-focus-proof-dark-768.avif",
-      "sha256": "6b62b9d68547a40b1d34bb363b5814ee9cd6c929f267d643b72371bb15148405"
+      "sha256": "fa7b5e4ee4d4276ecaf46910f7b8b0e4efd09d131f9e8e08de9dc53081cc6242"
     },
     {
       "file": "phone/playwright-focus-proof-dark-768.webp",
-      "sha256": "83c20716f63d3d119948f3f4c4705e485fe9f7e09ffdea872cc9cb8546831629"
+      "sha256": "51e9602a29d87b00012d939c83352d28d7ae2dbc6708f9ae3723b772b14129d0"
     },
     {
       "file": "scenes/ouro-hx-1536.avif",
@@ -585,227 +585,227 @@
     },
     {
       "file": "scenes/ouro-ui-core-1536.avif",
-      "sha256": "82b7999610bad854467ff5d55184c172370ae22b4129abfd5edd1a49ed9b6766"
+      "sha256": "4d7b883a26a0baf0e441c4a3145b2ec7d31f1c4f8bcc8d8ec2a06761df7973c3"
     },
     {
       "file": "scenes/ouro-ui-core-3072.avif",
-      "sha256": "1b0f46bd0ded4ea5ba494e5be400670536e5ecc99e2c267a853ce7255339be4a"
+      "sha256": "277dcd84f01d2a8788b700156d742933693ab35dc48658118e3696ac9f219888"
     },
     {
       "file": "scenes/ouro-ui-core-3072.webp",
-      "sha256": "92c4a9beb70a2ed55d3b9e29aa5ae99ce8e835dea08eaf01be4115356e7953fa"
+      "sha256": "b2ef01025618363ad5867063b20cee98e895e147188f1217c532a0bb9f409b99"
     },
     {
       "file": "scenes/ouro-ui-core-640.avif",
-      "sha256": "1a915f55f395b8558d007eb7101fdc13026dfe00e1c8fbe38f05b84937e9d43c"
+      "sha256": "1f089d43c17841d9bf277e6cc10f2bf7b70eea291c377c0c6e0084b3d342dca3"
     },
     {
       "file": "scenes/ouro-ui-core-640.webp",
-      "sha256": "50fe43170c77d5e22fde5d5cb9b7f1ad6cd649246598d65da2a8378ea312d671"
+      "sha256": "e198f9a7b442d5b610b111a176d54545bad55ea97d43d8e24d27baea463bacd3"
     },
     {
       "file": "scenes/ouro-ui-core-960.avif",
-      "sha256": "3576d39b711cce7f078341218d64257ba7aff610bfb2a1ad3e4d910bdb944857"
+      "sha256": "f1fd70db34acde2d828229415f55a26d4db002031af682f2bdc421257f96759e"
     },
     {
       "file": "scenes/ouro-ui-core-960.webp",
-      "sha256": "bb20202d64fd0a84250d56e9ad42721c58ab07bfd96e400c86ddedfaad7a3b8a"
+      "sha256": "c150fc96101a1300fe902507c42967f61723bd4efa4068ca74d4ca2068353253"
     },
     {
       "file": "scenes/ouro-ui-core-dark-1536.avif",
-      "sha256": "1d233f3051d10e8d436a0ef2a7e8f73326ae02e411ad22390607fab954acb436"
+      "sha256": "7934b9d7a582b6d2f6db9e343177759817854781bcc0dfe771d6d75c497dafbf"
     },
     {
       "file": "scenes/ouro-ui-core-dark-3072.avif",
-      "sha256": "1bfd291d45f88976e83b75572e862af85f127b7dd0a005b89938b731fbaed22c"
+      "sha256": "ecfbb627dbd61957932b36d1fbeeaff00444d2bc97ff0c6e1f1ab449b35b4813"
     },
     {
       "file": "scenes/ouro-ui-core-dark-3072.webp",
-      "sha256": "a8228dfb3f3bc12426fec7fd0f5ef0e1e52bfd1e21b7aa9d2f0405668d5bfedb"
+      "sha256": "3b22d5c327e806c1c4c9763e0ada26680cffc1d144e2b3d4547c44d2621f7f1b"
     },
     {
       "file": "scenes/ouro-ui-core-dark-640.avif",
-      "sha256": "be08ec070554194ef0327a1f7cf990a8b3521555f2bfd016752f0f3708f3d06a"
+      "sha256": "1ae56138a972c8e7a3a7b6bec49408fc6150c47a42f4f6f7485578a11b216683"
     },
     {
       "file": "scenes/ouro-ui-core-dark-640.webp",
-      "sha256": "29b8eca88fe88a9ed90d299884e9ff633dd310fb3269507c8a3da62ab6100ee1"
+      "sha256": "be747a6c7ed1394f633887491d51bd8e179c29003c075b3257d94d2516ed8738"
     },
     {
       "file": "scenes/ouro-ui-core-dark-960.avif",
-      "sha256": "1cb420a6e7cb490cf0760eb66bcb71036ec474d2cf66683575b861beb7320d84"
+      "sha256": "465d2c95cdc0026ef6b1c948cef0d86e65f06a5bcadbdd80bf9bf5dee01c844d"
     },
     {
       "file": "scenes/ouro-ui-core-dark-960.webp",
-      "sha256": "d1704f00bdd0fddaf69a0d9396441e6ff32e6ba69310242822247b222b1bbac1"
+      "sha256": "11bf557c006ccc4ba92eef06ef75d174a8040b6704e45cc68fc204e43405b79d"
     },
     {
       "file": "scenes/ouroboros-skills-1536.avif",
-      "sha256": "08e5dd2add3f62231c079b1a10d14275834052d828c8d54cb2d67459be2112c9"
+      "sha256": "e55e17d8edddf04180337920ecf95460b2ba038d4cce69b9b6f20c332abcfd3c"
     },
     {
       "file": "scenes/ouroboros-skills-3072.avif",
-      "sha256": "6cb1d4d8d10b51d70296f50dab92910ee2db79e562bfba8b4a0d5a7cec314b65"
+      "sha256": "6989d4b5cb25695f62576103af54bb52bc41e316bc1257a812f83913080465a9"
     },
     {
       "file": "scenes/ouroboros-skills-3072.webp",
-      "sha256": "f85364da3ef3f59a3b1f31664f0cdc091c9b400c5b0990526454392940ffb16d"
+      "sha256": "81763bd554c3107a6385d61a031295947fc1b6b38b6e509b2753514be08cdfd1"
     },
     {
       "file": "scenes/ouroboros-skills-640.avif",
-      "sha256": "b03d25dd4d006d9f2f0fabf285a659bf790a2ed5db07dbe0242ab3ccc5ec2ee2"
+      "sha256": "c0f9b8afb21baef61b936807236a6e5652c3830cfd36d84a5a29071603a978d3"
     },
     {
       "file": "scenes/ouroboros-skills-640.webp",
-      "sha256": "b9ad82e4c9de9796286981b9b09154467d31894e345262368c6e1cc43ccb344f"
+      "sha256": "b5e9adf8284f066bf1a1b6d15a43d36dd44a0bb3eae10e39d2d465fa49fec89b"
     },
     {
       "file": "scenes/ouroboros-skills-960.avif",
-      "sha256": "8364d56405dbe897caa89895bc59516fd415bc0a87758503a2ceb7a8662c8de7"
+      "sha256": "981a7fbc3fee4192596cf4f14bdf1db51a91d489475af382d3f1d822e15bc62d"
     },
     {
       "file": "scenes/ouroboros-skills-960.webp",
-      "sha256": "609e10f33fc6573f9131de9cf48113dd684736bc751a7be0fb30a08e39afd3b5"
+      "sha256": "8c6789a2091bde4d4bc485f6432e102ae9e10a3f288feb1743b189b60babde46"
     },
     {
       "file": "scenes/ouroboros-skills-dark-1536.avif",
-      "sha256": "859a4f487f5e4846672519c382600e049938af4e0e4bd38c63b4874fcc1bd479"
+      "sha256": "73100f954bd8c654ff93d7ce421b23e1817e58e6a13b4d0e598eadade23ca751"
     },
     {
       "file": "scenes/ouroboros-skills-dark-3072.avif",
-      "sha256": "51fb851f1e5ddcc4dd0e5f6d8390e6a3b06c93fc1ac3ed9627510f1e1ed6331f"
+      "sha256": "e64ea2c9a67be53c942a24d552ac35532c3d8d6a9cf5ee01a7d086a27dfd66dc"
     },
     {
       "file": "scenes/ouroboros-skills-dark-3072.webp",
-      "sha256": "5d833d33b8f020a209a6a580186d576cc1fe5a59b5cd16f1f6678872d4c770d3"
+      "sha256": "dd1e702178d28b4477d7f3007e8968d0c8f8618a5638001d7270e15e72a299f5"
     },
     {
       "file": "scenes/ouroboros-skills-dark-640.avif",
-      "sha256": "bb2be9b855f195ac9e559345d03f6f04f3d8a39442b3cb94270151d815549e8b"
+      "sha256": "fedda028550942d2dadcc35aa6f56bc1710f527946d8f2ce3c8042a48d7df7aa"
     },
     {
       "file": "scenes/ouroboros-skills-dark-640.webp",
-      "sha256": "0e562e2dbfdc1593d78abb3d93ab69b1ef5a02dfbb9a8a93dcac1f47493bd5ce"
+      "sha256": "4f785ff39d6f6a245213ac86fe86dac147ebe6a6505a39a393ba31ba0c4c6e34"
     },
     {
       "file": "scenes/ouroboros-skills-dark-960.avif",
-      "sha256": "8798fe6754f716d5b0edfc762f5015450d9a26fd4d814c4b6f324963de618997"
+      "sha256": "1d5a7f62aae487a264a8f5a73c85b749cd22cf6e2033f706a688261afaec54ea"
     },
     {
       "file": "scenes/ouroboros-skills-dark-960.webp",
-      "sha256": "3a3478b7d7ac8591085b8d689e828754b570844deba758f6d03d0ff738f33041"
+      "sha256": "3f8014ffa33f622d265c0a9121005bed03eb1b80c5dd1296b87e99d16f8f3584"
     },
     {
       "file": "scenes/ourostack-1536.avif",
-      "sha256": "fe959a62eec9a6e356415f6132af80b5dffd417fff32414c60ab21f6feda3718"
+      "sha256": "8db2a9beae1e5a7ecb51807260369a46339747b4574af63372b05faa2c12ea0b"
     },
     {
       "file": "scenes/ourostack-3072.avif",
-      "sha256": "9472690f9cb1c19685550a418a1d95273f59e0ee141ff7e9f7afe9baca3b1890"
+      "sha256": "c32d04973081ff01c7bfbe565b19d50f79f6ce707f9fa5243dfdd14928d7d7c6"
     },
     {
       "file": "scenes/ourostack-3072.webp",
-      "sha256": "ef68c169855cc6b7654fef6aa503c84b66b71032e0c90c88ec2ed360670f7cb5"
+      "sha256": "1f90c4a9fa528e8b5a02189556c73216142db125209dce9b850246d2c4af62c1"
     },
     {
       "file": "scenes/ourostack-640.avif",
-      "sha256": "9b7cccc1eb3c6cbb86417c2d51936c9da716d757f9d0362ee7f6b5e9a7dfe765"
+      "sha256": "6a7ce4cb9591a1f9ec39a62b62f49a3f0fd0a5d278cf4c5041c0b765f82201fa"
     },
     {
       "file": "scenes/ourostack-640.webp",
-      "sha256": "89194bb58d348b0d4cbd6b6b4ac54a4a9e5611f6387e9ab70bbbc26218ef5bfe"
+      "sha256": "790c61dc64d544906a1a9e57d12e3ea8388cb7d98cf5f76db64a1a756a9ba81d"
     },
     {
       "file": "scenes/ourostack-960.avif",
-      "sha256": "1e1b6439542abec278b054cafb2ec05c568b3388686c576332cde6c2f4b846b4"
+      "sha256": "1a5da7b85aa995fc542d9a9f6fd95989344db1ec7d87c80c05022a27f080b88c"
     },
     {
       "file": "scenes/ourostack-960.webp",
-      "sha256": "e907f9f9f5d45305d09f91237b0bd68dbfcd439ef7cd659d4a484d8612c748a6"
+      "sha256": "724d509c9bc04f0340a3b89554540ebf2330122a2d963c91079125d40a6a7cab"
     },
     {
       "file": "scenes/ourostack-dark-1536.avif",
-      "sha256": "ff14939314d6ff1db74e2024c4566b3606e388b5a9a6907f7db95b12524cc887"
+      "sha256": "31c29f327e674cd611e33e9f333b61c14433c5cf36ea535bf52f057d5f6b82d1"
     },
     {
       "file": "scenes/ourostack-dark-3072.avif",
-      "sha256": "7fc11cb5f254fef79fe43458e2bddda380f336727c0bfd89b3982a6b29b9581e"
+      "sha256": "8f1a3e9fb09bbfbee53faa15f6da4cd4c73f1ecfdacb940d9d01c485a9cd8281"
     },
     {
       "file": "scenes/ourostack-dark-3072.webp",
-      "sha256": "c928360a4cf497ccc8fcb0f324d802ed0249f47a6fbfc7e10d2e19600ccc96cb"
+      "sha256": "c575c19a4be55e1f80c7bc367016d2ef0ff6a8850314eb438c0361900ef22b55"
     },
     {
       "file": "scenes/ourostack-dark-640.avif",
-      "sha256": "400b0c75eba796544657c9acfbe53020caef7d6f792b91b19806ebc0b99f1151"
+      "sha256": "244a0f432f8df349ead51de0576364061f64ea8a524e083509b06db4297a2154"
     },
     {
       "file": "scenes/ourostack-dark-640.webp",
-      "sha256": "f905d9d8e853d7a29613bc757d87865750ae1f575dd0a0c1616daf338e38f78d"
+      "sha256": "f18f143fc4bcc76879eb6e1cea6b5894ce3425fe5803eab09e255533b2f095b0"
     },
     {
       "file": "scenes/ourostack-dark-960.avif",
-      "sha256": "5dd580b5cc35b99ca7090555315ae3affdec6b838d1b356ce08a1fe0cec02b4f"
+      "sha256": "9a99e1db9c59290421e87b3fc2723236ec889e7ddea43e31cd99f9c22c2efb34"
     },
     {
       "file": "scenes/ourostack-dark-960.webp",
-      "sha256": "7f992c747e1d8d7898cdfba53ceb1d648fb3d9be929a7f0fb2508b1126aade7f"
+      "sha256": "b741ab0be6b0910673c47c6ab656129c6f5fb7f634a3a040fbf4981cb5ad9442"
     },
     {
       "file": "scenes/playwright-focus-proof-1536.avif",
-      "sha256": "ef2ab064fc60e1a40d79859eb634e8e7b79d9d438e2e1f6aab613532e6975c25"
+      "sha256": "f02bed6e5794c59aaf4267198ab7a00418920be0713f8579a6c5476e1fbabfc2"
     },
     {
       "file": "scenes/playwright-focus-proof-3072.avif",
-      "sha256": "2f33030def3806549e7f3c0188941607760a854939ff8f50b4549bfa7f8052c7"
+      "sha256": "764cb486d94bc6c8f266c42917c901e27db4f86c4464e30660ced87b3fc60806"
     },
     {
       "file": "scenes/playwright-focus-proof-3072.webp",
-      "sha256": "09d3945d5c0c994cff8bb5c979aba6663117c1368f05e0b74cde5bc022c2d57d"
+      "sha256": "f0ea06eb4051fe1ae5e400159044fdce33cffcf7877d6b570c3e8eae50818844"
     },
     {
       "file": "scenes/playwright-focus-proof-640.avif",
-      "sha256": "1a41ddee3433f4bd05f318e646b20d5e1987b7d998f66c7a737536c721d336ba"
+      "sha256": "f0b28a137c53389c7e1dce19421270031e0bb8cd2ffec00259e824744fc856a8"
     },
     {
       "file": "scenes/playwright-focus-proof-640.webp",
-      "sha256": "33bda1724554a376ffca9a03f5bf4738a6887a86b9fe8817f70cee364a5df9f8"
+      "sha256": "0b66be6d3497e899ee3ceac6bd29958dc6a6763ea498a54c4bc539401298a1df"
     },
     {
       "file": "scenes/playwright-focus-proof-960.avif",
-      "sha256": "f69a1ef1c738b17bef10549bd0bcc6b60fee1b5fd588548c6dbaf4099ca0e5bd"
+      "sha256": "6578caf3ee2eeb2e73082b9a6b941785c659322b8e4b837c222f56c321f2118e"
     },
     {
       "file": "scenes/playwright-focus-proof-960.webp",
-      "sha256": "1eeb7ea2df130fb63b086344b5add8719182befa6c2f316ac4e230cc07524cde"
+      "sha256": "97bb472fafd1803571bdca0d4498d09485d3303fc3bed38304f4a1406cd6e79c"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-1536.avif",
-      "sha256": "2b052e989f58c67ff9992d82da352774848e134f23713230f5c608abd108cc29"
+      "sha256": "3bef3ff1403c73a572d89fd76411bcccb63699d3906a18bb128c618ff07683cc"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-3072.avif",
-      "sha256": "d1fc091dca6081fc0b348abef15fb204f5e27e78742e8885767fc1cfb49a0287"
+      "sha256": "11b009644712d42cad8c1fed58ca8e87689df3338d0a82463de0a224497c805c"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-3072.webp",
-      "sha256": "a69f53746af8637e4e37bf44c08070153b413c36afb0ae60460709b355994e1d"
+      "sha256": "166a3e984ae7425b09181e3f924b9de1c3014ed60a445472f58de6ce9c3ec7fa"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-640.avif",
-      "sha256": "5aafa368d2ec58645e2170d73958f3503659d64905c950592b4c8a7c39016170"
+      "sha256": "fad72849e896b15c67ea4578173d5c0ae5dcf8754a6645fcf775dd3d4ebfcb13"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-640.webp",
-      "sha256": "419c3e74e24ecbc713c473731388b7fd8edc9994168bf276b6e14df15cd096de"
+      "sha256": "7ed515aaa60a1636f596599f7900bf5ea4120b58a1df715c4d5021ac997a9aa7"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-960.avif",
-      "sha256": "8b0e5575ad1dde8fb9a114380d9ae31e75440d9a46814928ae547fd09a9fe759"
+      "sha256": "ed414972730c8a56941c089da7774ed628cfe49cb8d83b3e1b0d770fb391633b"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-960.webp",
-      "sha256": "3fc2024474cdb95f5f5fc597f82052217327bc5571d427b189e3a13ca459f644"
+      "sha256": "50c0c7e8347cc230648418500225261126464fe926212ec15a8c0e762ea289f0"
     }
   ]
 }
