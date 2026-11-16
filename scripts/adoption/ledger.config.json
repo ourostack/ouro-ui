@@ -811,7 +811,15 @@
       "name": "Hackamore",
       "kind": "CLI",
       "repo": "ourostack/hackamore",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "A CLI only."
