@@ -16,6 +16,7 @@ import { insertText } from "@/registry/ouro/lib/ouro/insert-text";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 
 /** What sent the message: the Enter key in the box, or a press of the send button. */
 export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement> | MouseEvent<HTMLButtonElement>;
@@ -413,6 +414,7 @@ function insertTokens(control: HTMLTextAreaElement, event: { preventDefault(): v
  * @claim "room for the rest of a composer" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > draws one focus outline, on the frame, while the text has focus, and none on the text itself)
  */
 export function Composer(props: ComposerProps): JSX.Element {
+  const platform = usePlatform();
   const {
     label,
     onSend,
@@ -717,7 +719,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                   tone={expanded ? "primary" : "secondary"}
                   aria-label={expandLabel}
                   aria-pressed={expanded}
-                  aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand)}
+                  aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand, platform)}
                   disabled={disabled}
                   // A press keeps focus, and the caret, in the text.
                   onMouseDown={(event) => event.preventDefault()}

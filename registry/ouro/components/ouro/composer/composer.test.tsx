@@ -79,7 +79,16 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  delete (navigator as { platform?: unknown }).platform;
 });
+
+/** Pretends the browser runs on `platform`, through the modern API and the legacy one, so a shortcut's form is deterministic. */
+function onPlatform(platform: "macOS" | "Windows") {
+  const legacy = { macOS: "MacIntel", Windows: "Win32" }[platform];
+  Object.defineProperty(navigator, "userAgentData", { configurable: true, value: { platform } });
+  Object.defineProperty(navigator, "platform", { configurable: true, value: legacy });
+}
 
 describe("Composer", () => {
   it("is a message box named by its label, one line tall with the placeholder on it, and a send button", async () => {
@@ -1107,6 +1116,22 @@ const edited = (value: string, start: number, end: number, kind: Parameters<type
   const next = value.slice(0, change.from) + change.text + value.slice(change.to);
   return `${next.slice(0, change.start)}[${next.slice(change.start, change.end)}]${next.slice(change.end)}`;
 };
+
+describe("Composer shortcuts' platform", () => {
+  it.each([
+    ["macOS", "Meta"],
+    ["Windows", "Control"],
+  ] as const)("names the expand shortcut's mod as %s's own modifier", async (platform, modifier) => {
+    onPlatform(platform);
+    await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    expect(expandButton()!.getAttribute("aria-keyshortcuts")).toBe(`${modifier}+Shift+X`);
+  });
+
+  it("names the expand shortcut's mod both ways on the server", () => {
+    const html = renderToString(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />);
+    expect(html).toContain('aria-keyshortcuts="Control+Shift+X Meta+Shift+X"');
+  });
+});
 
 describe("Composer formatting", () => {
   it("applies Teams' formatting keys, and takes each back with Undo and gives it again with Redo", async () => {

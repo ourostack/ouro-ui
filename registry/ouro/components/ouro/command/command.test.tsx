@@ -53,8 +53,17 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  delete (navigator as { platform?: unknown }).platform;
   await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
+
+/** Pretends the browser runs on `platform`, through the modern API and the legacy one, so a shortcut's form is deterministic. */
+function onPlatform(platform: "macOS" | "Windows" | "Linux") {
+  const legacy = { macOS: "MacIntel", Windows: "Win32", Linux: "Linux x86_64" }[platform];
+  Object.defineProperty(navigator, "userAgentData", { configurable: true, value: { platform } });
+  Object.defineProperty(navigator, "platform", { configurable: true, value: legacy });
+}
 
 const warnings = () => warn.mock.calls.map((call: unknown[]) => call[0]);
 const popup = () => document.querySelector<HTMLElement>("[data-ouro-presentation]");
@@ -1486,6 +1495,18 @@ describe("Command duplicate labels", () => {
     await userEvent.click(page.getByRole("option").nth(1));
     expect(second).toHaveBeenCalledOnce();
     expect(first).not.toHaveBeenCalled();
+  });
+});
+
+describe("Command shortcuts' platform", () => {
+  it.each([
+    ["macOS", "Meta"],
+    ["Windows", "Control"],
+    ["Linux", "Control"],
+  ] as const)("names a command's mod as %s's own modifier, and no other", async (platform, modifier) => {
+    onPlatform(platform);
+    await openPalette();
+    expect(page.getByRole("option", { name: /^New recipe/ }).element().getAttribute("aria-keyshortcuts")).toBe(`${modifier}+N`);
   });
 });
 

@@ -86,8 +86,17 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  delete (navigator as { platform?: unknown }).platform;
   await commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none" });
 });
+
+/** Pretends the browser runs on `platform`, through the modern API and the legacy one, so a shortcut's form is deterministic. */
+function onPlatform(platform: "macOS" | "Windows" | "Linux") {
+  const legacy = { macOS: "MacIntel", Windows: "Win32", Linux: "Linux x86_64" }[platform];
+  Object.defineProperty(navigator, "userAgentData", { configurable: true, value: { platform } });
+  Object.defineProperty(navigator, "platform", { configurable: true, value: legacy });
+}
 
 const warnings = () => warn.mock.calls.map((call: unknown[]) => call[0]);
 const menus = () => [...document.querySelectorAll<HTMLElement>('[data-ouro="menu"]')];
@@ -360,6 +369,7 @@ describe("Menu items", () => {
   });
 
   it("keeps the shortcut out of the item's name and announces it with aria-keyshortcuts", async () => {
+    onPlatform("macOS");
     await openDropdown(
       {},
       <>
@@ -368,7 +378,7 @@ describe("Menu items", () => {
       </>,
     );
     const edit = page.getByRole("menuitem", { name: "Edit", exact: true }).element();
-    expect(edit.getAttribute("aria-keyshortcuts")).toBe("Control+Shift+E Meta+Shift+E");
+    expect(edit.getAttribute("aria-keyshortcuts")).toBe("Meta+Shift+E");
     expect(edit.querySelector('[data-ouro="kbd"]')!.getAttribute("aria-hidden")).toBe("true");
     const pin = page.getByRole("menuitemcheckbox", { name: "Pin", exact: true }).element();
     expect(pin.getAttribute("aria-keyshortcuts")).toBe("Alt+Backspace");
@@ -1519,6 +1529,31 @@ describe("Menu server rendering", () => {
     expect(html).toContain('role="menubar"');
     expect(html).toContain(">File<");
     expect(html).toContain(">Area<");
+  });
+});
+
+describe("Menu shortcuts' platform", () => {
+  it.each([
+    ["macOS", "Meta"],
+    ["Windows", "Control"],
+    ["Linux", "Control"],
+  ] as const)("names mod as %s's own modifier on every kind of item, and no other", async (platform, modifier) => {
+    onPlatform(platform);
+    await openDropdown(
+      {},
+      <>
+        <MenuItem shortcut={["mod", "e"]}>Edit</MenuItem>
+        <MenuCheckboxItem shortcut={["mod", "p"]}>Pin</MenuCheckboxItem>
+        <MenuRadioGroup label="Sort" defaultValue="name">
+          <MenuRadioItem value="name" shortcut={["mod", "n"]}>
+            Name
+          </MenuRadioItem>
+        </MenuRadioGroup>
+      </>,
+    );
+    expect(page.getByRole("menuitem", { name: "Edit", exact: true }).element().getAttribute("aria-keyshortcuts")).toBe(`${modifier}+E`);
+    expect(page.getByRole("menuitemcheckbox", { name: "Pin", exact: true }).element().getAttribute("aria-keyshortcuts")).toBe(`${modifier}+P`);
+    expect(page.getByRole("menuitemradio", { name: "Name", exact: true }).element().getAttribute("aria-keyshortcuts")).toBe(`${modifier}+N`);
   });
 });
 

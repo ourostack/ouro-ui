@@ -89,8 +89,17 @@ afterEach(async () => {
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
+  delete (navigator as { userAgentData?: unknown }).userAgentData;
+  delete (navigator as { platform?: unknown }).platform;
   await page.viewport(414, 896);
 });
+
+/** Pretends the browser runs on `platform`, through the modern API and the legacy one, so a shortcut's form is deterministic. */
+function onPlatform(platform: "macOS" | "Windows") {
+  const legacy = { macOS: "MacIntel", Windows: "Win32" }[platform];
+  Object.defineProperty(navigator, "userAgentData", { configurable: true, value: { platform } });
+  Object.defineProperty(navigator, "platform", { configurable: true, value: legacy });
+}
 
 describe("Toolbar", () => {
   it("is a labeled toolbar of Ouro Toggles and Buttons, groups and separators", async () => {
@@ -256,8 +265,9 @@ describe("Toolbar", () => {
   });
 
   it("shows an icon-only control's label and shortcut in a tooltip, and sets aria-keyshortcuts", async () => {
+    onPlatform("macOS");
     const { buttons } = await render(<Toolbar label="Formatting" items={formatting} />, 900);
-    expect(buttons[0]!.getAttribute("aria-keyshortcuts")).toBe("Control+B Meta+B");
+    expect(buttons[0]!.getAttribute("aria-keyshortcuts")).toBe("Meta+B");
     expect(buttons[1]!.hasAttribute("aria-keyshortcuts")).toBe(false);
     await userEvent.hover(buttons[0]!);
     const shown = await shownTooltip();
@@ -1148,12 +1158,14 @@ describe("Toolbar development messages", () => {
 
 describe("Toolbar server rendering", () => {
   it("renders every control on the server and hydrates with no warning", async () => {
+    onPlatform("macOS");
     const error = vi.spyOn(console, "error");
     const node = <Toolbar label="Formatting" items={formatting} />;
     const html = renderToString(node);
     expect(html).toContain('role="toolbar"');
     expect(html).toContain('aria-label="Formatting"');
     expect(html).toContain('data-ouro="toolbar"');
+    expect(html).toContain('aria-keyshortcuts="Control+B Meta+B"');
     const host = document.createElement("div");
     host.style.width = "900px";
     host.innerHTML = html;
@@ -1170,5 +1182,8 @@ describe("Toolbar server rendering", () => {
     // The row settles in the resize observer's first report, before the first paint.
     await frame();
     expect(host.querySelectorAll("button")).toHaveLength(5);
+    // Once hydrated, each control names only the platform's modifier.
+    expect(host.querySelector('[data-ouro-toolbar-entry="0"]')!.getAttribute("aria-keyshortcuts")).toBe("Meta+B");
+    expect(host.querySelector('[data-ouro-toolbar-entry="3"]')!.getAttribute("aria-keyshortcuts")).toBe("Meta+K");
   });
 });
