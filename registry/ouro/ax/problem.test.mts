@@ -25,6 +25,15 @@ test("didYouMean: the nearest within a couple of edits, else a unique prefix, el
   assert.equal(didYouMean("", ["a"]), null);
 });
 
+test("didYouMean: a short word suggests only a name an edit away, not one that changes half its letters", () => {
+  const commands = ["demo", "adopt", "status", "type"];
+  assert.equal(didYouMean("nope", commands), null);
+  assert.equal(didYouMean("typo", commands), "type");
+  assert.equal(didYouMean("stauts", commands), "status");
+  // Two letters side by side swapped are one edit, as the commonest typo is.
+  assert.equal(didYouMean("romos", ["rooms", "post"]), "rooms");
+});
+
 test("didYouMean: a closer name wins over a longer unique prefix", () => {
   assert.equal(didYouMean("n", ["names", "in", "limit"]), "in");
 });
