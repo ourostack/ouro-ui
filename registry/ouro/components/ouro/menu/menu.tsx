@@ -422,11 +422,15 @@ function watchFirstItem(popup: HTMLElement): () => void {
     // A phone's sheet keeps the first focus Base UI gives it.
     if (!first || popup.getAttribute("data-ouro-presentation") === "sheet" || !target.matches(":focus-visible")) return;
     item = target;
-    popup.focus({ preventScroll: true });
+    // VoiceOver read the item again only when the popup took focus a frame after the item had it, not in the same task.
     frame = requestAnimationFrame(() => {
+      if (!popup.hasAttribute("data-open") || document.activeElement !== target) return void (frame = 0);
+      popup.focus({ preventScroll: true });
       frame = requestAnimationFrame(() => {
-        frame = 0;
-        if (popup.hasAttribute("data-open") && document.activeElement === popup) target.focus({ preventScroll: true });
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          if (popup.hasAttribute("data-open") && document.activeElement === popup) target.focus({ preventScroll: true });
+        });
       });
     });
   };
