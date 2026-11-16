@@ -16,6 +16,11 @@ permissions:
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# A git transfer that stalls ends after a minute below 1 KB/s, rather than holding its job until the job's time limit,
+# and actions/checkout fetches again (ourostack/ouro-ui#1765: three checkouts stalled 20 to 26 minutes on 2026-11-16).
+env:
+  GIT_HTTP_LOW_SPEED_LIMIT: 1000
+  GIT_HTTP_LOW_SPEED_TIME: 60
 # Each job ends within about twice the 90th percentile of its passing runs (the last 60 runs of
 # this workflow, 2026-10-22), and 10 minutes at least: a runner that hangs, as on a mirror that
 # stopped answering (#174's queue run 39783627653), fails its job instead of holding the merge
