@@ -14,12 +14,13 @@ test("Checkbox is announced with its name, role and state, and its change when c
     await page.keyboard.press("Space");
     await expect(box).toBeChecked();
   };
-  // VoiceOver at times says nothing after Space, though the box is checked (ourostack/ouro-ui#118). It
+  // VoiceOver at times says nothing after Space, though the box is checked (ourostack/ouro-ui#118), on macOS 15 only. It
   // does the same for a native <input type="checkbox"> and a plain role="checkbox", so it is then
   // asked to describe the focused box, which must give its name, role and new state in one sentence.
   // Saying "unchecked" instead is still a failure. NVDA must announce the change.
   await heardOrDescribed(sr, check, (phrase) => inOneSentence(phrase, CHECKED), (phrase) => inOneSentence(phrase, named, CHECKBOX, CHECKED), "checked, after Space", {
     finding: "ourostack/ouro-ui#118",
     contradicts: (phrase) => inOneSentence(phrase, UNCHECKED),
+    olderMacOS: true,
   });
 });

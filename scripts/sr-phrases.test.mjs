@@ -305,18 +305,22 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118) and th
   assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
   // The Menu's opening is only logged on macOS 15's VoiceOver, and must be read everywhere else (#1721).
   const menuSpec = readFileSync(join(dir, "menu.sr.spec.ts"), "utf8");
-  assert.match(menuSpec, /process\.platform === "darwin" && Number\(release\(\)\.split\("\."\)\[0\]\) < 25\) \{\n {4}await said\(sr, open,/);
+  assert.match(menuSpec, /if \(onOlderMacOS\(\)\) \{\n {4}await said\(sr, open,/);
   assert.match(menuSpec, /\} else \{\n {4}await heard\(sr, open,/);
   // A field Form focuses after a submit needs no fallback: Form's alert says the error for every reader (#1720).
   const textField = readFileSync(join(dir, "text-field.sr.spec.ts"), "utf8");
   assert.match(textField, /heard\(sr, submit, \(phrase\) => inOneSentence\(phrase, \/\\bcouldn't save\\b\/i/);
   const checkbox = readFileSync(join(dir, "checkbox.sr.spec.ts"), "utf8");
   assert.match(checkbox, /ourostack\/ouro-ui#118/);
+  // #118 is VoiceOver's on macOS 15 alone (macOS 26 reads the change), so it falls back only there; #119 still misses on 26.
+  assert.match(checkbox, /finding: "ourostack\/ouro-ui#118",\n[^\n]*\n {4}olderMacOS: true,/);
   assert.doesNotMatch(checkbox, /from: "container"/);
   const checklist = readFileSync(join(dir, "checklist.sr.spec.ts"), "utf8");
   const dialog = readFileSync(join(dir, "dialog.sr.spec.ts"), "utf8");
   assert.match(checklist, /ourostack\/ouro-ui#118/);
   assert.match(dialog, /ourostack\/ouro-ui#119/);
+  assert.match(checklist, /finding: "ourostack\/ouro-ui#118",\n[^\n]*\n {4}olderMacOS: true,/);
+  assert.doesNotMatch(dialog, /olderMacOS/);
   // The Dialog's is its opening step, which describes the focus's container, not the closing one.
   assert.match(dialog, /heardOrDescribed\(sr, \(\) => page\.keyboard\.press\("Enter"\)[^\n]*from: "container"/);
   assert.doesNotMatch(checklist, /from: "container"/);

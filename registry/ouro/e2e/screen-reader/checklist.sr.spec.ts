@@ -14,11 +14,12 @@ test("Checklist announces an item's name, role and state, and its change when ti
   const named = (sentence: string) => sentence.toLowerCase().includes(name.toLowerCase());
   await heard(sr, () => item.focus(), (phrase) => inOneSentence(phrase, named, CHECKBOX, before ? CHECKED : UNCHECKED), `"${name}", checkbox, ${before ? "checked" : "unchecked"}`);
   const after = before ? UNCHECKED : CHECKED;
-  // VoiceOver at times says only the checkbox's hint after Space (ourostack/ouro-ui#118): it is then
+  // VoiceOver at times says only the checkbox's hint after Space (ourostack/ouro-ui#118), on macOS 15 only: it is then
   // asked to describe the focused row, which must give its name, role and new state in one sentence.
   await heardOrDescribed(sr, () => page.keyboard.press("Space"), (phrase) => inOneSentence(phrase, after), (phrase) => inOneSentence(phrase, named, CHECKBOX, after), `${before ? "unchecked" : "checked"}, after Space`, {
     finding: "ourostack/ouro-ui#118",
     contradicts: (phrase) => inOneSentence(phrase, before ? CHECKED : UNCHECKED),
+    olderMacOS: true,
   });
   await expect(item).toBeChecked({ checked: !before });
 });

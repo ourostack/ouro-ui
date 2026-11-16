@@ -1,7 +1,6 @@
-import { release } from "node:os";
 import { expect } from "@playwright/test";
 import { inOneSentence, nameAndRole } from "./phrases";
-import { heard, said, startReading, test } from "./screen-reader";
+import { heard, onOlderMacOS, said, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.use({ storyId: storyIds.menu });
@@ -20,7 +19,7 @@ test("Menu is announced from its trigger, reads each item the arrow keys reach, 
     await page.keyboard.press("Enter");
     await expect(menu.getByRole("menuitem", { name: /^Edit/ })).toBeFocused();
   };
-  if (process.platform === "darwin" && Number(release().split(".")[0]) < 25) {
+  if (onOlderMacOS()) {
     await said(sr, open, "as the menu opens on Edit");
     console.log("[sr] finding (ourostack/ouro-ui#1721): VoiceOver on macOS 15 does not read a menu's first item as the menu opens; macOS 26 does");
   } else {
