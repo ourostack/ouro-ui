@@ -934,6 +934,35 @@ describe("Menu focus", () => {
     frames.release();
   });
 
+  it("a key that leaves focus on the first item before the popup takes focus ends the wait, so the popup never takes it", async () => {
+    const frames = holdFrames();
+    await render(<Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>);
+    trigger().focus();
+    const focus = recordFocus();
+    await userEvent.keyboard("{Enter}");
+    frames.until(() => focus.length === 1);
+    await userEvent.keyboard("{Shift}");
+    frames.step();
+    frames.step();
+    frames.step();
+    expect(focus).toEqual(["Edit"]);
+    frames.release();
+  });
+
+  it("a key while another item has taken focus leaves focus on that item", async () => {
+    const { frames, focus } = await openFromKeyboard("{Enter}");
+    expect(focus).toEqual(["Edit", "popup"]);
+    // As a pointer moving over an item does in Chromium.
+    await act(async () => (item("Duplicate").element() as HTMLElement).focus());
+    expect(document.activeElement?.textContent).toBe("Duplicate");
+    await userEvent.keyboard("{Shift}");
+    frames.step();
+    frames.step();
+    expect(document.activeElement?.textContent).toBe("Duplicate");
+    expect(focus).toEqual(["Edit", "popup", "Duplicate"]);
+    frames.release();
+  });
+
   it("opened from the keyboard, focus goes through the popup and back to the first item two frames later", async () => {
     const { frames, focus } = await openFromKeyboard("{Enter}");
     expect(focus).toEqual(["Edit", "popup"]);
