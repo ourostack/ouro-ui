@@ -145,7 +145,7 @@ export function pickInstall(release: string, registry: string): Install {
  * tag's version (scripts/registry.mts --release), it is this checkout's own: CI on that commit runs
  * before the tag exists, and has to pass for the tag to be pushed.
  */
-export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 4): string {
+export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 4, fetchTimeout = 10_000): string {
   const own = reader(root)("registry.json");
   if (tag === `v${(JSON.parse(own) as { version?: string }).version}`) return own;
   const show = () => execFileSync("git", ["show", `${tag}:registry.json`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
@@ -155,8 +155,16 @@ export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 
     // A shallow checkout lacks the tag. A runner's fetch of it can fail for a moment while every other job's succeeds
     // (ourostack/ouro-ui#1715), and processes that fetch it at once contend for .git/shallow.lock, so the loser's fetch
     // fails while the winner's brings the tag in (ourostack/ouro-ui#1746). So after a failed fetch the tag is read
-    // again before the next try, and a failure says what git said first and last.
-    const fetch = () => execFileSync("git", ["fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], { cwd: root, stdio: ["ignore", "ignore", "pipe"] });
+    // again before the next try, and a failure says what git said first and last. A fetch that stalls is ended, by git
+    // when its transfer stops and by a time limit otherwise, so the tries end within the 60 s Vite gives this module
+    // (ourostack/ouro-ui#1757): 4 tries of 10 s and 3 waits of 2 s.
+    const fetch = () =>
+      execFileSync("git", ["-c", "http.lowSpeedLimit=1000", "-c", `http.lowSpeedTime=${Math.ceil(fetchTimeout / 1000)}`, "fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], {
+        cwd: root,
+        stdio: ["ignore", "ignore", "pipe"],
+        timeout: fetchTimeout,
+        killSignal: "SIGKILL",
+      });
     const said = (error: unknown) => String((error as { stderr?: Buffer }).stderr ?? "").trim() || String(error);
     const failures: unknown[] = [];
     for (let attempt = 0; attempt < tries; attempt++) {
@@ -173,7 +181,7 @@ export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 
         }
       }
     }
-    throw new Error(`git fetch of ${tag} failed ${tries} times, ${retryAfter} ms apart. First: ${said(failures[0])}. Last: ${said(failures.at(-1))}`, { cause: failures.at(-1) });
+    throw new Error(`git fetch of ${tag} failed ${tries} times, ${retryAfter} ms apart, each within ${fetchTimeout} ms. First: ${said(failures[0])}. Last: ${said(failures.at(-1))}`, { cause: failures.at(-1) });
   }
 }
 
