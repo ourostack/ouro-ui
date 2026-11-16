@@ -202,6 +202,7 @@ fi
 # retry it. The preload (scripts/raw-fetch-retry-preload.mjs) retries each such request inside the
 # shadcn process, so one dropped file costs one request. This function then reruns the whole add for a
 # failure the preload did not absorb, with a warning each time; any other failure stays red.
+# Every add from GitHub goes through it (scripts/raw-fetch-retry.test.mjs holds that).
 # Usage: add_retrying_raw_fetch <shadcn package spec> <address>...
 add_retrying_raw_fetch() {
   local pin=$1 log="$registry/add.log" attempt=0 delays=(5 15) file
@@ -371,7 +372,7 @@ if [ "$variant" = upgrade ]; then
   # brings button and sheet), the v0.1.0 test setup, and a test and Vitest project of its own.
   # <base> is the layout's folder (src or app).
   v010_app() {
-    "${shadcn[@]}" add --yes "ourostack/ouro-ui/dialog#v0.1.0"
+    add_retrying_raw_fetch "${shadcn[2]}" "ourostack/ouro-ui/dialog#v0.1.0"
     cp -R "$root/test/install-fixture-tests/." .
     cp -R "$root/test/install-fixture-upgrade/." .
     if [ "$1" = app ]; then to_app_layout; fi
@@ -475,7 +476,7 @@ fi
 if [ "$variant" = ouro ]; then
   if git -C "$root" cat-file -e "$ref:registry.json" 2>/dev/null; then
     echo "::group::ouro-theme from GitHub at $ref"
-    "${shadcn[@]}" add --yes "ourostack/ouro-ui/ouro-theme#$ref"
+    add_retrying_raw_fetch "${shadcn[2]}" "ourostack/ouro-ui/ouro-theme#$ref"
   else
     echo "::group::ouro-theme from this commit's registry ($ref commits no registry.json, as main does not)"
     "${shadcn[@]}" add --yes "$registry/r/ouro-theme.json"
