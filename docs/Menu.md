@@ -27,7 +27,7 @@ Pass `trigger` for a dropdown, `contextTrigger` for a context menu, `label` for 
 
 It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet.
 
-A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab goes on from wherever focus went. In a right-to-left page (`dir="rtl"` on `<html>`) a submenu opens to the left, with ArrowLeft.
+A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab goes on from wherever focus went. Opened from the keyboard, a menu makes VoiceOver read its first item, not only that it is in a menu. In a right-to-left page (`dir="rtl"` on `<html>`) a submenu opens to the left, with ArrowLeft.
 
 ## Use instead when
 
