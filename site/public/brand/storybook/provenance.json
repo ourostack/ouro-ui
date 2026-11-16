@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@5abc3863ab43cd2e71b162d117c3c3de35cdb3f0:brand/",
+  "origin": "ourostack/.github@a051a878f06602fdff4650855211f5a7ce1c8b5c:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -45,7 +45,7 @@
     },
     {
       "file": "headers/playwright-focus-proof-dark.webp",
-      "sha256": "16e5c5a7728aafe5e0d889cb561ae3d0cd4393173a054c2807df39c58d7ca11d"
+      "sha256": "6d83d3946bd3c2e6c5bb00775c8c0784c49c717b13e36d33967437012407948a"
     },
     {
       "file": "headers/playwright-focus-proof.webp",
@@ -441,35 +441,35 @@
     },
     {
       "file": "phone/playwright-focus-proof-dark-1152.avif",
-      "sha256": "9c611b48deb4ecc135944ca979a8843ad15a0e1eca17f4ed3af7d30aaf02907c"
+      "sha256": "dfeffbb8a876909ba1b83bd57d86efd84b31389f0a914ff6cbe273e024270833"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1152.webp",
-      "sha256": "46c42fcb45fa4e33a9afdefa562029d56c3d6e7e3314effd9c36a41845309167"
+      "sha256": "f7195d17413559887e337b7de9f3ecc3dd7649d0ea157027fab1e1ffec1e1cc8"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1536.avif",
-      "sha256": "988caf66dabe2f3cc4b431d9806f09ecd3a9e0068ed57bf6eac68184c2b94d8e"
+      "sha256": "23fdaa8715ca21ff792e0ffd6af5d18865837e5ad7b70816d7a7b20fbbecc72c"
     },
     {
       "file": "phone/playwright-focus-proof-dark-1536.webp",
-      "sha256": "484834179699de3d387e93c25c2df44f0cbeb357e8c9f600849097b68028f0a1"
+      "sha256": "a1de17a7d114238ac2a3a9e36c6b52a25f04837f821d60a63856587abe833c6f"
     },
     {
       "file": "phone/playwright-focus-proof-dark-384.avif",
-      "sha256": "063a7d2fa079868d43fcd79b8c1f57a377b05c2b5609cbf71a458f157d9b1470"
+      "sha256": "bc42baf8fb97bae447a360dc2266f912a2db9c7620352aa1e8b7e43c74694102"
     },
     {
       "file": "phone/playwright-focus-proof-dark-384.webp",
-      "sha256": "0363f8219c3338a6836debd8263a80bf8decdd25b9878bd0493ab942f7d4782a"
+      "sha256": "c96ff2720e77ed5ba2176ba4b5491ad9b6d431f2ea2328bb9ff1beb30e8f818c"
     },
     {
       "file": "phone/playwright-focus-proof-dark-768.avif",
-      "sha256": "fa7b5e4ee4d4276ecaf46910f7b8b0e4efd09d131f9e8e08de9dc53081cc6242"
+      "sha256": "c665cad7d4aba36575d2c834c1e7fc6e6d4b8a3559b55403632009f30e3e4160"
     },
     {
       "file": "phone/playwright-focus-proof-dark-768.webp",
-      "sha256": "51e9602a29d87b00012d939c83352d28d7ae2dbc6708f9ae3723b772b14129d0"
+      "sha256": "ea85b64c08d569e7135d8c391476f724e23852e538edddf745632a2222e85134"
     },
     {
       "file": "scenes/ouro-hx-1536.avif",
@@ -781,31 +781,31 @@
     },
     {
       "file": "scenes/playwright-focus-proof-dark-1536.avif",
-      "sha256": "3bef3ff1403c73a572d89fd76411bcccb63699d3906a18bb128c618ff07683cc"
+      "sha256": "cececfa0d55dfab0267fae07ea95b503eb1a885fd461a0dc7b989966d9e81bf7"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-3072.avif",
-      "sha256": "11b009644712d42cad8c1fed58ca8e87689df3338d0a82463de0a224497c805c"
+      "sha256": "f18b63cb4e3e4715fe4e6e032da2416cabc855c710ab76d64611f8aaab5f9768"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-3072.webp",
-      "sha256": "166a3e984ae7425b09181e3f924b9de1c3014ed60a445472f58de6ce9c3ec7fa"
+      "sha256": "2a99d7034c084e577d4efcc7aea9691cdd991cc948603ea2aac60d831cafb137"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-640.avif",
-      "sha256": "fad72849e896b15c67ea4578173d5c0ae5dcf8754a6645fcf775dd3d4ebfcb13"
+      "sha256": "d79dc8015639aa7da9622d5ab5d8f56bfd7c5d183648da5a8347ef550c2f367d"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-640.webp",
-      "sha256": "7ed515aaa60a1636f596599f7900bf5ea4120b58a1df715c4d5021ac997a9aa7"
+      "sha256": "93075e15970602658da8f70a19f856c982d54fc194f6e353ce8b9c9f839ef295"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-960.avif",
-      "sha256": "ed414972730c8a56941c089da7774ed628cfe49cb8d83b3e1b0d770fb391633b"
+      "sha256": "3a708ba4dae4dfaec15a89eb3b75dd11fc2290fcc9f0f93041f6037aecbe57c3"
     },
     {
       "file": "scenes/playwright-focus-proof-dark-960.webp",
-      "sha256": "50c0c7e8347cc230648418500225261126464fe926212ec15a8c0e762ea289f0"
+      "sha256": "7214f0b6afbcae5c8a150e67af95ce6497bf1181dad929ca54bd76fe8e5c0fef"
     }
   ]
 }
