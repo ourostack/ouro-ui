@@ -75,6 +75,9 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   let stopFade = () => {};
   let settle: ReturnType<typeof setTimeout> | undefined;
   let frame = 0;
+  // A press focuses a control, and :focus-visible shows a text field's focus as keyboard focus, so a
+  // press is told apart by its pointerdown, and the next key press says the focus is the keyboard's again.
+  let pointing = false;
   let padded = false;
   // Stryker disable next-line StringLiteral: restorePadding reads saved only once setPadding has stored the app's own value, which it does before padded is set.
   let saved = "";
@@ -112,7 +115,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
             const { position } = getComputedStyle(node);
             if (viewport.contains(node) || (position !== "fixed" && position !== "sticky")) continue;
             const box = node.getBoundingClientRect();
-            if (box.top <= 0 && box.bottom > bottom && node.checkVisibility({ visibilityProperty: true })) bottom = box.bottom;
+            if (box.top <= 0 && node.checkVisibility({ visibilityProperty: true })) bottom = Math.max(bottom, box.bottom);
           }
         }
       }
@@ -220,23 +223,32 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
     const active = document.activeElement;
     if (fading || !active || viewport.contains(active) || !movable() || !measure()) return;
     const box = active === document.body ? undefined : active.getBoundingClientRect();
-    if (box && active.matches(":focus-visible") && covers(box, zone(place))) choose(box);
+    if (box && !pointing && active.matches(":focus-visible") && covers(box, zone(place))) choose(box);
     relax(box);
   }
 
   // A browser that scrolls a focused control into view does it as the focus moves, so the check waits
-  // for the next frame, after the control is where the browser left it.
-  const onFocusIn = () => {
+  // for the next frame, after the control is where the browser left it. Focus that falls to nothing
+  // waits too: a press blurs a control before it focuses the next one, which can land in the same task.
+  const later = () => {
     // Stryker disable next-line CallExpression: two checks in one frame decide the same, and the second finds the first's move already made or nothing to move.
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(decide);
   };
   // Focus that falls to nothing (a blur, a click on the page) is a move away from every control.
   const onFocusOut = (event: FocusEvent) => {
-    if (!event.relatedTarget) decide();
+    if (!event.relatedTarget) later();
   };
-  document.addEventListener("focusin", onFocusIn);
+  const onPointerDown = () => {
+    pointing = true;
+  };
+  const onKeyDown = () => {
+    pointing = false;
+  };
+  document.addEventListener("focusin", later);
   document.addEventListener("focusout", onFocusOut);
+  document.addEventListener("pointerdown", onPointerDown, true);
+  document.addEventListener("keydown", onKeyDown, true);
   addEventListener("resize", refresh);
   viewport.addEventListener("transitionend", refresh);
   refresh();
@@ -248,8 +260,10 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
       stopFade();
       clearTimeout(settle);
       cancelAnimationFrame(frame);
-      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusin", later);
       document.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
       removeEventListener("resize", refresh);
       viewport.removeEventListener("transitionend", refresh);
       restorePadding();

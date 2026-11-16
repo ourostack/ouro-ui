@@ -354,6 +354,52 @@ describe("keepFocusClear", () => {
       expect(document.activeElement).toBe(field);
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
     });
+
+    it("does not move the stack for a pointer's press on a text field it covers, which :focus-visible shows as keyboard focus", async () => {
+      const bar = setup();
+      const field = control("field", COVERED, "input");
+      await userEvent.click(field);
+      await frames(3);
+      expect(document.activeElement).toBe(field);
+      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
+    });
+
+    it("moves the stack for keyboard focus on a control it covers after a pointer press", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      const field = control("field", MIDDLE, "input");
+      await userEvent.click(field);
+      await frames(3);
+      await pressTab({ shift: true });
+      expect(document.activeElement).toBe(caseOf("covered"));
+      await frames();
+      advance(FADE_MS);
+      expect(stateOf(bar).moved).toBe("top");
+    });
+
+    it("moves the stack for a control it covers that a script focuses before anyone presses a key or a pointer", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      caseOf("covered").focus();
+      await frames();
+      advance(FADE_MS);
+      expect(stateOf(bar).moved).toBe("top");
+    });
+
+    it("reads each element of the window's top edge once a measure, though several points sit under it", async () => {
+      setup();
+      const top = header({ left: 0, top: 0, width: 390, height: 100 });
+      control("covered", COVERED);
+      const points = vi.spyOn(document, "elementsFromPoint");
+      const styles = vi.spyOn(window, "getComputedStyle");
+      await tab("covered");
+      advance(FADE_MS);
+      // Each measure asks six points what is under them, and reads the header once.
+      const measures = points.mock.calls.length / 6;
+      expect(measures).toBeGreaterThan(0);
+      expect(styles.mock.calls.filter(([node]) => node === top)).toHaveLength(measures);
+      vi.restoreAllMocks();
+    });
   });
 
   describe("settling", () => {
@@ -436,13 +482,14 @@ describe("keepFocusClear", () => {
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
     });
 
-    it("moves back at once when focus falls to nothing once the stack has rested", async () => {
+    it("moves back on the frame after focus falls to nothing, once the stack has rested", async () => {
       const bar = setup();
       control("covered", COVERED);
       await tab("covered");
       advance(FADE_MS);
       advance(SETTLE_MS);
       (document.activeElement as HTMLElement).blur();
+      await frames();
       expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
       advance(FADE_MS);
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
@@ -484,6 +531,20 @@ describe("keepFocusClear", () => {
     expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     await frames();
     expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
+  });
+
+  it("does not move for focus that falls to nothing and lands on a control the bottom covers in the same task", async () => {
+    const bar = setup();
+    control("covered", COVERED);
+    await tab("covered");
+    advance(FADE_MS);
+    advance(SETTLE_MS);
+    expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    // A press blurs the control and focuses the next one before any frame; the stack looks once focus has landed.
+    (document.activeElement as HTMLElement).blur();
+    caseOf("covered").focus();
+    await frames();
+    expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
   });
 
   describe("the fade", () => {
