@@ -44,7 +44,7 @@ export function PageDirection({ of, children }: { of?: RefObject<Element | null>
   const [rtl, setRtl] = useState(false);
   useLayoutEffect(() => {
     // The nearest `dir` attribute, read without laying the page out (a computed style would force a style pass on mount).
-    const read = () => setRtl(((of instanceof Element ? of : of?.current) ?? document.documentElement).closest("[dir]")?.getAttribute("dir")!.toLowerCase() === "rtl");
+    const read = () => setRtl(((of instanceof Element ? of : of?.current) ?? document.documentElement).closest("[dir]")?.matches('[dir="rtl" i]') === true);
     read();
     return subscribe(read);
   }, [of]);
