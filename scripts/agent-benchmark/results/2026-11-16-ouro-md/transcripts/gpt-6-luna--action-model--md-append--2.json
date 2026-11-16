@@ -1,0 +1,62 @@
+{
+  "model": "gpt-6-luna",
+  "modelId": "gpt-6-luna",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 2,
+  "toolsUsed": [
+    "list_documents",
+    "append_to_document"
+  ],
+  "textReadChars": 215,
+  "wallMs": 4097,
+  "modelCalls": 3,
+  "tokens": {
+    "input": 1862,
+    "output": 69,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 0,
+    "total": 1931
+  },
+  "costAiu": 0.02207,
+  "costSource": "runtime",
+  "finalMessage": "Added “- [ ] Call the harbor master” to the end of your Plan document.",
+  "transcript": {
+    "messages": [
+      "Added “- [ ] Call the harbor master” to the end of your Plan document."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_documents",
+        "args": {
+          "query": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 96,
+        "result": "{\"documents\":\"Plan  /documents/Plan.md\\nLisbon plan  /documents/Trips/Lisbon plan.md\",\"count\":2}"
+      },
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "Plan",
+          "markdown": "- [ ] Call the harbor master"
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 28 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

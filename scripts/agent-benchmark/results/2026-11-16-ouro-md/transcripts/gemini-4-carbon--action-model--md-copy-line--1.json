@@ -1,0 +1,90 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-copy-line",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "list_documents",
+    "read_document",
+    "read_document",
+    "append_to_document",
+    "read_document"
+  ],
+  "textReadChars": 759,
+  "wallMs": 30598,
+  "modelCalls": 4,
+  "tokens": {
+    "input": 5676,
+    "output": 823,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 639,
+    "total": 6499
+  },
+  "costAiu": 1.9582,
+  "costSource": "runtime",
+  "finalMessage": "I found the harbor master's phone number in Notes and added `- [ ] Call the harbor master (Ines Duarte, +351 21 555 0142)` to the end of Plan.",
+  "transcript": {
+    "messages": [
+      "I found the harbor master's phone number in Notes and added `- [ ] Call the harbor master (Ines Duarte, +351 21 555 0142)` to the end of Plan."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_documents",
+        "args": {},
+        "ms": 0,
+        "resultChars": 156,
+        "result": "{\"documents\":\"Plan  /documents/Plan.md\\nNotes  /documents/Notes.md\\nLisbon plan  /documents/Trips/Lisbon plan.md\\nScratch  /documents/Scratch.md\",\"count\":4}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Notes"
+        },
+        "ms": 0,
+        "resultChars": 171,
+        "result": "{\"markdown\":\"# Notes\\n\\nHarbor master: Ines Duarte, +351 21 555 0142.\\n\\nThe ferry leaves at 07:40 from pier 3.\\n\",\"name\":\"Notes\",\"path\":\"/documents/Notes.md\",\"length\":95}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 124,
+        "result": "{\"markdown\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"name\":\"Plan\",\"path\":\"/documents/Plan.md\",\"length\":51}"
+      },
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "Plan",
+          "markdown": "- [ ] Call the harbor master (Ines Duarte, +351 21 555 0142)"
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 60 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      },
+      {
+        "name": "read_document",
+        "args": {
+          "document": "Plan"
+        },
+        "ms": 0,
+        "resultChars": 189,
+        "result": "{\"markdown\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\\n- [ ] Call the harbor master (Ines Duarte, +351 21 555 0142)\\n\",\"name\":\"Plan\",\"path\":\"/documents/Plan.md\",\"length\":113}"
+      }
+    ]
+  },
+  "redacted": false
+}

@@ -1,0 +1,87 @@
+{
+  "model": "gemini-4-carbon",
+  "modelId": "gemini-4-carbon",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 4,
+  "toolsUsed": [
+    "list_directory",
+    "list_directory",
+    "read_text_file",
+    "edit_file"
+  ],
+  "textReadChars": 171,
+  "wallMs": 30088,
+  "modelCalls": 5,
+  "tokens": {
+    "input": 2965,
+    "output": 219,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 68,
+    "total": 3184
+  },
+  "costAiu": 0.812,
+  "costSource": "runtime",
+  "finalMessage": "I added \"- [ ] Call the harbor master\" to the end of `Plan.md`.",
+  "transcript": {
+    "messages": [
+      "I added \"- [ ] Call the harbor master\" to the end of `Plan.md`."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_directory",
+        "args": {
+          "path": "."
+        },
+        "ms": 0,
+        "resultChars": 33,
+        "result": "{\"error\":\"No such directory: ..\"}"
+      },
+      {
+        "name": "list_directory",
+        "args": {
+          "path": ""
+        },
+        "ms": 0,
+        "resultChars": 60,
+        "result": "[DIR] Trips\n[FILE] Notes.md\n[FILE] Plan.md\n[FILE] Scratch.md"
+      },
+      {
+        "name": "read_text_file",
+        "args": {
+          "path": "Plan.md"
+        },
+        "ms": 0,
+        "resultChars": 51,
+        "result": "# Plan\n\n- [x] Book the ferry\n- [ ] Pack the charts\n"
+      },
+      {
+        "name": "edit_file",
+        "args": {
+          "edits": [
+            {
+              "newText": "- [ ] Pack the charts\n- [ ] Call the harbor master",
+              "oldText": "- [ ] Pack the charts"
+            }
+          ],
+          "path": "Plan.md"
+        },
+        "ms": 0,
+        "resultChars": 27,
+        "result": "Successfully edited Plan.md"
+      }
+    ]
+  },
+  "redacted": false
+}

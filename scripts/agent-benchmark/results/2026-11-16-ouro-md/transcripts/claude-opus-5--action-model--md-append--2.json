@@ -1,0 +1,52 @@
+{
+  "model": "claude-opus-5",
+  "modelId": "claude-opus-5",
+  "transport": "copilot",
+  "arm": "action-model",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 1,
+  "toolsUsed": [
+    "append_to_document"
+  ],
+  "textReadChars": 119,
+  "wallMs": 3018,
+  "modelCalls": 2,
+  "tokens": {
+    "input": 2914,
+    "output": 114,
+    "cacheRead": 1389,
+    "cacheWrite": 1521,
+    "reasoning": 0,
+    "total": 3028
+  },
+  "costAiu": 1.307075,
+  "costSource": "runtime",
+  "finalMessage": "I appended \"- [ ] Call the harbor master\" to the end of your Plan document.",
+  "transcript": {
+    "messages": [
+      "I appended \"- [ ] Call the harbor master\" to the end of your Plan document."
+    ],
+    "toolCalls": [
+      {
+        "name": "append_to_document",
+        "args": {
+          "document": "Plan",
+          "markdown": "- [ ] Call the harbor master"
+        },
+        "ms": 0,
+        "resultChars": 119,
+        "result": "{\"state\":\"done\",\"summary\":\"Added 28 characters to the end of Plan.\",\"checked\":\"Read the document back after the edit.\"}"
+      }
+    ]
+  },
+  "redacted": false
+}

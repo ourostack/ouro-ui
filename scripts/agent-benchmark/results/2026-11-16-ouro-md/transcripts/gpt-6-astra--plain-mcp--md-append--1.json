@@ -1,0 +1,97 @@
+{
+  "model": "gpt-6-astra",
+  "modelId": "gpt-6-astra",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 1,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "list_directory",
+    "list_directory",
+    "read_text_file",
+    "read_text_file",
+    "edit_file"
+  ],
+  "textReadChars": 264,
+  "wallMs": 10516,
+  "modelCalls": 6,
+  "tokens": {
+    "input": 2235,
+    "output": 151,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 0,
+    "total": 2386
+  },
+  "costAiu": 2.99,
+  "costSource": "runtime",
+  "finalMessage": "Added “- [ ] Call the harbor master” to the end of your Plan document.",
+  "transcript": {
+    "messages": [
+      "Added “- [ ] Call the harbor master” to the end of your Plan document."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_directory",
+        "args": {
+          "path": "."
+        },
+        "ms": 0,
+        "resultChars": 33,
+        "result": "{\"error\":\"No such directory: ..\"}"
+      },
+      {
+        "name": "list_directory",
+        "args": {
+          "path": "/"
+        },
+        "ms": 0,
+        "resultChars": 60,
+        "result": "[DIR] Trips\n[FILE] Notes.md\n[FILE] Plan.md\n[FILE] Scratch.md"
+      },
+      {
+        "name": "read_text_file",
+        "args": {
+          "path": "/Plan.md"
+        },
+        "ms": 0,
+        "resultChars": 93,
+        "result": "{\"error\":\"No document is called \\\"/Plan.md\\\". List the documents for their names and paths.\"}"
+      },
+      {
+        "name": "read_text_file",
+        "args": {
+          "path": "Plan.md"
+        },
+        "ms": 0,
+        "resultChars": 51,
+        "result": "# Plan\n\n- [x] Book the ferry\n- [ ] Pack the charts\n"
+      },
+      {
+        "name": "edit_file",
+        "args": {
+          "path": "Plan.md",
+          "edits": [
+            {
+              "oldText": "- [ ] Pack the charts",
+              "newText": "- [ ] Pack the charts\n- [ ] Call the harbor master"
+            }
+          ]
+        },
+        "ms": 0,
+        "resultChars": 27,
+        "result": "Successfully edited Plan.md"
+      }
+    ]
+  },
+  "redacted": false
+}

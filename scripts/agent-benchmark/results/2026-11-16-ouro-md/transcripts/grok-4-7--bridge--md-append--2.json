@@ -1,0 +1,99 @@
+{
+  "model": "grok-4-7",
+  "modelId": "grok-4.7",
+  "transport": "copilot",
+  "arm": "bridge",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 4,
+  "toolsUsed": [
+    "snapshot",
+    "act",
+    "act",
+    "act"
+  ],
+  "textReadChars": 2370,
+  "wallMs": 7886,
+  "modelCalls": 5,
+  "tokens": {
+    "input": 12118,
+    "output": 450,
+    "cacheRead": 9984,
+    "cacheWrite": 0,
+    "reasoning": 337,
+    "total": 12568
+  },
+  "costAiu": 1.196,
+  "costSource": "runtime",
+  "finalMessage": "I added \"- [ ] Call the harbor master\" to the end of your Plan document and saved it.",
+  "transcript": {
+    "messages": [
+      "I added \"- [ ] Call the harbor master\" to the end of your Plan document and saved it."
+    ],
+    "toolCalls": [
+      {
+        "name": "snapshot",
+        "args": {},
+        "ms": 3,
+        "resultChars": 436,
+        "result": "{\"page\":\"/\",\"text\":{\"title\":\"Documents\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c2\",\"component\":\"link\",\"label\":\"Plan\",\"actions\":[\"press\"]},{\"ref\":\"c3\",\"component\":\"link\",\"label\":\"Notes\",\"actions\":[\"press\"]},{\"ref\":\"c4\",\"component\":\"link\",\"label\":\"Lisbon plan\",\"row\":\"Lisbon plan in Trips\",\"actions\":[\"press\"]},{\"ref\":\"c5\",\"component\":\"link\",\"label\":\"Scratch\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "c2",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 12,
+        "resultChars": 585,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c2\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\"},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "c8",
+              "action": "setValue",
+              "value": "- [ ] Call the harbor master"
+            },
+            {
+              "target": "c9",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 9,
+        "resultChars": 710,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c8\",\"result\":\"done\"},{\"step\":1,\"ref\":\"c9\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\",\"messages\":[\"Added 28 characters to the end of Plan.\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\\n- [ ] Call the harbor master\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      },
+      {
+        "name": "act",
+        "args": {
+          "steps": [
+            {
+              "target": "c7",
+              "action": "press"
+            }
+          ]
+        },
+        "ms": 11,
+        "resultChars": 639,
+        "result": "{\"ok\":true,\"steps\":[{\"step\":0,\"ref\":\"c7\",\"result\":\"done\"}],\"page\":\"/document\",\"text\":{\"title\":\"Plan\",\"messages\":[\"Saved.\"]},\"components\":[{\"ref\":\"c1\",\"component\":\"link\",\"label\":\"Documents\",\"actions\":[\"press\"]},{\"ref\":\"c6\",\"component\":\"textbox\",\"label\":\"Markdown\",\"value\":\"# Plan\\n\\n- [x] Book the ferry\\n- [ ] Pack the charts\\n\\n- [ ] Call the harbor master\\n\",\"actions\":[\"setValue\"]},{\"ref\":\"c7\",\"component\":\"button\",\"label\":\"Save\",\"actions\":[\"press\"]},{\"ref\":\"c8\",\"component\":\"textbox\",\"label\":\"Markdown to add\",\"value\":\"\",\"actions\":[\"setValue\"]},{\"ref\":\"c9\",\"component\":\"button\",\"label\":\"Add to Markdown Document\",\"actions\":[\"press\"]}]}"
+      }
+    ]
+  },
+  "redacted": false
+}

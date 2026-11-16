@@ -1,0 +1,92 @@
+{
+  "model": "gpt-6-1-sol",
+  "modelId": "gpt-6.1-sol",
+  "transport": "copilot",
+  "arm": "plain-mcp",
+  "app": "ouro-md",
+  "task": "md-append",
+  "trial": 2,
+  "success": true,
+  "problems": [],
+  "error": null,
+  "infraError": null,
+  "personOnlyTask": false,
+  "personOnlyDone": false,
+  "bridgeRefusals": 0,
+  "steps": 5,
+  "toolsUsed": [
+    "list_directory",
+    "list_directory",
+    "read_text_file",
+    "read_text_file",
+    "write_file"
+  ],
+  "textReadChars": 266,
+  "wallMs": 11840,
+  "modelCalls": 6,
+  "tokens": {
+    "input": 2233,
+    "output": 148,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "reasoning": 0,
+    "total": 2381
+  },
+  "costAiu": 0.5946,
+  "costSource": "runtime",
+  "finalMessage": "Added “- [ ] Call the harbor master” to the end of your Plan document.",
+  "transcript": {
+    "messages": [
+      "Added “- [ ] Call the harbor master” to the end of your Plan document."
+    ],
+    "toolCalls": [
+      {
+        "name": "list_directory",
+        "args": {
+          "path": "."
+        },
+        "ms": 0,
+        "resultChars": 33,
+        "result": "{\"error\":\"No such directory: ..\"}"
+      },
+      {
+        "name": "list_directory",
+        "args": {
+          "path": "/"
+        },
+        "ms": 0,
+        "resultChars": 60,
+        "result": "[DIR] Trips\n[FILE] Notes.md\n[FILE] Plan.md\n[FILE] Scratch.md"
+      },
+      {
+        "name": "read_text_file",
+        "args": {
+          "path": "/Plan.md"
+        },
+        "ms": 0,
+        "resultChars": 93,
+        "result": "{\"error\":\"No document is called \\\"/Plan.md\\\". List the documents for their names and paths.\"}"
+      },
+      {
+        "name": "read_text_file",
+        "args": {
+          "path": "Plan.md"
+        },
+        "ms": 0,
+        "resultChars": 51,
+        "result": "# Plan\n\n- [x] Book the ferry\n- [ ] Pack the charts\n"
+      },
+      {
+        "name": "write_file",
+        "args": {
+          "path": "Plan.md",
+          "content": "# Plan\n\n- [x] Book the ferry\n- [ ] Pack the charts\n- [ ] Call the harbor master\n"
+        },
+        "ms": 0,
+        "resultChars": 29,
+        "result": "Successfully wrote to Plan.md"
+      }
+    ]
+  },
+  "redacted": false
+}
