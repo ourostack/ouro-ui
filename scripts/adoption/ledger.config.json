@@ -600,6 +600,8 @@
       "kind": "native app",
       "repo": "arimendelow/drift-remote",
       "privateRepo": true,
+      "inScope": false,
+      "scopeNote": "A private repository, so the public ledger cannot measure it; it is listed but not counted, and Ouro Current still keeps it on current Ouro UI.",
       "pins": [],
       "hx": {
         "kind": "apple",

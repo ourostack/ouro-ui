@@ -50,7 +50,7 @@ A product is confirmed when these hold together:
 
 A product whose config says AX is `n/a`, with its reason (a site with no CLI, MCP or other agent interface of its own), has no actions to declare and nothing for the X-ray to check, so the action and must checks hold for it as `n/a`, the way give-back holds for the upstream, and those cells are not counted as unmeasured.[^ax-na] The page draws them as "does not apply", not as passing.[^ax-na-page] A product with an agent interface still needs both.
 
-Ari then signs the product off; the ledger only says whether the evidence is there. The page counts products "in scope". A product marked `inScope: false` in the config (Hackamore, which is a roadmap item with an empty repository) is listed but not counted.
+Ari then signs the product off; the ledger only says whether the evidence is there. The page counts products "in scope". A product marked `inScope: false` in the config is listed but not counted: Hackamore, a roadmap item with an empty repository, and Drift Remote, a private repository the public ledger cannot read.
 
 ## The program section
 
