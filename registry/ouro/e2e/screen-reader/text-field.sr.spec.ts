@@ -31,6 +31,8 @@ test.describe("an error after a submit", () => {
     };
     await heard(sr, submit, (phrase) => inOneSentence(phrase, /\byou already have a recipe called pasta\b/i), '"You already have a recipe called Pasta.", the error, as focus moves to Name');
     await expect(name).toHaveAttribute("aria-invalid", "true");
-    await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bname\b/i, INVALID), '"Name", invalid, the focused field');
+    // The error's full stop ends VoiceOver's sentence before the state ("Pasta Name You already have a
+    // recipe called Pasta. required invalid data edit text", run 43854914522), as the description does.
+    await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID), '"Name", its error, invalid, the focused field');
   });
 });
