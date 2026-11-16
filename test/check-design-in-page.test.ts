@@ -128,6 +128,17 @@ describe("findDesignIssues: cramped-heading", () => {
     expect(of("cramped-heading").map((issue) => issue.detail)).toEqual(["4px below div#inner; a 40px heading needs 10px"]);
   });
 
+  it("judges no fill against a page drawn with a gradient, rather than failing the whole check", () => {
+    document.body.style.background = "radial-gradient(#fff, #eee)";
+    try {
+      render(`<div style="height:60px;background:#3a7"></div><h2 style="margin:2px 0 0">Under a box on a gradient page</h2>`);
+      expect(() => of("cramped-heading")).not.toThrow();
+      expect(of("cramped-heading")).toEqual([]);
+    } finally {
+      document.body.style.background = "";
+    }
+  });
+
   it("passes headings with room, boxes below or beside them or around them, rows that aren't one line, and allowed headings", async () => {
     const url = await picture(60, 60);
     render(`
