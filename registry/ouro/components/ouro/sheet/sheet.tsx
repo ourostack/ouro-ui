@@ -316,7 +316,7 @@ export function SheetFrame({
             className={className}
             data-ouro-presentation={presentation}
             {...(finalFocus ? { finalFocus } : {})}
-            {...(initialFocus ? { initialFocus } : {})}
+            initialFocus={initialFocus}
           >
             {side === "bottom" && <SheetHandle />}
             {showHeader ? (
