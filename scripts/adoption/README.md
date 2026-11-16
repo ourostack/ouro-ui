@@ -20,7 +20,7 @@ The hourly run is [`.github/workflows/adoption-ledger.yml`](../../.github/workfl
 - [`ledger.config.json`](ledger.config.json): the hand-kept list of the [surfaces](scripts/adoption/ledger.config.json "verify:count(scripts/adoption/ledger.config.json#surfaces)=20") and the [work items](scripts/adoption/ledger.config.json "verify:count(scripts/adoption/ledger.config.json#cards)=15"), and how a column is measured for a product. Add a product here, with its repository and a tracking issue.
 - Live: GitHub releases, repository files and trees, code search, Actions artifacts, merged pull requests, and the issues labelled `adoption`.
 
-An issue is found by a hidden marker in its body: `<!-- adoption:card=<id> -->` for a work item (the ids are in the config), `<!-- adoption:program -->` for the program. The program issue holds a table, `| Step | Depends on | Repo | State | Evidence |`, which becomes the page's steps. Edit the issue to change a step's state; the next run shows it.
+An issue is found by a hidden marker in its body: `<!-- adoption:card=<id> -->` for a work item (the ids are in the config), `<!-- adoption:program -->` for the program. The program issue holds a table, `| Step | Depends on | Repo | State | Evidence |`, which becomes `program.steps` in `ledger.json`; the page shows only the products, so read the steps there or in the issue. Edit the issue to change a step's state; the next run records it.
 
 ## The columns
 
@@ -52,7 +52,7 @@ Ari then signs the product off; the ledger only says whether the evidence is the
 
 ## The program section
 
-The steps come from the program issue's table. Ouro UI's own numbers are: the latest release of the Ouro UI repositories, the number of Ouro HX components in the registry, the merged pull requests across them, the pull requests the give-back column counted, and the benchmark and the model-reviews result, which are `null` ("not measured yet") until those steps produce one.
+The steps come from the program issue's table and are recorded in `ledger.json` (`program.steps`), not drawn on the page. Ouro UI's own numbers are: the latest release of the Ouro UI repositories, the number of Ouro HX components in the registry, the merged pull requests across them, the pull requests the give-back column counted, and the benchmark and the model-reviews result, which are `null` ("not measured yet") until those steps produce one.
 
 ## What cannot be measured here
 
