@@ -114,8 +114,8 @@ function limits(sizes: readonly number[], index: number, panels: readonly PanelL
   const before = panels[index]!;
   const after = panels[index + 1]!;
   return {
-    min: Math.max(before.collapsible ? 0 : before.minSize, total - after.maxSize),
-    max: Math.min(before.maxSize, total - (after.collapsible ? 0 : after.minSize)),
+    min: before.collapsible && total <= after.maxSize ? 0 : Math.max(before.minSize, total - after.maxSize),
+    max: after.collapsible && before.maxSize >= total ? total : Math.min(before.maxSize, total - after.minSize),
   };
 }
 
@@ -128,30 +128,31 @@ function limits(sizes: readonly number[], index: number, panels: readonly PanelL
  * @claim "A collapsible panel's size between 0" registry/ouro/components/ouro/resizable/resizable.test.tsx verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable handle (window splitter) > snaps a drag that lands under a collapsible panel's minSize to 0 or to minSize, by half)
  */
 function clampSize(sizes: readonly number[], index: number, size: number, panels: readonly PanelLimits[]): number[] {
+  const result = [...sizes];
+  // A press that moves nothing changes nothing, even from a size the default sizes left in a gap.
+  if (size === sizes[index]) return result;
   const { min, max } = limits(sizes, index, panels);
   const before = panels[index]!;
   const after = panels[index + 1]!;
   const total = sizes[index]! + sizes[index + 1]!;
-  const within = Math.min(Math.max(size, min), max);
-  // Nothing between 0 and a collapsible panel's minSize, nor between the other panel's minSize and 0 on its side.
-  const allowed = (next: number) =>
-    (next === 0 || next >= before.minSize) && (next === total || total - next >= after.minSize) && next >= min && next <= max;
-  // A shrinking panel prefers to collapse on a tie, a growing one prefers its minSize.
-  const ends =
-    // Stryker disable next-line EqualityOperator: a press that moves nothing starts only in a gap the default sizes left, where either side is a fair snap
-    size < sizes[index]!
-      ? [0, total - after.minSize, before.minSize, total, min, max]
-      : [before.minSize, total, 0, total - after.minSize, min, max];
-  let next = within;
-  let gap = allowed(within) ? 0 : Infinity;
-  for (const end of ends) {
-    const distance = Math.abs(end - within);
-    if (allowed(end) && distance < gap) {
-      next = end;
-      gap = distance;
+  let next = Math.min(Math.max(size, min), max);
+  const shrinking = size < sizes[index]!;
+  // The snap targets: 0 and minSize for a collapsible panel before the handle, total - minSize and total for one after it.
+  let ends: readonly number[] | undefined;
+  if (before.collapsible && next > 0 && next < before.minSize) ends = [0, before.minSize];
+  else if (after.collapsible && next > total - after.minSize && next < total) ends = [total - after.minSize, total];
+  if (ends) {
+    // On a tie the handle's direction decides: a shrinking handle closes the panel before it and opens the one after it to minSize; a growing one the reverse.
+    const target = next;
+    let gap = Infinity;
+    for (const end of shrinking ? ends : [...ends].reverse()) {
+      const distance = Math.abs(end - target);
+      if (end >= min && end <= max && distance < gap) {
+        next = end;
+        gap = distance;
+      }
     }
   }
-  const result = [...sizes];
   result[index] = next;
   result[index + 1] = total - next;
   return result;

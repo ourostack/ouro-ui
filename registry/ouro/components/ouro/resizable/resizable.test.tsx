@@ -553,6 +553,8 @@ describe("Resizable handle (window splitter)", () => {
     // 90% would close Notes at 10%, which is past Draft's maxSize: Notes stays at minSize instead.
     await userEvent.keyboard("{ArrowRight}");
     expect(before.handles[0]!.getAttribute("aria-valuenow")).toBe("80");
+    // Notes cannot close while Draft is at its maxSize, so the handle stops at 80.
+    expect(before.handles[0]!.getAttribute("aria-valuemax")).toBe("80");
     expect(widths(before.panels)).toEqual([319, 80]);
     const after = await render(
       <Resizable>
@@ -567,7 +569,61 @@ describe("Resizable handle (window splitter)", () => {
     after.handles[0]!.focus();
     await userEvent.keyboard("{ArrowLeft}");
     expect(after.handles[0]!.getAttribute("aria-valuenow")).toBe("20");
+    // Draft's maxSize of 90 leaves Notes at least 20 when it is before the handle.
+    expect(after.handles[0]!.getAttribute("aria-valuemin")).toBe("20");
     expect(widths(after.panels)).toEqual([80, 319]);
+  });
+
+  it("reaches the true end of a panel with a decimal minSize, by End and by a drag past it", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(
+      <Resizable onLayout={onLayout}>
+        <ResizablePanel label="Draft" defaultSize={50} minSize={10}>
+          Draft
+        </ResizablePanel>
+        <ResizablePanel label="Notes" defaultSize={50} minSize={8.3}>
+          Notes
+        </ResizablePanel>
+      </Resizable>,
+    );
+    const handle = screen.handles[0]!;
+    await dragHandle(handle, 400, 0);
+    await expect.poll(() => onLayout.mock.calls.length).toBe(1);
+    expect(onLayout.mock.calls[0]![0][0]).toBeCloseTo(91.7);
+    expect(onLayout.mock.calls[0]![0][1]).toBeCloseTo(8.3);
+    handle.focus();
+    await userEvent.keyboard("{Home}{End}");
+    expect(onLayout.mock.calls[2]![0][0]).toBeCloseTo(91.7);
+    expect(onLayout.mock.calls[2]![0][1]).toBeCloseTo(8.3);
+  });
+
+  it("changes nothing for a press that moves nothing, even from a size in a collapsible panel's gap", async () => {
+    const onLayout = vi.fn();
+    const screen = await render(
+      <Resizable onLayout={onLayout}>
+        <ResizablePanel label="Notes" defaultSize={10} minSize={20} collapsible>
+          Notes
+        </ResizablePanel>
+        <ResizablePanel label="Draft">Draft</ResizablePanel>
+      </Resizable>,
+    );
+    const handle = screen.handles[0]!;
+    const rect = handle.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const pointer = { pointerId: -1, clientX: x, clientY: y };
+    handle.addEventListener("pointerdown", (event) => Object.assign(pointer, { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY }), { once: true });
+    try {
+      await commands.drag({ from: [x, y], to: [x, y], steps: 2, durationMs: 40, hold: true });
+      await act(async () => {
+        handle.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, ...pointer }));
+      });
+    } finally {
+      await commands.pointerPress({ action: "up" });
+    }
+    await expect.poll(() => screen.group.hasAttribute("data-ouro-resizing")).toBe(false);
+    expect(handle.getAttribute("aria-valuenow")).toBe("10");
+    expect(onLayout).not.toHaveBeenCalled();
   });
 
   it("gives the handle a hit area wider than its line", async () => {
