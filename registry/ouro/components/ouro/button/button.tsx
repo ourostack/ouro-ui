@@ -111,9 +111,10 @@ export interface ButtonBaseProps {
   /**
    * Icon after the label. Pass the component, not an element: `endIcon={ArrowRightIcon}`. On a
    * button wider than its label, such as one with `fullWidth`, it sits at the end and the label
-   * stays centred in the rest.
+   * stays centred in the rest, or at the start with `className="justify-start"`.
    *
    * @claim "On a button wider than its label" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::button branch > puts an end icon at the inline end of a button wider than its label, %s)
+   * @claim "On a button wider than its label" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::button branch > keeps an app's justify-start on a wide button %s an end icon)
    */
   endIcon?: ButtonIcon | undefined;
   /** The label. For an icon-only button, also pass `aria-label`. */
@@ -501,8 +502,9 @@ export function Button(props: ButtonProps): JSX.Element {
       <span data-ouro-surface="" aria-hidden="true" />
       <span
         data-ouro-label=""
-        // The label takes the room a wider button has, centred in it, so an end icon after it sits at the end.
-        className={cn("inline-flex grow items-center justify-center gap-[inherit]", fade)}
+        // The label takes the room a wider button has, aligned as the button aligns it (centred, or the app's
+        // justify-start), so an end icon after it sits at the end.
+        className={cn("inline-flex grow items-center gap-[inherit] [justify-content:inherit]", fade)}
       >
         {StartIcon && <StartIcon aria-hidden="true" className={cn(iconClass, "-ms-0.5")} />}
         {children}

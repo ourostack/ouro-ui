@@ -213,6 +213,23 @@ describe("button branch", () => {
     expect(Math.abs((wide!.textStart + wide!.textEnd) / 2 - room)).toBeLessThanOrEqual(1);
   });
 
+  it.each([
+    ["with", Star],
+    ["without", undefined],
+  ] as const)("keeps an app's justify-start on a wide button %s an end icon", async (_, icon) => {
+    const { button } = await render(
+      <div style={{ width: 300 }}>
+        <Button fullWidth className="justify-start" startIcon={Star} endIcon={icon}>
+          Next
+        </Button>
+      </div>,
+    );
+    const box = button.getBoundingClientRect();
+    const start = button.querySelector('[data-testid="icon"]')!.getBoundingClientRect();
+    // The label starts at the button's start padding (less the start icon's -0.5 margin), not in the middle.
+    expect(start.left - box.left).toBeLessThanOrEqual(parseFloat(getComputedStyle(button).paddingInlineStart));
+  });
+
   it("fades an end icon with the label while loading, leaving only the spinner", async () => {
     const { button } = await render(
       <Button endIcon={Star} loading>
