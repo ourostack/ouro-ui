@@ -237,8 +237,9 @@ describe("ThreadLayout", () => {
     (document.activeElement as HTMLElement).blur();
     await rerender(<Opened open focus={false} />);
     expect(document.activeElement).toBe(document.body);
+    // It closes as it opened, holding no focus: focus goes back to the conversation's last control, as before.
     await rerender(<Opened open={false} />);
-    expect(document.activeElement).toBe(document.body);
+    expect(document.activeElement).toBe(host.querySelector("button"));
   });
 
   it("leaves focus on the page when it first shows without a thread, and when a thread opens without taking focus and closes", async () => {

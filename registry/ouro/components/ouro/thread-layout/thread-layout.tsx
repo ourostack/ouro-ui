@@ -95,9 +95,8 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
   const threadBox = useCallback((box: HTMLDivElement) => () => void (threadHeldFocus.current = box.contains(document.activeElement)), []);
   useLayoutEffect(() => {
     if (!open && document.activeElement === document.body) lastFocused.current?.focus();
-    const held = threadHeldFocus.current;
-    threadHeldFocus.current = false;
-    if (open || !held || document.activeElement !== document.body) return;
+    // The thread box's cleanup sets threadHeldFocus as each thread closes, so it is current whenever a close is handled here.
+    if (open || !threadHeldFocus.current || document.activeElement !== document.body) return;
     // The conversation's own heading: not one inside a message, which would scroll the list away from the newest.
     const heading = [...pane.current!.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6")].find((element) => element.closest('[data-ouro="message-list"], [data-ouro="message"]') === null);
     if (heading !== undefined) {
