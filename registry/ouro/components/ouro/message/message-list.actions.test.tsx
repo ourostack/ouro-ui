@@ -385,9 +385,12 @@ describe("MessageList actions", () => {
         <Message id="m1" variant="chat" role="assistant" name="Ana Lind" actionsPlacement="beside" actions={like} style={{ marginTop: 4 }}>
           A chat message
         </Message>
+        <Message id="m2" variant="chat" role="assistant" name="Mara Quill" actions={like}>
+          A bar over its corner
+        </Message>
       </MessageList>,
     );
-    const containers = () => ["m0", "m1"].filter((id) => getComputedStyle(message(id)).containerType !== "normal");
+    const containers = () => ["m0", "m1", "m2"].filter((id) => getComputedStyle(message(id)).containerType !== "normal");
     expect(containers()).toEqual([]);
     await ready("m0");
     expect(containers()).toEqual(["m0"]);
@@ -398,6 +401,9 @@ describe("MessageList actions", () => {
     expect(room.getBoundingClientRect().left).toBeCloseTo(bubble.right, 0);
     await ready("m1");
     expect(containers()).toEqual(["m1"]);
+    // A bar over the corner measures nothing, so its message is no container.
+    await ready("m2");
+    expect(containers()).toEqual([]);
     await userEvent.unhover(document.body);
     await expect.poll(() => bars()).toHaveLength(0);
     expect(containers()).toEqual([]);

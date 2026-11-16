@@ -369,7 +369,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
     if (host === null) return;
     if (slot === null) host.parentNode?.removeChild(host);
     else if (host.parentNode !== slot) slot.appendChild(host);
-    contain(contained, slot !== null && data!.beside !== undefined ? hover.row : null);
+    contain(contained, on !== null && on.data.beside !== undefined ? on.row : null);
   });
   // Stryker disable next-line ArrayDeclaration: host and contained are state that is never set, so [host, contained] and [] run this effect alike.
   useLayoutEffect(() => () => (host!.remove(), contain(contained, null)), [host, contained]);
