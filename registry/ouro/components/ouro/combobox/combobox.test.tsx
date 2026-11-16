@@ -393,6 +393,23 @@ describe("Combobox multiple", () => {
     expect(onValueChange).toHaveBeenLastCalledWith(["Dill"]);
   });
 
+  it("moves between its chips with the arrow keys of a right-to-left page, where the last chip sits right of the input", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const { input } = await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil", "Dill"]} />);
+      input.focus();
+      const focused = () => document.activeElement?.closest("[data-ouro-combobox-chip]")?.firstChild?.textContent ?? document.activeElement?.tagName;
+      const path: (string | undefined)[] = [];
+      for (const key of ["ArrowRight", "ArrowRight", "ArrowLeft", "ArrowLeft"]) {
+        await userEvent.keyboard(`{${key}}`);
+        path.push(focused());
+      }
+      expect(path).toEqual(["Dill", "Basil", "Dill", "INPUT"]);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("translates the remove label", async () => {
     const { button } = await render(
       <Combobox label="Kräuter" multiple items={herbs} defaultValue={["Dill"]} removeLabel={(item) => `${item} entfernen`} />,

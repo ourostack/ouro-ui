@@ -1,0 +1,1 @@
+- Combobox: in a right-to-left page the arrow keys move between chips from the right; ArrowRight goes from the input to the last chip.
