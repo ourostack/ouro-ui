@@ -7,18 +7,23 @@ import { fileURLToPath } from "node:url";
  * reader starts.
  */
 export const storyIds = {
+  buttonLoading: "actions-button--loading",
   checkbox: "forms-checkbox--playground",
   celebrate: "feedback-celebrate--in-context",
   checklist: "lists-checklist--in-context",
   colorSchemeToggle: "actions-colorschemetoggle--segmented",
   command: "menus-command--playground",
   dialog: "overlays-dialog--playground",
+  formServerErrors: "forms-form--server-errors",
   item: "lists-item--in-context",
+  menu: "menus-menu--playground",
   reorderableDisabled: "lists-reorderable--disabled",
   routeProgress: "feedback-routeprogress--in-context",
   select: "forms-select--playground",
+  switch: "forms-switch--playground",
   syncStatus: "feedback-syncstatus--in-context",
   tabsLinks: "navigation-tabs--links",
+  textFieldStates: "forms-textfield--states",
   timer: "feedback-timer--short",
   toast: "feedback-toast--playground",
 } as const;
