@@ -516,6 +516,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-halve`,
 `lib-insert-text`,
 `lib-keep-clear`,
+`lib-keep-focus-clear`,
 `lib-key-shortcuts`,
 `lib-last-input`,
 `lib-mcp-app`,
