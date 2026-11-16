@@ -303,7 +303,15 @@
       "name": "Ouroboros harness and ouro CLI",
       "kind": "CLI and web UI",
       "repo": "ourostack/ouroboros",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "web",
         "treeDirs": "(^|/)components/ouro/([^/]+)/[^/]+\\.tsx$",
@@ -524,7 +532,15 @@
       "name": "friends and friends-relay",
       "kind": "MCP server",
       "repo": "ourostack/friends",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "An MCP server only."
@@ -537,14 +553,28 @@
         "friends-relay",
         "friends-mcp"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/friends",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "flow-review",
       "name": "flow-review",
       "kind": "CLI",
       "repo": "ourostack/flow-review",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "A CLI only."
@@ -556,7 +586,13 @@
         "flow-review",
         "ourostack/flow-review"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/flow-review",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "apple-distribution-kit",
@@ -621,7 +657,15 @@
       "name": "Ouro Native Apple App Shell",
       "kind": "native shell",
       "repo": "ourostack/ouro-native-apple-app-shell",
-      "pins": [],
+      "pins": [
+        {
+          "label": "ouro-ui-apple",
+          "latest": "apple",
+          "from": "regex",
+          "file": "Package.swift",
+          "regex": "ouro-ui-apple\\.git\",\\s*(?:exact:|\\.upToNextMinor\\(from:|from:)\\s*\"([0-9.]+)\""
+        }
+      ],
       "hx": {
         "kind": "apple",
         "components": "OuroButton OR OuroToast OR OuroBanner OR OuroSheet OR OuroEmptyState",
