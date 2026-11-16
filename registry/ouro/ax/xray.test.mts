@@ -745,6 +745,14 @@ test("a CLI whose failures say something went wrong fails copy.precise-failure o
   assert.equal(parseArgs(["--cli", "x", "--failure-copy-allow", "a.json"]).failureCopyAllow, "a.json");
 });
 
+test("a protocol command may print its JSON reply on stdout, but an undeclared command may not, and a protocol command still gets one stderr line", async () => {
+  const report = await xray(base({ cli: fixture("protocol-cli.mjs"), name: "proto" }));
+  const verdicts = (cmd: string) => report.results.filter((r) => r.claim === "cli.one-line-error" && r.surface.startsWith(`${cmd} (`)).map((r) => r.verdict);
+  assert.deepEqual(verdicts("relay"), ["pass"]);
+  assert.deepEqual(verdicts("post"), ["fail"]);
+  assert.deepEqual(verdicts("loud"), ["fail"]);
+});
+
 test("a CLI that asks for developer commands fails cli.no-dev-commands once per command, and a step marked sourceCheckout passes", async () => {
   const report = await xray(base({ cli: fixture("bad-cli.mjs"), name: "bad" }));
   const results = report.results.filter((r) => r.claim === "cli.no-dev-commands");
