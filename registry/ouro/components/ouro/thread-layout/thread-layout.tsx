@@ -91,6 +91,7 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
   const pane = useRef<HTMLDivElement>(null);
   // Whether the thread held focus as it closed: read as its box leaves, before the rail gives focus back.
   const threadHeldFocus = useRef(false);
+  // Stryker disable next-line ArrayDeclaration: the callback reads nothing from render, so any dependency list keeps it.
   const threadBox = useCallback((box: HTMLDivElement) => () => void (threadHeldFocus.current = box.contains(document.activeElement)), []);
   useLayoutEffect(() => {
     if (!open && document.activeElement === document.body) lastFocused.current?.focus();

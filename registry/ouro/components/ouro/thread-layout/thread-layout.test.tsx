@@ -175,6 +175,8 @@ describe("ThreadLayout", () => {
     await rerender(<ThreadLayout conversation={conversation} conversationLabel="Design reviews" thread={rail(false)} />);
     const pane = host.querySelector<HTMLElement>('[role="region"][aria-label="Design reviews"]')!;
     expect(document.activeElement).toBe(pane);
+    // Out of the tab order: only a script takes focus there.
+    expect(pane.tabIndex).toBe(-1);
     expect(pane.contains(host.querySelector("button"))).toBe(true);
   });
 
@@ -234,6 +236,8 @@ describe("ThreadLayout", () => {
     expect(document.activeElement).toBe(host.querySelector("button"));
     (document.activeElement as HTMLElement).blur();
     await rerender(<Opened open focus={false} />);
+    expect(document.activeElement).toBe(document.body);
+    await rerender(<Opened open={false} />);
     expect(document.activeElement).toBe(document.body);
   });
 
