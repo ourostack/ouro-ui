@@ -78,6 +78,29 @@ describe("PageDirection", () => {
     expect(shown("island")).toBe("rtl");
   });
 
+  it("reads again when it is given another element, as a menu opened beside another anchor is", async () => {
+    const left = document.createElement("div");
+    left.dir = "ltr";
+    const right = document.createElement("div");
+    right.dir = "rtl";
+    document.body.append(left, right);
+    hosts.push(left, right);
+    const view = await render(
+      <PageDirection of={left}>
+        <Shown id="anchored" />
+      </PageDirection>,
+    );
+    expect(shown("anchored")).toBe("ltr");
+    await act(async () =>
+      view.root.render(
+        <PageDirection of={right}>
+          <Shown id="anchored" />
+        </PageDirection>,
+      ),
+    );
+    expect(shown("anchored")).toBe("rtl");
+  });
+
   it("leaves an app's own direction in a left-to-right page, and renders it on the server", async () => {
     await render(
       <DirectionProvider direction="rtl">
