@@ -372,6 +372,7 @@
         "Desk plugin",
         "Desk MCP"
       ],
+      "xrayReason": "Skipped: Desk has no X-ray in CI. An X-ray run does not yet hold every must claim, and adding one would need a fixture, an inventory and a mock guard, all new code.",
       "xray": []
     },
     {
@@ -394,6 +395,7 @@
         "desk-web",
         "Desk Browser"
       ],
+      "xrayReason": "Skipped: Desk has no X-ray in CI. An X-ray run does not yet hold every must claim, and adding one would need a fixture, an inventory and a mock guard, all new code.",
       "xray": []
     },
     {

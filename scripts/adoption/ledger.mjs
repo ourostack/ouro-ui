@@ -304,7 +304,7 @@ function readArtifactReport(ctx, repo, artifact, tmp) {
 /** The newest ax-xray report, over a surface's sources, that is for the right app and still downloadable. */
 export function measureXray(ctx, surface) {
   const source = `https://github.com/${surface.repo}/actions`;
-  if (surface.xray.length === 0) return unmeasured(ctx, "no X-ray runs in CI for this product yet", source);
+  if (surface.xray.length === 0) return unmeasured(ctx, surface.xrayReason ?? "no X-ray runs in CI for this product yet", source);
   const tmp = mkdtempSync(join(tmpdir(), "ouro-adoption-xray-"));
   const found = [];
   const errors = [];

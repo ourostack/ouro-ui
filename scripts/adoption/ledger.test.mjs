@@ -408,3 +408,16 @@ test("a report in a folder of its artifact is read, so an X-ray uploaded with ot
   assert.deepEqual([xray.value.must, xray.value.mustHolding], [12, 7]);
   assert.equal(mustPasses(xray), false);
 });
+
+test("ourostack/desk: an empty X-ray list shows the surface's xrayReason, else the default", () => {
+  const noCall = () => {
+    throw new Error("no X-ray runs: nothing to call");
+  };
+  const context = createContext({ gh: noCall, now: () => NOW, sleep: () => {}, searchGapMs: 0 });
+  const reason = "Skipped: the Desk MCP has no X-ray in CI; a fixture, inventory and mock guard would be new code.";
+  const withReason = measureXray(context, { repo: "ourostack/desk", xray: [], xrayReason: reason });
+  assert.equal(withReason.value, null);
+  assert.equal(withReason.note, `not measured: ${reason}`);
+  const withDefault = measureXray(context, { repo: "ourostack/desk", xray: [] });
+  assert.equal(withDefault.note, "not measured: no X-ray runs in CI for this product yet");
+});
