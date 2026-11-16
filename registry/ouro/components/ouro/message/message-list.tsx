@@ -1547,7 +1547,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // The scroll a wheel started goes on until the browser says it ended (`scrollend`): WebKit animates a wheel's scroll after
     // its last event, over frames a loaded machine draws slowly, and a scroll position written meanwhile stops it.
     let wheelScrolling = false;
-    // Whether the wheel turned since the last scroll event, whose scroll may not have begun yet.
+    // Whether the wheel turned since the last scroll that was not the list's own: the turn's scroll, which may not have begun yet.
     // Stryker disable next-line BooleanLiteral: before any turn, the last turn is never under WHEEL_START ago, so no scroll counts as one's either way.
     let wheelStarts = false;
     const turning = () => wheelScrolling || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
@@ -1688,12 +1688,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
-      // Only the browser's own scroll, where it says when it ends. Its first frame may come long after the wheel turned, on a
-      // machine drawing slowly, so the first scroll that soon after a turn is the wheel's.
-      // The list's own write is none of the wheel's: WebKit sends no scrollend after it.
-      const own = scroller.scrollTop === ownTop.current;
-      if (event.isTrusted && "onscrollend" in scroller && !own && (turning() || (wheelStarts && performance.now() - wheelAt < WHEEL_START))) wheelScrolling = true;
-      wheelStarts = false;
+      // Only the browser's own scroll, where it says when it ends. The first scroll after a turn is the wheel's when it comes
+      // within WHEEL_START, which a loaded machine may take to begin it; judged by time alone, never by the frame the wheel turned
+      // in, as a scroll the page makes in that frame (a scrollbar, a jump) is none of the wheel's, and with no scrollend after it
+      // would keep the place held by drawing for good. The list's own write is none of the wheel's, and leaves the turn's start.
+      if (scroller.scrollTop !== ownTop.current) {
+        if (event.isTrusted && "onscrollend" in scroller && wheelStarts && performance.now() - wheelAt < WHEEL_START) wheelScrolling = true;
+        wheelStarts = false;
+      }
       // Leaving the bottom, even by a few pixels, stops the following; reaching it again follows.
       pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.

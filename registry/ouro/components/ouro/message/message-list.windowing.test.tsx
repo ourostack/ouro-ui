@@ -473,7 +473,7 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
   });
 
-  it("counts as the wheel's only the first scroll a turn starts, or any while it turns, never the list's own, as WebKit sends no scrollend after either", async () => {
+  it("counts as the wheel's only the first scroll a turn starts, or any while it turns, never the list's own, as WebKit sends no scrollend after either, though it lands in the frame the wheel turned in", async () => {
     // As in WebKit: no scrollend from the browser, so a scroll wrongly counted as the wheel's would hold the reader's place by
     // drawing the content up, for good.
     const browsers = (event: Event) => void (event.isTrusted && event.stopImmediatePropagation());
@@ -485,7 +485,16 @@ describe("MessageList windowing", () => {
     const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
     let now = 1_000_000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
-    const turn = (deltaY: number) => scroller.dispatchEvent(new WheelEvent("wheel", { deltaY }));
+    // Each turn's frame lasts until the next scroll has been handled, as on a runner too loaded to draw a frame between them:
+    // only the time since the turn says whose that scroll is.
+    const frame = Object.getOwnPropertyDescriptor(AnimationTimeline.prototype, "currentTime")!;
+    const turn = (deltaY: number) => {
+      const held = frame.get!.call(document.timeline);
+      Object.defineProperty(document.timeline, "currentTime", { configurable: true, get: () => held });
+      scroller.addEventListener("scroll", () => void delete (document.timeline as { currentTime?: unknown }).currentTime, { once: true });
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY }));
+    };
+    onTestFinished(() => void delete (document.timeline as { currentTime?: unknown }).currentTime);
     const scrolled = () => new Promise((resolve) => scroller.addEventListener("scroll", resolve, { once: true }));
     // A message above the reader grows: held by writing the scroll position, the wheel at rest, so nothing is drawn up.
     const heldByScrolling = async () => {
@@ -506,6 +515,34 @@ describe("MessageList windowing", () => {
     now += 10_000;
     await scrollTo(scroller, 3000);
     await heldByScrolling();
+    // Back at the end, turning up, the list follows another new message there, then the wheel's scroll begins, late: the
+    // list's own write left the turn's start, so that scroll is the wheel's, and a message above that grows once the turn's
+    // rest has passed is held by drawing, the scroll position unwritten.
+    await scrollTo(scroller, scroller.scrollHeight);
+    now += 10_000;
+    turn(-20);
+    const followedAgain = scrolled();
+    items = [...items, { id: 501, text: "Message 501" }];
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    await followedAgain;
+    now += 100;
+    const late = scrolled();
+    scroller.scrollTop -= 600;
+    await late;
+    now += 200;
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    const before = scroller.scrollTop;
+    items = items.map((item) => (item.id === Number(reading.message.id.slice(1)) - 1 ? { ...item, text: item.text + " more words".repeat(40) } : item));
+    await act(async () => root.render(<Chat items={items} springy={false} />));
+    expect(scroller.scrollTop).toBe(before);
+    expect(content.style.translate).not.toBe("");
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    // The browser says the wheel's scroll ended, and once it rests the scroll position takes what was held.
+    scroller.dispatchEvent(new Event("scrollend"));
+    now += 10_000;
+    await expect.poll(() => content.style.translate).toBe("");
+    await scrollTo(scroller, 3000);
     // A turn's scroll is the wheel's until it ends; a scrollbar's 200ms after that is not.
     turn(-20);
     const wheels = scrolled();
