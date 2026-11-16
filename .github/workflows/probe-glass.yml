@@ -1,0 +1,36 @@
+name: probe-glass
+on:
+  pull_request:
+    paths: [".github/workflows/probe-glass.yml"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    name: probe (${{ matrix.variant }}, ${{ matrix.rep }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [glass, flat]
+        rep: [1, 2, 3, 4]
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - if: matrix.variant == 'flat'
+        run: |
+          sed -i 's/ \[backdrop-filter:blur(var(--ouro-glass-blur))_saturate(1.6)\] / /' registry/ouro/components/ouro/switch/switch-styles.ts
+          grep -c "backdrop-filter:blur" registry/ouro/components/ouro/switch/switch-styles.ts || true
+      - run: pnpm test:latency --project site-latency-webkit 2>&1 | grep -E "switch to still water|passed|failed" || true
