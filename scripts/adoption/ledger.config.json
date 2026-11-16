@@ -556,7 +556,15 @@
       "name": "m365crawl",
       "kind": "CLI (Go)",
       "repo": "ourostack/m365crawl",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "A CLI only."
@@ -569,7 +577,13 @@
         "m365crawl",
         "ourostack/m365crawl"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/m365crawl",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "friends",
@@ -643,7 +657,15 @@
       "name": "apple-distribution-kit",
       "kind": "CLI",
       "repo": "ourostack/apple-distribution-kit",
-      "pins": [],
+      "pins": [
+        {
+          "label": "vendored AX kit files",
+          "latest": "web",
+          "from": "lock",
+          "file": "upstream-sources.lock.json",
+          "source": "ourostack-ouro-ui-ax"
+        }
+      ],
       "hx": {
         "kind": "na",
         "reason": "A CLI only."
@@ -654,7 +676,13 @@
       "giveBackTerms": [
         "apple-distribution-kit"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/apple-distribution-kit",
+          "workflow": "ax.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "ouro-work-substrate",
