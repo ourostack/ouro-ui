@@ -1,0 +1,49 @@
+{
+  "generator": "ouro-actions 0.16.0",
+  "set": "ouro-ui-registry",
+  "tool": "ouro-ui",
+  "commands": [
+    {
+      "name": "list",
+      "summary": "List the names of the Ouro UI registry items, in registry order. Pass filter to keep only the names that contain it, such as 'dialog' or 'button'. Use a name from this list with get_item_install or get_item_docs.",
+      "effect": "private",
+      "readOnly": true,
+      "flags": {
+        "filter": {
+          "type": "string",
+          "description": "Keep only the items whose name contains this text, ignoring case."
+        }
+      },
+      "output": "{ names }"
+    },
+    {
+      "name": "install",
+      "summary": "Return the shadcn command that adds one registry item to an app, pinned to the newest Ouro UI release. Run the command as it is; it installs the item and the Ouro items it needs. The name is one from list_registry_items.",
+      "effect": "private",
+      "readOnly": true,
+      "args": [
+        {
+          "name": "name",
+          "description": "The registry item's name, such as dialog.",
+          "required": true
+        }
+      ],
+      "output": "{ command, release }"
+    },
+    {
+      "name": "docs",
+      "summary": "Return the docs page address for one registry item and, when the docs are in the repository, the page's Markdown: its purpose, props, examples and when to use something else. The name is one from list_registry_items.",
+      "effect": "private",
+      "readOnly": true,
+      "args": [
+        {
+          "name": "name",
+          "description": "The registry item's name, such as dialog.",
+          "required": true
+        }
+      ],
+      "output": "{ url, markdown }"
+    }
+  ],
+  "personOnly": {}
+}
