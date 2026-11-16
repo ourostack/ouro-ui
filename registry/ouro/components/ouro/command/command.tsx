@@ -320,6 +320,9 @@ interface Group {
 
 const itemsFix = '<Command items={[{ label: "New recipe", onSelect: create }]}>';
 
+/** What the search reads in a command besides its label: its description and its keywords. */
+const searchedWords = (item: CommandItem): string[] => [item.description ?? "", ...(item.keywords ?? [])];
+
 /**
  * Groups as given, with each run of loose commands in a group without a heading.
  *
@@ -575,7 +578,7 @@ export function Command(props: CommandProps): JSX.Element {
   const ranked = useMemo(() => {
     if (onQueryChange) return groups;
     // Each command ranked once, then sorted by rank: the sort compares far more often than there are commands.
-    const rank = (item: CommandItem) => queryMatch(item.label, [item.description ?? "", ...(item.keywords ?? [])], query) ?? 3;
+    const rank = (item: CommandItem) => queryMatch(item.label, searchedWords(item), query) ?? 3;
     return groups.map((group) => ({
       ...group,
       items: group.items
@@ -675,7 +678,7 @@ export function Command(props: CommandProps): JSX.Element {
       autoHighlight="always"
       keepHighlight
       // A server search filters on the server: the items are already the results.
-      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, [item.description ?? "", ...(item.keywords ?? [])], text)}
+      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, searchedWords(item), text)}
       value={query}
       inputRef={markInput}
       onItemHighlighted={(item: CommandItem | undefined) => {

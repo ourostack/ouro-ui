@@ -194,6 +194,18 @@ describe("Command", () => {
     await expect.poll(options).toEqual(["Dialg notes", "Edit dialg notes", "Dialog"]);
   });
 
+  it("ranks a command whose keywords or description hold the search above one a slip away", async () => {
+    await openPalette({
+      items: [
+        { label: "Thema", onSelect: actions.newRecipe },
+        { label: "Look", keywords: ["theme"], onSelect: actions.import },
+        { label: "Paint", description: "Pick a theme", onSelect: actions.theme },
+      ],
+    });
+    await userEvent.type(input(), "theme");
+    await expect.poll(options).toEqual(["Look", "Paint", "Thema"]);
+  });
+
   it("finds a command by words in its description, and only the commands whose description has them", async () => {
     await openPalette({
       items: [
