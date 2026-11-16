@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -164,6 +164,35 @@ describe("AttentionCard", () => {
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
     await expect.element(page.getByRole("article", { name: "Asked you Design review" })).toBeVisible();
+  });
+
+  it("hands focus to the next card when its own action dismisses it", async () => {
+    function Inbox() {
+      const [cards, setCards] = useState(["Design review", "Launch notes", "Budget"]);
+      return (
+        <div>
+          {cards.map((title) => (
+            <AttentionCard
+              key={title}
+              reason="Asked you"
+              title={title}
+              from="Ana"
+              actions={
+                <Button size="sm" variant="plain" onClick={() => setCards((all) => all.filter((one) => one !== title))}>
+                  Dismiss {title}
+                </Button>
+              }
+            >
+              Can you look?
+            </AttentionCard>
+          ))}
+        </div>
+      );
+    }
+    await render(<Inbox />);
+    page.getByRole("button", { name: "Dismiss Design review" }).element().focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.activeElement?.textContent).toBe("Dismiss Launch notes");
   });
 
   it("forwards a ref and lets app layout classes win", async () => {

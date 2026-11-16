@@ -4,6 +4,8 @@ import { useId, type HTMLAttributes, type JSX, type ReactNode, type Ref } from "
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useFocusHandoff } from "@/registry/ouro/lib/ouro/focus-handoff";
+import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { toneWarning } from "@/registry/ouro/lib/ouro/tones";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -70,7 +72,9 @@ const open =
  * still unanswered. A badge says why, then where and when, who is asking and what they
  * wrote, with buttons to act on it. Screen readers hear the card by its reason and where
  * it happened ("Asked you, Design review"). With `onOpen` the message is a button that
- * opens where it happened.
+ * opens where it happened. When an action removes the card (Dismiss, Done), focus moves on
+ * to the next card, or the one before when it was the last, so a keyboard user keeps their
+ * place in the list.
  *
  * Use `Message` instead for a message inside its conversation, `Alert` for a notice from
  * the app itself, and `Item` for a row in a plain list.
@@ -82,6 +86,7 @@ const open =
  * <AttentionCard reason="Asked you" tone="warning" title="Design review" from="Ana Lind" time="9:41" onOpen={open}>
  *   Can you look at the second draft before noon?
  * </AttentionCard>
+ * @claim "When an action removes the card" registry/ouro/components/ouro/attention-card/attention-card.test.tsx verify:testExists(registry/ouro/components/ouro/attention-card/attention-card.test.tsx::AttentionCard > hands focus to the next card when its own action dismisses it)
  * @claim "Screen readers hear the card by" registry/ouro/components/ouro/attention-card/attention-card.test.tsx verify:testExists(registry/ouro/components/ouro/attention-card/attention-card.test.tsx::AttentionCard > is an article named by its reason and where it happened)
  */
 export function AttentionCard(props: AttentionCardProps): JSX.Element {
@@ -99,8 +104,11 @@ export function AttentionCard(props: AttentionCardProps): JSX.Element {
     message,
     text,
     onClick,
+    ref,
     ...rest
   } = props;
+  // A card its own action removes (Dismiss, Done) hands focus to the next card's first control, or the one before.
+  const merged = useMergedRef(ref, useFocusHandoff<HTMLElement>());
   const tone: Tone = (tones as readonly string[]).includes(toneProp) ? (toneProp as Tone) : "primary";
   const id = useId();
   useAppearanceClassNameCheck(
@@ -136,6 +144,7 @@ export function AttentionCard(props: AttentionCardProps): JSX.Element {
   return (
     <article
       {...rest}
+      ref={merged}
       data-ouro="attention-card"
       aria-labelledby={`${id}-reason ${id}-title`}
       className={cn("box-border flex min-w-0 flex-col gap-1.5 rounded-xl border border-solid border-border bg-card p-3 text-card-foreground", className)}
