@@ -315,7 +315,9 @@ export function SiteMenuFrame({ children, tools }: { children: ReactNode; tools?
   return (
     <>
       <div ref={edge} aria-hidden="true" className="pointer-events-none sticky -top-2 z-1 -mx-5 -mt-2 h-2 border-0 border-b border-solid border-border bg-popover" />
-      {tools && <div className="absolute end-15 top-1.5 z-3 flex gap-1 sm:hidden">{tools}</div>}
+      {/* Placed from the box around the sheet's body (SheetContent), which starts under the sheet's 48px title row: 42px up
+          puts the 44px pills 6px from the sheet's top, centred on its close button (12px down, 32px tall). */}
+      {tools && <div className="absolute end-15 -top-10.5 z-3 flex gap-1 sm:hidden">{tools}</div>}
       {children}
     </>
   );

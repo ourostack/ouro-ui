@@ -604,6 +604,36 @@ test("on a wide screen the bar keeps its links, and the docs sidebar and the App
   await expect(page.getByRole("banner").getByRole("link", { name: "The Nautilus", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
+for (const path of ["./", "docs/button/"]) {
+  test(`on a phone /${path === "./" ? "" : path}'s menu keeps its pills in its title row beside the close button, over nothing`, async ({ page }) => {
+    await open(page, path);
+    await openMenu(page);
+    const box = async (locator: ReturnType<Page["locator"]>) => (await locator.boundingBox())!;
+    const close = await box(sheet(page).locator("[data-ouro-sheet-close]"));
+    // Where the title's words end: its heading is as wide as the row.
+    const titleEnd = await sheet(page)
+      .getByRole("heading", { name: "Menu", exact: true })
+      .evaluate((heading) => {
+        const range = document.createRange();
+        range.selectNodeContents(heading);
+        return range.getBoundingClientRect().right;
+      });
+    const pills = sheet(page).getByRole("button", { name: /^(Search|Show X-ray)$/ });
+    expect(await pills.count()).toBeGreaterThan(0);
+    // What sits under the title row: the docs' search field, or the menu's first heading.
+    const below = await box(path === "./" ? sheet(page).getByText("Ouro family", { exact: true }) : sheet(page).getByRole("searchbox"));
+    for (const pill of await pills.all()) {
+      const at = await box(pill);
+      expect(Math.abs(at.y + at.height / 2 - (close.y + close.height / 2))).toBeLessThanOrEqual(1);
+      expect(at.x).toBeGreaterThanOrEqual(titleEnd);
+      expect(at.x + at.width).toBeLessThanOrEqual(close.x);
+      // The pill's drawn chip (its child) ends above what comes under the title row.
+      const chip = await box(pill.locator("> span"));
+      expect(chip.y + chip.height).toBeLessThanOrEqual(below.y);
+    }
+  });
+}
+
 test("on a phone the menu holds X-ray, which the bar has no room for, and closes to show it", async ({ page }) => {
   await open(page, "nautilus/");
   await openMenu(page);
