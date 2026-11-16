@@ -159,7 +159,7 @@ describe("Form", () => {
         <TextArea label="Bio" name="bio" />
       </Form>,
     );
-    expect(input("name").getAttribute("aria-invalid")).toBeNull();
+    expect(input("name").getAttribute("aria-invalid")).toBe("false");
     expect(input("email").getAttribute("aria-invalid")).toBe("true");
     expect(description(input("email"))).toEqual(["We never share it.", "That email is taken."]);
     expect(input("bio").getAttribute("aria-invalid")).toBe("true");
@@ -184,7 +184,7 @@ describe("Form", () => {
       </Form>,
     );
     await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "new@example.com");
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("false");
     expect(describedBy(input("email"))).toEqual([]);
     // The other field keeps its error.
     expect(input("name").getAttribute("aria-invalid")).toBe("true");
@@ -198,14 +198,14 @@ describe("Form", () => {
       </Form>,
     );
     await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "x");
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("false");
     // The same object again changes nothing.
     await rerender(
       <Form errors={first}>
         <TextField label="Email" name="email" />
       </Form>,
     );
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("false");
     await rerender(
       <Form errors={{ email: "Still taken." }}>
         <TextField label="Email" name="email" />
@@ -240,14 +240,14 @@ describe("Form", () => {
     }
     const { input } = await render(<Page />);
     await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "new@example.com");
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("false");
     const again = page.getByRole("button", { name: /^Rendered/ });
     await pressTab();
     expect(document.activeElement).toBe(again.element());
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("button", { name: "Rendered 1" })).toBeVisible();
     // The cleared message stays cleared, and focus stays on the button that was pressed.
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("false");
     expect(input("name").getAttribute("aria-invalid")).toBe("true");
     expect(document.activeElement).toBe(again.element());
   });
@@ -276,7 +276,7 @@ describe("Form", () => {
       </Form>,
     );
     await userEvent.fill(page.getByRole("textbox", { name: "Name", exact: true }), "Ari");
-    expect(input("name").getAttribute("aria-invalid")).toBeNull();
+    expect(input("name").getAttribute("aria-invalid")).toBe("false");
     await rerender(
       <Form errors={{ email: second, name: "Required." }}>
         <TextField label="Name" name="name" />
@@ -284,7 +284,7 @@ describe("Form", () => {
       </Form>,
     );
     // New errors show every message again, the cleared one included; equal ones change nothing.
-    expect(input("name").getAttribute("aria-invalid")).toBe(same ? null : "true");
+    expect(input("name").getAttribute("aria-invalid")).toBe(same ? "false" : "true");
   });
 
   it("treats no errors, null and an empty object as the same, and an element with a loop in its props as new", async () => {
@@ -315,7 +315,7 @@ describe("Form", () => {
     );
     await expect.poll(() => document.activeElement).toBe(input("email"));
     await userEvent.fill(page.getByRole("textbox", { name: "Email" }), "x");
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("false");
     // The comparison gives up on the loop and takes the errors as new, rather than never ending.
     await rerender(
       <Form errors={{ email: <Note info={makeLoop()} /> }}>
@@ -368,7 +368,7 @@ describe("Form", () => {
       await act(async () => answer({ email: "That email is taken." }));
       await expect.poll(() => emailInput().getAttribute("aria-invalid")).toBe("true");
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "b@example.com");
-      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      expect(emailInput().getAttribute("aria-invalid")).toBe("false");
     }
 
     it("keeps a cleared message cleared through the next submit's own re-render, then shows the equal answer and moves focus once when it arrives", async () => {
@@ -378,7 +378,7 @@ describe("Form", () => {
       await userEvent.click(page.getByRole("button", { name: "Save" }));
       await expect.element(page.getByRole("button", { name: "Saving" })).toBeVisible();
       // Pending, with the last answer still in place: nothing comes back, and focus stays.
-      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      expect(emailInput().getAttribute("aria-invalid")).toBe("false");
       nameInput().focus();
       // The server answers the second submit with the same refusal.
       await act(async () => answer({ email: "That email is taken." }));
@@ -412,7 +412,7 @@ describe("Form", () => {
       nameInput().focus();
       await userEvent.click(page.getByRole("button", { name: "Save" }));
       await expect.element(page.getByRole("button", { name: "Saving" })).toBeVisible();
-      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      expect(emailInput().getAttribute("aria-invalid")).toBe("false");
       expect(document.activeElement).not.toBe(emailInput());
       // A different answer is new by its content.
       await act(async () => answer({ email: "Use your work email." }));
@@ -444,7 +444,7 @@ describe("Form", () => {
       nameInput().focus();
       await userEvent.click(page.getByRole("button", { name: "Save" }));
       await expect.poll(() => nameInput().getAttribute("aria-invalid")).toBe("true");
-      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      expect(emailInput().getAttribute("aria-invalid")).toBe("false");
       expect(document.activeElement).not.toBe(emailInput());
     });
 
@@ -465,7 +465,7 @@ describe("Form", () => {
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
       await act(async () => bump());
       await act(async () => bump());
-      expect(emailInput().getAttribute("aria-invalid")).toBeNull();
+      expect(emailInput().getAttribute("aria-invalid")).toBe("false");
     });
 
     it("shows errors on a page an action's plain navigation rendered, with no submit handler", async () => {
@@ -501,15 +501,15 @@ describe("Form", () => {
       const node = () => <Form errors={formErrors(answer, notes)}>{fields}<ClearRequests /></Form>;
       const { input, rerender } = await render(node());
       await userEvent.click(page.getByRole("button", { name: "Clear requests" }));
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       await rerender(node());
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
     });
 
     it("ignores a field-context clear request when no raw errors have been supplied", async () => {
       const { host, input } = await render(<Form>{fields}<ClearRequests /></Form>);
       await userEvent.click(page.getByRole("button", { name: "Clear requests" }));
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(host.querySelector('[role="alert"]')).toBeNull();
     });
 
@@ -520,7 +520,7 @@ describe("Form", () => {
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
       for (const next of [node(answer, { form: "Updated text." }), node(answer, {}), node(undefined, {}), node(answer, notes)]) {
         await rerender(next);
-        expect(input("email").getAttribute("aria-invalid")).toBeNull();
+        expect(input("email").getAttribute("aria-invalid")).toBe("false");
       }
       await rerender(node({}, notes));
       expect(input("email").getAttribute("aria-invalid")).toBe("true");
@@ -539,7 +539,7 @@ describe("Form", () => {
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
       input("name").focus();
       await rerender(node("/next", after));
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(host.querySelector('[role="alert"]')).toBe(first);
       expect(first!.querySelector("a")!.getAttribute("href")).toBe("/next");
       expect(document.activeElement).toBe(input("name"));
@@ -555,7 +555,7 @@ describe("Form", () => {
       const first = host.querySelector('[role="alert"]');
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
       await rerender(node({}, 0));
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(host.querySelector('[role="alert"]')).toBe(first);
       const focus = vi.spyOn(input("email"), "focus");
       await rerender(node(source, 1));
@@ -572,10 +572,10 @@ describe("Form", () => {
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
       input("name").focus();
       await rerender(<Form errors={{ ...notes }}>{fields}</Form>);
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(host.querySelector('[role="alert"]')).toBe(first);
       await rerender(opaque());
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(host.querySelector('[role="alert"]')).toBe(first);
       expect(document.activeElement).toBe(input("name"));
     });
@@ -587,10 +587,10 @@ describe("Form", () => {
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
       input("name").focus();
       await rerender(<Form errors={empty}>{fields}</Form>);
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(host.querySelector('[role="alert"]')).toBeNull();
       await rerender(opaque());
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(document.activeElement).toBe(input("name"));
     });
 
@@ -603,7 +603,7 @@ describe("Form", () => {
           input("email").dispatchEvent(new Event("input", { bubbles: true }));
         }
       });
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
     });
 
     it("a keyed null success clears prior errors and never focuses a local-error-only field or creates an empty alert", async () => {
@@ -627,7 +627,7 @@ describe("Form", () => {
       await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "x");
       input("name").focus();
       await rerender(node({ ...notes, form: "Updated presentation." }));
-      expect(input("email").getAttribute("aria-invalid")).toBeNull();
+      expect(input("email").getAttribute("aria-invalid")).toBe("false");
       expect(host.querySelector('[role="alert"]')).toBe(first);
       expect(host.querySelector("form")!.hasAttribute("result")).toBe(false);
       expect(document.activeElement).toBe(input("name"));
@@ -663,7 +663,7 @@ describe("Form", () => {
     expect(input("email").getAttribute("aria-invalid")).toBe("true");
     expect(description(input("email"))).toEqual(["We never share it.", "That email is taken."]);
     expect(input("bio").getAttribute("aria-invalid")).toBe("true");
-    expect(input("name").getAttribute("aria-invalid")).toBeNull();
+    expect(input("name").getAttribute("aria-invalid")).toBe("false");
   });
 
   it("leaves focus alone when a submit comes back without errors", async () => {
@@ -994,13 +994,13 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     }
     const { rerender, host, input } = await render(<Mapped answer={answers[0]} />);
     expect(host.querySelector('[role="alert"]')).toBeNull();
-    expect(input("email").getAttribute("aria-invalid")).toBeNull();
+    expect(input("email").getAttribute("aria-invalid")).toBe("false");
     await rerender(<Mapped answer={answers[1]} />);
     expect(host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.");
     await rerender(<Mapped answer={answers[2]} />);
     expect(host.querySelector('[role="alert"]')).toBeNull();
     expect(input("email").getAttribute("aria-invalid")).toBe("true");
-    expect(input("name").getAttribute("aria-invalid")).toBeNull();
+    expect(input("name").getAttribute("aria-invalid")).toBe("false");
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -1205,7 +1205,7 @@ describe("Form server rendering", () => {
     expect(ids.map((id) => doc.getElementById(id)?.textContent)).toEqual(["We never share it.", "Taken."]);
     expect(ids[1]).toMatch(/-error$/);
     const name = doc.querySelector<HTMLInputElement>('input[name="name"]')!;
-    expect(name.getAttribute("aria-invalid")).toBeNull();
+    expect(name.getAttribute("aria-invalid")).toBe("false");
     expect(name.hasAttribute("aria-describedby")).toBe(false);
     expect(error).not.toHaveBeenCalled();
   });
