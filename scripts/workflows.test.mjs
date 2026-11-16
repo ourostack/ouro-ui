@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -24,6 +25,32 @@ const workflows = readdirSync(dir)
 // The repository's own composite actions, which the workflows use from their checkout.
 const actionsDir = join(root, ".github/actions");
 const actions = readdirSync(actionsDir).map((name) => ({ file: `actions/${name}/action.yml`, text: readFileSync(join(actionsDir, name, "action.yml"), "utf8") }));
+
+test("a CI git transfer that stalls ends after a minute below 1 KB/s, so actions/checkout fetches again (#1765)", () => {
+  const ci = workflow("ci.yml");
+  assert.match(ci, /^env:\n {2}GIT_HTTP_LOW_SPEED_LIMIT: 1000\n {2}GIT_HTTP_LOW_SPEED_TIME: 60\n/m);
+  // git reads them: a fetch from a server that never answers ends at the limit.
+  const scratch = scratchDir("ouro-git-stall-");
+  const server = createServer(() => {});
+  return new Promise((resolve, reject) => {
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      spawnSync("git", ["init", "-q"], { cwd: scratch });
+      const started = Date.now();
+      const result = spawnSync("git", ["fetch", "-q", `http://127.0.0.1:${port}/repo`, "main"], { cwd: scratch, encoding: "utf8", env: { ...process.env, GIT_HTTP_LOW_SPEED_LIMIT: "1000", GIT_HTTP_LOW_SPEED_TIME: "2" }, timeout: 30_000 });
+      server.close();
+      server.closeAllConnections?.();
+      try {
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /too slow/i);
+        assert.ok(Date.now() - started < 20_000, `took ${Date.now() - started} ms`);
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+});
 
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
   assert.ok(workflows.length >= 4);
