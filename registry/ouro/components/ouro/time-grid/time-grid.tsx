@@ -463,7 +463,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const allDaySpans: Array<{ key: string; first: number; last: number }> = [];
     const timedItems: Array<Array<{ key: string; start: number; end: number }>> = days.map(() => []);
     // An all-day event's days: its weekday, or the dates it runs between.
-    const daysText = (first: string, last: string) => (first === last ? formats.weekdayLong.format(utcDate(first)) : formats.fullDay.formatRange(utcDate(first), utcDate(last)));
+    const daysText = (first: string, last: string) => (first === last ? formats.weekdayLong.format(utcDate(first)) : plainSpaces(formats.fullDay.formatRange(utcDate(first), utcDate(last))));
     // The shown days from `from` to `to`, as indexes, or null when none of them shows.
     const spanOf = (from: string, to: string) => {
       const first = days.findIndex((day) => day >= from);

@@ -1130,6 +1130,7 @@ describe("TimeGrid", () => {
       events: [
         { id: "e", title: "Sync", start: "2026-03-12T14:00:00Z", end: "2026-03-12T16:00:00Z" },
         { id: "trip", title: "Trip", start: "2026-03-11T14:00:00Z", end: "2026-03-13T16:00:00Z" },
+        { id: "fair", title: "Fair", start: "2026-03-11", end: "2026-03-13" },
       ],
     };
     // The server is Node, whose ICU writes "2:00\u2009–\u20094:00\u202fPM" where Chrome and Safari write "2:00 – 4:00 PM".
@@ -1146,6 +1147,7 @@ describe("TimeGrid", () => {
     }
     expect(html).toContain("2:00 – 4:00 PM");
     expect(html).toContain("Wednesday, March 11 at 2:00 PM – Friday, March 13 at 4:00 PM");
+    expect(html).toMatch(/Wednesday, March 11 – \w+day, March 1\d/);
     const host = document.createElement("div");
     host.innerHTML = html;
     document.body.append(host);
