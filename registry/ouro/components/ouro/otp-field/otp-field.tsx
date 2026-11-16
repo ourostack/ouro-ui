@@ -7,6 +7,7 @@ import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-st
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, useField, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
 import {
   defaultSlotLabel,
   otpValidationTypes,
@@ -167,7 +168,7 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
   // The Field's invalid state: OtpField's own error, or a Form's error for this name.
   const invalid = field.invalid;
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
-  return (
+  const directed = (
     <OTPField.Root
       {...rest}
       ref={setRef}
@@ -194,6 +195,7 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
       ))}
     </OTPField.Root>
   );
+  return <PageDirection of={rootRef}>{directed}</PageDirection>;
 }
 
 /**
@@ -204,8 +206,11 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
  *
  * Use `TextField` with `inputMode="numeric"` instead for a number with no fixed length, and
  * `TextField type="password"` for a password.
+ * In a right-to-left page (`dir="rtl"`) the slots run from the right, and ArrowLeft moves to the next.
+ *
  *
  * @group Forms
+ * @claim "In a right-to-left page" registry/ouro/components/ouro/otp-field/otp-field.test.tsx verify:testExists(registry/ouro/components/ouro/otp-field/otp-field.test.tsx::OtpField > moves between slots the way they run in a right-to-left page: ArrowLeft to the next)
  * @see https://ui.ouroboros.bot/docs/otp-field
  *
  * @example

@@ -523,6 +523,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-navigation-key`,
 `lib-open-mode`,
 `lib-ouro-provider`,
+`lib-page-direction`,
 `lib-page-scroll-hold`,
 `lib-people-cache`,
 `lib-portal-container`,
