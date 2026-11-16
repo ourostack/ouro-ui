@@ -1,0 +1,6 @@
+#!/bin/sh
+# ouro-ui pre-push hook: installed by scripts/install-hooks.mjs. It runs the claims lint that
+# claims.yml runs on a pull request (scripts/pre-push.mjs); git push --no-verify skips it.
+root=$(git rev-parse --show-toplevel) || exit 0
+[ -f "$root/scripts/pre-push.mjs" ] || exit 0
+exec node "$root/scripts/pre-push.mjs"
