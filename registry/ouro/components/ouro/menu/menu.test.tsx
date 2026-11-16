@@ -878,6 +878,35 @@ describe("Menu focus", () => {
     return { frames, focus };
   }
 
+  it("opened from the keyboard, the popup takes focus a frame after the first item, not in the same task", async () => {
+    const frames = holdFrames();
+    await render(<Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>);
+    trigger().focus();
+    const focus = recordFocus();
+    await userEvent.keyboard("{Enter}");
+    frames.until(() => focus.length === 1);
+    expect(focus).toEqual(["Edit"]);
+    frames.step();
+    expect(focus).toEqual(["Edit", "popup"]);
+    frames.release();
+  });
+
+  it("a key pressed before the popup takes focus keeps focus where the key put it", async () => {
+    const frames = holdFrames();
+    await render(<Menu trigger={<Button>Actions</Button>}>{basicItems}</Menu>);
+    trigger().focus();
+    const focus = recordFocus();
+    await userEvent.keyboard("{Enter}");
+    frames.until(() => focus.length === 1);
+    await userEvent.keyboard("{ArrowDown}");
+    frames.step();
+    frames.step();
+    frames.step();
+    expect(focus).not.toContain("popup");
+    expect(document.activeElement?.textContent).toBe("Duplicate");
+    frames.release();
+  });
+
   it("opened from the keyboard, focus goes through the popup and back to the first item two frames later", async () => {
     const { frames, focus } = await openFromKeyboard("{Enter}");
     expect(focus).toEqual(["Edit", "popup"]);
