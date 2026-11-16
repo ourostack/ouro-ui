@@ -430,10 +430,11 @@
       "repo": "arimendelow/mendelow.me",
       "pins": [
         {
-          "label": "installed Ouro HX",
+          "label": "Ouro HX",
           "latest": "web",
-          "from": "none",
-          "reason": "Installed as source with no recorded tag."
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
         }
       ],
       "hx": {

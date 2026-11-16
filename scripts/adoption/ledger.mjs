@@ -333,25 +333,32 @@ export function measureXray(ctx, surface) {
   }
   if (found.length === 0) return unmeasured(ctx, errors[0] ?? "no downloadable report in the latest successful runs", source);
   found.sort((a, b) => b.report.at.localeCompare(a.report.at));
-  const { report, run } = found[0];
-  const summary = report.summary;
+  // One report per checker: the X-ray's own claim set, and ouro-actions' action claims beside it. Each checker's newest
+  // report counts, and their claims add up, so an app's action claims count as AX must claims with its X-ray's.
+  const newest = [];
+  for (const item of found) if (!newest.some((kept) => kept.report.tool === item.report.tool)) newest.push(item);
+  const { report, run } = newest[0];
+  const sum = (key) => newest.reduce((total, item) => total + (item.report.summary[key] ?? 0), 0);
+  const must = sum("must");
+  const scored = newest.find((item) => typeof item.report.summary.score === "number");
   return cell(
     ctx,
     {
-      claims: summary.claims,
-      holding: summary.holding,
-      must: summary.must,
-      mustHolding: summary.mustHolding,
-      score: summary.score ?? null,
-      checks: summary.checks,
+      claims: sum("claims"),
+      holding: sum("holding"),
+      must,
+      mustHolding: sum("mustHolding"),
+      score: scored?.report.summary.score ?? null,
+      checks: sum("checks"),
       claimSet: report.claimSet?.version ?? null,
       tool: `${report.tool} ${report.checker?.version ?? ""}`.trim(),
       app: report.target?.app?.name ?? null,
       commit: report.target?.commit ?? null,
       reportAt: report.at,
       run: run.html_url,
+      reports: newest.map((item) => ({ tool: `${item.report.tool} ${item.report.checker?.version ?? ""}`.trim(), claimSet: item.report.claimSet?.version ?? null, must: item.report.summary.must, mustHolding: item.report.summary.mustHolding, reportAt: item.report.at, run: item.run.html_url })),
     },
-    { note: summary.must === 0 ? "The claim set has no must claims yet, so conforming is trivial." : null, source: run.html_url },
+    { note: must === 0 ? "The claim set has no must claims yet, so conforming is trivial." : newest.length > 1 ? `Adds up the newest report of each checker: ${newest.map((item) => item.report.tool).join(" and ")}.` : null, source: run.html_url },
   );
 }
 

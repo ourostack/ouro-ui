@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, configPath, createContext, gaveBack, isCurrent, measureActions, measureBenchmark, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const NOW = new Date("2026-11-13T22:00:00Z");
 const releases = {
@@ -345,4 +349,42 @@ test("the benchmark cell counts the published runs as the benchmark's page does:
   const failing = measureBenchmark(createContext({ gh: () => { throw new Error("HTTP 404"); }, now: () => NOW }), config);
   assert.equal(failing.value, null);
   assert.match(failing.note, /^not measured: HTTP 404/);
+});
+
+test("an app's X-ray and its action claims report add up, the newest report of each checker counting once", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ledger-xray-"));
+  try {
+    const zipOf = (report) => {
+      writeFileSync(join(dir, "report.json"), JSON.stringify(report));
+      execFileSync("zip", ["-q", "-j", join(dir, "a.zip"), join(dir, "report.json")]);
+      const bytes = readFileSync(join(dir, "a.zip"));
+      rmSync(join(dir, "a.zip"));
+      return bytes;
+    };
+    const report = (tool, at, must, mustHolding, score) => ({ tool, at, checker: { version: "1" }, claimSet: { version: "0.1.0" }, target: { app: { name: "App" }, commit: "abc" }, summary: { claims: must + 2, holding: mustHolding + 1, must, mustHolding, checks: must + 2, ...(score === undefined ? {} : { score }) } });
+    const artifacts = {
+      1: zipOf(report("ax-xray", "2026-11-15T12:00:00Z", 0, 0, 40)),
+      2: zipOf(report("ouro-actions", "2026-11-15T11:00:00Z", 3, 3)),
+      3: zipOf(report("ouro-actions", "2026-11-14T11:00:00Z", 3, 0)),
+    };
+    const gh = (args, { binary } = {}) => {
+      const line = args.join(" ");
+      if (/workflows\/ci\.yml\/runs/.test(line)) return JSON.stringify({ workflow_runs: [{ id: 10, html_url: "https://example.test/run/10" }, { id: 11, html_url: "https://example.test/run/11" }] });
+      if (/runs\/10\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 1, name: "xray", expired: false }, { id: 2, name: "actions-xray", expired: false }] });
+      if (/runs\/11\/artifacts/.test(line)) return JSON.stringify({ artifacts: [{ id: 3, name: "actions-xray", expired: false }] });
+      const art = /artifacts\/(\d+)\/zip/.exec(line);
+      if (art && binary) return artifacts[art[1]];
+      throw new Error(`unexpected gh call: ${line}`);
+    };
+    const context = createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 });
+    const xray = measureXray(context, { repo: "org/app", xray: [{ repo: "org/app", workflow: "ci.yml", branch: "main" }] });
+    assert.equal(xray.value.must, 3, "the X-ray's claim set has none; the action claims bring three");
+    assert.equal(xray.value.mustHolding, 3, "the older action report that failed does not count");
+    assert.equal(xray.value.claims, 7);
+    assert.equal(xray.value.score, 40, "the X-ray's score is kept");
+    assert.deepEqual(xray.value.reports.map((item) => item.tool), ["ax-xray 1", "ouro-actions 1"]);
+    assert.equal(mustPasses(xray), true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
