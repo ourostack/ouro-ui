@@ -1,0 +1,74 @@
+name: AX X-ray
+# The registry's agent door (actions/, scripts/ouro-actions/) under Ouro AX. The X-ray calls the MCP server the way an
+# agent does, with --conformance, and `ouro-actions check --report` proves the action claims on the committed
+# projections. Both reports are artifacts (xray, actions-xray); the adoption ledger reads them from the newest run.
+on:
+  pull_request:
+    paths:
+      - "actions/**"
+      - "scripts/ouro-actions/**"
+      - "scripts/ouro-actions.test.mjs"
+      - "registry/ouro/ax/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/ax-xray.yml"
+  push:
+    branches: [main]
+    paths:
+      - "actions/**"
+      - "scripts/ouro-actions/**"
+      - "scripts/ouro-actions.test.mjs"
+      - "registry/ouro/ax/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/ax-xray.yml"
+permissions:
+  contents: read
+concurrency:
+  group: ax-xray-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  ax-xray:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      # The install writes registry.json (pnpm registry), which the registry door answers from.
+      - run: pnpm i --frozen-lockfile
+      - name: Ouro AX X-ray over the registry door
+        run: |
+          set -euo pipefail
+          printf '{"mcp": %s}\n' "$(node actions/server/registry-mcp.mts --tools)" > "$RUNNER_TEMP/inventory.json"
+          mkdir -p xray
+          node registry/ouro/ax/xray.ts --mcp "node actions/server/registry-mcp.mts" \
+            --inventory "$RUNNER_TEMP/inventory.json" --conformance \
+            --home "$RUNNER_TEMP/xray-home" --commit "$GITHUB_SHA" \
+            --json --md xray/xray.md > xray/report.json
+      - name: Upload the X-ray
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: xray
+          path: xray/
+          if-no-files-found: error
+      - name: Action claims
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p xray-actions
+          node scripts/ouro-actions/ouro-actions.mts check actions/registry.actions.mts actions/generated \
+            --report xray-actions/report.json --app "Ouro UI" --commit "$GITHUB_SHA"
+      - name: Upload the action claims
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: actions-xray
+          path: xray-actions/
+          if-no-files-found: error
