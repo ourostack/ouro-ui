@@ -39,8 +39,9 @@
 //   manager on every add, which rewrites the app's range. The minimum versions are in each
 //   item's meta.requires and in the ouro-testing message.
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { isTracked, llmsSource, trackedFiles } from "./generated-files.mjs";
+import { writeAtomic } from "./write-atomic.mjs";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
@@ -929,8 +930,8 @@ function main(argv: string[]): number {
   const censusPath = join(root, "registry/ouro/census/census-axe-version.mjs");
   const census = own ? censusAxeVersion(root) : undefined;
   if (argv.includes("--uncommitted")) {
-    if (own && !outTracked) writeFileSync(out, text);
-    if (llmsText !== undefined && !llmsTracked) writeFileSync(llmsPath, llmsText);
+    if (own && !outTracked) writeAtomic(out, text);
+    if (llmsText !== undefined && !llmsTracked) writeAtomic(llmsPath, llmsText);
     return 0;
   }
   if (check) {
@@ -940,8 +941,8 @@ function main(argv: string[]): number {
       process.stderr.write(`${committed.join(", ")} ${committed.length === 1 ? "is" : "are"} committed, but main commits no generated list of the components, so two pull requests that add components never conflict there: run git rm --cached ${committed.join(" ")}. Only a release commit adds them.\n`);
       return 1;
     }
-    if (own && !outTracked) writeFileSync(out, text);
-    if (llmsText !== undefined && !llmsTracked) writeFileSync(llmsPath, llmsText);
+    if (own && !outTracked) writeAtomic(out, text);
+    if (llmsText !== undefined && !llmsTracked) writeAtomic(llmsPath, llmsText);
     const written = own && !outTracked ? text : current;
     if (onMain && (version || /"ourostack\/ouro-ui\/[\w-]+#v/.test(written))) {
       process.stderr.write(`${relative(process.cwd(), out)} is pinned to a release (a version field or #v refs), but main stays unpinned: only release tags are pinned. Run pnpm registry and commit the result.\n`);
@@ -969,9 +970,9 @@ function main(argv: string[]): number {
     process.stdout.write(own && !outTracked ? "registry.json and site/public/llms.txt are written, and git does not track them.\n" : "registry.json is up to date.\n");
     return 0;
   }
-  writeFileSync(out, text);
-  if (llmsText !== undefined) writeFileSync(llmsPath, llmsText);
-  if (census !== undefined) writeFileSync(censusPath, census);
+  writeAtomic(out, text);
+  if (llmsText !== undefined) writeAtomic(llmsPath, llmsText);
+  if (census !== undefined) writeAtomic(censusPath, census);
   return 0;
 }
 
