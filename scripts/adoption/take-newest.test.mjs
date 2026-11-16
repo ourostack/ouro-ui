@@ -37,5 +37,5 @@ test("the site reads the hourly ledger from the contents API, signed in, so a ca
   assert.equal(asked[0].init.headers.accept, "application/vnd.github.raw+json");
   assert.equal(asked[0].init.headers.authorization, "Bearer t0ken");
   assert.equal(JSON.parse(readFileSync(file, "utf8")).generatedAt, "2026-11-16T08:17:43Z");
-  assert.match(readFileSync(new URL("../../.github/workflows/pages.yml", import.meta.url), "utf8"), /take-newest\.mjs "https:\/\/api\.github\.com\/repos\/\$REPO\/contents\/ledger\.json\?ref=adoption-data"/);
+  assert.match(readFileSync(join(import.meta.dirname, "../../.github/workflows/pages.yml"), "utf8"), /take-newest\.mjs "https:\/\/api\.github\.com\/repos\/\$REPO\/contents\/ledger\.json\?ref=adoption-data"/);
 });
