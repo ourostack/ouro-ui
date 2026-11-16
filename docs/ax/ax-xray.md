@@ -241,7 +241,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```ts
-const XRAY_VERSION: "1.5.0"
+const XRAY_VERSION: "1.6.0"
 ```
 
 ### `XrayOptions`

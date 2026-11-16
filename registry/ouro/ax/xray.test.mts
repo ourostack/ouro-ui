@@ -402,7 +402,7 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
 test("the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value", async () => {
   const h = io();
   assert.equal(await main(["help"], h.io), 0);
-  assert.match(h.o.out, /^ax-xray 1\.5\.0: checks an agent-facing interface/);
+  assert.match(h.o.out, /^ax-xray 1\.6\.0: checks an agent-facing interface/);
   assert.match(h.o.out, /--env K=V\.\.\./);
   const u = io();
   assert.equal(await main(["--cli", "x", "--jsn", "--json"], u.io), 2);
@@ -743,6 +743,14 @@ test("a CLI whose failures say something went wrong fails copy.precise-failure o
   assert.equal(await main(["--cli", fixture("bad-cli.mjs"), "--failure-copy-allow", allowFile], bad.io), 2);
   assert.match(bad.o.err, /^ax-xray: --failure-copy-allow: .*failure-copy-allow\.json: the failure copy allow-list has 1 problem: entry 0 \{"match":"could not"\} needs a non-empty "match" and a "reason"\. Fix: \{ "match": "<part of the text>", "reason": "<why this wording is precise>" \}\.\n$/);
   assert.equal(parseArgs(["--cli", "x", "--failure-copy-allow", "a.json"]).failureCopyAllow, "a.json");
+});
+
+test("a protocol command may print its JSON reply on stdout, but an undeclared command may not, and a protocol command still gets one stderr line", async () => {
+  const report = await xray(base({ cli: fixture("protocol-cli.mjs"), name: "proto" }));
+  const verdicts = (cmd: string) => report.results.filter((r) => r.claim === "cli.one-line-error" && r.surface.startsWith(`${cmd} (`)).map((r) => r.verdict);
+  assert.deepEqual(verdicts("relay"), ["pass"]);
+  assert.deepEqual(verdicts("post"), ["fail"]);
+  assert.deepEqual(verdicts("loud"), ["fail"]);
 });
 
 test("a CLI that asks for developer commands fails cli.no-dev-commands once per command, and a step marked sourceCheckout passes", async () => {

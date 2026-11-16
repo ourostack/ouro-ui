@@ -112,6 +112,7 @@ interface CommandDef<R = unknown, C extends RunContext = RunContext> {
   examples?: readonly string[];
   output?: string;
   hidden?: boolean;
+  protocol?: boolean;
   summarizes?: boolean;
   loose?: boolean;
   self?: SelfScope<C>;
