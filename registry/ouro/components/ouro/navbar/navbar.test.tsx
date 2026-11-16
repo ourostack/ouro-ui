@@ -179,6 +179,27 @@ describe("Navbar", () => {
     expect(html).toContain('href="/shopping-list"');
   });
 
+  it("moves its actions to a second row when they and the brand do not fit beside each other, as with large text", async () => {
+    await page.viewport(320, 700);
+    const { bar } = await render(
+      <Navbar
+        label="Main"
+        items={items}
+        currentPath="/recipes"
+        brand={<span style={{ fontSize: "2rem", whiteSpace: "nowrap" }}>Spoonjoy kitchen</span>}
+        actions={<button type="button" style={{ width: 120, height: 44 }}>Account</button>}
+      />,
+    );
+    const account = page.getByRole("button", { name: "Account" }).element().getBoundingClientRect();
+    const box = bar.getBoundingClientRect();
+    expect(bar.scrollWidth).toBeLessThanOrEqual(bar.clientWidth);
+    expect(account.right).toBeLessThanOrEqual(box.right);
+    // Still at the end of its row, under the brand.
+    const brand = page.getByText("Spoonjoy kitchen").element().getBoundingClientRect();
+    expect(account.top).toBeGreaterThanOrEqual(brand.bottom);
+    expect(Math.round(box.right - account.right)).toBe(Math.round(parseFloat(getComputedStyle(bar).paddingInlineEnd)));
+  });
+
   it("collapses the links into a sheet behind a menu button below 640px", async () => {
     await page.viewport(390, 844);
     const { menuButton, bar } = await render(<Navbar label="Main" items={items} currentPath="/recipes" brand="Spoonjoy" />);
