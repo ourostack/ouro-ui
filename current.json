@@ -1,16 +1,16 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-16T06:45:22.452Z",
+  "generatedAt": "2026-11-16T06:59:10.131Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
-      "tag": "v1.3.204",
-      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.204"
+      "tag": "v1.3.205",
+      "url": "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.205"
     },
     "core": {
       "name": "Ouro UI core",
-      "tag": "v0.16.0",
-      "url": "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.16.0"
+      "tag": "v0.17.0",
+      "url": "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.17.0"
     },
     "apple": {
       "name": "Ouro UI for Apple",
