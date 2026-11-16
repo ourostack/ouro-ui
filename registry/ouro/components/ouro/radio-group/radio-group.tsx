@@ -225,23 +225,22 @@ function Choices(props: {
   const group = useRef<HTMLDivElement>(null);
   const merged = useMergedRef(ref, group);
   const field = useField()!;
-  return (
-    <PageDirection of={group}>
-      <BaseRadioGroup
-        ref={merged}
-        value={value}
-        defaultValue={defaultValue}
-        onValueChange={onValueChange && ((next) => onValueChange(next as string))}
-        required={field.required}
-        // Set here, not left to Base UI's effects, so the server HTML names and describes the group.
-        aria-labelledby={field.labelId}
-        aria-describedby={field.describedBy}
-        className={choicesClass[orientation]}
-      >
-        {children}
-      </BaseRadioGroup>
-    </PageDirection>
+  const directed = (
+    <BaseRadioGroup
+      ref={merged}
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={onValueChange && ((next) => onValueChange(next as string))}
+      required={field.required}
+      // Set here, not left to Base UI's effects, so the server HTML names and describes the group.
+      aria-labelledby={field.labelId}
+      aria-describedby={field.describedBy}
+      className={choicesClass[orientation]}
+    >
+      {children}
+    </BaseRadioGroup>
   );
+  return <PageDirection of={group}>{directed}</PageDirection>;
 }
 
 /**

@@ -317,93 +317,92 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
   };
 
   const portal = usePortalContainer("NavigationMenu");
-  return (
-    <PageDirection of={nav}>
-      <BaseNavigationMenu.Root
-        ref={mergedNav}
-        data-ouro="navigation-menu"
-        aria-label={label}
-        value={value}
-        onValueChange={(next, { event }) => {
-          // A key press, or the click a key press makes (detail 0), opens and closes at once.
-          setInstant(event.type === "keydown" || (event.type === "click" && (event as MouseEvent).detail === 0));
-          setValue(next as number | null);
-        }}
-        className={cn("min-w-0", className)}
-      >
-        <BaseNavigationMenu.List ref={listRef} className={cn("m-0 flex list-none items-center gap-1 p-0", oneLine ? "flex-nowrap" : "flex-wrap")}>
-          {items.map((item, index) =>
-            isPanel(item) ? (
-              <BaseNavigationMenu.Item key={index} value={index}>
-                <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
-                  {item.label}
-                  <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
-                    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
-                      <path d="m4 6 4 4 4-4" />
-                    </svg>
-                  </BaseNavigationMenu.Icon>
-                </BaseNavigationMenu.Trigger>
-                <BaseNavigationMenu.Content
-                  data-ouro-instant={instant ? "" : undefined}
-                  data-wide={item.content !== undefined || item.columns === 2 ? "" : undefined}
-                  className={panel}
-                >
-                  <div className={cn("grid gap-2", item.content !== undefined && item.links !== undefined && "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]")}>
-                    {item.content !== undefined && (
-                      // A link in the content closes the panel, as the list's links do.
-                      <div data-ouro-navigation-menu-content="" onClick={closeOnLink} className="min-w-0">
-                        {item.content}
-                      </div>
-                    )}
-                    {item.links !== undefined && (
-                      <ul className={cn("m-0 grid list-none gap-1 p-0", item.columns === 2 && "sm:grid-cols-2")}>
-                        {item.links.map((link, position) => (
-                          <li key={position}>
-                            <BaseNavigationMenu.Link
-                              render={<RouterLink href={link.href} />}
-                              active={currentOf(link) === "page"}
-                              aria-current={currentOf(link)}
-                              closeOnClick
-                              data-ouro-control="navigation-menu"
-                              data-ouro-part="panel-link"
-                              className={panelLink}
-                            >
-                              <span className={cn("font-medium", panelLabel, isCurrent(link) && "font-semibold underline")}>{link.label}</span>
-                              {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
-                            </BaseNavigationMenu.Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </BaseNavigationMenu.Content>
-              </BaseNavigationMenu.Item>
-            ) : (
-              <BaseNavigationMenu.Item key={index} value={index}>
-                <BaseNavigationMenu.Link
-                  render={<RouterLink href={item.href} />}
-                  active={currentOf(item) === "page"}
-                  aria-current={currentOf(item)}
-                  data-ouro-control="navigation-menu"
-                  data-ouro-part="link"
-                  className={rowItem}
-                >
-                  {item.label}
-                </BaseNavigationMenu.Link>
-              </BaseNavigationMenu.Item>
-            ),
-          )}
-        </BaseNavigationMenu.List>
-        <BaseNavigationMenu.Portal {...portal} data-ouro="navigation-menu-portal" className={floatingPortalClass}>
-          <PortalScope>
-            <BaseNavigationMenu.Positioner sideOffset={8} collisionPadding={16} className={positioner}>
-              <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popup}>
-                <BaseNavigationMenu.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
-              </BaseNavigationMenu.Popup>
-            </BaseNavigationMenu.Positioner>
-          </PortalScope>
-        </BaseNavigationMenu.Portal>
-      </BaseNavigationMenu.Root>
-    </PageDirection>
+  const directed = (
+    <BaseNavigationMenu.Root
+      ref={mergedNav}
+      data-ouro="navigation-menu"
+      aria-label={label}
+      value={value}
+      onValueChange={(next, { event }) => {
+        // A key press, or the click a key press makes (detail 0), opens and closes at once.
+        setInstant(event.type === "keydown" || (event.type === "click" && (event as MouseEvent).detail === 0));
+        setValue(next as number | null);
+      }}
+      className={cn("min-w-0", className)}
+    >
+      <BaseNavigationMenu.List ref={listRef} className={cn("m-0 flex list-none items-center gap-1 p-0", oneLine ? "flex-nowrap" : "flex-wrap")}>
+        {items.map((item, index) =>
+          isPanel(item) ? (
+            <BaseNavigationMenu.Item key={index} value={index}>
+              <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
+                {item.label}
+                <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
+                    <path d="m4 6 4 4 4-4" />
+                  </svg>
+                </BaseNavigationMenu.Icon>
+              </BaseNavigationMenu.Trigger>
+              <BaseNavigationMenu.Content
+                data-ouro-instant={instant ? "" : undefined}
+                data-wide={item.content !== undefined || item.columns === 2 ? "" : undefined}
+                className={panel}
+              >
+                <div className={cn("grid gap-2", item.content !== undefined && item.links !== undefined && "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]")}>
+                  {item.content !== undefined && (
+                    // A link in the content closes the panel, as the list's links do.
+                    <div data-ouro-navigation-menu-content="" onClick={closeOnLink} className="min-w-0">
+                      {item.content}
+                    </div>
+                  )}
+                  {item.links !== undefined && (
+                    <ul className={cn("m-0 grid list-none gap-1 p-0", item.columns === 2 && "sm:grid-cols-2")}>
+                      {item.links.map((link, position) => (
+                        <li key={position}>
+                          <BaseNavigationMenu.Link
+                            render={<RouterLink href={link.href} />}
+                            active={currentOf(link) === "page"}
+                            aria-current={currentOf(link)}
+                            closeOnClick
+                            data-ouro-control="navigation-menu"
+                            data-ouro-part="panel-link"
+                            className={panelLink}
+                          >
+                            <span className={cn("font-medium", panelLabel, isCurrent(link) && "font-semibold underline")}>{link.label}</span>
+                            {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
+                          </BaseNavigationMenu.Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </BaseNavigationMenu.Content>
+            </BaseNavigationMenu.Item>
+          ) : (
+            <BaseNavigationMenu.Item key={index} value={index}>
+              <BaseNavigationMenu.Link
+                render={<RouterLink href={item.href} />}
+                active={currentOf(item) === "page"}
+                aria-current={currentOf(item)}
+                data-ouro-control="navigation-menu"
+                data-ouro-part="link"
+                className={rowItem}
+              >
+                {item.label}
+              </BaseNavigationMenu.Link>
+            </BaseNavigationMenu.Item>
+          ),
+        )}
+      </BaseNavigationMenu.List>
+      <BaseNavigationMenu.Portal {...portal} data-ouro="navigation-menu-portal" className={floatingPortalClass}>
+        <PortalScope>
+          <BaseNavigationMenu.Positioner sideOffset={8} collisionPadding={16} className={positioner}>
+            <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popup}>
+              <BaseNavigationMenu.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
+            </BaseNavigationMenu.Popup>
+          </BaseNavigationMenu.Positioner>
+        </PortalScope>
+      </BaseNavigationMenu.Portal>
+    </BaseNavigationMenu.Root>
   );
+  return <PageDirection of={nav}>{directed}</PageDirection>;
 }

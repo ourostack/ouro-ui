@@ -168,35 +168,34 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
   // The Field's invalid state: OtpField's own error, or a Form's error for this name.
   const invalid = field.invalid;
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
-  return (
-    <PageDirection of={rootRef}>
-      <OTPField.Root
-        {...rest}
-        ref={setRef}
-        length={length}
-        required={field.required}
-        aria-describedby={field.describedBy}
-        onValueChange={onValueChange && ((next) => onValueChange(next))}
-        onValueComplete={onValueComplete && ((next) => onValueComplete(next))}
-        className={slotsClass}
-      >
-        {Array.from({ length }, (_, index) => (
-          <Fragment key={index}>
-            {index > 0 && index % groups === 0 && <OTPField.Separator data-ouro-otp-separator="" className={separatorClass} />}
-            <OTPField.Input
-              data-ouro-otp-slot=""
-              data-ouro-control="otp-field"
-              data-ouro-part="slot"
-              aria-label={index === 0 ? undefined : slotLabel(index + 1, length)}
-              aria-describedby={field.describedBy}
-              {...(invalid ? { "aria-invalid": true } : {})}
-              className={slotClass}
-            />
-          </Fragment>
-        ))}
-      </OTPField.Root>
-    </PageDirection>
+  const directed = (
+    <OTPField.Root
+      {...rest}
+      ref={setRef}
+      length={length}
+      required={field.required}
+      aria-describedby={field.describedBy}
+      onValueChange={onValueChange && ((next) => onValueChange(next))}
+      onValueComplete={onValueComplete && ((next) => onValueComplete(next))}
+      className={slotsClass}
+    >
+      {Array.from({ length }, (_, index) => (
+        <Fragment key={index}>
+          {index > 0 && index % groups === 0 && <OTPField.Separator data-ouro-otp-separator="" className={separatorClass} />}
+          <OTPField.Input
+            data-ouro-otp-slot=""
+            data-ouro-control="otp-field"
+            data-ouro-part="slot"
+            aria-label={index === 0 ? undefined : slotLabel(index + 1, length)}
+            aria-describedby={field.describedBy}
+            {...(invalid ? { "aria-invalid": true } : {})}
+            className={slotClass}
+          />
+        </Fragment>
+      ))}
+    </OTPField.Root>
   );
+  return <PageDirection of={rootRef}>{directed}</PageDirection>;
 }
 
 /**

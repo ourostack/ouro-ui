@@ -368,57 +368,56 @@ function SliderControl({
     [hydrated, sampleLocale, format, min, max, step],
   );
   const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
-  return (
-    <PageDirection of={rootRef}>
-      <BaseSlider.Root
-        ref={rootRef}
-        {...shared}
-        locale={locale}
-        {...(invalid ? { "data-ouro-invalid": "" } : {})}
-        onValueChange={onValueChange && ((next) => onValueChange(next as number | number[]))}
-        onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next as number | number[]))}
-        aria-labelledby={labelId}
-        aria-describedby={field.describedBy}
-        className={`group/slider ${rootClass}`}
+  const directed = (
+    <BaseSlider.Root
+      ref={rootRef}
+      {...shared}
+      locale={locale}
+      {...(invalid ? { "data-ouro-invalid": "" } : {})}
+      onValueChange={onValueChange && ((next) => onValueChange(next as number | number[]))}
+      onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next as number | number[]))}
+      aria-labelledby={labelId}
+      aria-describedby={field.describedBy}
+      className={`group/slider ${rootClass}`}
+    >
+      <BaseSlider.Control
+        data-ouro-slider-control=""
+        className={controlClass}
       >
-        <BaseSlider.Control
-          data-ouro-slider-control=""
-          className={controlClass}
+        <BaseSlider.Track className={trackClass}>
+          <BaseSlider.Indicator data-ouro-slider-indicator="" className={indicatorClass} />
+          {Array.from({ length: count }, (_, index) => (
+            <BaseSlider.Thumb
+              key={index}
+              index={index}
+              data-ouro-slider-thumb=""
+              inputRef={index === 0 ? inputRef : undefined}
+              aria-label={isRange ? `${thumbLabels[index] ?? index + 1}, ${label}` : undefined}
+              aria-describedby={field.describedBy}
+              className={thumbClass}
+            >
+              <TouchTarget />
+            </BaseSlider.Thumb>
+          ))}
+        </BaseSlider.Track>
+      </BaseSlider.Control>
+      {showValue && (
+        <BaseSlider.Value
+          data-ouro-slider-value=""
+          className={valueClass}
         >
-          <BaseSlider.Track className={trackClass}>
-            <BaseSlider.Indicator data-ouro-slider-indicator="" className={indicatorClass} />
-            {Array.from({ length: count }, (_, index) => (
-              <BaseSlider.Thumb
-                key={index}
-                index={index}
-                data-ouro-slider-thumb=""
-                inputRef={index === 0 ? inputRef : undefined}
-                aria-label={isRange ? `${thumbLabels[index] ?? index + 1}, ${label}` : undefined}
-                aria-describedby={field.describedBy}
-                className={thumbClass}
-              >
-                <TouchTarget />
-              </BaseSlider.Thumb>
-            ))}
-          </BaseSlider.Track>
-        </BaseSlider.Control>
-        {showValue && (
-          <BaseSlider.Value
-            data-ouro-slider-value=""
-            className={valueClass}
-          >
-            {(formatted) => (
-              <>
-                <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>
-                {/* Empty, so they stay out of the text: each shows its sample as a hidden pseudo-element. */}
-                {samples.map((sample) => (
-                  <span key={sample} aria-hidden="true" data-ouro-slider-sample={sample} className={sampleClass} />
-                ))}
-              </>
-            )}
-          </BaseSlider.Value>
-        )}
-      </BaseSlider.Root>
-    </PageDirection>
+          {(formatted) => (
+            <>
+              <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>
+              {/* Empty, so they stay out of the text: each shows its sample as a hidden pseudo-element. */}
+              {samples.map((sample) => (
+                <span key={sample} aria-hidden="true" data-ouro-slider-sample={sample} className={sampleClass} />
+              ))}
+            </>
+          )}
+        </BaseSlider.Value>
+      )}
+    </BaseSlider.Root>
   );
+  return <PageDirection of={rootRef}>{directed}</PageDirection>;
 }
