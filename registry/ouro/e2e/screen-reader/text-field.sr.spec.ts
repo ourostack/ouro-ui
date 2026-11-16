@@ -32,7 +32,7 @@ test.describe("an error after a submit", () => {
     };
     // Form's alert says what went wrong as the submit's answer arrives, whichever reader: VoiceOver
     // often read only the focused field's value ("Pasta.") and never its error (ourostack/ouro-ui#1720).
-    await heard(sr, submit, (phrase) => inOneSentence(phrase, /\bcouldn't save\b/i, /\b1 problem\b/i) && /\byou already have a recipe called pasta\b/i.test(phrase), '"Couldn\'t save: 1 problem. Name: You already have a recipe called Pasta.", the alert');
+    await heard(sr, submit, (phrase) => inOneSentence(phrase, /\bcouldn't save\b/i, /\b1 problem\b/i) && inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i), '"Couldn\'t save: 1 problem. Name: You already have a recipe called Pasta.", the alert');
     await expect(name).toHaveAttribute("aria-invalid", "true");
     await describesFocus(sr, (phrase) => inOneSentence(phrase, /\bname\b/i, /\byou already have a recipe called pasta\b/i) && inOneSentence(phrase, INVALID), '"Name", its error, invalid, the focused field');
   });
