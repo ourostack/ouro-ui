@@ -159,15 +159,17 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity 300ms ease-out;
-  backdrop-filter: blur(6px);
 }
 @media (width < 100rem) {
   .egg-leagues {
     display: none;
   }
 }
+/* Blurred only while it shows, so the hidden pill holds no backdrop filter, which costs WebKit without a GPU on every large
+   repaint (ourostack/ouro-ui#728). */
 .egg-leagues[data-open] {
   opacity: 1;
+  backdrop-filter: blur(6px);
 }
 .egg-leagues-count {
   color: var(--foreground);
