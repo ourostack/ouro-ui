@@ -1,6 +1,7 @@
 import { voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
 import { test as base, expect, type BrowserContext, type BrowserContextOptions, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
 import { execFile, spawn } from "node:child_process";
+import { release } from "node:os";
 import { promisify } from "node:util";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
 import { firstMatch, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
@@ -265,8 +266,8 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
  * describes the element around it (`describesContainer`). A miss in which VoiceOver said something
  * `contradicts` accepts (the old state, say) fails as it is: the fallback is for silence, not for a
  * wrong announcement. Only for a step VoiceOver is known to skip at times: the Checkbox and
- * Checklist toggles (ourostack/ouro-ui#118) and the Dialog's opening (ourostack/ouro-ui#119). On NVDA
- * it is `heard`.
+ * Checklist toggles (ourostack/ouro-ui#118, on macOS 15 only: `olderMacOS`) and the Dialog's opening
+ * (ourostack/ouro-ui#119). On NVDA it is `heard`, and so it is on newer macOS for an `olderMacOS` finding.
  */
 export async function heardOrDescribed(
   sr: ScreenReader,
@@ -274,9 +275,9 @@ export async function heardOrDescribed(
   matches: (phrase: string) => boolean,
   described: (phrase: string) => boolean,
   what: string,
-  { finding, from = "focus", contradicts }: { finding: string; from?: "focus" | "container"; contradicts?: (phrase: string) => boolean },
+  { finding, from = "focus", contradicts, olderMacOS = false }: { finding: string; from?: "focus" | "container"; contradicts?: (phrase: string) => boolean; olderMacOS?: boolean },
 ): Promise<string> {
-  if (!isVoiceOver(sr)) return heard(sr, action, matches, what);
+  if (!isVoiceOver(sr) || (olderMacOS && !onOlderMacOS())) return heard(sr, action, matches, what);
   try {
     return await heard(sr, action, matches, what);
   } catch (error) {
@@ -341,6 +342,12 @@ export async function said(sr: ScreenReader, action: () => Promise<unknown>, wha
   console.log(`[sr] said ${what}: "${spokenPhrase}"`);
   return spokenPhrase;
 }
+
+/**
+ * Whether this runs on macOS 15 (Darwin 24) or earlier, the lane's advisory VoiceOver, where some misses are VoiceOver's
+ * and macOS 26's VoiceOver reads the same page: `olderMacOS` findings fall back there only.
+ */
+export const onOlderMacOS = (): boolean => process.platform === "darwin" && Number(release().split(".")[0]) < 25;
 
 /** VoiceOver on macOS; NVDA elsewhere (the fixture picks the same way). */
 const isVoiceOver = (reader: ScreenReader): reader is VoiceOverPlaywright => reader !== null && process.platform === "darwin";

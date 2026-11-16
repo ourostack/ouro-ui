@@ -312,11 +312,15 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118) and th
   assert.match(textField, /heard\(sr, submit, \(phrase\) => inOneSentence\(phrase, \/\\bcouldn't save\\b\/i/);
   const checkbox = readFileSync(join(dir, "checkbox.sr.spec.ts"), "utf8");
   assert.match(checkbox, /ourostack\/ouro-ui#118/);
+  // #118 is VoiceOver's on macOS 15 alone (macOS 26 reads the change), so it falls back only there; #119 still misses on 26.
+  assert.match(checkbox, /finding: "ourostack\/ouro-ui#118",\n[^\n]*\n {4}olderMacOS: true,/);
   assert.doesNotMatch(checkbox, /from: "container"/);
   const checklist = readFileSync(join(dir, "checklist.sr.spec.ts"), "utf8");
   const dialog = readFileSync(join(dir, "dialog.sr.spec.ts"), "utf8");
   assert.match(checklist, /ourostack\/ouro-ui#118/);
   assert.match(dialog, /ourostack\/ouro-ui#119/);
+  assert.match(checklist, /finding: "ourostack\/ouro-ui#118",\n[^\n]*\n {4}olderMacOS: true,/);
+  assert.doesNotMatch(dialog, /olderMacOS/);
   // The Dialog's is its opening step, which describes the focus's container, not the closing one.
   assert.match(dialog, /heardOrDescribed\(sr, \(\) => page\.keyboard\.press\("Enter"\)[^\n]*from: "container"/);
   assert.doesNotMatch(checklist, /from: "container"/);
