@@ -4,6 +4,7 @@ import { Slider as BaseSlider } from "@base-ui/react/slider";
 import { cloneElement, useId, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type JSX, type ReactElement, type ReactNode, type Ref } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
+import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
 import { FieldOwnerContext, useField, useFormErrors, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -187,8 +188,11 @@ function defaultThumbLabels(count: number): string[] {
  *
  * Use `NumberField` instead when people need an exact number, and `RadioGroup` for a few
  * named choices.
+ * In a right-to-left page (`dir="rtl"` on `<html>`) the track runs from the right, and ArrowLeft raises the value.
+ *
  *
  * @group Forms
+ * @claim "In a right-to-left page" registry/ouro/components/ouro/slider/slider.test.tsx verify:testExists(registry/ouro/components/ouro/slider/slider.test.tsx::Slider > raises the value with ArrowLeft in a right-to-left page, where the track runs from the right)
  * @see https://ui.ouroboros.bot/docs/slider
  *
  * @example
@@ -365,54 +369,56 @@ function SliderControl({
   );
   const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
   return (
-    <BaseSlider.Root
-      ref={rootRef}
-      {...shared}
-      locale={locale}
-      {...(invalid ? { "data-ouro-invalid": "" } : {})}
-      onValueChange={onValueChange && ((next) => onValueChange(next as number | number[]))}
-      onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next as number | number[]))}
-      aria-labelledby={labelId}
-      aria-describedby={field.describedBy}
-      className={`group/slider ${rootClass}`}
-    >
-      <BaseSlider.Control
-        data-ouro-slider-control=""
-        className={controlClass}
+    <PageDirection>
+      <BaseSlider.Root
+        ref={rootRef}
+        {...shared}
+        locale={locale}
+        {...(invalid ? { "data-ouro-invalid": "" } : {})}
+        onValueChange={onValueChange && ((next) => onValueChange(next as number | number[]))}
+        onValueCommitted={onValueCommitted && ((next) => onValueCommitted(next as number | number[]))}
+        aria-labelledby={labelId}
+        aria-describedby={field.describedBy}
+        className={`group/slider ${rootClass}`}
       >
-        <BaseSlider.Track className={trackClass}>
-          <BaseSlider.Indicator data-ouro-slider-indicator="" className={indicatorClass} />
-          {Array.from({ length: count }, (_, index) => (
-            <BaseSlider.Thumb
-              key={index}
-              index={index}
-              data-ouro-slider-thumb=""
-              inputRef={index === 0 ? inputRef : undefined}
-              aria-label={isRange ? `${thumbLabels[index] ?? index + 1}, ${label}` : undefined}
-              aria-describedby={field.describedBy}
-              className={thumbClass}
-            >
-              <TouchTarget />
-            </BaseSlider.Thumb>
-          ))}
-        </BaseSlider.Track>
-      </BaseSlider.Control>
-      {showValue && (
-        <BaseSlider.Value
-          data-ouro-slider-value=""
-          className={valueClass}
+        <BaseSlider.Control
+          data-ouro-slider-control=""
+          className={controlClass}
         >
-          {(formatted) => (
-            <>
-              <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>
-              {/* Empty, so they stay out of the text: each shows its sample as a hidden pseudo-element. */}
-              {samples.map((sample) => (
-                <span key={sample} aria-hidden="true" data-ouro-slider-sample={sample} className={sampleClass} />
-              ))}
-            </>
-          )}
-        </BaseSlider.Value>
-      )}
-    </BaseSlider.Root>
+          <BaseSlider.Track className={trackClass}>
+            <BaseSlider.Indicator data-ouro-slider-indicator="" className={indicatorClass} />
+            {Array.from({ length: count }, (_, index) => (
+              <BaseSlider.Thumb
+                key={index}
+                index={index}
+                data-ouro-slider-thumb=""
+                inputRef={index === 0 ? inputRef : undefined}
+                aria-label={isRange ? `${thumbLabels[index] ?? index + 1}, ${label}` : undefined}
+                aria-describedby={field.describedBy}
+                className={thumbClass}
+              >
+                <TouchTarget />
+              </BaseSlider.Thumb>
+            ))}
+          </BaseSlider.Track>
+        </BaseSlider.Control>
+        {showValue && (
+          <BaseSlider.Value
+            data-ouro-slider-value=""
+            className={valueClass}
+          >
+            {(formatted) => (
+              <>
+                <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>
+                {/* Empty, so they stay out of the text: each shows its sample as a hidden pseudo-element. */}
+                {samples.map((sample) => (
+                  <span key={sample} aria-hidden="true" data-ouro-slider-sample={sample} className={sampleClass} />
+                ))}
+              </>
+            )}
+          </BaseSlider.Value>
+        )}
+      </BaseSlider.Root>
+    </PageDirection>
   );
 }

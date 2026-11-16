@@ -19,6 +19,7 @@ import {
 } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
 import {
@@ -533,8 +534,11 @@ function MenuSurface({
  *
  * A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab
  * goes on from wherever focus went.
+ * In a right-to-left page (`dir="rtl"` on `<html>`) a submenu opens to the left, with ArrowLeft.
+ *
  *
  * @group Menus
+ * @claim "In a right-to-left page" registry/ouro/components/ouro/menu/menu.test.tsx verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu items > opens a submenu with ArrowLeft in a right-to-left page, where it opens to the left, and closes it with ArrowRight)
  * @see https://ui.ouroboros.bot/docs/menu
  *
  * @example
@@ -705,67 +709,73 @@ export function Menu(props: MenuProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: with no trigger, Base UI has no focus of its own to give back, so a finalFocus that says nothing does as false does.
     const finalFocus = () => false;
     return (
-      <BaseMenu.Root {...control} actionsRef={actions} modal={sheet}>
-        <MenuSurface
-          sheet={sheet}
-          context={false}
-          side={side}
-          align={point === undefined ? align : "start"}
-          className={className}
-          closeLabel={closeLabel}
-          anchor={place}
-          point={point !== undefined}
-          label={ariaLabel}
-          finalFocus={finalFocus}
-        >
-          {body}
-        </MenuSurface>
-      </BaseMenu.Root>
+      <PageDirection>
+        <BaseMenu.Root {...control} actionsRef={actions} modal={sheet}>
+          <MenuSurface
+            sheet={sheet}
+            context={false}
+            side={side}
+            align={point === undefined ? align : "start"}
+            className={className}
+            closeLabel={closeLabel}
+            anchor={place}
+            point={point !== undefined}
+            label={ariaLabel}
+            finalFocus={finalFocus}
+          >
+            {body}
+          </MenuSurface>
+        </BaseMenu.Root>
+      </PageDirection>
     );
   }
 
   if (context) {
     return (
-      <ContextMenu.Root {...control}>
-        <ContextMenu.Trigger
-          render={contextTrigger}
-          className={menuContextTriggerClass}
-          {...holdPageAtPress.contextMenu}
-          // Base UI turns the callout off for good; Ouro UI turns it off only while pressing.
-          style={{ WebkitTouchCallout: undefined }}
-          onTouchStart={pressing(true)}
-          onTouchEnd={pressing(false)}
-          onTouchCancel={pressing(false)}
-        />
-        <MenuSurface sheet={false} context className={className}>
-          {body}
-        </MenuSurface>
-      </ContextMenu.Root>
+      <PageDirection>
+        <ContextMenu.Root {...control}>
+          <ContextMenu.Trigger
+            render={contextTrigger}
+            className={menuContextTriggerClass}
+            {...holdPageAtPress.contextMenu}
+            // Base UI turns the callout off for good; Ouro UI turns it off only while pressing.
+            style={{ WebkitTouchCallout: undefined }}
+            onTouchStart={pressing(true)}
+            onTouchEnd={pressing(false)}
+            onTouchCancel={pressing(false)}
+          />
+          <MenuSurface sheet={false} context className={className}>
+            {body}
+          </MenuSurface>
+        </ContextMenu.Root>
+      </PageDirection>
     );
   }
 
   return (
     // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides.
-    <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
-      {label !== undefined ? (
-        <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
-          {label}
-        </BaseMenu.Trigger>
-      ) : (
-        <BaseMenu.Trigger ref={triggerRef} render={trigger} {...holdPageAtPress.listButton} />
-      )}
-      <MenuSurface
-        sheet={sheet}
-        context={false}
-        side={side}
-        align={align}
-        className={className}
-        closeLabel={closeLabel}
-        finalFocus={backToTrigger}
-      >
-        {body}
-      </MenuSurface>
-    </BaseMenu.Root>
+    <PageDirection>
+      <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
+        {label !== undefined ? (
+          <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
+            {label}
+          </BaseMenu.Trigger>
+        ) : (
+          <BaseMenu.Trigger ref={triggerRef} render={trigger} {...holdPageAtPress.listButton} />
+        )}
+        <MenuSurface
+          sheet={sheet}
+          context={false}
+          side={side}
+          align={align}
+          className={className}
+          closeLabel={closeLabel}
+          finalFocus={backToTrigger}
+        >
+          {body}
+        </MenuSurface>
+      </BaseMenu.Root>
+    </PageDirection>
   );
 }
 
@@ -839,9 +849,11 @@ export function MenuBar({ children, className, ...rest }: MenuBarProps): JSX.Ele
     process.env.NODE_ENV !== "production" ? "wrap the MenuBar in an element with that class" : /* istanbul ignore next @preserve -- production only */ "",
   );
   return (
-    <Menubar {...rest} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
-      <MenuBarContext.Provider value>{children}</MenuBarContext.Provider>
-    </Menubar>
+    <PageDirection>
+      <Menubar {...rest} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
+        <MenuBarContext.Provider value>{children}</MenuBarContext.Provider>
+      </Menubar>
+    </PageDirection>
   );
 }
 

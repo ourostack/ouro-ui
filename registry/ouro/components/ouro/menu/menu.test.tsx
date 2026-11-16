@@ -576,6 +576,34 @@ describe("Menu items", () => {
     await expect.poll(() => menus().length).toBe(1);
   });
 
+  it("opens a submenu with ArrowLeft in a right-to-left page, where it opens to the left, and closes it with ArrowRight", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      await render(
+        <Menu trigger={<Button>Actions</Button>}>
+          <MenuItem>Edit</MenuItem>
+          <MenuSub label="Share">
+            <MenuItem>Copy link</MenuItem>
+          </MenuSub>
+        </Menu>,
+      );
+      trigger().focus();
+      await userEvent.keyboard("{Enter}");
+      await settled();
+      await userEvent.keyboard("{ArrowDown}");
+      expect(document.activeElement?.textContent).toContain("Share");
+      await userEvent.keyboard("{ArrowLeft}");
+      await expect.poll(() => menus().length).toBe(2);
+      await expect.poll(() => document.activeElement?.textContent).toBe("Copy link");
+      const [parent, child] = menus();
+      expect(child!.getBoundingClientRect().right).toBeLessThanOrEqual(parent!.getBoundingClientRect().left + 8);
+      await userEvent.keyboard("{ArrowRight}");
+      await expect.poll(() => menus().length).toBe(1);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("keeps an open submenu's focus guards out of its menu, where WebKit on Apple platforms makes them buttons", async () => {
     await render(
       <Menu trigger={<Button>Actions</Button>}>
