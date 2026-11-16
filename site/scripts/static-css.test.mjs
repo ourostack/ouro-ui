@@ -10,10 +10,20 @@ const outputs = build();
 const fonts = readFonts();
 
 test("the committed files under site/public/css are what the script writes", () => {
-  assert.deepEqual(Object.keys(outputs).sort(), ["ouro-base.css", "ouro-theme.css", ...presets.map((preset) => `themes/${preset.name}.css`)].sort());
+  assert.deepEqual(Object.keys(outputs).sort(), ["ouro-base.css", "ouro-plain.css", "ouro-theme.css", ...presets.map((preset) => `themes/${preset.name}.css`)].sort());
   for (const [file, text] of Object.entries(outputs)) {
     assert.equal(readFileSync(join(outDir, file), "utf8"), text, `${file} is stale; run node site/scripts/static-css.mts`);
   }
+});
+
+test("ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS", () => {
+  const source = readFileSync("registry/ouro/theme/ouro-plain.css", "utf8");
+  const classes = [...new Set([...source.matchAll(/\.(ouro-[\w-]+)/g)].map((match) => match[1]))];
+  assert.ok(classes.length > 10);
+  for (const name of classes) assert.ok(outputs["ouro-plain.css"].includes(`.${name}`), `ouro-plain.css lacks .${name}`);
+  assert.match(outputs["ouro-plain.css"], /--ouro-segment-selected: var\(--background\)/);
+  assert.match(outputs["ouro-plain.css"], /prefers-color-scheme: dark/);
+  assert.ok(!outputs["ouro-base.css"].includes(".ouro-focus-ring"), "ouro-base.css still carries ouro-plain's classes");
 });
 
 test("the files are plain CSS: no Tailwind at-rules, imports or nested rules", () => {

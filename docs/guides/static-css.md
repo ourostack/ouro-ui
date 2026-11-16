@@ -55,6 +55,7 @@ They live in [`site/public/css/`](../../site/public/css/):
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ouro-base.css`       | The radius scale, the success and warning colors, motion durations and easings, the overlay layer and the `ouro-*` keyframes.[^base]        |
 | `ouro-theme.css`      | Ouro HX's default theme: shadcn/ui's color tokens in light and dark.[^tokens]                                                               |
+| `ouro-plain.css`       | Ouro HX's states as classes for markup that is not an Ouro component: the focus ring, rows, disclosures, a skip link, links, toggles, segmented choices and options. Load it after `ouro-base.css` only if the page has such markup.[^plain] |
 | `themes/<preset>.css` | One of the site's theme presets, with its fonts: `pearl`, `abyss`, `brass`, `chart`, `coral` or `cookbook`.[^fonts] |
 
 `ouro-base.css` leaves out the `press` and `rounded-full` utilities, which need Tailwind; its header names what it leaves out.[^base] A preset's fonts load from `../../fonts/`, so keep `css/` and `fonts/` side by side when you copy them.[^fonts]
@@ -73,7 +74,7 @@ Keep the MIT notice at the top of each file. The fonts carry the SIL Open Font L
 
 ## Changing them
 
-Don't edit the files. Edit `registry/ouro/theme/ouro-base.css`, `registry/ouro/theme/ouro-theme.css` or `site/src/themes/<preset>.css`, then run `pnpm site:static-css`. `site:build` runs it with `--check` and fails when a file is stale.[^stale]
+Don't edit the files. Edit `registry/ouro/theme/ouro-base.css`, `registry/ouro/theme/ouro-plain.css`, `registry/ouro/theme/ouro-theme.css` or `site/src/themes/<preset>.css`, then run `pnpm site:static-css`. `site:build` runs it with `--check` and fails when a file is stale.[^stale]
 
 [^files]: test:site/scripts/static-css.test.mjs::the files are plain CSS: no Tailwind at-rules, imports or nested rules verify:testExists(site/scripts/static-css.test.mjs::the files are plain CSS: no Tailwind at-rules, imports or nested rules)
 
@@ -88,3 +89,4 @@ Don't edit the files. Edit `registry/ouro/theme/ouro-base.css`, `registry/ouro/t
 [^licence]: test:site/scripts/static-css.test.mjs::each file names its source, says not to edit it, and carries the MIT notice; site/public/fonts/LICENSE.txt verify:testExists(site/scripts/static-css.test.mjs::each file names its source, says not to edit it, and carries the MIT notice) verify:fileLine(site/public/fonts/LICENSE.txt, /SIL OPEN FONT LICENSE/)
 
 [^stale]: test:site/scripts/static-css.test.mjs::the committed files under site/public/css are what the script writes; package.json verify:testExists(site/scripts/static-css.test.mjs::the committed files under site/public/css are what the script writes) verify:fileLine(package.json, /static-css\.mts --check/)
+[^plain]: test:site/scripts/static-css.test.mjs::ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS verify:testExists(site/scripts/static-css.test.mjs::ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS)

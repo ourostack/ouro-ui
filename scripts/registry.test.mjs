@@ -117,6 +117,7 @@ test("the registry is named ouro and lists every item", () => {
   assert.equal(registry.homepage, "https://ui.ouroboros.bot/");
   assert.deepEqual(registry.items.map((entry) => entry.name), [
     "ouro-base",
+    "ouro-plain",
     "ouro-theme",
     "ouro-lib",
     "ouro-testing",
@@ -137,7 +138,7 @@ test("the registry is named ouro and lists every item", () => {
   ]);
 });
 
-const runtimeItems = ["ouro-base", "ouro-theme", "ouro-lib", ...libs, ...components];
+const runtimeItems = ["ouro-base", "ouro-plain", "ouro-theme", "ouro-lib", ...libs, ...components];
 const testFile = /\.(test|touch\.test)\.tsx?$|\.test-d\.ts$|\.stories\.tsx$|\.spec\.ts$/;
 
 test("runtime items ship no tests, stories, specs or test tooling, and never pull in the test kit", () => {
@@ -626,12 +627,12 @@ test("a -tests item installs the tests of every item it installs: link-tests bri
   }
 });
 
-test("only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them", () => {
+test("only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them", () => {
   for (const entry of registry.items) {
-    const themed = entry.name === "ouro-base" || entry.name === "ouro-theme";
+    const themed = entry.name === "ouro-base" || entry.name === "ouro-plain" || entry.name === "ouro-theme";
     assert.equal(Boolean(entry.cssVars || entry.css), themed, `${entry.name} cssVars/css`);
     for (const dep of closure(entry.name)) {
-      assert.ok(dep !== "ouro-base" && dep !== "ouro-theme", `${entry.name} installs ${dep}, so adding it would rewrite the app's stylesheet`);
+      assert.ok(dep !== "ouro-base" && dep !== "ouro-plain" && dep !== "ouro-theme", `${entry.name} installs ${dep}, so adding it would rewrite the app's stylesheet`);
     }
   }
 });

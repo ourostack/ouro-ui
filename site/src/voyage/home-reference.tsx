@@ -343,7 +343,7 @@ export function InstallSteps(): JSX.Element {
                 source: { spec: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" },
                 verify: [
                   { urlOk: "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0" },
-                  { testExists: "scripts/registry.test.mjs::only ouro-base and ouro-theme touch the app's stylesheet, and no other item installs them" },
+                  { testExists: "scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them" },
                 ],
               })}
             </p>

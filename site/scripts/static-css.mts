@@ -121,13 +121,8 @@ export function baseCss(css: string): string {
     header([
       "Ouro HX base tokens as plain CSS, for a page without Tailwind: radii, status colors,",
       "motion durations and easings, the overlay layer, and the ouro-* keyframes. Load it with a",
-      "theme (ouro-theme.css or themes/<name>.css). Its classes give plain markup Ouro's focus ring",
-      "and row states (.ouro-focus-ring, .ouro-focus-ring-inset and .ouro-row) and a disclosure that",
-      "needs no script (.ouro-disclosure, .ouro-disclosure-summary and .ouro-disclosure-panel), a skip",
-      "link and its target (.ouro-skip-link, .ouro-focus-target), the ring on a box whose control has",
-      "focus (.ouro-focus-ring-within), actions shown on hover or focus (.ouro-reveal, .ouro-reveal-host),",
-      "and current links, toggles, segmented choices and options (.ouro-nav-link, .ouro-toggle,",
-      "  .ouro-segmented and .ouro-segment, .ouro-option).",
+      "theme (ouro-theme.css or themes/<name>.css), and ouro-plain.css for the classes that give plain",
+      "markup Ouro's states.",
       `Tailwind utilities left out: ${utilities.join(", ")}.`,
       ...MODES,
       `From registry/ouro/theme/ouro-base.css. ${GENERATED}`,
@@ -137,6 +132,26 @@ export function baseCss(css: string): string {
     ...classes,
     ...supports,
     ...keyframes.map(formatKeyframes),
+  ].join("\n\n") + "\n";
+}
+
+/** ouro-plain.css as plain CSS: its tokens, with the system's dark mode, and its classes for markup that is not an Ouro component. */
+export function plainCss(css: string): string {
+  const { classes, rest } = plainClasses(css.replace(/\/\*[\s\S]*?\*\//g, ""));
+  return [
+    header([
+      "Ouro HX's states as classes for plain markup, for a page without Tailwind: the focus ring",
+      "(.ouro-focus-ring, -inset, -within), a linked row (.ouro-row), a disclosure (.ouro-disclosure),",
+      "a skip link and its target (.ouro-skip-link, .ouro-focus-target), what shows on hover or focus",
+      "(.ouro-reveal, .ouro-reveal-host), current links (.ouro-nav-link), toggles (.ouro-toggle),",
+      "segmented choices (.ouro-segmented, .ouro-segment) and options (.ouro-option). Load it after",
+      "ouro-base.css and a theme.",
+      ...MODES,
+      `From registry/ouro/theme/ouro-plain.css. ${GENERATED}`,
+      LICENSE,
+    ]),
+    plainBlocks(parseBlocks(rest)),
+    ...classes,
   ].join("\n\n") + "\n";
 }
 
@@ -188,6 +203,7 @@ export function build(
 ): Record<string, string> {
   const outputs: Record<string, string> = {
     "ouro-base.css": baseCss(readTheme("ouro-base.css")),
+    "ouro-plain.css": plainCss(readTheme("ouro-plain.css")),
     "ouro-theme.css": themeCss(readTheme("ouro-theme.css")),
   };
   for (const preset of presets) outputs[`themes/${preset.name}.css`] = presetCss(preset, readPreset(`${preset.name}.css`), fonts);
