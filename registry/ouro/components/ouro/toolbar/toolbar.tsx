@@ -594,7 +594,10 @@ function useOverflow(ref: Ref<HTMLDivElement> | undefined, items: readonly Toolb
     rootRef.current!.querySelector<HTMLElement>(":scope > [data-ouro-toolbar-more]")!.focus();
   }, [shown]);
 
-  useEffect(
+  // Made in the mounting commit, as the first measure's is: made in a passive effect, it could start during the
+  // frame's first resize delivery (the measure's flushSync runs pending passive effects), after the row's depth was
+  // delivered, and the browser would report a "ResizeObserver loop" error.
+  useLayoutEffect(
     () => {
       const root = rootRef.current!;
       const observer = new ResizeObserver(() => {

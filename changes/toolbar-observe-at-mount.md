@@ -1,0 +1,1 @@
+- Toolbar: no longer raises a "ResizeObserver loop" window error when it mounts as a frame begins; the observer that fits the row to resizes now starts in the mounting commit.
