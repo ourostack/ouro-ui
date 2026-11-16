@@ -429,6 +429,7 @@ export function MessageBarLayer({ scroller, layer }: { scroller: RefObject<HTMLE
 
 /** Moves the size container, for the room beside a bubble, from the message it was on to `row`, or takes it off when `row` is null. */
 function contain(contained: { row: HTMLElement | null }, row: HTMLElement | null): void {
+  // Stryker disable next-line ConditionalExpression: taking the container off a row and putting it back leaves the same style; this only spares the writes on each render.
   if (contained.row === row) return;
   const previous = contained.row;
   if (previous !== null) {
