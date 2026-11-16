@@ -1,0 +1,1 @@
+- Fixed: Escape from a ConversationList row's menu puts focus back on the row every time; focus that met one of the menu's focus guards while it was open no longer counts as moving away, so it no longer left focus on the page's body.

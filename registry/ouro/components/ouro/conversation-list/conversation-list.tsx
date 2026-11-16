@@ -838,6 +838,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     else void loadMenu().then(open);
   };
   // Where focus went outside the open menu: a chosen item that moved it to a field. Menu puts it back there as it closes.
+  // Base UI's focus guards beside the menu are the menu's own, as Menu counts them: focus that meets one has not moved away,
+  // and counting it left focus on the page's body when Escape closed the menu before the guard had gone.
   const movedAway = useRef<Element | null>(null);
   const menuOpen = menu?.open === true;
   useEffect(() => {
@@ -845,7 +847,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     movedAway.current = null;
     const away = (event: FocusEvent) => {
       const target = event.target as Element;
-      if (target.closest('[data-ouro="menu-positioner"]') === null) movedAway.current = target;
+      if (target.closest('[data-ouro="menu-positioner"], [data-base-ui-focus-guard]') === null) movedAway.current = target;
     };
     document.addEventListener("focusin", away);
     // Stryker disable next-line ArrowFunction,StringLiteral: a listener left from an earlier opening records only what the next opening clears as it starts; removing it frees memory only.
