@@ -167,7 +167,7 @@ describe("Command", () => {
     await userEvent.type(input(), "ouut");
     await expect.poll(options).toEqual(["Opt-out"]);
     // A slip in the start of a longer word: two letters swapped, one dropped, one added.
-    for (const typed of ["confrim", "confrma", "confiirm"]) {
+    for (const typed of ["confr", "confrim", "confrma", "confiirm"]) {
       await userEvent.clear(input());
       await userEvent.type(input(), typed);
       await expect.poll(options).toEqual(["Confirmation"]);

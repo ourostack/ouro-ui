@@ -186,12 +186,14 @@ type QueryMatch = 0 | 1 | 2;
  */
 function queryMatch(label: string, keywords: readonly string[], query: string): QueryMatch | undefined {
   const text = fold([label, ...keywords].join(" "));
+  // Stryker disable next-line Regex: an empty word between two spaces is in every text, as the one empty word they make is.
   const words = fold(query).split(/\s+/);
   if (words.every((word) => text.includes(word))) return fold(label).startsWith(words[0]!) ? 0 : 1;
   // Words split on anything but letters, their marks and digits, so a Devanagari vowel sign stays in its word.
   const tokens = text.split(/[^\p{L}\p{M}\p{N}]/u);
   // A word of five letters or more may also be a slip of a word's start ("confrim" for Confirmation); a shorter one
   // only of a whole word, or it would find every word sharing its first three letters.
+  // Stryker disable next-line ArrayDeclaration: a word shorter than five letters is one edit from no part but the token, whatever the list holds.
   const starts = (word: string, token: string) => (word.length >= 5 ? [token.slice(0, word.length - 1), token.slice(0, word.length), token.slice(0, word.length + 1)] : []);
   const near = (word: string) => word.length >= 4 && tokens.some((token) => [token, ...starts(word, token)].some((part) => oneEditApart(word, part)));
   return words.every((word) => text.includes(word) || near(word)) ? 2 : undefined;
