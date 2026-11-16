@@ -2,7 +2,7 @@ import { DirectionProvider, useDirection } from "@base-ui/react/direction-provid
 import { useRef, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PageDirection } from "@/registry/ouro/lib/ouro/page-direction";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -99,6 +99,31 @@ describe("PageDirection", () => {
       ),
     );
     expect(shown("anchored")).toBe("rtl");
+  });
+
+  it("watches the page's dir with one observer however many follow it, and stops once none do", async () => {
+    const observe = vi.spyOn(MutationObserver.prototype, "observe");
+    const disconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
+    try {
+      const watchers = () =>
+        observe.mock.calls.flatMap(([target, options], index) => (target === document.documentElement && options?.attributeFilter?.includes("dir") ? [observe.mock.contexts[index]] : []));
+      const first = await render(<Placed id="one" />);
+      const second = await render(<Placed id="two" />);
+      expect(watchers()).toHaveLength(1);
+      const [watcher] = watchers();
+      await act(async () => first.root.unmount());
+      expect(disconnect.mock.contexts).not.toContain(watcher);
+      await act(async () => second.root.unmount());
+      expect(disconnect.mock.contexts).toContain(watcher);
+      // Each component that went stopped following: only the one rendered now does.
+      await render(<Placed id="three" />);
+      expect(watchers()).toHaveLength(2);
+      await act(async () => void (document.documentElement.dir = "rtl"));
+      await expect.poll(() => shown("three")).toBe("rtl");
+    } finally {
+      observe.mockRestore();
+      disconnect.mockRestore();
+    }
   });
 
   it("leaves an app's own direction in a left-to-right page, and renders it on the server", async () => {
