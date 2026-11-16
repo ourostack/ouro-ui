@@ -608,7 +608,7 @@ describe("the header's current section on a docs page", () => {
 describe("head tags", () => {
   it("end a card's title with a full stop before its scene in the alt text, when the title has none", () => {
     const tags = headTags({ path: "/ax/", title: "Ouro AX", description: "A morning with an agent" }, true).join("\n");
-    expect(tags).toContain('<meta property="og:image:alt" content="Ouro AX: A morning with an agent. One morning in the meadow: ');
+    expect(tags).toContain('<meta property="og:image:alt" content="Ouro AX: A morning with an agent. Inside a sleek high-speed train in low golden morning sun, ');
     expect(tags).not.toContain("agent..");
   });
   it("give a component page Open Graph and Twitter tags with the docs card, a 1200x630 storybook scene", async () => {
