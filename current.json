@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-16T05:50:15.485Z",
+  "generatedAt": "2026-11-16T06:45:22.452Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -9,8 +9,8 @@
     },
     "core": {
       "name": "Ouro UI core",
-      "tag": "v0.15.0",
-      "url": "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.15.0"
+      "tag": "v0.16.0",
+      "url": "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.16.0"
     },
     "apple": {
       "name": "Ouro UI for Apple",
