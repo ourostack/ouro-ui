@@ -53,8 +53,12 @@ describe("the adoption page", () => {
       for (const id of members) {
         const surface = counted.find((item) => item.id === id)!;
         expect(marks.map((mark) => mark.dataset.state)).toEqual(checksOf(surface).map((check) => check.state));
-        // Green is never drawn where the ledger does not say so.
-        marks.forEach((mark, index) => expect(mark.dataset.state === "met").toBe(Object.values(surface.conditions)[index]!.met));
+        // Green is never drawn where the ledger does not say so, and a held check is drawn as passing or as not applying.
+        marks.forEach((mark, index) => {
+          const { met } = Object.values(surface.conditions)[index]!;
+          if (mark.dataset.state === "met") expect(met).toBe(true);
+          if (met) expect(["met", "na"]).toContain(mark.dataset.state);
+        });
         if (!row.dataset.ids) {
           expect(row.hasAttribute("data-green")).toBe(surface.confirmed);
           expect(row.querySelector(".adoption-marks")?.getAttribute("aria-label")).toBe(`${surface.confirmed ? "Green. " : ""}${surface.met} of 4 checks pass`);
@@ -230,6 +234,13 @@ describe("reading the checks", () => {
     const giveBack = (value: number | null, note: string) => ({ value, note, source: "https://example.com/prs", measuredAt: at, prs: [] });
     expect(checksOf(withCells({ giveBack: giveBack(null, "n/a: this is the upstream; it is where the others give back to.") }))[3]).toMatchObject({ state: "na", why: "This is the upstream; it is where the others give back to" });
     expect(checksOf(withCells({ giveBack: giveBack(0, "Merged pull requests that mention it.") }))[3]).toMatchObject({ state: "missing", why: "Nothing given back yet" });
+  });
+
+  it("draws a check the ledger holds because it does not apply as not applying, never as passing", () => {
+    const na = { value: null, note: "n/a: A marketing site; no CLI or MCP.", source: "https://example.com/site", measuredAt: at };
+    const [, actions, must] = checksOf(withCells({ actions: na, xray: na }, { oneAction: true, must: true }));
+    expect(actions).toMatchObject({ state: "na", why: "A marketing site; no CLI or MCP" });
+    expect(must).toMatchObject({ state: "na", why: "A marketing site; no CLI or MCP" });
   });
 
   it("says an undeclared action set in a few words, and keeps the ledger's reason while the model is unreleased", () => {

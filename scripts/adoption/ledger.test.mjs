@@ -106,6 +106,30 @@ test("the summary adds up the releases products are behind, and names each produ
   assert.deepEqual(ledger.summary.late, [{ id: "web", name: "A web app", late: 1, behind: 2 }]);
 });
 
+test("a product within a day of every release it lacks is current, and one a day late is not", () => {
+  const web = config.surfaces[0];
+  const latest = { web: { repo: "ourostack/ouro-ui", tag: "v1.3.15" } };
+  const fresh = (tag) => createContext({ gh: (args) => (args.join(" ").includes("ouro-hx-installed.json") ? b64({ tag }) : fakeGh()(args)), now: () => NOW, sleep: () => {}, searchGapMs: 0 });
+  const day = measurePins(fresh("v1.3.14"), web, latest);
+  assert.equal(day.value[0].behind, 1, "v1.3.15 came out after it");
+  assert.equal(day.value[0].late, 0, "but less than a day ago");
+  assert.equal(isCurrent(day), true);
+  assert.equal(isCurrent(measurePins(fresh("v1.2.13"), web, latest)), false, "v1.3.14 has been out for more than a day");
+});
+
+test("a product with no agent interface of its own passes the action and must checks as n/a, not as measured", () => {
+  const site = { id: "site", name: "A site", kind: "web site", repo: "org/web", pins: config.surfaces[0].pins, hx: config.surfaces[0].hx, ax: { kind: "na", reason: "A marketing site; no CLI or MCP." }, giveBackTerms: ["spoonjoy-v2"], xray: [] };
+  const ledger = build(ctx([]), { ...config, surfaces: [site, { ...config.surfaces[0], id: "web2" }] });
+  const [na, web] = ledger.surfaces;
+  assert.equal(na.conditions.oneAction.met, true);
+  assert.equal(na.conditions.must.met, true);
+  assert.match(na.cells.xray.note, /^n\/a: A marketing site/);
+  assert.equal(na.cells.xray.value, null);
+  assert.equal(na.met, 3, "the pin is a day late, so only current fails");
+  assert.equal(web.conditions.must.met, false, "a product that has an agent interface still needs its X-ray");
+  assert.equal(ledger.summary.unmeasuredCells, 1, "only the web app's X-ray: the site's n/a cells are not counted as unmeasured");
+});
+
 test("a pin that cannot be read is null, never zero", () => {
   const web = { ...config.surfaces[0], pins: [{ label: "x", latest: "web", from: "json", file: "missing.json", key: "tag" }] };
   const cellValue = measurePins(ctx([]), web, { web: { repo: "ourostack/ouro-ui", tag: "v1.3.15" } });

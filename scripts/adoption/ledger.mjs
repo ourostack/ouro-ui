@@ -184,8 +184,12 @@ export function measurePins(ctx, surface, latest) {
   return cell(ctx, pins, { note: known ? null : "At least one pin could not be read.", source: pins.find((pin) => pin.source)?.source ?? `https://github.com/${surface.repo}` });
 }
 
-/** On current Ouro UI: it has pins, and every pin is on its repository's latest release. */
-export const isCurrent = (pinsCell) => Array.isArray(pinsCell.value) && pinsCell.value.length > 0 && pinsCell.value.every((pin) => pin.behind === 0);
+/**
+ * On current Ouro UI: it has pins, every pin could be read, and none lacks a release that has been out for more than a
+ * day. Ouro UI releases several times a day, so "no release behind" would hold only for the minutes after a product
+ * updates; a day is the program's own target (LATE_AFTER_MS), and the behind count stays in the cell for context.
+ */
+export const isCurrent = (pinsCell) => Array.isArray(pinsCell.value) && pinsCell.value.length > 0 && pinsCell.value.every((pin) => typeof pin.behind === "number" && pin.late === 0);
 
 // ---- HX and AX -------------------------------------------------------------------------------------------
 
@@ -528,10 +532,16 @@ export function build(ctx, config, { only = null } = {}) {
     }
     giveBack = measureGiveBack(ctx, surface, prs, config);
     for (const pr of giveBack.prs) distinctGiveBack.add(pr.url);
+    // A product with no agent interface of its own (the config's AX is `n/a`, with its reason) has no actions to declare
+    // and nothing for the X-ray to check: those two checks do not apply, as give-back does not apply to the upstream.
+    const axNa = surface.ax.kind === "na" && !surface.privateRepo;
+    const declaredActions = typeof actions.value === "number" && actions.value > 0;
+    if (axNa && !declaredActions) actions = cell(ctx, null, { note: `n/a: ${surface.ax.reason}`, source: actions.source });
+    if (axNa && !mustPasses(xray)) xray = cell(ctx, null, { note: `n/a: ${surface.ax.reason}`, source: xray.source });
     const conditions = {
       current: { label: "On current Ouro UI", met: isCurrent(pins) },
-      oneAction: { label: "Actions on the one-action model", met: typeof actions.value === "number" && actions.value > 0 },
-      must: { label: "AX must claims pass in CI", met: mustPasses(xray) },
+      oneAction: { label: "Actions on the one-action model", met: declaredActions || axNa },
+      must: { label: "AX must claims pass in CI", met: mustPasses(xray) || axNa },
       gaveBack: { label: "Has given back", met: surface.upstream ? true : gaveBack(giveBack) },
     };
     const met = Object.values(conditions).filter((condition) => condition.met).length;
