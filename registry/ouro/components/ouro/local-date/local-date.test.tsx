@@ -99,9 +99,12 @@ describe("LocalDate", () => {
   it("hydrates without a mismatch when the server's engine wrote the UTC text differently from this browser's", async () => {
     const node = <LocalDate value={instant} format="datetime" locale="en-US" />;
     const utc = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(instant);
-    // Node writes "Jun 1, 2026, 11:30 PM"; Safari writes "Jun 1, 2026 at 11:30 PM" for the same options.
-    const html = renderToString(node).replace(`>${utc} UTC<`, ">Jun 1, 2026 at 11:30 PM UTC<");
-    expect(html).toContain(">Jun 1, 2026 at 11:30 PM UTC</time>");
+    // Node writes "Jun 1, 2026, 11:30 PM" and Safari "Jun 1, 2026 at 11:30 PM" for the same options: whichever this
+    // browser writes, the server wrote the other.
+    const other = utc.includes(" at ") ? utc.replace(" at ", ", ") : utc.replace(", 11:30", " at 11:30");
+    const html = renderToString(node).replace(`>${utc} UTC<`, `>${other} UTC<`);
+    expect(html).toContain(`>${other} UTC</time>`);
+    expect(html).not.toContain(`>${utc} UTC<`);
     const host = document.createElement("div");
     host.innerHTML = html;
     document.body.append(host);
