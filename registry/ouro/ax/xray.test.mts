@@ -206,6 +206,9 @@ test("checkSafety accepts an executable stub inside the home or the repository, 
   assert.deepEqual(await names({ mock: `${mockUrl}/ mock=true`, env: { TOOL_CONFIG: plain } }, false), []);
   assert.equal((await checkSafety(base({ mock: undefined, env: { M365CRAWL_WORKIQ_BIN: stub } }), false)).ok, false);
   assert.match((await names({ env: { M365CRAWL_WORKIQ_BIN: "/no/such/stub" } }, true))[0]!, /^loopback: no address to check/);
+  const stubNames = async (over: Partial<XrayOptions>) => (await names(over, true)).filter((n) => n.startsWith("stub:"));
+  assert.deepEqual(await stubNames({ home: undefined, env: { M365CRAWL_WORKIQ_BIN: stub } }), []);
+  assert.deepEqual(await stubNames({ home: join(scratch, "no-such-home"), env: { M365CRAWL_WORKIQ_BIN: stub } }), []);
 });
 
 test("checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock", async () => {

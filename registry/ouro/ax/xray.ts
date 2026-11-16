@@ -433,39 +433,33 @@ const at = (value: unknown, path: string): unknown => path.split(".").reduce<unk
 /** Whether a path is an existing executable file: the only kind of --env value the X-ray takes as a stub. */
 const isExecutableFileSync = (path: string): boolean => {
   try {
-    if (!statSync(path).isFile()) return false;
     accessSync(path, constants.X_OK);
-    return true;
+    return statSync(path).isFile();
   } catch {
     return false;
   }
 };
 
 /** Why a stub is not inside the X-ray's home or the repository, or null when it is. */
-function stubProblem(path: string, roots: readonly string[]): string | null {
-  let real: string;
+/** The real path of a folder, or null when it does not exist. */
+const realOrNull = (path: string): string | null => {
   try {
-    real = realpathSync(path);
-  } catch (e) {
-    return `${path} cannot be read: ${(e as Error).message}`;
-  }
-  const inside = roots.some((root) => {
-    let base: string;
-    try {
-      base = realpathSync(root);
-    } catch {
-      return false;
-    }
-    const rel = relative(base, real);
-    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
-  });
-  if (!inside) return `${real} is outside the X-ray's home and the repository`;
-  try {
-    accessSync(real, constants.X_OK);
+    return realpathSync(path);
   } catch {
-    return `${real} is not executable`;
+    return null;
   }
-  return null;
+};
+
+/** Why a stub is not inside the X-ray's home or the repository, or null when it is. */
+function stubProblem(path: string, roots: readonly string[]): string | null {
+  const real = realpathSync(path);
+  const inside = roots.some((root) => {
+    const base = realOrNull(root);
+    if (base === null) return false;
+    const rel = relative(base, real);
+    return !rel.startsWith("..") && !isAbsolute(rel);
+  });
+  return inside ? null : `${real} is outside the X-ray's home and the repository`;
 }
 
 /**
@@ -483,9 +477,9 @@ async function checkSafety(opts: XrayOptions, guardPassed: boolean): Promise<Saf
   // A stub is an --env value naming an executable file: a program the CLI is pointed at instead of the real service.
   // Other files (a config or data path) are not stubs and are ignored.
   const stubs = Object.values(opts.env).filter((v) => isAbsolute(v) && isExecutableFileSync(v));
-  const roots = [opts.home, process.cwd()].filter((r): r is string => typeof r === "string" && r !== "").map((r) => resolve(r));
+  const roots = [opts.home, process.cwd()].flatMap((r) => (r ? [resolve(r)] : []));
   const stubProblems = stubs.map((s) => stubProblem(s, roots)).filter((p): p is string => p !== null);
-  if (stubs.length) checks.push({ name: "stub", ok: stubProblems.length === 0, note: stubProblems.length ? stubProblems.join("; ") : `${stubs.length} stub${stubs.length === 1 ? "" : "s"} inside the home or the repository` });
+  if (stubs.length) checks.push({ name: "stub", ok: stubProblems.length === 0, note: stubProblems.length ? stubProblems.join("; ") : `${stubs.length} stub(s) inside the home or the repository` });
   checks.push(
     urls.length === 0 && stubs.length === 0
       ? { name: "loopback", ok: false, note: "no address to check: pass --mock \"<loopback url> <key>=<value>\", --env <NAME>=<loopback url>, or --env <NAME>=<stub executable>" }
