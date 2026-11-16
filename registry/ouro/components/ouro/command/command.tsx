@@ -288,7 +288,7 @@ export type CommandControlledProps = CommandBaseProps & {
    * dialog and in the phone sheet alike; after a touch or pen tap it focuses itself, so no software keyboard pops up.
    * @claim "After a key press or a click it focuses" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::controlled Command > focuses the palette, not the input, after a pen tap, so no keyboard pops up)
    * @claim "After a key press or a click it focuses" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > puts focus in the phone sheet's search after a key press below 640px)
-   * @claim "after a touch or pen tap it focuses itself" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > focuses the phone sheet itself, not its search, after a pen tap below 640px, so no keyboard pops up)
+   * @claim "after a touch or pen tap it focuses itself" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > focuses the phone sheet itself, not its search, after a %s tap below 640px, so no keyboard pops up)
    * @claim "After a key press or a click it focuses" registry/ouro/components/ouro/command/command.touch.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.touch.test.tsx::Command on a phone > opens from a tap as a full-height sheet focused on itself, with 44px commands and a 16px search input)
    */
   open: boolean;
