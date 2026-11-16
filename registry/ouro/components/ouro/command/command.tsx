@@ -45,6 +45,7 @@ import {
   commandSheetListClass,
   commandSheetSearchClass,
   matchesQuery,
+  queryMatch,
   queryRanges,
   type TextRange,
 } from "@/registry/ouro/components/ouro/command/command-styles";
@@ -370,7 +371,9 @@ function SearchIcon(): JSX.Element {
 
 /**
  * A command palette: a searchable list of every action in the app, in a dialog. Typing
- * filters the commands by label and keywords (ignoring case and accents), the arrow keys
+ * filters the commands by label and keywords (ignoring case and accents, and forgiving one slip
+ * in a word of four letters or more: "dialg" finds Dialog). Within each group, the commands whose
+ * label starts with the search come first, then those that hold it, then those a slip away. The arrow keys
  * move the highlight, and Enter runs the highlighted command. Commands come in labelled
  * groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px
  * it is a full-height bottom sheet, whose search input stays put while the results filter.
@@ -422,6 +425,8 @@ function SearchIcon(): JSX.Element {
  *     mark: chat.unread > 0 && <Badge>{chat.unread}</Badge>,
  *   }))}
  * />
+ * @claim "Typing filters the commands by label" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > forgives one slip in a word of four letters or more: a letter dropped, added, changed, or two swapped)
+ * @claim "Within each group, the commands whose" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > ranks a command that starts with the search first, then one that holds it, then one a slip away)
  * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > widens to fit a longer command, up to 40rem)
  * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > keeps the width it opened at while results filter)
  * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > keeps the width it opened at while a server search's results change, and cuts a longer result with an ellipsis)
@@ -565,6 +570,13 @@ export function Command(props: CommandProps): JSX.Element {
     setWasOpen(isOpenNow);
     if (isOpenNow) setQuery("");
   }
+  // Within each group, the commands whose label starts with the search come first, then those that hold it, then those a
+  // slip away (queryMatch). A server search ranks its own results.
+  const ranked = useMemo(() => {
+    if (onQueryChange) return groups;
+    const rank = (item: CommandItem) => queryMatch(item.label, [item.description ?? "", ...(item.keywords ?? [])], query) ?? 3;
+    return groups.map((group) => ({ ...group, items: [...group.items].sort((a, b) => rank(a) - rank(b)) }));
+  }, [groups, query, onQueryChange]);
   // "Searching…" is announced for the first load of each opening only, and then cleared,
   // so typing on while results load is not announced again.
   const [announcement, setAnnouncement] = useState<"idle" | "on" | "done">("idle");
@@ -650,7 +662,7 @@ export function Command(props: CommandProps): JSX.Element {
 
   const palette = (inSheet: boolean) => (
     <Autocomplete.Root
-      items={groups}
+      items={ranked}
       inline
       open
       autoHighlight="always"

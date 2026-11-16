@@ -442,6 +442,23 @@ describe("docs", () => {
     await expect.element(nav.getByRole("status")).toHaveTextContent("No component is called that.");
   });
 
+  it("forgives one slip in a filter of four letters or more, after the names that hold it", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const filter = nav.getByRole("searchbox", { name: "Filter components" });
+    for (const typed of ["dialg", "dailog"]) {
+      await userEvent.fill(filter, typed);
+      expect(nav.getByRole("link").elements().map((link) => link.textContent)).toContain("Dialog");
+    }
+    // A slip of "sheet".
+    await userEvent.fill(filter, "shet");
+    expect(nav.getByRole("link").elements().map((link) => link.textContent)).toContain("Sheet");
+    // Three letters must be exact.
+    await userEvent.fill(filter, "dlg");
+    expect(nav.getByRole("link").elements()).toHaveLength(0);
+  });
+
   it("has a page for every registry item at docs/<name>", () => {
     const names = registry.items.filter((item) => item.type === "registry:ui").map((item) => item.name);
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));
