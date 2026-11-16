@@ -15,7 +15,7 @@ import { dir, fixtures, page, quiet, site, two } from "./kit.mts";
 
 describe("Ouro check going to a page", () => {
   // A page whose goto loses to an about:blank navigation still landing, for the first `lost` tries.
-  const late = (lost: number, message = 'page.goto: Navigation to "http://127.0.0.1/inp-pass.html" is interrupted by another navigation to "about:blank"') => {
+  const late = (lost: number, message = 'page.goto: Navigation to "http://127.0.0.1/inp-pass.html" is interrupted by another navigation to "about:blank"', quiet = false) => {
     const calls: string[] = [];
     return {
       calls,
@@ -25,7 +25,10 @@ describe("Ouro check going to a page", () => {
           if (calls.filter((call) => call.startsWith("goto")).length <= lost) throw new Error(message);
           return "answer";
         },
-        waitForLoadState: async (state?: string) => void calls.push(`wait ${state}`),
+        waitForEvent: async (event: string) => {
+          calls.push(`wait ${event}`);
+          if (quiet) throw new Error("page.waitForEvent: Timeout 5000ms exceeded while waiting for event \"load\"");
+        },
       },
     };
   };
@@ -40,6 +43,16 @@ describe("Ouro check going to a page", () => {
     const same = late(1, 'page.goto: Navigation to "/inp-pass.html" is interrupted by another navigation to "/inp-pass.html"');
     assert.equal(await goTo(same.page as never, "/inp-pass.html"), "answer");
     assert.deepEqual(same.calls, ["goto /inp-pass.html", "wait load", "goto /inp-pass.html"]);
+  });
+
+  test("waits for the load of the navigation that won, not the page it replaced, and goes on when that load came first (#1641)", async () => {
+    const message = 'page.goto: Navigation to "/inp-pass.html" is interrupted by another navigation to "/inp-pass.html"';
+    const loaded = late(2, message);
+    assert.equal(await goTo(loaded.page as never, "/inp-pass.html"), "answer");
+    assert.deepEqual(loaded.calls, ["goto /inp-pass.html", "wait load", "goto /inp-pass.html", "wait load", "goto /inp-pass.html"]);
+    const early = late(1, message, true);
+    assert.equal(await goTo(early.page as never, "/inp-pass.html"), "answer");
+    assert.deepEqual(early.calls, ["goto /inp-pass.html", "wait load", "goto /inp-pass.html"]);
   });
 
   test("gives up after its last try, and passes any other failure on at once", async () => {
