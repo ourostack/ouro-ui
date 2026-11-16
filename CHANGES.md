@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Command [forgives one slip in a search word of four letters or more](registry/ouro/components/ouro/command/command.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > forgives one slip in a word of four letters or more: a letter dropped, added, changed, or two swapped)") ("dialg" finds Dialog), and within each group [ranks the commands that start with the search first, then those that hold it, then those a slip away](registry/ouro/components/ouro/command/command.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > ranks a command that starts with the search first, then one that holds it, then one a slip away)").
