@@ -667,6 +667,7 @@ export function Menu(props: MenuProps): JSX.Element {
   // Where focus went outside the open menu, as a chosen item moving it does; Base UI then focuses the item again.
   const movedTo = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const contextRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     // An anchored menu has no trigger: its page is the one it runs in.
     const doc = anchor !== undefined ? document : triggerRef.current?.ownerDocument;
@@ -709,7 +710,8 @@ export function Menu(props: MenuProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: with no trigger, Base UI has no focus of its own to give back, so a finalFocus that says nothing does as false does.
     const finalFocus = () => false;
     return (
-      <PageDirection>
+      // An element the menu opens beside decides its direction; a point or a box measured once, the page.
+      <PageDirection of={anchor instanceof Element ? anchor : null}>
         <BaseMenu.Root {...control} actionsRef={actions} modal={sheet}>
           <MenuSurface
             sheet={sheet}
@@ -732,9 +734,10 @@ export function Menu(props: MenuProps): JSX.Element {
 
   if (context) {
     return (
-      <PageDirection>
+      <PageDirection of={contextRef}>
         <ContextMenu.Root {...control}>
           <ContextMenu.Trigger
+            ref={contextRef}
             render={contextTrigger}
             className={menuContextTriggerClass}
             {...holdPageAtPress.contextMenu}
@@ -752,31 +755,30 @@ export function Menu(props: MenuProps): JSX.Element {
     );
   }
 
-  return (
-    // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides.
-    <PageDirection of={triggerRef}>
-      <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
-        {label !== undefined ? (
-          <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
-            {label}
-          </BaseMenu.Trigger>
-        ) : (
-          <BaseMenu.Trigger ref={triggerRef} render={trigger} {...holdPageAtPress.listButton} />
-        )}
-        <MenuSurface
-          sheet={sheet}
-          context={false}
-          side={side}
-          align={align}
-          className={className}
-          closeLabel={closeLabel}
-          finalFocus={backToTrigger}
-        >
-          {body}
-        </MenuSurface>
-      </BaseMenu.Root>
-    </PageDirection>
+  // A MenuBar's menu takes no `modal` (Base UI warns): the bar decides. It takes the bar's direction too.
+  const menu = (
+    <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
+      {label !== undefined ? (
+        <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
+          {label}
+        </BaseMenu.Trigger>
+      ) : (
+        <BaseMenu.Trigger ref={triggerRef} render={trigger} {...holdPageAtPress.listButton} />
+      )}
+      <MenuSurface
+        sheet={sheet}
+        context={false}
+        side={side}
+        align={align}
+        className={className}
+        closeLabel={closeLabel}
+        finalFocus={backToTrigger}
+      >
+        {body}
+      </MenuSurface>
+    </BaseMenu.Root>
   );
+  return label !== undefined ? menu : <PageDirection of={triggerRef}>{menu}</PageDirection>;
 }
 
 /**

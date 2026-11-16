@@ -604,6 +604,61 @@ describe("Menu items", () => {
     }
   });
 
+  it.each(["trigger", "context", "anchor", "bar"] as const)("keeps a %s menu left to right in a left-to-right section of a right-to-left page", async (mode) => {
+    document.documentElement.dir = "rtl";
+    try {
+      const sub = (
+        <>
+          <MenuItem>Edit</MenuItem>
+          <MenuSub label="Share">
+            <MenuItem>Copy link</MenuItem>
+          </MenuSub>
+        </>
+      );
+      function Anchored() {
+        const [anchor, setAnchor] = useState<Element | null>(null);
+        return (
+          <>
+            <Button ref={setAnchor}>Actions</Button>
+            {anchor && (
+              <Menu anchor={anchor} open onOpenChange={() => {}} aria-label="Actions">
+                {sub}
+              </Menu>
+            )}
+          </>
+        );
+      }
+      const menu =
+        mode === "trigger" ? (
+          <Menu trigger={<Button>Actions</Button>}>{sub}</Menu>
+        ) : mode === "context" ? (
+          <Menu contextTrigger={<div style={{ width: 200, height: 80 }}>Card</div>}>{sub}</Menu>
+        ) : mode === "anchor" ? (
+          <Anchored />
+        ) : (
+          <MenuBar>
+            <Menu label="Actions">{sub}</Menu>
+          </MenuBar>
+        );
+      const { host } = await render(<div dir="ltr">{menu}</div>);
+      if (mode === "context") {
+        const card = host.querySelector<HTMLElement>("div[dir] div")!;
+        const box = card.getBoundingClientRect();
+        card.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.left + 10, clientY: box.top + 10 }));
+      } else if (mode !== "anchor") {
+        host.querySelector<HTMLElement>("button")!.focus();
+        await userEvent.keyboard("{Enter}");
+      }
+      await settled();
+      await expect.poll(() => menus().length).toBe(1);
+      page.getByRole("menuitem", { name: "Share" }).element().focus();
+      await userEvent.keyboard("{ArrowRight}");
+      await expect.poll(() => menus().length).toBe(2);
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
   it("keeps an open submenu's focus guards out of its menu, where WebKit on Apple platforms makes them buttons", async () => {
     await render(
       <Menu trigger={<Button>Actions</Button>}>
