@@ -1014,6 +1014,18 @@ describe("Menu focus", () => {
     frames.release();
   });
 
+  it("a context menu, which focuses its own popup, closes on Escape pressed in the frames after it opens", async () => {
+    const frames = holdFrames();
+    const { host } = await render(<Menu contextTrigger={<div style={{ width: 200, height: 80 }}>Card</div>}>{basicItems}</Menu>);
+    const card = host.querySelector<HTMLElement>("div div")!;
+    await userEvent.click(card, { button: "right", position: { x: 10, y: 10 } });
+    frames.step();
+    await expect.poll(menu).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    frames.release();
+    await expect.poll(menu).toBeNull();
+  });
+
   it("a key while another item has taken focus leaves focus on that item", async () => {
     const { frames, focus } = await openFromKeyboard("{Enter}");
     expect(focus).toEqual(["Edit", "popup"]);

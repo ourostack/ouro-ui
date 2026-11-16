@@ -419,8 +419,8 @@ function watchFirstItem(popup: HTMLElement): () => void {
     const first = opening;
     opening = false;
     const target = event.target as HTMLElement;
-    // A phone's sheet keeps the first focus Base UI gives it.
-    if (!first || popup.getAttribute("data-ouro-presentation") === "sheet" || !target.matches(":focus-visible")) return;
+    // A phone's sheet keeps the first focus Base UI gives it, and a context menu, which focuses its popup, has no item to read.
+    if (!first || target === popup || popup.getAttribute("data-ouro-presentation") === "sheet" || !target.matches(":focus-visible")) return;
     item = target;
     // VoiceOver read the item again only when the popup took focus a frame after the item had it, not in the same task.
     frame = requestAnimationFrame(() => {
