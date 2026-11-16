@@ -1,0 +1,2 @@
+- Fixed: Ouro Current changes only the followed source's values in `upstream-sources.lock.json` and keeps the rest of the file as the repository wrote it.
+- New: a repository can declare in `.github/ouro-current.json` what it asks of a change, a version past its latest release or a changelog fragment, and Ouro Current's update does it.
