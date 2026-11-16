@@ -136,6 +136,11 @@ describe("HoverCard", () => {
       expect(getComputedStyle(link()).scale).toBe("none");
       expect(JSON.stringify(link().getBoundingClientRect())).toBe(anchor);
       expect(JSON.stringify(positioner().getBoundingClientRect())).toBe(rest);
+      // A close asked for on the press would run in a task of its own: let it, then the card is still open.
+      await act(async () => new Promise((resolve) => setTimeout(resolve)));
+      expect(card()).not.toBeNull();
+      expect(card()!.hasAttribute("data-ending-style")).toBe(false);
+      expect(link().hasAttribute("data-popup-open")).toBe(true);
     } finally {
       await commands.pointerPress({ selector: "[data-probe-target]", action: "up" });
     }
@@ -234,6 +239,26 @@ describe("HoverCard", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("closes on a press outside it and its link", async () => {
+    await render(
+      <>
+        {/* Above the link, clear of the card under it, and keeps focus where it is when pressed, so only the press can
+            close the card. */}
+        <p data-press-outside="" onMouseDown={(event) => event.preventDefault()}>
+          Elsewhere
+        </p>
+        <button type="button">Before</button>
+        <HoverCard trigger={<a href="#cooks/ari">Ari Mendelow</a>}>Preview</HoverCard>
+      </>,
+    );
+    await act(async () => (page.getByRole("button", { name: "Before" }).element() as HTMLElement).focus());
+    await pressTab();
+    await shown();
+    await commands.pointerPress({ selector: "[data-press-outside]", action: "click" });
+    expect(document.activeElement).toBe(link());
+    await expect.poll(() => card()).toBeNull();
   });
 
   it("closes on Escape and when focus leaves the link", async () => {

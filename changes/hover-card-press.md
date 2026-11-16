@@ -1,0 +1,1 @@
+- HoverCard: pressing its link no longer closes the card, which had closed on the press since the card started mounting on first hover.
