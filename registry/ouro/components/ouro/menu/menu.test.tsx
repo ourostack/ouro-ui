@@ -949,6 +949,51 @@ describe("Menu focus", () => {
     frames.release();
   });
 
+  it("Enter pressed while the popup holds focus chooses the first item, as it would on the item", async () => {
+    const frames = holdFrames();
+    const chosen = vi.fn();
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem onClick={chosen}>Edit</MenuItem>
+        <MenuItem onClick={() => {}}>Duplicate</MenuItem>
+      </Menu>,
+    );
+    trigger().focus();
+    const focus = recordFocus();
+    await userEvent.keyboard("{Enter}");
+    frames.until(() => focus.length === 2);
+    expect(document.activeElement?.matches('[data-ouro="menu"]')).toBe(true);
+    await userEvent.keyboard("{Enter}");
+    expect(chosen).toHaveBeenCalledTimes(1);
+    frames.release();
+    await expect.poll(menu).toBeNull();
+  });
+
+  it("an arrow key pressed while the popup holds focus moves once from the first item, and the popup's own key does nothing", async () => {
+    const frames = holdFrames();
+    await render(
+      <Menu trigger={<Button>Actions</Button>}>
+        <MenuItem onClick={() => {}}>Edit</MenuItem>
+        <MenuItem onClick={() => {}}>Duplicate</MenuItem>
+        <MenuItem onClick={() => {}}>Archive</MenuItem>
+      </Menu>,
+    );
+    trigger().focus();
+    const focus = recordFocus();
+    await userEvent.keyboard("{Enter}");
+    frames.until(() => focus.length === 2);
+    const keys: KeyboardEvent[] = [];
+    const onKey = (event: KeyboardEvent) => keys.push(event);
+    document.addEventListener("keydown", onKey, true);
+    onTestFinished(() => document.removeEventListener("keydown", onKey, true));
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement?.textContent).toBe("Duplicate");
+    const pressed = keys.find((event) => event.isTrusted)!;
+    expect(pressed.target).toBe(document.querySelector('[data-ouro="menu"]'));
+    expect(pressed.defaultPrevented).toBe(true);
+    frames.release();
+  });
+
   it("a key while another item has taken focus leaves focus on that item", async () => {
     const { frames, focus } = await openFromKeyboard("{Enter}");
     expect(focus).toEqual(["Edit", "popup"]);
