@@ -1,8 +1,8 @@
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CLAIM_SET } from "./claims.ts";
@@ -181,6 +181,34 @@ test("without proof of a mock, nothing other people see is called, and it does n
   assert.ok(!readFileSync(calls, "utf8").split("\n").some((l) => l.startsWith('["send"') && !l.includes("--help")));
   assert.equal(report.conformant, false);
   assert.match(renderText(report), /Calls to what other people see: not made/);
+});
+
+test("checkSafety accepts an executable stub inside the home or the repository, with a guard", async () => {
+  const names = async (over: Partial<XrayOptions>, guard: boolean) => (await checkSafety(base({ mock: undefined, ...over }), guard)).checks.filter((c) => !c.ok).map((c) => `${c.name}: ${c.note}`);
+  const stub = join(home, "bin", "workiq-stub");
+  mkdirSync(dirname(stub), { recursive: true });
+  writeFileSync(stub, "#!/bin/sh\necho stub\n");
+  chmodSync(stub, 0o755);
+  assert.deepEqual(await names({ env: { M365CRAWL_WORKIQ_BIN: stub } }, true), []);
+  assert.match((await names({ env: { M365CRAWL_WORKIQ_BIN: stub } }, false))[0]!, /^mock identity: no proof the target is a mock/);
+  const outside = mkdtempSync(join(tmpdir(), "ax-stub-"));
+  try {
+    const elsewhere = join(outside, "workiq-stub");
+    writeFileSync(elsewhere, "#!/bin/sh\n");
+    chmodSync(elsewhere, 0o755);
+    assert.match((await names({ env: { M365CRAWL_WORKIQ_BIN: elsewhere } }, true))[0]!, /^stub: .* is outside the X-ray's home and the repository/);
+  } finally {
+    rmSync(outside, { recursive: true, force: true });
+  }
+  const plain = join(home, "bin", "not-executable");
+  writeFileSync(plain, "data");
+  chmodSync(plain, 0o644);
+  assert.deepEqual(await names({ mock: `${mockUrl}/ mock=true`, env: { TOOL_CONFIG: plain } }, false), []);
+  assert.equal((await checkSafety(base({ mock: undefined, env: { M365CRAWL_WORKIQ_BIN: stub } }), false)).ok, false);
+  assert.match((await names({ env: { M365CRAWL_WORKIQ_BIN: "/no/such/stub" } }, true))[0]!, /^loopback: no address to check/);
+  const stubNames = async (over: Partial<XrayOptions>) => (await names(over, true)).filter((n) => n.startsWith("stub:"));
+  assert.deepEqual(await stubNames({ home: undefined, env: { M365CRAWL_WORKIQ_BIN: stub } }), []);
+  assert.deepEqual(await stubNames({ home: join(scratch, "no-such-home"), env: { M365CRAWL_WORKIQ_BIN: stub } }), []);
 });
 
 test("checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock", async () => {

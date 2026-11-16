@@ -1,4 +1,4 @@
-import { createRef, useState, type ReactNode, type SVGProps } from "react";
+import { createRef, useLayoutEffect, useState, type ReactNode, type SVGProps } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -451,6 +451,34 @@ describe("Toolbar overflow", () => {
     expect(rows).toEqual([5, 5, 5]);
     expect(added).toBe(0);
     expect(host.querySelector("[data-ouro-toolbar-more]")).toBeNull();
+  });
+
+  it("watches its row from the commit that mounts it, so no observer of the row starts during a resize delivery", async () => {
+    const host = document.createElement("div");
+    host.style.width = "900px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const observe = vi.spyOn(ResizeObserver.prototype, "observe");
+    const watchers = () =>
+      new Set(observe.mock.calls.flatMap(([target], index) => (target.matches('[data-ouro="toolbar"]') ? [observe.mock.contexts[index]] : []))).size;
+    let atCommit = -1;
+    // A later sibling's layout effect runs at the end of the commit's layout phase, before any passive effect.
+    function AfterRow() {
+      useLayoutEffect(() => {
+        atCommit = watchers();
+      }, []);
+      return null;
+    }
+    try {
+      await act(async () => root.render(<><Toolbar label="Formatting" items={formatting} /><AfterRow /></>));
+      await frames();
+    } finally {
+      observe.mockRestore();
+    }
+    // The first measure's observer, and the one that fits the row to later resizes.
+    expect(atCommit).toBe(2);
   });
 
   it("lays nothing out as it mounts, and shows the row it settles on before the first paint", async () => {

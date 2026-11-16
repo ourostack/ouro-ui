@@ -749,7 +749,7 @@ describe("platforms", () => {
     expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
   });
 
-  it("sets the platform after for in smaller, quieter type than the products' names, which stay whole", async () => {
+  it("sets the platform after for in smaller, quieter type than the products' names, which each stay whole", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/platforms/apple/");
     const heading = page.getByRole("heading", { level: 1 });
@@ -757,9 +757,10 @@ describe("platforms", () => {
     const platform = heading.element().querySelector<HTMLElement>("[data-platform-for]")!;
     expect(platform.textContent).toBe("for Apple");
     expect(parseFloat(getComputedStyle(platform).fontSize)).toBeLessThan(parseFloat(getComputedStyle(heading.element()).fontSize));
-    // On a phone the products' names stay on one line, so "AX" is never left alone between them and the platform.
-    expect(platform.previousElementSibling?.textContent).toBe("Ouro HX & AX");
-    expect(getComputedStyle(platform.previousElementSibling!).whiteSpace).toBe("nowrap");
+    // Each product's name stays on one line: a narrow column (a laptop at 200% zoom) breaks between "Ouro HX" and
+    // "& AX", never inside a name, and "AX" keeps its "&".
+    const names = [...heading.element().querySelectorAll<HTMLElement>(":scope span")].filter((span) => getComputedStyle(span).whiteSpace === "nowrap");
+    expect(names.map((name) => name.textContent)).toEqual(["Ouro HX", "& AX"]);
     await renderPage("/docs/platforms/contributing/");
     expect(page.getByRole("heading", { level: 1 }).element().querySelector("[data-platform-for]")).toBeNull();
   });

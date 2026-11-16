@@ -305,6 +305,11 @@
           "repo": "ourostack/ouro-ui-apple",
           "workflow": "xray-apps.yml",
           "app": "Gatefold"
+        },
+        {
+          "repo": "ourostack/gatefold",
+          "workflow": "app.yml",
+          "branch": "main"
         }
       ]
     },
@@ -320,6 +325,13 @@
           "from": "lock",
           "file": "upstream-sources.lock.json",
           "source": "ourostack-ouro-ui-ax"
+        },
+        {
+          "label": "Ouro HX (mailbox UI)",
+          "latest": "web",
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
         }
       ],
       "hx": {
@@ -372,7 +384,13 @@
         "Desk plugin",
         "Desk MCP"
       ],
-      "xray": []
+      "xray": [
+        {
+          "repo": "ourostack/desk",
+          "workflow": "ax-xray.yml",
+          "branch": "main"
+        }
+      ]
     },
     {
       "id": "desk-browser",
