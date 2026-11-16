@@ -301,6 +301,19 @@ describe("Link", () => {
     expect(at("long").querySelector('[data-ouro="link"]')!.getClientRects().length).toBeGreaterThan(1);
   });
 
+  it("lays an icon out in a row with its text for a link marked as standing alone, even in a sentence's element", async () => {
+    const { link } = await render(
+      <p>
+        <Link href="/back" inline={false}>
+          <svg className="size-4" viewBox="0 0 16 16" aria-hidden="true" />
+          Back to recipes
+        </Link>
+      </p>,
+    );
+    expect(getComputedStyle(link).display).toBe("inline-flex");
+    expect(getComputedStyle(link).columnGap).toBe("6px");
+  });
+
   it("lets an external link in a sentence wrap across lines, as text does", async () => {
     const { link } = await render(
       <p style={{ width: 160 }}>

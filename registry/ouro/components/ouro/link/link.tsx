@@ -121,20 +121,20 @@ const inlineFocus = "focus-visible:outline-transparent focus-visible:decoration-
 // A link that stands alone lays its icon and text out in a row with a gap; one in running text stays inline, so it
 // sits on the sentence's baseline and wraps, and its icon takes a little room on each side. The rules sit in a nested
 // layer, so the app's own classes still win; the external icon, already inline, is left out.
-const iconInline =
+const iconInlineClass =
   "[@layer_ouro-reset]:[&>svg:not([data-ouro-external])]:inline-block " +
   "[@layer_ouro-reset]:[&>svg:not([data-ouro-external])]:align-[-0.125em]";
-const iconRow =
+const iconRowClass =
   "[@layer_ouro-reset]:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:has-[>svg:not([data-ouro-external])]:inline-flex " +
   "[@layer_ouro-reset]:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:has-[>svg:not([data-ouro-external])]:items-center " +
   "[@layer_ouro-reset]:not-in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:has-[>svg:not([data-ouro-external])]:gap-1.5";
-const iconInText =
+const iconInTextClass =
   "[@layer_ouro-reset]:in-[:is(p,label,dt,dd,[data-ouro=text],[data-ouro-text])]:[&>svg:not([data-ouro-external])]:mx-[0.25em]";
-const alwaysIconRow =
+const alwaysIconRowClass =
   "[@layer_ouro-reset]:has-[>svg:not([data-ouro-external])]:inline-flex " +
   "[@layer_ouro-reset]:has-[>svg:not([data-ouro-external])]:items-center " +
   "[@layer_ouro-reset]:has-[>svg:not([data-ouro-external])]:gap-1.5";
-const alwaysIconInText = "[@layer_ouro-reset]:[&>svg:not([data-ouro-external])]:mx-[0.25em]";
+const alwaysIconInTextClass = "[@layer_ouro-reset]:[&>svg:not([data-ouro-external])]:mx-[0.25em]";
 
 const tones = {
   primary: "text-primary",
@@ -274,7 +274,7 @@ export function Link(props: LinkProps): JSX.Element {
       data-inline={inlineProp ? "" : undefined}
       {...(current ? { "aria-current": current } : {})}
       data-current={marked ? "" : undefined}
-      className={cn(base, iconInline, inlineProp === undefined ? [standalone, inTextFocus, iconRow, iconInText] : inlineProp ? [inlineFocus, alwaysIconInText] : [alwaysStandalone, alwaysIconRow], tones[tone], currentClass, className)}
+      className={cn(base, iconInlineClass, inlineProp === undefined ? [standalone, inTextFocus, iconRowClass, iconInTextClass] : inlineProp ? [inlineFocus, alwaysIconInTextClass] : [alwaysStandalone, alwaysIconRowClass], tones[tone], currentClass, className)}
     >
       {children}
       {external && (
