@@ -5,12 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl } from "@/registry/ouro/components/ouro/field/field-parts";
-import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
+import { Form, type FormErrors, type FormErrorSummary } from "@/registry/ouro/components/ouro/form/form";
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { FormErrorsContext, useField, type ErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 
@@ -67,7 +68,7 @@ afterEach(async () => {
  * A page with a React Router style action: submitting sends the form (here, a promise that
  * resolves on the next task) and the action's errors come back as a prop.
  */
-function ActionPage({ result, onSent }: { result: FormErrors | undefined; onSent?: (data: FormData) => void }) {
+function ActionPage({ result, onSent, errorSummary }: { result: FormErrors | undefined; onSent?: (data: FormData) => void; errorSummary?: FormErrorSummary }) {
   // A new object for each accepted answer, bound inside the complete errors value.
   const [answer, setAnswer] = useState<{ errors: FormErrors | undefined }>();
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -77,7 +78,7 @@ function ActionPage({ result, onSent }: { result: FormErrors | undefined; onSent
     setTimeout(() => setAnswer({ errors: result && { ...result } }));
   };
   return (
-    <Form method="post" errors={formErrors(answer, answer?.errors)} onSubmit={submit}>
+    <Form method="post" errors={formErrors(answer, answer?.errors)} onSubmit={submit} errorSummary={errorSummary}>
       <TextField label="Name" name="name" defaultValue="Ari" />
       <TextField label="Email" name="email" type="email" description="We never share it." defaultValue="ari@example.com" />
       <TextArea label="Bio" name="bio" />
@@ -844,7 +845,7 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     expect(alert.textContent).not.toContain("Taken.");
   });
 
-  it("renders no alert without form-level errors, so getByRole(\"alert\") finds only a message that shows", async () => {
+  it("renders no alert for a field's error alone, and an alert holds only the messages that show", async () => {
     const { host, rerender } = await render(
       <Form errors={{ email: "Taken." }}>
         <TextField label="Email" name="email" />
@@ -858,7 +859,8 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
         <TextField label="Email" name="email" />
       </Form>,
     );
-    await expect.element(page.getByRole("alert")).toHaveTextContent("The server is down.");
+    // The alert opens with the hidden summary; only the form's message shows in it.
+    await expect.poll(() => [...host.querySelectorAll('[role="alert"] p')].map((p) => p.textContent)).toEqual(["The server is down."]);
     expect(page.getByRole("alert").elements()).toHaveLength(1);
     await rerender(
       <Form>
@@ -869,7 +871,7 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
   });
 
   it("adds the alert to the page with its message already in it, each time an answer arrives, so screen readers announce it", async () => {
-    const { form } = await render(<ActionPage result={{ form: "The server is down.", email: "Taken." }} />);
+    const { form } = await render(<ActionPage result={{ form: "The server is down." }} />);
     const added: string[] = [];
     const observer = new MutationObserver((records) => {
       for (const record of records) {
@@ -998,7 +1000,7 @@ describe("Form-level messages (review fix round 1, finding 3)", () => {
     await rerender(<Mapped answer={answers[1]} />);
     expect(host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.");
     await rerender(<Mapped answer={answers[2]} />);
-    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host.querySelector('[role="alert"]')!.textContent).toBe("Couldn't save: 1 problem. Email: That email is taken.");
     expect(input("email").getAttribute("aria-invalid")).toBe("true");
     expect(input("name").getAttribute("aria-invalid")).toBe("false");
     expect(warn).not.toHaveBeenCalled();
@@ -1162,6 +1164,343 @@ describe("Form-level messages before and after hydration (review fix round 4)", 
       await expect.poll(() => [...alert.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["Top", ...unclaimed]);
       for (const message of Object.values(errors) as string[]) expect(count(host.textContent!, message)).toBe(1);
     });
+  });
+});
+
+describe("Form error summary", () => {
+  const taken = "That email is taken.";
+  const summaryOf = (host: Element) => host.querySelector('[role="alert"] > span')?.textContent;
+  /** Focuses another field before submitting, so focus only moves when the answer arrives, in every browser. */
+  async function submit(from: HTMLInputElement) {
+    from.focus();
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+  }
+
+  it("says how many problems there are, and the first in page order, once per submit", async () => {
+    const announcements = watchAnnouncements();
+    try {
+      const { host, input } = await render(<ActionPage result={{ email: taken }} />);
+      const fieldTop = input("email").getBoundingClientRect().top;
+      await submit(input("name"));
+      await expect.poll(() => announcements.count(`Couldn't save: 1 problem. Email: ${taken}`)).toBe(1);
+      await expect.poll(() => document.activeElement).toBe(input("email"));
+      expect(summaryOf(host)).toBe(`Couldn't save: 1 problem. Email: ${taken}`);
+      // Hidden from sight: it takes no space, so the fields do not move, and the alert stays out of the tab order.
+      const style = getComputedStyle(host.querySelector('[role="alert"] > span')!);
+      expect(style.position).toBe("absolute");
+      expect(style.width).toBe("1px");
+      expect(input("email").getBoundingClientRect().top).toBe(fieldTop);
+      expect(host.querySelector('[role="alert"]')!.getAttribute("tabindex")).toBe("-1");
+      expect(announcements.count(`Couldn't save: 1 problem. Email: ${taken}`)).toBe(1);
+    } finally {
+      announcements.stop();
+    }
+  });
+
+  it("counts several problems and reads the first in page order, not the order the action lists them", async () => {
+    const { host, input } = await render(<ActionPage result={{ bio: "Too short.", email: taken }} />);
+    await submit(input("name"));
+    await expect.poll(() => document.activeElement).toBe(input("email"));
+    expect(summaryOf(host)).toBe(`Couldn't save: 2 problems. Email: ${taken}`);
+  });
+
+  it("does not announce an unchanged summary again, but announces a changed one", async () => {
+    const announcements = watchAnnouncements();
+    try {
+      const { host, input, rerender } = await render(<ActionPage result={{ email: taken }} />);
+      await submit(input("name"));
+      await expect.poll(() => announcements.count(`Couldn't save: 1 problem. Email: ${taken}`)).toBe(1);
+      await expect.poll(() => document.activeElement).toBe(input("email"));
+      const first = host.querySelector('[role="alert"]');
+      // The same refusal again: focus moves to the field, and the alert is the same element, nothing new is announced.
+      await submit(input("name"));
+      await expect.poll(() => document.activeElement).toBe(input("email"));
+      expect(host.querySelector('[role="alert"]')).toBe(first);
+      expect(announcements.count(`Couldn't save: 1 problem. Email: ${taken}`)).toBe(1);
+      await rerender(<ActionPage result={{ email: "Another email is taken." }} />);
+      await submit(input("name"));
+      await expect.poll(() => announcements.count("Couldn't save: 1 problem. Email: Another email is taken.")).toBe(1);
+      expect(host.querySelector('[role="alert"]')).not.toBe(first);
+    } finally {
+      announcements.stop();
+    }
+  });
+
+  it("announces the same error again once the user has changed the field", async () => {
+    const announcements = watchAnnouncements();
+    try {
+      const { host, input } = await render(<ActionPage result={{ email: taken }} />);
+      await submit(input("name"));
+      await expect.poll(() => announcements.count(`Couldn't save: 1 problem. Email: ${taken}`)).toBe(1);
+      // Fixing the field takes its problem, and the summary, away.
+      await userEvent.fill(page.getByRole("textbox", { name: "Email", exact: true }), "new@example.com");
+      expect(host.querySelector('[role="alert"]')).toBeNull();
+      await submit(input("name"));
+      await expect.poll(() => announcements.count(`Couldn't save: 1 problem. Email: ${taken}`)).toBe(2);
+    } finally {
+      announcements.stop();
+    }
+  });
+
+  it("has no summary on a page that loads with errors, so nothing is announced or focused", async () => {
+    const announcements = watchAnnouncements();
+    try {
+      const { host, input } = await render(
+        <Form errors={{ email: taken, form: "The server is down." }}>
+          <TextField label="Email" name="email" />
+        </Form>,
+      );
+      await act(async () => {});
+      expect(summaryOf(host)).toBeUndefined();
+      expect(host.querySelector('[role="alert"]')!.textContent).toBe("The server is down.");
+      expect(announcements.matching("Couldn't save")).toEqual([]);
+      expect(document.activeElement).not.toBe(input("email"));
+    } finally {
+      announcements.stop();
+    }
+  });
+
+  it("translates the summary through errorSummary, with the count, label and message", async () => {
+    const translate = vi.fn((count: number, first: { label: string | undefined; message: string }) => `No se pudo guardar: ${count}. ${first.label}: ${first.message}`);
+    const { host, input } = await render(<ActionPage result={{ email: taken }} errorSummary={translate} />);
+    await submit(input("name"));
+    await expect.poll(() => summaryOf(host)).toBe(`No se pudo guardar: 1. Email: ${taken}`);
+    expect(translate).toHaveBeenCalledWith(1, { label: "Email", message: taken });
+  });
+
+  it("counts a message at the top of the form as one problem, and shows it as well", async () => {
+    const { host, input } = await render(<ActionPage result={{ form: "The server is down.", email: taken }} />);
+    await submit(input("name"));
+    await expect.poll(() => summaryOf(host)).toBe(`Couldn't save: 2 problems. Email: ${taken}`);
+    const alert = host.querySelector<HTMLElement>('[role="alert"]')!;
+    expect([...alert.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["The server is down."]);
+    // The summary comes first in the alert, before the message it counts.
+    expect(alert.firstElementChild).toBe(alert.querySelector(":scope > span"));
+    // The message shows, so the alert takes its height; it stays out of the tab order.
+    expect(alert.getBoundingClientRect().height).toBeGreaterThan(1);
+    expect(alert.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("counts a radio group once and names it by its legend", async () => {
+    function Choices() {
+      const field = useField()!;
+      return (
+        <div role="radiogroup" aria-labelledby={field.labelId}>
+          {["Small", "Medium", "Large"].map((size) => (
+            <span
+              key={size}
+              role="radio"
+              tabIndex={-1}
+              aria-label={size}
+              aria-checked={false}
+              aria-invalid={field.invalid || undefined}
+              aria-describedby={field.describedBy}
+            />
+          ))}
+        </div>
+      );
+    }
+    const node = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <Field label="Size" name="size">
+          <Choices />
+        </Field>
+      </Form>
+    );
+    const { host, rerender } = await render(node(undefined));
+    await rerender(node({ size: "That size is sold out." }));
+    await expect.poll(() => summaryOf(host)).toBe("Couldn't save: 1 problem. Size: That size is sold out.");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Small");
+  });
+
+  it("reads a field's first message when it lists several", async () => {
+    const { host, rerender } = await render(
+      <Form errors={undefined}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await rerender(
+      <Form errors={{ email: ["That email is taken.", "It is too long."] }}>
+        <TextField label="Email" name="email" />
+      </Form>,
+    );
+    await expect.poll(() => summaryOf(host)).toBe(`Couldn't save: 1 problem. Email: ${taken}`);
+  });
+
+  it("names a first field with no label by its message alone", async () => {
+    const { host, rerender } = await render(
+      <Form errors={undefined}>
+        <TextField label="" hideLabel name="code" />
+      </Form>,
+    );
+    await rerender(
+      <Form errors={{ code: "That code has expired." }}>
+        <TextField label="" hideLabel name="code" />
+      </Form>,
+    );
+    await expect.poll(() => summaryOf(host)).toBe("Couldn't save: 1 problem. That code has expired.");
+  });
+
+  it("says only how many problems there are when the first field has neither a label nor a message", async () => {
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <span aria-invalid="true" tabIndex={-1} />
+        <input name="pin" aria-invalid="true" />
+        <TextField label="Code" name="code" />
+      </Form>
+    );
+    const { host, rerender } = await render(layout(undefined));
+    await rerender(layout({ code: "That code has expired." }));
+    await expect.poll(() => summaryOf(host)).toBe("Couldn't save: 3 problems.");
+    await expect.poll(() => document.activeElement).toBe(host.querySelector("span[aria-invalid]"));
+  });
+
+  it("leaves a disabled field out of the count and the first, as focus does", async () => {
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <TextField label="Code" name="code" disabled />
+        <TextField label="Email" name="email" />
+      </Form>
+    );
+    const { host, input, rerender } = await render(layout(undefined));
+    await rerender(layout({ code: "That code has expired.", email: taken }));
+    await expect.poll(() => summaryOf(host)).toBe(`Couldn't save: 1 problem. Email: ${taken}`);
+    await expect.poll(() => document.activeElement).toBe(input("email"));
+  });
+
+  it("has no summary and no alert when the only field with an error cannot take focus", async () => {
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <TextField label="Code" name="code" disabled />
+        <TextField label="Email" name="email" />
+      </Form>
+    );
+    const { host, rerender } = await render(layout(undefined));
+    await rerender(layout({ code: "That code has expired." }));
+    // The disabled field shows its error, so the answer has arrived; nothing is announced or focused.
+    await expect.poll(() => host.textContent).toContain("That code has expired.");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(document.activeElement).not.toBe(host.querySelector('input[name="code"]'));
+  });
+
+  it("reads a field whose input has no <label> as having none", async () => {
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <input name="pin" aria-invalid="true" aria-describedby="pin-error" />
+        <p id="pin-error">Bad pin.</p>
+        <TextField label="Code" name="code" />
+      </Form>
+    );
+    const { host, rerender } = await render(layout(undefined));
+    await rerender(layout({ code: "That code has expired." }));
+    await expect.poll(() => summaryOf(host)).toBe("Couldn't save: 2 problems. Bad pin.");
+  });
+
+  it("names a field by the labels its aria-labelledby lists that exist, in order", async () => {
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <span id="legend-a">Size</span>
+        <span id="legend-b">Choose one</span>
+        <input name="size" aria-invalid="true" aria-labelledby="legend-a gone legend-b" aria-describedby="size-error" />
+        <p id="size-error">Too big.</p>
+      </Form>
+    );
+    const { host, rerender } = await render(layout(undefined));
+    // The top message counts too, so two problems: the field and the message at the top.
+    await rerender(layout({ size: "Too big." }));
+    await expect.poll(() => summaryOf(host)).toBe("Couldn't save: 2 problems. Size Choose one: Too big.");
+  });
+
+  it("reads a label of only spaces as none", async () => {
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <span id="blank">{" "}</span>
+        <input name="size" aria-invalid="true" aria-labelledby="blank" aria-describedby="size-error" />
+        <p id="size-error">Too big.</p>
+      </Form>
+    );
+    const { host, rerender } = await render(layout(undefined));
+    await rerender(layout({ size: "Too big." }));
+    await expect.poll(() => summaryOf(host)).toBe("Couldn't save: 2 problems. Too big.");
+  });
+
+  it("trims the space around a message", async () => {
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <TextField label="Email" name="email" />
+      </Form>
+    );
+    const { host, rerender } = await render(layout(undefined));
+    await rerender(layout({ email: `  ${taken}  ` }));
+    await expect.poll(() => summaryOf(host)).toBe(`Couldn't save: 1 problem. Email: ${taken}`);
+  });
+
+  it("inserts the alert once for a message that follows an answer with nothing to show", async () => {
+    const added: string[] = [];
+    const layout = (errors: FormErrors | undefined) => (
+      <Form errors={errors}>
+        <TextField label="Email" name="email" />
+      </Form>
+    );
+    const { form, rerender } = await render(layout({ email: taken }));
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof HTMLElement && node.getAttribute("role") === "alert") added.push(node.textContent);
+        }
+      }
+    });
+    observer.observe(form, { childList: true });
+    try {
+      // An answer that leaves nothing to show, then one whose message shows: one insertion, with its text.
+      await rerender(layout({ email: undefined }));
+      await rerender(layout({ email: undefined, form: "The server is down." }));
+      await expect.poll(() => added).toEqual(["The server is down."]);
+    } finally {
+      observer.disconnect();
+    }
+  });
+
+  it("inserts a new alert for each answer that shows only a message at the top, even when it repeats", async () => {    const announcements = watchAnnouncements();
+    try {
+      const { host, input } = await render(<ActionPage result={{ form: "The server is down." }} />);
+      await submit(input("name"));
+      await expect.poll(() => announcements.count("The server is down.")).toBe(1);
+      const first = host.querySelector('[role="alert"]');
+      await submit(input("name"));
+      await expect.poll(() => announcements.count("The server is down.")).toBe(2);
+      expect(host.querySelector('[role="alert"]')).not.toBe(first);
+    } finally {
+      announcements.stop();
+    }
+  });
+
+  it("gives a field whose aria-describedby names no element a summary with its count and no message", async () => {
+    function Page() {
+      const [answer, setAnswer] = useState<{ errors: FormErrors }>();
+      return (
+        <Form
+          method="post"
+          errors={formErrors(answer, answer?.errors)}
+          onSubmit={(event) => {
+            event.preventDefault();
+            setTimeout(() => setAnswer({ errors: { form: "The server is down." } }));
+          }}
+        >
+          <label>
+            Email
+            <input name="email" aria-invalid="true" aria-describedby="nowhere" />
+          </label>
+          <button type="submit">Save</button>
+        </Form>
+      );
+    }
+    const { host } = await render(<Page />);
+    const field = host.querySelector<HTMLInputElement>('input[name="email"]')!;
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    // The field counts as one problem, and the message at the top as the other; the field's message cannot be read.
+    await expect.poll(() => summaryOf(host)).toBe("Couldn't save: 2 problems.");
+    await expect.poll(() => document.activeElement).toBe(field);
   });
 });
 

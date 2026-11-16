@@ -37,6 +37,8 @@ Plain `errors={{ email: "Taken." }}` remains compatible and content-only: equal 
 
 The message about the whole form is an alert (`role="alert"`). It is in the page only while there is a message, and each answer adds a new one with its text already in it, which is what screen readers announce; `getByRole("alert")` finds nothing on a form without one. A field's message is not an alert: it is that control's description, so assert it with `toHaveAccessibleDescription`.
 
+After a submit that leaves field errors, the alert opens with a visually hidden summary, such as "Couldn't save: 1 problem. Name: You already have a recipe called Pasta.", which screen readers hear before focus moves to the first field. The same summary is not announced again while the errors stand, and a changed error, or one the user fixed and got back, announces again. Pass `errorSummary` to translate it. A message at the top of the form counts as one problem.
+
 Focus moves to the first field with an error when errors arrive after a submit. A page that loads with `errors` already set (a post without JavaScript, or a reload) shows them in the server HTML and moves no focus: nothing was submitted from this page, and taking focus on load would drop a keyboard or screen-reader user into the middle of a page they have not read. To send them to the errors on load, put an in-page link to the form in your page's own error summary.
 
 ## Use instead when
@@ -52,6 +54,7 @@ Type: `FormProps`.
 | `children` (required) | `ReactNode` | The fields and the submit button. |
 | `className` | `string` | Layout only: margins, width, grid placement. Fields stack with a gap by default; appearance classes warn in development. |
 | `errors` | `ReadonlyFormErrors \| FormErrorValue \| null` | Errors by field name. Bind an accepted server answer inside this single prop: `errors={formErrors(actionData, actionData?.errors)}` (import `formErrors` from `@/lib/ouro/form-answer`). Each changed answer, including an equal refusal, restores cleared messages, replaces its alert and moves focus once. Rebuilding the value or its mapped messages with the same answer never counts as arrival. Each one shows on the field with that `name`, which gets `aria-invalid` and links the message, in the server HTML too. A field's own `error` prop wins over it, and a message goes away once the user changes that field. When new errors arrive, focus moves to the first field with one, in page order. The `form` key shows in an alert at the top of the form, in the server HTML too; a key no rendered field is named joins it once the page hydrates, and warns in development. A message is text or a React node (a message with a link), and an array is several messages. With `formErrors`, a field stays cleared for that answer even if its key disappears and is re-added. Uncleared messages use the latest projection, including new React nodes/handlers, without resetting the mask, forcing an alert remount or moving focus. No answer (`null`/`undefined`) is not arrival and preserves the established mask. Cached/reused or primitive answers need `{ key: acceptedAnswerKey }`, advanced on actual acceptance, never submit start. Select this form's accepted source yourself; Form does not infer ownership or cancellation from a router's global data. Plain records still work for display/local errors and are compared by content. Fresh equal records cannot identify equal new answers; use `formErrors` for action answers, including the initial undefined-answer render. Changing between raw and answer-bearing values establishes a baseline with the existing mask, not an arrival. Construct the value beside Form on server and client. JSON/spread/structured cloning or server-component transport loses opaque identity and leaves a plain message record; reconstruct using the locally accepted source or a safely transported acceptance key. These errors only show: they never block the next submit, so the user can always send the form again (a server error may be fixed by changing another field, or by trying again). The browser's own checks (`required`, `type="email"`) still block a submit. |
+| `errorSummary` | `FormErrorSummary` | Translates the summary a screen reader hears first after a submit that leaves field errors: how many problems there are, and the first in page order, which is the field focus moves to. `label` is that field's label text, or `undefined` when it cannot be read; `message` is its error, or `""` when that cannot be read. A message at the top of the form counts as one problem. The summary is visually hidden: each field shows its own error. |
 
 ## Native attributes
 
@@ -80,6 +83,20 @@ One error message: text, or a React element for a message that carries a link or
 
 ```ts
 type ErrorMessage = string | ReactElement;
+```
+
+### `FormErrorSummary`
+
+What a `FormProps.errorSummary` receives: the number of problems, and the first one in page order.
+
+```ts
+type FormErrorSummary = (
+  count: number,
+  first: {
+    label: string | undefined;
+    message: string;
+  },
+) => string;
 ```
 
 ### `FormErrorValue`
