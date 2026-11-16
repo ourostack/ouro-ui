@@ -74,14 +74,14 @@ export const SCENES: Record<SceneName, Scene> = {
     night: { phoneHeight: 576, alt: "At night in a colour library under a starry skylight, a small lilac robot lays a row of colour chips on a glowing white table while a faceless glass designer holds a green chip up to the lamplight, and Ouro, a smiling emerald snake curled into an O, rests on a felt pad at the table's end." },
   },
   "playwright-focus-proof": {
-    alt: "One morning in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
-    sky: ["#dac0c6", "#d1c5cf", "#d3ceda", "#f9cfb6", "#fbd6a7"],
+    alt: "Inside a sleek high-speed train in low golden morning sun, two small robots type at their laptops across a window table while a faceless glass person in a sage hoodie leans back across the aisle, hands in pocket, with Ouro the green snake curled on the seat beside them, under a station clock on the end wall.",
+    sky: ["#c2a379", "#d0a078", "#c29974", "#b7a492", "#e2dada"],
     height: 576,
-    phoneHeight: 320,
+    phoneHeight: 384,
     band: 100,
     night: {
-      phoneHeight: 300,
-      alt: "One night in the meadow: a faceless glass person works on a laptop in an armchair, two little robots type on laptops of their own at a picnic table, a tall garden clock keeps the time, and Ouro looks on.",
+      phoneHeight: 384,
+      alt: "Inside a sleek high-speed train late at night under warm ceiling lights, two small robots type at their laptops across a window table while a faceless glass person in a sage hoodie leans back across the aisle, hands in pocket, with Ouro the green snake curled on the seat beside them, under a station clock on the end wall.",
     },
   },
   "ouroboros-skills": {
