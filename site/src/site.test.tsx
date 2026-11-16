@@ -614,7 +614,7 @@ describe("head tags", () => {
   it("give a component page Open Graph and Twitter tags with the docs card, a 1200x630 storybook scene", async () => {
     const route = { path: "/docs/sheet/", title: "Sheet · Ouro HX", description: 'Install "sheet" & go' };
     const tags = headTags(route, true);
-    const alt = "Ouro HX docs: Every component, with a live demo to poke. A little glass robot paints six colours onto a palette at an easel while a faceless glass person with a mug looks on. On the bench beside them a phone, a laptop and a tablet already show the same six colours, and Ouro lies at their feet.";
+    const alt = "Ouro HX docs: Every component, with a live demo to poke. In a bright colour library under a skylight, a small lilac robot lays a row of colour chips on a glowing white table while a faceless glass designer holds a green chip up to the light, and Ouro, a smiling emerald snake curled into an O, rests on a felt pad at the table's end.";
     for (const tag of [
       '<meta property="og:title" content="Sheet · Ouro HX" />',
       '<meta property="og:description" content="Install &quot;sheet&quot; &amp; go" />',
