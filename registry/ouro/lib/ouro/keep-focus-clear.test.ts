@@ -482,6 +482,19 @@ describe("keepFocusClear", () => {
       expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     });
 
+    it("looks again once the stack lands, for focus that moved under its new place during the fade", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      control("top", TOP);
+      await tab("covered");
+      expect(stateOf(bar).fading).toBe(true);
+      await tab("top");
+      advance(FADE_MS);
+      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: true, edge: "top" });
+      advance(FADE_MS);
+      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
+    });
+
     it("does not move a stack that has moved back to the bottom again once it has rested", async () => {
       const bar = setup();
       control("covered", COVERED);
