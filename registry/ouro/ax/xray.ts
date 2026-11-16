@@ -6,9 +6,9 @@ export type { CheckResult, Inventory, InventoryCompare, Report, Safety, Verdict,
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { accessSync, constants, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, relative, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims.ts";
 import { isChecksReport, type ChecksReport } from "./checks.ts";
@@ -437,15 +437,57 @@ const at = (value: unknown, path: string): unknown => path.split(".").reduce<unk
  *
  * @claim "may call what other people see" registry/ouro/ax/xray.test.mts verify:testExists(registry/ouro/ax/xray.test.mts::checkSafety fails closed: a remote address, the real home, a credential, a wrong or missing mock)
  */
+/** Whether a stub is an executable file inside the X-ray's home or the repository (the working folder), never elsewhere. */
+const isFileSync = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+
+function stubProblem(path: string, roots: readonly string[]): string | null {
+  let real: string;
+  try {
+    real = realpathSync(path);
+  } catch (e) {
+    return `${path} cannot be read: ${(e as Error).message}`;
+  }
+  const inside = roots.some((root) => {
+    let base: string;
+    try {
+      base = realpathSync(root);
+    } catch {
+      return false;
+    }
+    const rel = relative(base, real);
+    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+  });
+  if (!inside) return `${real} is outside the X-ray's home and the repository`;
+  try {
+    accessSync(real, constants.X_OK);
+  } catch {
+    return `${real} is not executable`;
+  }
+  return null;
+}
+
 async function checkSafety(opts: XrayOptions, guardPassed: boolean): Promise<Safety> {
   const checks: Safety["checks"] = [];
   const [mockUrl, mockExpect] = opts.mock ? splitCommand(opts.mock) : [];
   const urls = [opts.http, mockUrl, ...Object.values(opts.env).filter((v) => /^https?:\/\//i.test(v))].filter((u): u is string => typeof u === "string" && u !== "");
   const far = urls.filter((u) => !isLoopback(u));
+  // A stub is an --env value naming an existing file: a program the CLI is pointed at instead of the real service.
+  const stubs = Object.values(opts.env).filter((v) => isAbsolute(v) && isFileSync(v));
+  const roots = [opts.home, process.cwd()].filter((r): r is string => typeof r === "string" && r !== "").map((r) => resolve(r));
+  const stubProblems = stubs.map((s) => stubProblem(s, roots)).filter((p): p is string => p !== null);
+  if (stubs.length) checks.push({ name: "stub", ok: stubProblems.length === 0, note: stubProblems.length ? stubProblems.join("; ") : `${stubs.length} stub${stubs.length === 1 ? "" : "s"} inside the home or the repository` });
   checks.push(
-    urls.length === 0
-      ? { name: "loopback", ok: false, note: "no address to check: pass --mock \"<loopback url> <key>=<value>\" or --env <NAME>=<loopback url>" }
-      : { name: "loopback", ok: far.length === 0, note: far.length ? `not loopback: ${far.join(", ")}` : `${urls.length} address${urls.length === 1 ? "" : "es"}, all loopback` },
+    urls.length === 0 && stubs.length === 0
+      ? { name: "loopback", ok: false, note: "no address to check: pass --mock \"<loopback url> <key>=<value>\", --env <NAME>=<loopback url>, or --env <NAME>=<stub executable>" }
+      : urls.length === 0
+        ? { name: "loopback", ok: true, note: "no address: the CLI is pointed at a stub" }
+        : { name: "loopback", ok: far.length === 0, note: far.length ? `not loopback: ${far.join(", ")}` : `${urls.length} address${urls.length === 1 ? "" : "es"}, all loopback` },
   );
   const real = homedir();
   const home = opts.home ? resolve(opts.home) : null;
