@@ -138,7 +138,6 @@ function clampSize(sizes: readonly number[], index: number, size: number, panels
     (next === 0 || next >= before.minSize) && (next === total || total - next >= after.minSize) && next >= min && next <= max;
   // A shrinking panel prefers to collapse on a tie, a growing one prefers its minSize.
   const ends =
-    // A press that moves nothing starts only in a gap the default sizes left, where either side is a fair snap.
     // Stryker disable next-line EqualityOperator: a press that moves nothing starts only in a gap the default sizes left, where either side is a fair snap
     size < sizes[index]!
       ? [0, total - after.minSize, before.minSize, total, min, max]
