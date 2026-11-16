@@ -221,7 +221,8 @@ test("the command's --help is the Ouro AX kit's, and an unknown flag is one line
   const module = join(here, "fixtures", "flows-suite.mts");
   assert.equal(await main(["run", module, "--wat"], wrong.io), 2);
   assert.equal(wrong.o.out, "");
-  assert.match(wrong.o.err, /^ax-flows: run: there is no --wat; its flags are --out, --flows, --slack, --xray\. Fix: ax-flows run .* --out\.\n$/);
+  // "wat" is two edits from "out" in three letters: too far to guess, so the fix leaves the flag out (#1670).
+  assert.match(wrong.o.err, /^ax-flows: run: there is no --wat; its flags are --out, --flows, --slack, --xray\. Fix: ax-flows run \S*flows-suite\.mts\.\n$/);
 });
 
 test("--json prints the outcome alone on stdout, and each flow's line on stderr", async () => {
