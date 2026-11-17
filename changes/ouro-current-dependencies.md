@@ -1,0 +1,1 @@
+- Fixed: Ouro Current's update adds the items an updated component now depends on, as the shadcn CLI follows `registryDependencies`, so an app gets the new `lib/ouro/platform.ts` that an updated kbd imports.

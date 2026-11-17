@@ -729,3 +729,28 @@ test("a component that renders links brings OuroProvider, which only the app imp
   for (const name of ["button", "link", "card", "item", "table"]) assert.ok(installs(name).has("lib-ouro-provider"), `${name} installs OuroProvider`);
   assert.ok(installs("button-tests").has("lib-ouro-provider-tests"), "and its tests come with the component's tests");
 });
+
+test("every registry file an item imports is installed with it: in its own files or in an item it depends on", () => {
+  const byName = new Map(registry.items.map((entry) => [entry.name, entry]));
+  const nameOf = (dependency) => dependency.replace(/#.*$/, "").replace(/\.json$/, "").split("/").at(-1);
+  const closure = (name, seen = new Set()) => {
+    if (seen.has(name) || !byName.has(name)) return seen;
+    seen.add(name);
+    for (const dependency of byName.get(name).registryDependencies ?? []) closure(nameOf(dependency), seen);
+    return seen;
+  };
+  const extensions = ["", ".ts", ".tsx", ".mts", ".mjs", ".js", ".d.ts", "/index.ts", "/index.tsx"];
+  const missing = [];
+  for (const entry of registry.items) {
+    const installed = new Set([...closure(entry.name)].flatMap((name) => (byName.get(name).files ?? []).map((file) => file.path)));
+    for (const file of entry.files ?? []) {
+      if (!existsSync(join(root, file.path))) continue;
+      const text = readFileSync(join(root, file.path), "utf8");
+      for (const [, specifier] of text.matchAll(/(?:from\s+|import\s*\(\s*|import\s+)["'](@\/registry\/[^"']+)["']/g)) {
+        const path = specifier.replace(/^@\//, "");
+        if (!extensions.some((extension) => installed.has(`${path}${extension}`))) missing.push(`${entry.name}: ${file.path} imports ${specifier}`);
+      }
+    }
+  }
+  assert.deepEqual(missing, [], "an item imports a registry file that neither it nor any item it depends on installs");
+});
