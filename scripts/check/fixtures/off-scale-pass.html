@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spacing off the scale: passes</title>
+<style>
+:root{--background:#ffffff;--foreground:#1d1d1f;--font-sans:system-ui,sans-serif;--spacing:0.25rem}
+body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-sans)}
+main{max-width:36rem;margin:0 auto;padding:calc(var(--spacing)*4)}
+.list{display:flex;flex-direction:column;gap:calc(var(--spacing)*3);padding-block:clamp(1rem,3vw,2rem)}
+code{padding:0 0.3em}
+</style>
+<main><h1>Spacing off the scale</h1><div class="list"><span>Flour</span><span>Rice, <code>long-grain</code></span></div></main>

@@ -26,7 +26,6 @@
 
 .dark {
   color-scheme: dark;
-  --site-code: #121215;
 }
 
 @layer base {

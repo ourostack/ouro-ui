@@ -150,7 +150,7 @@ export function SpringTwin(): JSX.Element {
   };
 
   return (
-    <div className="apple-twin" data-apple-twin="spring">
+    <div className="apple-twin" data-apple-twin="spring" data-ouro-allow="off-theme" data-ouro-allow-why="A drawing of a SwiftUI spring: its puck keeps the shape of the one in the Swift demo it mirrors.">
       <p className="apple-twin-label">
         <span className="apple-twin-badge">Web twin</span> The same spring, solved in your browser by HX web. Not SwiftUI, and proud of it.
       </p>

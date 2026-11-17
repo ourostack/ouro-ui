@@ -1,0 +1,1 @@
+- New: Ouro check's off-theme and off-scale rules find a style an app wrote past its theme (a fixed colour, radius, shadow or font, or a fixed padding, margin or gap) and name the token to use.

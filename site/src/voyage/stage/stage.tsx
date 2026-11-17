@@ -451,7 +451,7 @@ const Ballast = memo(function Ballast({ tanks, full, dived, onTank, onDive }: { 
         </span>
       </legend>
       <div className="stage-manifold">
-        <span className="stage-pipe" aria-hidden="true">
+        <span className="stage-pipe" aria-hidden="true" data-ouro-allow="off-theme" data-ouro-allow-why="Part of the porthole's drawing: the pipe's inner shade is the art's, as its SVG's colours are.">
           <span className="stage-pipe-water" />
         </span>
         {TANKS.map((tank) => (
