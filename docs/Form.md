@@ -11,19 +11,21 @@ import { Form } from "@/registry/ouro/components/ouro/form/form";
 ## Example
 
 ```tsx
-// Checked in the browser, with no router or server: errors from your own onSubmit.
-const [errors, setErrors] = useState<Record<string, string>>({});
+// Checked in the browser, with no router or server: each submit's own answer, so the same mistake shows again.
+import { formErrors } from "@/lib/ouro/form-answer";
+const [answer, setAnswer] = useState<{ errors: FormErrors }>();
 <Form
-  errors={errors}
+  errors={formErrors(answer, answer?.errors)}
   onSubmit={(event) => {
     event.preventDefault();
     const name = String(new FormData(event.currentTarget).get("name"));
-    setErrors(name === "admin" ? { name: "That name is taken." } : {});
+    setAnswer({ errors: name === "admin" ? { name: "That name is taken." } : {} });
   }}
 >
   <TextField label="Display name" name="name" required />
   <Button type="submit">Save</Button>
 </Form>
+// With a router: the action's answer.
 import { formErrors } from "@/lib/ouro/form-answer";
 const actionData = useActionData<typeof action>();
 <Form method="post" errors={formErrors(actionData, actionData?.errors)} render={<RouterForm />}>
