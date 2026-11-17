@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fix: the shipped Button, Navbar and ImageCropper tests compare with a probe inside the measured element, so a weight, radius or spacing an app sets on those components alone no longer fails them.
