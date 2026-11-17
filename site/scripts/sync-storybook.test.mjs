@@ -1,13 +1,13 @@
-/* global process */
+/* global Buffer */
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync } from "node:fs";
 import http from "node:http";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "../../scripts/scratch.mjs";
 import { promisify } from "node:util";
 
 // sync-storybook.mjs is what sync-brand.yml runs when ourostack/.github's brand art changes. A local server stands in
@@ -27,7 +27,7 @@ async function sync(overrides = {}, canonicalFiles = served.files) {
     res.writeHead(body ? 200 : 404).end(body ?? "");
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
-  const out = mkdtempSync(join(tmpdir(), "sync-out-"));
+  const out = scratchDir("sync-out-");
   cpSync(copy, out, { recursive: true });
   try {
     const { stdout } = await run("node", [join(here, "sync-storybook.mjs"), COMMIT, "--out", out], {

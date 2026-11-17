@@ -6,7 +6,7 @@
 //
 // .github/workflows/sync-brand.yml runs it every 10 minutes. BRAND_RAW_BASE and BRAND_API_BASE replace the GitHub
 // hosts (site/scripts/sync-storybook.test.mjs).
-/* global fetch, process, Buffer, setTimeout */
+/* global fetch, Buffer, setTimeout */
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
