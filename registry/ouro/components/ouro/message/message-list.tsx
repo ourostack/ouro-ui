@@ -47,8 +47,8 @@ export interface MessageListOwnProps {
    * nothing; and a conversation whose
    * messages carry exactly the last one's keys (keyed by place, as many of them) can't be told from it until they change,
    * so key messages by their own ids. Without it, the list takes messages that share no `key` with the ones it held for
-   * another conversation, so it misses a switch between conversations whose messages share keys, and takes a short
-   * conversation whose every message gets a new key at once for another one.
+   * another conversation, so it misses a switch between conversations whose messages share keys, and takes a conversation whose
+   * every message gets a new key at once for another one, at any length.
    * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes a switch from conversation alone: one whose messages share keys with the last is a switch, and messages re-keyed in the same one are not)
  * @claim "While it stays the same, nothing the" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > takes removing the newest five, as a regenerated turn does, for the same conversation)
  * @claim "Change it with the other conversation's" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches when the conversation is named before its messages come, as an app that keeps the last messages while it fetches does)
@@ -855,7 +855,7 @@ interface Spoken {
  * when it finishes, and a first reply in a list that mounted empty. History is never
  * announced: the messages it mounts with, several messages filling an empty list at once
  * (history fetched after mount), older messages loaded above, and a message whose `key` changes in place (a temporary id
- * swapped for the server's). Every message re-keyed at once is not held that way: the view moves a little, since windowing holds a place by a child's key. Older messages loaded above a scrolled-up reader leave the message
+ * swapped for the server's). Every message re-keyed at once is held that way in a named conversation (`conversation`): its measured heights carry over by position, so the reader's place holds. Without `conversation`, a full re-key is taken for a switch, as another conversation's messages are. Older messages loaded above a scrolled-up reader leave the message
  * they are reading where it was, in every frame, and so does a message above them that moves, such
  * as a post a reply moves to the end. When the message they are on is the one that moves, the
  * messages around it keep their place. A page of many older messages goes in 20 a frame, those
@@ -950,7 +950,8 @@ interface Spoken {
  *     </article>
  *   ))}
  * </MessageList>
- * @claim "Every message re-keyed at once is not held that way" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > keeps the reader's place, and opens nothing, when every message in view gets a new key in place and the rest keep theirs)
+ * @claim "Every message re-keyed at once is held that way in a named conversation" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > holds the reader's place through a full re-key of a named conversation, with its rows not yet measured, in messages of varied heights)
+ * @claim "a full re-key is taken for a switch" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > opens the newest message when every message gets a new key with no conversation named, as another conversation's messages would)
  * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > trails the wheel the more the farther a message is from the pointer, and settles back to no transform)
  * @claim "The messages spring as the reader" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > spreads the messages apart on a push past either end, and draws them back)
  * @claim "The scroll position never moves" registry/ouro/components/ouro/message/message-list.springs.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > never changes the scroll position, and keeps the reader's place by where messages are laid out)
@@ -1228,6 +1229,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     first: top,
     recent,
     keys: new Set(all.map(keyOf)),
+    // The keys in order, as the heights measured for them are keyed: what a full re-key carries over by position.
+    order: keys,
     conversation,
     pending: null as { conversation: Key | undefined; keys: ReadonlySet<Key | null> } | null,
     // The keys it held when its conversation was last confirmed: what a wholesale change under the same name leaves alone.
@@ -1269,6 +1272,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
     } else if (pending !== null) {
       if (strangers(pending.keys)) [fresh, named, pending] = [true, pending.conversation, null];
     } else fresh = conversation === undefined && strangers(track.keys);
+    // A full re-key that keeps the conversation: the same messages under new keys, as many as before. Their heights were measured under
+    // the old keys, so they carry over by position, and the space above the view stays where it was. A partial re-key takes no part.
+    if (!fresh && all.length === track.order.length && strangers(track.keys)) {
+      const carried = new Map<string, number>();
+      track.order.forEach((key, index) => {
+        const height = measured.heights.get(key);
+        if (height !== undefined) carried.set(keys[index]!, height);
+      });
+      setMeasured({ ...measured, heights: carried });
+    }
     const opening = fresh && track.held;
     if (opening) {
       // The other conversation draws from its newest, whatever of the one before was drawn.
@@ -1286,6 +1299,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       first: top,
       recent,
       keys: keySet(all),
+      order: keys,
       conversation: named,
       pending,
       // Confirmed again by a new name or switch, and by any change under the same name but a wholesale one, which may be the

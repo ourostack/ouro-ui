@@ -3069,6 +3069,7 @@ describe("MessageList switching conversations", () => {
     named = false,
     called,
     byIndex = false,
+    rekey = "",
     windowing,
     children,
   }: {
@@ -3085,6 +3086,8 @@ describe("MessageList switching conversations", () => {
     called?: string;
     /** Key the messages by their place, as conversations that share keys do. */
     byIndex?: boolean;
+    /** Prefixed to each message's key, which changes every key and no id: the same messages, re-keyed. */
+    rekey?: string;
     /** What follows the list, such as a composer. */
     children?: ReactNode;
     actions?: { current: MessageListActions | null };
@@ -3095,7 +3098,7 @@ describe("MessageList switching conversations", () => {
       <MessageList key={keyed ? open : undefined} label={`Chat with ${open}`} style={{ height: 300 }} initialAnchor={initialAnchor} conversation={called ?? (named ? open : undefined)} actionsRef={actions} windowing={windowing}>
         {welcome && <p key="welcome">The start of your conversation</p>}
         {items.map((item, at) => (
-          <Message key={byIndex ? at : item.id} id={String(item.id)} role={item.role} name={item.role === "user" ? "Ana" : open}>
+          <Message key={byIndex ? at : `${rekey}${item.id}`} id={String(item.id)} role={item.role} name={item.role === "user" ? "Ana" : open}>
             {item.text}
           </Message>
         ))}
@@ -3593,12 +3596,11 @@ describe("MessageList switching conversations", () => {
     await settle(list.scroller);
     await upBy(list.scroller, 1200);
     const reading = firstVisible(list.scroller);
-    // Every message of the same conversation re-keyed at once: no switch. Windowing holds a place by a child's key, so the new keys
-    // cost it a few pixels as the measured heights are replaced (3 to 4 px measured), which the 8 px allows.
+    // Every message of the same conversation re-keyed at once: no switch, and the place is held (a named conversation carries its measured heights over).
     await list.commit(<Switcher open="theo" keyed={false} named count={900} />);
     await settle(list.scroller);
     expect(setSize(list.scroller)).toBe("900");
-    expect(Math.abs(firstVisible(list.scroller).top - reading.top)).toBeLessThanOrEqual(8);
+    expect(Math.abs(firstVisible(list.scroller).top - reading.top)).toBeLessThanOrEqual(1);
     expect(firstVisible(list.scroller).message.id).toBe(reading.message.id);
   });
 
@@ -3952,6 +3954,153 @@ describe("MessageList switching conversations", () => {
     expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(1);
     expect(list.host.querySelector("[data-ouro-message-list-jump]")).not.toBeNull();
   });
+
+  /** Messages whose heights differ, by up to four more lines of words than the first: as the rows of a chat do. */
+  const varied = (name: string, count: number, unit: number): Item[] =>
+    conversation(name, count).map((item, at) => ({ ...item, text: `${item.text}${" more words in this message".repeat((at % 5) * unit)}` }));
+  /** Scrolls the list up to `top` in code, as the reader does by its scrollbar: in steps of `step` px to measure the rows on the way. */
+  async function scrollUpTo(scroller: HTMLElement, top: number, step?: number) {
+    while (step !== undefined && scroller.scrollTop - top > step) await upBy(scroller, step);
+    await upBy(scroller, scroller.scrollTop - top);
+  }
+  it("holds the reader's place through a full re-key of a named conversation, with its rows not yet measured, in messages of varied heights", async () => {
+    const items = varied("mara", 900, 4);
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} />);
+    await settle(list.scroller);
+    await scrollUpTo(list.scroller, Math.round(list.scroller.scrollHeight / 2));
+    const reading = firstVisible(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} rekey="sent-" />);
+    await settle(list.scroller);
+    expect(setSize(list.scroller)).toBe("900");
+    const after = firstVisible(list.scroller);
+    expect(after.message.id).toBe(reading.message.id);
+    expect(Math.abs(after.top - reading.top)).toBeLessThanOrEqual(1);
+    expect(list.host.querySelector("[data-ouro-message-list-jump]")).not.toBeNull();
+  });
+
+  it("holds the reader's place through a full re-key of a named conversation, with its rows measured by scrolling up through them, in messages of varied heights", async () => {
+    const items = varied("mara", 900, 4);
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} />);
+    await settle(list.scroller);
+    await scrollUpTo(list.scroller, Math.round(list.scroller.scrollHeight / 2), 600);
+    const reading = firstVisible(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} rekey="sent-" />);
+    await settle(list.scroller);
+    expect(setSize(list.scroller)).toBe("900");
+    const after = firstVisible(list.scroller);
+    expect(after.message.id).toBe(reading.message.id);
+    expect(Math.abs(after.top - reading.top)).toBeLessThanOrEqual(1);
+  }, 60_000);
+
+  it("holds the reader's place through a full re-key of a named conversation, with messages a few hundred pixels tall", async () => {
+    const items = varied("mara", 900, 16);
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} />);
+    await settle(list.scroller);
+    await scrollUpTo(list.scroller, Math.round(list.scroller.scrollHeight / 2));
+    // The fixture is tall: its tallest message is a few hundred pixels.
+    expect(Math.max(...messagesOf(list.scroller).map((message) => message.getBoundingClientRect().height))).toBeGreaterThan(200);
+    const reading = firstVisible(list.scroller);
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} rekey="sent-" />);
+    await settle(list.scroller);
+    const after = firstVisible(list.scroller);
+    expect(after.message.id).toBe(reading.message.id);
+    expect(Math.abs(after.top - reading.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("opens the newest message when every message gets a new key with no conversation named, as another conversation's messages would", async () => {
+    const items = conversation("mara", 900);
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} items={items} />);
+    await settle(list.scroller);
+    await upBy(list.scroller, 1200);
+    await list.commit(<Switcher open="mara" keyed={false} items={items} rekey="sent-" />);
+    await settle(list.scroller);
+    expect(distanceFromBottom(list.scroller)).toBeLessThanOrEqual(2);
+  });
+
+  it("makes a switched conversation of the same count as tall as a fresh list of it, with no height of the one before", async () => {
+    // Tall messages before, short ones after: a height carried over from the one before would make the list far taller.
+    const long = " a long line of words to fill the message".repeat(6);
+    const before = conversation("mara", 900).map((item, at) => ({ ...item, text: `${item.text}${long.repeat(1 + (at % 4))}` }));
+    const after = conversation("theo", 900).map((item) => ({ ...item, role: "assistant" as const }));
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={before} />);
+    await settle(list.scroller);
+    // Every row of the one before is measured: scroll through it from the top to its end.
+    await scrollUpTo(list.scroller, 0);
+    while (list.scroller.scrollTop + list.scroller.clientHeight < list.scroller.scrollHeight) await upBy(list.scroller, -800);
+    await list.commit(<Switcher open="theo" keyed={false} named items={after} />);
+    await settle(list.scroller);
+    // Compared as the switch settles, before the rows of the new conversation are measured.
+    expect(messagesOf(list.scroller).length).toBeLessThan(100);
+    const fresh = mount();
+    await fresh.commit(<Switcher open="theo" keyed={false} named items={after} />);
+    await settle(fresh.scroller);
+    expect(list.scroller.scrollHeight).toBe(fresh.scroller.scrollHeight);
+  }, 120_000);
+
+  it("makes a full re-key that changes the count as tall as a fresh list of the same messages, with no height carried by place", async () => {
+    // Tall messages first, short ones after: a height carried over by place, one row off, would make the list hundreds of pixels taller.
+    const long = " a long line of words to fill the message".repeat(8);
+    const rows: Item[] = Array.from({ length: 900 }, (_, id) => ({ id: `mara-${id}`, role: "assistant" as const, text: `mara ${id}${id < 450 ? long : ""}` }));
+    // A list drawn once before, so the list below starts as a list does in a page that has drawn one.
+    const warm = mount();
+    await warm.commit(<Switcher open="mara" keyed={false} named items={rows} />);
+    await settle(warm.scroller);
+    await warm.commit(<div />);
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={rows} />);
+    await settle(list.scroller);
+    // Every row measured: the list is scrolled through from its top to its end, then back to the middle.
+    await scrollUpTo(list.scroller, 0);
+    while (list.scroller.scrollTop + list.scroller.clientHeight < list.scroller.scrollHeight) await upBy(list.scroller, -800);
+    await scrollUpTo(list.scroller, Math.round(list.scroller.scrollHeight / 2));
+    // One message comes in before the oldest, and every key changes, so the count changes and no key survives.
+    const next: Item[] = [{ id: "mara-new", role: "assistant", text: "mara new" }, ...rows];
+    await list.commit(<Switcher open="mara" keyed={false} named items={next} rekey="sent-" />);
+    // As the re-key settles, while most of the new rows are unmeasured.
+    await settle(list.scroller);
+    expect(messagesOf(list.scroller).length).toBeLessThan(100);
+    const fresh = mount();
+    await fresh.commit(<Switcher open="mara" keyed={false} named items={next} />);
+    await settle(fresh.scroller);
+    expect(list.scroller.scrollHeight).toBe(fresh.scroller.scrollHeight);
+  }, 120_000);
+
+  it("keeps the rows above and below a reader's view as two spaces, through a named re-key of taller messages before the list's first frame", async () => {
+    const items = varied("mara", 900, 4);
+    const taller = varied("mara", 900, 8);
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} />);
+    // The reader moves to the middle in the same task: the rows there are drawn, but not measured, when the re-key comes.
+    await act(async () => {
+      list.scroller.scrollTop = Math.round(list.scroller.scrollHeight / 2);
+      list.scroller.dispatchEvent(new Event("scroll"));
+    });
+    await list.commit(<Switcher open="mara" keyed={false} named items={taller} rekey="sent-" />);
+    await settle(list.scroller);
+    // The rows above and below the view are two runs not drawn: each keeps its space.
+    expect(list.scroller.querySelectorAll("[data-ouro-message-list-space]").length).toBe(2);
+  }, 60_000);
+
+  it("keeps a partial re-key's rows at their own heights: sliding the window by one message leaves the list as tall as it was", async () => {
+    const items = varied("mara", 900, 4);
+    const list = mount();
+    await list.commit(<Switcher open="mara" keyed={false} named items={items} />);
+    await settle(list.scroller);
+    // Measure the rows at the top, then go back to the end: the top message is measured, and it is the one that leaves.
+    await scrollUpTo(list.scroller, 0, 600);
+    await upBy(list.scroller, -list.scroller.scrollHeight);
+    const before = list.scroller.scrollHeight;
+    // The oldest leaves and an equally tall message comes at the end under a new key; the others keep their keys.
+    const slid = [...items.slice(1), { ...items[0]!, id: "mara-new" }];
+    await list.commit(<Switcher open="mara" keyed={false} named items={slid} />);
+    await settle(list.scroller);
+    expect(Math.abs(list.scroller.scrollHeight - before)).toBeLessThanOrEqual(0.5);
+  }, 60_000);
 
   it("opens at initialAnchor far back in a thousand messages, drawing from it, and holds it still as the rest go in above", async () => {
     const list = mount();
