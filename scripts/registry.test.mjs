@@ -131,6 +131,7 @@ test("the registry is named ouro and lists every item", () => {
     "ouro-source-rules",
     "ouro-check",
     "ouro-images",
+    ...readdirSync(join(root, "registry/ouro/patterns")).sort(),
     ...axRuntime,
     ...axRuntime.filter((name) => name !== "ax-example").map((name) => `${name}-tests`),
     "ouro-ax",

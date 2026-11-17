@@ -370,6 +370,10 @@ const e2eDir = "registry/ouro/e2e/ouro/";
 const themeDir = "registry/ouro/theme/";
 const censusDir = "registry/ouro/census/";
 const sourceRulesDir = "registry/ouro/source-rules/";
+// A page pattern: a whole page built from the components, which an app installs into its own components folder and
+// changes, as shadcn's blocks are. One folder each: registry/ouro/patterns/<name>/<name>.tsx.
+const patternsDir = "registry/ouro/patterns/";
+const PATTERNS_URL = "https://ui.ouroboros.bot/docs/patterns.md";
 
 /** The item that ships an ax file. help.ts is part of ax-cli, which renders it. */
 function axItem(rest: string): string {
@@ -423,6 +427,9 @@ export function itemForFile(path: string): string | null {
     return "ouro-source-rules";
   } else if (path.startsWith(checkDir)) {
     return "ouro-check";
+  } else if (path.startsWith(patternsDir)) {
+    const [folder, name] = path.slice(patternsDir.length).split("/");
+    if (name === `${folder}.tsx`) return folder!;
   } else if (path.startsWith(imagesDir)) {
     return "ouro-images";
   } else if (path.startsWith(testingDir) || path === `${e2eDir}story.ts`) {
@@ -456,6 +463,7 @@ function fileEntry(path: string): RegistryFile {
   if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
   if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
   if (path.startsWith(checkDir)) return { path, type: "registry:file", target: `~/scripts/ouro/check/${file}` };
+  if (path.startsWith(patternsDir)) return { path, type: "registry:component", target: `@components/patterns/${file}` };
   if (path.startsWith(imagesDir)) return { path, type: "registry:file", target: `~/scripts/ouro/images/${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
   if (path.startsWith(axDir)) {
@@ -609,6 +617,16 @@ export function buildRegistry(root: string): Registry {
     if (!sentence) throw new Error(`${main} has no purpose sentence: give it a /** ... */ comment.`);
     return sentence;
   };
+  const patterns = [...new Set(all.filter((file) => file.startsWith(patternsDir)).map((file) => owner.get(file)!))].sort();
+  /** A pattern's purpose: the first sentence of the JSDoc on its exported page. */
+  const patternPurpose = (name: string) => {
+    const source = readFileSync(join(root, `${patternsDir}${name}/${name}.tsx`), "utf8");
+    const comment = source.match(/\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*export function/)?.[1] ?? "";
+    const text = comment.replace(/^\s*\* ?/gm, " ").replace(/\s+/g, " ").trim();
+    const sentence = text.match(/^(.+?[.!?])(\s|$)/)?.[1];
+    if (!sentence) throw new Error(`${patternsDir}${name}/${name}.tsx has no purpose sentence: give its exported page a /** ... */ comment.`);
+    return sentence;
+  };
   const entries = [
     ...foundation.map((entry) => ({ ...entry, kind: "foundation" as const, ...(entry.name === "ouro-testing" ? { docs: testingDocs() } : {}) })),
     ...libs.map((name) => ({
@@ -667,6 +685,16 @@ export function buildRegistry(root: string): Registry {
       docs: `${claim("Every Ouro UI component and its tests are installed.", { source: { test: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" }, verify: { testExists: "scripts/registry.test.mjs::ouro-tests installs every -tests item: the whole suite in one command" } })} The ouro-testing message says how to run them. Docs: ${TESTING_URL}`,
     },
     ...kits.map((entry) => ({ ...entry, kind: "kit" as const })),
+    ...patterns.map((name) => {
+      const exported = name.replace(/(^|-)(\w)/g, (_m, _dash, c: string) => c.toUpperCase());
+      return {
+        name,
+        title: name.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase()),
+        kind: "pattern" as const,
+        description: `A page pattern: ${patternPurpose(name).replace(/^A /, "a ")}`,
+        docs: `${exported} is in components/patterns/${name}.tsx: render <${exported} /> and change it to what you are building. Docs: ${PATTERNS_URL}`,
+      };
+    }),
     ...axRuntime.map((name) => ({
       name,
       title: name,
@@ -704,7 +732,9 @@ export function buildRegistry(root: string): Registry {
             ? "registry:item"
             : entry.kind === "component"
               ? "registry:ui"
-              : "registry:lib",
+              : entry.kind === "pattern"
+                ? "registry:block"
+                : "registry:lib",
       title: entry.title,
       description: entry.description,
       ...(entry.docs === undefined ? {} : { docs: entry.docs }),
