@@ -73,7 +73,7 @@ function closure(registry, names) {
 }
 
 /** Where the CLI puts a registry file in an app with src/, and the import that reaches it. */
-const installed = (target) => target.replace(/^@components\//, "src/components/").replace(/^@lib\//, "src/lib/");
+const installed = (target) => target.replace(/^@components\//, "src/components/").replace(/^@lib\//, "src/lib/").replace(/^~\//, "");
 const withoutExtension = (path) => path.replace(/\.(tsx?|css)$/, "");
 
 /** Installs the guide's adds from `tag`'s registry (the checkout's without one) and builds its types as `npm run build` does. */
@@ -107,11 +107,13 @@ function typeCheck(tag) {
     const appConfig = JSON.parse(file("tsconfig.app.json"));
     assert.deepEqual(appConfig.compilerOptions.paths, { "@/*": ["./src/*"] });
     assert.deepEqual(JSON.parse(file("tsconfig.json")).compilerOptions.paths, { "@/*": ["./src/*"] });
-    // When ouro-check's install message gives an exclude (releases that installed its Node code in
-    // src), the guide's is the same. Once it installs under scripts/ouro, tsc -b never reads that
-    // code, and the guide's exclude only keeps the newest such release type-checking.
+    // Ouro check runs from where the item puts check.ts, with the package.json import line its install message gives.
     const check = registry.items.find((item) => item.name === "ouro-check");
-    if (!tag && /"exclude":/.test(check.docs)) assert.match(check.docs, new RegExp(`"exclude": ${JSON.stringify(appConfig.exclude).replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll(",", ", ")}`));
+    const run = commands.find((line) => /^node \S*check\.ts /.test(line));
+    const checkTs = check.files.find((entry) => entry.path.endsWith("/check/check.ts"));
+    assert.equal(run?.split(" ")[1], installed(checkTs.target), "the guide runs Ouro check from where the ouro-check item installs it");
+    const importLine = check.docs.match(/npm pkg set "[^"]+"/)?.[0];
+    if (importLine) assert.ok(commands.includes(importLine), `the guide runs the line ouro-check's install message gives: ${importLine}`);
     assert.match(file("vite.config.ts"), /from "\.\/src\/lib\/ouro\/color-scheme-script\.ts";/, "vite.config.ts imports the script with .ts, as tsconfig.node.json's nodenext needs");
     const result = spawnSync(process.execPath, [tsc, "-b", join(app, "tsconfig.json"), "--pretty", "false"], { cwd: app, encoding: "utf8" });
     assert.equal(result.status, 0, `the quickstart's app fails to type-check with ${tag ?? "main"}'s registry:\n${result.stdout}${result.stderr}`);
