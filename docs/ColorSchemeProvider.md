@@ -11,7 +11,7 @@ import { ColorSchemeProvider } from "@/registry/ouro/lib/ouro/color-scheme";
 ## Example
 
 ```tsx
-// app/root.tsx (React Router) or app/layout.tsx (Next.js):
+// app/root.tsx (React Router), or app/layout.tsx (Next.js) with {children} for <Outlet />:
 <html lang="en" suppressHydrationWarning>
   <head>
     <script dangerouslySetInnerHTML={{ __html: colorSchemeScript() }} />

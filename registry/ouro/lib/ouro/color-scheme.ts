@@ -98,7 +98,7 @@ const resolve = (scheme: ColorScheme, dark: boolean): ResolvedColorScheme => (sc
  * @group App setup
  * @see https://ui.ouroboros.bot/docs/color-scheme-toggle
  * @example
- * // app/root.tsx (React Router) or app/layout.tsx (Next.js):
+ * // app/root.tsx (React Router), or app/layout.tsx (Next.js) with {children} for <Outlet />:
  * <html lang="en" suppressHydrationWarning>
  *   <head>
  *     <script dangerouslySetInnerHTML={{ __html: colorSchemeScript() }} />
