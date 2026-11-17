@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
@@ -155,4 +155,36 @@ export const Steps: Story = {
       </ItemGroup>
     </Page>
   ),
+};
+
+const inbox = [
+  { id: "ribs", title: "Braised short ribs", description: "Four hours, mostly hands-off" },
+  { id: "cake", title: "Lemon olive oil cake", description: "One hour" },
+  { id: "soup", title: "Lentil soup", description: "Forty minutes" },
+];
+
+function ListBesideDetail() {
+  const [openId, setOpenId] = useState("ribs");
+  const open = inbox.find((recipe) => recipe.id === openId)!;
+  return (
+    <Page>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 16rem) minmax(0, 1fr)", gap: 24, alignItems: "start" }}>
+        <ItemGroup label="Recipes" variant="plain">
+          {inbox.map((recipe) => (
+            <Item key={recipe.id} title={recipe.title} description={recipe.description} size="sm" selected={recipe.id === openId} onSelect={() => setOpenId(recipe.id)} />
+          ))}
+        </ItemGroup>
+        <section aria-label="Recipe" data-detail="">
+          <Text>{open.title}</Text>
+          <Text tone="muted">{open.description}</Text>
+        </section>
+      </div>
+    </Page>
+  );
+}
+
+/** A list beside its detail: pressing a row shows it, and the row shown is marked current, in the selected colour. */
+export const BesideDetail: Story = {
+  parameters: { mode: "select" },
+  render: () => <ListBesideDetail />,
 };
