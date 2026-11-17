@@ -28,6 +28,7 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
 
 - It never writes to a default branch, and never merges anything itself.[^one-pr]
 - It never overwrites a file that differs from what the install wrote, and names that file in the pull request instead.[^hx]
+- It never force-pushes over a commit someone else pushed to its pull request's branch, such as a fix the repository's checks needed; it leaves that pull request to them, as Dependabot does.[^edited]
 - It never names a private repository in public: not in the run's log, and not on the page.[^private]
 
 ## How it runs
@@ -60,6 +61,7 @@ GH_TOKEN=$(gh auth token) node scripts/current/current.mjs --with-token --only o
 [^core-manifest]: test:scripts/current/current.test.mjs::a core manifest copied beside its files moves them to the release's, leaving an edited or unlisted file alone verify:testExists(scripts/current/current.test.mjs::a core manifest copied beside its files moves them to the release's, leaving an edited or unlisted file alone)
 [^ignore]: test:scripts/current/current.test.mjs::a core manifest a lock vendors is the lock's, a repository never follows itself, and its rules can leave a pin alone verify:testExists(scripts/current/current.test.mjs::a core manifest a lock vendors is the lock's, a repository never follows itself, and its rules can leave a pin alone)
 [^dry-run]: test:scripts/current/current.test.mjs::a dry run reports a repository that fails and goes on to the next, then exits nonzero verify:testExists(scripts/current/current.test.mjs::a dry run reports a repository that fails and goes on to the next, then exits nonzero)
+[^edited]: test:scripts/current/current.test.mjs::a pull request someone else pushed to is left to them, never force-pushed over verify:testExists(scripts/current/current.test.mjs::a pull request someone else pushed to is left to them, never force-pushed over)
 [^lock]: test:scripts/current/current.test.mjs::a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out verify:testExists(scripts/current/current.test.mjs::a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out)
 [^source-tag]: test:scripts/current/current.test.mjs::a source that names its release as `tag` moves it with its commit, every other byte as it was verify:testExists(scripts/current/current.test.mjs::a source that names its release as `tag` moves it with its commit, every other byte as it was)
 [^rules]: test:scripts/current/current.test.mjs::a repository's own rules ride along: its version moves past its latest release, and its changelog fragment is added verify:testExists(scripts/current/current.test.mjs::a repository's own rules ride along: its version moves past its latest release, and its changelog fragment is added)

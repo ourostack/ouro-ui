@@ -152,12 +152,15 @@ async function commitFiles(gh, repo, parent, baseTree, files, message, existing)
   return { sha: commit.sha, changed: true };
 }
 
-/** The bot's branch, if it exists: its commit, that commit's tree and first parent. */
+/** What every commit Ouro Current writes says after its title, so a commit someone else pushed is told apart. */
+const MARK = "\n\nOuro Current: ";
+
+/** The bot's branch, if it exists: its commit, that commit's tree and first parent, and whether Ouro Current wrote it. */
 async function branchState(gh, repo) {
   try {
     const ref = await gh.get(`repos/${repo}/git/ref/heads/${BRANCH}`);
     const commit = await gh.get(`repos/${repo}/git/commits/${ref.object.sha}`);
-    return { sha: commit.sha, tree: commit.tree.sha, parent: commit.parents[0]?.sha ?? null };
+    return { sha: commit.sha, tree: commit.tree.sha, parent: commit.parents[0]?.sha ?? null, ours: String(commit.message ?? "").includes(MARK) };
   } catch (error) {
     if (error.status === 404) return null;
     throw error;
@@ -257,7 +260,12 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   notes.splice(0, notes.length, ...new Set(notes));
   if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes } };
   const existing = await branchState(gh, repo);
-  const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\nOuro Current: ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`, existing);
+  // Someone pushed to the open pull request's branch (a fix its checks needed): as Dependabot does, leave it to them
+  // rather than force-push their work away. Closing the pull request or deleting the branch hands it back.
+  if (existing && !existing.ours && existingPr) {
+    return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "edited by someone else, so left alone", pushed: false, edited: true } };
+  }
+  const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}${MARK}${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`, existing);
   if (commit.changed) {
     if (existing) await gh.patch(`repos/${repo}/git/refs/heads/${BRANCH}`, { sha: commit.sha, force: true });
     else await gh.post(`repos/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: commit.sha });
@@ -349,7 +357,7 @@ export async function main(argv = process.argv.slice(2), env = process.env, { ma
     for (const repo of args.only) {
       try {
         const kept = await keepRepo(gh, repo, releases, sources);
-        log(`${repo}: ${kept.state}${kept.pr ? ` ${kept.pr.url}${kept.pr.autoMerge ? " (auto-merge on)" : ` (auto-merge off: ${kept.pr.note})`}` : ""}`);
+        log(`${repo}: ${kept.state}${kept.pr ? ` ${kept.pr.url}${kept.pr.edited ? ` (${kept.pr.note})` : kept.pr.autoMerge ? " (auto-merge on)" : ` (auto-merge off: ${kept.pr.note})`}` : ""}`);
       } catch (error) {
         failed += 1;
         log(`${repo}: failed: ${error.message}`);

@@ -398,7 +398,7 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
     if ((match = /^repos\/o\/r\/git\/blobs\/(.+)$/.exec(path)) && method === "GET") return ok({ content: blobs.get(match[1]).toString("base64") });
     if ((match = /^repos\/o\/r\/git\/commits\/(.+)$/.exec(path)) && method === "GET") {
       const commit = commits.get(match[1]);
-      return ok({ sha: match[1], tree: { sha: commit.tree }, parents: commit.parents.map((sha) => ({ sha })) });
+      return ok({ sha: match[1], message: commit.message, tree: { sha: commit.tree }, parents: commit.parents.map((sha) => ({ sha })) });
     }
     if (path === "repos/o/r/git/blobs") return ok({ sha: blob(Buffer.from(input.content, "base64")) }, 201);
     if (path === "repos/o/r/git/trees") {
@@ -411,7 +411,7 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
     }
     if (path === "repos/o/r/git/commits") {
       const sha = id();
-      commits.set(sha, { tree: input.tree, parents: input.parents });
+      commits.set(sha, { tree: input.tree, parents: input.parents, message: input.message });
       return ok({ sha }, 201);
     }
     if (path === "repos/o/r/git/refs" && method === "POST") {
@@ -448,7 +448,7 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
     throw new Error(`fake GitHub has no ${method} ${path}`);
   };
   const fileAt = (ref, path) => blobs.get(trees.get(commits.get(refs.get(ref)).tree).get(path))?.toString();
-  return { fetch, gh: createGitHub({ token: "t", fetch, sleep: async () => {} }), refs, pulls, calls, fileAt, setMain: (changes) => {
+  return { fetch, gh: createGitHub({ token: "t", fetch, sleep: async () => {} }), commitTree: (sha) => commits.get(sha).tree, refs, pulls, calls, fileAt, setMain: (changes) => {
     const base = new Map(trees.get(commits.get(refs.get("main")).tree));
     for (const [path, text] of Object.entries(changes)) base.set(path, blob(text));
     const sha = id();
@@ -509,6 +509,23 @@ test("a repository's own rules ride along: its version moves past its latest rel
   const plain = fakeRepo({ "Package.swift": SWIFT, "README.md": readme }, { latestRelease: "v0.9.118" });
   await keepRepo(plain.gh, "o/r", RELEASES, {});
   assert.equal(plain.fileAt(BRANCH, "README.md"), readme);
+});
+
+test("a pull request someone else pushed to is left to them, never force-pushed over", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT, "test.mjs": "assert(tag === '0.6.0')" });
+  const first = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const ours = repo.refs.get(BRANCH);
+  // A fix the pull request's checks needed, pushed on top of Ouro Current's commit.
+  const tree = await repo.gh.post("repos/o/r/git/trees", { base_tree: repo.commitTree(ours), tree: [{ path: "test.mjs", mode: "100644", type: "blob", sha: (await repo.gh.post("repos/o/r/git/blobs", { content: Buffer.from("assert(tag)").toString("base64"), encoding: "base64" })).sha }] });
+  const fix = await repo.gh.post("repos/o/r/git/commits", { message: "Stop pinning the tag in the test", tree: tree.sha, parents: [ours] });
+  await repo.gh.patch(`repos/o/r/git/refs/heads/${BRANCH}`, { sha: fix.sha, force: true });
+
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  const again = await keepRepo(repo.gh, "o/r", newer, {});
+  assert.equal(again.pr.number, first.pr.number);
+  assert.equal(again.pr.edited, true);
+  assert.equal(repo.refs.get(BRANCH), fix.sha, "the branch keeps the hand-pushed fix");
+  assert.equal(repo.fileAt(BRANCH, "test.mjs"), "assert(tag)");
 });
 
 test("a repository that caught up on its own has its stale pull request closed", async () => {
