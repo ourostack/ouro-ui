@@ -26,3 +26,13 @@ test.describe("the list-and-detail pattern on a phone", () => {
     await heard(sr, () => search.pressSequentially("zzzz"), (phrase) => inOneSentence(phrase, /\b0 matches\b/i), '"0 matches", the search\'s status');
   });
 });
+
+test.describe("the dashboard pattern", () => {
+  test.use({ storyId: storyIds.patternDashboard });
+
+  test("its chart and its table's scrolling region are heard by their names", async ({ page, sr }) => {
+    await startReading(sr, page);
+    await heard(sr, () => page.getByRole("application", { name: "Orders and returns by month" }).focus(), (phrase) => inOneSentence(phrase, /\borders and returns by month\b/i), '"Orders and returns by month", the chart');
+    await heard(sr, () => page.getByRole("region", { name: "Recent activity" }).focus(), (phrase) => inOneSentence(phrase, /\brecent activity\b/i), '"Recent activity", the table\'s scrolling region');
+  });
+});
