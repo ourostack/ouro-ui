@@ -557,11 +557,18 @@ describe("Moment arrival", () => {
   it("with appear, runs the arrival from opacity 0 when a moment that is ready at mount first shows", async () => {
     await commands.emulateMedia({ reducedMotion: "no-preference" });
     const { host } = mountNow(<Moment appear kind="empty" title="Nothing yet" art={<Art />} />);
-    const [arrival] = arrivals(artOf(host));
+    const art = artOf(host);
+    let started = 0;
+    art.addEventListener("animationstart", (event) => {
+      if (event.animationName === "ouro-moment-arrive") started++;
+    });
+    const [arrival] = arrivals(art);
     expect(arrival, "the art runs the arrival").toBeDefined();
-    expect(getComputedStyle(artOf(host)).opacity).toBe("0");
-    await expect.poll(() => arrival!.playState).toBe("finished");
-    expect(getComputedStyle(artOf(host)).opacity).toBe("1");
+    expect(getComputedStyle(art).opacity).toBe("0");
+    // Settled: no arrival runs and the art is opaque, read as the engine next paints it.
+    await expect.poll(() => arrivals(art).length === 0 && getComputedStyle(art).opacity).toBe("1");
+    expect(arrival!.playState).toBe("finished");
+    expect(started, "the arrival runs once").toBeLessThanOrEqual(1);
   });
 
   it("arrives when content comes in after mount, whether or not appear is set", async () => {
