@@ -125,6 +125,16 @@ jobs:
           echo "MAIN_SHA=$sha" >> "$GITHUB_ENV"
           echo "new=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.new == 'true'
+        id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      # A setup that fails is tried once more (ourostack/ouro-ui#1911), as ci.yml does.
+      - &pnpm-stalled
+        name: pnpm setup failed; trying it once more (#1911)
+        if: steps.pnpm.outcome == 'failure'
+        run: echo "::warning title=pnpm setup failed::pnpm/action-setup could not install pnpm (ourostack/ouro-ui#1911); setting it up once more."
+      - &pnpm-retry
+        if: steps.pnpm.outcome == 'failure'
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - if: steps.check.outputs.new == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -132,6 +142,15 @@ jobs:
           node-version: 24
           cache: pnpm
       - if: steps.check.outputs.new == 'true'
+        id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - &pnpm-install-stalled
+        name: pnpm install failed; trying it once more (#1914)
+        if: steps.install.outcome == 'failure'
+        run: echo "::warning title=pnpm install failed::pnpm i failed, which the 1ES feed's HTTP 429s can cause (ourostack/ouro-ui#1914); installing once more."
+      - &pnpm-install-retry
+        if: steps.install.outcome == 'failure'
         run: pnpm i --frozen-lockfile
       - if: steps.check.outputs.new == 'true'
         name: Check the changes
@@ -253,14 +272,21 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - name: Install dependencies for the public proofs
-        run: |
-          pnpm i --frozen-lockfile
+      - id: install
+        name: Install dependencies for the public proofs
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - name: Deploy Pages and check the namespace it serves
         env:
           GH_TOKEN: ${{ github.token }}
@@ -307,7 +333,11 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24

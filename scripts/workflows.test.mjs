@@ -32,7 +32,35 @@ const checkoutGuard = new RegExp(
   ].join(""),
   "gm",
 );
-const unguarded = (text) => text.replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
+/**
+ * A pnpm setup's first try, its warning and its one retry, as GitHub reads them (anchors expanded), with the
+ * comment lines between them left as written. The helpers are above `unguarded`, which folds them back (#1911).
+ */
+const pnpmRetryFiles = ["ci.yml", "claims.yml", "conformance-exemptions.yml", "docs-pin.yml", "pages.yml", "release.yml", "screen-reader.yml"];
+const pnpmSetup = /uses: pnpm\/action-setup@[0-9a-f]{40} # v[\d.]+/;
+const expandPnpmAliases = (text) => {
+  const anchors = new Map([...text.matchAll(/^ {6}- &(pnpm-[\w-]+)\n((?: {8}.*\n)+)/gm)].map((match) => [match[1], match[2]]));
+  return text
+    .replace(/^ {6}- \*(pnpm-[\w-]+)\n/gm, (_, name) => {
+      assert.ok(anchors.has(name), `*${name} has no anchor`);
+      return `      - ${anchors.get(name).slice(8)}`;
+    })
+    .replace(/^( {6}- )&pnpm-[\w-]+\n {8}/gm, "$1");
+};
+const pnpmInstall = /run: pnpm i --frozen-lockfile$/m;
+const pnpmFold = new RegExp(
+  String.raw`^ {6}- (?:(if: .*)\n {8})?id: pnpm\n {8}uses: (\S+ # v[\d.]+)\n {8}continue-on-error: true\n(?: {6}#.*\n)* {6}- name: pnpm setup failed; trying it once more \(#1911\)\n {8}if: steps\.pnpm\.outcome == 'failure'\n {8}run: .*\n(?: {6}#.*\n)* {6}- if: steps\.pnpm\.outcome == 'failure'\n {8}uses: \S+ # v[\d.]+\n`,
+  "gm",
+);
+const installFold = new RegExp(
+  String.raw`^ {6}- (?:(if: .*)\n {8})?id: install\n {8}run: pnpm i --frozen-lockfile\n {8}continue-on-error: true\n(?: {6}#.*\n)* {6}- name: pnpm install failed; trying it once more \(#1914\)\n {8}if: steps\.install\.outcome == 'failure'\n {8}run: .*\n(?: {6}#.*\n)* {6}- if: steps\.install\.outcome == 'failure'\n {8}run: pnpm i --frozen-lockfile\n`,
+  "gm",
+);
+const foldPnpm = (text) =>
+  expandPnpmAliases(text)
+    .replace(pnpmFold, (_, condition, uses) => (condition ? `      - ${condition}\n        uses: ${uses}\n` : `      - uses: ${uses}\n`))
+    .replace(installFold, (_, condition) => (condition ? `      - ${condition}\n        run: pnpm i --frozen-lockfile\n` : `      - run: pnpm i --frozen-lockfile\n`));
+const unguarded = (text) => foldPnpm(text).replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
 const rawWorkflows = readdirSync(dir)
   .filter((file) => file.endsWith(".yml"))
   .map((file) => ({ file, text: readFileSync(join(dir, file), "utf8") }));
@@ -90,6 +118,48 @@ test("a checkout that stalls or fails is cleared and tried once more after 3 min
   assert.match(stalled, /::warning title=actions\/checkout stalled::.*ourostack\/ouro-ui#1765/);
   assert.match(stalled, /tail -n 60 \/tmp\/ouro-checkout-trace\.log/);
   assert.match(stalled, /rm -rf "\$GITHUB_WORKSPACE\/\.git"/);
+});
+
+/**
+ * The workflows that report a required check or cut a release try a pnpm setup, and a dependency install,
+ * again if the first try fails (#1911, #1914), as ci.yml retries a checkout (#1765): each first try, its
+ * warning and its one retry.
+ */
+test("every pnpm setup and dependency install in a workflow that reports a required check or cuts a release is tried once more on failure (#1911, #1914)", () => {
+  for (const file of pnpmRetryFiles) {
+    const text = expandPnpmAliases(rawWorkflows.find((entry) => entry.file === file).text);
+    let setupJobs = 0;
+    let installJobs = 0;
+    for (const job of text.split(/\n(?= {2}[\w-]+:\n)/)) {
+      const steps = job.split(/\n(?= {6}- )/);
+      const setups = steps.filter((step) => pnpmSetup.test(step)).length;
+      if (setups > 0) {
+        setupJobs += 1;
+        const index = steps.findIndex((step) => /^ {6}- (?:if: .*\n {8})?id: pnpm\n/.test(step));
+        assert.notEqual(index, -1, `${file}: a pnpm setup is not tried first, with id: pnpm:\n${job}`);
+        assert.equal(setups, 2, `${file}: a job sets pnpm up once and tries it once more:\n${job}`);
+        const [attempt, warning, retry] = steps.slice(index, index + 3);
+        assert.match(attempt, /\n {8}continue-on-error: true$/m, `${file}: the first try must not fail the job:\n${attempt}`);
+        assert.match(warning, /^ {6}- name: pnpm setup failed; trying it once more \(#1911\)\n {8}if: steps\.pnpm\.outcome == 'failure'\n {8}run: echo "::warning title=pnpm setup failed::/, `${file}: the warning before the retry:\n${warning}`);
+        assert.match(retry, /^ {6}- if: steps\.pnpm\.outcome == 'failure'\n {8}uses: pnpm\/action-setup@/, `${file}: the retry runs only after a failed first try:\n${retry}`);
+        assert.equal(retry.match(pnpmSetup)[0], attempt.match(pnpmSetup)[0], `${file}: the retry sets up the same pnpm as the first try`);
+      }
+      const installs = steps.filter((step) => pnpmInstall.test(step)).length;
+      if (installs > 0) {
+        installJobs += 1;
+        const index = steps.findIndex((step) => /^ {6}- (?:if: .*\n {8})?id: install\n/.test(step));
+        assert.notEqual(index, -1, `${file}: a pnpm i is not tried first, with id: install:\n${job}`);
+        assert.equal(installs, 2, `${file}: a job runs pnpm i once and once more on failure:\n${job}`);
+        const [install, installWarning, installRetry] = steps.slice(index, index + 3);
+        assert.match(install, /\n {8}continue-on-error: true$/m, `${file}: the first install must not fail the job:\n${install}`);
+        assert.match(installWarning, /^ {6}- name: pnpm install failed; trying it once more \(#1914\)\n {8}if: steps\.install\.outcome == 'failure'\n {8}run: echo "::warning title=pnpm install failed::/, `${file}: the warning before the install retry:\n${installWarning}`);
+        assert.match(installRetry, /^ {6}- if: steps\.install\.outcome == 'failure'\n {8}run: pnpm i --frozen-lockfile$/m, `${file}: the install retry runs only after a failed first install:\n${installRetry}`);
+      }
+    }
+    assert.ok(setupJobs > 0, `${file} sets pnpm up`);
+    assert.equal((text.match(/uses: pnpm\/action-setup@/g) ?? []).length, 2 * setupJobs, `${file}: every pnpm setup is a first try or its one retry`);
+    assert.equal((text.match(/run: pnpm i --frozen-lockfile$/gm) ?? []).length, 2 * installJobs, `${file}: every pnpm i is a first try or its one retry`);
+  }
 });
 
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
@@ -926,7 +996,13 @@ const releaseStep = (name) => {
   const release = workflow("release.yml");
   const start = release.search(new RegExp(`^ {6}(- | {2})name: ${name.replace(/[?()]/g, "\\$&")}\n`, "m"));
   assert.notEqual(start, -1, `no step named ${name}`);
-  const lines = release.slice(start).split("        run: |\n")[1].split("\n");
+  // The step's own text, up to the next step, so a step whose run is one line never reads another step's block.
+  const rest = release.slice(start);
+  const next = rest.search(/\n {6}- /);
+  const step = next === -1 ? rest : rest.slice(0, next);
+  const inline = step.match(/^ {8}run: (?!\|$)(.+)$/m);
+  if (inline) return inline[1];
+  const lines = step.split("        run: |\n")[1].split("\n");
   const end = lines.findIndex((line) => line !== "" && !line.startsWith(" ".repeat(10)));
   return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
 };
