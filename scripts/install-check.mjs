@@ -75,10 +75,7 @@ const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@p
 export function checkInstall(app, variant, stage) {
   const problems = [];
   const read = (path) => readFileSync(join(app, path), "utf8");
-  const files = (dir) =>
-    existsSync(join(app, dir))
-      ? readdirSync(join(app, dir), { recursive: true }).map((file) => join(dir, String(file)))
-      : [];
+  const files = (dir) => entriesUnder(app, dir).map((file) => join(dir, file));
 
   for (const path of stage === "tests" ? [...runtimeFiles, ...testFiles] : runtimeFiles) {
     if (!existsSync(join(app, path))) problems.push(`missing ${path}`);
@@ -296,13 +293,17 @@ const outsideSrc = [
   { folder: "src/lib/ouro/images", item: "ouro-images" },
 ];
 
+/**
+ * Everything under `dir` in an app, files and folders, relative to it and recursive; none when the
+ * folder is missing. The one walk this script makes, and it walks only the installed app.
+ */
+function entriesUnder(app, dir) {
+  return existsSync(join(app, dir)) ? readdirSync(join(app, dir), { recursive: true }).map(String) : [];
+}
+
 /** The files under `dir` in an app, relative to it and recursive; none when the folder is missing. */
 function filesUnder(app, dir) {
-  const base = join(app, dir);
-  if (!existsSync(base)) return [];
-  return readdirSync(base, { recursive: true })
-    .map(String)
-    .filter((file) => statSync(join(base, file)).isFile());
+  return entriesUnder(app, dir).filter((file) => statSync(join(app, dir, file)).isFile());
 }
 
 /**
