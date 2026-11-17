@@ -50,7 +50,7 @@ jobs:
     # A push to main whose commit the merge queue already tested runs nothing more than install-github:
     # `tested=true`.
     #
-    # The install test (install-prep, install-shard, install-upgrade and their checks) and the heavy tier
+    # The install test (install-prep, install-shard, install-upgrade, install-current and their checks) and the heavy tier
     # (themes, visual, theme-install, latency-shard, latency, lighthouse) run on every pull request into
     # main unless the `tiers` step proves the change cannot reach them (scripts/ci-relevance.mjs:
     # `installs` and `heavy`; only files the tier never reads, such as change fragments or workflows
@@ -2287,6 +2287,45 @@ jobs:
             ${{ runner.temp }}/app-without-tests/src/index.css
             ${{ runner.temp }}/app-without-tests/package.json
           if-no-files-found: ignore
+  install-current:
+    # An app on the newest release, updated to this commit by Ouro Current as a product is: keepRepo
+    # against a GitHub in memory holding the app (scripts/install-test.sh current). Its stylesheet must
+    # gain what this commit's ouro-base adds, and every installed file must equal this commit's source.
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'skip' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 3
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm i --frozen-lockfile
+      - run: scripts/install-test.sh current "$RUNNER_TEMP/app"
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: install-current
+          path: |
+            ${{ runner.temp }}/app/src/index.css
+            ${{ runner.temp }}/app/.github/ouro-hx-installed.json
+          if-no-files-found: ignore
   install-github:
     # The install a user runs today: `shadcn add ourostack/ouro-ui/<item>#<tag>` for every
     # component in the newest release, each item and its Ouro dependencies from GitHub at that tag
@@ -2382,7 +2421,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-github]
+    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15

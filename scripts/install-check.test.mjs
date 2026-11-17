@@ -3,7 +3,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkNodeTools, checkSources, stripFieldTokens } from "./install-check.mjs";
+import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkNodeTools, checkSources, checkThemeItem, stripFieldTokens } from "./install-check.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
@@ -350,4 +350,20 @@ test("a Node-only tool that did not install fails, and names the item that insta
   const dir = nodeToolsApp();
   rmSync(join(dir, "scripts/ouro/ax/xray.ts"));
   assert.deepEqual(checkNodeTools(dir), ["missing scripts/ouro/ax/xray.ts: add ouro-ax, which installs it under scripts/ouro"]);
+});
+
+test("checkThemeItem names each variable, keyframes and utility a theme item adds that the stylesheet lacks", () => {
+  const item = {
+    name: "ouro-base",
+    cssVars: { theme: { "radius-ouro-lg": "calc(var(--radius) * var(--ouro-radius-scale))" }, light: { success: "green" } },
+    css: { ":root": { "--ouro-layer": "50" }, "@keyframes ouro-spin": {}, "@utility press": {}, "@layer base": {} },
+  };
+  const complete = ":root { --success: green; --ouro-layer: 50; }\n@theme inline { --radius-ouro-lg: 1rem; }\n@keyframes ouro-spin {}\n@utility press {}\n";
+  assert.deepEqual(checkThemeItem(complete, item, "src/index.css"), []);
+  // A stylesheet an update left at an older ouro-base: the radius steps and the press utility are missing.
+  const behind = complete.replace("--radius-ouro-lg: 1rem;", "").replace("@utility press {}", "");
+  assert.deepEqual(checkThemeItem(behind, item, "src/index.css"), [
+    "src/index.css has no @utility press, which ouro-base adds",
+    "src/index.css does not declare --radius-ouro-lg, which ouro-base adds",
+  ]);
 });
