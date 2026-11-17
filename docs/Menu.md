@@ -25,7 +25,7 @@ import { Menu } from "@/registry/ouro/components/ouro/menu/menu";
 
 Pass `trigger` for a dropdown, `contextTrigger` for a context menu, `label` for a menu in a `MenuBar`, or `anchor` with `open` for a menu the app opens itself, at an element or a point, such as one menu shared by every row of a list. Give the entries as children or as `items` data. To give the trigger a tooltip too, put the Tooltip inside `trigger`: `trigger={<Tooltip content="More actions"><Button aria-label="More">…</Button></Tooltip>}`.
 
-It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet.
+It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet. Opened from inside a Dialog or a Sheet, it shows above it.
 
 A dropdown closes when focus moves anywhere outside it, as it does on a click outside, so Tab goes on from wherever focus went. In a right-to-left page (`dir="rtl"` on `<html>`) a submenu opens to the left, with ArrowLeft.
 

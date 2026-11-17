@@ -17,10 +17,17 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/registry/ouro/components/ouro/popover/popover-parts";
+import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { expectFirstFramesInPlace, placeFarBelow, recordPopupFrames } from "@/registry/ouro/lib/ouro/testing/popup-frames";
+
+/** Whether the element is what a press at its centre would reach. */
+const onTop = (element: HTMLElement) => {
+  const box = element.getBoundingClientRect();
+  return element.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+};
 
 // Runs in Chromium and WebKit.
 
@@ -542,6 +549,28 @@ describe("Popover stacking", () => {
     expect(style.isolation).toBe("isolate");
     expect(style.zIndex).toBe(String(layer()));
     expect(document.body.lastElementChild).toBe(portal);
+  });
+
+  it.each(["Sheet", "Dialog"] as const)("shows above a %s it is opened from", async (layer) => {
+    await page.viewport(1280, 800);
+    const popover = (
+      <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+        <input aria-label="Link" />
+      </Popover>
+    );
+    await render(
+      layer === "Sheet" ? (
+        <Sheet title="Look" side="right" modal={false} open onOpenChange={() => {}}>
+          {popover}
+        </Sheet>
+      ) : (
+        <Dialog title="Look" open onOpenChange={() => {}}>
+          {popover}
+        </Dialog>
+      ),
+    );
+    await userEvent.click(page.getByRole("button", { name: "Share" }));
+    await expect.poll(() => popoverPopup() !== null && onTop(popoverPopup()!)).toBe(true);
   });
 });
 
