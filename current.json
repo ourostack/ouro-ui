@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-17T03:28:10.189Z",
+  "generatedAt": "2026-11-17T03:54:48.015Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -23,20 +23,17 @@
   "repos": [
     {
       "repo": "arimendelow/mendelow.me",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.237",
+          "current": "v1.3.239",
           "latest": "v1.3.239",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 55,
-        "url": "https://github.com/arimendelow/mendelow.me/pull/55"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/apple-distribution-kit",
