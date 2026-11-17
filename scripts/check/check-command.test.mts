@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 
-import { caption, dprAt, EXIT, group, LABELS, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
+import { caption, dprAt, EXIT, group, inSweepOrder, LABELS, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { serve } from "../../registry/ouro/check/serve.ts";
 import { browser, dir, fixtures, playwrightModule, require, root, run, scratch, site, two } from "./kit.mts";
@@ -177,6 +177,17 @@ module.exports = { chromium: { launch: async (options) => {
     assert.equal(crash.code, 1);
     assert.match(crash.err, /stopped before it finished: browserType\.launch: Target page/);
     assert.doesNotMatch(crash.out, /downloading/);
+  });
+
+  test("keeps a report in the sweep's order, size then theme then page, whichever page of those checked at once finishes first", () => {
+    const at = (page: string, width: number, theme: string, rule: string) => ({ site: "s", page, width, height: 800, theme, rule });
+    const pages = [{ site: "s", page: "/a" }, { site: "s", page: "/b" }];
+    // As the tabs finished: /b before /a, dark before light, the wide size first; two findings on one spot in the order found.
+    const found = [at("/b", 1440, "light", "overlap"), at("/a", 1440, "dark", "overlap"), at("/b", 390, "light", "clipped-text"), at("/a", 390, "light", "overlap"), at("/a", 390, "light", "clipped-text")];
+    assert.deepEqual(
+      inSweepOrder(found, [[390, 800], [1440, 800]], ["light", "dark"], pages).map((f) => `${f.width} ${f.theme} ${f.page} ${f.rule}`),
+      ["390 light /a overlap", "390 light /a clipped-text", "390 light /b clipped-text", "1440 light /b overlap", "1440 dark /a overlap"],
+    );
   });
 
   test("exits 2 when Playwright, axe-core, the config, the earlier report, a shard's report or the pages are missing, and 1 when it cannot run", async () => {
