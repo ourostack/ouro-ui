@@ -120,7 +120,18 @@ jobs:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
           fetch-depth: 2
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      # pnpm/action-setup fetches pnpm from the npm registry, where a connection can reset (ourostack/ouro-ui#1911).
+      # A setup that fails is tried once more, as a stalled checkout is (#1765). Every job repeats these three steps.
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - &pnpm-stalled
+        name: pnpm setup failed; trying it once more (#1911)
+        if: steps.pnpm.outcome == 'failure'
+        run: echo "::warning title=pnpm setup failed::pnpm/action-setup could not install pnpm (ourostack/ouro-ui#1911); setting it up once more."
+      - &pnpm-retry
+        if: steps.pnpm.outcome == 'failure'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -132,7 +143,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-yield.mjs
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      # A failed install is run once more, as a failed pnpm setup is (ourostack/ouro-ui#1914).
+      - &pnpm-install-stalled
+        name: pnpm install failed; trying it once more (#1914)
+        if: steps.install.outcome == 'failure'
+        run: echo "::warning title=pnpm install failed::pnpm i failed, which the 1ES feed's HTTP 429s can cause (ourostack/ouro-ui#1914); installing once more."
+      - &pnpm-install-retry
+        if: steps.install.outcome == 'failure'
+        run: pnpm i --frozen-lockfile
       - id: plan
         name: Plan the tests
         env:
@@ -220,12 +241,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: pnpm run docs --check
       - run: pnpm typecheck
       # Apps still build with TypeScript 5.9, whose DOM types lack some of 6.0's (focusVisible), so
@@ -335,12 +364,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       # A hang ends this step in fifteen minutes, before the job's own limit, so the timings below
       # still upload and the log names what hung (#671).
       - id: tests
@@ -413,12 +450,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       # The newest release tag, which the release-notes test measures new changes against, as a release does.
       - name: Fetch the newest release tag
         run: |
@@ -475,12 +520,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - name: Script tests that drive a browser
         run: |
           mkdir -p .tmp/timings
@@ -554,14 +607,22 @@ jobs:
         with:
           persist-credentials: false
       - if: env.BROWSER_RUN == 'true'
+        id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - if: env.BROWSER_RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
       - if: env.BROWSER_RUN == 'true'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: env.BROWSER_RUN == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -639,12 +700,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       # A hang ends this step in fifteen minutes, before the job's own limit (#671).
       - id: tests
         name: Browser tests
@@ -781,14 +850,22 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.relevance.outputs.run != 'false'
+        id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - if: steps.relevance.outputs.run != 'false'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
       - if: steps.relevance.outputs.run != 'false'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: steps.relevance.outputs.run != 'false'
         run: pnpm site:build
       - if: steps.relevance.outputs.run != 'false' && matrix.shard != 'fallback'
@@ -887,14 +964,22 @@ jobs:
         with:
           persist-credentials: false
       - if: env.FALLBACK == 'true'
+        id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - if: env.FALLBACK == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
       - if: env.FALLBACK == 'true'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: env.FALLBACK == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -947,14 +1032,22 @@ jobs:
         with:
           persist-credentials: false
       - if: env.BROWSER_RUN == 'true'
+        id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - if: env.BROWSER_RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
       - if: env.BROWSER_RUN == 'true'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
       - if: env.BROWSER_RUN == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -1011,7 +1104,11 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -1029,7 +1126,11 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.affected.outputs.run == 'true'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: steps.affected.outputs.run == 'true'
         name: Theme scans
         env:
@@ -1086,7 +1187,11 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -1104,7 +1209,11 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.affected.outputs.run != 'false'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: steps.affected.outputs.run == 'true'
         name: Conformance
         env:
@@ -1206,9 +1315,17 @@ jobs:
           restore-keys: ${{ steps.key.outputs.key }}
           lookup-only: true
       - if: steps.key.outputs.key != ''
+        id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - if: steps.key.outputs.key != ''
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - id: count
         name: How many shards
         env:
@@ -1286,7 +1403,11 @@ jobs:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
           fetch-depth: 2
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -1304,7 +1425,11 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.changed.outputs.run == 'true'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: steps.changed.outputs.run == 'true'
         name: Results from the last run
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1409,12 +1534,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - uses: ./.github/actions/playwright-browsers
         with:
           browsers: chromium
@@ -1456,12 +1589,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: pnpm registry --check
       # The control and motion matrices are not committed: writing them checks every manifest's
       # controls, modes and motion against the source, and the browser tests read what it wrote.
@@ -1524,12 +1665,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - name: End-to-end specs
         run: |
           if [ "$FULL" = true ]; then
@@ -1603,12 +1752,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - name: Sweep specs
         run: |
           specs=$(node scripts/shard.mjs sweeps "$SHARD")
@@ -1683,12 +1840,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: pnpm site:build
       - run: site/scripts/theme-install-test.sh "$RUNNER_TEMP/theme-app"
       - if: failure()
@@ -1739,12 +1904,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: pnpm test:latency $(node scripts/latency-shards.mjs ${{ matrix.shard }})
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -1793,12 +1966,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: pnpm site:build
       - run: npx --yes @lhci/cli@0.15.1 autorun --config=site/lighthouserc.json
       - if: always()
@@ -1850,7 +2031,11 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -1887,7 +2072,11 @@ jobs:
           path: ${{ runner.temp }}/base.tar.zst
           key: install-base-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', '!registry/**/*.test.ts', '!registry/**/*.test.tsx', '!registry/**/*.test-d.ts', '!registry/**/*.stories.tsx', '!registry/ouro/e2e/**', '!registry/ouro/lib/ouro/testing/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml') }}
       - if: steps.prepared.outputs.cache-hit != 'true'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - name: Restore the earlier app
         if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key != ''
         run: tar -I zstd -xf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")"
@@ -2006,12 +2195,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: install-app-${{ matrix.variant }}-${{ matrix.preset }}
@@ -2085,12 +2282,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: install-app-${{ matrix.variant }}-${{ matrix.preset }}
@@ -2189,13 +2394,21 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
       - if: needs.plan.outputs.installs != 'skip'
+        id: install
         run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: needs.plan.outputs.installs != 'skip'
         run: scripts/install-test.sh ${{ matrix.variant }} "$RUNNER_TEMP/app" ${{ github.event.pull_request.head.sha || github.sha }}
       - if: failure()
@@ -2239,12 +2452,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" ${{ github.sha }}
   install-upgrade:
     # An app on v0.1.0 (dialog from GitHub at #v0.1.0, with tests of its own) runs the
@@ -2270,12 +2491,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: scripts/install-test.sh upgrade "$RUNNER_TEMP/app"
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -2311,12 +2540,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: scripts/install-test.sh current "$RUNNER_TEMP/app"
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -2351,12 +2588,20 @@ jobs:
         timeout-minutes: 3
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm i --frozen-lockfile
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - run: scripts/install-test.sh github "$RUNNER_TEMP/app"
   fresh-main:
     # Starts with the run, in parallel with everything else, on a pull request only (on a push it would merge main into main): with no merge queue, two pull requests that
@@ -2393,7 +2638,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           filter: blob:none
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24

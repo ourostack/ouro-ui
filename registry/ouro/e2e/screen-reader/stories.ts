@@ -17,6 +17,7 @@ export const storyIds = {
   formServerErrors: "forms-form--server-errors",
   item: "lists-item--in-context",
   menu: "menus-menu--playground",
+  patternListDetail: "reference-patterns--list-detail",
   reorderableDisabled: "lists-reorderable--disabled",
   routeProgress: "feedback-routeprogress--in-context",
   select: "forms-select--playground",

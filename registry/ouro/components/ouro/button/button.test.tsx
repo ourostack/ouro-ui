@@ -722,6 +722,62 @@ describe("icon-only size", () => {
     expect(icon.width).toBe(withStart!.querySelector("svg")!.getBoundingClientRect().width);
   });
 
+  it.each([
+    ["md", "md"],
+    ["sm", "sm"],
+    ["lg", "lg"],
+  ] as const)("is as wide as it is tall at size %s, with only an icon and a name", async (_, size) => {
+    const { host } = await render(
+      <>
+        <Button aria-label="Add" size={size}>
+          <Star />
+        </Button>
+        <Button href="/add" aria-labelledby="add-label" size={size}>
+          <Star />
+        </Button>
+        <span id="add-label">Add</span>
+      </>,
+    );
+    for (const button of host.querySelectorAll<HTMLElement>('[data-ouro="button"]')) {
+      const box = button.getBoundingClientRect();
+      expect(box.width).toBeGreaterThan(0);
+      expect(box.width).toBe(box.height);
+    }
+  });
+
+  it("keeps a label's padding where the icon has text beside it, a start icon, no name, or the inline size", async () => {
+    const { host } = await render(
+      <>
+        <Button aria-label="Add">
+          <Star />
+        </Button>
+        <Button aria-label="Add">
+          <Star /> Add
+        </Button>
+        <Button aria-label="Add">
+          <>
+            <Star />
+          </>
+        </Button>
+        <Button aria-label="Add" startIcon={Star}>
+          <Star />
+        </Button>
+        <Button aria-label="Add" endIcon={Star}>
+          <Star />
+        </Button>
+        <Button>
+          <Star />
+        </Button>
+        <Button aria-label="Add" size="inline">
+          <Star />
+        </Button>
+      </>,
+    );
+    const [square, ...rest] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    expect(getComputedStyle(square!).paddingInlineStart).toBe("0px");
+    for (const button of rest) expect(getComputedStyle(button).paddingInlineStart).not.toBe("0px");
+  });
+
   it("keeps the size an icon sets for itself", async () => {
     const { button } = await render(
       <Button aria-label="Add">
