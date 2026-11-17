@@ -108,7 +108,7 @@ describe("SettingsPage", () => {
     await expect.element(status()).toHaveTextContent("Settings saved.");
     // What each frame shows, as a screen reader reads the page between tasks.
     const frames: string[] = [];
-    let next = 0;
+    let next: number;
     const sample = () => {
       frames.push(status().element().textContent ?? "");
       next = requestAnimationFrame(sample);
