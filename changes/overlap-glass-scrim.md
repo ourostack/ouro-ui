@@ -1,0 +1,1 @@
+- Ouro check's overlap rule reads text on a glass scrim (a mostly opaque fill with a backdrop blur, around the text or a layer beneath it) as backed, as it reads a chip on an opaque fill.
