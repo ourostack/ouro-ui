@@ -688,7 +688,56 @@ async function updateHxInstalled(pin, text, release, ctx) {
   if (kitApart.length) notes.push(`${list(kitApart)} ${one(kitApart, "stays", "stay")} where ${one(kitApart, "it is", "they are")} because ${one(kitApart, "it was", "they were")} edited here, but \`#ouro-ax/*\` resolves to \`${axDir}\`: move ${one(kitApart, "it", "them")} there, or point the import at ${one(kitApart, "it", "them")}.`);
   for (const { from, to } of blocked) notes.push(`Leaves \`${from}\` where it is, because \`${to}\` already exists in the app and is not replaced.`);
   if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
-  return { files: out, notes };
+  let checkRules = [];
+  if (installed.some((path) => CHECK_INSTALLED.test(path))) {
+    const rules = newCheckRules(previous, next, record.tag, release);
+    checkRules = rules.rules;
+    notes.push(...rules.notes);
+  }
+  return { files: out, notes, checkRules };
+}
+
+/** Where the ouro-check item's files sit in an app: `scripts/ouro/check/` now, `lib/ouro/check/` before it moved. */
+const CHECK_INSTALLED = /(^|\/)(scripts|lib)\/ouro\/check\//;
+/** The rules a release of Ouro check adds, by name, each with a summary. */
+const NEW_RULES = "registry/ouro/check/new-rules.json";
+
+function readNewRules(tarball) {
+  const bytes = tarball.get(NEW_RULES);
+  if (!bytes) return [];
+  let rules;
+  try {
+    rules = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    // The parser's own message names positions, which a repository's claims lint reads as numbers to cite.
+    throw new Error("it is not JSON");
+  }
+  const valid = (rule) => rule && typeof rule.rule === "string" && (rule.summary === undefined || typeof rule.summary === "string");
+  if (!Array.isArray(rules) || !rules.every(valid)) throw new Error("it is not a list of { rule, summary }");
+  return rules;
+}
+
+/**
+ * The Ouro check rules new to an app between two releases: in the new tag's `new-rules.json` and not in the old's, by
+ * name, each with its summary and the release's file to cite it to, since a repository may lint the body for claims.
+ * The update pull request lists them with the findings it records as known for each (known.mjs).
+ */
+export function newCheckRules(previous, next, from, release) {
+  let before;
+  let after;
+  try {
+    before = readNewRules(previous);
+  } catch (error) {
+    return { rules: [], notes: [`Leaves the new Ouro check rules out of this list: \`${NEW_RULES}\` at \`${from}\` could not be read (${error.message}). The release notes name them.`] };
+  }
+  try {
+    after = readNewRules(next);
+  } catch (error) {
+    return { rules: [], notes: [`Leaves the new Ouro check rules out of this list: \`${NEW_RULES}\` at \`${release.tag}\` could not be read (${error.message}). The release notes name them.`] };
+  }
+  const listed = new Set(before.map((rule) => rule.rule));
+  const source = `https://github.com/${release.repo ?? REPOS.web}/blob/${release.tag}/${NEW_RULES}`;
+  return { rules: after.filter((rule) => !listed.has(rule.rule)).map((rule) => ({ rule: rule.rule, summary: rule.summary, source })), notes: [] };
 }
 
 /** The release asset that holds ouro-ui-core's built `dist/`, which the repository does not commit. */

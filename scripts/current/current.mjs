@@ -16,6 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
 import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate } from "./pins.mjs";
+import { CONFIG as CHECK_CONFIG, checkRulesSection, seedKnown } from "./known.mjs";
 import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
@@ -40,7 +41,7 @@ export function title(behind, releases) {
   return `Update to ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]}`;
 }
 
-export function body(behind, releases, notes) {
+export function body(behind, releases, notes, sections = []) {
   const rows = behind.map((pin) => `| \`${pin.file}\` | ${NAMES[pin.follows]} | \`${pin.current}\` | [\`${releases[pin.follows].tag}\`](${releases[pin.follows].url}) |`);
   return [
     // Versions and file names stay in code spans: a repository that runs Ouro UI's claims check on pull requests
@@ -52,6 +53,7 @@ export function body(behind, releases, notes) {
     ...[...new Set(rows)],
     "",
     ...(notes.length ? [...notes.map((note) => `- ${note}`), ""] : []),
+    ...sections.flatMap((section) => [section, ""]),
     "Your checks decide: this pull request merges itself when they pass. A newer release updates this same pull request. The release notes say what changed: https://github.com/ourostack/ouro-ui/blob/main/UPGRADING.md",
     "",
     "<!-- ouro-current -->",
@@ -82,6 +84,33 @@ export function createSources(publicGh, { unzip = defaultUnzip } = {}) {
     },
     async assetFile(follows, tag, assetName, path) {
       return unzip(await assetZip(follows, tag, assetName), path);
+    },
+    /**
+     * The Ouro check reports a commit's checks uploaded (artifacts named ouro-check…), read with the app's token, or
+     * the public one where the app may not read a repository's Actions; none when neither can.
+     */
+    async ciReports(gh, repo, sha) {
+      for (const client of [gh, publicGh]) {
+        try {
+          const reports = [];
+          const { workflow_runs: runs = [] } = await client.get(`repos/${repo}/actions/runs?head_sha=${sha}&per_page=100`);
+          for (const run of runs) {
+            const { artifacts = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`);
+            for (const artifact of artifacts.filter((item) => /^ouro-check/.test(item.name) && !item.expired)) {
+              const zip = await client.get(artifact.archive_download_url, { raw: true });
+              try {
+                reports.push(JSON.parse(String(unzip(zip, "report.json"))));
+              } catch {
+                // an artifact without a report (a shard's screenshots alone) has nothing to record
+              }
+            }
+          }
+          return reports;
+        } catch {
+          // this token may not read the repository's Actions: the next one tries
+        }
+      }
+      return [];
     },
     /** Several files from one release asset, downloaded once: a Map of path to bytes, without the paths it lacks. */
     async assetFiles(follows, tag, assetName, paths) {
@@ -218,15 +247,16 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   const found = await readPins(gh, repo, head);
   const { texts, blobs, treeSha } = found;
   // What the repository asks of every change (.github/ouro-current.json): a new version, a changelog fragment.
-  const read = async (path) => {
+  const readAt = async (ref, path) => {
     try {
-      const file = await gh.get(`repos/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${head}`);
+      const file = await gh.get(`repos/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${ref}`);
       return Buffer.from(file.content, "base64").toString("utf8");
     } catch (error) {
       if (error.status === 404) return null;
       throw error;
     }
   };
+  const read = (path) => readAt(head, path);
   const rulesText = found.pins.length ? await read(RULES_PATH) : null;
   const rules = rulesText === null ? null : JSON.parse(rulesText);
   // A repository never follows itself (Ouro UI's own copy of core's generator follows core, not Ouro UI), and a pin
@@ -269,11 +299,14 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   // Each file's pins apply in turn to its text, so two pins in one file (two vendored sources) both land.
   const files = {};
   const notes = [];
+  // The Ouro check rules the release adds, which the body lists under their own heading, after the notes.
+  const checkRules = [];
   for (const pin of behind) {
     const text = typeof files[pin.file] === "string" ? files[pin.file] : texts[pin.file];
     const update = await UPDATERS[pin.kind](pin, text, releases[pin.follows], ctx);
     Object.assign(files, update.files);
     notes.push(...update.notes);
+    checkRules.push(...(update.checkRules ?? []));
   }
   // GitHub lets an app write under .github/workflows/ only with the `workflows` permission, which Ouro Current does not
   // ask for: it would need every installation approved again, and give the app write access to every repository's CI.
@@ -300,7 +333,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   notes.splice(0, notes.length, ...new Set(notes));
   // Every updater held back (a set that moves together or not at all): there is nothing to propose, and the notes say why.
   if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
-  if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes } };
+  if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes, sections: [checkRulesSection(checkRules, null)].filter(Boolean) } };
   const existing = await branchState(gh, repo);
   // The pull request open when this run began may have merged or closed since (GitHub deletes a merged pull request's
   // branch): main as this run read it is from before that, so nothing is written, neither a branch on the old main nor
@@ -313,6 +346,22 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   // rather than force-push their work away. Closing the pull request or deleting the branch hands it back.
   if (existing && !existing.ours && existingPr) {
     return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "edited by someone else, so left alone", pushed: false, edited: true } };
+  }
+  // An Ouro check rule this update brings in: the findings the pull request's own checks reported for it are recorded as
+  // known, so they pass and a new one fails (known.mjs). The run after the one that brought the rule writes them.
+  let seed = null;
+  if (existing?.ours && sources.ciReports) {
+    seed = await seedKnown({
+      files,
+      oldCheck: async (folder) => {
+        const own = await ctx.consumerFolder(folder.replace(/\/$/, ""));
+        return own.has(`${folder}run.ts`) ? [...own.values()].map(String) : [];
+      },
+      reports: await sources.ciReports(gh, repo, existing.sha),
+      base: await read(CHECK_CONFIG),
+      branch: await readAt(existing.sha, CHECK_CONFIG),
+    });
+    if (seed) files[CHECK_CONFIG] = seed.file;
   }
   const moves = `${MARK.trim()} ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`;
   const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\n${moves}`, existing);
@@ -332,7 +381,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "in the merge queue, so left as it is until it merges or leaves the queue", pushed: false } };
     }
   }
-  const text = body(behind, releases, notes);
+  const text = body(behind, releases, notes, [checkRulesSection(checkRules, seed)].filter(Boolean));
   let pr = existingPr;
   if (pr) {
     if (pr.title !== name || pr.body !== text) pr = await gh.patch(`repos/${repo}/pulls/${pr.number}`, { title: name, body: text });

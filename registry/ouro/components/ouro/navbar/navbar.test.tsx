@@ -221,9 +221,9 @@ describe("Navbar", () => {
     const step = document.body.appendChild(document.createElement("div"));
     mounted.push(step);
     step.style.borderRadius = "var(--radius-ouro-md)";
-    expect(parseFloat(row.borderTopLeftRadius)).toBeGreaterThan(0);
+    step.style.paddingInlineStart = "calc(var(--spacing) * 3)";
     expect(row.borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
-    expect(row.paddingInlineStart).toBe("12px");
+    expect(row.paddingInlineStart).toBe(getComputedStyle(step).paddingInlineStart);
   });
 
   it("marks the section a page is in as current but not the page in the sheet too, and no other link", async () => {

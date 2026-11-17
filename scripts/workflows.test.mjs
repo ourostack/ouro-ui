@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, URL } from "node:url";
@@ -953,6 +953,57 @@ test("a release checks last that Pages serves the tag's @ouro namespace byte for
   assert.deepEqual(lines.filter((line) => line.startsWith("node ")), ['node scripts/public-registry.mjs verify-live "$TAG" --wait 900']);
   assert.equal(lines.at(-1), 'node scripts/public-registry.mjs verify-live "$TAG" --wait 900');
   assert.ok(deploy.indexOf("verify-live") > deploy.indexOf('gh run watch "$run"'), "after the Pages deploy finishes");
+  assert.doesNotMatch(deploy, /--exit-status/, "the dispatched run's conclusion decides, not gh run watch's exit status");
+});
+
+/** Runs "Deploy Pages and check the namespace it serves" with stand-ins for gh and node: the dispatched Pages run ends as `conclusion`, and a newer Pages run for main exists when `newer`. */
+function runDeployStep(conclusion, newer) {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(join(root, ".tmp", "ci-pages-"));
+  const log = join(dir, "calls.log");
+  const runs = newer ? '[{"databaseId":101},{"databaseId":100},{"databaseId":99}]' : '[{"databaseId":100},{"databaseId":99}]';
+  const stub = `gh() {
+  printf 'gh %s\\n' "$*" >> "$LOG"
+  case "$*" in
+    "workflow run pages.yml --ref main") : > "$DIR/dispatched" ;;
+    "run view"*) printf '{"conclusion":"%s"}' "$CONCLUSION" | jq -r "\${@: -1}" ;;
+    *"--event workflow_dispatch"*) if [ -f "$DIR/dispatched" ]; then echo '[{"databaseId":100}]'; else echo '[{"databaseId":99}]'; fi | jq -r "\${@: -1}" ;;
+    *"--branch main"*) printf '%s' "$RUNS" | jq -r "\${@: -1}" ;;
+  esac
+}
+node() { printf 'node %s\\n' "$*" >> "$LOG"; }`;
+  try {
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stub}\n${releaseStep("Deploy Pages and check the namespace it serves")}`], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, DIR: dir, LOG: log, CONCLUSION: conclusion, RUNS: runs, TAG: "v9.9.9" },
+    });
+    return { status: result.status, output: result.stdout + result.stderr, calls: existsSync(log) ? readFileSync(log, "utf8") : "" };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("a release's Pages step lets the namespace check decide when a newer Pages run replaced the dispatched one", () => {
+  const deployed = runDeployStep("success", false);
+  assert.equal(deployed.status, 0, deployed.output);
+  assert.match(deployed.calls, /^node scripts\/public-registry\.mjs verify-live v9\.9\.9 --wait 900$/m);
+  const replaced = runDeployStep("cancelled", true);
+  assert.equal(replaced.status, 0, replaced.output);
+  assert.match(replaced.output, /::notice::Pages run 100 was replaced by a newer Pages run for main/);
+  assert.match(replaced.calls, /^node scripts\/public-registry\.mjs verify-live v9\.9\.9 --wait 900$/m);
+});
+
+test("a release's Pages step fails when the dispatched Pages run failed, or was cancelled with no newer run", () => {
+  for (const [conclusion, newer, message] of [
+    ["failure", false, /::error::Pages run 100 ended failure\. Run it by hand/],
+    ["cancelled", false, /::error::Pages run 100 was cancelled, and no newer Pages run replaced it\. Run it by hand/],
+  ]) {
+    const result = runDeployStep(conclusion, newer);
+    assert.equal(result.status, 1, result.output);
+    assert.match(result.output, message);
+    assert.doesNotMatch(result.calls, /verify-live/);
+  }
 });
 
 test("the release runs the public-registry tests with the script tests", () => {
@@ -1171,7 +1222,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required

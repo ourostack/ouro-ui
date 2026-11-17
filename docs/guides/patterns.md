@@ -26,6 +26,10 @@ A header with the light and dark toggle, a profile form the browser validates, a
 
 A header with the light and dark toggle, the numbers that matter in cards with how each moved, a chart of the last months and a table of recent activity.[^dashboard] It takes `stats`, `months` and `activity`, and shows made-up data without them, so it renders as installed. Change the cards, the chart's series and the table's columns to what your app tracks.
 
+## What to test
+
+A pattern's own behaviour is tested in Ouro, in Chromium and WebKit:[^axe][^settings][^dashboard] the checks before a save, errors on their fields, the saved message, the confirmation before a delete, and the dashboard's empty table. Test only what you add, such as where `onSave` sends the settings. The JSDoc at the top of a pattern's file lists what it does, what the app wires up and the props of the parts it uses, so you can change it without opening the components.
+
 ## When it's done
 
 Build the app and run [Ouro check](guardrails.md): a page is done when the build passes and the check reports `0 finding(s)`. Its `off-theme` rule names the token to use for any colour, radius, shadow or font a change writes past the theme.

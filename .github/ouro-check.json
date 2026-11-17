@@ -9,5 +9,14 @@
     "/docs/message/": {
       "nested-frame": "The squircle radii are 1.5 times larger, so the message demo's quote block, a small block inside a large bubble, nests at 23px by the rule; its radius stays small and the quote bar is a 4px pill."
     }
+  },
+  "known": {
+    "off-theme": [
+      ".stage-window sets box-shadow: oklab(0 none none / 0.35) 0px 10px 14px -12px, a fixed shadow",
+      "[data-theme=\"pearl\"] .stage-crew sets box-shadow: oklab(1 0 5.96046e-8 / 0.55) 0px 1px inset, a fixed shadow",
+      "[data-theme=\"pearl\"] .stage-frame sets box-shadow: oklab(1 0 5.96046e-8 / 0.5) 0px 1px inset, a fixed shadow",
+      "[data-theme=\"pearl\"].dark .stage-console, .dark[data-theme=\"pearl\"] .stage-console sets box-shadow: oklab(0 none none / 0.6) 0px 28px 56px -28px, a fixed shadow",
+      "[data-theme=\"pearl\"].dark .stage-crew, .dark[data-theme=\"pearl\"] .stage-crew sets box-shadow: oklab(1 0 5.96046e-8 / 0.08) 0px 1px inset, a fixed shadow"
+    ]
   }
 }

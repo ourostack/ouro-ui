@@ -55,6 +55,10 @@ describe("SettingsPage", () => {
     await render(<SettingsPage onSave={onSave} initial={{ name: "", email: "", language: "fr", notifications: false }} />);
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     expect(onSave).not.toHaveBeenCalled();
+    await userEvent.fill(field("Display name"), "Ada");
+    await userEvent.fill(field("Email"), "not-an-email");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(onSave).not.toHaveBeenCalled();
     await userEvent.fill(field("Display name"), "A");
     await userEvent.fill(field("Email"), "ada@example.com");
     await userEvent.click(page.getByRole("button", { name: "Save" }));

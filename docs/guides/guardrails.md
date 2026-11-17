@@ -1,11 +1,11 @@
 # Guardrails
 
-The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measures the running app, page by page and state by state, and the **source rule** (`ouro-source-rules`) reads the app's source and finds the controls still built by hand: their aim is that every control a person can reach is an Ouro control, and the number that are not can only fall.[^ratchets] Each of those two keeps a committed baseline, so every change is a reviewed diff, and each refuses a rise unless you record why.[^baselines] The **screen check** (`ouro-check`) opens the built app's pages at screen sizes from a phone to a wide desktop and finds what a person would see broken.[^check-rules] It keeps no baseline: it fails on any finding that `ouro-check.json` does not waive with a reason.[^check-exit]
+The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measures the running app, page by page and state by state, and the **source rule** (`ouro-source-rules`) reads the app's source and finds the controls still built by hand: their aim is that every control a person can reach is an Ouro control, and the number that are not can only fall.[^ratchets] Each of those two keeps a committed baseline, so every change is a reviewed diff, and each refuses a rise unless you record why.[^baselines] The **screen check** (`ouro-check`) opens the built app's pages at screen sizes from a phone to a wide desktop and finds what a person would see broken.[^check-rules] It keeps no baseline: it fails on any finding that `ouro-check.json` does not waive with a reason, or record as known when an update brought its rule.[^check-exit][^check-known]
 
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.249 ourostack/ouro-ui/ouro-source-rules#v1.3.249
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.252 ourostack/ouro-ui/ouro-source-rules#v1.3.252
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -281,7 +281,7 @@ The check reads the page's own style rules, whose values still name the tokens t
 
 | Rule | What it finds |
 | --- | --- |
-| `off-theme` | A rule the app wrote that sets a colour (hex, a colour function or a colour's name, a gradient of them, or Tailwind's palette such as `var(--color-rose-500)`), a corner radius, a shadow or a font family to a fixed value.[^check-token] The finding names the token to use: the theme colour nearest it among those that fit the property (a foreground for text, a surface for a fill, the line tokens for a border), the nearest radius step, the theme's shadows, or the heading, mono or sans font.[^check-token] It follows a value through a variable of the app's own (`--brand: #6d28d9`) to what it holds, and finds Tailwind's palette in a utility's own variables (a gradient's stops, a ring's colour), while an alias of a theme token passes; a rule scoped to the dark theme or a `data-theme` is judged too.[^check-token-other] Ouro's own components style themselves with Tailwind utilities on their own elements, which it leaves alone; so are a drawing's fills and strokes, see-through colours, system colours, a pill's or a circle's radius and keywords such as `inherit`.[^check-token-pass] |
+| `off-theme` | A rule the app wrote that sets a colour (hex, a colour function or a colour's name, a gradient of them, or Tailwind's palette such as `var(--color-rose-500)`), a corner radius, a shadow or a font family to a fixed value.[^check-token] The finding names the token to use: the theme colour nearest it among those that fit the property (a foreground for text, a surface for a fill, the line tokens for a border), the nearest radius step, the theme's shadows, or the heading, mono or sans font.[^check-token] It follows a value through a variable of the app's own (`--brand: #6d28d9`) to what it holds, and finds Tailwind's palette in a utility's own variables (a gradient's stops, a ring's colour), while an alias of a theme token passes; a rule scoped to the dark theme or a `data-theme` is judged too.[^check-token-other] A variable of the app's own that the theme's tokens are defined through (`--muted: var(--color-undergrowth)`), or that holds a theme value (a colour a theme token is given, a radius step, a whole spacing step such as `--gutter: 1.5rem`), names the theme and passes, as does the fixed fallback a rule writes before setting the same property through a variable under `@supports`.[^check-token-own] Ouro's own components style themselves with Tailwind utilities on their own elements, which it leaves alone; so are a drawing's fills and strokes, see-through colours, system colours, a pill's or a circle's radius and keywords such as `inherit`.[^check-token-pass] |
 | `off-scale` | A padding, margin or gap the app set to a fixed `px` or `rem` where Tailwind's `--spacing` step is defined, with the step to use (`p-6`).[^check-token-scale] Spacing in `em`, fluid spacing (`clamp()`, `min()`, `max()`, a viewport unit) and a hairline under half a step are left alone.[^check-token-scale-pass] |
 
 ### Controls a person can't use without knowing why
@@ -324,12 +324,12 @@ Each page and state loads afresh in a browser context of its own, so what one sa
 
 `first-content` is measured again on a second load when its first load is over budget. It is reported only when both loads are over, at the lower of the two, so one slow load on a busy runner fails no gate.[^check-first-content] `layout-shift` reads one load of each page at each size, and `inp` a few presses, so a result just over its budget can be the runner rather than the page.[^check-measured] Check a borderline `layout-shift` or `inp` finding before you fix it: run the check on that page again, or raise `pressRepeat`. A finding well over its budget, or one that shows at several sizes, is the page.[^check-measured]
 
-A new rule can start without failing a build: waive it on all pages, with the reason, and remove the waiver once its findings are fixed.[^check-shard] This repository's own site does that while the measured rules settle.[^check-site]
+A new rule can start without failing a build: waive it on all pages, with the reason, and remove the waiver once its findings are fixed.[^check-shard] When an Ouro Current update brings in a rule, it records the findings the app already has for it in `ouro-check.json`'s `known`, by what each says up to the token to use: they are reported and pass, and a new finding of that rule fails.[^check-known] Move them onto the theme in a pull request of their own, and remove each from `known` as it goes. This repository's own site does that while the measured rules settle.[^check-site]
 
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.249
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.252
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -409,7 +409,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.249
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.252
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -419,7 +419,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.249
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.252
         with:
           merge: "true"
 ```
@@ -439,7 +439,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.249
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.252
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -584,3 +584,5 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^check-token-scale]: test:test/check-token-in-page.test.ts::findOffThemeIssues: off-scale > finds a fixed padding, margin or gap off the spacing step, once for its longhands, with the step verify:testExists(test/check-token-in-page.test.ts::findOffThemeIssues: off-scale > finds a fixed padding, margin or gap off the spacing step, once for its longhands, with the step)
 [^check-token-scale-pass]: test:test/check-token-in-page.test.ts::findOffThemeIssues: off-scale > passes the step, em, fluid spacing, a hairline, zero and auto verify:testExists(test/check-token-in-page.test.ts::findOffThemeIssues: off-scale > passes the step, em, fluid spacing, a hairline, zero and auto)
 [^check-token-other]: test:test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > judges a value through the app's own variable by what it holds, in the theme's namespaces too, but not an alias of a token, a keyword or Ouro's avatar tokens; test:test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > finds Tailwind's palette in a utility's own variables and in a gradient, and leaves a pill drawn with infinity alone; test:test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > matches a nested rule by its resolved selector, and a rule scoped to a theme the run isn't in, named by the role's own token verify:testExists(test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > judges a value through the app's own variable by what it holds, in the theme's namespaces too, but not an alias of a token, a keyword or Ouro's avatar tokens) verify:testExists(test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > finds Tailwind's palette in a utility's own variables and in a gradient, and leaves a pill drawn with infinity alone) verify:testExists(test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > matches a nested rule by its resolved selector, and a rule scoped to a theme the run isn't in, named by the role's own token)
+[^check-token-own]: test:test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > counts the app's own variable the theme is built from, or that holds a theme value, as the theme's, and judges a fallback by its variable verify:testExists(test/check-token-in-page.test.ts::findOffThemeIssues: what an app writes past the theme in other ways > counts the app's own variable the theme is built from, or that holds a theme value, as the theme's, and judges a fallback by its variable)
+[^check-known]: test:scripts/check/check.test.mts::Ouro check > passes a finding ouro-check.json knows, as an update seeds it for a rule it brings, and still fails another of that rule; test:scripts/current/current.test.mjs::an Ouro check rule an update brings in has the findings the pull request's checks reported recorded as known, the run after, and kept while the next checks run verify:testExists(scripts/check/check.test.mts::Ouro check > passes a finding ouro-check.json knows, as an update seeds it for a rule it brings, and still fails another of that rule) verify:testExists(scripts/current/current.test.mjs::an Ouro check rule an update brings in has the findings the pull request's checks reported recorded as known, the run after, and kept while the next checks run)

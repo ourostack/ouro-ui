@@ -36,6 +36,32 @@ const empty: Settings = { name: "", email: "", language: "en", notifications: tr
  * zone that confirms before it deletes. It draws itself from Ouro's theme, with layout classes only. Render it, then
  * change its fields and `onSave` to what your app keeps.
  *
+ * What it already does, which Ouro's own tests cover, so your tests need only cover what you add: the browser's
+ * required and email checks run before `onSave`; a name under 2 letters and the errors `onSave` returns show on
+ * their fields; "Settings saved." is announced after each save, and not for a save a later submit or a delete
+ * overtook; the delete waits for the person to confirm, and a delete that fails keeps the dialog open.
+ *
+ * What the app wires up: the toggle needs `ColorSchemeProvider` around the app, and the script that sets light or
+ * dark before the first paint, as the agent quickstart sets up: https://ui.ouroboros.bot/docs/agent-quickstart.md.
+ *
+ * To change it, edit this file: the `Settings` type, the `empty` values, and the fields. The parts it uses take:
+ * - `TextField`: `label`, `name`, `type`, `required`, `defaultValue`, `autoComplete`, `description`.
+ * - `Select`: `label`, `name`, `options` (`{ value, label }[]`), `defaultValue`.
+ * - `Switch`: `label`, `name`, `defaultChecked`; the form reads it as `"on"` when it's on.
+ * - `Form`: `errors` (field name to message) and `onSubmit`; the page passes `formErrors(answer, answer?.errors)` as `errors`.
+ * - `ConfirmDialog`: `title`, `description`, `confirmLabel`, `tone`, `trigger`, and `onConfirm`, whose promise keeps it
+ *   open until it settles.
+ * - `ColorSchemeToggle`: `variant="segmented"` shows light, dark and system side by side instead of a menu button.
+ * - `Card`: `title`, `description`, `headingLevel`. `PageHeader`: `title`, `description`, `actions`. `Stack`: `gap`.
+ * A component's whole API is on its page, https://ui.ouroboros.bot/docs/<item>.md.
+ *
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::SettingsPage > saves only once the browser's checks and its own pass, shows a returned error on its field, and says when it saved)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::SettingsPage > empties its status for a frame before a repeat save that resolves at once, so a screen reader hears it again)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::SettingsPage > lets a save that finishes late change nothing once a later submit has answered)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::SettingsPage > lets a save still running when the account is deleted change nothing on the emptied form)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::SettingsPage > deletes the account only once the person confirms, then starts the form over)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::SettingsPage > keeps a running save's answer when the delete fails, since the account is still there)
+ *
  * @example
  * import { SettingsPage } from "@/components/patterns/settings-page";
  * <SettingsPage onSave={async (settings) => api.saveSettings(settings)} onDelete={() => api.deleteAccount()} />

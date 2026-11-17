@@ -726,6 +726,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const minutes = Math.floor((((event.clientY - box.top) / box.height) * dayLength) / slotMinutes) * slotMinutes;
     return between(0, minutes, dayLength - slotMinutes);
   };
+  // The preview spans one slot across its day's column, so it is left off where one of the person's own timed
+  // events covers that slot: the card (opaque, above the slots) would hide its text. Background events sit in
+  // the lane the preview starts after, so they never cover it.
+  const coveredAt = (column: number, from: number) => timed[column]!.some((placed) => placed.top < from + slotMinutes && placed.bottom > from);
 
   const columns = `var(--ouro-time-grid-gutter) repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`;
   const lanes = allDay.reduce((most, piece) => Math.max(most, piece.lane + 1), 1);
@@ -1023,10 +1027,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       onSlotSelect({ start: formats.clock.instant(day, minutes), end: formats.clock.instant(day, minutes + slotMinutes) });
                     }}
                   >
-                    {hover?.day === index ? (
+                    {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span
                         data-ouro-time-grid-slot=""
-                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground"
+                        className={cn(
+                          "pointer-events-none absolute box-border rounded-ouro-md border border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground",
+                          hasBackground ? "start-(--ouro-time-grid-lane) ms-0.5 end-0.5" : "inset-x-0.5",
+                        )}
                         style={{ top: minutesTall(hover.minutes), height: minutesTall(slotMinutes) }}
                       >
                         {formats.time.format(formats.clock.instant(day, hover.minutes))}

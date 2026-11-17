@@ -122,6 +122,52 @@ describe("Ouro check's command", () => {
     assert.match(failing.err, /✗ 390×844/);
   });
 
+  test("downloads Chromium once when Playwright has none, so a first run checks the pages, and names the download command when it can't", async () => {
+    // A stand-in Playwright whose Chromium is missing until its cli.js "downloads" it; the browser it then starts is the real one.
+    const standIn = (name: string, cli: string, launch = "") => {
+      const folder = dir(name);
+      writeFileSync(
+        join(folder, "index.js"),
+        `const { existsSync } = require("node:fs");
+const real = require(${JSON.stringify(playwrightModule)});
+module.exports = { chromium: { launch: async (options) => {
+  ${launch}
+  if (!existsSync(__dirname + "/downloaded")) throw new Error("browserType.launch: Executable doesn't exist at /nowhere/chrome-headless-shell");
+  return real.chromium.launch(options);
+} } };
+`,
+      );
+      writeFileSync(join(folder, "cli.js"), cli);
+      writeFileSync(join(folder, "package.json"), '{ "type": "commonjs" }');
+      return join(folder, "index.js");
+    };
+    const downloads = standIn("downloads", `if (process.argv.slice(2).join(" ") === "install chromium") require("node:fs").writeFileSync(__dirname + "/downloaded", "");`);
+    const first = await run([folder, ...fast, "--no-axe", "--out", "first"], { env: { PLAYWRIGHT_MODULE: downloads } });
+    assert.equal(first.code, 3, first.err);
+    assert.match(first.out, /Chromium isn't downloaded yet: downloading it once \(npx playwright install chromium\)\./);
+    assert.match(first.out, /✗ 390×844/);
+    const again = await run([folder, ...fast, "--no-axe", "--out", "again"], { env: { PLAYWRIGHT_MODULE: downloads } });
+    assert.doesNotMatch(again.out, /downloading it once/);
+    // Playwright prints why, then ends a failed download with a stack: the refusal quotes the first error line.
+    const offline = standIn(
+      "offline",
+      `console.log("Downloading Chromium"); console.error("Error: getaddrinfo ENOTFOUND cdn.playwright.dev"); console.error("Failed to install browsers"); console.error("Error: Download failure, code=1\\n    at ChildProcess.<anonymous> (coreBundle.js:1:1)"); process.exit(1);`,
+    );
+    const stopped = await run([folder, ...fast, "--no-axe", "--out", "offline"], { env: { PLAYWRIGHT_MODULE: offline } });
+    assert.equal(stopped.code, 2);
+    assert.equal(stopped.err, "ouro-check: check: needs Chromium, and downloading it stopped: Error: getaddrinfo ENOTFOUND cdn.playwright.dev. Fix: npx playwright install chromium.");
+    const quiet = await run([folder, ...fast, "--no-axe", "--out", "quiet"], { env: { PLAYWRIGHT_MODULE: standIn("quiet", `process.exit(7);`) } });
+    assert.match(quiet.err, /downloading it stopped: it exited with 7\. Fix: npx playwright install chromium\.$/);
+    const killed = await run([folder, ...fast, "--no-axe", "--out", "killed"], { env: { PLAYWRIGHT_MODULE: standIn("killed", `process.kill(process.pid, "SIGTERM");`) } });
+    assert.match(killed.err, /downloading it stopped: it was stopped by SIGTERM\. Fix: npx playwright install chromium\.$/);
+    // Any other reason the browser can't start is no missing download: nothing is downloaded, and the check stops.
+    const broken = standIn("broken", `require("node:fs").writeFileSync(__dirname + "/downloaded", "");`, `throw new Error("browserType.launch: Target page, context or browser has been closed");`);
+    const crash = await run([folder, ...fast, "--no-axe", "--out", "broken"], { env: { PLAYWRIGHT_MODULE: broken } });
+    assert.equal(crash.code, 1);
+    assert.match(crash.err, /stopped before it finished: browserType\.launch: Target page/);
+    assert.doesNotMatch(crash.out, /downloading/);
+  });
+
   test("exits 2 when Playwright, axe-core, the config, the earlier report, a shard's report or the pages are missing, and 1 when it cannot run", async () => {
     const empty = dir("empty");
     // The file system's root has no node_modules, so nothing resolves from it.

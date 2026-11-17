@@ -60,6 +60,26 @@ const statusTone = { Paid: "success", Pending: "secondary", Refunded: "warning" 
  * last months and a table of recent activity. It draws itself from Ouro's theme, with layout classes only. Render it
  * with your data, then change the cards and columns to what your app tracks.
  *
+ * What it already does, which Ouro's own tests cover: each card is headed by its number, read with its label; with
+ * no activity it says "No activity yet." in place of the table; it renders from a Server Component, since it passes
+ * no function to the client components inside it.
+ *
+ * What the app wires up: the toggle needs `ColorSchemeProvider` around the app, and the script that sets light or
+ * dark before the first paint, as the agent quickstart sets up: https://ui.ouroboros.bot/docs/agent-quickstart.md.
+ *
+ * To change it, edit this file: the `Stat`, `Month` and `Activity` types and the sample data. The parts it uses take:
+ * - `Chart`: `title` (with `hideTitle`), `data`, `categoryKey`, and `config`, a label and an optional `tone` per
+ *   series; it draws bars unless `type` says otherwise.
+ * - `Table`: `caption` (with `hideCaption`), `columns` (`{ key, header, align }`) and `rows`; put an element such as a
+ *   `Badge` in a row's field rather than a `cell` function, which a Server Component can't pass.
+ * - `Badge`: `tone` and `variant="soft"`. `Heading`: `level` and `size`. `Text`: `size` and `tone`.
+ * - `Card`: `title`, `headingLevel`. `PageHeader`: `title`, `description`, `actions`. `Stack`: `gap`.
+ * A component's whole API is on its page, https://ui.ouroboros.bot/docs/<item>.md.
+ *
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::DashboardPage > is a whole page: a heading, a card per number, headed by the number with its label, with how it moved, a chart and the recent activity, and passes axe)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::DashboardPage > draws the numbers, months and rows it is given, and says when there is no activity)
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::DashboardPage > is a Server Component that hands no function to the client components it renders)
+ *
  * @example
  * import { DashboardPage } from "@/components/patterns/dashboard-page";
  * <DashboardPage stats={stats} months={months} activity={orders} />
