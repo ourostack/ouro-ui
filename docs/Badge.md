@@ -48,7 +48,7 @@ The props the modes share. Type: `BadgeProps`.
 
 Also accepts the attributes in React's `AnchorHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `disabled`: A link cannot be disabled. Remove `href` and pass `onClick` for a button.
 - `type`: Links have no `type`. Remove `href` and pass `onClick` for a button.
@@ -62,7 +62,7 @@ Not in this mode (typed `never`):
 
 Also accepts the attributes in React's `ButtonHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `href`: Not set: a static badge or, with `onClick`, a button. Pass `href` for a link.
 

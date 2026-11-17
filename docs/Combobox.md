@@ -65,7 +65,7 @@ A Combobox that accepts any text, suggesting matching items as people type.
 | `onValueChange` | `((value: string) => void)` |  | Called with the text as people type or pick a suggestion. A suggestion puts its `label` in the input, and the text is the value, so an `{ value, label }` item submits its label. |
 | `value` | `string` |  | The text, when you control it. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `inputValue`: Not with `allowCustomValue`: the text is the value, which `value` controls.
 - `removeLabel`: Only with `multiple`.
@@ -84,7 +84,7 @@ A Combobox that picks several items, shown as chips in the input.
 | `removeLabel` | `((label: string) => string)` | `` (label) => `Remove ${label}` `` | The name of a chip's remove button, from the item's label, as visually hidden text and not an `aria-label`. Translate it with your app. |
 | `value` | `string[]` |  | The picked items' values, when you control them. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `customValueLabel`: Only with `allowCustomValue`.
 
@@ -101,7 +101,7 @@ A Combobox that picks one item: its value, or `null` when nothing is picked.
 | `onValueChange` | `((value: string \| null) => void)` | Called with the picked item's value, or `null` when cleared. |
 | `value` | `string \| null` | The picked item's value, when you control it; `null` is nothing picked. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `customValueLabel`: Only with `allowCustomValue`.
 - `removeLabel`: Only with `multiple`.

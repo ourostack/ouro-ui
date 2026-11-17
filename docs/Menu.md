@@ -62,7 +62,7 @@ A menu the app opens itself, at an element or a point: one menu that many rows s
 | `returnFocus` | `HTMLElement \| null` |  | Where focus goes when the menu closes (Escape, an item chosen), such as the row it opened for. An item that moved focus itself, as one opening a dialog does, keeps it there. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the menu sits on; it flips when there is no room. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `contextTrigger`: Not with `anchor`. Use one way to open a menu.
 - `label`: Not with `anchor`. `label` is for a Menu inside `MenuBar`; name this one with `aria-label`.
@@ -79,7 +79,7 @@ A menu in a `MenuBar`: `label` is its button's text.
 | `label` (required) | `string` |  | The text of the menu's button in the `MenuBar`: `<Menu label="File">`. |
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the menu sits on; it flips when there is no room. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `anchor`: Not with `label`. A menu in a `MenuBar` gets its button from `label`.
 - `contextTrigger`: Not with `label`. A menu in a `MenuBar` gets its button from `label`.
@@ -94,7 +94,7 @@ A context menu: right-click or long-press on `contextTrigger` opens it at the po
 | --- | --- | --- |
 | `contextTrigger` (required) | `ReactElement` | The area that opens the menu on right-click, or on a long press on touch screens: `contextTrigger={<div>…</div>}`. Its text stays selectable; only while a finger is down does it turn off text selection and the iOS callout, so a long press opens the menu. Give the same actions a visible control too: a context menu is hard to discover. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `align`: Not with `contextTrigger`: a context menu opens at the pointer.
 - `anchor`: Not with `contextTrigger`. Use one way to open a menu.
@@ -114,7 +114,7 @@ A dropdown: `trigger` opens it. Below 640px it is a bottom sheet.
 | `side` | `"top" \| "bottom" \| "left" \| "right"` | `"bottom"` | The side of the trigger the menu sits on; it flips when there is no room. |
 | `trigger` (required) | `ReactElement` |  | The button that opens the menu, usually a Button: `trigger={<Button>Actions</Button>}`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `anchor`: Not with `trigger`. Use one way to open a menu.
 - `contextTrigger`: Not with `trigger`. Use one way to open a menu.

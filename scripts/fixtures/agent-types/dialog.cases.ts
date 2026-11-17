@@ -17,12 +17,12 @@ export const agentCases: AgentCase[] = [
     id: "s17",
     habit: "both trigger and open",
     tsc: [
-      `error TS2322: Type '{ children: string; title: string; size: "sm"; trigger: Element; open: true; onOpenChange: (open: boolean) => void; }' is not assignable to type 'IntrinsicAttributes & DialogProps'.\n  Types of property 'open' are incompatible.\n    Type 'true' is not assignable to type 'undefined'.`,
+      `error TS2322: Type '{ children: string; title: string; size: "sm"; trigger: Element; open: true; onOpenChange: (open: boolean) => void; }' is not assignable to type 'IntrinsicAttributes & DialogProps'.\n  Types of property 'open' are incompatible.\n    Type 'true' is not assignable to type '"Pass trigger, or open and onOpenChange, not both"'.`,
     ],
     dev: "Pass trigger={<Button>…</Button>} for an uncontrolled dialog, or open and onOpenChange to control it",
-    names: ["dev"],
+    names: ["tsc", "dev"],
     hoverLost:
-      "trigger and open each rule out the other branch; the mode-exclusion props stay `never` because hint types there lose hover in valid code (AGENTS.md rule 6)",
+      "trigger and open each rule out the other branch, so no member of the union holds the element; the type error names the fix instead (TriggerOrOpen in lib/ouro/open-mode.ts)",
   },
   { id: "s22", habit: "a position on Dialog", tsc: [hint("string", 'Use <Sheet side="right">')], dev: '<Sheet side="bottom">', names: ["tsc", "dev"] },
   {

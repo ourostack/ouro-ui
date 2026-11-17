@@ -74,6 +74,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **ouro-plain (classes for plain markup):** the classes for markup that is not an Ouro component (`ouro-focus-ring`, `ouro-row`, `ouro-disclosure`, `ouro-skip-link`, `ouro-reveal`, `ouro-nav-link` and the rest) moved from `ouro-base` into their own item, `ouro-plain`, so an app built only from components no longer carries their CSS.[^upgrade-plain] An app that uses them adds `ouro-plain` once, after `ouro-base`: `npx shadcn@latest add ourostack/ouro-ui/ouro-plain#{{latestRelease}}`. Adding `ouro-base` again leaves the rules it wrote before in your stylesheet, so nothing is lost before you add `ouro-plain`, and adding `ouro-plain` merges into them.[^upgrade-plain]
 
+- **After v1.3.239 (trigger or open):** on Dialog, ConfirmDialog, Sheet, EditSheet, Popover and EmojiPicker, `open` beside `trigger` is typed as the literal "Pass trigger, or open and onOpenChange, not both" instead of `never`, so passing both is a type error that names the fix.[^upgrade-trigger-or-open] A wrapper that reads `open` from the whole props type (`DialogProps["open"]`, or `open` destructured from `DialogProps`) now gets that literal too: read it from the controlled mode's type, `DialogControlledProps["open"]`, or narrow it with `typeof open === "boolean"`.
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -188,3 +190,4 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-dialog-footer-field]: registry/ouro/components/ouro/dialog/dialog.test.tsx verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::first focus with a field in the footer > puts first focus on a footer field, not on Close, when the body has no control)
 [^upgrade-surface-override]: registry/ouro/theme/squircle-surface.test.tsx verify:testExists(registry/ouro/theme/squircle-surface.test.tsx::squircle surface where the engine has no corner-shape > lets an app's own fill and border classes on a Button win, with and without corner-shape)
 [^upgrade-plain]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(site/scripts/static-css.test.mjs::ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS)
+[^upgrade-trigger-or-open]: scripts/agent-types.test.mjs verify:testExists(scripts/agent-types.test.mjs::tsc reports exactly the expected errors, naming the fix where the case says so)

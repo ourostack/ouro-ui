@@ -65,7 +65,7 @@ A controlled Dialog: you own `open` and update it in `onOpenChange`.
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user dismisses the dialog (close button, Escape, outside press, swipe). |
 | `open` (required) | `boolean` | Whether the dialog is open. When a touch or pen tap opened it (on your own button, say), the centered dialog focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. Keep the Dialog mounted and change `open`: one that mounts already open after a press or a key (`{editing && <Dialog open … />}`) appears and leaves without its transitions, and says so in development. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `trigger`: Not with `open`. Remove `open` and `onOpenChange` to let a trigger open the dialog.
 
@@ -77,7 +77,7 @@ An uncontrolled Dialog: `trigger` opens it.
 | --- | --- | --- |
 | `trigger` (required) | `ReactElement` | The element that opens the dialog, usually a Button: `trigger={<Button>Edit</Button>}`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `onOpenChange`: Not with `trigger`. Remove `trigger` to control the dialog with `open` and `onOpenChange`.
 - `open`: Not with `trigger`. Remove `trigger` to control the dialog with `open` and `onOpenChange`.

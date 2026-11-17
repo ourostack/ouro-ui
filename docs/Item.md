@@ -50,7 +50,7 @@ The props the modes share. Type: `ItemProps`.
 
 ### With 
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `external`: Only with `href`.
 - `href`: Not without `href`. Add `href` to make the whole row a link.

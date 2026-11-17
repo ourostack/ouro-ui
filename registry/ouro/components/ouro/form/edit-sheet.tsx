@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type JSX, type MouseEvent, type ReactElement, type ReactNode } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { devWarn } from "@/registry/ouro/lib/ouro/dev";
-import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
+import { checkOpenMode, type TriggerOrOpen } from "@/registry/ouro/lib/ouro/open-mode";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { DialogFrame } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -100,7 +100,7 @@ export type EditSheetWithTriggerProps = EditSheetBaseProps & {
   /** The element that opens the sheet, usually a Button: `trigger={<Button>Edit</Button>}`. */
   trigger: ReactElement;
   /** Not with `trigger`. Remove `trigger` to control the sheet with `open` and `onOpenChange`. */
-  open?: never;
+  open?: TriggerOrOpen;
   /** Not with `trigger`. Remove `trigger` to control the sheet with `open` and `onOpenChange`. */
   onOpenChange?: never;
 };

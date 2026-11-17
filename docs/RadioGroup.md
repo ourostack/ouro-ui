@@ -60,7 +60,7 @@ The props the modes share. Type: `RadioGroupProps`.
 | --- | --- | --- |
 | `children` (required) | `ReactNode` | The choices as `Radio` elements, for a layout `options` cannot express. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `options`: Not with children: pass the choices one way.
 
@@ -70,7 +70,7 @@ Not in this mode (typed `never`):
 | --- | --- | --- |
 | `options` (required) | `RadioGroupOption[]` | The choices, one radio each, in order. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `children`: Not with `options`: pass the choices one way.
 

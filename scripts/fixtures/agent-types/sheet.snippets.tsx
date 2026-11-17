@@ -8,3 +8,4 @@ export const s12 = <Sheet title="Filters" side="bottom" isOpen={open} onClose={(
 export const s13 = <Sheet title="Filters" side="bottom" open={open}>Body</Sheet>;
 export const s14 = <Sheet title="Filters" side="left-ish" trigger={<Button>F</Button>}>Body</Sheet>;
 export const s30 = <SheetRoot side="left-ish" open={false} />;
+export const sheet01 = <Sheet title="Filters" side="bottom" trigger={<Button>Filters</Button>} open={open} onOpenChange={setOpen}>Body</Sheet>;

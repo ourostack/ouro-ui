@@ -13,7 +13,7 @@ import {
   type Ref,
 } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
-import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
+import { checkOpenMode, type TriggerOrOpen } from "@/registry/ouro/lib/ouro/open-mode";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
@@ -132,7 +132,7 @@ export type DialogWithTriggerProps = DialogBaseProps & {
   /** The element that opens the dialog, usually a Button: `trigger={<Button>Edit</Button>}`. */
   trigger: ReactElement;
   /** Not with `trigger`. Remove `trigger` to control the dialog with `open` and `onOpenChange`. */
-  open?: never;
+  open?: TriggerOrOpen;
   /** Not with `trigger`. Remove `trigger` to control the dialog with `open` and `onOpenChange`. */
   onOpenChange?: never;
 };

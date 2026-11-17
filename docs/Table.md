@@ -75,7 +75,7 @@ The props the modes share. Type: `TableProps<Row>`.
 | --- | --- | --- |
 | `children` (required) | `ReactNode` | The parts: `TableHeader`, `TableBody` and `TableFooter`, with `TableRow`, `TableHead` and `TableCell` in them. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `columns`: Only without parts.
 - `defaultSort`: Only without parts. Give the sorted column's header `<TableHead sorted="ascending">`.
@@ -103,7 +103,7 @@ Not in this mode (typed `never`):
 | `rows` (required) | `readonly Row[]` |  | The rows, in the order to show them until a `sortable` column sorts them. Table does not page them. |
 | `sort` | `TableSort \| null` |  | The sorted column, controlled: Table marks its header and shows the rows in the order you pass them, so you sort them (on a server, say), and `onSortChange` tells you which sort to show next. Pass `null` while nothing is sorted. To let Table sort the rows itself, use `defaultSort` instead. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `children`: Only with parts. Pass columns and rows, or parts as children.
 
