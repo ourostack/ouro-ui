@@ -95,6 +95,18 @@ describe("findFirstRunIssues: dismissable-step", () => {
     expect(rules(`<main></main><div role="alertdialog" aria-modal="true" aria-label="Sign in?"><p>You were signed out.</p></div>`)).toEqual(["dismissable-step"]);
   });
 
+  it("does not count what the dialog holds as the page behind it, where the page has no main landmark or the dialog sits in it", () => {
+    expect(rules(`<div id="app"></div>${dialog("<button>Close</button>")}`)).toEqual(["dismissable-step"]);
+    expect(rules(`<div id="app" data-ouro-session="signed-out"><p>Your chats</p></div>${dialog("<button>Sign in</button>")}`)).toEqual(["dismissable-step"]);
+    render(`<main></main>`);
+    const native = document.createElement("dialog");
+    native.innerHTML = "<p>Getting your messages…</p>";
+    host!.querySelector("main")!.append(native);
+    native.showModal();
+    expect(issues()).toEqual([["dismissable-step", 'dialog "Getting your messages…"', "Escape puts it away onto a blank page: nothing to read, press or wait for"]]);
+    native.close();
+  });
+
   it("finds one that puts a signed-out person onto a page with no way to sign in, and passes one with a way in or progress", () => {
     render(`<main data-ouro-session="signed-out"><p>Your chats</p><button>Settings</button></main>${dialog("")}`);
     expect(issues()).toEqual([["dismissable-step", 'div "Welcome"', "Escape puts it away onto a signed-out page with no way to sign in"]]);
@@ -127,10 +139,10 @@ describe("findFirstRunIssues: dismissable-step", () => {
 
 describe("findFirstRunIssues: signed-out-empty", () => {
   it("finds an Ouro Empty or words that say there is nothing, on a signed-out page, once per empty state", () => {
-    render(`<main data-ouro-session="signed-out"><h1>Inbox</h1><div data-ouro="empty"><h2>All caught up</h2><p>Nothing new since you last looked.</p></div><p role="status" id="feed">No messages yet</p></main>`);
+    render(`<main data-ouro-session="signed-out"><h1>Inbox</h1><div data-ouro="empty"><h2>All caught up</h2><p>Nothing new since you last looked.</p></div><div role="status" id="feed"><p>No messages yet</p></div></main>`);
     expect(issues()).toEqual([
       ["signed-out-empty", 'div "All caught up Nothing new since you last…"', 'signed out, it says "All caught up Nothing new since you last looked.", what a signed-in person with nothing new reads'],
-      ["signed-out-empty", 'p#feed "No messages yet"', 'signed out, it says "No messages yet", what a signed-in person with nothing new reads'],
+      ["signed-out-empty", 'div#feed "No messages yet"', 'signed out, it says "No messages yet", what a signed-in person with nothing new reads'],
     ]);
   });
 
@@ -145,12 +157,14 @@ describe("findFirstRunIssues: signed-out-empty", () => {
     expect(rules(`<p data-ouro-session="signed-out">Signed out</p><aside data-ouro-session="signed-in"></aside><main>${empty}</main>`)).toEqual([]);
   });
 
-  it("passes the way in, an empty state no one sees, words that only mention nothing, and an allowed one; takes the app's own words", () => {
+  it("passes the way in, an empty state no one sees, words that only mention nothing and an allowed one, and takes the app's own words", () => {
     const out = (body: string) => `<main data-ouro-session="signed-out"><button>Sign in</button>${body}</main>`;
     const cases = [
       out(`<h2>You are signed out</h2>`),
       out(`<div data-ouro="empty" hidden><h2>All caught up</h2></div>`),
       out(`<p>There are no messages here until you sign in</p>`),
+      out(`<div data-ouro="empty"><h3>You are signed out</h3><button>Sign in</button></div>`).replace("<button>Sign in</button><div", "<div"),
+      out(`<div data-ouro="empty"><h3>Nothing here yet</h3><p>Signing you in…</p></div>`).replace("<button>Sign in</button><div", "<div"),
       out(`<div data-ouro="empty" data-ouro-allow="signed-out-empty" data-ouro-allow-why="a public page's own empty search"><h2>No results</h2></div>`),
     ];
     expect(cases.flatMap((html) => rules(html))).toEqual([]);

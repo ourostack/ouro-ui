@@ -90,9 +90,12 @@ function findFirstRunIssues({
   const isControl = (el: Element) => el.matches(controls) && enabled(el);
   // A control with a name reads as one, though it is off or draws only an icon.
   const isRead = (el: Element) => Boolean(ownWords(el)) || (el.matches(controls) && Boolean(nameOf(el))) || el.matches("img[alt]:not([alt='']), svg[aria-label]:not([aria-label='']), [role=img][aria-label]:not([aria-label='']), canvas, video, iframe");
-  // The first element in the pane (the pane too) that is drawn and passes `test`, or null.
-  const first = (pane: Element, test: (el: Element) => boolean) => [pane, ...pane.querySelectorAll("*")].find((el) => test(el) && drawn(el)) ?? null;
+  // The first element in the pane (the pane too) that is drawn and passes `test`, or null. What an open modal over the pane
+  // holds is the modal's, not the pane's: it goes when the modal does.
+  const first = (pane: Element, test: (el: Element) => boolean) =>
+    [pane, ...pane.querySelectorAll("*")].find((el) => !modals.some((m) => m.contains(el) && !m.contains(pane)) && test(el) && drawn(el)) ?? null;
   const holds = (pane: Element) => first(pane, (el) => isProgress(el) || isControl(el) || isRead(el)) !== null;
+  const wayIn = (pane: Element) => first(pane, (el) => isProgress(el) || (isControl(el) && signInWords.test(nameOf(el)))) !== null;
   // The session where an element is: its own or nearest marker, else `signedOut`, else a signed-out marker on the page
   // with no signed-in one.
   const signedOutAt = (el: Element) => {
@@ -116,8 +119,7 @@ function findFirstRunIssues({
   if (top && !top.contains(main) && !optedOut(top, "dismissable-step")) {
     const close = first(top, (el) => el.matches("button, [role=button]") && enabled(el) && /^(close|dismiss|cancel|×|✕)$/i.test(nameOf(el)));
     const blank = !holds(main);
-    const wayIn = first(main, (el) => isProgress(el) || (isControl(el) && signInWords.test(nameOf(el)))) !== null;
-    if (blank || (signedOutAt(main) && !wayIn)) {
+    if (blank || (signedOutAt(main) && !wayIn(main))) {
       const way = close ? `its "${nameOf(close)}" button or Escape` : "Escape";
       const onto = blank ? "a blank page: nothing to read, press or wait for" : "a signed-out page with no way to sign in";
       issues.push({ ref: ref(top), rule: "dismissable-step", element: describe(top), detail: `${way} puts it away onto ${onto}` });
@@ -126,13 +128,15 @@ function findFirstRunIssues({
 
   // Only a page that is signed out somewhere reads its headings and paragraphs, so a signed-in page pays nothing here.
   if (signedOut === true || document.querySelector('[data-ouro-session="signed-out"]')) {
-    const seen = new Set<Element>();
+    // Each empty state once: a status region or an Empty is one, with the words inside it.
+    const seen: Element[] = [];
     for (const el of document.querySelectorAll('[data-ouro="empty"], h1, h2, h3, h4, h5, h6, p, [role=status], [role=heading]')) {
       const box = el.closest('[data-ouro="empty"]') ?? el;
-      if (seen.has(box) || !signedOutAt(box)) continue;
+      if (seen.some((done) => done.contains(box)) || !signedOutAt(box)) continue;
       if (box === el && !el.matches('[data-ouro="empty"]') && !emptyWords.test(words(el))) continue;
-      seen.add(box);
-      if (!drawn(box) || optedOut(box, "signed-out-empty")) continue;
+      seen.push(box);
+      // An Empty that holds the way in (Sign in, or progress) is the signed-out screen itself.
+      if (!drawn(box) || optedOut(box, "signed-out-empty") || (box.matches('[data-ouro="empty"]') && wayIn(box))) continue;
       issues.push({ ref: ref(box), rule: "signed-out-empty", element: describe(box), detail: `signed out, it says "${words(box).slice(0, 60)}", what a signed-in person with nothing new reads` });
     }
   }
