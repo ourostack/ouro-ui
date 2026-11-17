@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { ColorSchemeToggle } from "@/registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle";
@@ -56,6 +56,7 @@ export function SettingsPage({
   const [answer, setAnswer] = useState<{ errors: FormErrors }>();
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState(0);
+  const frame = useRef(0);
   // After a delete the fields start empty, not from the deleted account's settings.
   const [deleted, setDeleted] = useState(false);
   const start = deleted ? empty : initial;
@@ -71,7 +72,8 @@ export function SettingsPage({
             onSubmit={async (event) => {
               // The browser's own checks (required, type="email") pass before this runs.
               event.preventDefault();
-              // Cleared first, so each save is announced and a pending or failed one never shows the last success.
+              // Cleared first, so a pending or failed save never shows the last success.
+              cancelAnimationFrame(frame.current);
               setSaved(false);
               const data = new FormData(event.currentTarget);
               const settings: Settings = {
@@ -82,7 +84,8 @@ export function SettingsPage({
               };
               const errors: FormErrors = settings.name.length < 2 ? { name: "Use at least 2 letters." } : ((await onSave?.(settings)) ?? {});
               setAnswer({ errors });
-              setSaved(Object.keys(errors).length === 0);
+              // A frame after the clear, so a screen reader hears each save, even one that resolves at once.
+              if (Object.keys(errors).length === 0) frame.current = requestAnimationFrame(() => setSaved(true));
             }}
           >
             <Stack gap="md">
@@ -108,6 +111,7 @@ export function SettingsPage({
               tone="destructive"
               onConfirm={async () => {
                 await onDelete?.();
+                cancelAnimationFrame(frame.current);
                 setAnswer(undefined);
                 setSaved(false);
                 setDeleted(true);

@@ -102,6 +102,26 @@ describe("SettingsPage", () => {
     await expect.element(status()).toHaveTextContent("Settings saved.");
   });
 
+  it("empties its status for a frame before a repeat save that resolves at once, so a screen reader hears it again", async () => {
+    await render(<SettingsPage initial={{ name: "Ada", email: "ada@example.com", language: "en", notifications: true }} />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.element(status()).toHaveTextContent("Settings saved.");
+    // What each frame shows, as a screen reader reads the page between tasks.
+    const frames: string[] = [];
+    let sampling = true;
+    const sample = () => {
+      frames.push(status().element().textContent ?? "");
+      if (sampling) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    try {
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.poll(() => frames.lastIndexOf("") >= 0 && frames.at(-1) === "Settings saved.").toBe(true);
+    } finally {
+      sampling = false;
+    }
+  });
+
   it("works with no handlers, as installed", async () => {
     await render(<SettingsPage />);
     await userEvent.fill(field("Display name"), "Ada");
