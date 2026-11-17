@@ -714,6 +714,22 @@ describe("findOverlaps", () => {
     expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Caption" × img "under a see-through label"']);
   });
 
+  it("passes text on a glass scrim of its own over a picture, around it or a layer beside it, but not on a faint fill or on glass too thin", async () => {
+    const url = await picture(100, 100);
+    // A grid cell holds the picture, then a band: a glass layer and the text, each a layer of its own.
+    const band = (glass: string, text: string) =>
+      `<section style="display:grid;width:100px"><img src="${url}" alt="${text}" style="grid-area:1/1;width:100px;height:100px;display:block"><div style="grid-area:1/1;align-self:end;display:grid"><div style="grid-area:1/1;z-index:1;${glass}"></div><span style="grid-area:1/1;z-index:2;padding:4px">${text}</span></div></section>`;
+    render(
+      band("background:rgba(255,255,255,0.78);backdrop-filter:blur(12px)", "Glass") +
+        band("background:rgba(255,255,255,0.95)", "Solid") +
+        band("background:rgba(255,255,255,0.78)", "Faint") +
+        band("background:rgba(255,255,255,0.4);backdrop-filter:blur(12px)", "Thin") +
+        `<section style="position:relative"><img src="${url}" alt="Around" style="width:100px;height:100px;display:block"><span style="position:absolute;bottom:4px;left:4px;background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);padding:2px">Glass chip</span></section>`,
+    );
+    await decodeImages();
+    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Faint" × img "Faint"', 'span "Thin" × img "Thin"']);
+  });
+
   it("passes page text under an opaque overlay: a dialog, a menu, a popover or a floating panel, on a fill of its own or a box in it", () => {
     const over = (attrs: string, style: string, inner = "Over the page") => `<div style="position:relative"><p style="margin:0">Page text under the overlay</p><div ${attrs} style="position:absolute;top:0;left:0;width:240px;height:60px;${style}"><span>${inner}</span></div></div>`;
     render(
