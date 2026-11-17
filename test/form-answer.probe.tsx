@@ -38,6 +38,11 @@ async function edit() {
     email().dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
+// A new alert with a summary is inserted two frames after focus moves (Form's reveal effect queues its
+// frames first, so they run before these).
+async function frames() {
+  await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+}
 async function render(node: ReactNode) {
   host = document.createElement("div");
   document.body.append(host);
@@ -88,8 +93,10 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     const flow = await route({ immediate });
     await flow.submit();
     if (!immediate) await flow.arrive();
+    await frames();
     expect(email().getAttribute("aria-invalid")).toBe("true");
     const first = alert();
+    expect(first).not.toBeNull();
     await edit();
     const focus = vi.spyOn(email(), "focus");
     name().focus();
@@ -103,13 +110,17 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     expect(email().getAttribute("aria-invalid")).toBe("true");
     expect(document.activeElement).toBe(email());
     expect(focus).toHaveBeenCalledTimes(1);
+    await frames();
+    expect(alert()).not.toBeNull();
     expect(alert()).not.toBe(first);
   });
 
   it("rebuilds a mapped projection during pending without restoring a cleared error, then accepts the equal answer", async () => {
     const flow = await route({ mapped: true });
     await flow.submit(); await flow.arrive(); await edit();
+    await frames();
     const first = alert();
+    expect(first).not.toBeNull();
     await flow.submit();
     expect(email().getAttribute("aria-invalid")).toBe("false");
     expect(alert()).toBe(first);
@@ -117,6 +128,7 @@ describe("Form answer value: actual Router 7.18.4 Node DOM", () => {
     await flow.arrive();
     expect(email().getAttribute("aria-invalid")).toBe("true");
     expect(document.activeElement).toBe(email());
+    await frames();
     expect(alert()).not.toBe(first);
   });
 
@@ -243,10 +255,12 @@ describe("Form answer value: projection, privacy and hydration boundaries", () =
     try {
       await rerender(<StrictMode>{value(answer, { email: "New refusal.", form: "New message." })}</StrictMode>);
       expect(focus).toHaveBeenCalledTimes(1);
+      await frames();
       expect(inserted).toBe(1);
       const first = alert();
       name().focus();
       await rerender(<StrictMode>{value(answer, { email: "Other presentation.", form: "Updated text." })}</StrictMode>);
+      await frames();
       expect(alert()).toBe(first);
       expect(inserted).toBe(1);
       expect(focus).toHaveBeenCalledTimes(1);
