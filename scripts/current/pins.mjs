@@ -861,13 +861,14 @@ const axFolderOf = (entries) => {
 };
 
 /**
- * The package.json a vendored Ouro AX file resolves `#ouro-ax/*` through: the nearest one above the vendored folder.
- * It gets the entry, pointed at that folder, when it has none; one that points elsewhere is named, not changed.
+ * The package.json a vendored Ouro AX file resolves `#ouro-ax/*` through: the nearest one at or above the vendored
+ * folder. It gets the entry, pointed at that folder, when it has none; one that points elsewhere is named, not changed;
+ * with none, the folder gets its own.
  */
 async function axImportFix(readFile, entries, files) {
   const ax = axFolderOf(entries);
   if (!ax || !Object.values(files).some((bytes) => Buffer.isBuffer(bytes) && bytes.includes(AX_IMPORT))) return { files: {}, notes: [] };
-  let dir = posix.dirname(ax.slice(0, -1));
+  let dir = ax.slice(0, -1);
   for (;;) {
     const path = dir === "." ? "package.json" : `${dir}/package.json`;
     const text = (await readFile(path))?.toString("utf8");
@@ -885,7 +886,11 @@ async function axImportFix(readFile, entries, files) {
     if (dir === "." || dir === "") break;
     dir = posix.dirname(dir);
   }
-  return { files: {}, notes: [] };
+  // No package.json scopes the vendored folder (a Go repository, say): the folder takes one of its own, which scopes
+  // only the vendored files. They are ES modules.
+  const path = `${ax}package.json`;
+  const text = `${JSON.stringify({ private: true, type: "module", imports: { [`${AX_IMPORT}*`]: "./*" } }, null, 2)}\n`;
+  return { files: { [path]: Buffer.from(text, "utf8") }, notes: [`Adds \`${path}\`, so that \`#ouro-ax/*\`, which the vendored Ouro AX files now import one another through, resolves to the vendored folder.`] };
 }
 
 /** The file before which a new lock entry goes: the entries are kept in the order of their source paths. */

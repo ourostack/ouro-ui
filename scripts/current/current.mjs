@@ -195,6 +195,16 @@ async function autoMerge(gh, pr, commitBody) {
   return { on: false, note: failures.at(-1) };
 }
 
+/** Turns off a pull request's auto-merge; false when GitHub would not, so the push goes ahead as before. */
+async function disarm(gh, pr) {
+  try {
+    await gh.graphql("mutation($id: ID!) { disablePullRequestAutoMerge(input: { pullRequestId: $id }) { clientMutationId } }", { id: pr.node_id });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Whether a path is a workflow, which an app writes only with the `workflows` permission. */
 export const inWorkflows = (path) => /^\.github\/workflows\//.test(path);
 const workflowNote = (paths) =>
@@ -298,6 +308,10 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   }
   const moves = `${MARK.trim()} ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`;
   const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\n${moves}`, existing);
+  // Auto-merge left on from the last push lets a merge queue take the pull request in the same second as this push,
+  // and GitHub then started no \`pull_request\` checks for it (ourostack/m365crawl#366, 07:45Z). It is turned off
+  // before the push and on again after it, as for a new pull request.
+  const disarmed = commit.changed && existing && existingPr?.auto_merge ? await disarm(gh, existingPr) : false;
   if (commit.changed) {
     try {
       if (existing) await gh.patch(`repos/${repo}/git/refs/heads/${BRANCH}`, { sha: commit.sha, force: true });
@@ -306,6 +320,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       // GitHub keeps the branch of a pull request in a merge queue as it is: the queued update merges, or leaves the
       // queue, and the next run brings it up to date (ourostack/ouro-ui#1809).
       if (!(existing && existingPr && error.status === 422 && /merge queue/i.test(error.message))) throw error;
+      if (disarmed) await autoMerge(gh, existingPr, moves);
       return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "in the merge queue, so left as it is until it merges or leaves the queue", pushed: false } };
     }
   }
