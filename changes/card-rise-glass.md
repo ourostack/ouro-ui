@@ -1,0 +1,1 @@
+- Card's rising title lies on a glass band, the card's surface with the picture blurred through it, solid where the browser cannot blur, with reduced transparency, more contrast or forced colors; its description is muted halfway to the foreground so it stays readable over a bright picture or a dark one.

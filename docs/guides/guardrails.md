@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.269 ourostack/ouro-ui/ouro-source-rules#v1.3.269
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.270 ourostack/ouro-ui/ouro-source-rules#v1.3.270
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -175,7 +175,7 @@ While a modal is open (`aria-modal="true"` or a modal `<dialog>`), the layout, t
 
 | Rule | What it finds |
 | --- | --- |
-| `overlap` | A line of text drawn over another line, or over a picture, in the same section. The part of a picture a clipping box cuts away doesn't count, and a label on an opaque backing of its own, such as a chip on a picture, reads.[^check-overlap-picture] An opaque overlay (an open dialog, menu, listbox, popover or tooltip, or a panel of 120×48 or more floating over the page, not a badge) covers the page text under it, as a sticky bar does.[^check-overlay] |
+| `overlap` | A line of text drawn over another line, or over a picture, in the same section. The part of a picture a clipping box cuts away doesn't count, and a label on an opaque backing of its own, such as a chip on a picture, reads.[^check-overlap-picture] So does text on a glass scrim, a fill of 60% or more with the picture blurred behind it, around the text or as a layer of its own beneath it, as Card's rising title lies on.[^check-overlap-glass] An opaque overlay (an open dialog, menu, listbox, popover or tooltip, or a panel of 120×48 or more floating over the page, not a badge) covers the page text under it, as a sticky bar does.[^check-overlay] |
 | `sideways-scroll` | A page wider than the screen, naming the outermost elements that stick out. |
 | `clipped-text` | Text cut off by its box. An ellipsis or a line clamp is truncation on purpose and passes while the whole text is still there: in a `title`, an `aria-label`, or the text itself in the accessibility tree.[^check-truncate] Text behind an open modal is the page's, hidden on purpose until the modal closes, so its ellipsis passes too.[^check-overlay] A text block, a heading or a picture with less than 90% of its box shown, cut by the nearest ancestor that hides its overflow (`overflow: hidden` or `clip`), such as a title pushed partly above its card.[^check-clipped] It is measured by box: a picture cropped by `object-fit` inside a box that fits it passes, and so do text inside a scroll container or a carousel (which scrolls it rather than cutting it) and a visually hidden label (`clip-path: inset(50%)`, or the sr-only pattern).[^check-clipped-pass] |
 | `long-lines` | Off unless `ouro-check.json` declares a measure; then the elements it names whose lines run past it. Columns side by side are lines of their own, and a run of short items set apart by middle dots, bullets or bars is a list, not prose.[^check-measure] |
@@ -331,7 +331,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.269
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.270
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -411,7 +411,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.269
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.270
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -421,7 +421,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.269
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.270
         with:
           merge: "true"
 ```
@@ -441,7 +441,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.269
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.270
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -542,6 +542,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^check-corner-frame]: test:test/check-design-in-page.test.ts::listCornerMedia > lists pictures, videos and canvases, with the radius of the frame they fill (past a wrapper that draws no box) and the colour behind it verify:testExists(test/check-design-in-page.test.ts::listCornerMedia > lists pictures, videos and canvases, with the radius of the frame they fill (past a wrapper that draws no box) and the colour behind it)
 [^check-states]: test:scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing)
 [^check-settle]: test:scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing; test:scripts/check/check-pages.test.mts::Ouro check > judges a page once its animations have run, as a person sees it after a moment; test:scripts/check/check-pages.test.mts::Ouro check > names a page by site and path across several sites, a URL by its host and path, and the home page home verify:testExists(scripts/check/check-pages.test.mts::Ouro check > judges a page once its animations have run, as a person sees it after a moment) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > names a page by site and path across several sites, a URL by its host and path, and the home page home) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing)
+[^check-overlap-glass]: test:test/check-in-page.test.ts::findOverlaps > passes text on a glass scrim of its own over a picture, around it or a layer beside it, but not on a faint fill or on glass too thin verify:testExists(test/check-in-page.test.ts::findOverlaps > passes text on a glass scrim of its own over a picture, around it or a layer beside it, but not on a faint fill or on glass too thin)
 [^check-overlap-picture]: test:test/check-in-page.test.ts::findOverlaps > leaves out the part of a picture a clipping box cuts away, and a label on an opaque backing of its own, but not one on a see-through backing verify:testExists(test/check-in-page.test.ts::findOverlaps > leaves out the part of a picture a clipping box cuts away, and a label on an opaque backing of its own, but not one on a see-through backing)
 [^check-mask-ramp]: test:test/check-in-page.test.ts::findImageFades > reads a linear mask's ramp along its line and finds only a picture in the part it fades, and any picture under a mask it can't read so verify:testExists(test/check-in-page.test.ts::findImageFades > reads a linear mask's ramp along its line and finds only a picture in the part it fades, and any picture under a mask it can't read so)
 [^check-measure]: test:scripts/check/check-pages.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements; test:test/check-in-page.test.ts::findSizeIssues: long-lines > counts columns side by side as lines of their own, and a run of short items as a list, not prose; test:test/check-in-page.test.ts::findSizeIssues: long-lines > finds nothing without a declared measure, however long the lines run; test:test/check-in-page.test.ts::findSizeIssues: long-lines > holds the elements a selector names to a measure in px, and leaves the rest alone; test:test/check-in-page.test.ts::findSizeIssues: long-lines > holds prose to a measure in ch, the width of so many zeros in its own font verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks long lines only against a measure the project declares: none without one, a page glob's prose, or a selector's elements) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > finds nothing without a declared measure, however long the lines run) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > holds the elements a selector names to a measure in px, and leaves the rest alone) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > holds prose to a measure in ch, the width of so many zeros in its own font) verify:testExists(test/check-in-page.test.ts::findSizeIssues: long-lines > counts columns side by side as lines of their own, and a run of short items as a list, not prose)

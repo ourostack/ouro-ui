@@ -714,6 +714,40 @@ describe("findOverlaps", () => {
     expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Caption" × img "under a see-through label"']);
   });
 
+  it("passes text on a glass scrim of its own over a picture, around it or a layer beside it, but not on a faint fill or on glass too thin", async () => {
+    const url = await picture(100, 100);
+    // A grid cell holds the picture, then a band: a glass layer and the text, each a layer of its own.
+    const band = (glass: string, text: string) =>
+      `<section style="display:grid;width:100px"><img src="${url}" alt="${text}" style="grid-area:1/1;width:100px;height:100px;display:block"><div style="grid-area:1/1;align-self:end;display:grid"><div style="grid-area:1/1;z-index:1;${glass}"></div><span style="grid-area:1/1;z-index:2;padding:4px">${text}</span></div></section>`;
+    render(
+      band("background:rgba(255,255,255,0.78);backdrop-filter:blur(12px)", "Glass") +
+        band("background:rgba(255,255,255,0.95)", "Solid") +
+        band("background:rgba(255,255,255,0.78)", "Faint") +
+        band("background:rgba(255,255,255,0.4);backdrop-filter:blur(12px)", "Thin") +
+        `<section style="position:relative"><img src="${url}" alt="Around" style="width:100px;height:100px;display:block"><span style="position:absolute;bottom:4px;left:4px;background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);padding:2px">Glass chip</span></section>`,
+    );
+    await decodeImages();
+    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Faint" × img "Faint"', 'span "Thin" × img "Thin"']);
+  });
+
+  it("reads a glass band only where it covers the whole overlap on the screen, never a picture's own box or a chip on it", async () => {
+    const url = await picture(100, 100);
+    // A band whose line crosses the bottom of the screen at the first scroll step: backed where it shows.
+    const fold = innerHeight - 100 + 20;
+    render(
+      `<div style="height:${fold}px"></div><section style="display:grid;width:100px"><img src="${url}" alt="At the fold" style="grid-area:1/1;width:100px;height:100px;display:block"><div style="grid-area:1/1;align-self:end;display:grid"><div style="grid-area:1/1;z-index:1;background:rgba(255,255,255,0.78);backdrop-filter:blur(12px)"></div><span style="grid-area:1/1;z-index:2;padding:4px">Folded</span></div></section>` +
+        // A picture no pointer meets, on a filled box of its own: the text is on the picture.
+        `<section style="position:relative;width:100px"><div style="background:#000"><img src="${url}" alt="Untouchable" style="pointer-events:none;width:100px;height:100px;display:block"></div><span style="position:absolute;bottom:4px;left:4px;color:#fff">On it</span></section>` +
+        // A small disc where a caption crosses a picture: the rest of the caption is on the picture.
+        `<section style="position:relative;width:100px"><img src="${url}" alt="Video" style="width:100px;height:100px;display:block"><span style="position:absolute;top:40px;left:40px;width:20px;height:20px;border-radius:50%;background:#fff;z-index:1"></span><span style="position:absolute;top:42px;left:0;z-index:2;white-space:nowrap">A caption across it</span></section>` +
+        // A collision off the side of the screen, as in a carousel: no glass shows there to back it.
+        `<section style="position:relative;left:-300px;width:100px"><div style="display:grid"><img src="${url}" alt="Aside" style="grid-area:1/1;width:100px;height:100px;display:block"><div style="grid-area:1/1;z-index:1;align-self:end;background:rgba(255,255,255,0.78);backdrop-filter:blur(12px);height:28px"></div><span style="grid-area:1/1;z-index:2;align-self:end;padding:4px">Off to the side</span></div></section>` +
+        `<div style="height:${innerHeight}px"></div>`,
+    );
+    await decodeImages();
+    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "On it" × img "Untouchable"', 'span "A caption across it" × img "Video"', 'span "Off to the side" × img "Aside"']);
+  });
+
   it("passes page text under an opaque overlay: a dialog, a menu, a popover or a floating panel, on a fill of its own or a box in it", () => {
     const over = (attrs: string, style: string, inner = "Over the page") => `<div style="position:relative"><p style="margin:0">Page text under the overlay</p><div ${attrs} style="position:absolute;top:0;left:0;width:240px;height:60px;${style}"><span>${inner}</span></div></div>`;
     render(
