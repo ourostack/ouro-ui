@@ -221,6 +221,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
   // Both forms are in the server HTML, and CSS shows one: the links from the sm breakpoint up, the menu button below it.
   // This query is that same breakpoint, in rem as sm is, so the sheet's script and the CSS agree at any root font size.
   // The links also collapse wherever they do not fit the bar, which only the measure below can tell.
+  // Stryker disable next-line BooleanLiteral: the server default feeds only the hydration render, which draws the same bar either way; the sheet's build waits for an effect that reads the live value.
   const wide = useMediaQuery("(min-width: 40rem)", true);
   const [overflow, setOverflow] = useState(false);
   const collapsed = !wide || overflow;
