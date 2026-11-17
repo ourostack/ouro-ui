@@ -765,6 +765,7 @@
     "registry/ouro/e2e/ouro/composer.spec.ts": 35611,
     "registry/ouro/e2e/ouro/confirm-dialog.spec.ts": 13922,
     "registry/ouro/e2e/ouro/conversation-list.spec.ts": 6720,
+    "registry/ouro/e2e/ouro/cover.spec.ts": 5000,
     "registry/ouro/e2e/ouro/copy-button.spec.ts": 3047,
     "registry/ouro/e2e/ouro/date-picker.spec.ts": 17594,
     "registry/ouro/e2e/ouro/description-list.spec.ts": 2576,
