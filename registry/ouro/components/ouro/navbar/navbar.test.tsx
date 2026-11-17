@@ -216,6 +216,14 @@ describe("Navbar", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["Recipes", "Cookbooks", "Shopping list"]);
     await expect.element(nav.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "page");
     await expect.poll(() => Math.round(sheet.element().getBoundingClientRect().left)).toBe(0);
+    // Each link is a row with room at its sides and corners rounded on Ouro's md step, as the theme sets it.
+    const row = getComputedStyle(nav.getByRole("link", { name: "Cookbooks" }).element());
+    const step = document.body.appendChild(document.createElement("div"));
+    mounted.push(step);
+    step.style.borderRadius = "var(--radius-ouro-md)";
+    expect(parseFloat(row.borderTopLeftRadius)).toBeGreaterThan(0);
+    expect(row.borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
+    expect(row.paddingInlineStart).toBe("12px");
   });
 
   it("marks the section a page is in as current but not the page in the sheet too, and no other link", async () => {
