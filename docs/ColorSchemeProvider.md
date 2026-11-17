@@ -11,7 +11,7 @@ import { ColorSchemeProvider } from "@/registry/ouro/lib/ouro/color-scheme";
 ## Example
 
 ```tsx
-// app/root.tsx (React Router):
+// app/root.tsx (React Router), or app/layout.tsx (Next.js) with {children} for <Outlet />:
 <html lang="en" suppressHydrationWarning>
   <head>
     <script dangerouslySetInnerHTML={{ __html: colorSchemeScript() }} />
@@ -22,11 +22,16 @@ import { ColorSchemeProvider } from "@/registry/ouro/lib/ouro/color-scheme";
     </ColorSchemeProvider>
   </body>
 </html>
+// src/main.tsx (Vite):
+createRoot(document.getElementById("root")!).render(<ColorSchemeProvider><App /></ColorSchemeProvider>);
+// vite.config.ts (Vite), with import { colorSchemeScript } from "./src/lib/ouro/color-scheme-script.ts":
+const colorScheme = { name: "color-scheme", transformIndexHtml: () => [{ tag: "script", children: colorSchemeScript(), injectTo: "head-prepend" as const }] };
+export default defineConfig({ plugins: [react(), tailwindcss(), colorScheme] });
 ```
 
 ## Usage
 
-Wrap the app once, in the root layout, and put `colorSchemeScript()` in `<head>` so the first paint already has the scheme. Ouro UI components need neither: without them, dark mode is whatever `.dark` class the app sets.
+Wrap the app once, in the root layout, and put `colorSchemeScript()` in `<head>` so the first paint already has the scheme. In a Vite app, where `index.html` holds the `<head>`, wrap `<App />` in `src/main.tsx`, and have Vite put the script in `index.html` from `vite.config.ts`, as the example's last lines do. Ouro UI components need neither: without them, dark mode is whatever `.dark` class the app sets.
 
 ## Props
 

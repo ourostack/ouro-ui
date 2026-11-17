@@ -594,7 +594,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ButtonGroup** — Related buttons joined into one control, such as Previous, a page number and Next, or a split button. [Docs](docs/ButtonGroup.md)
 - **canShare** — Whether the browser has a share sheet for this data: most phones and Safari do, most desktop browsers do not. [Docs](docs/canShare.md)
 - **colorSchemeScript** — The script that sets the page's color scheme before it paints, so a reload in dark mode never flashes light. [Docs](docs/colorSchemeScript.md)
-- **ColorSchemeToggle** — The control that switches the app between light, dark and the system's scheme, and keeps the choice. [Docs](docs/ColorSchemeToggle.md)
+- **ColorSchemeToggle** — The dark mode control: it switches the app between light, dark and the system's scheme, and keeps the choice. [Docs](docs/ColorSchemeToggle.md)
 - **CopyButton** — A button that puts a piece of text on the clipboard: an API key, a link, a command. [Docs](docs/CopyButton.md)
 - **copyText** — Puts text on the clipboard: through the Clipboard API, or a text selection where the page may not use it (plain http, an older browser). [Docs](docs/copyText.md)
 - **share** — Shares a link through the system's share sheet, or copies it where there is none, and says which happened. [Docs](docs/share.md)

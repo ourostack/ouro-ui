@@ -1,0 +1,1 @@
+- Changed: ColorSchemeToggle is [the dark mode control](scripts/registry.test.mjs "verify:testExists(scripts/registry.test.mjs::an agent that searches llms.txt for dark mode finds the item that does it)") in its docs and llms.txt, its docs give the import of ColorSchemeProvider and colorSchemeScript, and ColorSchemeProvider's example shows a Vite app's wiring.
