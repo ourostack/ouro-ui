@@ -1,0 +1,1 @@
+- Fixed: `runCli` prints a failure whose message is already a whole `<tool>: ...` line as it is, instead of prefixing the tool's name again ([test](registry/ouro/ax/cli.test.mts "verify:fileLine(registry/ouro/ax/cli.test.mts, /a failure that is already a whole/)")).

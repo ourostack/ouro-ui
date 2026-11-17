@@ -55,6 +55,18 @@ test("an error is one stderr line with the fix and its exit code; --json also pr
   assert.equal((await run(["note", "abc123", "x"])).code, 0);
 });
 
+test("a failure that is already a whole `<tool>: ...` line prints as it is, not prefixed again", async () => {
+  const fails = (message: string) => defineCli({ name: "notes", about: ["a toy"], command: defineCommand({ name: "go", summary: "Fail.", effect: "private", run: () => { throw new Error(message); } }) });
+  const once = async (message: string) => {
+    let err = "";
+    const code = await runCli(fails(message), [], { stdout: { write: () => undefined }, stderr: { write: (s) => (err += s) } });
+    return { code, err };
+  };
+  assert.deepEqual(await once("desk: sync: the lock is held.\nFix: wait."), { code: 1, err: "desk: sync: the lock is held. Fix: wait.\n" });
+  assert.equal((await once("ENOENT: no such file")).err, "notes: notes: ENOENT: no such file.\n");
+  assert.equal((await once("plain")).err, "notes: notes: plain.\n");
+});
+
 test("help: the overview, a command, a topic, as text and --json; an unknown topic is usage", async () => {
   assert.match((await run(["--help"])).out, /^notes: a toy tool/);
   assert.match((await run(["help", "post"])).out, /notes post: Post a message/);
