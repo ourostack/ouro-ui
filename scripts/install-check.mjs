@@ -310,6 +310,28 @@ function filesUnder(app, dir) {
 }
 
 /**
+ * What a theme item (ouro-base) puts in an app's stylesheet and the stylesheet lacks: each variable of its `cssVars`,
+ * each variable its `css` declares under `:root` or `.dark`, and each of its `@keyframes` and `@utility` blocks. An
+ * update that moved the components alone leaves the new ones out, and a component that reads one draws without it (#1843).
+ */
+export function checkThemeItem(css, item, cssPath = "the stylesheet") {
+  const problems = [];
+  const names = new Set();
+  for (const group of Object.values(item.cssVars ?? {})) for (const name of Object.keys(group)) names.add(`--${name}`);
+  for (const [selector, block] of Object.entries(item.css ?? {})) {
+    if (selector === ":root" || selector === ".dark") {
+      for (const name of Object.keys(block)) if (name.startsWith("--")) names.add(name);
+    } else if (/^@(keyframes|utility) /.test(selector) && !css.includes(selector)) {
+      problems.push(`${cssPath} has no ${selector}, which ${item.name} adds`);
+    }
+  }
+  for (const name of names) {
+    if (!new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`).test(css)) problems.push(`${cssPath} does not declare ${name}, which ${item.name} adds`);
+  }
+  return problems;
+}
+
+/**
  * Problems with where the Node-only Ouro tools installed, as readable lines; empty when each is
  * under scripts/ouro, none is left in src, every Ouro AX file is installed once (compared by path
  * relative to its folder), no installed file imports the kit by a path the CLI rewrote, and
@@ -368,6 +390,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const problems = checkNodeTools(process.argv[3]);
   for (const problem of problems) console.error(`install check: ${problem}`);
   if (problems.length === 0) console.log(`install check: the Node-only Ouro tools are where the CLI puts them in ${process.argv[3]}`);
+  process.exitCode = problems.length === 0 ? 0 : 1;
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--theme-item") {
+  const [, , , cssPath, registryPath, name] = process.argv;
+  const item = JSON.parse(readFileSync(registryPath, "utf8")).items.find((each) => each.name === name);
+  const problems = item ? checkThemeItem(readFileSync(cssPath, "utf8"), item, cssPath) : [`${registryPath} has no item ${name}`];
+  for (const problem of problems) console.error(`install check: ${problem}`);
+  if (problems.length === 0) console.log(`install check: ${cssPath} has everything ${name} adds`);
   process.exitCode = problems.length === 0 ? 0 : 1;
 } else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--sources") {
   const [, , , app, sourceRoot] = process.argv;
