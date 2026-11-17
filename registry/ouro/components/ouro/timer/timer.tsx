@@ -260,7 +260,7 @@ export function Timer(props: TimerProps): JSX.Element {
   if (variant === "ring") {
     const counting = status === "running" || status === "paused";
     // The arc is the time left: whole when the timer starts, gone at zero, and hidden while idle.
-    const left = counting && timer.duration > 0 ? Math.min(1, Math.max(0, timer.remaining / timer.duration)) : 0;
+    const left = counting ? Math.min(1, Math.max(0, timer.remaining / timer.duration || 0)) : 0;
     return (
       <div {...rest} data-ouro="timer" data-status={status} data-variant="ring" role="group" aria-label={label} className={cn("grid min-w-0 justify-items-center gap-3", className)}>
         <div className="relative grid aspect-square w-full max-w-64 place-items-center">
@@ -291,7 +291,7 @@ export function Timer(props: TimerProps): JSX.Element {
               data-ouro-control="timer"
               data-ouro-part="primary"
               size="sm"
-              tone={done ? "destructive" : "primary"}
+              tone={done ? "destructive" : undefined}
               variant="plain"
               onClick={act}
             >

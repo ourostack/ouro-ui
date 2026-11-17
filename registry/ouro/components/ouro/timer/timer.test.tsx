@@ -413,12 +413,16 @@ describe("Timer ring", () => {
     await advance(150_000);
     expect(Number(arc(host).getAttribute("stroke-dashoffset"))).toBeCloseTo(0.25, 2);
     expect(primary().textContent).toBe("Pause");
+    expect(host.textContent).not.toContain("Paused");
     expect(secondary()!.textContent).toBe("Cancel");
     expect(secondary()!.getBoundingClientRect().top).toBeGreaterThanOrEqual(box.bottom);
     await press(primary());
     expect(primary().textContent).toBe("Resume");
     expect(host.textContent).toContain("Paused");
     expect(time().textContent).toBe("7:30");
+    // Paused, the arc stays where the time stopped.
+    expect(arc(host).getAttribute("opacity")).toBe("1");
+    expect(Number(arc(host).getAttribute("stroke-dashoffset"))).toBeCloseTo(0.25, 2);
     expect(getComputedStyle(arc(host)).stroke).toBe(probe("var(--primary)"));
   });
 
@@ -431,6 +435,9 @@ describe("Timer ring", () => {
     expect(secondary()!.textContent).toBe("Restart");
     expect(host.textContent).toContain("Time's up");
     expect(arc(host).getAttribute("opacity")).toBe("0");
+    // Dismiss takes the done colour; Start, Pause and Resume do not.
+    const ready = await render(<Timer label="Tea" duration={60} variant="ring" />);
+    expect(getComputedStyle(primary()).color).not.toBe(getComputedStyle(ready.primary()).color);
     expect(getComputedStyle(arc(host)).stroke).toBe(probe("var(--destructive)"));
   });
 
