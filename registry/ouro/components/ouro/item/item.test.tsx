@@ -40,6 +40,20 @@ afterEach(async () => {
 const pixel = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 const RouterLink: OuroLinkComponent = (props) => <a data-router="" {...props} />;
 
+/** The @media conditions around each of the page's rules that make an element under this group transparent. */
+function hidingConditions(group: string): string[][] {
+  const found: string[][] = [];
+  const walk = (rules: CSSRuleList, chain: string[]) => {
+    for (const rule of rules) {
+      if (rule instanceof CSSStyleRule && rule.selectorText.includes(`.${group}`) && rule.style.opacity === "0") found.push(chain);
+      if (rule instanceof CSSMediaRule) walk(rule.cssRules, [...chain, rule.conditionText]);
+      else if (rule instanceof CSSGroupingRule) walk(rule.cssRules, chain);
+    }
+  };
+  for (const sheet of document.styleSheets) walk(sheet.cssRules, []);
+  return found;
+}
+
 function center(element: Element) {
   const rect = element.getBoundingClientRect();
   return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
@@ -157,6 +171,12 @@ describe("Item", () => {
     await settled("0");
     edit.element().setAttribute("aria-expanded", "true");
     await settled("1");
+  });
+
+  it("hides revealActions' actions only where the pointer can hover, so a stylus that cannot still sees them", () => {
+    const conditions = hidingConditions(CSS.escape("group/item"));
+    expect(conditions).not.toEqual([]);
+    for (const chain of conditions) expect(chain).toContain("(hover: hover)");
   });
 
   it("shows its actions from the start without revealActions", async () => {

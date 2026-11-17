@@ -156,7 +156,7 @@ const zoomMediaClass =
   "motion-safe:pointer-fine:group-hover/card:[&_:is(img,video)]:scale-[1.03] motion-safe:group-has-[:focus-visible]/card:[&_:is(img,video)]:scale-[1.03]";
 const revealClass =
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast) " +
-  "pointer-fine:not-group-hover/card:not-group-has-[:focus-visible]/card:opacity-0";
+  "pointer-fine:[@media(hover:hover)]:not-group-hover/card:not-group-has-[:focus-visible]/card:opacity-0";
 
 // Below the breakpoint the header's action drops under the title, at the start.
 const headerStacked = { sm: "max-sm:flex-col max-sm:gap-3", md: "max-md:flex-col max-md:gap-3" } as const;

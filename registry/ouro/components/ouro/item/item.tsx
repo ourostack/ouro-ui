@@ -217,10 +217,12 @@ const mediaWithDescription = {
   lg: "self-start",
 } as const;
 
-// revealActions follows the row's hover with a mouse, focus anywhere in it, and a menu of its actions left open.
+// revealActions follows the row's hover with a mouse, focus anywhere in it, and a menu of its actions left
+// open. It hides them only where the pointer can hover: Tailwind also negates group-hover under
+// not (hover: hover), which would hide them for good from a stylus.
 const revealActionsClass =
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast) " +
-  "pointer-fine:not-group-hover/item:not-group-focus-within/item:not-group-has-[[aria-expanded=true]]/item:opacity-0";
+  "pointer-fine:[@media(hover:hover)]:not-group-hover/item:not-group-focus-within/item:not-group-has-[[aria-expanded=true]]/item:opacity-0";
 
 // Columns for each layout, and the stacked layout below a breakpoint, where the actions
 // move under the text into the title's column. Literal strings so the app's Tailwind finds them.
