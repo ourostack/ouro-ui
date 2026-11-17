@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Command's phone sheet, below 640px, [puts focus in its search after a key press or a click](registry/ouro/components/ouro/command/command.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > puts focus in the phone sheet's search after a key press below 640px)"), as the dialog does, so the keys typed next land in it; [after a touch or pen tap it still focuses itself](registry/ouro/components/ouro/command/command.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > focuses the phone sheet itself, not its search, after a %s tap below 640px, so no keyboard pops up)"), so no software keyboard pops up.
