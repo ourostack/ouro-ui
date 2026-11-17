@@ -9,6 +9,7 @@
   "install (ouro, nova)",
   "install (shadcn, nova)",
   "install (shadcn, vega)",
+  "install-current",
   "install-upgrade",
   "latency",
   "lighthouse",
