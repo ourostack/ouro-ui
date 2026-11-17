@@ -740,10 +740,12 @@ describe("findOverlaps", () => {
         `<section style="position:relative;width:100px"><div style="background:#000"><img src="${url}" alt="Untouchable" style="pointer-events:none;width:100px;height:100px;display:block"></div><span style="position:absolute;bottom:4px;left:4px;color:#fff">On it</span></section>` +
         // A small disc where a caption crosses a picture: the rest of the caption is on the picture.
         `<section style="position:relative;width:100px"><img src="${url}" alt="Video" style="width:100px;height:100px;display:block"><span style="position:absolute;top:40px;left:40px;width:20px;height:20px;border-radius:50%;background:#fff;z-index:1"></span><span style="position:absolute;top:42px;left:0;z-index:2;white-space:nowrap">A caption across it</span></section>` +
+        // A collision off the side of the screen, as in a carousel: no glass shows there to back it.
+        `<section style="position:relative;left:-300px;width:100px"><div style="display:grid"><img src="${url}" alt="Aside" style="grid-area:1/1;width:100px;height:100px;display:block"><div style="grid-area:1/1;z-index:1;align-self:end;background:rgba(255,255,255,0.78);backdrop-filter:blur(12px);height:28px"></div><span style="grid-area:1/1;z-index:2;align-self:end;padding:4px">Off to the side</span></div></section>` +
         `<div style="height:${innerHeight}px"></div>`,
     );
     await decodeImages();
-    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "On it" × img "Untouchable"', 'span "A caption across it" × img "Video"']);
+    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "On it" × img "Untouchable"', 'span "A caption across it" × img "Video"', 'span "Off to the side" × img "Aside"']);
   });
 
   it("passes page text under an opaque overlay: a dialog, a menu, a popover or a floating panel, on a fill of its own or a box in it", () => {
