@@ -83,9 +83,9 @@ export interface ButtonBaseProps {
    * such as a logo, keeps the label's padding. Any other
    * string is a type error whose message names the fix. @default "md"
    * @claim "at least as wide as it is tall" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > is as wide as it is tall at size %s, with only an icon and a name)
-   * @claim "Wider content keeps its width." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps an image child at its own width, and the button is never narrower than it is tall)
-   * @claim "Wider content keeps its width." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps a wide element child at its full width under its aria-label)
-   * @claim "A picture whose `width` and `height` differ" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps a label's padding around a wide picture such as a logo, and squares a square one or an icon)
+   * @claim "Wider content keeps its width" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps an image child at its own width, and the button is never narrower than it is tall)
+   * @claim "Wider content keeps its width" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps a wide element child at its full width under its aria-label)
+   * @claim "a picture whose `width` and `height` differ" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps a label's padding around a wide picture such as a logo, and squares a square one or an icon)
    * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::appearance > orders sizes sm < md < lg)
    * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets the app's height and padding win at desktop widths too)
    * @claim "it takes the text's size" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::inline size > sits in a line of text at the text's size without moving the line, and keeps a 24px target)
@@ -306,11 +306,9 @@ const iconClass = "size-[1.25em] shrink-0";
 const iconChildClass =
   "[&>[data-ouro-label]>svg:not([class*='size-'])]:size-[1.25em] [&>[data-ouro-label]>svg]:shrink-0";
 
-// An icon-only button is at least as wide as it is tall: the height is a floor, never a width, so a wider child keeps
-// its width. When the child is an svg (a component that renders one too), the label's side padding goes, so the icon
-// sits in a square; any other child keeps its padding.
-const iconOnlyClass =
-  "min-w-(--ouro-button-h) [&:has(>[data-ouro-label]>svg:only-child)]:[--ouro-button-px:0px]";
+// An icon-only button drops the label's side padding and is at least as wide as it is tall: the height is a floor,
+// never a width, so an icon sits in a square and a child wider than the height keeps its width.
+const iconOnlyClass = "min-w-(--ouro-button-h) [--ouro-button-px:0px] sm:[--ouro-button-px:0px]";
 
 const buttonTypes = ["button", "submit", "reset"] as const;
 

@@ -765,10 +765,18 @@ describe("icon-only size", () => {
         <span id="add-label">Add</span>
       </>,
     );
-    for (const button of host.querySelectorAll<HTMLElement>('[data-ouro="button"]')) {
-      const box = button.getBoundingClientRect();
-      expect(box.width).toBeGreaterThan(0);
-      expect(box.width).toBe(box.height);
+    // On a phone and from the sm breakpoint up, where each size sets its own padding.
+    try {
+      for (const [width, height] of [[414, 896], [1280, 800]] as const) {
+        await page.viewport(width, height);
+        for (const button of host.querySelectorAll<HTMLElement>('[data-ouro="button"]')) {
+          const box = button.getBoundingClientRect();
+          expect(box.width).toBeGreaterThan(0);
+          expect(box.width).toBe(box.height);
+        }
+      }
+    } finally {
+      await page.viewport(414, 896);
     }
   });
 
