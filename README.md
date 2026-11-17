@@ -223,6 +223,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.239 (trigger or open):** on Dialog, ConfirmDialog, Sheet, EditSheet, Popover and EmojiPicker, `open` beside `trigger` is typed as the literal "Pass trigger, or open and onOpenChange, not both" instead of `never`, so passing both is a type error that names the fix.[^upgrade-trigger-or-open] A wrapper that reads `open` from the whole props type (`DialogProps["open"]`, or `open` destructured from `DialogProps`) now gets that literal too: read it from the controlled mode's type, `DialogControlledProps["open"]`, or narrow it with `typeof open === "boolean"`.
 
+- **After v1.3.239:** Ouro check, Ouro images, and the X-ray, flow runner and surfaces check with their tests now install under `scripts/ouro/`, outside the app's TypeScript project, where they were `lib/ouro/check/`, `lib/ouro/images/` and `lib/ouro/ax/`.[^upgrade-scripts-ouro] Ouro Current's update moves the files it installed there and adds the package.json `imports` entry they need. Without Ouro Current, run the add again for those items, then set the entry with `npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"` (with `src/lib` your lib folder), delete the old `lib/ouro/check/`, `lib/ouro/images/` and the moved Ouro AX files at your project root once nothing imports them, and remove any tsconfig `exclude` of those folders.
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -338,6 +340,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-surface-override]: registry/ouro/theme/squircle-surface.test.tsx verify:testExists(registry/ouro/theme/squircle-surface.test.tsx::squircle surface where the engine has no corner-shape > lets an app's own fill and border classes on a Button win, with and without corner-shape)
 [^upgrade-plain]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(site/scripts/static-css.test.mjs::ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS)
 [^upgrade-trigger-or-open]: scripts/agent-types.test.mjs verify:testExists(scripts/agent-types.test.mjs::tsc reports exactly the expected errors, naming the fix where the case says so)
+[^upgrade-scripts-ouro]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::Ouro check installs under scripts/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does) verify:testExists(scripts/current/current.test.mjs::Ouro HX moves Ouro check and the X-ray to scripts/ouro where their items now install, deleting the old copies and fixing package.json)
 <!-- upgrade:end -->
 
 ### Items

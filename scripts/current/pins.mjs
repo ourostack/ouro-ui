@@ -209,14 +209,23 @@ function declaredRoots(found, consumer) {
 /** The part of a target after its alias (`ouro/check/check.ts` for `@lib/ouro/check/check.ts`). */
 const afterAlias = (target) => target.replace(/^(@[a-z]+|~)\//, "");
 
+/** The registry's targets whose source is in the tag. */
+const presentTargets = (tarball) => registryTargets(tarball).filter((entry) => tarball.has(entry.path));
+
+/** Where the app's aliases resolve: what the install record shows, then the app's own declared aliases. */
+const rootsOf = (targets, installed, declared) => ({ ...aliasRoots(targets, installed), ...declared });
+
+/** The consumer path a registry target installs to: `~/` is the folder that holds components.json. */
+const installPath = (target, found, roots) => (target.startsWith("~/") ? (found ? `${found.dir}${afterAlias(target)}` : null) : resolveTarget(target, roots));
+
 /**
  * Each consumer path an item installs to, with its registry source, at one tag. A file the install record holds stays
  * where the record says, even when the app keeps it apart from the rest of its alias (Ouro check in `lib/ouro/check/`
  * beside components in `src/`); a file the record lacks goes beside its item's other files, else under its alias.
  */
 function installedPaths(tarball, installed, declared = {}) {
-  const targets = registryTargets(tarball).filter((entry) => tarball.has(entry.path));
-  const roots = { ...aliasRoots(targets, installed), ...declared };
+  const targets = presentTargets(tarball);
+  const roots = rootsOf(targets, installed, declared);
   const byPath = new Map();
   const itemRoots = new Map();
   for (const entry of targets) {
@@ -237,6 +246,35 @@ function installedPaths(tarball, installed, declared = {}) {
 
 const list = (paths) => paths.map((path) => `\`${path}\``).join(", ");
 
+/** A path in a script, where it stands as a word: `src/lib/x.ts`, or `./src/lib/x.ts` after a space or a quote. */
+const scriptPath = (path) => new RegExp(String.raw`(^|[\s"'=(])((?:\.\/)?)${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\w-]|\.\w)`, "g");
+
+/**
+ * A package.json the moved files need: the `#ouro-ax/*` import their shared Ouro AX files resolve through, when it lacks
+ * one, and each `scripts` value that names a moved file, pointed where it now sits. Only what changed is rewritten, in
+ * the file's own indentation, with its trailing newline.
+ */
+function editPackage(text, { axImport, moves }) {
+  const data = JSON.parse(text);
+  const changed = { imports: false, scripts: false };
+  if (axImport && !(data.imports && typeof data.imports === "object" && "#ouro-ax/*" in data.imports)) {
+    data.imports = { ...(data.imports ?? {}), "#ouro-ax/*": axImport };
+    changed.imports = true;
+  }
+  for (const [name, value] of Object.entries(data.scripts ?? {})) {
+    if (typeof value !== "string") continue;
+    let next = value;
+    for (const move of moves) next = next.replace(scriptPath(move.from), (all, lead, dotSlash) => `${lead}${dotSlash}${move.to}`);
+    if (next !== value) {
+      data.scripts[name] = next;
+      changed.scripts = true;
+    }
+  }
+  if (!changed.imports && !changed.scripts) return { text, ...changed };
+  const indent = /^([ \t]+)"/m.exec(text)?.[1] ?? "  ";
+  return { text: `${JSON.stringify(data, null, indent)}${text.endsWith("\n") ? "\n" : ""}`, ...changed };
+}
+
 /**
  * Ouro HX installed as source (`.github/ouro-hx-installed.json`: the tag, its commit, and the sha256 of each installed
  * file's registry source). A file is updated only when the old tag's source, rewritten as the CLI rewrites it, is
@@ -251,11 +289,19 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const declared = declaredRoots(found, consumer);
   const before = installedPaths(previous, installed, declared);
   const after = installedPaths(next, installed, declared);
+  const nextTargets = presentTargets(next);
+  const nextRoots = rootsOf(nextTargets, installed, declared);
+  const nextByPath = new Map();
+  for (const entry of nextTargets) {
+    if (!nextByPath.has(entry.path)) nextByPath.set(entry.path, entry);
+  }
   const rewrite = installRewrite(found?.json ?? null);
   const out = {};
   const hashes = {};
   const edited = [];
   const gone = [];
+  const moves = [];
+  const blocked = [];
   const items = new Set();
   for (const path of installed) {
     hashes[path] = record.files[path];
@@ -268,7 +314,25 @@ async function updateHxInstalled(pin, text, release, ctx) {
     }
     const entry = after.get(path);
     if (!entry) {
-      gone.push(path);
+      // The registry still has the file at this tag, but its target moved (Node-only tools now install under scripts/):
+      // the unedited file moves there, unless the app already has a file at the new path.
+      const moved = nextByPath.get(old.path);
+      const to = moved && installPath(moved.target, found, nextRoots);
+      if (!to || to === path) {
+        gone.push(path);
+        continue;
+      }
+      if (consumer.has(to) || to in record.files || to in out) {
+        blocked.push({ from: path, to });
+        continue;
+      }
+      const source = next.get(old.path);
+      delete hashes[path];
+      out[path] = null;
+      hashes[to] = sha256(source);
+      out[to] = rewrite(source);
+      items.add(moved.item);
+      moves.push({ from: path, to, target: moved.target });
       continue;
     }
     items.add(entry.item);
@@ -288,13 +352,33 @@ async function updateHxInstalled(pin, text, release, ctx) {
     hashes[path] = sha256(source);
     added.push(path);
   }
+  // Ouro AX's shared files are imported as `#ouro-ax/*`, which the app's package.json must map to its lib folder. Only
+  // the package beside components.json changes, and a script that ran a moved file is pointed at where it now sits.
+  const pkgPath = found ? `${found.dir}package.json` : null;
+  const pkgText = pkgPath && consumer.get(pkgPath)?.toString("utf8");
+  const writesAx = Object.values(out).some((value) => Buffer.isBuffer(value) && value.includes("#ouro-ax/"));
+  const lib = nextRoots["@lib"];
+  const libIn = found && lib?.startsWith(found.dir) ? lib.slice(found.dir.length) : null;
+  const inPackage = (path) => (path.startsWith(found.dir) ? path.slice(found.dir.length) : null);
+  const pkg = { imports: false, scripts: false };
+  if (pkgText !== undefined && (moves.length > 0 || writesAx)) {
+    const scriptMoves = moves.flatMap(({ from, to }) => (inPackage(from) && inPackage(to) ? [{ from: inPackage(from), to: inPackage(to) }] : []));
+    const edit = editPackage(pkgText, { axImport: writesAx && libIn !== null ? `./${libIn}ouro/ax/*` : null, moves: scriptMoves });
+    if (edit.text !== pkgText) out[pkgPath] = Buffer.from(edit.text, "utf8");
+    pkg.imports = edit.imports;
+    pkg.scripts = edit.scripts;
+  }
   const sorted = Object.fromEntries(Object.keys(hashes).sort().map((path) => [path, hashes[path]]));
   out[pin.file] = `${JSON.stringify({ ...record, tag: release.tag, tagCommit: release.sha, files: sorted }, null, 2)}\n`;
   const notes = [];
   // No counts or bare versions: a repository that runs Ouro UI's claims check on pull requests reads them as claims.
   const one = (paths, single, several) => (paths.length === 1 ? single : several);
+  for (const { from, to, target } of moves) notes.push(target.startsWith("~/") ? `Moves \`${from}\` to \`${to}\`, outside the app's TypeScript project.` : `Moves \`${from}\` to \`${to}\`.`);
+  if (pkg.imports) notes.push(`Adds \`#ouro-ax/*\` to \`imports\` in \`${pkgPath}\`, which the moved files resolve the shared Ouro AX files through.`);
+  if (pkg.scripts) notes.push(`Points the \`scripts\` in \`${pkgPath}\` at the moved files.`);
   if (added.length) notes.push(`Adds what installed items now include: ${list(added)}.`);
   if (edited.length) notes.push(`Leaves ${list(edited)} at \`${record.tag}\`, because ${one(edited, "it is", "they are")} not what the CLI wrote for \`${record.tag}\` (edited here, or rewritten in a way Ouro Current does not reproduce). Install ${one(edited, "it", "them")} again with the CLI, or move the change into Ouro UI.`);
+  for (const { from, to } of blocked) notes.push(`Leaves \`${from}\` where it is, because \`${to}\` already exists in the app and is not replaced.`);
   if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
   return { files: out, notes };
 }
