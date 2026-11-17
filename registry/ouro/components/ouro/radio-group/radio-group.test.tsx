@@ -315,6 +315,13 @@ describe("RadioGroup", () => {
     await expect.poll(() => document.activeElement).toBe(radios[0]);
   });
 
+  it("darkens a radio's border while its label is hovered, as a browser's own radio does", async () => {
+    const { radios } = await render(<RadioGroup legend="Size" options={sizes} />);
+    expect(pixel(getComputedStyle(radios[0]!).borderTopColor)).toBe(pixel(themeColor("--muted-foreground")));
+    await userEvent.hover(page.getByText("Small"));
+    await expect.poll(() => pixel(getComputedStyle(radios[0]!).borderTopColor)).toBe(pixel(themeColor("--foreground")));
+  });
+
   it("keeps an invalid radio's border red while hovered", async () => {
     const { radios } = await render(<RadioGroup legend="Size" options={sizes} error="Choose a size." />);
     await userEvent.hover(radios[0]!);

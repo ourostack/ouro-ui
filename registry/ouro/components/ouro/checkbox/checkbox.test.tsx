@@ -276,6 +276,13 @@ describe("Checkbox", () => {
       .toHaveAccessibleDescription("You can read them first. Accept the terms to continue.");
   });
 
+  it("darkens the box's border while its label is hovered, as a browser's own checkbox does", async () => {
+    const { box } = await render(<Checkbox label="Email me new recipes" />);
+    expect(pixel(getComputedStyle(box).borderTopColor)).toBe(pixel(themeColor("--muted-foreground")));
+    await userEvent.hover(page.getByText("Email me new recipes"));
+    await expect.poll(() => pixel(getComputedStyle(box).borderTopColor)).toBe(pixel(themeColor("--foreground")));
+  });
+
   it("keeps an invalid box's border red while hovered", async () => {
     const { box } = await render(<Checkbox label="I accept the terms" error="Accept the terms to continue." />);
     await userEvent.hover(box);
