@@ -722,6 +722,33 @@ describe("icon-only size", () => {
     expect(icon.width).toBe(withStart!.querySelector("svg")!.getBoundingClientRect().width);
   });
 
+  it("keeps a label's padding around a wide picture such as a logo, and squares a square one or an icon", async () => {
+    const picture = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 32'/%3E";
+    const { host } = await render(
+      <>
+        <Button aria-label="Home" variant="plain">
+          <img src={picture} alt="" width={50} height={32} />
+        </Button>
+        <Button aria-label="Profile" variant="plain">
+          <img src={picture} alt="" width={24} height={24} />
+        </Button>
+        <Button aria-label="Add" variant="plain">
+          <Star width={30} height={24} />
+        </Button>
+      </>,
+    );
+    const [logo, square, icon] = [...host.querySelectorAll<HTMLElement>('[data-ouro="button"]')];
+    const box = logo!.getBoundingClientRect();
+    const image = logo!.querySelector("img")!.getBoundingClientRect();
+    expect(image.width).toBe(50);
+    expect(image.left).toBeGreaterThan(box.left);
+    expect(image.right).toBeLessThan(box.right);
+    for (const button of [square!, icon!]) {
+      const squareBox = button.getBoundingClientRect();
+      expect(squareBox.width).toBe(squareBox.height);
+    }
+  });
+
   it.each([
     ["md", "md"],
     ["sm", "sm"],
