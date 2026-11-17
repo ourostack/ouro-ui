@@ -639,6 +639,7 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
       pulls.push(pr);
       return ok(pr, 201);
     }
+    if ((match = /^repos\/o\/r\/pulls\/(\d+)$/.exec(path)) && method === "GET") return ok(pulls[Number(match[1]) - 1]);
     if ((match = /^repos\/o\/r\/pulls\/(\d+)$/.exec(path)) && method === "PATCH") {
       const pr = pulls[Number(match[1]) - 1];
       Object.assign(pr, input);
@@ -754,6 +755,34 @@ test("an update pull request in a merge queue is left as it is, not failed, and 
   const after = await keepRepo(repo.gh, "o/r", newer, {});
   assert.equal(after.pr.pushed, true);
   assert.equal(repo.fileAt(BRANCH, "Package.swift"), SWIFT.replace("0.6.0", "0.10.0"));
+});
+
+test("a run that overlaps the update pull request's merge writes nothing: no branch on the old main, no title on the merged pull request (#1840)", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  const first = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const title = repo.pulls[0].title;
+  // The pull request merges after the run has read main and found it open: GitHub deletes its branch.
+  const gh = {
+    ...repo.gh,
+    get: async (path, options) => {
+      if (path === `repos/o/r/git/ref/heads/${BRANCH}` && repo.pulls[0].state === "open") {
+        Object.assign(repo.pulls[0], { state: "closed", merged: true });
+        repo.refs.delete(BRANCH);
+      }
+      return repo.gh.get(path, options);
+    },
+  };
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  const raced = await keepRepo(gh, "o/r", newer, {});
+  assert.equal(raced.state, "skipped");
+  assert.equal(raced.pr, null);
+  assert.match(raced.reason, new RegExp(`#${first.pr.number} merged while this run read the repository`));
+  assert.equal(repo.refs.has(BRANCH), false, "the branch is not made again on the old main");
+  assert.equal(repo.pulls[0].title, title, "the merged pull request keeps its title");
+  // The next run opens a new pull request from main.
+  const next = await keepRepo(repo.gh, "o/r", newer, {});
+  assert.equal(next.state, "pr");
+  assert.notEqual(next.pr.number, first.pr.number);
 });
 
 test("a branch write that fails for any other reason still fails the repository", async () => {
