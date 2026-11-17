@@ -8,6 +8,7 @@ import { unpinnedAddresses } from "./addresses.mjs";
 import { uncommitted } from "./generated-files.mjs";
 import { fillPlaceholder, latestRelease, PLACEHOLDER, releaseMismatches, withRelease } from "./latest-release.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { sandboxEnv } from "./sandbox.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -99,7 +100,7 @@ test("the release commit names only its own tag: release.yml's release-branch co
   const bin = scratchDir("ouro-release-bin-");
   writeFileSync(join(bin, "git"), `#!/usr/bin/env bash\necho "$*" >> "${join(bin, "calls.log")}"\n`);
   chmodSync(join(bin, "git"), 0o755);
-  const result = spawnSync("bash", ["-ec", body], { cwd: copy, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TAG: "v9.9.9", VERSION: "9.9.9" } });
+  const result = spawnSync("bash", ["-ec", body], { cwd: copy, encoding: "utf8", env: sandboxEnv({ TAG: "v9.9.9", VERSION: "9.9.9" }, [bin]) });
   assert.equal(result.status, 0, result.stderr);
   // The release commit holds this release's changes, assembled from changes/*.md.
   assert.match(readFileSync(join(copy, "CHANGES.md"), "utf8"), /^# Changes in this release\n\n- [^\n]*\n/);

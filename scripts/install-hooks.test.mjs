@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { installHooks } from "./install-hooks.mjs";
 import { main, pullRequestText, pushedBranch } from "./pre-push.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { sandboxEnv } from "./sandbox.mjs";
 
 const repo = () => {
   const dir = scratchDir("ouro-hooks-");
@@ -56,7 +57,7 @@ test("the pre-push hook stops a push whose pull request the claims lint would fa
     writeFileSync(join(bin, "gh"), `#!/bin/sh\nprintf '%s' '${JSON.stringify({ title: "Docs: fix a typo", body, state: "OPEN" })}'\n`);
     chmodSync(join(bin, "gh"), 0o755);
     const input = `refs/heads/docs-typo ${"1".repeat(40)} refs/heads/docs-typo ${"0".repeat(40)}\n`;
-    return spawnSync(process.execPath, ["scripts/pre-push.mjs"], { input, encoding: "utf8", env: { ...process.env, CI: "", PATH: `${bin}:${process.env.PATH}` } });
+    return spawnSync(process.execPath, ["scripts/pre-push.mjs"], { input, encoding: "utf8", env: sandboxEnv({ CI: "" }, [bin]) });
   };
   const failing = fake("This pull request makes the site 40 percent faster.");
   assert.notEqual(failing.status, 0, failing.stdout + failing.stderr);
