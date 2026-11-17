@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-17T20:27:24.193Z",
+  "generatedAt": "2026-11-17T20:55:30.468Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -204,14 +204,14 @@
     },
     {
       "repo": "ourostack/m365crawl",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit e1f7b22",
+          "current": "commit eda0c0a",
           "latest": "v1.3.267",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
@@ -221,10 +221,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 374,
-        "url": "https://github.com/ourostack/m365crawl/pull/374"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-md",
