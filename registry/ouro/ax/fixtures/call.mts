@@ -8,10 +8,10 @@
 // stream's refusal carries every line), `reason` (a refusal that leaves out its reason) and `owner` (unfollow stops any
 // agent's listening, not only the caller's). Two agents listen: inbox-agent and research-agent.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { quietPipes, runCli } from "../cli.ts";
-import { defineCli, defineCommand, type CommandDef, type Input } from "../command.ts";
-import { AxError } from "../problem.ts";
-import { nextStep, outcome } from "../outcome.ts";
+import { quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { defineCli, defineCommand, type CommandDef, type Input } from "#ouro-ax/command.ts";
+import { AxError } from "#ouro-ax/problem.ts";
+import { nextStep, outcome } from "#ouro-ax/outcome.ts";
 
 const faults = new Set((process.env["CALL_FAULTS"] ?? "").split(","));
 const file = process.env["CALL_STATE"];

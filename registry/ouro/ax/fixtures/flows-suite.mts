@@ -2,8 +2,8 @@
 // this process, a loopback mock serves its rooms as an API and takes a made-up reply on its control port, and the guard
 // proves the mock is the toy before any flow runs.
 import { createServer } from "node:http";
-import { runCli } from "../cli.ts";
-import { exampleCli, postMessage, resetRooms, rooms } from "../example-cli.ts";
+import { runCli } from "#ouro-ax/cli.ts";
+import { exampleCli, postMessage, resetRooms, rooms } from "#ouro-ax/example-cli.ts";
 import { defineFlow, defineSuite, inProcess, type Mock } from "../flows.ts";
 
 const ERR = ["oneLine", "namesFix", "noStack"] as const;

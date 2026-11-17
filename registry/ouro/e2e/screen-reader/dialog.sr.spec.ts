@@ -11,6 +11,15 @@ test("Dialog is announced with its title and role when it opens, and its trigger
   // "Edit" and "button" in one spoken sentence: not the dialog's "Edit recipe", not an "edit text" field.
   const saysTrigger = (phrase: string) => inOneSentence(phrase, nameAndRole("Edit", "button", "text|recipe"));
   await heard(sr, () => trigger.focus(), saysTrigger, '"Edit", button');
+  // What the page marks inert, hidden or guarded before the dialog opens, which must be all it marks once it closes: a
+  // screen reader skips what a closed dialog leaves marked (ourostack/ouro-ui#1812).
+  const marked = () =>
+    page.evaluate(() => ({
+      inert: document.querySelectorAll("[inert]").length,
+      hidden: document.querySelectorAll('[aria-hidden="true"]:not(svg, svg *)').length,
+      guards: document.querySelectorAll("[data-base-ui-focus-guard]").length,
+    }));
+  const before = await marked();
   // VoiceOver at times says only the focused field as the dialog opens, not the dialog
   // (ourostack/ouro-ui#119): it is then asked to describe the focus's container, which must name
   // the dialog as a web dialog in one sentence.
@@ -21,4 +30,5 @@ test("Dialog is announced with its title and role when it opens, and its trigger
   await heard(sr, () => page.keyboard.press("Escape"), saysTrigger, '"Edit", button, as focus returns');
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(trigger).toBeFocused();
+  expect(await marked()).toEqual(before);
 });

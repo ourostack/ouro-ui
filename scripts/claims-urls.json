@@ -391,6 +391,14 @@
     "status": 200,
     "checked": "2026-11-15"
   },
+  "https://github.com/ourostack/ouro-ui/blob/51df0c45569fa44d95c41ecea6122fb3ffd43b48/scripts/registry.mts#L437": {
+    "status": 200,
+    "checked": "2026-11-17"
+  },
+  "https://github.com/ourostack/ouro-ui/blob/5a09987c3646c43ecee291b3c285752fea737377/scripts/registry.mts#L439": {
+    "status": 200,
+    "checked": "2026-11-17"
+  },
   "https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md": {
     "status": 200,
     "checked": "2026-11-15"

@@ -5,7 +5,7 @@ import { createServer, type Server } from "node:http";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CLAIM_SET } from "./claims.ts";
+import { CLAIM_SET } from "#ouro-ax/claims.ts";
 import { ui as callUi } from "./fixtures/call-components.mts";
 import {
   audienceWho,

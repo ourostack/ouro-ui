@@ -1550,7 +1550,11 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-report-${{ matrix.shard }}
-          path: playwright-report/
+          # With what the server answered and the machine's load when a page load timed out (#1845).
+          path: |
+            playwright-report/
+            .tmp/e2e-stalls/
+          include-hidden-files: true
           if-no-files-found: ignore
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

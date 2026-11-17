@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkSources, stripFieldTokens } from "./install-check.mjs";
+import { checkComments, checkDirectives, checkInstall, checkLayerOverride, checkNodeTools, checkSources, stripFieldTokens } from "./install-check.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 // A real installed app is the install job's to build; these cases prove the check fails
@@ -276,4 +276,78 @@ test("an install whose --radius-ouro-lg does not read --ouro-radius-scale fails,
 test("stripFieldTokens removes --input, --radius and their @theme mappings, and nothing else", () => {
   const css = ":root {\n  --input: red;\n  --radius: 1rem;\n  --border: blue;\n}\n.dark {\n  --input: black;\n}\n@theme inline {\n  --color-input: var(--input);\n  --radius-md: calc(var(--radius) * 0.8);\n  --color-border: var(--border);\n}\n";
   assert.equal(stripFieldTokens(css), ":root {\n  --border: blue;\n}\n.dark {\n}\n@theme inline {\n  --color-border: var(--border);\n}\n");
+});
+
+// The Node-only tools as the CLI installs them: outside src, and the Ouro AX kit beside the lib with the imports entry.
+const nodeToolsApp = () => {
+  const dir = scratchDir("ouro-node-tools-");
+  const write = (file, text = "export {};\n") => {
+    mkdirSync(dirname(join(dir, file)), { recursive: true });
+    writeFileSync(join(dir, file), text);
+  };
+  for (const file of [
+    "scripts/ouro/check/check.ts",
+    "scripts/ouro/images/images.ts",
+    "scripts/ouro/ax/xray.ts",
+    "scripts/ouro/ax/flows.ts",
+    "scripts/ouro/ax/surfaces.ts",
+    "src/lib/ouro/ax/command.ts",
+  ]) {
+    write(file);
+  }
+  write("package.json", JSON.stringify({ imports: { "#ouro-ax/*": "./src/lib/ouro/ax/*" } }));
+  return dir;
+};
+
+test("the Node-only Ouro tools pass where the CLI puts them: outside src, each Ouro AX file once, and the kit's imports entry", () => {
+  assert.deepEqual(checkNodeTools(nodeToolsApp()), []);
+});
+
+test("an Ouro AX file installed in both src/lib/ouro/ax and scripts/ouro/ax fails, at any depth", () => {
+  const dir = nodeToolsApp();
+  writeFileSync(join(dir, "src/lib/ouro/ax/flows.ts"), "export {};\n");
+  mkdirSync(join(dir, "scripts/ouro/ax/sub"), { recursive: true });
+  mkdirSync(join(dir, "src/lib/ouro/ax/sub"), { recursive: true });
+  writeFileSync(join(dir, "scripts/ouro/ax/sub/shared.ts"), "export {};\n");
+  writeFileSync(join(dir, "src/lib/ouro/ax/sub/shared.ts"), "export {};\n");
+  const problems = checkNodeTools(dir).join("\n");
+  assert.match(problems, /src\/lib\/ouro\/ax\/flows\.ts and scripts\/ouro\/ax\/flows\.ts are both installed: remove the copy that does not belong/);
+  assert.match(problems, /src\/lib\/ouro\/ax\/sub\/shared\.ts and scripts\/ouro\/ax\/sub\/shared\.ts are both installed/);
+  assert.doesNotMatch(problems, /command\.ts/);
+});
+
+test("a check or image file left in src/lib/ouro fails, and names the item that installs it under scripts/ouro", () => {
+  const dir = nodeToolsApp();
+  mkdirSync(join(dir, "src/lib/ouro/check"), { recursive: true });
+  writeFileSync(join(dir, "src/lib/ouro/check/check.ts"), "export {};\n");
+  mkdirSync(join(dir, "src/lib/ouro/images"), { recursive: true });
+  writeFileSync(join(dir, "src/lib/ouro/images/images.ts"), "export {};\n");
+  const problems = checkNodeTools(dir).join("\n");
+  assert.match(problems, /src\/lib\/ouro\/check\/check\.ts is in src, where tsc -b reads its Node imports: remove it, since ouro-check installs it under scripts\/ouro/);
+  assert.match(problems, /src\/lib\/ouro\/images\/images\.ts is in src, .*since ouro-images installs it under scripts\/ouro/);
+});
+
+test("a missing imports entry for the Ouro AX kit fails, with the npm pkg set that adds it", () => {
+  const dir = nodeToolsApp();
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "app" }));
+  assert.deepEqual(checkNodeTools(dir), [
+    'package.json imports["#ouro-ax/*"] is missing, not "./src/lib/ouro/ax/*": fix it with npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"',
+  ]);
+});
+
+test("a tool whose #ouro-ax/ import the CLI rewrote to the app's path alias fails, and an .mts kit file passes", () => {
+  const dir = nodeToolsApp();
+  writeFileSync(join(dir, "scripts/ouro/ax/flows.ts"), 'import { runCli } from "~/lib/ouro/ax/cli";\nimport { outcome } from "./flows.kit.mts";\n');
+  writeFileSync(join(dir, "scripts/ouro/ax/flows.kit.mts"), 'export { outcome } from "#ouro-ax/outcome.ts";\n');
+  writeFileSync(join(dir, "scripts/ouro/check/run.ts"), 'import {\n  quietPipes,\n} from "@/lib/ouro/ax/cli";\n');
+  assert.deepEqual(checkNodeTools(dir).sort(), [
+    "scripts/ouro/ax/flows.ts imports ~/lib/ouro/ax/cli, which Node cannot resolve: the CLI rewrote #ouro-ax/ there; import the kit in an .mts file, which it leaves alone",
+    "scripts/ouro/check/run.ts imports @/lib/ouro/ax/cli, which Node cannot resolve: the CLI rewrote #ouro-ax/ there; import the kit in an .mts file, which it leaves alone",
+  ]);
+});
+
+test("a Node-only tool that did not install fails, and names the item that installs it", () => {
+  const dir = nodeToolsApp();
+  rmSync(join(dir, "scripts/ouro/ax/xray.ts"));
+  assert.deepEqual(checkNodeTools(dir), ["missing scripts/ouro/ax/xray.ts: add ouro-ax, which installs it under scripts/ouro"]);
 });

@@ -5,14 +5,14 @@
 An adopter's agent flows as data, run in CI without a model: a flow is the calls a good agent makes for one task, and the runner checks the calls' exit codes, JSON shapes and fields, error text, time, size and voice. The findings are in the `flow-review/0` format (`findings.jsonl`, one check a line, and `report.json`), with an X-ray report attached when given. The X-ray checks what every command must do; flows check what a task needs, and each finds what the other can't.
 
 ```sh
-node lib/ouro/ax/flows.ts run <suite module> [--out report] [--flows a,b] [--slack n] [--xray report.json]
+node scripts/ouro/ax/flows.ts run <suite module> [--out report] [--flows a,b] [--slack n] [--xray report.json]
 ```
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-flows#v1.3.241
+npx shadcn@latest add ourostack/ouro-ui/ax-flows#v1.3.244
 ```
 
-It installs `lib/ouro/ax/flows.ts`, with `ax-cli`, `ax-command`, `ax-outcome`, `ax-problem`. Its tests are `ax-flows-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `scripts/ouro/ax/flows.kit.mts` and `scripts/ouro/ax/flows.ts`, with `ax-cli`, `ax-command`, `ax-outcome`, `ax-problem`. Its tests are `ax-flows-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`, and the shared kit as `#ouro-ax/<file>`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 
@@ -247,7 +247,7 @@ interface RequestStep extends StepBase {
 An adopter's agent flows as data, run in CI without a model: a flow is the calls a good agent makes for one task, and the runner checks the calls' exit codes, JSON shapes and fields, error text, time, size and voice. The findings are in the `flow-review/0` format (`findings.jsonl`, one check a line, and `report.json`), with an X-ray report attached when given. The X-ray checks what every command must do; flows check what a task needs, and each finds what the other can't.
 
 ```sh
-node lib/ouro/ax/flows.ts run <suite module> [--out report] [--flows a,b] [--slack n] [--xray report.json]
+node scripts/ouro/ax/flows.ts run <suite module> [--out report] [--flows a,b] [--slack n] [--xray report.json]
 ```
 
 ```ts

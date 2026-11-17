@@ -282,6 +282,13 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
   if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes } };
   const existing = await branchState(gh, repo);
+  // The pull request open when this run began may have merged or closed since (GitHub deletes a merged pull request's
+  // branch): main as this run read it is from before that, so nothing is written, neither a branch on the old main nor
+  // a title on the merged pull request, and the next run starts from the new main (#1840).
+  if (existingPr) {
+    const now = await gh.get(`repos/${repo}/pulls/${existingPr.number}`);
+    if (now.state !== "open") return { ...result, state: "skipped", reason: `#${existingPr.number} ${now.merged ? "merged" : "closed"} while this run read the repository, so the next run starts from the new main.`, pr: null };
+  }
   // Someone pushed to the open pull request's branch (a fix its checks needed): as Dependabot does, leave it to them
   // rather than force-push their work away. Closing the pull request or deleting the branch hands it back.
   if (existing && !existing.ours && existingPr) {

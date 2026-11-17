@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { RULES } from "../registry/ouro/check/check.ts";
+import { RULES } from "../registry/ouro/check/run.ts";
 
 // plugins/ouro-check ships the ouro-check agent skill to Agency, Copilot and Claude Code. These hold its two
 // manifests together, and hold the skill to the check it teaches, so a release that changes the check
@@ -50,7 +50,7 @@ describe("ouro-check agent plugin", () => {
     const item = readJson(join(root, "registry.json")).items.find((entry) => entry.name === "ouro-check");
     const paths = item.files.map((file) => file.path);
     assert.ok(paths.includes("registry/ouro/check/check.ts"));
-    assert.deepEqual(paths.filter((path) => !/^registry\/ouro\/check\/[^/]+\.ts$/.test(path)), []);
+    assert.deepEqual(paths.filter((path) => !/^registry\/ouro\/check\/[^/]+\.m?ts$/.test(path)), []);
     const help = spawnSync(process.execPath, [join(root, "registry", "ouro", "check", "check.ts"), "--help"], { encoding: "utf8" });
     assert.equal(help.status, 0, help.stderr);
     const flags = [...new Set(skill.match(/(?<![\w-])--[a-z][a-z-]*/g))];

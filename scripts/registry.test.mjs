@@ -9,7 +9,7 @@ import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
 import { buildRegistry, censusAxeVersion, cssToItem, itemForFile, rewriteDependencies, testingSetup, toolingMinimum, unreadableOnGitHub } from "./registry.mts";
 import { uncommitted } from "./generated-files.mjs";
 import { scratchDir } from "./scratch.mjs";
-import { copyTree } from "./tree.mjs";
+import { copyTree, treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/registry.mts");
@@ -398,9 +398,37 @@ test("npm dependencies are pinned to the ranges this repository tests", () => {
   }
 });
 
-test("Ouro check installs to @lib/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does", () => {
-  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check.ts").target, "@lib/ouro/check/check.ts");
+test("Ouro check installs under scripts/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does", () => {
+  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check.ts").target, "~/scripts/ouro/check/check.ts");
+  assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/register.ts").type, "registry:file");
   for (const name of ["ax-cli", "ax-command", "ax-exit-codes", "ax-outcome", "ax-problem"]) assert.ok(item("ouro-check").registryDependencies.includes(repo(name)), name);
+  // images.kit.mts names the shared kit: the CLI rewrites a # import in a .ts file it installs, but not in an .mts file.
+  assert.deepEqual(item("ouro-images").files.map((file) => file.target).sort(), ["~/scripts/ouro/images/images.kit.mts", "~/scripts/ouro/images/images.ts"]);
+});
+
+test("the Node-only Ouro AX files install under scripts/ouro/ax, and the shared ones beside the app's lib, each as the exact set", () => {
+  const targets = new Map(registry.items.flatMap((entry) => (entry.files ?? []).map((file) => [file.path, file])));
+  const sources = (dir) => treeFiles(join(root, dir)).map((name) => `${dir}${name}`);
+  const axDir = "registry/ouro/ax/";
+  const nodeOnly = [
+    ...["xray.ts", "flows.ts", "surfaces.ts", "xray.kit.mts", "flows.kit.mts", "surfaces.kit.mts"].map((name) => `${axDir}${name}`),
+    ...readdirSync(join(root, axDir)).filter((name) => name.endsWith(".test.mts")).map((name) => `${axDir}${name}`),
+    ...sources(`${axDir}fixtures/`),
+  ].sort();
+  const shared = readdirSync(join(root, axDir)).filter((name) => name.endsWith(".ts") && !["xray.ts", "flows.ts", "surfaces.ts"].includes(name)).map((name) => `${axDir}${name}`).sort();
+  const installedAt = (prefix) => [...targets.values()].filter((file) => file.target.startsWith(prefix)).map((file) => file.path).sort();
+  assert.deepEqual(installedAt("~/scripts/ouro/ax/"), nodeOnly);
+  assert.deepEqual(installedAt("@lib/ouro/ax/"), shared);
+  for (const path of nodeOnly) assert.deepEqual([targets.get(path).type, targets.get(path).target], ["registry:file", `~/scripts/ouro/ax/${path.slice(axDir.length)}`], path);
+  for (const path of shared) assert.deepEqual([targets.get(path).type, targets.get(path).target], ["registry:lib", `@lib/ouro/ax/${path.slice(axDir.length)}`], path);
+  const tools = [...sources("registry/ouro/check/"), ...sources("registry/ouro/images/")];
+  assert.deepEqual(installedAt("~/scripts/ouro/check/").concat(installedAt("~/scripts/ouro/images/")).sort(), tools.sort());
+  for (const path of tools) assert.equal(targets.get(path).type, "registry:file", path);
+  assert.deepEqual(installedAt("@lib/ouro/check/"), []);
+  assert.deepEqual(installedAt("@lib/ouro/images/"), []);
+  // A file that installs outside src reaches the shared kit as #ouro-ax/<file>; a relative import from it lands on a file that moves too.
+  const moved = new Set([...nodeOnly, ...tools]);
+  for (const path of moved) for (const [, specifier] of readFileSync(join(root, path), "utf8").matchAll(/from "(\.[^"]+)"/g)) assert.ok(moved.has(join(dirname(path), specifier)), `${path} imports ${specifier}`);
 });
 
 test("a helper's Node script names what it imports as devDependencies without a version, so lib-claims leaves the app's TypeScript alone", () => {

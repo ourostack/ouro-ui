@@ -5,7 +5,7 @@
 The Ouro AX standard as data: a claim is one checkable rule about an interface an agent uses, with the reason, the evidence that admitted it, the check `ax-xray` runs and the fix. A claim is `must` only when an evaluation showed agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard; every other claim is `should`.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-claims#v1.3.241
+npx shadcn@latest add ourostack/ouro-ui/ax-claims#v1.3.244
 ```
 
 It installs `lib/ouro/ax/claims.ts`. Its tests are `ax-claims-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -131,7 +131,7 @@ function loadClaimSet(value: unknown): ClaimSet
 
 ## The claims
 
-Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and checks; [the standard](../guides/ax-standard.md) says how a claim is admitted.
+Must claims first. `node scripts/ouro/ax/xray.ts claims` prints their rules and checks; [the standard](../guides/ax-standard.md) says how a claim is admitted.
 
 | Claim | Tier | Admitted by |
 | --- | --- | --- |

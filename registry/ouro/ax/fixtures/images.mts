@@ -1,5 +1,5 @@
-import { quietPipes, runCli } from "../cli.ts";
-import { defineCli, defineCommand } from "../command.ts";
+import { quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { defineCli, defineCommand } from "#ouro-ax/command.ts";
 
 const cli = defineCli({
   name: "images",

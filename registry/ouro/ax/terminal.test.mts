@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createProgress, FRAMES, hasAnsi, markOf, MARKS, nextStepsText, paint, stripAnsi, terminalStyle, timeText, type Timers } from "./terminal.ts";
+import { createProgress, FRAMES, hasAnsi, markOf, MARKS, nextStepsText, paint, stripAnsi, terminalStyle, timeText, type Timers } from "#ouro-ax/terminal.ts";
 
 const TTY = { isTTY: true };
 const PIPE = {};

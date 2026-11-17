@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { emptyText, page, render, truncate } from "./output.ts";
+import { emptyText, page, render, truncate } from "#ouro-ax/output.ts";
 
 test("one result renders as JSON or as its text, with one trailing newline", () => {
   assert.equal(render({ a: 1 }, { json: true, text: () => "x" }), '{\n  "a": 1\n}\n');

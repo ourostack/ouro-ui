@@ -20,6 +20,9 @@
 #         versions in package.json), add two more items, a component again with --overwrite and
 #         a tests item, and check that the stylesheet and package.json are byte for byte what
 #         they were: a later add never undoes an app's setup.
+# shadcn, in the check job (OURO_CHECK_ONLY), then adds ouro-check, ouro-images and the Ouro AX kit
+#         with its tests as the CLI installs them, and checks that a strict tsconfig with no Node
+#         types passes, that each Ouro AX file installed once, and that the kit's tests and the check's help run.
 # ouro:   the app installs the ouro-theme item first, from GitHub at <ref> (default HEAD,
 #         which must be pushed) when <ref> commits registry.json, as a release commit does;
 #         main commits none (scripts/generated-files.mjs), so elsewhere from this commit's
@@ -72,7 +75,8 @@
 #                               checks, before the type check, the build and the install check,
 #                               which CI runs in parallel with the shards (OURO_CHECK_ONLY).
 #   OURO_CHECK_ONLY             runs only the type check, the build and the install check of the
-#                               shipped tests in <app-dir>, a tree OURO_SKIP_CHECKS left.
+#                               shipped tests in <app-dir>, a tree OURO_SKIP_CHECKS left; for the shadcn
+#                               variant, also adds the Node-only tools and checks them (see shadcn below).
 #   OURO_REUSE_APP              skips all of that and runs the shipped tests in <app-dir>, which
 #                               must be the tree a prepare run left, restored at the same path.
 #
@@ -677,6 +681,24 @@ npx vite build || build_status=$?
 wait "$tsc_pid" || { echo "the type check of the app with the shipped tests failed"; exit 1; }
 [ "$build_status" -eq 0 ] || { echo "the build of the app with the shipped tests failed"; exit "$build_status"; }
 node "$root/scripts/install-check.mjs" "$app" "$variant" tests
+echo "::endgroup::"
+fi
+
+# The Node-only tools, added by the CLI where it puts them. A strict app tsconfig with no Node types must
+# pass with them installed beside the app's own files, each Ouro AX file must install once, the kit's
+# tests must run in Node through the imports entry alone, and the check's help must run. Only the check
+# job runs this (OURO_CHECK_ONLY, on an app it restored and may change: it saves nothing).
+if [ -n "${OURO_CHECK_ONLY:-}" ] && [ "$variant" = shadcn ]; then
+echo "::group::The Node-only tools where the CLI puts them: a strict type check, the kit's tests, the check's help"
+# The check job restores the app without building a registry, so this builds this commit's, as the delta path does.
+node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
+"${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
+"${shadcn[@]}" add --yes "$registry/r/ouro-check.json" "$registry/r/ouro-images.json" "$registry/r/ouro-ax.json" "$registry/r/ouro-ax-tests.json"
+npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"
+node "$root/scripts/install-check.mjs" --node-tools "$app"
+npx tsc -b
+node --test scripts/ouro/ax/*.test.mts
+node scripts/ouro/check/check.ts --help
 echo "::endgroup::"
 fi
 

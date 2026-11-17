@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { audienceLines, effectAnnotations, namesLine, privateResult } from "./effects.ts";
+import { audienceLines, effectAnnotations, namesLine, privateResult } from "#ouro-ax/effects.ts";
 
 test("an others action previews who will see it and its result says who can", () => {
   const a = audienceLines({ doing: "Sending", done: "Sent", where: '"Design sync"', as: "the person", who: "everyone" });

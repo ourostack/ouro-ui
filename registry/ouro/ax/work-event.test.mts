@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { outcome } from "./outcome.ts";
-import { actorOf, checkWorkEvent, foldWork, WORK_EVENT_VERSION, WORK_KINDS, workEventOf, type WorkEvent } from "./work-event.ts";
+import { outcome } from "#ouro-ax/outcome.ts";
+import { actorOf, checkWorkEvent, foldWork, WORK_EVENT_VERSION, WORK_KINDS, workEventOf, type WorkEvent } from "#ouro-ax/work-event.ts";
 
 const at = (min: number) => new Date(Date.UTC(2026, 9, 30, 9, min)).toISOString();
 let n = 0;

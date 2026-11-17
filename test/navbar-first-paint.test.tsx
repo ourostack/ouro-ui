@@ -66,13 +66,19 @@ const frames = (count = 2) =>
     step(count);
   });
 
-/** The page as the server sends it: the bar drawn, then hydrated a few frames later. */
-async function serve(width: number, node: ReactNode = bar) {
-  await page.viewport(width, 844);
+/** The server HTML in the page, at once: no await, so no frame passes before it is there. */
+function mount(node: ReactNode) {
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
   host.innerHTML = renderToString(node);
+  return host;
+}
+
+/** The page as the server sends it: the bar drawn, then hydrated a few frames later. */
+async function serve(width: number, node: ReactNode = bar) {
+  await page.viewport(width, 844);
+  const host = mount(node);
   await frames();
   return host;
 }
@@ -103,8 +109,13 @@ async function sameBar(width: number, node: ReactNode = bar) {
 }
 
 async function noSwap(width: number, node: ReactNode = bar) {
+  // The recorder reads only the first frames after it starts, as a page load's would. Size the page first, then start it
+  // and put the server HTML in within the same task: a viewport change in between can outlast those frames on a loaded
+  // runner, and the recorder would see no bar (#1835).
+  await page.viewport(width, 844);
   listenForMeasures();
-  const host = await serve(width, node);
+  const host = mount(node);
+  await frames();
   await hydrate(host, node);
   await frames(12);
   // The rule saw the bar: its first frames drew the phone's menu button or the desktop's links.

@@ -34,7 +34,13 @@
 //
 // Checks that an app's own `:root { --ouro-layer: … }` rule, after the Ouro tokens and
 // outside any @layer, is still the declaration that wins after a later `shadcn add`.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+//
+//   node scripts/install-check.mjs --node-tools <app-dir>
+//
+// Checks that the Node-only Ouro tools (Ouro check, Ouro images, and the X-ray, flow runner and
+// surfaces check of Ouro AX) installed under scripts/ouro, outside src, that each Ouro AX file
+// installed once, and that package.json names the kit's imports entry.
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
@@ -69,10 +75,7 @@ const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@p
 export function checkInstall(app, variant, stage) {
   const problems = [];
   const read = (path) => readFileSync(join(app, path), "utf8");
-  const files = (dir) =>
-    existsSync(join(app, dir))
-      ? readdirSync(join(app, dir), { recursive: true }).map((file) => join(dir, String(file)))
-      : [];
+  const files = (dir) => entriesUnder(app, dir).map((file) => join(dir, file));
 
   for (const path of stage === "tests" ? [...runtimeFiles, ...testFiles] : runtimeFiles) {
     if (!existsSync(join(app, path))) problems.push(`missing ${path}`);
@@ -281,6 +284,71 @@ export function checkLayerOverride(css, value) {
   return problems;
 }
 
+const nodeTools = [
+  { path: "scripts/ouro/check/check.ts", item: "ouro-check" },
+  { path: "scripts/ouro/images/images.ts", item: "ouro-images" },
+  { path: "scripts/ouro/ax/xray.ts", item: "ouro-ax" },
+  { path: "scripts/ouro/ax/flows.ts", item: "ouro-ax" },
+  { path: "scripts/ouro/ax/surfaces.ts", item: "ouro-ax" },
+];
+const outsideSrc = [
+  { folder: "src/lib/ouro/check", item: "ouro-check" },
+  { folder: "src/lib/ouro/images", item: "ouro-images" },
+];
+
+/**
+ * Everything under `dir` in an app, files and folders, relative to it and recursive; none when the
+ * folder is missing. The one walk this script makes, and it walks only the installed app.
+ */
+function entriesUnder(app, dir) {
+  return existsSync(join(app, dir)) ? readdirSync(join(app, dir), { recursive: true }).map(String) : [];
+}
+
+/** The files under `dir` in an app, relative to it and recursive; none when the folder is missing. */
+function filesUnder(app, dir) {
+  return entriesUnder(app, dir).filter((file) => statSync(join(app, dir, file)).isFile());
+}
+
+/**
+ * Problems with where the Node-only Ouro tools installed, as readable lines; empty when each is
+ * under scripts/ouro, none is left in src, every Ouro AX file is installed once (compared by path
+ * relative to its folder), no installed file imports the kit by a path the CLI rewrote, and
+ * package.json maps `#ouro-ax/*` to the shared kit, which is how Node resolves the tools' imports
+ * with no loader.
+ */
+export function checkNodeTools(app) {
+  const problems = [];
+  for (const { path, item } of nodeTools) {
+    if (!existsSync(join(app, path))) problems.push(`missing ${path}: add ${item}, which installs it under scripts/ouro`);
+  }
+  for (const { folder, item } of outsideSrc) {
+    for (const file of filesUnder(app, folder)) {
+      problems.push(`${folder}/${file} is in src, where tsc -b reads its Node imports: remove it, since ${item} installs it under scripts/ouro`);
+    }
+  }
+  const shared = new Set(filesUnder(app, "src/lib/ouro/ax"));
+  for (const file of filesUnder(app, "scripts/ouro/ax")) {
+    if (shared.has(file)) {
+      problems.push(`src/lib/ouro/ax/${file} and scripts/ouro/ax/${file} are both installed: remove the copy that does not belong, since each Ouro AX file installs once`);
+    }
+  }
+  // The shadcn CLI rewrites a # import in a .ts file it installs to the app's path alias (~/lib/ouro/ax/cli), which Node
+  // cannot resolve, so the tools name the kit in .mts files, which it leaves alone. Any such rewrite shows up here.
+  for (const file of filesUnder(app, "scripts/ouro")) {
+    const text = readFileSync(join(app, "scripts/ouro", file), "utf8");
+    for (const [, specifier] of text.matchAll(/^(?:import|export)\b[^;]*?\bfrom "([^"]+)"/gm)) {
+      if (!specifier.startsWith(".") && !specifier.startsWith("#ouro-ax/") && /\/ouro\/ax\//.test(specifier)) {
+        problems.push(`scripts/ouro/${file} imports ${specifier}, which Node cannot resolve: the CLI rewrote #ouro-ax/ there; import the kit in an .mts file, which it leaves alone`);
+      }
+    }
+  }
+  const kit = JSON.parse(readFileSync(join(app, "package.json"), "utf8")).imports?.["#ouro-ax/*"];
+  if (kit !== "./src/lib/ouro/ax/*") {
+    problems.push(`package.json imports["#ouro-ax/*"] is ${kit === undefined ? "missing" : JSON.stringify(kit)}, not "./src/lib/ouro/ax/*": fix it with npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"`);
+  }
+  return problems;
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--strip-field-tokens") {
   const css = readFileSync(process.argv[3], "utf8");
   const stripped = stripFieldTokens(css);
@@ -295,6 +363,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const problems = checkLayerOverride(readFileSync(process.argv[3], "utf8"), process.argv[4] ?? "60");
   for (const problem of problems) console.error(`install check: ${problem}`);
   if (problems.length === 0) console.log("install check: the app's --ouro-layer override survived");
+  process.exitCode = problems.length === 0 ? 0 : 1;
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--node-tools") {
+  const problems = checkNodeTools(process.argv[3]);
+  for (const problem of problems) console.error(`install check: ${problem}`);
+  if (problems.length === 0) console.log(`install check: the Node-only Ouro tools are where the CLI puts them in ${process.argv[3]}`);
   process.exitCode = problems.length === 0 ? 0 : 1;
 } else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url) && process.argv[2] === "--sources") {
   const [, , , app, sourceRoot] = process.argv;
