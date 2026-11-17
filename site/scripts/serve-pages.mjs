@@ -10,6 +10,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { createSecureServer } from "node:http2";
 import { extname, join, normalize } from "node:path";
+import { performance } from "node:perf_hooks";
+import { setInterval } from "node:timers";
 import { fileURLToPath, URL } from "node:url";
 import { gzipSync } from "node:zlib";
 
@@ -51,7 +53,24 @@ function resolveFile(pathname) {
   return undefined;
 }
 
+// What a stalled end-to-end run needs to tell a server that stopped from a machine that did (#1845): the server says on
+// stderr, which Playwright prints, when its event loop was held up, when a request took long to answer, and any error.
+const log = (line) => console.error(`[serve-pages] ${new Date().toISOString()} ${line}`);
+const HELD_MS = 2000;
+const SLOW_MS = 5000;
+let tick = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  if (now - tick - 1000 > HELD_MS) log(`event loop held for ${Math.round(now - tick - 1000)} ms`);
+  tick = now;
+}, 1000).unref();
+
 const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")), cert: readFileSync(join(certDir, "cert.pem")), allowHTTP1: true }, (request, response) => {
+  const started = performance.now();
+  response.on("finish", () => {
+    const ms = performance.now() - started;
+    if (ms > SLOW_MS) log(`${request.url} took ${Math.round(ms)} ms to answer`);
+  });
   const url = new URL(request.url, "https://localhost");
   if (url.pathname === base.slice(0, -1)) {
     response.writeHead(301, { location: base });
@@ -66,4 +85,6 @@ const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")),
   response.end(compress ? gzipSync(body) : body);
 });
 
+server.on("error", (error) => log(`server error: ${error.message}`));
+server.on("sessionError", (error) => log(`HTTP/2 session error: ${error.message}`));
 server.listen(port, "127.0.0.1", () => console.log(`Serving site/dist over HTTP/2 at https://127.0.0.1:${port}${base}`));
