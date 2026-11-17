@@ -313,3 +313,15 @@
     opacity: 0;
   }
 }
+
+/* A moment's art arrives: it fades in, rising 10px and growing from 96% (Moment's motion-safe arrival class). */
+@keyframes ouro-moment-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
