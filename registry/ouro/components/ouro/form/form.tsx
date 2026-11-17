@@ -309,6 +309,21 @@ function summarize(form: HTMLFormElement, topMessages: number, summary: FormErro
  * @see https://ui.ouroboros.bot/docs/form
  *
  * @example
+ * // Checked in the browser, with no router or server: errors from your own onSubmit.
+ * const [errors, setErrors] = useState<Record<string, string>>({});
+ * <Form
+ *   errors={errors}
+ *   onSubmit={(event) => {
+ *     event.preventDefault();
+ *     const name = String(new FormData(event.currentTarget).get("name"));
+ *     setErrors(name === "admin" ? { name: "That name is taken." } : {});
+ *   }}
+ * >
+ *   <TextField label="Display name" name="name" required />
+ *   <Button type="submit">Save</Button>
+ * </Form>
+ *
+ * @example
  * import { formErrors } from "@/lib/ouro/form-answer";
  * const actionData = useActionData<typeof action>();
  * <Form method="post" errors={formErrors(actionData, actionData?.errors)} render={<RouterForm />}>

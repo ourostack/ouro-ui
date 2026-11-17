@@ -653,6 +653,38 @@ describe("Form", () => {
     expect(input("email").getAttribute("aria-invalid")).toBe("true");
   });
 
+  it("checks in the browser with its own onSubmit, as the first example does: the error lands on its field with focus, and a fixed value saves", async () => {
+    const saved = vi.fn();
+    function Settings() {
+      const [errors, setErrors] = useState<Record<string, string>>({});
+      return (
+        <Form
+          errors={errors}
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            const name = String(new FormData(event.currentTarget).get("name"));
+            setErrors(name === "admin" ? { name: "That name is taken." } : {});
+            if (name !== "admin") saved(name);
+          }}
+        >
+          <TextField label="Display name" name="name" required />
+          <button type="submit">Save</button>
+        </Form>
+      );
+    }
+    const { input } = await render(<Settings />);
+    await userEvent.fill(page.getByRole("textbox", { name: "Display name", exact: true }), "admin");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => document.activeElement).toBe(input("name"));
+    expect(input("name").getAttribute("aria-invalid")).toBe("true");
+    expect(description(input("name"))).toEqual(["That name is taken."]);
+    expect(saved).not.toHaveBeenCalled();
+    await userEvent.fill(page.getByRole("textbox", { name: "Display name", exact: true }), "Ari");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => saved.mock.calls).toEqual([["Ari"]]);
+    await expect.poll(() => input("name").getAttribute("aria-invalid")).toBe("false");
+  });
+
   it("moves focus to the first invalid field when a submit comes back with errors (Review Focus 2)", async () => {
     const sent = vi.fn();
     const { input } = await render(<ActionPage result={{ bio: "Too short.", email: "That email is taken." }} onSent={sent} />);
