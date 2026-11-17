@@ -57,6 +57,8 @@ export function SettingsPage({
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState(0);
   const frame = useRef(0);
+  // Which submit or delete came last, so a save that finishes late changes nothing.
+  const latest = useRef(0);
   // After a delete the fields start empty, not from the deleted account's settings.
   const [deleted, setDeleted] = useState(false);
   const start = deleted ? empty : initial;
@@ -75,6 +77,7 @@ export function SettingsPage({
               // Cleared first, so a pending or failed save never shows the last success.
               cancelAnimationFrame(frame.current);
               setSaved(false);
+              const mine = ++latest.current;
               const data = new FormData(event.currentTarget);
               const settings: Settings = {
                 name: String(data.get("name")).trim(),
@@ -83,6 +86,7 @@ export function SettingsPage({
                 notifications: data.get("notifications") === "on",
               };
               const errors: FormErrors = settings.name.length < 2 ? { name: "Use at least 2 letters." } : ((await onSave?.(settings)) ?? {});
+              if (mine !== latest.current) return;
               setAnswer({ errors });
               // A frame after the clear, so a screen reader hears each save, even one that resolves at once.
               if (Object.keys(errors).length === 0) frame.current = requestAnimationFrame(() => setSaved(true));
@@ -110,6 +114,7 @@ export function SettingsPage({
               confirmLabel="Delete account"
               tone="destructive"
               onConfirm={async () => {
+                latest.current++;
                 await onDelete?.();
                 cancelAnimationFrame(frame.current);
                 setAnswer(undefined);

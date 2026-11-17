@@ -108,18 +108,36 @@ describe("SettingsPage", () => {
     await expect.element(status()).toHaveTextContent("Settings saved.");
     // What each frame shows, as a screen reader reads the page between tasks.
     const frames: string[] = [];
-    let sampling = true;
+    let next = 0;
     const sample = () => {
       frames.push(status().element().textContent ?? "");
-      if (sampling) requestAnimationFrame(sample);
+      next = requestAnimationFrame(sample);
     };
-    requestAnimationFrame(sample);
+    next = requestAnimationFrame(sample);
     try {
       await userEvent.click(page.getByRole("button", { name: "Save" }));
       await expect.poll(() => frames.lastIndexOf("") >= 0 && frames.at(-1) === "Settings saved.").toBe(true);
     } finally {
-      sampling = false;
+      cancelAnimationFrame(next);
     }
+  });
+
+  it("lets a save that finishes late change nothing once a later submit has answered", async () => {
+    let finish = () => {};
+    const onSave = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    await render(<SettingsPage onSave={onSave} initial={{ name: "Ada", email: "ada@example.com", language: "en", notifications: true }} />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => onSave.mock.calls.length).toBe(1);
+    await userEvent.fill(field("Display name"), "A");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.element(field("Display name")).toHaveAttribute("aria-invalid", "true");
+    finish();
+    await act(async () => {
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+    });
+    await expect.element(field("Display name")).toHaveAttribute("aria-invalid", "true");
+    expect(status().element().textContent).toBe("");
   });
 
   it("works with no handlers, as installed", async () => {
