@@ -1,19 +1,33 @@
 // The Vitest reporter that fails a stalled browser shard in minutes, naming what hung (issue #671).
 // A shard that hangs outside a test body (a browser tab, a worker, a hook or teardown) never lets a
 // test time out, so the job ran into its hour with nothing in the log. This reporter watches the
-// time since any test case last finished: after two minutes it names the tests and files in flight
-// once, and after five it exits the process, so the step fails and the log names what hung.
-// vitest.config.ts adds it to CI's shard runs. OURO_VITEST_STALL_WARN_MS and OURO_VITEST_STALL_FAIL_MS
-// change the two thresholds, for tests and local runs.
+// time since any test case last finished: after two minutes it names what is in flight once, and
+// after five it exits the process, so the step fails and the log names what hung. What it names
+// includes each file still loading, waiting to start or in a module hook, and the files no worker
+// has started yet (issue #1814). vitest.config.ts adds it to CI's shard runs. OURO_VITEST_STALL_WARN_MS
+// and OURO_VITEST_STALL_FAIL_MS change the two thresholds, for tests and local runs.
 import { relative, sep } from "node:path";
-import type { Reporter, TestCase, TestModule, Vitest } from "vitest/node";
+import type { Reporter, ReportedHookContext, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node";
 
-/** Something running now: a test case, or a file whose setup runs before its first test (`name` null). */
+/** Where a file is: loading its module, loaded and waiting for its tests to start, or running them. */
+export type Phase = "collecting" | "waiting" | "running";
+
+/** Something running now: a test case, or a file with no test running, in its phase or a module hook (`name` null). */
 export interface InFlight {
   project: string;
   file: string;
   name: string | null;
   startedAt: number;
+  phase?: Phase;
+  /** The hook running with no test in flight: `beforeAll`, `afterAll`, or either of a suite (`afterAll of "Dialog"`). */
+  hook?: string;
+}
+
+/** The run's files that have not started, and how many of its files have finished. */
+export interface PendingRun {
+  notStarted: { project: string; file: string }[];
+  finished: number;
+  total: number;
 }
 
 export interface StallOptions {
@@ -26,6 +40,9 @@ export interface StallReport {
   text: string;
 }
 
+/** The files the stall names before it says how many more there are. */
+const LISTED = 12;
+
 /** A duration as the thresholds name it: `2 min`, or `10 s` when it is not whole minutes. */
 const threshold = (ms: number) => (ms >= 60_000 && ms % 60_000 === 0 ? `${ms / 60_000} min` : `${Math.round(ms / 1000)} s`);
 
@@ -35,19 +52,47 @@ const elapsed = (ms: number) => {
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 };
 
+/** A file as the stall names it: its project, when it has one, then its path. */
+const label = (project: string, file: string) => (project ? `${project} ${file}` : file);
+
+/** One in-flight entry: a test case with its running time, or a file in the phase or hook it is in. */
+const describeInFlight = ({ project, file, name, startedAt, phase = "running", hook }: InFlight, now: number): string => {
+  const head = label(project, file);
+  const time = elapsed(now - startedAt);
+  if (name !== null) return `${head} > ${name} (running ${time})`;
+  if (phase === "collecting") return `${head} (loading its module for ${time})`;
+  if (phase === "waiting") return `${head} (loaded, not started for ${time})`;
+  if (hook?.startsWith("afterAll")) return `${head} (in ${hook}: its teardown, for ${time})`;
+  if (hook) return `${head} (in ${hook}: its setup, for ${time})`;
+  return `${head} > (no test running: its setup, hooks or teardown) (running ${time})`;
+};
+
 /**
- * What the watchdog reports at `now`, given what is in flight and when a test case last finished:
- * ok while tests keep finishing, warn once none has finished for `warnAfter` ms, and fail once none
- * has for `failAfter` ms. The text names each thing in flight with its project, file, test and time.
+ * What the watchdog reports at `now`, given what is in flight, when a test case last finished, and
+ * what has not started: ok while tests keep finishing, warn once none has finished for `warnAfter` ms,
+ * and fail once none has for `failAfter` ms. The text names each thing in flight with its project,
+ * file, test or phase and time, then the files not yet started and how many files have finished.
  */
-export function stallReport(inFlight: readonly InFlight[], lastFinish: number, now: number, { warnAfter, failAfter }: StallOptions): StallReport {
+export function stallReport(
+  inFlight: readonly InFlight[],
+  lastFinish: number,
+  now: number,
+  { warnAfter, failAfter }: StallOptions,
+  pending: PendingRun = { notStarted: [], finished: 0, total: 0 },
+): StallReport {
   const idle = now - lastFinish;
   const level = idle >= failAfter ? "fail" : idle >= warnAfter ? "warn" : "ok";
   if (level === "ok") return { level, text: "" };
-  const list =
-    inFlight.length === 0
-      ? "No test in flight: the run is between files or in teardown."
-      : `In flight: ${inFlight.map(({ project, file, name, startedAt }) => `${project} ${file} > ${name ?? "(no test running: its setup, hooks or teardown)"} (running ${elapsed(now - startedAt)})`).join("; ")}`;
+  const parts = [
+    inFlight.length === 0 ? "No test in flight: the run is between files or in teardown." : `In flight: ${inFlight.map((entry) => describeInFlight(entry, now)).join("; ")}.`,
+  ];
+  if (pending.notStarted.length > 0) {
+    const listed = pending.notStarted.slice(0, LISTED).map(({ project, file }) => label(project, file));
+    const more = pending.notStarted.length > LISTED ? `; and ${pending.notStarted.length - LISTED} more` : "";
+    parts.push(`Not started: ${listed.join("; ")}${more}.`);
+  }
+  if (pending.total > 0) parts.push(`Finished ${pending.finished} of ${pending.total} files.`);
+  const list = parts.join(" ");
   const text =
     level === "warn"
       ? `[ouro-ui] Vitest has had no test finish for ${threshold(warnAfter)}. ${list}`
@@ -60,12 +105,24 @@ const envMs = (name: string, fallback: number) => {
   return process.env[name] !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
 };
 
+/** A file the run has started: its phase, when that began, and the module hook running, if any. */
+interface ModuleEntry {
+  project: string;
+  file: string;
+  phase: Phase;
+  phaseAt: number;
+  hook?: { name: string; startedAt: number };
+}
+
 /** Watches for a stall, every 15 seconds, from the run's start to its end (see the file's comment). */
 export class StallReporter implements Reporter {
   readonly #options: StallOptions;
   readonly #intervalMs: number;
-  readonly #modules = new Map<string, InFlight>();
+  readonly #modules = new Map<string, ModuleEntry>();
   readonly #cases = new Map<string, { moduleKey: string; entry: InFlight }>();
+  readonly #pending = new Map<string, { project: string; file: string }>();
+  #finished = 0;
+  #total = 0;
   #root = process.cwd();
   #lastFinish = Date.now();
   #warned = false;
@@ -80,22 +137,52 @@ export class StallReporter implements Reporter {
     this.#root = vitest.config.root;
   }
 
-  onTestRunStart(): void {
+  onTestRunStart(specifications: ReadonlyArray<TestSpecification>): void {
     this.#lastFinish = Date.now();
+    this.#modules.clear();
+    this.#cases.clear();
+    this.#pending.clear();
+    for (const { project, moduleId } of specifications) {
+      this.#pending.set(`${project.name}\0${moduleId}`, { project: project.name, file: this.#file(moduleId) });
+    }
+    this.#finished = 0;
+    this.#total = this.#pending.size;
     this.#timer = setInterval(() => this.#check(), this.#intervalMs);
     this.#timer.unref();
   }
 
+  onTestModuleQueued(testModule: TestModule): void {
+    this.#module(testModule, "collecting");
+  }
+
+  onTestModuleCollected(testModule: TestModule): void {
+    this.#module(testModule, "waiting");
+  }
+
   onTestModuleStart(testModule: TestModule): void {
-    this.#modules.set(this.#moduleKey(testModule), this.#describe(testModule, null, Date.now()));
+    this.#module(testModule, "running");
   }
 
   onTestModuleEnd(testModule: TestModule): void {
     this.#modules.delete(this.#moduleKey(testModule));
+    this.#finished++;
+  }
+
+  onHookStart(hook: ReportedHookContext): void {
+    const module = this.#hookModule(hook);
+    if (!module) return;
+    const entry = this.#module(module, this.#modules.get(this.#moduleKey(module))?.phase ?? "running");
+    entry.hook = { name: this.#hookLabel(hook), startedAt: Date.now() };
+  }
+
+  onHookEnd(hook: ReportedHookContext): void {
+    const module = this.#hookModule(hook);
+    if (module) delete this.#modules.get(this.#moduleKey(module))?.hook;
   }
 
   onTestCaseReady(testCase: TestCase): void {
-    this.#cases.set(testCase.id, { moduleKey: this.#moduleKey(testCase.module), entry: this.#describe(testCase.module, testCase.fullName, Date.now()) });
+    const entry = { project: testCase.module.project.name, file: this.#file(testCase.module.moduleId), name: testCase.fullName, startedAt: Date.now() };
+    this.#cases.set(testCase.id, { moduleKey: this.#moduleKey(testCase.module), entry });
   }
 
   onTestCaseResult(testCase: TestCase): void {
@@ -112,22 +199,55 @@ export class StallReporter implements Reporter {
     return `${testModule.project.name}\0${testModule.moduleId}`;
   }
 
-  #describe(testModule: TestModule, name: string | null, startedAt: number): InFlight {
-    const file = relative(this.#root, testModule.moduleId).split(sep).join("/");
-    return { project: testModule.project.name, file, name, startedAt };
+  #file(moduleId: string): string {
+    return relative(this.#root, moduleId).split(sep).join("/");
   }
 
-  /** Each test case in flight, and each file none of whose tests is running (its setup or hooks). */
+  /** Records a file's phase as it moves forward, and takes it off the list of files not yet started. */
+  #module(testModule: TestModule, phase: Phase): ModuleEntry {
+    const key = this.#moduleKey(testModule);
+    this.#pending.delete(key);
+    const current = this.#modules.get(key);
+    if (current && current.phase === phase) return current;
+    const entry: ModuleEntry = current ?? { project: testModule.project.name, file: this.#file(testModule.moduleId), phase, phaseAt: Date.now() };
+    entry.phase = phase;
+    entry.phaseAt = Date.now();
+    this.#modules.set(key, entry);
+    return entry;
+  }
+
+  /** The module a hook belongs to: a module's or a suite's `beforeAll` and `afterAll`, not each test's `beforeEach` and `afterEach`. */
+  #hookModule(hook: ReportedHookContext): TestModule | undefined {
+    if (hook.name !== "beforeAll" && hook.name !== "afterAll") return undefined;
+    const entity = hook.entity as TestModule | TestSuite;
+    return entity.type === "module" ? entity : entity.module;
+  }
+
+  #hookLabel(hook: ReportedHookContext): string {
+    return hook.entity.type === "suite" ? `${hook.name} of "${hook.entity.name}"` : hook.name;
+  }
+
+  /** Each test case in flight, and each file none of whose tests is running (its loading, setup, hooks or teardown). */
   #inFlight(): InFlight[] {
     const cases = [...this.#cases.values()];
     const running = new Set(cases.map(({ moduleKey }) => moduleKey));
-    const files = [...this.#modules].filter(([key]) => !running.has(key)).map(([, entry]) => entry);
+    const files = [...this.#modules]
+      .filter(([key]) => !running.has(key))
+      .map(([, { project, file, phase, phaseAt, hook }]): InFlight => ({
+        project,
+        file,
+        name: null,
+        startedAt: hook?.startedAt ?? phaseAt,
+        phase,
+        ...(hook ? { hook: hook.name } : {}),
+      }));
     return [...cases.map(({ entry }) => entry), ...files];
   }
 
   #check(): void {
     const now = Date.now();
-    const report = stallReport(this.#inFlight(), this.#lastFinish, now, this.#options);
+    const pending: PendingRun = { notStarted: [...this.#pending.values()], finished: this.#finished, total: this.#total };
+    const report = stallReport(this.#inFlight(), this.#lastFinish, now, this.#options, pending);
     if (report.level === "warn" && !this.#warned) {
       this.#warned = true;
       process.stderr.write(`${report.text}\n`);
