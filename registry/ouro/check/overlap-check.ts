@@ -138,13 +138,19 @@ function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIs
   };
   const backed = (text: Item, picture: Item) => {
     for (let node: Element | null = text.el; node && !node.contains(picture.el); node = node.parentElement) if (backing(node)) return true;
-    const x = (Math.max(text.rect.left, picture.rect.left) + Math.min(text.rect.right, picture.rect.right)) / 2;
-    const y = (Math.max(text.rect.top, picture.rect.top) + Math.min(text.rect.bottom, picture.rect.bottom)) / 2;
-    // What paints there, from the top: the text and what holds it, then any layer of its own, then the picture.
-    for (const node of document.elementsFromPoint(x, y)) {
-      if (node === picture.el || picture.el.contains(node)) return false;
+    // Where the two meet on the screen; a layer counts only where it covers all of that.
+    const left = Math.max(text.rect.left, picture.rect.left, 0);
+    const right = Math.min(text.rect.right, picture.rect.right, innerWidth);
+    const top = Math.max(text.rect.top, picture.rect.top, 0);
+    const bottom = Math.min(text.rect.bottom, picture.rect.bottom, innerHeight);
+    if (right <= left || bottom <= top) return false;
+    // What paints there, from the top: the text and what holds it, then any layer of its own, then the picture or what
+    // holds it (a picture no pointer meets is missing from the list, but what holds it is there).
+    for (const node of document.elementsFromPoint((left + right) / 2, (top + bottom) / 2)) {
+      if (node === picture.el || picture.el.contains(node) || node.contains(picture.el)) return false;
       if (node === text.el || node.contains(text.el) || text.el.contains(node)) continue;
-      if (backing(node)) return true;
+      const box = node.getBoundingClientRect();
+      if (backing(node) && box.left <= left + slack && box.right >= right - slack && box.top <= top + slack && box.bottom >= bottom - slack) return true;
     }
     return false;
   };
@@ -165,11 +171,11 @@ function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIs
         if (a.kind === "image" && b.kind === "image") continue;
         if (a.section !== b.section || related(a.block, b.block) || related(a.el, b.el)) continue;
         if (a.cover !== b.cover) continue;
-        // Text is collected before pictures, so a pair of the two is the text, then the picture.
-        if (b.kind === "image" && backed(a, b)) continue;
         const x = Math.min(a.rect.right, b.rect.right) - Math.max(a.rect.left, b.rect.left);
         const h = Math.min(a.rect.bottom, b.rect.bottom) - Math.max(a.rect.top, b.rect.top);
         if (x <= slack || h <= slack) continue;
+        // Text is collected before pictures, so a pair of the two is the text, then the picture.
+        if (b.kind === "image" && backed(a, b)) continue;
         const element = `${describe(a.el)} × ${describe(b.el)}`;
         if (found.has(element)) continue;
         counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
