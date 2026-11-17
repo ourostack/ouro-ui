@@ -85,19 +85,34 @@ describe("button branch", () => {
     expect(button.textContent).toBe("Go");
   });
 
-  it("is a medium-weight label on one line, in a 1px solid border, rounded on Ouro's lg step", async () => {
-    const { button } = await render(<Button>Save the draft</Button>);
+  // An app's theme may change the medium weight and the radius, on the root or on its buttons alone, so compare with
+  // a probe inside the button that wears the same steps.
+  function expectThemeLook(button: HTMLElement) {
     const style = getComputedStyle(button);
     expect(style.whiteSpace).toBe("nowrap");
     expect(style.borderTopStyle).toBe("solid");
     expect(style.borderTopWidth).toBe("1px");
-    const step = document.body.appendChild(document.createElement("div"));
+    const step = button.appendChild(document.createElement("div"));
     mounted.push(step);
-    // An app's theme may change the medium weight and the radius scale, so compare with the theme's own values.
-    step.style.borderRadius = "var(--radius-ouro-lg)";
-    step.style.fontWeight = "var(--font-weight-medium)";
+    step.className = "absolute rounded-ouro-lg font-medium";
     expect(style.fontWeight).toBe(getComputedStyle(step).fontWeight);
     expect(style.borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
+  }
+
+  it("is a medium-weight label on one line, in a 1px solid border, rounded on Ouro's lg step", async () => {
+    const { button } = await render(<Button>Save the draft</Button>);
+    expectThemeLook(button);
+  });
+
+  it("takes the weight and radius an app sets on its buttons alone", async () => {
+    const { button } = await render(<Button>Save the draft</Button>);
+    const root = getComputedStyle(button).borderTopLeftRadius;
+    const scoped = document.head.appendChild(document.createElement("style"));
+    mounted.push(scoped);
+    scoped.textContent = '[data-ouro="button"] { --font-weight-medium: 600; --radius: 0.125rem; }';
+    expect(getComputedStyle(button).fontWeight).toBe("600");
+    expect(getComputedStyle(button).borderTopLeftRadius).not.toBe(root);
+    expectThemeLook(button);
   });
 
   it("names its variant in data-variant, on buttons and links, so groups can style by look", async () => {
