@@ -1,0 +1,1 @@
+- Fix: the test kit's contrast check waits for a held page to settle before it measures text a scroll brought on screen, and leaves out text the page cannot show while a popup holds it, which the scan with the popup closed measures.
