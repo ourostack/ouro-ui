@@ -432,7 +432,7 @@ test("the title names each release a pull request moves to", () => {
 
 // ---- A GitHub in memory: one repository, its refs, commits, trees, blobs and pull requests ----------------
 
-function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r" } = {}) {
+function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r", queued = () => false } = {}) {
   let next = 1;
   const id = () => `${(next++).toString(16).padStart(40, "0")}`;
   const blobs = new Map();
@@ -496,6 +496,8 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
       return ok({}, 201);
     }
     if ((match = /^repos\/o\/r\/git\/refs\/heads\/(.+)$/.exec(path)) && method === "PATCH") {
+      // GitHub's answer for the branch of a pull request in a merge queue.
+      if (queued()) return { status: 422, headers: new Map(), text: async () => JSON.stringify({ message: "A pull request for this branch has been added to a merge queue. Branches that\nare queued for merging cannot be updated. To modify this branch, dequeue the\nassociated pull request.\n" }) };
       refs.set(match[1], input.sha);
       return ok({});
     }
@@ -603,6 +605,35 @@ test("a pull request someone else pushed to is left to them, never force-pushed 
   assert.equal(again.pr.edited, true);
   assert.equal(repo.refs.get(BRANCH), fix.sha, "the branch keeps the hand-pushed fix");
   assert.equal(repo.fileAt(BRANCH, "test.mjs"), "assert(tag)");
+});
+
+test("an update pull request in a merge queue is left as it is, not failed, and updated once it leaves the queue (#1809)", async () => {
+  let inQueue = false;
+  const repo = fakeRepo({ "Package.swift": SWIFT }, { queued: () => inQueue });
+  const first = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const queuedAt = repo.refs.get(BRANCH);
+  inQueue = true;
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  const held = await keepRepo(repo.gh, "o/r", newer, {});
+  assert.equal(held.state, "pr");
+  assert.equal(held.pr.number, first.pr.number);
+  assert.equal(held.pr.pushed, false);
+  assert.match(held.pr.note, /merge queue/);
+  assert.equal(repo.refs.get(BRANCH), queuedAt, "the queued branch is not written");
+  assert.equal(repo.pulls[0].title, first.pr.title, "nor is its pull request retitled for an update it does not hold");
+  // Out of the queue (say it left without merging), the next run updates it.
+  inQueue = false;
+  const after = await keepRepo(repo.gh, "o/r", newer, {});
+  assert.equal(after.pr.pushed, true);
+  assert.equal(repo.fileAt(BRANCH, "Package.swift"), SWIFT.replace("0.6.0", "0.10.0"));
+});
+
+test("a branch write that fails for any other reason still fails the repository", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const gh = { ...repo.gh, patch: async (path, input) => (path.includes("/git/refs/heads/") ? Promise.reject(Object.assign(new Error(`PATCH ${path}: 422 Reference update failed`), { status: 422 })) : repo.gh.patch(path, input)) };
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  await assert.rejects(keepRepo(gh, "o/r", newer, {}), /Reference update failed/);
 });
 
 test("a workflow is left alone and said so, since an app may write .github/workflows/ only with a permission Ouro Current does not ask for", async () => {
