@@ -148,10 +148,16 @@ module.exports = { chromium: { launch: async (options) => {
     assert.match(first.out, /✗ 390×844/);
     const again = await run([folder, ...fast, "--no-axe", "--out", "again"], { env: { PLAYWRIGHT_MODULE: downloads } });
     assert.doesNotMatch(again.out, /downloading it once/);
-    const offline = standIn("offline", `console.log("Downloading Chromium"); console.error("Error: getaddrinfo ENOTFOUND cdn.playwright.dev"); process.exit(1);`);
+    // Playwright prints why, then ends a failed download with a stack: the refusal quotes the first error line.
+    const offline = standIn(
+      "offline",
+      `console.log("Downloading Chromium"); console.error("Error: getaddrinfo ENOTFOUND cdn.playwright.dev"); console.error("Failed to install browsers"); console.error("Error: Download failure, code=1\\n    at ChildProcess.<anonymous> (coreBundle.js:1:1)"); process.exit(1);`,
+    );
     const stopped = await run([folder, ...fast, "--no-axe", "--out", "offline"], { env: { PLAYWRIGHT_MODULE: offline } });
     assert.equal(stopped.code, 2);
     assert.equal(stopped.err, "ouro-check: check: needs Chromium, and downloading it stopped: Error: getaddrinfo ENOTFOUND cdn.playwright.dev. Fix: npx playwright install chromium.");
+    const quiet = await run([folder, ...fast, "--no-axe", "--out", "quiet"], { env: { PLAYWRIGHT_MODULE: standIn("quiet", `process.exit(7);`) } });
+    assert.match(quiet.err, /downloading it stopped: it exited with 7\. Fix: npx playwright install chromium\.$/);
     // Any other reason the browser can't start is no missing download: nothing is downloaded, and the check stops.
     const broken = standIn("broken", `require("node:fs").writeFileSync(__dirname + "/downloaded", "");`, `throw new Error("browserType.launch: Target page, context or browser has been closed");`);
     const crash = await run([folder, ...fast, "--no-axe", "--out", "broken"], { env: { PLAYWRIGHT_MODULE: broken } });

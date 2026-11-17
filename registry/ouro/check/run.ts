@@ -1301,8 +1301,10 @@ function installer(module: string, cwd: string, log: (line: string) => void): ()
       child.on("close", done);
     });
     if (code !== 0) {
-      const last = output.join("").trim().split("\n").at(-1);
-      throw refusal("no-browser", "check", `needs Chromium, and downloading it stopped: ${last}`, "npx playwright install chromium");
+      // The first error line says why (Playwright ends with a stack); else the last line it printed; else its exit.
+      const lines = output.join("").split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("at "));
+      const reason = [...lines.filter((line) => line.startsWith("Error: ")), ...lines.reverse(), `it exited with ${code}`][0];
+      throw refusal("no-browser", "check", `needs Chromium, and downloading it stopped: ${reason}`, "npx playwright install chromium");
     }
   };
 }
