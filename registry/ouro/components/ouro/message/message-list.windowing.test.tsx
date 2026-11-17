@@ -115,13 +115,17 @@ async function settle(scroller: HTMLElement) {
     .toBe(true);
 }
 
-/** Scrolls the list as the reader would by dragging its scrollbar, and waits for it to settle. */
+/**
+ * Scrolls the list as the reader would by dragging its scrollbar, and waits for it to settle. The pointer stays down until the
+ * list has taken the scroll, as a drag holds it across frames: the scroll event lands while the press holds it, however late.
+ */
 async function scrollTo(scroller: HTMLElement, top: number) {
-  await act(async () => {
-    scroller.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "mouse" }));
-    scroller.scrollTop = top;
-    document.dispatchEvent(new PointerEvent("pointerup", { pointerType: "mouse" }));
-  });
+  await act(async () => void scroller.dispatchEvent(new PointerEvent("pointerdown", { pointerType: "mouse" })));
+  const before = scroller.scrollTop;
+  const taken = new Promise<void>((resolve) => scroller.addEventListener("scroll", () => resolve(), { once: true }));
+  await act(async () => void (scroller.scrollTop = top));
+  if (scroller.scrollTop !== before) await taken;
+  await act(async () => void document.dispatchEvent(new PointerEvent("pointerup", { pointerType: "mouse" })));
   await settle(scroller);
 }
 
