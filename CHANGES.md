@@ -1,0 +1,5 @@
+# Changes in this release
+
+- New: Item's revealActions keeps a row's actions back until the pointer rests on the row, focus is in it or a menu of theirs is open; on a touch screen they show from the start.
+- Fix: Card's revealDescription hides the description only where the pointer can hover, so a pen that cannot still sees it.
+- Fixed: Ouro Current adds a `@keyframes` or `@utility` block from `ouro-base` that the app's stylesheet has no block of that name for, also when the app's pins already name the newest release ([test](scripts/current/current.test.mjs "verify:testExists(scripts/current/current.test.mjs::an app on the newest release whose stylesheet lacks a keyframes ouro-base has gets the stylesheet update adding that block alone, and a second run is current)")); a `@keyframes` of that name the app has stays as the app wrote it, and a `@utility` the app has still gains a line new since the previous release ([test](scripts/current/current.test.mjs "verify:testExists(scripts/current/current.test.mjs::a utility the app has from the previous tag gains a line the new tag adds to it, once, and keeps its own lines)")).
