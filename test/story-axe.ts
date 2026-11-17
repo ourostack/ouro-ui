@@ -124,14 +124,18 @@ function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] 
         name,
         open: async () => {
           if (opensOn === "hover") {
-            // A bar that auto-hid while the scan opened its other popups takes no pointer events until a pointer moves over
-            // it, which the hover's own hit test, refused, never makes (#1856). Only then does the pointer arrive over the
-            // trigger's corner first, as a person's does; any other trigger gets the one hover it always had, since the
-            // extra move came with two tooltips that did not open in CI (Menu IconTrigger's and a MessageList reaction's).
-            const box = element.getBoundingClientRect();
-            const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
-            if (!hit || !element.contains(hit)) await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
-            await userEvent.hover(element);
+            // A tooltip opens once the pointer has rested on its trigger for the open delay. A trigger that moves out from
+            // under the pointer first never opens (a reaction in a list that keeps to its end as pictures lay out, #1866),
+            // so, as a person moves the mouse again, the pointer leaves and comes back, up to three hovers in all.
+            const misses: string[] = [];
+            for (let attempt = 0; attempt < hoverAttempts; attempt++) {
+              if (attempt > 0) await parkPointer();
+              await hoverTrigger(element);
+              const at = element.getBoundingClientRect();
+              if (await opensWithin(popup, hoverWait)) return;
+              misses.push(describeMiss(element, at));
+            }
+            throw new Error(`${name} opened nothing after ${hoverAttempts} hovers: ${misses.join("; ")}`);
           }
           else if (opensOn === "press") await userEvent.click(element);
           else {
@@ -150,6 +154,45 @@ function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] 
       };
     }),
   );
+}
+
+/** How many times a hover opener moves the pointer onto its trigger, and how long it waits after each: the open delay and more. */
+const hoverAttempts = 3;
+const hoverWait = 2_000;
+
+/**
+ * Moves the pointer onto a trigger. A bar that auto-hid while the scan opened its other popups takes no pointer events until
+ * a pointer moves over it, which the hover's own hit test, refused, never makes (#1856). Only then does the pointer arrive
+ * over the trigger's corner first, as a person's does; any other trigger gets one hover, since the extra move came with two
+ * tooltips that did not open in CI (Menu IconTrigger's and a MessageList reaction's).
+ */
+async function hoverTrigger(element: HTMLElement): Promise<void> {
+  const box = element.getBoundingClientRect();
+  const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+  if (!hit || !element.contains(hit)) await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
+  await userEvent.hover(element);
+}
+
+/** Whether a popup matching `selector` is in the page within `ms`. */
+async function opensWithin(selector: string, ms: number): Promise<boolean> {
+  try {
+    await vi.waitFor(() => {
+      if (!document.querySelector(selector)) throw new Error("not open");
+    }, { timeout: ms, interval: 20 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Where a trigger whose tooltip did not open went: still in the page, moved since the hover, and what is at its middle now. */
+function describeMiss(element: HTMLElement, at: DOMRect): string {
+  if (!element.isConnected) return "the trigger left the page";
+  const now = element.getBoundingClientRect();
+  const moved = Math.round(now.left - at.left) || Math.round(now.top - at.top) ? `moved by ${Math.round(now.left - at.left)},${Math.round(now.top - at.top)}px` : "did not move";
+  const hit = document.elementFromPoint(now.left + now.width / 2, now.top + now.height / 2);
+  const under = !hit ? "nothing" : element.contains(hit) ? "the trigger" : `${hit.tagName.toLowerCase()}${hit.getAttribute("data-ouro") ? `[data-ouro="${hit.getAttribute("data-ouro")}"]` : ""}`;
+  return `it ${moved}, with ${under} at its middle`;
 }
 
 /** The first of {@link passingOpeners} on the page now that `opened` does not hold, which it then holds. */
