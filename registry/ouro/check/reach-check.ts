@@ -65,7 +65,8 @@ function findDeadZones(): PageIssue[] {
       // A card that opens its link from a click on its root, as Ouro's Card, Item and Table do, reaches it everywhere.
       if (card.closest("[data-follows-link]") === card) continue;
       // The window alone scrolls, so a carousel or other box the card is in keeps its place.
-      if (box.top < 0 || box.bottom > innerHeight) scrollTo(scrollX, scrollY + box.top - Math.max(0, (innerHeight - box.height) / 2));
+      // At once, whatever the page's scroll-behavior: a smooth scroll would leave the card off the screen to hit-test.
+      if (box.top < 0 || box.bottom > innerHeight) scrollTo({ left: scrollX, top: scrollY + box.top - Math.max(0, (innerHeight - box.height) / 2), behavior: "instant" });
       const r = card.getBoundingClientRect();
       let points = 0;
       let dead = 0;
@@ -92,7 +93,7 @@ function findDeadZones(): PageIssue[] {
       });
     }
   } finally {
-    scrollTo(startX, startY);
+    scrollTo({ left: startX, top: startY, behavior: "instant" });
   }
   return issues;
 }

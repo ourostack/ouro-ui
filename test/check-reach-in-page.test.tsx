@@ -55,6 +55,16 @@ describe("findDeadZones: linked-card-dead-zone", () => {
     expect(location.hash).not.toBe("#dead-zone-nav");
   });
 
+  it("finds a card below the fold on a page that scrolls smoothly, and puts the page's scroll back", () => {
+    render(`<style>html { scroll-behavior: smooth; }</style><div style="height: 2400px"></div>${card('style="position: relative"')}`);
+    try {
+      expect(issues()).toHaveLength(1);
+      expect(scrollY).toBe(0);
+    } finally {
+      host.remove();
+    }
+  });
+
   it("runs none of the page's code: a root's own click handler never runs, and only a root marked data-follows-link passes", () => {
     render(card('style="position: relative"'));
     let clicks = 0;
