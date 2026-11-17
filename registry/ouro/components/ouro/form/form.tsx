@@ -36,7 +36,7 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
   /**
    * Errors by field name, from your action or submit handler: `errors={formErrors(actionData, actionData?.errors)}`
    * (import `formErrors` from `@/lib/ouro/form-answer`). Each changed answer, including an equal one, shows its
-   * messages again, replaces the alert and moves focus once. Rebuilding the value or its mapped messages with
+   * messages again and moves focus once. Rebuilding the value or its mapped messages with
    * the same answer is not a new answer: nothing moves.
    * Each one shows on the field with that `name`, which gets `aria-invalid` and links the
    * message, in the server HTML too. A field's own `error` prop wins over it, and a message
@@ -47,7 +47,8 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
    * with a link), and an array is several messages.
    *
    * With the same answer, a message the user cleared stays cleared, even if its key goes away and comes
-   * back; changed messages for that answer (new text, a new React node) show without moving focus.
+   * back; messages the user hasn't cleared update in place (new text, a new React node), without moving
+   * focus or replacing the alert, though a screen reader may read changed alert text.
    * No answer (`null`/`undefined`) is not a new answer either, and keeps what the user cleared.
    * Cached/reused or primitive answers need `{ key }`, changed only when a new answer comes in, never
    * when a submit starts: `formErrors(data, data.errors, { key: savedAt })`. Form doesn't work out which of
@@ -55,12 +56,15 @@ export type FormProps = Omit<BaseForm.Props, "className" | "errors" | "children"
    *
    * A plain object (`errors={{ email: "Taken." }}`) works for errors you show yourself, compared by
    * content, so the same mistake twice doesn't show again; use `formErrors` for answers, from the first
-   * render. JSON, a spread, structured cloning or a server component's props keep only the messages:
+   * render: switching between the two is not a new answer, and keeps what the user cleared. JSON, a
+   * spread, structured cloning or a server component's props keep only the messages:
    * build the value beside Form, on the server and in the browser.
    *
    * These errors only show: they never block the next submit, so the user can always send
    * the form again (a server error may be fixed by changing another field, or by trying
    * again). The browser's own checks (`required`, `type="email"`) still block a submit.
+   * @claim "works for errors you show yourself, compared by" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > compares errors by content: an equal object rebuilt on every render shows nothing again and moves no focus)
+   * @claim "works for errors you show yourself, compared by" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > answer-bearing errors > seeds representation switches without inventing arrival, losing a clear or moving focus)
    * @claim "Each changed answer, including an equal" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > a new answer and a re-render > keeps a cleared message cleared through the next submit's own re-render, then shows the equal answer and moves focus once when it arrives)
    * @claim "Rebuilding the value or its mapped" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > compares errors by content: an equal object rebuilt on every render shows nothing again and moves no focus)
    * @claim "Each one shows on the field" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form server rendering > links a form error to its control in the server HTML (task 1 review, finding 1))
@@ -263,7 +267,7 @@ function summarize(form: HTMLFormElement, topMessages: number, summary: FormErro
  * Why `formErrors(answer, messages)`: Form has to tell a new answer from the same one rendered again. `answer`
  * is the object your action or submit handler gave back for this submit, and `messages` are its errors by
  * field name. Each new `answer` object is a new answer, even with the same messages: every message shows
- * again, the alert is replaced and focus moves once. Rendering again with the same `answer` is not: a
+ * again, including one the user cleared, and focus moves once. Rendering again with the same `answer` is not: a
  * message the user cleared by editing its field stays cleared, and focus stays put. So build the value
  * in the render, as the examples do. Form never guesses that an answer arrived from a submit starting, a wait
  * or a navigation. You choose which answer belongs to this form, so with two Forms on one route, pass
@@ -272,7 +276,8 @@ function summarize(form: HTMLFormElement, topMessages: number, summary: FormErro
  *
  * A plain object, `errors={{ email: "Taken." }}`, still works, but Form compares it by its content: the
  * same mistake made twice looks like no change, so it does not show again. Use `formErrors` for answers,
- * from the first render, while the answer is still `undefined`. The answer lives in memory only: JSON,
+ * from the first render, while the answer is still `undefined`: switching between a plain object and
+ * `formErrors` is not a new answer, so it moves no focus and keeps what the user cleared. The answer lives in memory only: JSON,
  * a spread, structured cloning and passing it from a server component keep the messages and lose the
  * answer. Reconstruct beside Form in each environment, from the answer or key you have there; the value
  * never keeps or serializes the rest of the answer.
@@ -335,16 +340,17 @@ function summarize(form: HTMLFormElement, topMessages: number, summary: FormErro
  *   <Button type="submit">Subscribe</Button>
  * </Form>
  * @claim "Each new `answer` object is a new answer" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > a new answer and a re-render > keeps a cleared message cleared through the next submit's own re-render, then shows the equal answer and moves focus once when it arrives)
- * @claim "Rendering again with the same `answer` is not" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > a new answer and a re-render > keeps a cleared message cleared through re-renders that are not a submit)
+ * @claim "Rendering again with the same `answer` is not" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > answer-bearing errors > renders new uncleared node props and handlers without restoring a masked error or replacing its alert)
  * @claim "but Form compares it by its content" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > compares errors by content: an equal object rebuilt on every render shows nothing again and moves no focus)
+ * @claim "switching between a plain object and" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > answer-bearing errors > seeds representation switches without inventing arrival, losing a clear or moving focus)
  * @claim "Server errors only show: unlike the" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form errors are display-only (review fix round 1, finding 1) > still blocks a submit on the browser's own constraints)
  * @claim "Server errors only show: unlike the" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form errors are display-only (review fix round 1, finding 1) > resubmits a TextField after a server error, with the field unchanged)
  * @claim "A Form submits only itself: its" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form submits only itself (review fix round 1, finding 2) > stops its submit event from reaching a Form around it in the React tree)
  * @claim "First the browser's own checks (`required`" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > validates with the browser's constraints and focuses the first invalid control)
  * @claim "A key that no field in" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form-level messages (review fix round 1, finding 3) > warns in development about a key no field claims, naming the key, the form's fields and both fixes)
  * @claim "A key that no field in" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form-level messages (review fix round 1, finding 3) > shows a form error and keys no field claims in an alert at the top of the form)
- * @claim "Form never guesses that an answer arrived" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > answer-bearing errors > seeds representation switches without inventing arrival, losing a clear or moving focus)
- * @claim "You choose which answer belongs to this form" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > answer-bearing errors > keeps the first accepted mask through two changes flushed in the same React turn)
+ * @claim "Form never guesses that an answer arrived" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form > a new answer and a re-render > keeps a cleared message cleared through the next submit's own re-render, then shows the equal answer and moves focus once when it arrives)
+ * @claim "You choose which answer belongs to this form" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form-level messages (review fix round 1, finding 3) > warns in development about a key no field claims, naming the key, the form's fields and both fixes)
  * @claim "Reconstruct beside Form in each environment" registry/ouro/lib/ouro/form-answer.test.ts verify:testExists(registry/ouro/lib/ouro/form-answer.test.ts::formErrors answer value > enumerates and serializes only selected messages, never a cyclic private answer or its getter)
  * @claim "Reconstruct beside Form in each environment" registry/ouro/lib/ouro/form-answer.test.ts verify:testExists(registry/ouro/lib/ouro/form-answer.test.ts::formErrors answer value > interns object keys without retaining the key payload and lets the key override source identity)
  * @claim "It is in the page only" registry/ouro/components/ouro/form/form.test.tsx verify:testExists(registry/ouro/components/ouro/form/form.test.tsx::Form-level messages (review fix round 1, finding 3) > adds the alert to the page with its message already in it, each time an answer arrives, so screen readers announce it)
