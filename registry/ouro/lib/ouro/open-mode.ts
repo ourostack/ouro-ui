@@ -1,6 +1,15 @@
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 
 /**
+ * The type of `open` beside `trigger`, on an overlay that takes one of the two. A literal, so the union still tells
+ * the modes apart and hover keeps each prop's docs (an object hint type would lose both), and so the type error for
+ * both modes names the fix, where `never` reads "not assignable to type 'undefined'". Only `open` takes it, because
+ * TypeScript reports `open` for both modes; `trigger`, `onOpenChange` and `anchor` stay `never`, so an indexed type
+ * such as `DialogProps["trigger"]` is unchanged. @internal
+ */
+export type TriggerOrOpen = "Pass trigger, or open and onOpenChange, not both";
+
+/**
  * Throws, with the exact fix in development, unless an overlay has exactly one
  * way to open: a `trigger`, or `open` with an `onOpenChange` function. The types
  * already forbid the other shapes; this catches untyped and `as any` callers.

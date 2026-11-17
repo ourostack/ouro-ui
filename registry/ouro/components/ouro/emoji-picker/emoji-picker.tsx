@@ -19,7 +19,7 @@ import {
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { checkOpenMode } from "@/registry/ouro/lib/ouro/open-mode";
+import { checkOpenMode, type TriggerOrOpen } from "@/registry/ouro/lib/ouro/open-mode";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -286,7 +286,7 @@ export type EmojiPickerTriggerOpening = {
   /** The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. */
   trigger: ReactElement;
   /** Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`. */
-  open?: never;
+  open?: TriggerOrOpen;
   /** Not with `trigger`. Remove `trigger` to control the picker with `open`, `onOpenChange` and `anchor`. */
   onOpenChange?: never;
   /** Not with `trigger`. The picker sits beside its trigger. */

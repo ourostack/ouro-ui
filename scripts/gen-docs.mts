@@ -226,6 +226,9 @@ interface Prop {
   declaration: ts.Declaration;
 }
 
+/** The literal types (lib/ouro/open-mode.ts) a prop takes to say it is not in this mode, and name the fix. */
+const modeGuards = new Set(["TriggerOrOpen"]);
+
 const literal = (type: ts.Type) =>
   type.isLiteral() || (type.flags & (ts.TypeFlags.BooleanLiteral | ts.TypeFlags.Undefined)) !== 0;
 
@@ -270,8 +273,12 @@ function propOf(symbol: ts.Symbol): Prop | undefined {
     description:
       paragraphs(docText(symbol.getDocumentationComment(checker))).join(" ") ||
       (symbol.getName() === "ref" ? "Reaches the rendered element." : ""),
-    // `prop?: never` reads as `undefined`; without the undefined it is `never` or a hint.
-    guard: (checker.getNonNullableType(type).flags & ts.TypeFlags.Never) !== 0 || isHint(checker.getNonNullableType(type)),
+    // `prop?: never` reads as `undefined`; without the undefined it is `never` or a hint. A mode guard (`open` beside
+    // `trigger`) is a literal naming the fix, so that the union still tells the modes apart.
+    guard:
+      (checker.getNonNullableType(type).flags & ts.TypeFlags.Never) !== 0 ||
+      isHint(checker.getNonNullableType(type)) ||
+      modeGuards.has((declaration as { type?: ts.TypeNode }).type?.getText() ?? ""),
     declaration,
   };
 }
@@ -519,7 +526,7 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
           mode.props.length > 0 ? propTable(mode.props) : "",
           doc.native.length === 0 && mode.native.length > 0 ? nativeLine(mode.native) : "",
           mode.excluded.length > 0
-            ? `Not in this mode (typed \`never\`):\n\n${list(mode.excluded.map((prop) => `\`${prop.name}\`: ${prop.description}`))}`
+            ? `Not in this mode (a type error):\n\n${list(mode.excluded.map((prop) => `\`${prop.name}\`: ${prop.description}`))}`
             : "",
         ]
           .filter(Boolean)

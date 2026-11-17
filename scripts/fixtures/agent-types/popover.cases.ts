@@ -28,6 +28,15 @@ export const agentCases: AgentCase[] = [
     dev: '<Popover title="…" trigger={…}>…</Popover>',
     names: ["tsc", "dev"],
   },
+  {
+    id: "popover05",
+    habit: "both trigger and open",
+    tsc: [`error TS2322: Type '{ children: string; title: string; trigger: Element; open: true; onOpenChange: (open: boolean) => void; anchor: RefObject<HTMLButtonElement | null>; }' is not assignable to type 'IntrinsicAttributes & PopoverProps'.\n  Types of property 'open' are incompatible.\n    Type 'true' is not assignable to type '"Pass trigger, or open and onOpenChange, not both"'.`],
+    dev: "Pass trigger={<Button>…</Button>} for an uncontrolled popover, or open and onOpenChange to control it",
+    names: ["tsc", "dev"],
+    hoverLost:
+      "trigger and open each rule out the other branch, so no member of the union holds the element; the type error names the fix instead (TriggerOrOpen in lib/ouro/open-mode.ts)",
+  },
 ];
 
 /** Valid popover snippets: no type error, no development message, and hover on every prop. */

@@ -1,0 +1,1 @@
+- Changed: passing both trigger and open to Dialog, ConfirmDialog, Sheet, EditSheet, Popover or EmojiPicker is a type error that names the fix ("Pass trigger, or open and onOpenChange, not both"), where it read "not assignable to type 'undefined'".

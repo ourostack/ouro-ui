@@ -35,6 +35,15 @@ export const agentCases: AgentCase[] = [
     dev: '<SheetRoot side="bottom">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "sheet01",
+    habit: "both trigger and open",
+    tsc: [`error TS2322: Type '{ children: string; title: string; side: "bottom"; trigger: Element; open: true; onOpenChange: (open: boolean) => void; }' is not assignable to type 'IntrinsicAttributes & SheetProps'.\n  Types of property 'open' are incompatible.\n    Type 'true' is not assignable to type '"Pass trigger, or open and onOpenChange, not both"'.`],
+    dev: "Pass trigger={<Button>…</Button>} for an uncontrolled sheet, or open and onOpenChange to control it",
+    names: ["tsc", "dev"],
+    hoverLost:
+      "trigger and open each rule out the other branch, so no member of the union holds the element; the type error names the fix instead (TriggerOrOpen in lib/ouro/open-mode.ts)",
+  },
 ];
 
 /** Valid sheet snippets: no type error, no development message, and hover on every prop. */

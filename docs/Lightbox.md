@@ -71,7 +71,7 @@ A controlled Lightbox: the viewer alone, which you open from thumbnails you lay 
 | `open` (required) | `boolean` |  | Whether the viewer is open. Focus goes back to whatever had it when the viewer opened, unless `returnFocus` gives another element, and the viewer grows from that element. Keep the Lightbox mounted and change `open`: one that mounts already open after a press or a key appears and leaves without its transitions, and says so in development. |
 | `returnFocus` | `((index: number) => HTMLElement \| null \| undefined)` |  | Where focus goes as the viewer closes, given the index of the image last shown: return that image's thumbnail in your layout, so the user is back where they were looking. Return nothing to give focus back to what had it when the viewer opened. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `className`: Not with `open`: lay out your own thumbnails instead, since a controlled Lightbox draws the viewer alone.
 - `layout`: Not with `open`: a controlled Lightbox draws no thumbnails to lay out.
@@ -85,7 +85,7 @@ A Lightbox that draws its own thumbnails, which open the viewer.
 | `className` | `string` |  | Layout only, for the thumbnails: width and margins (`max-w-2xl`, `mt-6`). Appearance classes warn in development. |
 | `layout` | `"grid" \| "mosaic"` | `"grid"` | How the thumbnails sit. `grid`: as many 4:3 thumbnails in a row as fit. `mosaic`: one frame, as a chat shows the pictures in a message: one picture at its own shape (`width` and `height`), two side by side, three as one large and two small, four or more as a 2 by 2 grid with "+N" on the last; the viewer still steps through them all. The frame is as big as a chat shows pictures: at most 25rem wide and 17.5rem tall, and never wider than its column, so a picture never crowds the words around it; `className` gives it another width (`max-w-none`). |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `index`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.
 - `onOpenChange`: Not with thumbnails. Pass `open` and `onOpenChange` too to open the viewer from your own layout.

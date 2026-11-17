@@ -51,7 +51,7 @@ The props the modes share. Type: `PaginationProps`.
 | `hasNextPage` | `boolean` | `false` | Whether there is a page after this one, which enables Next. |
 | `href` (required) | `string \| ((page: number) => string)` |  | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`` href={(page) => `/recipes?page=${page}`} ``). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `onPageChange`: Not with `href`. Remove `href` to render buttons that call `onPageChange`.
 - `pageCount`: Leave it out when the list has no count; pass it to show the page numbers.
@@ -63,7 +63,7 @@ Not in this mode (typed `never`):
 | `href` (required) | `string \| ((page: number) => string)` | The address of a page: a string with `{page}` (`href="/recipes?page={page}"`, which a Server Component can pass) or a function (`` href={(page) => `/recipes?page=${page}`} ``). Internal paths go through `OuroProvider`'s `linkComponent`, so your router navigates. |
 | `pageCount` (required) | `number` | How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `hasNextPage`: Not with `pageCount`, which decides whether there is a next page.
 - `onPageChange`: Not with `href`. Remove `href` to render buttons that call `onPageChange`.
@@ -75,7 +75,7 @@ Not in this mode (typed `never`):
 | `hasNextPage` | `boolean` | `false` | Whether there is a page after this one, which enables Next. |
 | `onPageChange` (required) | `(page: number) => void` |  | Called with the page number when the person picks a page. Update `page` in it. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `href`: Not with `onPageChange`. Remove `onPageChange` to render links.
 - `pageCount`: Leave it out when the list has no count; pass it to show the page numbers.
@@ -87,7 +87,7 @@ Not in this mode (typed `never`):
 | `onPageChange` (required) | `(page: number) => void` | Called with the page number when the person picks a page. Update `page` in it. |
 | `pageCount` (required) | `number` | How many pages there are. From a count of rows: `Math.ceil(total / pageSize)`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `hasNextPage`: Not with `pageCount`, which decides whether there is a next page.
 - `href`: Not with `onPageChange`. Remove `onPageChange` to render links.

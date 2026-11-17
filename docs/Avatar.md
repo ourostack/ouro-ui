@@ -62,7 +62,7 @@ The props the modes share. Type: `AvatarProps`.
 | --- | --- | --- |
 | `presenceLabel` | `string` | Read only with `presence`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `presence`: Leave it out for no dot; pass it with `presenceLabel` to show one.
 

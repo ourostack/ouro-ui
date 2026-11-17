@@ -51,7 +51,7 @@ Long content of any kind folded to `maxHeight` pixels under a fade, with "Show m
 | `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
 | `showLessLabel` | `string` | `"Show less"` | The button's text while everything shows. Translate it here. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `hasMore`: Only with `onShowMore`.
 - `href`: Only with `onShowMore`.
@@ -78,7 +78,7 @@ A list cut to its first `initialCount` items, with "Show more" and "Show less".
 | `ordered` | `boolean` | `false` (`<ul>`) | Renders an `<ol>`, for a ranked or numbered list. |
 | `showLessLabel` | `string` | `"Show less"` | The button's text while everything shows. Translate it here. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `children`: Text mode only: a list takes `items`.
 - `estimate`: Text and height modes only: a list shows its first items.
@@ -105,7 +105,7 @@ Long text clamped to `lines` lines, with "Show more" and "Show less".
 | `open` | `boolean` |  | Whether the content shows in full. With it, the app owns the state: "Show more" and "Show less" ask for the change through `onOpenChange`, and nothing changes until the app sets `open`. Without it, ShowMore keeps its own state, starting folded. |
 | `showLessLabel` | `string` | `"Show less"` | The button's text while everything shows. Translate it here. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `hasMore`: Only with `onShowMore`.
 - `href`: Only with `onShowMore`.
@@ -135,7 +135,7 @@ A list the server grows a page at a time: "Show more" asks for the next page and
 | `onShowMore` (required) | `() => void` |  | Asks for the next page. The button is busy while `loading`, and focus moves to the first new item when it arrives. |
 | `ordered` | `boolean` | `false` (`<ul>`) | Renders an `<ol>`, for a ranked or numbered list. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `children`: Text mode only: a list takes `items`.
 - `estimate`: Text and height modes only: a list shows its first items.

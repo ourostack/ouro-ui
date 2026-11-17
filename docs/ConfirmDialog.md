@@ -60,7 +60,7 @@ A controlled ConfirmDialog: you own `open` and update it in `onOpenChange`.
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user cancels (Cancel or Escape) and when `onConfirm` finishes. |
 | `open` (required) | `boolean` | Whether the confirmation is open. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `trigger`: Not with `open`. Remove `open` and `onOpenChange` to let a trigger open the confirmation.
 
@@ -72,7 +72,7 @@ An uncontrolled ConfirmDialog: `trigger` opens it.
 | --- | --- | --- |
 | `trigger` (required) | `ReactElement` | The element that opens the confirmation, usually a Button: `trigger={<Button tone="destructive">Delete</Button>}`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `onOpenChange`: Not with `trigger`. Remove `trigger` to control the confirmation with `open` and `onOpenChange`.
 - `open`: Not with `trigger`. Remove `trigger` to control the confirmation with `open` and `onOpenChange`.

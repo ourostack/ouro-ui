@@ -10,4 +10,5 @@ export const popover01 = <Popover title="Share" trigger={<Button>Share</Button>}
 export const popover02 = <Popover title="Share" open={open} onOpenChange={setOpen}>Body</Popover>;
 export const popover03 = <Popover title="Share" trigger={<Button>Share</Button>} side="above">Body</Popover>;
 export const popover04 = <Popover title="Share" trigger={<Button>Share</Button>} content="Body" />;
+export const popover05 = <Popover title="Share" trigger={<Button>Share</Button>} open={open} onOpenChange={setOpen} anchor={anchor}>Body</Popover>;
 export const popoverOk01 = <Popover title="Share" open={open} onOpenChange={setOpen} anchor={anchor} side="top" align="start" presentation="auto">Body</Popover>;

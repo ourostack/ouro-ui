@@ -59,7 +59,7 @@ A Button without `href`: renders a native `<button>`.
 
 Also accepts the attributes in React's `ButtonHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `href`: Not set: this is a `<button>`. Pass `href` to render a link instead.
 - `reloadDocument`: Document navigation needs a link: pass `href` with `reloadDocument`.
@@ -76,7 +76,7 @@ A Button with `href`: renders a link that looks like a button.
 
 Also accepts the attributes in React's `AnchorHTMLAttributes` and `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `default`: A dialog's default action is a button. Remove `href`: `<Button default onClick={start}>`.
 - `disabled`: A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link.

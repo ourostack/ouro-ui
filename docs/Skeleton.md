@@ -51,7 +51,7 @@ Skeleton's props for an avatar.
 | `shape` (required) | `"circle"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
 | `size` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "2xl" \| "3xl"` | `"md"` | Avatar's size, so it is the avatar's exact box. A layout class (`size-12`) sizes it instead. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `count`: Only with `shape="row"` or `"card"`.
 - `lines`: Only with `shape="text"`.
@@ -64,7 +64,7 @@ Skeleton's props for a block.
 | --- | --- | --- | --- |
 | `shape` | `"rect"` | `"rect"` | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `count`: Only with `shape="row"` or `"card"`.
 - `lines`: Only with `shape="text"`.
@@ -80,7 +80,7 @@ Skeleton's props for list rows or Cards.
 | `shape` (required) | `"row" \| "card"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
 | `size` | `"sm" \| "md"` | `"md"` | Item's or Card's size, so each placeholder is that component's exact height. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `lines`: Only with `shape="text"`.
 
@@ -94,7 +94,7 @@ Skeleton's props for lines of text.
 | `shape` (required) | `"text"` |  | The outline of what is loading: `rect` (a block), `text` (lines), `circle` (an avatar), `row` (a list row) or `card`. |
 | `size` | `"sm" \| "md" \| "lg"` |  | Text's size, so each line is one line box of that text. Leave it out to inherit the surrounding text's size. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `count`: Only with `shape="row"` or `"card"`. For several lines use `lines`.
 

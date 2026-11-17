@@ -59,7 +59,7 @@ A controlled Popover: you own `open`, update it in `onOpenChange`, and say what 
 | `onOpenChange` (required) | `(open: boolean) => void` | Called with `false` when the user dismisses the popover (Escape, outside press, the close button). |
 | `open` (required) | `boolean` | Whether the popover is open. After a touch or pen tap the popover focuses itself rather than its first input, so no software keyboard pops up; after a key press it focuses the first control. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `trigger`: Not with `open`. Remove `open`, `onOpenChange` and `anchor` to let a trigger open the popover.
 
@@ -71,7 +71,7 @@ An uncontrolled Popover: `trigger` opens and closes it, and it sits beside the t
 | --- | --- | --- |
 | `trigger` (required) | `ReactElement` | The element that opens and closes the popover, usually a Button: `trigger={<Button>Share</Button>}`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `anchor`: Not with `trigger`. The popover sits beside its trigger.
 - `onOpenChange`: Not with `trigger`. Remove `trigger` to control the popover with `open`, `onOpenChange` and `anchor`.

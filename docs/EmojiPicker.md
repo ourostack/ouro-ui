@@ -85,7 +85,7 @@ A controlled EmojiPicker of an image catalogue's emoji: you own `open`, update i
 | `placeholder` | `string \| ReactElement` | Shows in each emoji's place until its picture has loaded and decoded, as `Emoji`'s `placeholder`: an image's address, or an element. The picker passes it to every emoji it draws: the grid, the quick row, the preview, the category buttons and the skin tones. Pass a value that stays the same between renders (an address, or an element made once), so the grid is not redrawn while the app renders. |
 | `quick` | `readonly string[]` | The ids of a row of emoji above the categories for a single press, such as the quick reactions on a message. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `categories`: Not with `catalogue`. The emoji come from the catalogue: remove `categories`.
 - `renderEmoji`: Not with `catalogue`. The picker draws the catalogue's images.
@@ -104,7 +104,7 @@ An uncontrolled EmojiPicker of an image catalogue's emoji: `trigger` opens and c
 | `quick` | `readonly string[]` | The ids of a row of emoji above the categories for a single press, such as the quick reactions on a message. |
 | `trigger` (required) | `ReactElement` | The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `anchor`: Not with `trigger`. The picker sits beside its trigger.
 - `categories`: Not with `catalogue`. The emoji come from the catalogue: remove `categories`.
@@ -127,7 +127,7 @@ A controlled EmojiPicker of the platform's emoji: you own `open`, update it in `
 | `quick` | `readonly EmojiPickerEmoji[]` | A row of emoji above the categories for a single press, such as the quick reactions on a message. |
 | `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row, the preview, the category buttons (each category's first emoji) and the skin tone choice (the first emoji with tones), for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `catalogue`: Not with `categories`. Remove `categories`, `frequent` and `quick` to offer an image catalogue's emoji instead.
 - `placeholder`: Not with `categories`. A placeholder stands in for a catalogue's pictures; `renderEmoji` draws your own art.
@@ -146,7 +146,7 @@ An uncontrolled EmojiPicker of the platform's emoji: `trigger` opens and closes 
 | `renderEmoji` | `EmojiRender` | Draws an emoji in the grid, the quick row, the preview, the category buttons (each category's first emoji) and the skin tone choice (the first emoji with tones), for an app with its own emoji art: return an image 1em square, so it takes the size of the text, with an empty `alt` (the button already has the emoji's name). Pass a function that stays the same between renders, so moving focus redraws only the emoji it leaves and reaches. Without it, the picker shows the platform's own glyphs, in the skin tone in use. |
 | `trigger` (required) | `ReactElement` | The element that opens and closes the picker, usually an icon Button: `trigger={<Button aria-label="Add a reaction">…</Button>}`. |
 
-Not in this mode (typed `never`):
+Not in this mode (a type error):
 
 - `anchor`: Not with `trigger`. The picker sits beside its trigger.
 - `catalogue`: Not with `categories`. Remove `categories`, `frequent` and `quick` to offer an image catalogue's emoji instead.
