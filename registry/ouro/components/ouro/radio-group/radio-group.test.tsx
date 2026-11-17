@@ -161,6 +161,19 @@ describe("RadioGroup", () => {
     expect(radios.map((radio) => radio.getAttribute("aria-checked"))).toEqual(["true", "false", "false", "false"]);
   });
 
+  it("makes each radio the one element its exact label finds, as Testing Library and Playwright look it up, and a click on that label picks it", async () => {
+    const onValueChange = vi.fn();
+    const { radios } = await render(<RadioGroup legend="Size" name="size" options={sizes} onValueChange={onValueChange} />);
+    // Playwright's getByLabel("…", { exact: true }), which Vitest's getByLabelText shares.
+    expect(["Small", "Medium", "Large", "Family"].map((label) => page.getByLabelText(label, { exact: true }).elements())).toEqual(
+      radios.map((radio) => [radio]),
+    );
+    expect(radios.map((radio) => radio.getAttribute("role"))).toEqual(["radio", "radio", "radio", "radio"]);
+    await userEvent.click(page.getByText("Family"));
+    expect(onValueChange).toHaveBeenLastCalledWith("family");
+    expect(radios[3]!.getAttribute("aria-checked")).toBe("true");
+  });
+
   it("follows a controlled value", async () => {
     function Controlled() {
       const [value, setValue] = useState("small");
@@ -481,9 +494,9 @@ describe("RadioGroup on the server", () => {
     expect(texts(doc, radios[0]!)).toEqual(["Serves 2.", "Pick one.", "Choose a size."]);
     expect(radios.map((radio) => radio.getAttribute("aria-checked"))).toEqual(["false", "true", "false", "false"]);
     expect(radios.map((radio) => radio.getAttribute("aria-invalid"))).toEqual(["true", "true", "true", "true"]);
-    for (const input of doc.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
-      expect(doc.querySelector(`label[for="${input.id}"]`)).not.toBeNull();
-    }
+    // Each label's `for` names its radio, not the hidden input, so the label finds one control.
+    expect(radios.map((radio) => doc.querySelector(`label[for="${radio.id}"]`)?.textContent)).toEqual(["Small", "Medium", "Large", "Family"]);
+    expect([...doc.querySelectorAll('input[type="radio"]')].map((input) => input.id)).toEqual(["", "", "", ""]);
     expect(error).not.toHaveBeenCalled();
   });
 
