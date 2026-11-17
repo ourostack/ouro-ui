@@ -1,0 +1,1 @@
+- Fix: Chart draws its axis labels whole where a font draws a glyph's ink past its box, as Geist does with the flag of its one.
