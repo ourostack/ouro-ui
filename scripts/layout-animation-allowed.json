@@ -1,6 +1,6 @@
 {
-  "registry/ouro/lib/ouro/css-panel.tsx": {
-    "transition-[grid-template-rows]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"
+  "registry/ouro/components/ouro/card/card.tsx": {
+    "transition-[grid-template-rows,opacity]": "revealDescription=\"rise\" opens the description from no room, so the title above it rises; it grows inside a layer laid over the media, so nothing outside that layer moves and the card's box stays the same, and with reduced motion it only fades"
   },
   "registry/ouro/components/ouro/checklist/checklist-styles.ts": {
     "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),grid-template-rows_var(--ouro-duration-base)_var(--ouro-ease-out)]": "a row added or removed closes its gap so the rows below follow it, which a transform would overlap; with reduced motion it only fades"
@@ -13,5 +13,8 @@
   },
   "registry/ouro/components/ouro/segmented-control/segmented-control-styles.ts": {
     "[transition:inset-inline-start_var(--ouro-duration-base)_var(--ouro-ease-in-out),inset-inline-end_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease]": "the thumb takes the pressed segment's edges by anchor positioning, so it slides by its inset, which a transform cannot follow; it is absolutely placed, so nothing in flow moves, and it is off with reduced motion"
+  },
+  "registry/ouro/lib/ouro/css-panel.tsx": {
+    "transition-[grid-template-rows]": "an in-flow disclosure: the panel's height moves the content below it, which a transform would overlap; it is off with reduced motion"
   }
 }

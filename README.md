@@ -227,6 +227,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.244 (radius steps):** components round their corners with Ouro's own steps, `rounded-ouro-lg` (`rounded-ouro-sm` to `rounded-ouro-4xl`), which ouro-base defines from `--radius`, `--ouro-radius-scale` and `--ouro-corner-fallback`, so an app set up with `shadcn init` gets the Safari fallback and the scale, which shadcn's own `--radius-*` steps never carried.[^upgrade-radius-steps] Adding ouro-base again appends the `--radius-ouro-*` steps the app does not have. An app that set Ouro components' corners by overriding `--radius-sm` to `--radius-4xl` should override `--radius` or `--ouro-radius-scale` instead, or the `--radius-ouro-*` steps, since those no longer reach them.
 
+- **After v1.3.266 (cards):** Ouro check has two new gated rules: `linked-card-dead-zone`, a linked card or row where a click on some spot opens nothing, and `reveal-reflow`, a card whose hover or focus reveal moves the page.[^upgrade-card-rules] Ouro Current records the findings an app already has as known.[^upgrade-card-known] A linked Card, Item or Table row now opens from a click anywhere on it itself, so the app can drop a click handler it added to its cards.[^upgrade-card-click]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -343,6 +345,9 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-plain]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(site/scripts/static-css.test.mjs::ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS)
 [^upgrade-radius-steps]: registry/ouro/theme/radius-fallback.test.tsx verify:testExists(registry/ouro/theme/radius-fallback.test.tsx::radius scale where the engine has no corner-shape > rounds Button and Card on Ouro's steps, so the fallback and the scale reach them whatever the app's own --radius-lg and --radius-xl say)
 [^upgrade-trigger-or-open]: scripts/agent-types.test.mjs verify:testExists(scripts/agent-types.test.mjs::tsc reports exactly the expected errors, naming the fix where the case says so)
+[^upgrade-card-rules]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/new-rules.json, /"rule": "reveal-reflow"/)
+[^upgrade-card-known]: scripts/current/current.test.mjs verify:testExists(scripts/current/current.test.mjs::an Ouro check rule an update brings in has the findings the pull request's checks reported recorded as known, the run after, and kept while the next checks run)
+[^upgrade-card-click]: registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens its link from a click anywhere on it, though the app positions its body over the media, with the same button and keys)
 [^upgrade-scripts-ouro]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::Ouro check installs under scripts/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does) verify:testExists(scripts/current/current.test.mjs::Ouro HX moves Ouro check and the X-ray to scripts/ouro where their items now install, deleting the old copies and fixing package.json)
 <!-- upgrade:end -->
 

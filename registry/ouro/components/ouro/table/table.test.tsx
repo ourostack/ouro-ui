@@ -267,6 +267,38 @@ describe("Table scrolling", () => {
 });
 
 describe("Table with rowHref", () => {
+  it("opens a row's link from a click on any cell, though the app makes the name column sticky, which keeps the link's layer to its cell", async () => {
+    const { table } = await render(
+      <div data-consumer="">
+        <style>{"[data-consumer] tbody th { position: sticky; inset-inline-start: 0; }"}</style>
+        <Table
+          caption="Recipes"
+          columns={[
+            { key: "name", header: "Recipe" },
+            { key: "time", header: "Time" },
+          ]}
+          rows={recipes}
+          rowHref={(row) => row.href}
+        />
+      </div>,
+    );
+    const [ribs] = table.querySelectorAll("tbody tr");
+    const time = ribs!.querySelector("td")!;
+    const [x, y] = center(time);
+    expect(document.elementFromPoint(x, y)?.closest("a")).toBeNull();
+    const link = page.getByRole("link", { name: "Braised short ribs" }).element();
+    const opened = vi.fn((event: Event) => event.preventDefault());
+    link.addEventListener("click", opened);
+    await userEvent.click(time);
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(ribs!.getAttribute("data-follows-link")).toBe("");
+    // A middle click on a cell opens the row's address in a new tab.
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    await userEvent.click(time, { button: "middle" } as never);
+    expect(open).toHaveBeenCalledWith((link as HTMLAnchorElement).href, "_blank", "noopener");
+    expect(table.querySelectorAll("tbody tr")[2]!.hasAttribute("data-follows-link")).toBe(false);
+  });
+
   it("makes each linked row one link named by its row header, with one tab stop, covering the row", async () => {
     await page.viewport(1280, 800);
     const { table } = await render(
