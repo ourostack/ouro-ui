@@ -2009,7 +2009,7 @@ describe("Menu first frame", () => {
     const recording = recordPopupFrames(positioner);
     await userEvent.click(trigger());
     await settledBox(drawn(positioner));
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 
   it("is in place from its first visible frame when a right click opens it", async () => {
@@ -2020,7 +2020,7 @@ describe("Menu first frame", () => {
     const recording = recordPopupFrames(positioner);
     await userEvent.click(document.querySelector<HTMLElement>('[data-testid="area"]')!, { button: "right", position: { x: 40, y: 30 } });
     await settledBox(drawn(positioner));
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 
   it("is in place from its first visible frame when the app opens it with open and anchor", async () => {
@@ -2045,6 +2045,6 @@ describe("Menu first frame", () => {
     const recording = recordPopupFrames(positioner);
     await userEvent.click(trigger());
     await settledBox(drawn(positioner));
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 });

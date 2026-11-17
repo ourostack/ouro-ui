@@ -1016,7 +1016,7 @@ describe("Popover first frame", () => {
     const recording = recordPopupFrames(positioner);
     await userEvent.click(trigger());
     await settled();
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 
   it("is in place from its first visible frame when the app opens it with open and anchor", async () => {
@@ -1039,6 +1039,6 @@ describe("Popover first frame", () => {
     const recording = recordPopupFrames(positioner);
     await userEvent.click(trigger());
     await settled();
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 });
