@@ -59,7 +59,7 @@ const DOCS_URL = "https://ui.ouroboros.bot/docs";
 const components = readComponents();
 
 /** Registry files that test this repository itself and never ship. */
-const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/radius-fallback.test.tsx", "registry/ouro/theme/squircle-surface.test.tsx", "registry/ouro/theme/plain-classes.touch.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
+const repoOnly = new Set(["registry/ouro/theme/theme.test.tsx", "registry/ouro/theme/round-parts.test.tsx", "registry/ouro/theme/radius-fallback.test.tsx", "registry/ouro/theme/squircle-surface.test.tsx", "registry/ouro/theme/control-shape.test.tsx", "registry/ouro/theme/plain-classes.touch.test.tsx", "registry/ouro/e2e/ouro-fixtures.ts"]);
 
 /**
  * Repository-only folders: the screen-reader lane's specs (playwright.screen-reader.config.ts) need VoiceOver or NVDA,
@@ -476,7 +476,7 @@ function fileEntry(path: string): RegistryFile {
 
 /**
  * Converts a theme CSS file to shadcn's item format: :root and .dark colors and @theme inline
- * to cssVars; --ouro-* tokens, @utility, @layer base and @keyframes to css.
+ * to cssVars; --ouro-* tokens, @utility, @layer base, @supports, @container and @keyframes to css.
  */
 export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
   const cssVars: Required<CssVars> = { light: {}, dark: {}, theme: {} };
@@ -523,12 +523,12 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
         }
       });
       css["@layer base"] = rules;
-    } else if (node.type === "atrule" && node.name === "supports") {
+    } else if (node.type === "atrule" && (node.name === "supports" || node.name === "container")) {
       const rules: CssTree = {};
       node.each((rule) => {
-        if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@supports ${node.params} ${rule.selector}`, false);
+        if (rule.type === "rule") rules[rule.selector] = declarations(rule, `@${node.name} ${node.params} ${rule.selector}`, false);
       });
-      css[`@supports ${node.params}`] = rules;
+      css[`@${node.name} ${node.params}`] = rules;
     } else if (node.type === "atrule" && node.name === "keyframes") {
       const frames: CssTree = {};
       node.each((frame) => {
@@ -537,7 +537,7 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
       css[`@keyframes ${node.params}`] = frames;
     } else {
       const name = node.type === "atrule" ? `@${node.name}` : node.type === "rule" ? node.selector : node.type;
-      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility, @layer base, @supports and @keyframes.`);
+      throw new Error(`Unsupported CSS in a theme file: ${name}. shadcn items carry :root, .dark, @theme inline, @utility, @layer base, @supports, @container and @keyframes.`);
     }
   });
   const vars = Object.fromEntries(Object.entries(cssVars).filter(([, values]) => Object.keys(values).length > 0)) as CssVars;
