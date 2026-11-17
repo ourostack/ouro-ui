@@ -2638,7 +2638,7 @@ test("Docs pin reuses its open pull request and turns auto-merge on for it", () 
   const calls = readFileSync(join(dir, "gh.log"), "utf8");
   assert.match(calls, /^gh pr edit 7 --title Point the docs at a release /m);
   assert.doesNotMatch(calls, /gh pr create/);
-  assert.match(calls, /^gh pr merge 7 --auto --squash --subject  --body $/m);
+  assert.match(calls, /^gh pr merge 7 --auto --squash --subject {2}--body $/m);
   assert.match(readFileSync(join(dir, "summary.md"), "utf8"), /Auto-merge is on for #7/);
 });
 
