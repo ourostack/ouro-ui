@@ -268,6 +268,14 @@ describe("findLoadingIssues: first-paint-swap", () => {
     expect(issue!.swap!.taker.rest.endsWith("…")).toBe(true);
   });
 
+  it("leaves the check's own marks out of the HTML at rest, as when first-content marked the taker first", async () => {
+    host = render("");
+    const more = control("More", { "data-ouro-check-ref": "m7" });
+    host.append(more);
+    const [issue] = await swaps(new Map([drew(control("Settings"), 1, rectOf(more)), drew(more, 2, rectOf(more), false, "<button>More</button>")]));
+    expect(issue!.swap!.taker.rest).toBe("<button>More</button>");
+  });
+
   it("reports one taker once, for every control it took the place of", async () => {
     host = render("");
     const more = control("More");

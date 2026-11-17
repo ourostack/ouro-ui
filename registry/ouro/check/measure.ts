@@ -197,9 +197,10 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
   const at = new Map<Element, DOMRect>();
   for (const el of m.painted.keys()) if (shown(el)) at.set(el, el.getBoundingClientRect());
   const taken = new Set<Element>();
-  // As readFrame cuts it, so the first frame's HTML and the HTML at rest compare.
+  // As readFrame cuts it, so the first frame's HTML and the HTML at rest compare, less the marks this check has put on
+  // the page since (the other loading rules' data-ouro-check-ref), which the app never wrote.
   const htmlOf = (el: Element) => {
-    const html = el.outerHTML.replace(/\s+/g, " ");
+    const html = el.outerHTML.replace(/ data-ouro-check-[\w-]+="[^"]*"/g, "").replace(/\s+/g, " ");
     return html.length > 500 ? `${html.slice(0, 500)}…` : html;
   };
   for (const [gone, was] of m.painted) {
