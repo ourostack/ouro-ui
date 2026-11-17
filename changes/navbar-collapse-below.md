@@ -1,0 +1,1 @@
+- New: Navbar's `collapseBelow` prop sets the Tailwind breakpoint below which the links collapse behind the menu button: `sm` (the default, so nothing changes), `md`, `lg` or `xl`. The server HTML and the first paint use it too, so a bar whose links need more room than a tablet's no longer swaps for the Menu on hydration.
