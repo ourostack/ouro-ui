@@ -44,7 +44,7 @@ Group the findings by rule and element, so one fix shows once with every size it
 jq -r '.findings | group_by(.rule + .element)[] | "\(.[0].rule)\t\(.[0].element)\t\(length) spots\t\(.[0].detail)\t\(.[0].closeUp // "")"' ouro-check/report.json
 ```
 
-Fix from `rule`, `element` and `detail`. Open the close-up only when those leave you unsure which element it means, and then only that one.
+Fix from `rule`, `element` and `detail`. A finding inside an Ouro component is yours to fix in your app's copy ([Changing a component](https://ui.ouroboros.bot/docs/installing/#changing-a-component)). Open the close-up only when those leave you unsure which element it means, and then only that one.
 
 ## Fix, then prove it
 

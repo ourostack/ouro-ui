@@ -204,6 +204,7 @@ The app is done when the build passes and Ouro check reports `0 finding(s)`. A p
 - One component's whole API, with examples: `https://ui.ouroboros.bot/docs/<item>.md`, such as [Form](../Form.md) and [ConfirmDialog](../ConfirmDialog.md).
 - Errors from a server, a router's action and the order of checks: [Forms](forms.md).
 - A list, navigation, a table or a toast: [llms.txt](https://ui.ouroboros.bot/llms.txt)'s Common needs.
+- A component that needs a change: [Changing a component](installing.md#changing-a-component).
 
 [^quickstart]: test:scripts/agent-quickstart.test.mjs::the agent quickstart's app type-checks against the registry, with the files and commands it gives verify:testExists(scripts/agent-quickstart.test.mjs::the agent quickstart's app type-checks against the registry, with the files and commands it gives)
 [^namespace]: test:scripts/registry.test.mjs::--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag) verify:testExists(scripts/registry.test.mjs::--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag))

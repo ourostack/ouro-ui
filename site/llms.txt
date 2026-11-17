@@ -54,6 +54,10 @@ The full item list, under Items below, is long. These are the items for needs ap
 - Getting around: `navbar`, `sidebar`, `tabs`, `menu`, `command` (a command palette).
 - Data: `table`, `combobox`, `date-picker`.
 
+## Changing a component
+
+The components you add are yours to change. When to send a change back to Ouro UI: https://ui.ouroboros.bot/docs/installing.md#changing-a-component
+
 ## Ouro AX
 
 Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses. Its parts:
