@@ -3356,9 +3356,11 @@ jobs:
     # waits on, beside it, so it has finished by the time the required checks let the pull request merge; it is no
     # required check, and a reduced run skips it. install-github and install-latest run only on main and on
     # release branches, and fresh-main checks a newer main, not this tree: ci-budget fails the run when that fails.
+    # Each need is named: a job's if: counts every job above it in needs.*.result, so one skipped fallback shard
+    # upstream made !contains(needs.*.result, 'skipped') false on every run.
     name: Full suite passed on tree ${{ needs.plan.outputs.tree }}
     needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-upgrade, install-current]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') && needs.plan.outputs.tree != '' && needs.plan.outputs.full != 'false' && needs.plan.outputs.browser != 'false' && needs.plan.outputs.design != 'false' && needs.plan.outputs.installs == 'here' && needs.plan.outputs.heavy == 'here' && needs.ci.outputs.fallback != 'true' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.plan.result == 'success' && needs.ci.result == 'success' && needs.motion-coverage.result == 'success' && needs.themes.result == 'success' && needs.conformance.result == 'success' && needs.mutation.result == 'success' && needs.visual.result == 'success' && needs.registry.result == 'success' && needs.e2e.result == 'success' && needs.theme-install.result == 'success' && needs.latency.result == 'success' && needs.lighthouse.result == 'success' && needs.install-gate.result == 'success' && needs.install.result == 'success' && needs.install-upgrade.result == 'success' && needs.install-current.result == 'success' && needs.plan.outputs.tree != '' && needs.plan.outputs.full != 'false' && needs.plan.outputs.browser != 'false' && needs.plan.outputs.design != 'false' && needs.plan.outputs.installs == 'here' && needs.plan.outputs.heavy == 'here' && needs.ci.outputs.fallback != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
