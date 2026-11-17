@@ -137,7 +137,8 @@ describe("Navbar's collapse breakpoint", () => {
   });
 
   it("with collapseBelow md, the menu shows below md and the links from md up", async () => {
-    const md = barWith({ collapseBelow: "md", items: wideItems });
+    // The short links fit at 800px in any app's font, so only the breakpoint decides.
+    const md = barWith({ collapseBelow: "md" });
     const host = await serve(700, md);
     await hydrate(host, md);
     const menu = host.querySelector<HTMLElement>("[data-ouro-navbar-menu]")!;
