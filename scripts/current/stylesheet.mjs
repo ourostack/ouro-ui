@@ -207,10 +207,11 @@ const ruleKey = (target, prop) => `${target.wrappers.map(collapse).join(" ")}|${
  * stylesheet lacks is added whenever the item has it: a variable does nothing until something reads it, so a missing
  * one is never a choice the app made, and an update that skipped the stylesheet left it out. A named block, a
  * `@keyframes` or `@utility`, is added whole whenever the stylesheet has no block of that name, as a component that
- * names it draws nothing without it; one of that name the app has is never replaced. A plain rule is added only when
- * it is new since `previous` (the item at the tag the app updates from): one the app lacks that `previous` already had
- * was left out or rewritten on purpose, as a site that keeps its own corner shapes does. A stylesheet with no `.dark`
- * rule switches dark mode another way, so the item's `.dark` values are left out.
+ * names it draws nothing without it. A `@keyframes` of that name the app has is never touched, since one is replaced
+ * whole or not at all. A `@utility` the app has, like a plain rule, gains a declaration only when it is new since
+ * `previous` (the item at the tag the app updates from), so a fix Ouro makes to `press` still reaches it: one the app
+ * lacks that `previous` already had was left out or rewritten on purpose, as a site that keeps its own corner shapes
+ * does. A stylesheet with no `.dark` rule switches dark mode another way, so the item's `.dark` values are left out.
  */
 export function applyItem(text, item, previous = null) {
   const tree = parseCss(text);
@@ -219,12 +220,9 @@ export function applyItem(text, item, previous = null) {
   const before = previous ? itemTargets(previous) : null;
   const had = new Set(before?.rules.flatMap((target) => target.decls.map(([prop]) => ruleKey(target, prop))) ?? []);
   const named = new Set([...walk(tree)].map(({ node }) => collapse(node.prelude)));
-  const utility = (target) => atName(target.prelude) === "@utility";
-  // A named block the app has is its own, kept as it wrote it; one it lacks comes whole, whatever the previous tag had.
-  const rules = wanted
-    .filter((target) => !utility(target) || !named.has(collapse(target.prelude)))
-    .map((target) => (isVariables(target) || utility(target) ? target : { ...target, decls: target.decls.filter(([prop]) => !had.has(ruleKey(target, prop))) }))
-    .filter((target) => target.decls.length);
+  // A utility the app lacks comes whole, whatever the previous tag had; one it has gains only what is new since then.
+  const missingUtility = (target) => atName(target.prelude) === "@utility" && !named.has(collapse(target.prelude));
+  const rules = wanted.map((target) => (isVariables(target) || missingUtility(target) ? target : { ...target, decls: target.decls.filter(([prop]) => !had.has(ruleKey(target, prop))) })).filter((target) => target.decls.length);
   const darkClass = [...walk(tree)].some(({ node }) => !node.prelude.startsWith("@") && selectors(node.prelude).includes(".dark"));
   const unit = indentUnit(text);
   // Insertions are collected by position and applied from the end, so earlier indexes stay right.
