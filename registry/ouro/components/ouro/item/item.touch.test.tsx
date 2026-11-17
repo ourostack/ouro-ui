@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -47,4 +48,13 @@ it("makes a row with onSelect at least 44px tall too, so the whole row is a touc
     ),
   );
   expect(host.querySelector('[data-row="select"]')!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+});
+
+it("shows a revealActions row's actions on a touch screen", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () => root!.render(<Item title="Lentil soup" actions={<Button variant="plain" size="sm">Edit</Button>} revealActions />));
+  expect(getComputedStyle(host.querySelector("[data-item-actions]")!).opacity).toBe("1");
 });

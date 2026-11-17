@@ -49,6 +49,20 @@ function center(element: Element) {
   return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
 }
 
+/** The @media conditions around each of the page's rules that make an element under this group transparent. */
+function hidingConditions(group: string): string[][] {
+  const found: string[][] = [];
+  const walk = (rules: CSSRuleList, chain: string[]) => {
+    for (const rule of rules) {
+      if (rule instanceof CSSStyleRule && rule.selectorText.includes(`.${group}`) && rule.style.opacity === "0") found.push(chain);
+      if (rule instanceof CSSMediaRule) walk(rule.cssRules, [...chain, rule.conditionText]);
+      else if (rule instanceof CSSGroupingRule) walk(rule.cssRules, chain);
+    }
+  };
+  for (const sheet of document.styleSheets) walk(sheet.cssRules, []);
+  return found;
+}
+
 describe("Card", () => {
   it("renders a hidden surface layer behind the content of an outline card only", async () => {
     const { card } = await render(<Card title="Outlined">x</Card>);
@@ -458,6 +472,12 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     await userEvent.hover(card.querySelector("h3")!);
     await settled(picture, () => getComputedStyle(picture).scale).toBe("none");
+  });
+
+  it("hides a revealDescription card's description only where the pointer can hover, so a stylus that cannot still sees it", () => {
+    const conditions = hidingConditions(CSS.escape("group/card"));
+    expect(conditions).not.toEqual([]);
+    for (const chain of conditions) expect(chain).toContain("(hover: hover)");
   });
 
   it("shows the description on hover or keyboard focus, keeping its room, and names it as the link's description", async () => {

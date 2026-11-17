@@ -15,6 +15,14 @@ export default function ItemDemo(): JSX.Element {
         actions={<Button tone="destructive" variant="soft" size="sm">Revoke</Button>}
         stackBelow="sm"
       />
+      <Item
+        variant="outline"
+        href="#lentil-soup"
+        title="Lentil soup"
+        description="Its Edit shows on hover or focus"
+        actions={<Button variant="plain" size="sm">Edit</Button>}
+        revealActions
+      />
     </div>
   );
 }

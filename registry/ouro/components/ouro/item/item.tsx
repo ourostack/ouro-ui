@@ -61,6 +61,17 @@ export interface ItemOwnProps {
    */
   actions?: ReactNode;
   /**
+   * With `actions`: on a screen with a mouse the actions wait, transparent and keeping their
+   * room, until the pointer rests on the row, focus is anywhere in it, or one of them has its
+   * menu open, then fade in, as in a list whose rows show Edit and Delete on hover. On a touch
+   * screen they show from the start, and screen readers reach them either way.
+   * @claim "With `actions`: on a screen with" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > reveals its actions with revealActions on hover, on focus anywhere in the row and while a menu of theirs is open, keeping their room)
+   * @claim "On a touch screen they show" registry/ouro/components/ouro/item/item.touch.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.touch.test.tsx::shows a revealActions row's actions on a touch screen)
+   * @example
+   * <Item title="Lentil soup" actions={<Button variant="plain" size="sm">Edit</Button>} revealActions />
+   */
+  revealActions?: boolean | undefined;
+  /**
    * Below this breakpoint the actions drop under the text, lined up with the title, as in a
    * settings row on a phone. Without it they stay at the end at every width.
    * @claim "Without it they stay at the" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > keeps the actions beside the text on a phone by default)
@@ -206,6 +217,13 @@ const mediaWithDescription = {
   lg: "self-start",
 } as const;
 
+// revealActions follows the row's hover with a mouse, focus anywhere in it, and a menu of its actions left
+// open. It hides them only where the pointer can hover, since Tailwind also negates group-hover under
+// not (hover: hover), which would hide them for good from a stylus.
+const revealActionsClass =
+  "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:duration-(--ouro-duration-fast) " +
+  "pointer-fine:[@media(hover:hover)]:not-group-hover/item:not-group-focus-within/item:not-group-has-[[aria-expanded=true]]/item:opacity-0";
+
 // Columns for each layout, and the stacked layout below a breakpoint, where the actions
 // move under the text into the title's column. Literal strings so the app's Tailwind finds them.
 const columns = {
@@ -295,6 +313,7 @@ export function Item(props: ItemProps): JSX.Element {
     mediaSize: mediaSizeProp = "sm",
     mediaAbove: mediaAboveProp,
     actions,
+    revealActions,
     stackBelow: stackBelowProp,
     variant: variantProp = "plain",
     size: sizeProp = "md",
@@ -379,9 +398,11 @@ export function Item(props: ItemProps): JSX.Element {
           active !== undefined && ["active is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
           isSelected !== undefined && ["isSelected is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
           current !== undefined && ["current is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
+          revealActions === true && !actions && ["revealActions needs actions to reveal", "<Item actions={<Button>…</Button>} revealActions>"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  const reveal = revealActions === true && Boolean(actions);
   const hasMedia = media ? "media" : "none";
   // Media above the text at some width: its own row there, and the stacked layout below
   // the smaller of the two breakpoints is the one without media.
@@ -413,6 +434,7 @@ export function Item(props: ItemProps): JSX.Element {
         (linked || pressable) && raiseControlsClass,
         choosable && variant === "plain" && choosableRoot,
         choosable && selected && selectedRoot,
+        reveal && "group/item",
         className,
       ),
     },
@@ -468,6 +490,13 @@ export function Item(props: ItemProps): JSX.Element {
         </div>
       )}
     </div>,
-    actions && <div className={cn("flex flex-wrap items-center justify-end gap-2", stackLayouts.map((layout) => layout.actions))}>{actions}</div>,
+    actions && (
+      <div
+        data-item-actions=""
+        className={cn("flex flex-wrap items-center justify-end gap-2", stackLayouts.map((layout) => layout.actions), reveal && revealActionsClass)}
+      >
+        {actions}
+      </div>
+    ),
   );
 }

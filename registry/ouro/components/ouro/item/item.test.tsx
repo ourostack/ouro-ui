@@ -40,6 +40,20 @@ afterEach(async () => {
 const pixel = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 const RouterLink: OuroLinkComponent = (props) => <a data-router="" {...props} />;
 
+/** The @media conditions around each of the page's rules that make an element under this group transparent. */
+function hidingConditions(group: string): string[][] {
+  const found: string[][] = [];
+  const walk = (rules: CSSRuleList, chain: string[]) => {
+    for (const rule of rules) {
+      if (rule instanceof CSSStyleRule && rule.selectorText.includes(`.${group}`) && rule.style.opacity === "0") found.push(chain);
+      if (rule instanceof CSSMediaRule) walk(rule.cssRules, [...chain, rule.conditionText]);
+      else if (rule instanceof CSSGroupingRule) walk(rule.cssRules, chain);
+    }
+  };
+  for (const sheet of document.styleSheets) walk(sheet.cssRules, []);
+  return found;
+}
+
 function center(element: Element) {
   const rect = element.getBoundingClientRect();
   return [rect.left + rect.width / 2, rect.top + rect.height / 2] as const;
@@ -126,6 +140,49 @@ describe("Item", () => {
     const [frame, text] = [item.children[0]!.getBoundingClientRect(), item.children[1]!.getBoundingClientRect()];
     expect(text.height).toBeGreaterThan(frame.height);
     expect(Math.abs(frame.top + frame.height / 2 - (text.top + text.height / 2))).toBeLessThanOrEqual(1);
+  });
+
+  it("reveals its actions with revealActions on hover, on focus anywhere in the row and while a menu of theirs is open, keeping their room", async () => {
+    const { item } = await render(
+      <Item href="#soup" title="Lentil soup" description="Forty minutes" actions={<Button variant="plain" size="sm">Edit</Button>} revealActions />,
+    );
+    const actions = item.querySelector<HTMLElement>("[data-item-actions]")!;
+    const edit = page.getByRole("button", { name: "Edit" });
+    // The opacity once its fade has ended.
+    const settled = (opacity: string) => expect.poll(() => (actions.getAnimations().length === 0 ? getComputedStyle(actions).opacity : "fading")).toBe(opacity);
+    expect(getComputedStyle(actions).opacity).toBe("0");
+    expect(actions.getBoundingClientRect().width).toBeGreaterThan(0);
+    await expect.element(edit).toBeInTheDocument();
+    await userEvent.hover(page.getByRole("link", { name: "Lentil soup" }));
+    await settled("1");
+    await commands.parkPointer();
+    await settled("0");
+    const before = document.createElement("button");
+    item.before(before);
+    mounted.push(before);
+    before.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(page.getByRole("link", { name: "Lentil soup" }).element());
+    await settled("1");
+    await pressTab();
+    expect(document.activeElement).toBe(edit.element());
+    await settled("1");
+    before.focus();
+    await settled("0");
+    edit.element().setAttribute("aria-expanded", "true");
+    await settled("1");
+  });
+
+  it("hides revealActions' actions only where the pointer can hover, so a stylus that cannot still sees them", () => {
+    const conditions = hidingConditions(CSS.escape("group/item"));
+    expect(conditions).not.toEqual([]);
+    for (const chain of conditions) expect(chain).toContain("(hover: hover)");
+  });
+
+  it("shows its actions from the start without revealActions", async () => {
+    const { item } = await render(<Item title="Lentil soup" actions={<Button variant="plain" size="sm">Edit</Button>} />);
+    expect(getComputedStyle(item.querySelector("[data-item-actions]")!).opacity).toBe("1");
+    expect(item.classList.contains("group/item")).toBe(false);
   });
 
   it("keeps the actions beside the text on a phone by default", async () => {
@@ -622,10 +679,11 @@ describe("Item development messages", () => {
     ["active", { active: true }, "active is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
     ["isSelected", { isSelected: true }, "isSelected is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
     ["current", { current: true }, "current is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
+    ["revealActions without actions", { revealActions: true }, "revealActions needs actions to reveal", "<Item actions={<Button>…</Button>} revealActions>"],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const { item } = await render(<Item {...({ title: "Ribs", ...extra } as unknown as Parameters<typeof Item>[0])} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Item: ${problem}. Fix: ${fix}.`);
-    for (const attribute of ["subtitle", "icon", "avatar", "image", "thumbnail", "action", "label", "to", "aschild", "selected", "active", "isselected", "current"]) {
+    for (const attribute of ["subtitle", "icon", "avatar", "image", "thumbnail", "action", "label", "to", "aschild", "selected", "active", "isselected", "current", "revealactions"]) {
       expect(item.hasAttribute(attribute)).toBe(false);
     }
   });

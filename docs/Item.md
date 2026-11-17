@@ -42,6 +42,7 @@ The props the modes share. Type: `ItemProps`.
 | `mediaAbove` | `"sm" \| "md" \| "always"` |  | Below this breakpoint the media leaves the row and runs full width above the text, at 4:3, as a recipe list shows its photos on a phone; above it, it sits beside the text at `mediaSize`. `always` keeps it above at every width. |
 | `mediaSize` | `"sm" \| "md" \| "lg" \| "icon"` | `"sm"` | The media's size: `icon` puts an icon in a muted 40px tile (and hides it from screen readers); `sm` is 40px, `md` 64px, `lg` 112px for a recipe photo. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
+| `revealActions` | `boolean` |  | With `actions`: on a screen with a mouse the actions wait, transparent and keeping their room, until the pointer rests on the row, focus is anywhere in it, or one of them has its menu open, then fade in, as in a list whose rows show Edit and Delete on hover. On a touch screen they show from the start, and screen readers reach them either way. |
 | `size` | `"sm" \| "md"` | `"md"` | Row height: `md` has 12px above and below, `sm` 8px for dense lists. |
 | `stackBelow` | `"sm" \| "md"` |  | Below this breakpoint the actions drop under the text, lined up with the title, as in a settings row on a phone. Without it they stay at the end at every width. |
 | `title` (required) | `ReactNode` |  | What the row is: a name, a recipe title, a setting. It is the link's text with `href`. |
