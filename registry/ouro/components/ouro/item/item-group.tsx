@@ -120,9 +120,10 @@ export function ItemGroup(props: ItemGroupProps): JSX.Element {
   const { "aria-label": ariaLabel, "aria-labelledby": ariaLabelledBy, ...wrapper } = rest;
   const List = ordered ? "ol" : "ul";
   return (
-    <div {...wrapper} data-ouro="item-group" className={cn("flex min-w-0 flex-col gap-2", className)}>
+    <div {...wrapper} data-ouro="item-group" className={cn("group/item-group flex min-w-0 flex-col gap-2", className)}>
       {label && (
-        <div id={labelId} className="text-sm font-medium text-muted-foreground">
+        // Lined up with the rows' text when they keep padding to show a selected row.
+        <div id={labelId} className={cn("text-sm font-medium text-muted-foreground", variant !== "outline" && "group-has-[[data-choosable]]/item-group:px-3")}>
           {label}
         </div>
       )}

@@ -482,6 +482,11 @@ describe("Item with onSelect", () => {
       expect(parseFloat(chosen.borderTopLeftRadius), variant).toBeGreaterThan(0);
       expect(getComputedStyle(host.querySelector('[data-row="plain"]')!).paddingInlineStart, variant).toBe("0px");
     }
+    // The label lines up with the chosen rows' text, and stays put in a group with none.
+    const labelled = (await render(<ItemGroup label="Starters"><Item onSelect={() => {}} title="Short ribs" /></ItemGroup>)).host;
+    expect(getComputedStyle(labelled.querySelector("[id]")!).paddingInlineStart).toBe(getComputedStyle(labelled.querySelector('[data-ouro="item"]')!).paddingInlineStart);
+    const still = (await render(<ItemGroup label="Soups"><Item title="Lentil soup" /></ItemGroup>)).host;
+    expect(getComputedStyle(still.querySelector("[id]")!).paddingInlineStart).toBe("0px");
   });
 
   it("keeps an outlined row's corners and padding, and rounds its press layer to them", async () => {
