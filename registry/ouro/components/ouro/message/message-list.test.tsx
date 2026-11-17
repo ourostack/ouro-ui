@@ -4071,7 +4071,7 @@ describe("MessageList switching conversations", () => {
     for (const estimate of estimates) expect(Math.abs(estimate - estimates[0]!)).toBeLessThanOrEqual(0.05);
   }, 60_000);
 
-  it("keeps the rows above and below a reader's view at one estimate each, through a named re-key of taller messages before the list's first frame", async () => {
+  it("keeps the rows above and below a reader's view as two spaces, through a named re-key of taller messages before the list's first frame", async () => {
     const items = varied("mara", 900, 4);
     const taller = varied("mara", 900, 8);
     const list = mount();
