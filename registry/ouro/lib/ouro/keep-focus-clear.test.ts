@@ -523,6 +523,8 @@ describe("keepFocusClear", () => {
       const bar = setup();
       // 790px down the window once the page is scrolled 2000px: under the bottom stack.
       const low = scrolledAway("low", "the window", 2790);
+      // The page's own scroll lands before focus moves, so it is no part of the focus's turn.
+      await frames();
       low.node.focus({ preventScroll: true });
       await frames();
       // The browser's scroll stops short of the stack, and the stack stays.
@@ -547,19 +549,31 @@ describe("keepFocusClear", () => {
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
     });
 
-    it("does not look after it is released, for a scroll that had started or one that comes after", async () => {
+    /** Puts focus on a control that a scroll of the page to 2000px brings under the bottom stack, within the browser's turn. */
+    async function focusLow() {
       const bar = setup();
       // 790px down the window once the page is scrolled 2000px: under the bottom stack.
       const low = scrolledAway("low", "the window", 2790);
-      low.node.focus({ preventScroll: true });
+      // The page's own scroll lands before focus moves, so it is no part of the focus's turn.
       await frames();
-      expect(stateOf(bar).fading).toBe(false);
+      low.node.focus({ preventScroll: true });
+      await frame();
+      return bar;
+    }
+
+    it("does not look after it is released for a scroll that had started", async () => {
+      const bar = await focusLow();
       scrollTo(0, 2000);
       await frame();
       handle!.release();
       await frames(3);
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
-      scrollTo(0, 1999);
+    });
+
+    it("does not look after it is released for a scroll that starts after", async () => {
+      const bar = await focusLow();
+      handle!.release();
+      scrollTo(0, 2000);
       await frames(3);
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
     });

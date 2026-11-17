@@ -1,3 +1,49 @@
+function stryNS_9fa48() {
+  var g = typeof globalThis === 'object' && globalThis && globalThis.Math === Math && globalThis || new Function("return this")();
+  var ns = g.__stryker__ || (g.__stryker__ = {});
+  if (ns.activeMutant === undefined && g.process && g.process.env && g.process.env.__STRYKER_ACTIVE_MUTANT__) {
+    ns.activeMutant = g.process.env.__STRYKER_ACTIVE_MUTANT__;
+  }
+  function retrieveNS() {
+    return ns;
+  }
+  stryNS_9fa48 = retrieveNS;
+  return retrieveNS();
+}
+stryNS_9fa48();
+function stryCov_9fa48() {
+  var ns = stryNS_9fa48();
+  var cov = ns.mutantCoverage || (ns.mutantCoverage = {
+    static: {},
+    perTest: {}
+  });
+  function cover() {
+    var c = cov.static;
+    if (ns.currentTestId) {
+      c = cov.perTest[ns.currentTestId] = cov.perTest[ns.currentTestId] || {};
+    }
+    var a = arguments;
+    for (var i = 0; i < a.length; i++) {
+      c[a[i]] = (c[a[i]] || 0) + 1;
+    }
+  }
+  stryCov_9fa48 = cover;
+  cover.apply(null, arguments);
+}
+function stryMutAct_9fa48(id) {
+  var ns = stryNS_9fa48();
+  function isActive(id) {
+    if (ns.activeMutant === id) {
+      if (ns.hitCount !== void 0 && ++ns.hitCount > ns.hitLimit) {
+        throw new Error('Stryker: Hit count limit reached (' + ns.hitCount + ')');
+      }
+      return true;
+    }
+    return false;
+  }
+  stryMutAct_9fa48 = isActive;
+  return isActive(id);
+}
 export { keepFocusClear };
 export type { FocusClearHandle };
 
@@ -37,7 +83,7 @@ const FADE_FALLBACK_MS = 300;
 /** The places a stack may move to from its current place, in the order they are tried. */
 const CANDIDATES: Record<Place, Place[]> = {
   bottom: ["top"],
-  top: ["bottom"],
+  top: ["bottom"]
 };
 
 /**
@@ -66,7 +112,12 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   const root = document.documentElement;
   let place: Place = "bottom";
   // Stryker disable next-line ObjectLiteral: every read of size follows a measure() that overwrites it, and a move only follows one.
-  let size: Size = { left: 0, right: 0, height: 0, gap: 0 };
+  let size: Size = {
+    left: 0,
+    right: 0,
+    height: 0,
+    gap: 0
+  };
   // False from a move until it has rested SETTLE_MS; only a move back waits for it.
   // Stryker disable next-line BooleanLiteral: ready is read only once the stack has moved, and a move's land sets it false before anything else runs.
   let ready = false;
@@ -90,20 +141,28 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
    * at the window's edge. Returns false when a toast is not laid out.
    */
   function measure(): boolean {
-    const boxes = [...viewport.querySelectorAll<HTMLElement>('[data-ouro="toast"]')].filter((toast) => toast.offsetHeight > 0).map((toast) => toast.getBoundingClientRect());
+    const boxes = [...viewport.querySelectorAll<HTMLElement>('[data-ouro="toast"]')].filter(toast => toast.offsetHeight > 0).map(toast => toast.getBoundingClientRect());
     // A stack with no toast laid out (none shows yet, or all are hidden) measures nothing.
     if (boxes.length === 0) return false;
-    const left = Math.min(...boxes.map((box) => box.left));
-    const right = Math.max(...boxes.map((box) => box.right));
-    const top = Math.min(...boxes.map((box) => box.top));
-    const bottom = Math.max(...boxes.map((box) => box.bottom));
-    size = { left, right, height: bottom - top, gap: place === "top" ? size.gap : innerHeight - bottom };
+    const left = Math.min(...boxes.map(box => box.left));
+    const right = Math.max(...boxes.map(box => box.right));
+    const top = Math.min(...boxes.map(box => box.top));
+    const bottom = Math.max(...boxes.map(box => box.bottom));
+    size = {
+      left,
+      right,
+      height: bottom - top,
+      gap: place === "top" ? size.gap : innerHeight - bottom
+    };
     return true;
   }
 
   /** The top edge the stack moves to: below the fixed or sticky elements that touch the window's top edge over the stack's column, with the edge gap. */
   function clearance(): number {
-    const { left, right } = size;
+    const {
+      left,
+      right
+    } = size;
     const checked = new Set<Element>();
     let bottom = 0;
     for (const x of [left + 1, (left + right) / 2, right - 1]) {
@@ -111,10 +170,14 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
         for (const hit of document.elementsFromPoint(x, y)) {
           for (let node: Element | null = hit; node && !checked.has(node); node = node.parentElement) {
             checked.add(node);
-            const { position } = getComputedStyle(node);
-            if (viewport.contains(node) || (position !== "fixed" && position !== "sticky")) continue;
+            const {
+              position
+            } = getComputedStyle(node);
+            if (viewport.contains(node) || position !== "fixed" && position !== "sticky") continue;
             // An element under the window's top edge, or one whose child reaches it, keeps the stack below its bottom.
-            if (node.checkVisibility({ visibilityProperty: true })) bottom = Math.max(bottom, node.getBoundingClientRect().bottom);
+            if (node.checkVisibility({
+              visibilityProperty: true
+            })) bottom = Math.max(bottom, node.getBoundingClientRect().bottom);
           }
         }
       }
@@ -124,13 +187,28 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
 
   /** The window area the stack covers in `next` place. */
   function zone(next: Place): Area {
-    const { left, right, height, gap } = size;
+    const {
+      left,
+      right,
+      height,
+      gap
+    } = size;
     if (next === "top") {
       const top = clearance();
-      return { left, right, top, bottom: top + height };
+      return {
+        left,
+        right,
+        top,
+        bottom: top + height
+      };
     }
     const bottom = innerHeight - gap;
-    return { left, right, top: bottom - height, bottom };
+    return {
+      left,
+      right,
+      top: bottom - height,
+      bottom
+    };
   }
 
   /** Whether the box shares area with the window area. */
@@ -144,7 +222,6 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
     }
     root.style.scrollPaddingBottom = value;
   }
-
   function restorePadding(): void {
     if (padded) {
       root.style.scrollPaddingBottom = saved;
@@ -154,8 +231,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
 
   /** Measures again and sets the scroll padding: the stack's height while it is at the bottom, the app's own value otherwise. */
   function refresh(): void {
-    if (measure() && place !== "top" && movable()) setPadding(`${size.height + size.gap}px`);
-    else restorePadding();
+    if (measure() && place !== "top" && movable()) setPadding(`${size.height + size.gap}px`);else restorePadding();
   }
 
   /** Puts the stack in `next` place and its state attributes; a stack at the top hangs from the top edge, as an app's top toaster does. */
@@ -182,7 +258,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
     const onEnd = (event: TransitionEvent) => {
       if (event.target === viewport && event.propertyName === "opacity") land(next);
     };
-    const started = viewport.getAnimations().some((animation) => (animation as CSSTransition).transitionProperty === "opacity");
+    const started = viewport.getAnimations().some(animation => (animation as CSSTransition).transitionProperty === "opacity");
     const frame = started ? 0 : requestAnimationFrame(() => land(next));
     viewport.addEventListener("transitionend", onEnd);
     stopFade = () => {
@@ -214,7 +290,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
     // Leaving the bottom, the gap to come back to is the viewport's, where the toasts rest: a toast still sliding in hangs
     // below the window, and a gap read from it leaves no room to move back to (#1818).
     if (place !== "top") size.gap = innerHeight - viewport.getBoundingClientRect().bottom;
-    const next = CANDIDATES[place].find((candidate) => {
+    const next = CANDIDATES[place].find(candidate => {
       const area = zone(candidate);
       return area.bottom <= innerHeight && !covers(box, area);
     });
@@ -249,42 +325,101 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   // FOCUS_SCROLL_FRAMES of a focus change, before a key press or the wheel, is the browser's: once it has stopped for a
   // frame, focus is looked at again. Any other scroll is the person's (a screen reader's, the scrollbar's), and leaves the
   // stack where it is, as before.
-  let focusScroll = false;
+  let focusScroll = stryMutAct_9fa48("0") ? true : (stryCov_9fa48("0"), false);
   // Stryker disable next-line BooleanLiteral: a wait for the scroll to stop starts only from a scroll, which sets scrolled first.
   let scrolled = false;
   let scrollFrame = 0;
   let focusFrame = 0;
   /** Ends the browser's turn to scroll `left` frames from now, unless its scroll has started by then. */
   const awaitScroll = (left: number) => {
-    focusFrame = requestAnimationFrame(() => {
-      if (scrollFrame !== 0) return;
-      if (left > 1) awaitScroll(left - 1);
-      else focusScroll = false;
-    });
+    if (stryMutAct_9fa48("2")) {
+      {}
+    } else {
+      stryCov_9fa48("2");
+      focusFrame = requestAnimationFrame(() => {
+        if (stryMutAct_9fa48("3")) {
+          {}
+        } else {
+          stryCov_9fa48("3");
+          if (stryMutAct_9fa48("6") ? scrollFrame === 0 : stryMutAct_9fa48("5") ? false : stryMutAct_9fa48("4") ? true : (stryCov_9fa48("4", "5", "6"), scrollFrame !== 0)) return;
+          if (stryMutAct_9fa48("10") ? left <= 1 : stryMutAct_9fa48("9") ? left >= 1 : stryMutAct_9fa48("8") ? false : stryMutAct_9fa48("7") ? true : (stryCov_9fa48("7", "8", "9", "10"), left > 1)) awaitScroll(stryMutAct_9fa48("12") ? left + 1 : (stryCov_9fa48("12"), left - 1));else focusScroll = stryMutAct_9fa48("13") ? true : (stryCov_9fa48("13"), false);
+        }
+      });
+    }
   };
   const afterScroll = () => {
-    scrollFrame = 0;
-    if (scrolled) {
-      scrolled = false;
-      scrollFrame = requestAnimationFrame(afterScroll);
+    if (stryMutAct_9fa48("14")) {
+      {}
     } else {
-      focusScroll = false;
-      decide();
+      stryCov_9fa48("14");
+      scrollFrame = 0;
+      if (stryMutAct_9fa48("16") ? false : stryMutAct_9fa48("15") ? true : (stryCov_9fa48("15", "16"), scrolled)) {
+        if (stryMutAct_9fa48("17")) {
+          {}
+        } else {
+          stryCov_9fa48("17");
+          scrolled = stryMutAct_9fa48("18") ? true : (stryCov_9fa48("18"), false);
+          scrollFrame = requestAnimationFrame(afterScroll);
+        }
+      } else {
+        if (stryMutAct_9fa48("19")) {
+          {}
+        } else {
+          stryCov_9fa48("19");
+          focusScroll = stryMutAct_9fa48("20") ? true : (stryCov_9fa48("20"), false);
+          if (stryMutAct_9fa48("21")) {
+            ;
+          } else {
+            stryCov_9fa48("21");
+            decide();
+          }
+        }
+      }
     }
   };
   const onScroll = () => {
-    if (!focusScroll) return;
-    scrolled = true;
-    if (!scrollFrame) scrollFrame = requestAnimationFrame(afterScroll);
+    if (stryMutAct_9fa48("22")) {
+      {}
+    } else {
+      stryCov_9fa48("22");
+      if (stryMutAct_9fa48("25") ? false : stryMutAct_9fa48("24") ? true : stryMutAct_9fa48("23") ? focusScroll : (stryCov_9fa48("23", "24", "25"), !focusScroll)) return;
+      scrolled = stryMutAct_9fa48("26") ? false : (stryCov_9fa48("26"), true);
+      if (stryMutAct_9fa48("29") ? false : stryMutAct_9fa48("28") ? true : stryMutAct_9fa48("27") ? scrollFrame : (stryCov_9fa48("27", "28", "29"), !scrollFrame)) scrollFrame = requestAnimationFrame(afterScroll);
+    }
   };
   // A focus change takes the turn over: an earlier control's scroll still being waited out is not this one's.
   const onFocusIn = () => {
-    focusScroll = true;
-    cancelAnimationFrame(scrollFrame);
-    scrollFrame = 0;
-    cancelAnimationFrame(focusFrame);
-    awaitScroll(FOCUS_SCROLL_FRAMES);
-    later();
+    if (stryMutAct_9fa48("30")) {
+      {}
+    } else {
+      stryCov_9fa48("30");
+      focusScroll = stryMutAct_9fa48("31") ? false : (stryCov_9fa48("31"), true);
+      if (stryMutAct_9fa48("32")) {
+        ;
+      } else {
+        stryCov_9fa48("32");
+        cancelAnimationFrame(scrollFrame);
+      }
+      scrollFrame = 0;
+      if (stryMutAct_9fa48("33")) {
+        ;
+      } else {
+        stryCov_9fa48("33");
+        cancelAnimationFrame(focusFrame);
+      }
+      if (stryMutAct_9fa48("34")) {
+        ;
+      } else {
+        stryCov_9fa48("34");
+        awaitScroll(FOCUS_SCROLL_FRAMES);
+      }
+      if (stryMutAct_9fa48("35")) {
+        ;
+      } else {
+        stryCov_9fa48("35");
+        later();
+      }
+    }
   };
   // Focus that falls to nothing (a blur, a click on the page) is a move away from every control.
   const onFocusOut = (event: FocusEvent) => {
@@ -295,17 +430,17 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   };
   const onKeyDown = () => {
     pointing = false;
-    focusScroll = false;
+    focusScroll = stryMutAct_9fa48("36") ? true : (stryCov_9fa48("36"), false);
   };
   const onWheel = () => {
-    focusScroll = false;
+    focusScroll = stryMutAct_9fa48("37") ? true : (stryCov_9fa48("37"), false);
   };
-  document.addEventListener("focusin", onFocusIn);
+  document.addEventListener(stryMutAct_9fa48("39") ? "" : (stryCov_9fa48("39"), "focusin"), onFocusIn);
   // Scroll events do not bubble, so a scroll container's reaches the document only while capturing.
-  document.addEventListener("scroll", onScroll, true);
+  document.addEventListener(stryMutAct_9fa48("41") ? "" : (stryCov_9fa48("41"), "scroll"), onScroll, stryMutAct_9fa48("42") ? false : (stryCov_9fa48("42"), true));
   // Captured, so a part of the page that keeps its wheel to itself (a map, a carousel) still says the scroll is the person's.
   // A wheel listener on the document is passive unless it says otherwise.
-  document.addEventListener("wheel", onWheel, true);
+  document.addEventListener(stryMutAct_9fa48("44") ? "" : (stryCov_9fa48("44"), "wheel"), onWheel, stryMutAct_9fa48("45") ? false : (stryCov_9fa48("45"), true));
   document.addEventListener("focusout", onFocusOut);
   document.addEventListener("pointerdown", onPointerDown, true);
   document.addEventListener("keydown", onKeyDown, true);
@@ -313,19 +448,22 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   viewport.addEventListener("transitionend", refresh);
   refresh();
   decide();
-
   return {
     refresh,
     release() {
       stopFade();
       clearTimeout(settle);
       cancelAnimationFrame(frame);
-      cancelAnimationFrame(scrollFrame);
-      // Stryker disable next-line CallExpression: a released keeper's countdown only clears a flag that nothing reads once the scroll listener is gone.
+      if (stryMutAct_9fa48("46")) {
+        ;
+      } else {
+        stryCov_9fa48("46");
+        cancelAnimationFrame(scrollFrame);
+      } // Stryker disable next-line CallExpression: a released keeper's countdown only clears a flag that nothing reads once the scroll listener is gone.
       cancelAnimationFrame(focusFrame);
-      document.removeEventListener("focusin", onFocusIn);
-      document.removeEventListener("scroll", onScroll, true);
-      // Stryker disable next-line CallExpression,BooleanLiteral: a released keeper's wheel listener only clears a flag that nothing reads once the scroll listener is gone.
+      document.removeEventListener(stryMutAct_9fa48("49") ? "" : (stryCov_9fa48("49"), "focusin"), onFocusIn);
+      document.removeEventListener(stryMutAct_9fa48("51") ? "" : (stryCov_9fa48("51"), "scroll"), onScroll, stryMutAct_9fa48("52") ? false : (stryCov_9fa48("52"), true));
+      // Stryker disable next-line CallExpression,StringLiteral,BooleanLiteral: a released keeper's wheel listener only clears a flag that nothing reads once the scroll listener is gone.
       document.removeEventListener("wheel", onWheel, true);
       document.removeEventListener("focusout", onFocusOut);
       document.removeEventListener("pointerdown", onPointerDown, true);
@@ -336,6 +474,6 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
       if (place !== "bottom") apply("bottom");
       viewport.removeAttribute("data-ouro-toaster-fading");
       viewport.style.removeProperty("--ouro-toaster-moved-top");
-    },
+    }
   };
 }
