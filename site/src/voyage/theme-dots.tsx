@@ -9,11 +9,11 @@ import { SKY_WORDS } from "./sky-words";
  * repaints the whole page, spreading out from the dot. `data-site-preset` lets the head script
  * mark the stored one pressed before the page hydrates.
  */
-export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameClassName = "" }: { label?: string; size?: "md" | "lg"; describe?: boolean; nameClassName?: string }): JSX.Element {
+export function ThemeDots({ label = "Theme", size = "lg", describe = true, nameClassName = "", groupClassName = "" }: { label?: string; size?: "md" | "lg"; describe?: boolean; nameClassName?: string; groupClassName?: string }): JSX.Element {
   const { preset, sky, setPreset } = useSiteTheme();
   return (
     <div>
-      <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label={label} className={`flex flex-wrap gap-1.5 ${groupClassName}`}>
         {choiceList.map((item) => (
           <Button
             key={item.name}

@@ -106,10 +106,7 @@
     .site-console-grid {
       gap: 0.75rem;
     }
-    /* The release sits on the caption's line; the rest of the caption waits for a wider screen. */
-    .site-install-foot {
-      flex-wrap: nowrap;
-    }
+    /* The way to the commands waits for a wider screen: on a phone the reader hands Ouro UI to an agent. */
     .site-install-more {
       display: none;
     }
@@ -136,6 +133,10 @@
     background: color-mix(in oklab, var(--primary) 8%, var(--background));
     color: var(--foreground);
     font-weight: 600;
+  }
+  /* The hand-off under the lede takes the text column's width, up to its own measure, not its narrowest word's. */
+  .site-voyage-hero [data-slot="more"] {
+    justify-self: stretch;
   }
   @media (max-width: 40rem) {
     .site-voyage-hero [data-slot="eyebrow"] {
@@ -183,56 +184,39 @@
     background: var(--card);
     box-shadow: var(--shadow-xs);
   }
-  .site-install-prompt {
-    grid-area: 1 / 1;
-    color: var(--muted-foreground);
-    user-select: none;
-  }
-  .site-install-command {
-    grid-area: 1 / 2;
-    min-width: 0;
-    padding-block: 0.5rem;
-    line-height: 1.5;
-    white-space: nowrap;
-    color: var(--foreground);
-  }
-  .site-install-address {
-    color: var(--primary);
-    font-weight: 500;
-  }
   .site-install-copy {
     grid-area: 1 / 3;
   }
-  @container (max-width: 34.99rem) {
-    .site-install {
-      align-items: start;
-    }
-    .site-install-prompt,
-    .site-install-run {
-      display: flex;
-      align-items: center;
-      min-height: 2.5rem;
-    }
-    /* The command takes Copy's column too: its first line is short, and the address runs under Copy. */
-    .site-install-command {
-      grid-column: 2 / 4;
-      padding-block: 0 0.375rem;
-      white-space: normal;
-      overflow-wrap: anywhere;
-    }
-    .site-install-address {
-      display: block;
-    }
-    .site-install-copy {
-      align-self: start;
-    }
-  }
-  .site-install-foot {
+  /* The hand-off: a line to paste to an agent, in the page's own type, with Copy beside it. */
+  .site-handoff-head {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.375rem 1rem;
+    gap: calc(var(--spacing) * 1.5) calc(var(--spacing) * 4);
+  }
+  .site-handoff-label {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .site-handoff .site-install {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline-start: calc(var(--spacing) * 4);
+  }
+  .site-handoff-prompt {
+    grid-area: 1 / 1;
+    min-width: 0;
+    margin: 0;
+    padding-block: calc(var(--spacing) * 2);
+    line-height: 1.5;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+  }
+  .site-handoff .site-install-copy {
+    grid-area: 1 / 2;
+    align-self: center;
   }
   .site-install-caption {
     margin: 0;
@@ -492,16 +476,33 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"] .site-specimen {
 }
 
 /* The chosen preset's button: a primary ring and wash, drawn from html[data-theme] so it is right before hydration. */
-html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"],
-html[data-theme="abyss"] [data-site-preset="abyss"],
-html[data-theme="brass"] [data-site-preset="brass"],
-html[data-theme="chart"] [data-site-preset="chart"],
-html[data-theme="coral"] [data-site-preset="coral"],
-html[data-theme="cookbook"] [data-site-preset="cookbook"] {
+html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"]:not(.site-dot),
+html[data-theme="abyss"] [data-site-preset="abyss"]:not(.site-dot),
+html[data-theme="brass"] [data-site-preset="brass"]:not(.site-dot),
+html[data-theme="chart"] [data-site-preset="chart"]:not(.site-dot),
+html[data-theme="coral"] [data-site-preset="coral"]:not(.site-dot),
+html[data-theme="cookbook"] [data-site-preset="cookbook"]:not(.site-dot) {
   box-shadow: inset 0 0 0 2px var(--primary);
   background-color: color-mix(in oklab, var(--primary) 8%, var(--background));
 }
+/*
+ * A dot is round, and so is its ring: the chosen one, Live included, wears a primary ring a hair outside its swatch
+ * itself, from aria-pressed, which the head script sets before the page paints. Its press, hover and focus follow the circle.
+ */
+.site-dot {
+  width: auto;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  corner-shape: round;
+}
+.site-dot[aria-pressed="true"] [data-theme] {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 @media (forced-colors: active) {
+  .site-dot[aria-pressed="true"] [data-theme] {
+    outline: 3px solid Highlight;
+  }
   html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"],
   html[data-theme="abyss"] [data-site-preset="abyss"],
   html[data-theme="brass"] [data-site-preset="brass"],

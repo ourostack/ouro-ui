@@ -23,31 +23,38 @@ export const HERO_COPY = `${HERO_TITLE} ${HERO_SUBLINE}`;
 export const VOYAGE_HERO = {
   eyebrow: "Ouro HX + Ouro AX",
   title: ["Feels right to the people using it.", "Obvious to the agents building it."],
-  subline: claim("A design system for people and agents. Declare an action once and it becomes a button, a CLI command, MCP and WebMCP tools and an App Intent, with consent built in: a consequential action asks the person first, person-only actions are refused to agents, and an X-ray checks it.", {
-    source: [
-      { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
-      { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
-      { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
-      { test: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
-    ],
-    verify: [
-      { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
-      { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45" },
-      { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
-      { testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" },
-    ],
-  }),
   /**
-   * The lede on a phone, where the porthole must start on the first screen (site/e2e/stage-pacing.spec.ts), so it is no
-   * taller than the old one: the same claim, short, with the benchmark and the reviews linked after it.
+   * What a person choosing a design system gets, in their terms: they pick it, their agent builds with it, and what the
+   * agent builds wears their theme, works for every way people use a screen, and asks the person first (Ari, 2026-11-17:
+   * "a human will never do that npx"). What is Ouro's own, consent built in, stays in the lede.
    */
-  phoneSubline: claim("A design system for people and agents: one action declaration for both, with consent built in.", {
+  subline: claim(
+    "You pick it and your agent builds with it. The screens it makes wear your theme, work by keyboard, touch and screen reader, and ask the person before an agent does anything consequential.",
+    {
+      source: [
+        { test: "test/theme-tokens.test.tsx::theme fixtures > puts a fixture's values in place of the Ouro look, and its @theme inline fonts too" },
+        { test: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" },
+        { file: "registry/ouro/lib/ouro/touch-target.tsx" },
+        { file: "test/stories.test.tsx" },
+        { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
+      ],
+      verify: [
+        { testExists: "test/theme-tokens.test.tsx::theme fixtures > puts a fixture's values in place of the Ouro look, and its @theme inline fonts too" },
+        { testExists: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" },
+        { fileLine: "registry/ouro/lib/ouro/touch-target.tsx", pattern: "pointer-coarse" },
+        { fileLine: "test/stories.test.tsx", pattern: "passes axe with zero violations" },
+        { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
+      ],
+    },
+  ),
+  /** The lede on a phone, short enough to keep the hand-off and the paint on its first screen. */
+  phoneSubline: claim("You pick it and your agent builds with it: screens in your theme that ask the person before an agent acts.", {
     source: [
-      { spec: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { test: "test/theme-tokens.test.tsx::theme fixtures > puts a fixture's values in place of the Ouro look, and its @theme inline fonts too" },
       { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
     ],
     verify: [
-      { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" },
+      { testExists: "test/theme-tokens.test.tsx::theme fixtures > puts a fixture's values in place of the Ouro look, and its @theme inline fonts too" },
       { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" },
     ],
   }),
@@ -63,6 +70,20 @@ export const VOYAGE_HERO = {
       href: "/docs/platforms/",
     },
   },
+} as const;
+
+/**
+ * What a person does on the home page: choose Ouro UI and hand it to their coding agent, who does the installing. So the
+ * hero gives them one line to paste to the agent, never a command to run; the commands are in the install section, for
+ * agents and the curious. The prompt sends the agent to llms.txt, which routes it to the quickstart, a page pattern or
+ * the install steps for what it is building.
+ */
+export const HANDOFF = {
+  label: "Hand it to your agent",
+  prompt: "Build this app's interface with Ouro UI. Read https://ui.ouroboros.bot/llms.txt first and follow it.",
+  caption: "Paste it into your coding agent's chat.",
+  commands: { text: "Setting it up yourself? The commands are below.", href: "#install" },
+  copied: "Copied. Paste it to your agent.",
 } as const;
 
 /**

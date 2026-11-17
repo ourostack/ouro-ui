@@ -187,6 +187,34 @@ describe("the header and the theme section", () => {
     }
   });
 
+  it("draws each paint dot as a circle with a round ring when chosen, Live's paint on the same diagonal as the presets'", async () => {
+    root.setAttribute("data-theme", "pearl");
+    await renderPage("/");
+    const dots = () => [...document.querySelectorAll<HTMLElement>("[data-site-hero-paint] [role=group][aria-label=Theme] .site-dot")];
+    const swatch = (dot: HTMLElement) => getComputedStyle(dot.querySelector("span[data-theme]")!);
+    for (const width of [1280, 390]) {
+      await page.viewport(width, 800);
+      for (const dot of dots()) {
+        const box = dot.getBoundingClientRect();
+        expect(box.width, `${dot.getAttribute("aria-label")} at ${width}px`).toBe(box.height);
+        expect(getComputedStyle(dot).borderRadius).toBe("9999px");
+        // A round corner, which a browser may compute as its superellipse(1).
+        if (CSS.supports("corner-shape", "round")) expect(["round", "superellipse(1)"]).toContain(getComputedStyle(dot).getPropertyValue("corner-shape"));
+        // Every swatch is the same drawing: a page and a paint on the diagonal, with the same hairline.
+        expect(swatch(dot).backgroundImage).toContain("linear-gradient(135deg");
+        // Its hairline is the preset's own foreground, so only its shape is the same.
+        expect(swatch(dot).boxShadow).toMatch(/0px 0px 0px 1px inset$|^inset 0px 0px 0px 1px/);
+      }
+    }
+    // The chosen dot, Live too, wears the ring; the others none.
+    for (const name of ["Live", "Abyss"]) {
+      await userEvent.click(page.getByRole("group", { name: "Theme", exact: true }).getByRole("button", { name, exact: true }), { force: true });
+      // The ring hugs the swatch itself, a hair outside it, not the button's wider hit area.
+      await expect.poll(() => dots().filter((dot) => swatch(dot).outlineStyle === "solid").map((dot) => dot.getAttribute("aria-label"))).toEqual([name]);
+      expect(dots().map((dot) => getComputedStyle(dot).boxShadow)).toEqual(dots().map(() => "none"));
+    }
+  });
+
   it("names the mixer's paint in the sample window while it is on, and the preset's again after", async () => {
     root.setAttribute("data-theme", "pearl");
     await renderPage("/");

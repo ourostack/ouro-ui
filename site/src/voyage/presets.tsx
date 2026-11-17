@@ -28,19 +28,26 @@ export function presetNamed(name: ThemeChoice): PresetInfo {
 /**
  * A choice's colours as a dot: the preset's page and its primary, split on the diagonal, read from
  * its own variables (the span carries `data-theme`, so they apply inside it, light or dark with the
- * page). Live's dot is its four skies going round.
+ * page). Live's dot is Pearl's page beside its four skies, on the same diagonal.
  */
 const PRESET_PAINT: CSSProperties = {
-  background: "linear-gradient(135deg, var(--background) 50%, var(--primary) 50%)",
+  // A half-pixel blend at the split, so the diagonal is smooth, not stepped.
+  background: "linear-gradient(135deg, var(--background) calc(50% - 0.5px), var(--primary) calc(50% + 0.5px))",
   boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--foreground) 18%, transparent)",
 };
-const LIVE_PAINT: CSSProperties = { background: "conic-gradient(#f7a1b8, #6aa9f5, #ff8a5c, #2b2a78, #f7a1b8)" };
+/** Live is Pearl under the reader's sky: Pearl's page, split on the same diagonal from dawn, day, dusk and night. */
+const LIVE_PAINT: CSSProperties = {
+  background:
+    "linear-gradient(135deg, var(--background) calc(50% - 0.5px), transparent calc(50% + 0.5px)), " +
+    "linear-gradient(135deg, #f7a1b8 62.5%, #6aa9f5 62.5% 75%, #ff8a5c 75% 87.5%, #2b2a78 87.5%)",
+  boxShadow: PRESET_PAINT.boxShadow,
+};
 const SIZES = { sm: "size-3.5", md: "size-5", lg: "size-6 sm:size-8" } as const;
 
 export function Swatch({ preset, size = "sm" }: { preset: ThemeChoice; size?: "sm" | "md" | "lg" }): JSX.Element {
-  // A preset's dot is its page and its primary on the diagonal, with a hairline so white shows on white;
-  // Live's goes round dawn, day, dusk and night. Inline, so the paint costs the first-load CSS nothing.
-  return <span data-theme={preset === "live" ? undefined : preset} aria-hidden="true" className={`inline-block shrink-0 rounded-full ${SIZES[size]}`} style={preset === "live" ? LIVE_PAINT : PRESET_PAINT} />;
+  // A dot is its page and its primary on the diagonal, with a hairline so white shows on white; Live's other half is its
+  // skies, dawn to night. Inline, so the paint costs the first-load CSS nothing.
+  return <span data-theme={preset === "live" ? "pearl" : preset} aria-hidden="true" className={`inline-block shrink-0 rounded-full ${SIZES[size]}`} style={preset === "live" ? LIVE_PAINT : PRESET_PAINT} />;
 }
 
 /**

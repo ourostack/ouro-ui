@@ -1,12 +1,12 @@
 import type { JSX } from "react";
-import proof, { install } from "virtual:site-proof";
+import proof from "virtual:site-proof";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
-import { HALVES, VOYAGE_HERO } from "../copy";
+import { HALVES, HANDOFF, VOYAGE_HERO } from "../copy";
 import { GITHUB, href } from "../paths";
 import { HydrateInTurn } from "../hydrate";
 import { latestRelease } from "../latest-release";
@@ -34,30 +34,7 @@ const HERO_SCENE_SIZES = "(min-width: 200rem) min(1536px, 100rem), (min-width: 1
 /** What the hero says the library is, before anything else: its name. */
 export const EYEBROW = VOYAGE_HERO.eyebrow;
 
-/**
- * The install line, whole and pinned: one component that is in the latest release (proof.mts picks
- * it from that release's registry.json), at that release, so what you copy is what you read.
- */
-export const INSTALL_COMMAND = `npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`;
-
-const title = (item: string) => item.charAt(0).toUpperCase() + item.slice(1);
-
-/**
- * Under the command: how it installs, and that it adds that one component, so nobody thinks it
- * installs the whole library. No count: the home page sells what the kit does, not how many parts
- * it has (Ari, 2026-10-30).
- */
-export const INSTALL_CAPTION = `Adds ${title(install.item)}. Any other part installs the same way.`;
-const [INSTALL_HOW, INSTALL_MORE] = [INSTALL_CAPTION.slice(0, INSTALL_CAPTION.indexOf(". ") + 1), INSTALL_CAPTION.slice(INSTALL_CAPTION.indexOf(". ") + 2)];
-
-/**
- * Beside the caption: where a newcomer without a set-up app goes first, since the command alone needs one.
- * Hidden with the caption's second sentence on a phone, so the stage stays on its first screen; the components
- * index carries the same link there.
- */
-export const NEW_APP_LINK = { href: "/docs/installing/#start-a-new-app", text: "New app? Set it up first." } as const;
-
-/** The release the command pins, beside it, linking to that release's notes. */
+/** The release the hand-off's prompt brings in, beside it, linking to that release's notes. */
 export const RELEASE_HREF = `${GITHUB}/releases/tag/${latestRelease}`;
 
 function CopyIcon(): JSX.Element {
@@ -69,43 +46,25 @@ function CopyIcon(): JSX.Element {
   );
 }
 
-/** Where the command may wrap on a narrow screen: after "add", and after each slash of the address. */
-function CommandText(): JSX.Element {
-  const [run, address] = INSTALL_COMMAND.split(" add ") as [string, string];
-  const parts = address.split("/");
-  return (
-    <>
-      <span className="site-install-run">{run} add</span>{" "}
-      <span className="site-install-address">
-        {parts.map((part, index) => (
-          <span key={index}>
-            {part}
-            {index < parts.length - 1 ? (
-              <>
-                /<wbr />
-              </>
-            ) : null}
-          </span>
-        ))}
-      </span>
-    </>
-  );
-}
-
 /**
- * The install command, whole at every width: on one line where it fits, on two (the run, then the
- * address) where it doesn't, never cut off or scrolled. Copy sits beside it.
+ * What a person does here: hand Ouro UI to their coding agent, as one line to paste, with Copy beside it. The agent
+ * installs; the commands wait in the install section, which the caption points to.
  */
-function Install(): JSX.Element {
+function HandOff(): JSX.Element {
   return (
-    <div className="site-install-block">
+    <div className="site-install-block site-handoff" role="group" aria-labelledby="site-handoff-label" data-site-handoff="">
+      <div className="site-handoff-head">
+        <p id="site-handoff-label" className="site-handoff-label">
+          {HANDOFF.label}
+        </p>
+        <Badge href={RELEASE_HREF} tone="primary" variant="soft" data-site-release="">
+          {`${latestRelease} · latest release`}
+        </Badge>
+      </div>
       <div className="site-install">
-        <span aria-hidden="true" className="site-mono site-install-prompt">
-          $
-        </span>
-        <code className="site-mono site-install-command" data-site-install="">
-          <CommandText />
-        </code>
+        <p className="site-handoff-prompt" data-site-handoff-prompt="">
+          {HANDOFF.prompt}
+        </p>
         <Button
           variant="soft"
           tone="secondary"
@@ -113,9 +72,9 @@ function Install(): JSX.Element {
           className="site-install-copy"
           onClick={(event) => {
             const block = event.currentTarget.closest(".site-install-block");
-            void navigator.clipboard.writeText(INSTALL_COMMAND).then(
-              () => toast("Copied the install command", { tone: "success", description: `Run it in your app's folder. It adds ${title(install.item)}.` }),
-              () => toast("The browser blocked the clipboard", { tone: "destructive", description: "Select the command and copy it yourself." }),
+            void navigator.clipboard.writeText(HANDOFF.prompt).then(
+              () => toast(HANDOFF.copied, { tone: "success" }),
+              () => toast("The browser blocked the clipboard", { tone: "destructive", description: "Select the line and copy it yourself." }),
             ).then(() => keepClearOfToasts(block));
           }}
         >
@@ -123,20 +82,14 @@ function Install(): JSX.Element {
           Copy
         </Button>
       </div>
-      <div className="site-install-foot">
-        <p className="site-install-caption" data-site-install-caption="">
-          {INSTALL_HOW}{" "}
-          <span className="site-install-more">
-            {INSTALL_MORE}{" "}
-            <Link href={NEW_APP_LINK.href} inline>
-              {NEW_APP_LINK.text}
-            </Link>
-          </span>
-        </p>
-        <Badge href={RELEASE_HREF} tone="primary" variant="soft" data-site-release="">
-          {`${latestRelease} · latest release`}
-        </Badge>
-      </div>
+      <p className="site-install-caption" data-site-handoff-caption="">
+        {HANDOFF.caption}{" "}
+        <span className="site-install-more">
+          <Link href={HANDOFF.commands.href} tone="secondary" inline>
+            {HANDOFF.commands.text}
+          </Link>
+        </span>
+      </p>
     </div>
   );
 }
@@ -249,27 +202,34 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
           </>
         }
         mediaWidth={1536}
+        children={
+          // The one thing a person does here, on the first screen, before the art: hand Ouro UI to their agent.
+          <div className="site-hero-handoff mx-auto mt-6 grid w-full max-w-[36rem] gap-8 text-start max-sm:gap-6">
+            {/* Feel it first: a look repaints the whole page, there and then. */}
+            <div className="site-hero-paint text-center" data-site-hero-paint="">
+              <p className="mb-3 text-sm text-muted-foreground">Try a look. The whole page changes with it.</p>
+              <ThemeDots label="Theme" nameClassName="max-sm:hidden" groupClassName="justify-center max-sm:justify-between" />
+            </div>
+            <HandOff />
+          </div>
+        }
         media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
       />
-      <section aria-label="Install and try the porthole" className="site-console">
+      <section aria-label="Try the porthole" className="site-console">
         <Container className="site-console-grid">
           <div className="site-console-copy">
-            {/* On a phone the theme dots open the copy, above the words, so the stage's first control comes sooner. */}
-            <div className="max-sm:flex max-sm:flex-col">
-              <div className="max-w-[36rem]">
-                <Install />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-3 lg:mt-6">
+            {/*
+              Having tried a look and handed Ouro UI over (in the hero), a newcomer plays: the porthole beside it, the
+              Nautilus's story or the components. The commands wait in the install section.
+            */}
+            <div className="flex flex-col">
+              <div className="flex flex-wrap gap-3">
                 <Button href={href("/nautilus/")} size="lg">
                   Come aboard
                 </Button>
                 <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
                   Browse components
                 </Button>
-              </div>
-              <div className="mt-6 max-sm:order-first max-sm:mt-0 lg:mt-9">
-                <p className="mb-2.5 text-sm text-muted-foreground max-sm:sr-only">Pick a coat of paint. The whole page changes with it.</p>
-                <ThemeDots label="Theme" nameClassName="max-sm:hidden" />
               </div>
             </div>
           </div>
