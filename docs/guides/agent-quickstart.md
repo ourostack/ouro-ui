@@ -178,7 +178,11 @@ export default function App() {
 }
 ```
 
-Delete `src/App.css` and `src/assets/`, which the template's page used.
+Remove what only the template's page used:
+
+```sh
+rm -rf src/App.css src/assets public/icons.svg
+```
 
 ## 5. Build and check
 
