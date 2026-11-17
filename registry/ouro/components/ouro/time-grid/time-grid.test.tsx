@@ -18,6 +18,7 @@ import {
   weekendDays,
   zonedClock,
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
+import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
@@ -1669,6 +1670,71 @@ describe("TimeGrid label in name", () => {
     for (const node of [...event.querySelectorAll("span")].flatMap((span) => [...span.childNodes])) if (node.nodeType === Node.TEXT_NODE && !node.textContent!.trim()) node.remove();
     expect(plain(event.textContent)).toBe("Launch rehearsal3:00 – 4:30 PMRoom 4");
     expect(await labelInName(event)).toEqual(["label-content-name-mismatch"]);
+  });
+});
+
+describe("TimeGrid slot preview", () => {
+  // The preview follows a mouse over an empty slot (#324): the audit passes with it showing, in
+  // both schemes, and its text never draws under an event.
+  afterEach(() => document.documentElement.classList.remove("dark"));
+
+  const preview = (grid: HTMLElement) => grid.querySelector<HTMLElement>("[data-ouro-time-grid-slot]");
+  const previewText = (grid: HTMLElement) => (preview(grid) ? plain(preview(grid)!.textContent) : null);
+  /** Moves the real mouse to a minute of a day's column; returns the point, in the viewport. */
+  async function hover(grid: HTMLElement, minutes: number, day = 0) {
+    const slots = grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-slots]")[day]!;
+    const position = { x: slots.offsetWidth / 2, y: (slots.offsetHeight * minutes) / 1440 };
+    await userEvent.hover(slots, { position });
+    const box = slots.getBoundingClientRect();
+    return { x: box.left + position.x, y: box.top + position.y, slots };
+  }
+  /** The box of the text a preview draws, which a reader must see clear of every event. */
+  const textBox = (element: HTMLElement) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    return range.getBoundingClientRect();
+  };
+  const meets = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+  it.each(["light", "dark"] as const)("passes the audit with the preview showing over an empty slot (%s)", async (scheme) => {
+    document.documentElement.classList.toggle("dark", scheme === "dark");
+    const late: TimeGridEvent = { id: "late", title: "Late review", start: at(12, "13:00"), end: at(12, "14:00"), status: "unanswered" };
+    const { host, grid } = await render({ view: "day", events: [late], onSlotSelect: vi.fn() });
+    await hover(grid, 9 * 60 + 15);
+    await expect.poll(() => previewText(grid)).toBe("9:00 AM");
+    expect(describeFindings(await audit({ include: [host] }))).toBe("");
+  });
+
+  it("shows the preview clear of an event that ends where its slot starts, or starts where it ends", async () => {
+    const earlier: TimeGridEvent = { id: "earlier", title: "Standup", start: at(12, "09:00"), end: at(12, "10:00") };
+    const later: TimeGridEvent = { id: "later", title: "Late review", start: at(12, "10:30"), end: at(12, "11:00") };
+    const { grid } = await render({ view: "day", events: [earlier, later], onSlotSelect: vi.fn() });
+    await hover(grid, 10 * 60 + 5);
+    await expect.poll(() => previewText(grid)).toBe("10:00 AM");
+    for (const event of events()) expect(meets(textBox(preview(grid)!), event.getBoundingClientRect())).toBe(false);
+  });
+
+  it.each([
+    ["an event", "events"],
+    ["a background event", "backgroundEvents"],
+  ] as const)("shows no preview where %s would cover the slot, and shows one again once the pointer is clear", async (_, prop) => {
+    const covering: TimeGridEvent = { id: "covering", title: "Design review", start: at(12, "10:10"), end: at(12, "11:00") };
+    const { grid } = await render({ view: "day", [prop]: [covering], onSlotSelect: vi.fn() });
+    await hover(grid, 9 * 60 + 15);
+    await expect.poll(() => previewText(grid)).toBe("9:00 AM");
+    // The slot from 10:00 to 10:30 is where the event starts at 10:10, so its text would sit under the card.
+    const point = await hover(grid, 10 * 60 + 5);
+    expect(document.elementFromPoint(point.x, point.y)).toBe(point.slots);
+    await expect.poll(() => previewText(grid)).toBeNull();
+    await hover(grid, 9 * 60 + 15);
+    await expect.poll(() => previewText(grid)).toBe("9:00 AM");
+  });
+
+  it("keeps the preview of a day that no event covers, beside another day's event", async () => {
+    const other: TimeGridEvent = { id: "other", title: "Design review", start: at(12, "10:10"), end: at(12, "11:00") };
+    const { grid } = await render({ view: "week", events: [other], onSlotSelect: vi.fn() });
+    await hover(grid, 10 * 60 + 5, 5);
+    await expect.poll(() => previewText(grid)).toBe("10:00 AM");
   });
 });
 

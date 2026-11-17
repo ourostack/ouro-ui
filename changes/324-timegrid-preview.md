@@ -1,0 +1,1 @@
+- Fixed: TimeGrid's slot preview is left off where an event of that day covers the slot, so its text never draws under an event card ([test](registry/ouro/components/ouro/time-grid/time-grid.test.tsx "verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.test.tsx, /shows no preview where %s would cover the slot/)")).
