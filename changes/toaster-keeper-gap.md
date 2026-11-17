@@ -1,0 +1,1 @@
+- Toaster: a stack that moved to the top for keyboard focus comes back to the bottom even when a toast was still sliding in as it moved; before, a busy page could leave it at the top for good.

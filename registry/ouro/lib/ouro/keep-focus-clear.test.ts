@@ -421,6 +421,27 @@ describe("keepFocusClear", () => {
     });
   });
 
+  describe("a toast still sliding in", () => {
+    it("moves the stack back to the bottom for a control the top stack covers, though a toast hung below the window as it moved up", async () => {
+      const bar = setup();
+      control("covered", COVERED);
+      control("top", TOP);
+      // The front toast still sliding in from below the window, as a loaded machine draws it, when the stack moves up.
+      const front = bar.querySelector<HTMLElement>('[data-ouro="toast"]')!;
+      front.style.transform = "translateY(40px)";
+      await tab("covered");
+      advance(FADE_MS);
+      await frames();
+      expect(stateOf(bar).moved).toBe("top");
+      // At rest, and focus lands under the top stack: the bottom fits again, and the stack goes back.
+      front.style.transform = "";
+      await tab("top");
+      advance(FADE_MS);
+      await frames();
+      expect(stateOf(bar).moved).toBeNull();
+    });
+  });
+
   describe("settling", () => {
     it("moves back to the bottom only once the stack has rested for the settle time from its last move", async () => {
       const bar = setup();
