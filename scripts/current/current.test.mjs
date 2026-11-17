@@ -552,7 +552,7 @@ test("a vendored source moves to the release's commit with each file's new bytes
   assert.equal(written.sources[0].files[0].sha256, sha256("cli v2"));
 });
 
-test("a vendored file that imports the shared Ouro AX files as #ouro-ax gets the import in the package.json Node resolves it through, and is named when none is above it", async () => {
+test("a vendored file that imports the shared Ouro AX files as #ouro-ax gets the import in the package.json Node resolves it through, or a package.json of its own when none is above it", async () => {
   const entry = (name) => ({ sourcePath: `registry/ouro/ax/${name}`, generatedPath: `lib/ouro-ui/registry/ouro/ax/${name}`, sha256: "old" });
   const text = `${JSON.stringify({ schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [entry("command.ts"), entry("xray.ts")] }] }, null, 2)}\n`;
   const tarball = new Map(Object.entries({ "registry/ouro/ax/command.ts": "export const command = 2;\n", "registry/ouro/ax/xray.ts": 'import { command } from "#ouro-ax/command.ts";\n' }).map(([k, v]) => [k, Buffer.from(v)]));
@@ -563,10 +563,16 @@ test("a vendored file that imports the shared Ouro AX files as #ouro-ax gets the
   assert.deepEqual(JSON.parse(nearest.files["package.json"]).imports, { "#ouro-ax/*": "./lib/ouro-ui/registry/ouro/ax/*" });
   assert.equal("lib/ouro-ui/package.json" in nearest.files, false, "no package.json is created");
   assert.deepEqual(nearest.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  // With no package.json above it (m365crawl is a Go repository), the vendored folder takes one of its own.
   const unmapped = await run({});
-  assert.ok(unmapped.notes.includes("`lib/ouro-ui/registry/ouro/ax/xray.ts` imports the shared Ouro AX files as `#ouro-ax/*`, which needs an `imports` entry in a package.json above it. Add one that points at `lib/ouro-ui/registry/ouro/ax/` to the package.json that should hold it; the vendored folder may take one of its own."));
-  assert.equal("lib/ouro-ui/package.json" in unmapped.files, false, "no package.json is guessed at");
+  assert.deepEqual(JSON.parse(unmapped.files["lib/ouro-ui/registry/ouro/ax/package.json"]), { private: true, type: "module", imports: { "#ouro-ax/*": "./*" } });
+  assert.ok(unmapped.notes.some((note) => note.includes("`lib/ouro-ui/registry/ouro/ax/package.json`")));
+  assert.deepEqual(unmapped.notes.filter((note) => note.includes("needs an `imports` entry")), [], "nothing is left for a person to add");
   assert.deepEqual(unmapped.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  // The vendored folder's own package.json is the nearest, so it gets the entry, pointed at itself.
+  const own = await run({ "package.json": JSON.stringify({ name: "root" }), "lib/ouro-ui/registry/ouro/ax/package.json": JSON.stringify({ type: "module" }) });
+  assert.deepEqual(JSON.parse(own.files["lib/ouro-ui/registry/ouro/ax/package.json"]).imports, { "#ouro-ax/*": "./*" });
+  assert.equal("package.json" in own.files, false);
   const mapped = await run({ "package.json": JSON.stringify({ name: "root" }), "lib/ouro-ui/package.json": JSON.stringify({ imports: { "#ouro-ax/*": "./registry/ouro/ax/*" } }) });
   assert.deepEqual(mapped.notes.filter((note) => note.includes("#ouro-ax")), []);
 });
@@ -946,8 +952,16 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
     if (/^repos\/o\/r\/issues\/\d+\/comments$/.test(path)) return ok({}, 201);
     if (path === "graphql") {
       const pr = pulls.find((item) => item.node_id === input.variables.id);
+      if (input.query.includes("disablePullRequestAutoMerge")) {
+        calls.push(`disarm ${pr.number} at ${refs.get(BRANCH)}`);
+        pr.autoMerge = null;
+        pr.auto_merge = null;
+        return ok({ data: { disablePullRequestAutoMerge: { clientMutationId: null } } });
+      }
+      calls.push(`arm ${pr.number} at ${refs.get(BRANCH)}`);
       if (!mergeMethods.includes(input.variables.method)) return ok({ errors: [{ message: `Merge method ${input.variables.method.toLowerCase()} merging is not allowed on this repository` }] });
       pr.autoMerge = input.variables.method;
+      pr.auto_merge = { merge_method: input.variables.method.toLowerCase() };
       pr.mergeCommit = { headline: input.variables.headline, body: input.variables.body };
       return ok({ data: { enablePullRequestAutoMerge: { clientMutationId: null } } });
     }
@@ -1053,6 +1067,24 @@ test("an update pull request in a merge queue is left as it is, not failed, and 
   const after = await keepRepo(repo.gh, "o/r", newer, {});
   assert.equal(after.pr.pushed, true);
   assert.equal(repo.fileAt(BRANCH, "Package.swift"), SWIFT.replace("0.6.0", "0.10.0"));
+});
+
+test("a push to an update pull request with auto-merge on turns it off first and on again after, so a merge queue cannot take the pull request before its checks start", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const before = repo.refs.get(BRANCH);
+  assert.ok(repo.pulls[0].auto_merge, "the first run turns auto-merge on");
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  const start = repo.calls.length;
+  const again = await keepRepo(repo.gh, "o/r", newer, {});
+  assert.equal(again.pr.autoMerge, true);
+  const after = repo.refs.get(BRANCH);
+  const steps = repo.calls.slice(start).filter((call) => /^(disarm|arm) |^PATCH repos\/o\/r\/git\/refs/.test(call));
+  assert.deepEqual(steps, [`disarm 1 at ${before}`, `PATCH repos/o/r/git/refs/heads/${BRANCH}`, `arm 1 at ${after}`]);
+  // Nothing to push: auto-merge is left as it is.
+  const quiet = repo.calls.length;
+  await keepRepo(repo.gh, "o/r", newer, {});
+  assert.deepEqual(repo.calls.slice(quiet).filter((call) => call.startsWith("disarm")), []);
 });
 
 test("a run that overlaps the update pull request's merge writes nothing: no branch on the old main, no title on the merged pull request (#1840)", async () => {
