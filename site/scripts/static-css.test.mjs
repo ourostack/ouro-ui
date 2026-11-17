@@ -37,7 +37,7 @@ test("the files are plain CSS: no Tailwind at-rules, imports or nested rules", (
 test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :root and leaves out its Tailwind utilities", () => {
   const source = readFileSync(join(repo, "registry/ouro/theme/ouro-base.css"), "utf8");
   const split = splitBase(source);
-  assert.deepEqual(split.utilities, ["rounded-full", "press"]);
+  assert.deepEqual(split.utilities, ["rounded-full", "rounded-ouro-control", "rounded-ouro-control-md", "rounded-ouro-check", "press"]);
   assert.deepEqual(
     split.keyframes.map((text) => /@keyframes\s+([\w-]+)/.exec(text)[1]),
     ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade"],
@@ -49,7 +49,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
     assert.ok(rootLines.includes(line), line);
   }
   for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-scroll-fade-left", "ouro-scroll-fade-right"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
-  assert.ok(css.includes("Tailwind utilities left out: rounded-full, press."));
+  assert.ok(css.includes("Tailwind utilities left out: rounded-full, rounded-ouro-control, rounded-ouro-control-md, rounded-ouro-check, press."));
   assert.deepEqual(split.supports.slice(0, 1), ["@supports not (corner-shape: squircle) {\n  :root {\n    --ouro-corner-fallback: 0.7;\n  }\n}"]);
   assert.ok(css.includes(split.supports[0]));
   assert.throws(() => baseCss(":root { --a: 1; }"), /no @theme inline block/);

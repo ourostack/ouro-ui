@@ -219,7 +219,7 @@ describe("the squircle's corner size where the engine has no corner-shape", () =
       </>,
     );
     const sizes: Record<string, number> = {};
-    for (const element of document.querySelectorAll<HTMLElement>('[class*="--ouro-sq-r:calc"]')) {
+    for (const element of document.querySelectorAll<HTMLElement>('[class*="--ouro-sq-r:calc"], .rounded-ouro-control, .rounded-ouro-control-md')) {
       const probe = document.createElement("span");
       probe.style.cssText = "position:absolute;display:block;width:var(--ouro-sq-r)";
       element.append(probe);

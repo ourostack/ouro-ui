@@ -84,7 +84,7 @@ type ToggleSize = keyof typeof sizes;
  * @claim "`pill` is fully rounded with regular-weight" registry/ouro/components/ouro/toggle/toggle.test.tsx verify:testExists(registry/ouro/components/ouro/toggle/toggle.test.tsx::Toggle looks > rounds fully with regular-weight text with shape pill)
  */
 const shapes = {
-  rect: "rounded-[calc(var(--ouro-control-radius,var(--radius))*var(--ouro-radius-scale,1)*var(--ouro-corner-fallback,1))] [--corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] [corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] font-medium [--ouro-sq-r:calc(var(--ouro-control-radius,var(--radius))*var(--ouro-radius-scale,1))]",
+  rect: "rounded-ouro-control font-medium",
   pill: "rounded-full font-normal",
 } as const;
 

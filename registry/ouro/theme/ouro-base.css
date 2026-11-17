@@ -241,6 +241,33 @@
   corner-shape: round;
 }
 
+/* The controls a person presses or types into round with these, so a theme shapes them all at once with
+   --ouro-control-radius and --ouro-control-corner-shape (9999px and round make capsules), and its checks with
+   --ouro-check-radius and --ouro-check-corner-shape. Unset, they are Ouro's lg and md steps (rounded-ouro-lg,
+   rounded-ouro-md) and the sm step in the theme's corner shape. --ouro-control-r is the radius, for a part that
+   rounds to match (a stepper inside a field); --ouro-sq-r is the squircle surface's radius where corner-shape is missing. */
+@utility rounded-ouro-control {
+  --ouro-control-r: calc(var(--ouro-control-radius, var(--radius)) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));
+  --ouro-sq-r: calc(var(--ouro-control-radius, var(--radius)) * var(--ouro-radius-scale, 1));
+  --corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+  border-radius: var(--ouro-control-r);
+  corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+}
+
+@utility rounded-ouro-control-md {
+  --ouro-control-r: calc(var(--ouro-control-radius, var(--radius) * 0.8) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));
+  --ouro-sq-r: calc(var(--ouro-control-radius, var(--radius) * 0.8) * var(--ouro-radius-scale, 1));
+  --corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+  border-radius: var(--ouro-control-r);
+  corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+}
+
+@utility rounded-ouro-check {
+  --corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
+  border-radius: var(--ouro-check-radius, calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6));
+  corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
+}
+
 @utility press {
   transition:
     scale var(--ouro-duration-press) var(--ouro-ease-out),
