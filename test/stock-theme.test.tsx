@@ -9,6 +9,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
+import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
 import stockCss from "./shadcn-stock.css?raw";
@@ -16,7 +17,7 @@ import stockCss from "./shadcn-stock.css?raw";
 // Every Button tone and variant, every Text tone and Heading, every Badge tone and
 // variant, Alert's title and description in each tone, Kbd, Avatar's initials and a
 // SwipeActions button in each tone keep their text at 4.5:1 or more in light and dark,
-// under two themes:
+// and the off Switch's 1px hairline keeps 3:1 against the page (WCAG 1.4.11), under two themes:
 //
 // - "stock shadcn": the variables `shadcn init` writes (test/shadcn-stock.css, copied
 //   from the install spike) plus ouro-base.css, which every app installs. This is an
@@ -161,6 +162,27 @@ async function render(css: string, surface: "background" | "popover") {
 for (const [name, css] of Object.entries(themes)) {
   for (const scheme of ["light", "dark"] as const) {
     describe(`${name} theme (${scheme})`, () => {
+      it("the off Switch's edge is a 1px hairline at 3:1 or more against the page", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.background = "var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () => root.render(<Switch label="Backups" />));
+        const track = host.querySelector('[role="switch"]')!;
+        const page = backdrop(host);
+        const edge = getComputedStyle(track);
+        expect(edge.borderTopWidth).toBe("1px");
+        expect(ratio(over(edge.borderTopColor, page), page)).toBeGreaterThanOrEqual(3);
+      });
+
       it.each(["background", "popover"] as const)("every tone and variant has text at 4.5:1 or more on the %s", async (surface) => {
         document.documentElement.classList.toggle("dark", scheme === "dark");
         const host = await render(css, surface);
