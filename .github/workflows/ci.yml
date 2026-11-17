@@ -66,7 +66,7 @@ jobs:
     # `installs` and `heavy`; only files the tier never reads, such as change fragments or workflows
     # other than ci.yml). Any doubt, and every push, dispatch and release branch, runs them in full.
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 10 }}
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 15 }}
     permissions:
       actions: read
       contents: read
@@ -166,11 +166,11 @@ jobs:
       - id: tested
         name: Has this tree already passed?
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        timeout-minutes: 7
+        timeout-minutes: 5
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/ci-proof.mjs "$GITHUB_SHA" --wait 300
+        run: node scripts/ci-proof.mjs "$GITHUB_SHA" --wait 180
       - name: Passed by proof
         if: steps.tested.outputs.tested == 'true'
         env:

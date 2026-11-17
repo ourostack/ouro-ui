@@ -41,6 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the release branch and the tag, create the release
+      actions: read # main's CI runs and their jobs, and the pull request run that proved the commit's tree
+      pull-requests: read # the pull request merged as the commit (scripts/ci-proof.mjs)
     # Waiting for none of main's runs: reading them, the install, the release commit and the
     # namespace checks, 20 minutes, and 1.5 times that 30 (scripts/workflows.test.mjs, which holds
     # the numbers). Pages is a later job with its own.

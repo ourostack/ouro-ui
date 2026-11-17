@@ -57,10 +57,11 @@ export async function prove(api, sha, { wait = 0, pollMs = POLL_MS, now = () => 
   const heads = (await api.mergedHeads(sha)).filter((head) => head !== sha);
   lines.push(`Main commit ${sha.slice(0, 7)} has tree ${tree}; a pull request's run proves it with a passed job named "${want}".`);
   if (heads.length === 0) lines.push("No pull request was merged as this commit (a direct push?).");
+  // One deadline for every head, so the whole wait stays within `wait`.
+  const until = now() + wait * 1000;
   for (const head of [sha, ...heads]) {
-    const until = now() + wait * 1000;
-    for (;;) {
-      const runs = (head === sha ? own : await api.runs(head)).filter((run) => run.event === "pull_request");
+    for (let first = true; ; first = false) {
+      const runs = (head === sha && first ? own : await api.runs(head)).filter((run) => run.event === "pull_request");
       const run = runs.sort((a, b) => b.id - a.id)[0];
       if (!run) {
         if (head !== sha) lines.push(`Head ${head.slice(0, 7)} has no pull request run.`);
@@ -72,7 +73,7 @@ export async function prove(api, sha, { wait = 0, pollMs = POLL_MS, now = () => 
       const proofs = jobs.filter((job) => typeof job.name === "string" && job.name.startsWith(PREFIX) && !job.name.includes("${{"));
       const other = proofs.find((job) => job.name !== want);
       if (other) {
-        lines.push(`${where} tested tree ${other.name.slice(PREFIX.length)}, not this one: main moved after it ran.`);
+        lines.push(`${where} reports tree ${other.name.slice(PREFIX.length)} (${other.conclusion ?? other.status}), not this one: main moved after it ran.`);
         break;
       }
       if (run.status !== "completed") {

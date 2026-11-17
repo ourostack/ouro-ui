@@ -1230,10 +1230,10 @@ test("the plan's merge commit has its base: the checkout fetches the merge commi
 
 test("a push to main whose tree already passed runs only install-github", () => {
   const jobs = ciJobs();
-  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Has this tree already passed\?\n {8}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n {8}timeout-minutes: 7\n {8}continue-on-error: true\n/m);
-  // It waits up to 5 minutes for the merged pull request's run to finish, within the step's 7 and the plan's 10 on a push.
-  assert.match(jobs.plan, /^ {8}run: node scripts\/ci-proof\.mjs "\$GITHUB_SHA" --wait 300$/m);
-  assert.match(jobs.plan, /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'pull_request' && 20 \|\| 10 \}\}$/m);
+  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Has this tree already passed\?\n {8}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n {8}timeout-minutes: 5\n {8}continue-on-error: true\n/m);
+  // It waits up to 3 minutes for the merged pull request's run to finish, within the step's 5 and the plan's 15 on a push, which keeps its 10 besides.
+  assert.match(jobs.plan, /^ {8}run: node scripts\/ci-proof\.mjs "\$GITHUB_SHA" --wait 180$/m);
+  assert.match(jobs.plan, /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'pull_request' && 20 \|\| 15 \}\}$/m);
   assert.match(jobs.plan, /^ {6}tested: \$\{\{ steps\.tested\.outputs\.tested \}\}$/m);
   assert.match(jobs.plan, /^ {6}tree: \$\{\{ steps\.tree\.outputs\.tree \}\}$/m);
   assert.match(jobs.plan, /^ {8}run: echo "tree=\$\(git rev-parse 'HEAD\^\{tree\}'\)" >> "\$GITHUB_OUTPUT"$/m);
@@ -2169,7 +2169,8 @@ test("a release gives each job its own permissions, and none may write commit st
   const jobs = releaseJobs();
   assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin"]);
   const permissions = permissionsOf;
-  assert.deepEqual(permissions(jobs.release), { contents: "write" });
+  // It reads main's CI runs and the pull request merged as the commit, whose run may prove its tree (scripts/ci-proof.mjs).
+  assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "read", "pull-requests": "read" });
   assert.deepEqual(permissions(jobs.pages), { actions: "write" });
   assert.deepEqual(permissions(jobs.publish), {});
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
