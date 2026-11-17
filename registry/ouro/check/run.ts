@@ -1294,16 +1294,16 @@ function installer(module: string, cwd: string, log: (line: string) => void): ()
     log("Chromium isn't downloaded yet: downloading it once (npx playwright install chromium).");
     const cli = join(dirname(createRequire(import.meta.url).resolve(module)), "cli.js");
     const output: string[] = [];
-    const code = await new Promise<number | null>((done) => {
+    const { code, signal } = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((done) => {
       const child = spawn(process.execPath, [cli, "install", "chromium"], { cwd, stdio: ["ignore", "pipe", "pipe"] });
       child.stdout.on("data", (chunk: Buffer) => output.push(String(chunk)));
       child.stderr.on("data", (chunk: Buffer) => output.push(String(chunk)));
-      child.on("close", done);
+      child.on("close", (code, signal) => done({ code, signal }));
     });
     if (code !== 0) {
       // The first error line says why (Playwright ends with a stack); else the last line it printed; else its exit.
       const lines = output.join("").split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("at "));
-      const reason = [...lines.filter((line) => line.startsWith("Error: ")), ...lines.reverse(), `it exited with ${code}`][0];
+      const reason = [...lines.filter((line) => line.startsWith("Error: ")), ...lines.reverse(), signal ? `it was stopped by ${signal}` : `it exited with ${code}`][0];
       throw refusal("no-browser", "check", `needs Chromium, and downloading it stopped: ${reason}`, "npx playwright install chromium");
     }
   };

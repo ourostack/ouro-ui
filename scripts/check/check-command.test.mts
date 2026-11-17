@@ -158,6 +158,8 @@ module.exports = { chromium: { launch: async (options) => {
     assert.equal(stopped.err, "ouro-check: check: needs Chromium, and downloading it stopped: Error: getaddrinfo ENOTFOUND cdn.playwright.dev. Fix: npx playwright install chromium.");
     const quiet = await run([folder, ...fast, "--no-axe", "--out", "quiet"], { env: { PLAYWRIGHT_MODULE: standIn("quiet", `process.exit(7);`) } });
     assert.match(quiet.err, /downloading it stopped: it exited with 7\. Fix: npx playwright install chromium\.$/);
+    const killed = await run([folder, ...fast, "--no-axe", "--out", "killed"], { env: { PLAYWRIGHT_MODULE: standIn("killed", `process.kill(process.pid, "SIGTERM");`) } });
+    assert.match(killed.err, /downloading it stopped: it was stopped by SIGTERM\. Fix: npx playwright install chromium\.$/);
     // Any other reason the browser can't start is no missing download: nothing is downloaded, and the check stops.
     const broken = standIn("broken", `require("node:fs").writeFileSync(__dirname + "/downloaded", "");`, `throw new Error("browserType.launch: Target page, context or browser has been closed");`);
     const crash = await run([folder, ...fast, "--no-axe", "--out", "broken"], { env: { PLAYWRIGHT_MODULE: broken } });
