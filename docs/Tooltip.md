@@ -24,7 +24,7 @@ import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 
 ## Usage
 
-It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet.
+It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css), like Dialog and Sheet. Opened from inside a Dialog or a Sheet, it shows above it.
 
 ## Use instead when
 
