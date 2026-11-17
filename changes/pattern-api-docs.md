@@ -1,0 +1,1 @@
+- Changed: the page patterns' JSDoc now lists what a pattern already does, what the app wires up and the props of the parts it uses, and the patterns guide says to test only what an app adds.
