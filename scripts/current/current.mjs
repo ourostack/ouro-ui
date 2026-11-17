@@ -258,6 +258,8 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   notes.push(...asked.notes);
   // Two pins that vendor the same generator say the same thing once.
   notes.splice(0, notes.length, ...new Set(notes));
+  // Every updater held back (a set that moves together or not at all): there is nothing to propose, and the notes say why.
+  if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
   if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes } };
   const existing = await branchState(gh, repo);
   // Someone pushed to the open pull request's branch (a fix its checks needed): as Dependabot does, leave it to them
@@ -308,7 +310,7 @@ export async function keepCurrent({ appId, privateKey, makeGitHub = createGitHub
       if (item.archived || UPSTREAM.has(item.full_name) || (only && !only.includes(item.full_name))) continue;
       try {
         const kept = await keepRepo(gh, item.full_name, releases, sources);
-        if (!item.private) log(`${item.full_name}: ${kept.state}${kept.pr ? ` ${kept.pr.url}` : ""}`);
+        if (!item.private) log(`${item.full_name}: ${kept.state}${kept.reason ? `: ${kept.reason}` : ""}${kept.pr ? ` ${kept.pr.url}` : ""}`);
         repos.push(kept);
       } catch (error) {
         log(`${item.private ? "a private repository" : item.full_name}: failed${item.private ? "" : `: ${error.message}`}`);
@@ -357,7 +359,7 @@ export async function main(argv = process.argv.slice(2), env = process.env, { ma
     for (const repo of args.only) {
       try {
         const kept = await keepRepo(gh, repo, releases, sources);
-        log(`${repo}: ${kept.state}${kept.pr ? ` ${kept.pr.url}${kept.pr.edited ? ` (${kept.pr.note})` : kept.pr.autoMerge ? " (auto-merge on)" : ` (auto-merge off: ${kept.pr.note})`}` : ""}`);
+        log(`${repo}: ${kept.state}${kept.reason ? `: ${kept.reason}` : ""}${kept.pr ? ` ${kept.pr.url}${kept.pr.edited ? ` (${kept.pr.note})` : kept.pr.autoMerge ? " (auto-merge on)" : ` (auto-merge off: ${kept.pr.note})`}` : ""}`);
       } catch (error) {
         failed += 1;
         log(`${repo}: failed: ${error.message}`);
