@@ -1,0 +1,1 @@
+- Fixed: Command's test for emptying the search on close waits for the palette's exit motion to end.

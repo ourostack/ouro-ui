@@ -1291,10 +1291,12 @@ describe("Command kept mounted", () => {
     await expect.poll(() => (input().element() as HTMLInputElement).value).toBe("ab");
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
-    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     // Opening asks once for the empty search, each key asks again, and only a kept palette asks once more as it closes.
+    // The palette now fades out like Dialog, so the reset lands when its exit ends, not a fixed number of frames later.
+    await expect.poll(() => queries).toEqual(keepMounted ? ["", "a", "ab", ""] : ["", "a", "ab"]);
+    if (keepMounted) await expect.poll(() => document.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!.value).toBe("");
+    await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     expect(queries).toEqual(keepMounted ? ["", "a", "ab", ""] : ["", "a", "ab"]);
-    if (keepMounted) expect(document.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!.value).toBe("");
   });
 
   it("lets go of the width it held and holds the width it draws at each opening", async () => {
