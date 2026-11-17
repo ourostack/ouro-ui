@@ -1336,7 +1336,12 @@ async function shoot(root: Element, items: Measured[], last: boolean, regions = 
           offScreen++;
           continue;
         }
-        // Where the text shows through, as a box that clips it, or the root's own box, does not show it.
+        // WebKit on Linux paints no page at the screen's top-left pixel: the widget behind it shows there,
+        // grey, whatever the page is, so that pixel is not measured.
+        if (screenX < 1 && screenY < 1) {
+          offScreen++;
+          continue;
+        }
         if (region && !(screenX >= region.left && screenX < region.right && screenY >= region.top && screenY < region.bottom)) {
           offScreen++;
           continue;
