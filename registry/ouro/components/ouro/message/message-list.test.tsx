@@ -3963,25 +3963,6 @@ describe("MessageList switching conversations", () => {
     while (step !== undefined && scroller.scrollTop - top > step) await upBy(scroller, step);
     await upBy(scroller, scroller.scrollTop - top);
   }
-  /**
-   * The estimate each row of every run not drawn takes: a run of n rows is n·E + (n−1)·gap high, so E is its height less the gaps,
-   * over its rows. `keys` are the children's keys in order, as the slots draw them.
-   */
-  function estimatesOf(scroller: HTMLElement, keys: string[]) {
-    const at = (attribute: string) => keys.findIndex((key) => attribute.endsWith(key));
-    const gap = parseFloat(getComputedStyle(scroller.querySelector<HTMLElement>("[data-ouro-message-list-slot]")!.parentElement!).rowGap);
-    return [...scroller.querySelectorAll<HTMLElement>("[data-ouro-message-list-space]")].map((space) => {
-      let previous = space.previousElementSibling;
-      while (previous && !previous.hasAttribute("data-ouro-message-list-slot")) previous = previous.previousElementSibling;
-      let following = space.nextElementSibling;
-      while (following && !following.hasAttribute("data-ouro-message-list-slot")) following = following.nextElementSibling;
-      const from = previous ? at(previous.getAttribute("data-ouro-message-list-slot")!) + 1 : 0;
-      const to = following ? at(following.getAttribute("data-ouro-message-list-slot")!) : keys.length;
-      const rows = to - from;
-      return (parseFloat(space.style.height) - (rows - 1) * gap) / rows;
-    });
-  }
-
   it("holds the reader's place through a full re-key of a named conversation, with its rows not yet measured, in messages of varied heights", async () => {
     const items = varied("mara", 900, 4);
     const list = mount();
@@ -4061,21 +4042,33 @@ describe("MessageList switching conversations", () => {
     expect(list.scroller.scrollHeight).toBe(fresh.scroller.scrollHeight);
   }, 120_000);
 
-  it("gives each row a full re-key that changes the count has not drawn the one estimate, not the height of the row before it", async () => {
-    const items = varied("mara", 900, 4);
+  it("makes a full re-key that changes the count as tall as a fresh list of the same messages, with no height carried by place", async () => {
+    // Tall messages first, short ones after: a height carried over by place, one row off, would make the list hundreds of pixels taller.
+    const long = " a long line of words to fill the message".repeat(8);
+    const rows: Item[] = Array.from({ length: 900 }, (_, id) => ({ id: `mara-${id}`, role: "assistant" as const, text: `mara ${id}${id < 450 ? long : ""}` }));
+    // A list drawn once before, so the list below starts as a list does in a page that has drawn one.
+    const warm = mount();
+    await warm.commit(<Switcher open="mara" keyed={false} named items={rows} />);
+    await settle(warm.scroller);
+    await warm.commit(<div />);
     const list = mount();
-    await list.commit(<Switcher open="mara" keyed={false} named items={items} />);
+    await list.commit(<Switcher open="mara" keyed={false} named items={rows} />);
     await settle(list.scroller);
+    // Every row measured: the list is scrolled through from its top to its end, then back to the middle.
+    await scrollUpTo(list.scroller, 0);
+    while (list.scroller.scrollTop + list.scroller.clientHeight < list.scroller.scrollHeight) await upBy(list.scroller, -800);
     await scrollUpTo(list.scroller, Math.round(list.scroller.scrollHeight / 2));
-    const tall: Item = { id: "mara-tall", role: "assistant", text: `Tall${" a long line of words to make it tall".repeat(40)}` };
-    const next = [tall, ...items];
+    // One message comes in before the oldest, and every key changes, so the count changes and no key survives.
+    const next: Item[] = [{ id: "mara-new", role: "assistant", text: "mara new" }, ...rows];
     await list.commit(<Switcher open="mara" keyed={false} named items={next} rekey="sent-" />);
+    // As the re-key settles, while most of the new rows are unmeasured.
     await settle(list.scroller);
-    // Each run of rows not drawn, above and below the view, is at the one estimate.
-    const estimates = estimatesOf(list.scroller, next.map((item) => `sent-${item.id}`));
-    expect(estimates.length).toBeGreaterThanOrEqual(2);
-    for (const estimate of estimates) expect(Math.abs(estimate - estimates[0]!)).toBeLessThanOrEqual(0.05);
-  }, 60_000);
+    expect(messagesOf(list.scroller).length).toBeLessThan(100);
+    const fresh = mount();
+    await fresh.commit(<Switcher open="mara" keyed={false} named items={next} />);
+    await settle(fresh.scroller);
+    expect(list.scroller.scrollHeight).toBe(fresh.scroller.scrollHeight);
+  }, 120_000);
 
   it("keeps the rows above and below a reader's view as two spaces, through a named re-key of taller messages before the list's first frame", async () => {
     const items = varied("mara", 900, 4);
