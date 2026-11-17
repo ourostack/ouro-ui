@@ -263,11 +263,13 @@ export function Timer(props: TimerProps): JSX.Element {
     const left = counting ? Math.min(1, Math.max(0, timer.remaining / timer.duration || 0)) : 0;
     return (
       <div {...rest} data-ouro="timer" data-status={status} data-variant="ring" role="group" aria-label={label} className={cn("grid min-w-0 justify-items-center gap-3", className)}>
-        <div className="relative grid aspect-square w-full max-w-64 place-items-center">
-          <svg aria-hidden="true" data-ouro-part="ring" viewBox="0 0 100 100" className="absolute inset-0 size-full">
+        {/* 20rem wide, so the square inside the circle (about two thirds of it) holds the large time,
+            its button and Paused without any of them crossing the arc. */}
+        <div className="relative grid aspect-square w-full max-w-80 place-items-center">
+          <svg aria-hidden="true" data-ouro-timer-ring="" viewBox="0 0 100 100" className="absolute inset-0 size-full">
             <circle cx="50" cy="50" r="47" fill="none" strokeWidth="3" className="stroke-muted" />
             <circle
-              data-ouro-part="arc"
+              data-ouro-timer-arc=""
               cx="50"
               cy="50"
               r="47"

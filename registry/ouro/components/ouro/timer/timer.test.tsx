@@ -383,11 +383,11 @@ describe("Timer", () => {
 });
 
 describe("Timer ring", () => {
-  const arc = (host: HTMLElement) => host.querySelector<SVGCircleElement>('[data-ouro-part="arc"]')!;
+  const arc = (host: HTMLElement) => host.querySelector<SVGCircleElement>('[data-ouro-timer-arc]')!;
 
   it("draws the time and its main button inside a ring whose arc is the time left, and Cancel under it", async () => {
     const { host, timer, time, primary, secondary } = await render(<Timer label="Rice" duration={600} variant="ring" />);
-    const ring = host.querySelector<SVGElement>('[data-ouro-part="ring"]')!;
+    const ring = host.querySelector<SVGElement>('[data-ouro-timer-ring]')!;
     expect(ring.getAttribute("aria-hidden")).toBe("true");
     expect(timer().getAttribute("data-variant")).toBe("ring");
     // The time and Start sit inside the ring's box, centred on it.
@@ -443,9 +443,9 @@ describe("Timer ring", () => {
 
   it("is plain by default and for a variant that is not one", async () => {
     const plain = await render(<Timer label="A" duration={60} />);
-    expect(plain.host.querySelector('[data-ouro-part="ring"]')).toBeNull();
+    expect(plain.host.querySelector('[data-ouro-timer-ring]')).toBeNull();
     const odd = await render(<Timer {...({ label: "B", duration: 60, variant: "dial" } as unknown as Parameters<typeof Timer>[0])} />);
-    expect(odd.host.querySelector('[data-ouro-part="ring"]')).toBeNull();
+    expect(odd.host.querySelector('[data-ouro-timer-ring]')).toBeNull();
     expect(odd.timer().hasAttribute("data-variant")).toBe(false);
   });
 });
