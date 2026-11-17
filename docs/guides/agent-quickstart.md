@@ -83,12 +83,13 @@ export default defineConfig({
 
 ## 3. Install Ouro UI
 
-This sets up shadcn/ui, registers the `@ouro` namespace, which serves the newest release,[^namespace] then adds the base tokens, first and once, and the components the page uses:
+This sets up shadcn/ui, registers the `@ouro` namespace, which serves the newest release,[^namespace] then adds the Ouro theme, and the base tokens, once, with the components the page uses:
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
 node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('components.json','utf8'));c.registries={'@ouro':'https://ui.ouroboros.bot/r/{name}.json'};fs.writeFileSync('components.json',JSON.stringify(c,null,2))"
-npx shadcn@latest add @ouro/ouro-base @ouro/ouro-theme @ouro/page-header @ouro/stack @ouro/form @ouro/text-field @ouro/select @ouro/switch @ouro/button @ouro/confirm-dialog @ouro/color-scheme-toggle @ouro/ouro-check --yes
+npx shadcn@latest add @ouro/ouro-theme --yes
+npx shadcn@latest add @ouro/ouro-base @ouro/page-header @ouro/stack @ouro/form @ouro/text-field @ouro/select @ouro/switch @ouro/button @ouro/confirm-dialog @ouro/color-scheme-toggle @ouro/ouro-check --yes
 ```
 
 Use these `@ouro` commands: the GitHub addresses install the same release but fetch each file from GitHub, which is much slower. Add other components the same way, `@ouro/<item>`; [llms.txt](https://ui.ouroboros.bot/llms.txt) lists them all.
