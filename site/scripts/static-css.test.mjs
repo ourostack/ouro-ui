@@ -40,7 +40,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
   assert.deepEqual(split.utilities, ["rounded-full", "press"]);
   assert.deepEqual(
     split.keyframes.map((text) => /@keyframes\s+([\w-]+)/.exec(text)[1]),
-    ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade"],
+    ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade", "ouro-moment-arrive"],
   );
   const css = outputs["ouro-base.css"];
   const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@supports[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
