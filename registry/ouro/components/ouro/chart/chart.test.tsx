@@ -122,6 +122,8 @@ describe("Chart", () => {
     const custom = (legend: boolean) => (
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
+          {/* Text among the parts is no series. */}
+          {"Cooked per month"}
           <Line dataKey="cooked" />
           {legend && <ChartLegend />}
         </LineChart>
