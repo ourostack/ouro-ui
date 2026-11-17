@@ -531,6 +531,13 @@ test("refsOf collects each list item's ref once; audienceWho reads an outcome's 
   assert.equal(audienceWho(null), "");
 });
 
+test("a command listed by its whole name in the overview counts as listed, as the kit lists a multi-word command with no group summary", async () => {
+  const report = await xray(base({ cli: fixture("peer-cli.mts"), name: "pal", timeoutMs: 10_000 }));
+  const named = report.results.filter((r) => r.claim === "cli.named-is-listed");
+  assert.ok(named.length > 0, "the X-ray checked cli.named-is-listed");
+  assert.deepEqual(named.filter((r) => r.verdict === "fail").map((r) => `${r.surface}: ${r.note}`), []);
+});
+
 test("a voice in a pipe or --json, text without its refs, an unlisted command, long help, an unnamed audience, a closed pipe", async () => {
   const report = await xray(base({ cli: fixture("voice-cli.mjs"), name: "loud", samples: { room: "a1" }, timeoutMs: 10_000 }));
   const v = (claim: string, surface: string) => verdictOf(report, claim, surface);

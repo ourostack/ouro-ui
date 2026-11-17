@@ -31,6 +31,25 @@ test("a multi-word group shows once, with its group summary", () => {
   assert.match(renderOverview(c), /\n {2}draft {3}Edit the draft\.\n\n/);
 });
 
+test("a multi-word command with no group summary is listed by its whole name, never as its first word", () => {
+  const c = defineCli({ name: "t", about: ["t"], commands: [defineCommand({ name: "peer send", summary: "Send a message.", effect: "others" }), defineCommand({ name: "peer inbox", summary: "Read new messages.", effect: "private" }), defineCommand({ name: "peer watch", summary: "Watch for new messages.", effect: "private" })] });
+  const text = renderOverview(c);
+  assert.match(text, /\n {2}peer inbox {3}Read new messages\.\n {2}peer watch {3}Watch for new messages\.\n/);
+  assert.match(text, /\n {2}peer send {4}Send a message\.\n/);
+  assert.doesNotMatch(text, /\n {2}peer {2}/);
+});
+
+test("an overview line too long for the width wraps its summary under itself", () => {
+  const long = "send a message to the agent on the other machine, through a secret gist, within six minutes of sending";
+  const c = defineCli({ name: "t", about: ["t"], commands: [defineCommand({ name: "send", summary: long, effect: "others" }), defineCommand({ name: "ls", summary: "List.", effect: "private" })] });
+  const lines = renderOverview(c).split("\n");
+  for (const line of lines) assert.ok(line.length <= 100, `${line.length} columns: ${line}`);
+  const at = lines.findIndex((l) => l.startsWith("  send "));
+  assert.equal(lines[at], "  send   send a message to the agent on the other machine, through a secret gist, within six minutes");
+  assert.equal(lines[at + 1], "         of sending");
+  assert.equal(renderOverview(c, { width: 60 }).split("\n").filter((l) => l.length > 60).length, 0);
+});
+
 test("a command's help is generated from its definition, and an others command says so first", () => {
   const text = renderCommand(cli, findCommand(cli, ["post"])!.command);
   assert.match(text, /^Other people see these: run it only when a human asked you to, with --why\./);
