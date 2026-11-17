@@ -820,6 +820,7 @@
     "registry/ouro/e2e/ouro/route-progress.spec.ts": 5056,
     "registry/ouro/e2e/ouro/row.spec.ts": 6091,
     "registry/ouro/e2e/ouro/scroll-area.spec.ts": 7506,
+    "registry/ouro/e2e/ouro/section-header.spec.ts": 5000,
     "registry/ouro/e2e/ouro/segmented-control.spec.ts": 8248,
     "registry/ouro/e2e/ouro/select.spec.ts": 10635,
     "registry/ouro/e2e/ouro/separator.spec.ts": 5916,

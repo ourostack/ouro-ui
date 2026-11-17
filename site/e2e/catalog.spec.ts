@@ -101,7 +101,10 @@ const CEILINGS = { voyage: 279 * 1024, docs: 167_396 + 1024 } as const;
 // whose classes the docs' Tailwind build carries: 45,087 bytes with them, on CI merged with main at 1f5b9ec4.
 // The voyage's rose to 44 KiB for ouro-base's disclosure for pages without a script (#1594), which every page's
 // stylesheet carries with ouro-base: 44,171 bytes with it, on CI merged with main at e7570178.
-const CSS_CEILINGS = { voyage: 44 * 1024, docs: 45 * 1024 } as const;
+// The docs' rose to 46 KiB for the theme's control and check shapes (#1915: the rounded-ouro-control utilities, and the
+// style query that clips a round control's surface where corner-shape is missing), whose rules every page's stylesheet
+// carries with ouro-base: 46,104 bytes with them, built locally over main at f34408a1.
+const CSS_CEILINGS = { voyage: 44 * 1024, docs: 46 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())

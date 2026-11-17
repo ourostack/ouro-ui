@@ -230,6 +230,22 @@ test("a stalled checkout's 3 minutes, its clearing and its retry are setup, so t
   assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {8}name: actions\/checkout stalled; clear it for one more try \(#1765\)$/m);
 });
 
+test("a pnpm setup that fails is tried once more: its warning and its retry are setup too (#1911)", () => {
+  const pnpm = "Run pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115";
+  const retried = stepped("ci", [["Set up job", 0.5], [pnpm, 2], ["pnpm setup failed; trying it once more (#1911)", 0], [pnpm, 0.25], ["Run pnpm i --frozen-lockfile", 1], ["Tests", 6]]);
+  assert.equal(workSeconds(retried), 6 * 60);
+  // ci.yml names the warning step as setupSteps reads it.
+  assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {8}name: pnpm setup failed; trying it once more \(#1911\)$/m);
+});
+
+test("a pnpm i that fails is run once more: its warning and its retry are setup too (#1914)", () => {
+  const install = "Run pnpm i --frozen-lockfile";
+  const retried = stepped("ci", [["Set up job", 0.5], [install, 3], ["pnpm install failed; trying it once more (#1914)", 0], [install, 1], ["Tests", 6]]);
+  assert.equal(workSeconds(retried), 6 * 60);
+  // ci.yml names the warning step as setupSteps reads it.
+  assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {8}name: pnpm install failed; trying it once more \(#1914\)$/m);
+});
+
 test("the plan's yield to the merge queue is a wait for runners: the critical path and the work time leave it out, the runner time keeps it", () => {
   const plan = stepped("plan", [["Set up job", 0.5], ["Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", 0.5], ["Yield to the merge queue", 12], ["Run pnpm i --frozen-lockfile", 0.5], ["Plan the tests", 0.5]]);
   assert.deepEqual(waitSteps, [/^Yield to the merge queue$/]);

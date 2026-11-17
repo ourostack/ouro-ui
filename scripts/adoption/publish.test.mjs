@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { scratchDir } from "../scratch.mjs";
+import { sandboxEnv } from "../sandbox.mjs";
 
 const workflow = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../.github/workflows/adoption-ledger.yml"), "utf8");
 
@@ -43,7 +44,7 @@ esac
   );
   chmodSync(join(dir, "gh"), 0o755);
   execFileSync("bash", ["-c", stepScript("Publish to the adoption-data branch")], {
-    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, RUNNER_TEMP: dir, REPO: "ourostack/ouro-ui", GH_TOKEN: "x" },
+    env: sandboxEnv({ RUNNER_TEMP: dir, REPO: "ourostack/ouro-ui" }, [dir]),
     stdio: ["ignore", "pipe", "pipe"],
   });
   const sent = JSON.parse(readFileSync(join(dir, "sent.json"), "utf8"));
@@ -58,7 +59,7 @@ test("the hourly run rebuilds the site after it publishes, so /adoption/ opens o
   writeFileSync(join(dir, "gh"), `#!/usr/bin/env bash\necho "$*" >> "${dir}/calls"\n`);
   chmodSync(join(dir, "gh"), 0o755);
   execFileSync("bash", ["-c", stepScript("Rebuild the site with this hour's ledger")], {
-    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, REPO: "ourostack/ouro-ui", GH_TOKEN: "x" },
+    env: sandboxEnv({ REPO: "ourostack/ouro-ui" }, [dir]),
     stdio: ["ignore", "pipe", "pipe"],
   });
   assert.equal(readFileSync(join(dir, "calls"), "utf8").trim(), "workflow run pages.yml --repo ourostack/ouro-ui --ref main");

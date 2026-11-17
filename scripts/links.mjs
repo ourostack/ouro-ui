@@ -5,7 +5,7 @@
 //   node scripts/links.mjs            checks the sources
 //   node scripts/links.mjs site/dist  checks the built site too (after pnpm site:build)
 //
-// The sources: README.md, UPGRADING.md, AGENTS.md, site/public/llms.txt, docs/**/*.md and
+// The sources: README.md, UPGRADING.md, AGENTS.md, site/public/llms.txt, docs/**/*.md, contributing/*.md and
 // every registry item's install message.
 // - A relative link names a tracked file, in the same letter case, and its #fragment a
 //   heading of that file.
@@ -113,7 +113,7 @@ function markdownFiles(root, dir) {
 /** Dead links in the sources, as "file:line: problem". */
 export function sourceProblems(root = repo) {
   const published = publishedPaths(root);
-  const files = ["README.md", "UPGRADING.md", "AGENTS.md", "site/public/llms.txt", ...markdownFiles(root, "docs")].filter((file) => existsSync(join(root, file)));
+  const files = ["README.md", "UPGRADING.md", "AGENTS.md", "site/public/llms.txt", ...markdownFiles(root, "docs"), ...markdownFiles(root, "contributing")].filter((file) => existsSync(join(root, file)));
   const problems = [];
   for (const file of files) {
     const text = readFileSync(join(root, file), "utf8");

@@ -257,6 +257,9 @@ test("cssToItem converts rules and rejects what shadcn's format can't carry", ()
   assert.deepEqual(cssToItem("@supports not (corner-shape: squircle) { :root { --ouro-s: 0.7; } }").css, {
     "@supports not (corner-shape: squircle)": { ":root": { "--ouro-s": "0.7" } },
   });
+  assert.deepEqual(cssToItem("@container style(--corner-shape: round) { [data-x] > [data-y] { clip-path: inset(0); } }").css, {
+    "@container style(--corner-shape: round)": { "[data-x] > [data-y]": { "clip-path": "inset(0)" } },
+  });
   assert.throws(() => cssToItem(":root { color: red; }"), /:root.*only custom properties/);
   assert.throws(() => cssToItem("@import 'x.css';"), /@import/);
 });

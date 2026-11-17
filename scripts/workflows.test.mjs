@@ -10,6 +10,7 @@ import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { entryProblems, failedTests, names, quarantineFile, record, retryPlan, staleWarning } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
+import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
 
@@ -32,7 +33,35 @@ const checkoutGuard = new RegExp(
   ].join(""),
   "gm",
 );
-const unguarded = (text) => text.replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
+/**
+ * A pnpm setup's first try, its warning and its one retry, as GitHub reads them (anchors expanded), with the
+ * comment lines between them left as written. The helpers are above `unguarded`, which folds them back (#1911).
+ */
+const pnpmRetryFiles = ["ci.yml", "claims.yml", "conformance-exemptions.yml", "docs-pin.yml", "pages.yml", "release.yml", "screen-reader.yml"];
+const pnpmSetup = /uses: pnpm\/action-setup@[0-9a-f]{40} # v[\d.]+/;
+const expandPnpmAliases = (text) => {
+  const anchors = new Map([...text.matchAll(/^ {6}- &(pnpm-[\w-]+)\n((?: {8}.*\n)+)/gm)].map((match) => [match[1], match[2]]));
+  return text
+    .replace(/^ {6}- \*(pnpm-[\w-]+)\n/gm, (_, name) => {
+      assert.ok(anchors.has(name), `*${name} has no anchor`);
+      return `      - ${anchors.get(name).slice(8)}`;
+    })
+    .replace(/^( {6}- )&pnpm-[\w-]+\n {8}/gm, "$1");
+};
+const pnpmInstall = /run: pnpm i --frozen-lockfile$/m;
+const pnpmFold = new RegExp(
+  String.raw`^ {6}- (?:(if: .*)\n {8})?id: pnpm\n {8}uses: (\S+ # v[\d.]+)\n {8}continue-on-error: true\n(?: {6}#.*\n)* {6}- name: pnpm setup failed; trying it once more \(#1911\)\n {8}if: steps\.pnpm\.outcome == 'failure'\n {8}run: .*\n(?: {6}#.*\n)* {6}- if: steps\.pnpm\.outcome == 'failure'\n {8}uses: \S+ # v[\d.]+\n`,
+  "gm",
+);
+const installFold = new RegExp(
+  String.raw`^ {6}- (?:(if: .*)\n {8})?id: install\n {8}run: pnpm i --frozen-lockfile\n {8}continue-on-error: true\n(?: {6}#.*\n)* {6}- name: pnpm install failed; trying it once more \(#1914\)\n {8}if: steps\.install\.outcome == 'failure'\n {8}run: .*\n(?: {6}#.*\n)* {6}- if: steps\.install\.outcome == 'failure'\n {8}run: pnpm i --frozen-lockfile\n`,
+  "gm",
+);
+const foldPnpm = (text) =>
+  expandPnpmAliases(text)
+    .replace(pnpmFold, (_, condition, uses) => (condition ? `      - ${condition}\n        uses: ${uses}\n` : `      - uses: ${uses}\n`))
+    .replace(installFold, (_, condition) => (condition ? `      - ${condition}\n        run: pnpm i --frozen-lockfile\n` : `      - run: pnpm i --frozen-lockfile\n`));
+const unguarded = (text) => foldPnpm(text).replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
 const rawWorkflows = readdirSync(dir)
   .filter((file) => file.endsWith(".yml"))
   .map((file) => ({ file, text: readFileSync(join(dir, file), "utf8") }));
@@ -92,6 +121,48 @@ test("a checkout that stalls or fails is cleared and tried once more after 3 min
   assert.match(stalled, /rm -rf "\$GITHUB_WORKSPACE\/\.git"/);
 });
 
+/**
+ * The workflows that report a required check or cut a release try a pnpm setup, and a dependency install,
+ * again if the first try fails (#1911, #1914), as ci.yml retries a checkout (#1765): each first try, its
+ * warning and its one retry.
+ */
+test("every pnpm setup and dependency install in a workflow that reports a required check or cuts a release is tried once more on failure (#1911, #1914)", () => {
+  for (const file of pnpmRetryFiles) {
+    const text = expandPnpmAliases(rawWorkflows.find((entry) => entry.file === file).text);
+    let setupJobs = 0;
+    let installJobs = 0;
+    for (const job of text.split(/\n(?= {2}[\w-]+:\n)/)) {
+      const steps = job.split(/\n(?= {6}- )/);
+      const setups = steps.filter((step) => pnpmSetup.test(step)).length;
+      if (setups > 0) {
+        setupJobs += 1;
+        const index = steps.findIndex((step) => /^ {6}- (?:if: .*\n {8})?id: pnpm\n/.test(step));
+        assert.notEqual(index, -1, `${file}: a pnpm setup is not tried first, with id: pnpm:\n${job}`);
+        assert.equal(setups, 2, `${file}: a job sets pnpm up once and tries it once more:\n${job}`);
+        const [attempt, warning, retry] = steps.slice(index, index + 3);
+        assert.match(attempt, /\n {8}continue-on-error: true$/m, `${file}: the first try must not fail the job:\n${attempt}`);
+        assert.match(warning, /^ {6}- name: pnpm setup failed; trying it once more \(#1911\)\n {8}if: steps\.pnpm\.outcome == 'failure'\n {8}run: echo "::warning title=pnpm setup failed::/, `${file}: the warning before the retry:\n${warning}`);
+        assert.match(retry, /^ {6}- if: steps\.pnpm\.outcome == 'failure'\n {8}uses: pnpm\/action-setup@/, `${file}: the retry runs only after a failed first try:\n${retry}`);
+        assert.equal(retry.match(pnpmSetup)[0], attempt.match(pnpmSetup)[0], `${file}: the retry sets up the same pnpm as the first try`);
+      }
+      const installs = steps.filter((step) => pnpmInstall.test(step)).length;
+      if (installs > 0) {
+        installJobs += 1;
+        const index = steps.findIndex((step) => /^ {6}- (?:if: .*\n {8})?id: install\n/.test(step));
+        assert.notEqual(index, -1, `${file}: a pnpm i is not tried first, with id: install:\n${job}`);
+        assert.equal(installs, 2, `${file}: a job runs pnpm i once and once more on failure:\n${job}`);
+        const [install, installWarning, installRetry] = steps.slice(index, index + 3);
+        assert.match(install, /\n {8}continue-on-error: true$/m, `${file}: the first install must not fail the job:\n${install}`);
+        assert.match(installWarning, /^ {6}- name: pnpm install failed; trying it once more \(#1914\)\n {8}if: steps\.install\.outcome == 'failure'\n {8}run: echo "::warning title=pnpm install failed::/, `${file}: the warning before the install retry:\n${installWarning}`);
+        assert.match(installRetry, /^ {6}- if: steps\.install\.outcome == 'failure'\n {8}run: pnpm i --frozen-lockfile$/m, `${file}: the install retry runs only after a failed first install:\n${installRetry}`);
+      }
+    }
+    assert.ok(setupJobs > 0, `${file} sets pnpm up`);
+    assert.equal((text.match(/uses: pnpm\/action-setup@/g) ?? []).length, 2 * setupJobs, `${file}: every pnpm setup is a first try or its one retry`);
+    assert.equal((text.match(/run: pnpm i --frozen-lockfile$/gm) ?? []).length, 2 * installJobs, `${file}: every pnpm i is a first try or its one retry`);
+  }
+});
+
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
   assert.ok(workflows.length >= 4);
   const ownActions = new Set(actions.map(({ file }) => `./.github/${file.replace(/\/action\.yml$/, "")}`));
@@ -134,6 +205,25 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   const warmed = /runner: \[([^\]]+)\]/.exec(warm)?.[1].split(/,\s*/);
   assert.deepEqual([...images].sort(), [...(warmed ?? [])].sort());
   assert.match(warm, /runs-on: \$\{\{ matrix\.runner \}\}/);
+});
+
+test("a test that reaches gh with no stub is refused with exit 97, with no token, and its step stops there", () => {
+  const saved = process.env.GH_TOKEN;
+  process.env.GH_TOKEN = "not-a-token";
+  let env;
+  try {
+    env = sandboxEnv({ GITHUB_TOKEN: "not-a-token" });
+  } finally {
+    if (saved === undefined) delete process.env.GH_TOKEN;
+    else process.env.GH_TOKEN = saved;
+  }
+  assert.equal(env.GH_TOKEN, undefined);
+  assert.equal(env.GITHUB_TOKEN, undefined);
+  assert.deepEqual(readdirSync(env.GH_CONFIG_DIR), [], "gh reads its login from an empty folder");
+  const result = spawnSync("bash", ["-e", "-c", "gh workflow run pages.yml --ref main\nprintf AFTER\n"], { encoding: "utf8", env });
+  assert.equal(result.status, GH_REFUSED, result.stdout + result.stderr);
+  assert.equal(result.stderr.trim(), "a test reached the real gh: workflow run pages.yml --ref main");
+  assert.doesNotMatch(result.stdout, /AFTER/, "nothing after the refused call ran");
 });
 
 test("no job in a container uses setup-node's own cache, whose saved path does not exist there", () => {
@@ -212,7 +302,7 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   for (const name of ["uname", "sudo", "tee", "dpkg", "pnpm", "apt-get", "timeout"]) chmodSync(join(bin, name), 0o755);
   const run = (dir, env = {}) => {
     writeFileSync(log, "");
-    const result = spawnSync("bash", [join(root, "scripts/browser-deps.sh"), dir, "chromium", "webkit"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ...env } });
+    const result = spawnSync("bash", [join(root, "scripts/browser-deps.sh"), dir, "chromium", "webkit"], { encoding: "utf8", env: sandboxEnv(env, [bin]) });
     return { ...result, calls: readFileSync(log, "utf8") };
   };
   const cached = join(scratch, "cached");
@@ -283,7 +373,7 @@ test("scripts/retry.sh runs a failed fetch again after each wait, and fails with
   chmodSync(fetch, 0o755);
   const run = (passOn) => {
     writeFileSync(count, "0");
-    const result = spawnSync("bash", [join(root, "scripts/retry.sh"), fetch], { encoding: "utf8", env: { ...process.env, RETRY_DELAYS: "0 0", PASS_ON: String(passOn) } });
+    const result = spawnSync("bash", [join(root, "scripts/retry.sh"), fetch], { encoding: "utf8", env: sandboxEnv({ RETRY_DELAYS: "0 0", PASS_ON: String(passOn) }) });
     return { ...result, runs: Number(readFileSync(count, "utf8")) };
   };
   const third = run(3);
@@ -377,7 +467,7 @@ function runGithubInstall(npxBody, env = {}) {
   stub("npx", npxBody);
   stub("sleep", `echo "sleep $*" >> "${calls}"`);
   const app = join(scratchDir("ouro-install-app-"), "app");
-  const result = spawnSync("bash", [join(root, "scripts/install-test.sh"), "github", app], { encoding: "utf8", env: { ...process.env, ...env, PATH: `${bin}:${process.env.PATH}`, CALLS: calls, BIN: bin } });
+  const result = spawnSync("bash", [join(root, "scripts/install-test.sh"), "github", app], { encoding: "utf8", env: sandboxEnv({ ...env, CALLS: calls, BIN: bin }, [bin]) });
   const log = existsSync(calls) ? readFileSync(calls, "utf8").split("\n").filter(Boolean) : [];
   return { tag, app, result, log };
 }
@@ -463,10 +553,10 @@ test("Form answer proof propagates a failing test command through both logged pi
   const strict = /^defaults:\n {2}run:\n {4}shell: bash$/m.test(proof);
   for (const script of [node, browser]) {
     const controlled = `pnpm() { return 17; }\n${script.replace(/tee \.tmp\/adopt-a-form-value\/[\w-]+\.log/g, "tee /dev/null")}`;
-    const control = spawnSync("bash", ["-e", "-c", controlled], { encoding: "utf8" });
+    const control = spawnSync("bash", ["-e", "-c", controlled], { encoding: "utf8", env: sandboxEnv() });
     assert.equal(control.status, 0, "The former implicit-shell pipeline conceals the test failure.");
     const args = strict ? ["--noprofile", "--norc", "-e", "-o", "pipefail"] : ["-e"];
-    const actual = spawnSync("bash", [...args, "-c", controlled], { encoding: "utf8" });
+    const actual = spawnSync("bash", [...args, "-c", controlled], { encoding: "utf8", env: sandboxEnv() });
     assert.equal(actual.status, 17, "A failed regression/coverage command must fail the proof job, not only tee.");
   }
 });
@@ -561,14 +651,14 @@ test("scheduled-failure.sh opens the issue once, then comments on it", () => {
   const run = (open) =>
     spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/1"], {
       encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: open },
+      env: sandboxEnv({ OPEN: open }, [bin]),
     });
   assert.equal(run("").status, 0);
   assert.equal(run("42").status, 0);
   // Another workflow names its own issue and says what failed.
-  assert.equal(spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/2", "Required checks drifted", "The required checks drifted from main's rules"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: "" } }).status, 0);
+  assert.equal(spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/2", "Required checks drifted", "The required checks drifted from main's rules"], { encoding: "utf8", env: sandboxEnv({ OPEN: "" }, [bin]) }).status, 0);
   // With QUIET_HOURS, an issue commented on (or opened) within that many hours gets no comment.
-  const quiet = (last) => spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/3", "Required checks drifted", "Drifted"], { encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: "7", LAST: String(last), QUIET_HOURS: "24" } });
+  const quiet = (last) => spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/3", "Required checks drifted", "Drifted"], { encoding: "utf8", env: sandboxEnv({ OPEN: "7", LAST: String(last), QUIET_HOURS: "24" }, [bin]) });
   const now = Math.floor(Date.now() / 1000);
   assert.equal(quiet(now - 3600).status, 0);
   assert.equal(quiet(now - 25 * 3600).status, 0);
@@ -654,11 +744,11 @@ test("published-release verification validates its tag, reads protected main and
   assert.ok(block, "The tag validator must run before repository setup.");
   const script = block.replace(/^ {10}/gm, "");
   for (const tag of ["v1.2.1", "v0.0.1", "v12.34.56"]) {
-    const result = spawnSync("bash", ["-c", script], { encoding: "utf8", env: { ...process.env, TAG: tag } });
+    const result = spawnSync("bash", ["-c", script], { encoding: "utf8", env: sandboxEnv({ TAG: tag }) });
     assert.equal(result.status, 0, `${tag}: ${result.stderr}${result.stdout}`);
   }
   for (const tag of ["", "main", "1.2.1", "v1.2.1-beta", "v1.2.1; false", "../v1.2.1"]) {
-    const result = spawnSync("bash", ["-c", script], { encoding: "utf8", env: { ...process.env, TAG: tag } });
+    const result = spawnSync("bash", ["-c", script], { encoding: "utf8", env: sandboxEnv({ TAG: tag }) });
     assert.equal(result.status, 1, tag);
     assert.match(result.stdout + result.stderr, /::error::/);
   }
@@ -676,7 +766,7 @@ test("published-release verification refuses unfinished main, drafts, prerelease
   chmodSync(join(bin, "gh"), 0o755);
   const run = (extra = {}) => spawnSync("bash", ["-e", "-c", script], {
     encoding: "utf8",
-    env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TAG: "v1.2.1", RECORDED_TAG: "v1.2.1", RELEASE_JSON: '{"isDraft":false,"isPrerelease":false}', GH_EXIT: "0", ...extra },
+    env: sandboxEnv({ TAG: "v1.2.1", RECORDED_TAG: "v1.2.1", RELEASE_JSON: '{"isDraft":false,"isPrerelease":false}', GH_EXIT: "0", ...extra }, [bin]),
   });
   assert.equal(run().status, 0);
   const unfinished = run({ RECORDED_TAG: "v1.2.0" });
@@ -809,7 +899,7 @@ gh() {
   const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stubs + releaseStep("Tag and publish the release")], {
     cwd: fixture,
     encoding: "utf8",
-    env: { ...process.env, TAG: "v9.9.9", BRANCH: "release/v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", RUNNER_TEMP: temp },
+    env: sandboxEnv({ TAG: "v9.9.9", BRANCH: "release/v9.9.9", GITHUB_REPOSITORY: "ourostack/ouro-ui", RUNNER_TEMP: temp }),
   });
   return { ...result, temp, calls: existsSync(calls) ? readFileSync(calls, "utf8") : "", notes: existsSync(published) ? readFileSync(published, "utf8") : undefined };
 }
@@ -859,7 +949,7 @@ test("required-ci.sh waits for the runs, then passes them when each check main's
   const run = (jobs, exempt = [["conformance exemptions", "success"]], runs = ["5", "6"], env = {}) => {
     writeFileSync(log, "");
     writeFileSync(polls, "0");
-    return spawnSync("bash", [join(root, "scripts/required-ci.sh"), ...runs], { cwd: root, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "ourostack/ouro-ui", JOBS: lines(jobs), EXEMPT: lines(exempt), POLL_SECONDS: "0", BUSY: "0", UNREADABLE: "", ...env } });
+    return spawnSync("bash", [join(root, "scripts/required-ci.sh"), ...runs], { cwd: root, encoding: "utf8", env: sandboxEnv({ GITHUB_REPOSITORY: "ourostack/ouro-ui", JOBS: lines(jobs), EXEMPT: lines(exempt), POLL_SECONDS: "0", BUSY: "0", UNREADABLE: "", ...env }, [bin]) });
   };
   const passing = [["plan", "success"], ["ci", "success"], ["e2e", "success"], ["install (shadcn, nova)", "success"], ["lighthouse", "success"]];
   // ci-budget failed, as gh run watch would have said: the required checks decide.
@@ -902,12 +992,12 @@ test("required-ci.sh waits for the runs, then passes them when each check main's
   assert.match(neither.stdout, /e2e: skipped\/failure/);
   // --also adds a gate the rules do not require (the release commit's install-latest job): it must pass too, and a skip does not.
   const gate = "install (shadcn@latest, nova)";
-  const also = (conclusion) => spawnSync("bash", [join(root, "scripts/required-ci.sh"), "--also", gate, "5", "6"], { cwd: root, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "ourostack/ouro-ui", JOBS: lines(conclusion ? [...passing, [gate, conclusion]] : passing), EXEMPT: lines([["conformance exemptions", "success"]]), POLL_SECONDS: "0", BUSY: "0", UNREADABLE: "" } });
+  const also = (conclusion) => spawnSync("bash", [join(root, "scripts/required-ci.sh"), "--also", gate, "5", "6"], { cwd: root, encoding: "utf8", env: sandboxEnv({ GITHUB_REPOSITORY: "ourostack/ouro-ui", JOBS: lines(conclusion ? [...passing, [gate, conclusion]] : passing), EXEMPT: lines([["conformance exemptions", "success"]]), POLL_SECONDS: "0", BUSY: "0", UNREADABLE: "" }, [bin]) });
   assert.equal(also("success").status, 0);
   assert.match(also("failure").stdout, /install \(shadcn@latest, nova\): failure/);
   assert.equal(also("skipped").status, 1);
   assert.match(also(undefined).stdout, /install \(shadcn@latest, nova\): not in the run/);
-  assert.equal(spawnSync("bash", [join(root, "scripts/required-ci.sh"), "--also"], { encoding: "utf8" }).status, 2);
+  assert.equal(spawnSync("bash", [join(root, "scripts/required-ci.sh"), "--also"], { encoding: "utf8", env: sandboxEnv() }).status, 2);
 });
 
 test("each check main's rules require comes from a workflow Release can start by dispatch", async () => {
@@ -926,7 +1016,13 @@ const releaseStep = (name) => {
   const release = workflow("release.yml");
   const start = release.search(new RegExp(`^ {6}(- | {2})name: ${name.replace(/[?()]/g, "\\$&")}\n`, "m"));
   assert.notEqual(start, -1, `no step named ${name}`);
-  const lines = release.slice(start).split("        run: |\n")[1].split("\n");
+  // The step's own text, up to the next step, so a step whose run is one line never reads another step's block.
+  const rest = release.slice(start);
+  const next = rest.search(/\n {6}- /);
+  const step = next === -1 ? rest : rest.slice(0, next);
+  const inline = step.match(/^ {8}run: (?!\|$)(.+)$/m);
+  if (inline) return inline[1];
+  const lines = step.split("        run: |\n")[1].split("\n");
   const end = lines.findIndex((line) => line !== "" && !line.startsWith(" ".repeat(10)));
   return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
 };
@@ -942,7 +1038,7 @@ test("public proof dependencies are installed without the publishing token, and 
   }
   const install = releaseStep("Install dependencies for the public proofs");
   const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c",
-    `pnpm() { return 37; }\n${install}\nprintf 'PROOF RAN\\n'`], { encoding: "utf8" });
+    `pnpm() { return 37; }\n${install}\nprintf 'PROOF RAN\\n'`], { encoding: "utf8", env: sandboxEnv() });
   assert.equal(result.status, 37, result.stdout + result.stderr);
   assert.doesNotMatch(result.stdout, /PROOF RAN/);
 });
@@ -976,7 +1072,7 @@ node() { printf 'node %s\\n' "$*" >> "$LOG"; }`;
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stub}\n${releaseStep("Deploy Pages and check the namespace it serves")}`], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, DIR: dir, LOG: log, CONCLUSION: conclusion, RUNS: runs, TAG: "v9.9.9" },
+      env: sandboxEnv({ DIR: dir, LOG: log, CONCLUSION: conclusion, RUNS: runs, TAG: "v9.9.9" }),
     });
     return { status: result.status, output: result.stdout + result.stderr, calls: existsSync(log) ? readFileSync(log, "utf8") : "" };
   } finally {
@@ -1048,7 +1144,7 @@ function runStep(script, env, { nodeStatus = 0 } = {}) {
       return "$NODE_STATUS"
     }
     ${script}
-  `], { cwd: root, encoding: "utf8", env: { ...process.env, ...env, GITHUB_OUTPUT: output, NODE_STATUS: String(nodeStatus) } });
+  `], { cwd: root, encoding: "utf8", env: sandboxEnv({ ...env, GITHUB_OUTPUT: output, NODE_STATUS: String(nodeStatus) }) });
   return { status: result.status, stdout: result.stdout, calls: result.stderr, output: Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").filter(Boolean).map((line) => line.split(/=(.*)/).slice(0, 2))) };
 }
 
@@ -1123,7 +1219,7 @@ test("a push to main whose commit the merge queue already tested runs only insta
     writeFileSync(output, "");
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `gh() { [ "$GH_STATUS" = 0 ] || return "$GH_STATUS"; printf '%s' "$RUNS" | jq "\${@: -1}"; }\n${script}`], {
       encoding: "utf8",
-      env: { ...process.env, RUNS: JSON.stringify({ workflow_runs: runs }), GH_STATUS: String(ghStatus), GITHUB_OUTPUT: output, REPO: "o/r", SHA: "abc" },
+      env: sandboxEnv({ RUNS: JSON.stringify({ workflow_runs: runs }), GH_STATUS: String(ghStatus), GITHUB_OUTPUT: output, REPO: "o/r", SHA: "abc" }),
     });
     assert.equal(result.status, 0, result.stderr);
     return readFileSync(output, "utf8").trim();
@@ -1623,7 +1719,7 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   const scriptWithShow = (env) => {
     const scratch = scratchDir("ouro-install-step-");
     const show = 'show() { if [ -n "${OURO_COMPONENTS+set}" ]; then echo "components=[$OURO_COMPONENTS] $*"; else echo "components=unset $*"; fi; }';
-    const result = spawnSync("bash", ["-e", "-c", `${show}\n${script.replace("scripts/install-test.sh", "show")}`], { cwd: root, encoding: "utf8", env: { ...process.env, ...env, RUNNER_TEMP: scratch, PASSED: "install-passed-shadcn-nova-2", OURO_APP: "/tmp/ouro-app" } });
+    const result = spawnSync("bash", ["-e", "-c", `${show}\n${script.replace("scripts/install-test.sh", "show")}`], { cwd: root, encoding: "utf8", env: sandboxEnv({ ...env, RUNNER_TEMP: scratch, PASSED: "install-passed-shadcn-nova-2", OURO_APP: "/tmp/ouro-app" }) });
     return { ...result, scratch };
   };
   const full = scriptWithShow({ FULL: "true", COMPONENTS: "", VARIANT: "shadcn", REF: "abc" });
@@ -1688,7 +1784,7 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
       writeFileSync(join(scratch, file), "");
     }
     const stubs = `npx() { echo "npx $*"; }\n${more}`;
-    return spawnSync("bash", ["-e", "-u", "-o", "pipefail", "-c", `${stubs}\nroot=${JSON.stringify(root)}\n${tail}`], { cwd: scratch, encoding: "utf8", env: { ...process.env, CI: "", ...env } });
+    return spawnSync("bash", ["-e", "-u", "-o", "pipefail", "-c", `${stubs}\nroot=${JSON.stringify(root)}\n${tail}`], { cwd: scratch, encoding: "utf8", env: sandboxEnv({ CI: "", ...env }) });
   };
   const all = run({});
   assert.equal(all.status, 0, all.stderr);
@@ -1927,7 +2023,7 @@ for (const [name, env, ok] of [
 ]) {
   test(`the screen-reader lane's guard ${ok ? "lets through" : "stops"} ${name}`, () => {
     const guard = stepScript(srJobs().lane, "Check the commit and the runner");
-    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `git() { echo "$HEAD"; }\n${guard}`], { encoding: "utf8", env: { ...process.env, ...env, PROJECT: "voiceover" } });
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `git() { echo "$HEAD"; }\n${guard}`], { encoding: "utf8", env: sandboxEnv({ ...env, PROJECT: "voiceover" }) });
     assert.equal(result.status === 0, ok, result.stdout + result.stderr);
     if (!ok) assert.match(result.stdout, /::error::/);
   });
@@ -2036,7 +2132,7 @@ test("sr-infra-issue.sh opens the screen-reader-infra issue once, then comments 
   const run = (open) =>
     spawnSync("bash", [join(root, "scripts/sr-infra-issue.sh"), "https://github.com/o/r/actions/runs/1", "nightly"], {
       encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, OPEN: open, GH_REPO: "o/r" },
+      env: sandboxEnv({ OPEN: open, GH_REPO: "o/r" }, [bin]),
     });
   const first = run("");
   assert.equal(first.status, 0, first.stderr);
@@ -2196,7 +2292,7 @@ test("CI's plan prints the repository's queued runs in its summary, and an API t
     writeFileSync(file, "");
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `gh() { echo "$*" > "${dir}/call"; [ "$GH_STATUS" = 0 ] || return "$GH_STATUS"; echo 39; }\n${script}`], {
       encoding: "utf8",
-      env: { ...process.env, GH_STATUS: String(ghStatus), GITHUB_STEP_SUMMARY: file, REPO: "o/r" },
+      env: sandboxEnv({ GH_STATUS: String(ghStatus), GITHUB_STEP_SUMMARY: file, REPO: "o/r" }),
     });
     assert.equal(result.status, 0, result.stderr);
     return readFileSync(file, "utf8");
@@ -2236,7 +2332,7 @@ test("CI rehearses the release commit on every run: release.yml's own edits, for
   const run = (tagExists) => {
     const stubs = `pnpm() { printf 'CALL pnpm %s (%s, base %s)\\n' "$*" "$GITHUB_REF" "$GITHUB_BASE_REF"; }\nscripts/release-commit.sh() { printf 'CALL release-commit %s\\n' "$*"; }\ngit() { return ${tagExists ? 0 : 1}; }`;
     // As on a pull request into main, where registry --check fails a pinned registry.json.
-    return spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stubs}\n${step}`], { cwd: root, encoding: "utf8", env: { ...process.env, GITHUB_REF: "refs/pull/9/merge", GITHUB_BASE_REF: "main" } });
+    return spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stubs}\n${step}`], { cwd: root, encoding: "utf8", env: sandboxEnv({ GITHUB_REF: "refs/pull/9/merge", GITHUB_BASE_REF: "main" }) });
   };
   const [major, minor, patch] = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease.slice(1).split(".").map(Number);
   const next = `${major}.${minor}.${patch + 1}`;
@@ -2401,7 +2497,7 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
     return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse, OURO_QUARANTINE_FILE: list },
+      env: sandboxEnv({ GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse, OURO_QUARANTINE_FILE: list }, [bin]),
     });
   };
   const open = retry("OPEN");
@@ -2491,7 +2587,7 @@ test("Release auto starts nothing for a commit that only points the docs at a re
     const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${stub}\n${step}`], {
       cwd: dir,
       encoding: "utf8",
-      env: { ...process.env, GITHUB_REPOSITORY: "ourostack/ouro-ui", EVENT: "workflow_run", RUN_EVENT: "push", RUN_SHA: sha, AFTER: "", LOG: log, GITHUB_STEP_SUMMARY: join(dir, "summary.md") },
+      env: sandboxEnv({ GITHUB_REPOSITORY: "ourostack/ouro-ui", EVENT: "workflow_run", RUN_EVENT: "push", RUN_SHA: sha, AFTER: "", LOG: log, GITHUB_STEP_SUMMARY: join(dir, "summary.md") }),
     });
     const calls = existsSync(log) ? readFileSync(log, "utf8") : "";
     return { status: result.status, output: result.stdout + result.stderr, calls, sha };
@@ -2535,7 +2631,7 @@ test("Docs pin points main's docs at the newest release through one pull request
   assert.match(open, /gh pr list --head "\$BRANCH" --base main --state open/);
   assert.match(open, /gh pr edit "\$number" --title "\$title"/);
   assert.match(open, /gh pr create --base main --head "\$BRANCH"/);
-  assert.match(open, /gh pr merge "\$number" --auto --squash/);
+  assert.match(open, /gh pr merge "\$number" --auto --squash --subject "\$subject" --body "\$message"/);
 });
 
 test("Docs pin pushes as the Ouro Current app when it is installed here, so CI starts with no approval (#1610), and goes on without it", () => {
@@ -2638,7 +2734,7 @@ test("Docs pin reuses its open pull request and turns auto-merge on for it", () 
   const calls = readFileSync(join(dir, "gh.log"), "utf8");
   assert.match(calls, /^gh pr edit 7 --title Point the docs at a release /m);
   assert.doesNotMatch(calls, /gh pr create/);
-  assert.match(calls, /^gh pr merge 7 --auto --squash$/m);
+  assert.match(calls, /^gh pr merge 7 --auto --squash --subject {2}--body $/m);
   assert.match(readFileSync(join(dir, "summary.md"), "utf8"), /Auto-merge is on for #7/);
 });
 

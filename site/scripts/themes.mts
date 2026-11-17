@@ -281,7 +281,8 @@ const SYNC_END = "/* synced from Spoonjoy: end */";
  * --sidebar-*, --font-heading or --shadow-* of shadcn's names, and no --ouro-action), each mapped
  * onto Spoonjoy's own palette so the preset still follows its .dark. --ouro-action and its
  * foreground give the primary Button Spoonjoy's charcoal action (amber in the dark) while its
- * selection stays brass (--primary).
+ * selection stays brass (--primary). The control and check tokens make its controls capsules and
+ * its checks circles, as Spoonjoy's Apple app draws them, while its cards keep --radius.
  */
 const COOKBOOK_ADDITIONS = [
   "--card: var(--sj-panel-solid)",
@@ -306,6 +307,10 @@ const COOKBOOK_ADDITIONS = [
   "--shadow-lg: var(--sj-shadow-soft)",
   "--shadow-xl: var(--sj-shadow)",
   "--ouro-action: var(--sj-action)",
+  "--ouro-control-radius: 9999px",
+  "--ouro-control-corner-shape: round",
+  "--ouro-check-radius: 9999px",
+  "--ouro-check-corner-shape: round",
   "--ouro-action-foreground: var(--sj-on-action)",
 ];
 

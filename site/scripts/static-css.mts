@@ -78,9 +78,9 @@ export function splitBase(css: string): { inline: string; utilities: string[]; k
   if (!inline) throw new Error("ouro-base.css has no @theme inline block");
   const utilities = [...source.matchAll(/@utility\s+([\w-]+)\s*\{[^{}]*\}/g)].map((match) => match[1]!);
   const keyframes = [...source.matchAll(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g)].map((match) => match[0]);
-  const supportsPattern = /@supports[^{]*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g;
+  const supportsPattern = /@(?:supports|container)[^{]*\{(?:\s*[^{}]*\{[^{}]*\})*\s*\}/g;
   const supports = [...source.matchAll(supportsPattern)].map((match) => {
-    const query = /(@supports[^{]*?)\s*\{/.exec(match[0])![1]!;
+    const query = /(@(?:supports|container)[^{]*?)\s*\{/.exec(match[0])![1]!;
     const inner = match[0].slice(match[0].indexOf("{") + 1, match[0].lastIndexOf("}"));
     const rules = [...inner.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((rm) => rule(rm[1]!.trim(), declarations(rm[2]!), "  "));
     return `${query} {\n${rules.join("\n")}\n}`;
