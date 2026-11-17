@@ -90,12 +90,13 @@ describe("Chart", () => {
       if (counting) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-    const seen: { figure?: number; plot?: number; height?: number } = {};
+    const seen: { figure?: number; plot?: number; height?: number; whole?: number } = {};
     const observer = new MutationObserver(() => {
       const figure = document.querySelector('[data-ouro="chart"]');
       if (figure && seen.figure === undefined) {
         seen.figure = frames;
         seen.height = figure.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height;
+        seen.whole = figure.getBoundingClientRect().height;
       }
       if (document.querySelector('[data-ouro="chart"] .recharts-surface') && seen.plot === undefined) seen.plot = frames;
     });
@@ -106,10 +107,31 @@ describe("Chart", () => {
       expect(seen.plot! - seen.figure!, "frames between the figure and its plot").toBeGreaterThanOrEqual(1);
       expect(seen.height).toBeGreaterThan(100);
       expect(chart.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height).toBe(seen.height);
+      // Its legend held its place too: nothing under the chart moved when the plot drew.
+      expect(chart.getBoundingClientRect().height).toBe(seen.whole);
     } finally {
       counting = false;
       observer.disconnect();
     }
+  });
+
+  it("holds a custom chart's ChartLegend in place before the plot draws, and no legend for one without it", async () => {
+    const custom = (legend: boolean) => (
+      <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <Line dataKey="cooked" />
+          <Line dataKey="saved" />
+          {legend && <ChartLegend />}
+        </LineChart>
+      </Chart>
+    );
+    const { chart } = await render(custom(true));
+    const before = chart.getBoundingClientRect().height;
+    expect(chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("Recipes cookedRecipes saved");
+    await drawn(chart);
+    expect(chart.getBoundingClientRect().height).toBe(before);
+    const bare = await render(custom(false));
+    expect(bare.chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("");
   });
 
   it("is a figure named by its title, with a focusable plot named the same", async () => {
@@ -339,7 +361,7 @@ describe("Chart", () => {
     }
   });
 
-  it("server HTML has the legend's slot and no legend in it", () => {
+  it("server HTML holds the legend of the series in config in its slot, before recharts draws its own", () => {
     const html = renderToString(
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
@@ -351,7 +373,7 @@ describe("Chart", () => {
     );
     expect(html).toContain("data-ouro-chart-legend-slot");
     expect(html).not.toContain("recharts-legend-wrapper");
-    expect(html).not.toContain('data-ouro-chart-legend=""');
+    expect(html).toMatch(/data-ouro-chart-legend-slot="".*data-ouro-chart-legend="".*Recipes cooked.*Recipes saved/);
   });
 
   it("gives five series five marker shapes", async () => {

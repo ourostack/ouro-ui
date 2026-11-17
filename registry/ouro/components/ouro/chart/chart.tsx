@@ -296,10 +296,14 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
     const frame = requestAnimationFrame(() => {
       timer = setTimeout(() => setDrawn(true));
     });
+    // Stryker disable next-line BlockStatement: an unmounted chart ignores the late update, so the cleanup changes nothing anyone sees
     return () => {
+      // Stryker disable next-line CallExpression: an unmounted chart ignores the late update
       cancelAnimationFrame(frame);
+      // Stryker disable next-line CallExpression: an unmounted chart ignores the late update
       clearTimeout(timer);
     };
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs the effect once, as the empty one does
   }, []);
   // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
   const state = useMemo<ChartState>(
@@ -328,14 +332,21 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       <div data-ouro-chart-plot="" className={plotClass}>
         <ChartContext value={state}>
           {drawn && (
-            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+            <ResponsiveContainer width="100%" height="100%">
               {plot}
             </ResponsiveContainer>
           )}
         </ChartContext>
       </div>
-      {/* Empty until a ChartLegend portals its list here, so it takes no gap. */}
-      <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden" />
+      {/* Empty until a ChartLegend portals its list here, so it takes no gap. Until the plot draws, the legend of the
+          series in config holds its place, so nothing under the chart moves when the plot's own arrives. */}
+      <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden">
+        {!drawn && (child ? hasLegend(child) : series.length > 1) && (
+          <ChartContext value={state}>
+            <LegendContent payload={series.map((item) => ({ dataKey: item.key }))} />
+          </ChartContext>
+        )}
+      </div>
       <p id={summaryId} data-ouro-chart-summary="" className="sr-only">
         {summary({ title, type: child ? undefined : type, series: series.map((item) => item.label), category, count: rows.length })}
       </p>
@@ -525,6 +536,11 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
       ))}
     </div>
   );
+}
+
+/** Whether a recharts chart passed as children holds a `ChartLegend`. */
+function hasLegend(chart: ReactElement): boolean {
+  return Children.toArray((chart.props as { children?: ReactNode }).children).some((part) => isValidElement(part) && part.type === ChartLegend);
 }
 
 /**
