@@ -8,6 +8,7 @@ import { LOG, TANKS } from "../src/voyage/stage/copy";
 import shipComponents from "../src/docs/ship-components.json" with { type: "json" };
 import { SHIP_PAGES } from "../src/docs/ships";
 import { diagnostics } from "./diagnostics";
+import { siteReady } from "./ready";
 
 // The voyage preview against the production build (site-design.md, "Verification in CI"): the
 // stored theme paints before any JavaScript, every preset passes axe in light and dark, the page
@@ -377,7 +378,7 @@ for (const ship of SHIP_PAGES) {
     for (const item of items) {
       await settleBeforeLeaving(page);
       await page.goto(`.${ship.path}?xray=${item}`);
-      await expect(page.locator("html[data-site-ready]")).toBeAttached();
+      await siteReady(page);
       const bar = page.getByRole("region", { name: "X-ray" });
       await expect(bar.getByRole("status"), item).toHaveText(`Showing ${item}`);
       const spotlit = page.locator("[data-ouro-inspector-outline][data-spotlight]");

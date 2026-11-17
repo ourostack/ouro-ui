@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { type BrowserContext, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { waived } from "./waivers.ts";
+import { siteReady } from "./ready";
 
 // The shared half of the site's cross-page checks (sameness-sweep.ts, states-sweep.ts): the routes of the
 // build, a description of how an Ouro element looks (its box, padding, gap, colours, font, shadow, opacity,
@@ -440,7 +441,7 @@ function same(a: Crop, b: Crop): boolean {
 }
 
 export async function settled(page: Page): Promise<void> {
-  await expect(page.locator("html[data-site-ready]")).toBeAttached();
+  await siteReady(page);
   let last = "";
   await expect
     .poll(async () => {
