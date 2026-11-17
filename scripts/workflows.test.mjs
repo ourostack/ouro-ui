@@ -2227,7 +2227,6 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
-    "screens.yml": "  group: screens-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "stale-pages.yml": "  group: stale-pages-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "squircle-cost.yml": "  group: squircle-cost-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "ax-xray.yml": "  group: ax-xray-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
@@ -2267,7 +2266,7 @@ const pullRequest = (number, run) => ({ event_name: "pull_request", ref: `refs/p
 
 test("every workflow a pull request starts cancels that pull request's superseded run of it, and only that: its group is per pull request and per workflow", () => {
   const prWorkflows = workflows.filter(({ text }) => /^ {2}pull_request:/m.test(text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0]));
-  assert.ok(["ci.yml", "screens.yml", "claims.yml", "conformance-exemptions.yml", "form-answer-proof.yml"].every((file) => prWorkflows.some((workflow) => workflow.file === file)));
+  assert.ok(["ci.yml", "claims.yml", "conformance-exemptions.yml", "form-answer-proof.yml"].every((file) => prWorkflows.some((workflow) => workflow.file === file)));
   const groups = new Map();
   for (const { file, text } of prWorkflows) {
     assert.match(text, /^concurrency:$/m, `${file} runs on pull requests but cancels no superseded run`);
@@ -2331,29 +2330,18 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", COVERAGE: "failure" }).status, 1);
 });
 
-test("Screens checks a pull request's screens only when its change can reach the site build or the check, and main's daily", () => {
+test("Screens checks main's screens daily and on demand, never a pull request's: CI's design shards gate a pull request", () => {
   const { text } = workflows.find(({ file }) => file === "screens.yml");
   const jobs = Object.fromEntries(text.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/).map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]));
-  assert.deepEqual(Object.keys(jobs), ["changes", "screens-shard", "screens"]);
-  assert.match(jobs.changes, /^ {6}run: \$\{\{ steps\.relevance\.outputs\.run \}\}$/m);
-  assert.match(jobs.changes, /^ {10}fetch-depth: 2$/m);
-  // No pnpm i: scripts/ci-relevance.mjs imports only Node's own modules.
-  assert.doesNotMatch(jobs.changes, /pnpm/);
-  assert.match(jobs["screens-shard"], /^ {4}needs: \[changes\]\n {4}if: \$\{\{ !cancelled\(\) && needs\.changes\.outputs\.run != 'false' \}\}$/m);
-  assert.match(jobs.screens, /^ {4}needs: \[changes, screens-shard\]\n {4}if: \$\{\{ !cancelled\(\) && needs\.changes\.outputs\.run != 'false' \}\}$/m);
-  const decide = stepScript(jobs.changes, "Can the change reach the screens?");
-  const pr = { EVENT: "pull_request", HEAD_REF: "fix", BASE_REF: "main" };
-  assert.match(runStep(decide, pr).calls, /^CALL node scripts\/ci-relevance\.mjs screens HEAD\^1 HEAD$/m);
-  assert.deepEqual(runStep(decide, pr, { nodeStatus: 1 }).output, { run: "true" });
-  // Main is checked daily and on demand, never on each push: a push to main is a change a pull request's run already checked.
-  assert.match(text, /^on:\n {2}pull_request:\n {2}schedule:\n {4}- cron: "[^"]+"\n {2}workflow_dispatch:\n/m);
-  assert.doesNotMatch(text.split(/^permissions:/m)[0], /^ {2}push:/m);
-  for (const env of [{ EVENT: "schedule" }, { EVENT: "workflow_dispatch" }, { ...pr, HEAD_REF: "release/v1.0.0" }]) {
-    const result = runStep(decide, env);
-    assert.doesNotMatch(result.calls, /ci-relevance/);
-    assert.deepEqual(result.output, { run: "true" });
-  }
-  // This workflow and the check it runs are among what Screens reads.
+  assert.deepEqual(Object.keys(jobs), ["screens-shard", "screens"]);
+  // A pull request starts none of its runners: no pull_request or push trigger, only the daily run and a dispatch.
+  assert.match(text, /^on:\n {2}schedule:\n {4}- cron: "[^"]+"\n {2}workflow_dispatch:\npermissions:/m);
+  assert.doesNotMatch(text.split(/^permissions:/m)[0], /^ {2}(pull_request|pull_request_target|push|merge_group):/m);
+  assert.match(jobs.screens, /^ {4}needs: \[screens-shard\]\n {4}if: \$\{\{ !cancelled\(\) \}\}$/m);
+  // It reports and never fails: the gate is CI's design shards, which run on a pull request the site can reach.
+  for (const job of Object.values(jobs)) assert.match(job, /^ {8}continue-on-error: true$/m);
+  assert.match(ciJobs().design, /^ {4}if: .*needs\.plan\.outputs\.design != 'false'/m);
+  // This workflow and the check it runs are among what the design shards' relevance reads.
   assert.equal(relevance("screens", [".github/workflows/screens.yml"]).run, true);
   assert.equal(relevance("screens", [".github/actions/check/action.yml"]).run, true);
 });

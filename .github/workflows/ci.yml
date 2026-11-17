@@ -981,8 +981,8 @@ jobs:
     # phone's, a laptop's and a 4K screen's size, light and dark, in shards side by side: the design
     # rules (type scale, blurry or upscaled pictures, overlap, repaints at rest and the rest), axe-core
     # and the size rules, with the waivers and their reasons in .github/ouro-check.json. A gated
-    # finding fails it, and it is part of the ci check. Screens runs the same check at every size and
-    # only reports. A pull request that changes nothing the site build or the check reads starts none
+    # finding fails it, and it is part of the ci check. Screens runs the same check at every size, on
+    # main daily, and only reports. A pull request that changes nothing the site build or the check reads starts none
     # of its runners (the plan's `design`, scripts/ci-relevance.mjs screens), and the ci check passes that skip.
     needs: [plan]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.design != 'false' }}
