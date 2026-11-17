@@ -1,11 +1,15 @@
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
 
 /**
- * The type of `open` beside `trigger`, on an overlay that takes one of the two. A literal, so the union still tells
- * the modes apart and hover keeps each prop's docs (an object hint type would lose both), and so the type error for
- * both modes names the fix, where `never` reads "not assignable to type 'undefined'". Only `open` takes it, because
- * TypeScript reports `open` for both modes; `trigger`, `onOpenChange` and `anchor` stay `never`, so an indexed type
- * such as `DialogProps["trigger"]` is unchanged. @internal
+ * The type of `open` beside `trigger`, on an overlay that takes a trigger or `open`. A literal, so the union
+ * still tells the modes apart and hover keeps the props' docs, which an object hint type would lose; and the
+ * type error for both modes names the fix, where `never` reads "not assignable to type 'undefined'". Only
+ * `open` takes it, because TypeScript reports `open` when both are passed; `trigger`, `onOpenChange` and
+ * `anchor` stay `never`, so `DialogProps["trigger"]` keeps its value types. `DialogProps["open"]` includes
+ * the literal: a wrapper reads `DialogControlledProps["open"]`. @internal
+ *
+ * @claim "A literal, so the union still tells" scripts/agent-types.test.mjs verify:testExists(scripts/agent-types.test.mjs::hovering any prop shows its JSDoc, including on elements with a type error)
+ * @claim "A literal, so the union still tells" scripts/agent-types.test.mjs verify:testExists(scripts/agent-types.test.mjs::tsc reports exactly the expected errors, naming the fix where the case says so)
  */
 export type TriggerOrOpen = "Pass trigger, or open and onOpenChange, not both";
 
