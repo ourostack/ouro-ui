@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: Ouro Current follows a moved folder as well as a moved file, rewrites tests, Makefiles, justfiles and a stylesheet's `@source` lines as well as scripts, and lists a workflow line or a line of prose that names a moved path with the path to write instead, leaving the app's source as it is.
+- Fixed: Ouro Current points a new `#ouro-ax/*` import at the shared Ouro AX files where the install record has them, and names a vendored file that imports `#ouro-ax/*` with nothing to resolve it.
