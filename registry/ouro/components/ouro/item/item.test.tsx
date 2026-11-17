@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
@@ -482,11 +482,7 @@ describe("Item with onSelect", () => {
       expect(parseFloat(chosen.borderTopLeftRadius), variant).toBeGreaterThan(0);
       expect(getComputedStyle(host.querySelector('[data-row="plain"]')!).paddingInlineStart, variant).toBe("0px");
     }
-    // The label lines up with the chosen rows' text, and stays put in a group with none.
-    const labelled = (await render(<ItemGroup label="Starters"><Item onSelect={() => {}} title="Short ribs" /></ItemGroup>)).host;
-    expect(getComputedStyle(labelled.querySelector("[id]")!).paddingInlineStart).toBe(getComputedStyle(labelled.querySelector('[data-ouro="item"]')!).paddingInlineStart);
-    const still = (await render(<ItemGroup label="Soups"><Item title="Lentil soup" /></ItemGroup>)).host;
-    expect(getComputedStyle(still.querySelector("[id]")!).paddingInlineStart).toBe("0px");
+
   });
 
   it("keeps an outlined row's corners and padding, and rounds its press layer to them", async () => {
@@ -506,6 +502,92 @@ describe("Item with onSelect", () => {
     );
     await expect.element(page.getByRole("link", { name: "Profile" })).toHaveAttribute("aria-current", "page");
     expect(page.getByRole("link", { name: "Billing" }).element().hasAttribute("aria-current")).toBe(false);
+  });
+
+  it("gives a row on its own room for the selected colour, and a static row none", async () => {
+    const { item } = await render(<Item onSelect={() => {}} title="Short ribs" />);
+    expect(getComputedStyle(item).paddingInlineStart).toBe("12px");
+    expect(parseFloat(getComputedStyle(item).borderTopLeftRadius)).toBeGreaterThan(0);
+    const still = (await render(<Item title="Lentil soup" />)).item;
+    expect(getComputedStyle(still).paddingInlineStart).toBe("0px");
+    expect(getComputedStyle(still).borderTopLeftRadius).toBe("0px");
+  });
+
+  it("marks a row a person presses or chooses for the stretched layer, and a static row not", async () => {
+    const { host } = await render(
+      <ItemGroup aria-label="Rows">
+        <Item onSelect={() => {}} title="Pressed" data-row="pressed" actions={<Button>Save</Button>} />
+        <Item href="/a" title="Linked" data-row="linked" />
+        <Item href="/b" selected={false} title="Chosen link" data-row="chosen-link" />
+        <Item title="Static" data-row="static" actions={<Button>Keep</Button>} />
+      </ItemGroup>,
+    );
+    const row = (name: string) => host.querySelector<HTMLElement>(`[data-row="${name}"]`)!;
+    expect(row("pressed").getAttribute("data-linked")).toBe("");
+    expect(row("linked").getAttribute("data-linked")).toBe("");
+    expect(row("static").hasAttribute("data-linked")).toBe(false);
+    expect(row("pressed").getAttribute("data-choosable")).toBe("");
+    expect(row("chosen-link").getAttribute("data-choosable")).toBe("");
+    expect(row("linked").hasAttribute("data-choosable")).toBe(false);
+    expect(row("static").hasAttribute("data-choosable")).toBe(false);
+    // A link row told whether it is shown keeps its padding in a divided group; a plain link row does not.
+    expect(getComputedStyle(row("chosen-link")).paddingInlineStart).toBe("12px");
+    expect(getComputedStyle(row("linked")).paddingInlineStart).toBe("0px");
+    // The press look and the raised controls are a pressable row's, not a static one's.
+    expect(getComputedStyle(row("pressed")).cursor).toBe("pointer");
+    expect(getComputedStyle(row("static")).cursor).toBe("auto");
+    expect(getComputedStyle(page.getByRole("button", { name: "Save" }).element()).zIndex).toBe("10");
+    expect(getComputedStyle(page.getByRole("button", { name: "Keep" }).element()).zIndex).toBe("auto");
+  });
+
+  it("colours the shown row's title with the selected colour's text, and the others' with the page's", async () => {
+    const { host } = await render(
+      <div style={{ ["--accent-foreground" as string]: "rgb(200, 0, 0)", ["--foreground" as string]: "rgb(0, 0, 200)" }}>
+        <Item onSelect={() => {}} selected title="Shown" data-row="shown" />
+        <Item onSelect={() => {}} selected={false} title="Other" data-row="other" />
+      </div>,
+    );
+    const titleOf = (name: string) => getComputedStyle(host.querySelector(`[data-row="${name}"] button`)!.parentElement!).color;
+    expect(titleOf("shown")).toBe("rgb(200, 0, 0)");
+    expect(titleOf("other")).toBe("rgb(0, 0, 200)");
+  });
+
+  it("rounds a button or link row's press layer to the row, and sets its title at the start", async () => {
+    const { host } = await render(
+      <div>
+        <Item onSelect={() => {}} title={"A title long enough to wrap onto a second line in a narrow row ".repeat(2)} data-row="button" />
+        <Item href="/a" selected title="Link" data-row="link" />
+        <Item href="/b" selected variant="outline" title="Outlined link" data-row="outlined" />
+      </div>,
+    );
+    for (const name of ["button", "link", "outlined"]) {
+      const row = host.querySelector<HTMLElement>(`[data-row="${name}"]`)!;
+      const layer = row.querySelector("[data-stretched-link]")!;
+      expect(getComputedStyle(layer, "::after").borderTopLeftRadius, name).toBe(getComputedStyle(row).borderTopLeftRadius);
+    }
+    expect(getComputedStyle(host.querySelector('[data-row="button"] button')!).textAlign).toBe("start");
+  });
+
+  it("draws an edge round each row a person chooses under forced colours, and a thicker Highlight one round the row shown", async () => {
+    try {
+      await render(
+        <div>
+          <Item onSelect={() => {}} selected title="Shown" />
+          <Item onSelect={() => {}} selected={false} title="Other" />
+          <Item href="/a" selected title="Linked shown" />
+        </div>,
+      );
+      const after = (name: string, role: "button" | "link" = "button") => getComputedStyle(page.getByRole(role, { name }).element(), "::after");
+      expect(after("Other").borderTopWidth).toBe("0px");
+      expect(after("Shown").borderTopWidth).toBe("0px");
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(after("Other").borderTopStyle).toBe("solid");
+      expect(after("Other").borderTopWidth).toBe("1px");
+      expect(after("Shown").borderTopWidth).toBe("2px");
+      expect(after("Linked shown", "link").borderTopWidth).toBe("2px");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("forwards buttonRef to the row's button", async () => {
