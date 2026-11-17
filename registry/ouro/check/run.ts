@@ -1,6 +1,7 @@
 export { blank, BUDGETS, goTo, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, runScript, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, MergeOptions, Report };
 
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFile, copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -159,6 +160,8 @@ interface CheckOptions {
   readyEvents?: string[];
   chromium: BrowserType;
   executablePath?: string;
+  /** Downloads Chromium when Playwright lacks it; without it, a missing browser stops the check. */
+  install?: () => Promise<void>;
   readyTimeout?: number;
   log?: (line: string) => void;
   /** How the https rule asks a site: fetch, unless a test gives another. */
@@ -171,6 +174,7 @@ interface MergeOptions {
   config?: Gate;
   chromium: BrowserType;
   executablePath?: string;
+  install?: () => Promise<void>;
 }
 
 interface Target extends PageRef {
@@ -540,7 +544,7 @@ async function settle(page: Page): Promise<void> {
 }
 
 async function check(options: CheckOptions): Promise<CheckResult> {
-  const { out, chromium, executablePath, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
+  const { out, chromium, executablePath, install, sizes = SIZES, themes = ["light", "dark"], shard = [1, 1], before = [], config = {}, axe = false, measured = true, readyEvents = [], readyTimeout = 15000, log = console.log, fetch: ask = fetch } = options;
   const budgets: Budgets = { ...BUDGETS, ...config.budgets };
   const repeats = config.pressRepeat ?? PRESS_REPEAT;
   const { list: opened, close } = await targetsOf(options.targets, options.pages);
@@ -560,7 +564,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     return { ...report, gated: [] };
   }
   // A browser that does not start leaves no server running behind it.
-  const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) }).catch(async (problem: unknown) => {
+  const browser = await launch(chromium, executablePath, install).catch(async (problem: unknown) => {
     await close();
     throw problem;
   });
@@ -1039,7 +1043,7 @@ async function write(out: string, report: Report) {
 
 // Merges the out folders of a sharded run into one: every finding, the first close-up of each (at most 40 a page), the
 // before and afters, and a contact sheet per page with every size the shards swept. A config gates the findings again.
-async function merge({ dirs, out, config, chromium, executablePath }: MergeOptions): Promise<CheckResult> {
+async function merge({ dirs, out, config, chromium, executablePath, install }: MergeOptions): Promise<CheckResult> {
   const reports: (Report & { dir: string })[] = [];
   for (const dir of dirs) reports.push({ ...(JSON.parse(await readFile(join(dir, "report.json"), "utf8")) as Report), dir });
   const first = reports[0]!;
@@ -1091,7 +1095,7 @@ async function merge({ dirs, out, config, chromium, executablePath }: MergeOptio
     }
   }
   merged.shots.sort((a, b) => byRank(a as unknown as Finding, b as unknown as Finding));
-  const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
+  const browser = await launch(chromium, executablePath, install);
   try {
     merged.fixed = await compose(browser, out, merged);
   } finally {
@@ -1267,6 +1271,42 @@ interface Env {
   from?: string[];
 }
 
+// Playwright's words for a browser it has not downloaded yet.
+const NOT_DOWNLOADED = /Executable doesn't exist/;
+
+// Chromium for the sweep. On a first run Playwright has none yet, so it is downloaded once and the check goes on,
+// rather than stopping and costing the person (or agent) a turn to run the download themselves.
+async function launch(chromium: BrowserType, executablePath: string | undefined, install: (() => Promise<void>) | undefined): Promise<Browser> {
+  const options = { headless: true, ...(executablePath ? { executablePath } : {}) };
+  try {
+    return await chromium.launch(options);
+  } catch (problem) {
+    if (!install || !NOT_DOWNLOADED.test((problem as Error).message)) throw problem;
+    await install();
+    return chromium.launch(options);
+  }
+}
+
+// Downloads Chromium with the Playwright the check runs on, as `npx playwright install chromium` would, so the browser
+// matches that Playwright's version. Its output stays quiet unless the download fails.
+function installer(module: string, cwd: string, log: (line: string) => void): () => Promise<void> {
+  return async () => {
+    log("Chromium isn't downloaded yet: downloading it once (npx playwright install chromium).");
+    const cli = join(dirname(createRequire(import.meta.url).resolve(module)), "cli.js");
+    const output: string[] = [];
+    const code = await new Promise<number | null>((done) => {
+      const child = spawn(process.execPath, [cli, "install", "chromium"], { cwd, stdio: ["ignore", "pipe", "pipe"] });
+      child.stdout.on("data", (chunk: Buffer) => output.push(String(chunk)));
+      child.stderr.on("data", (chunk: Buffer) => output.push(String(chunk)));
+      child.on("close", done);
+    });
+    if (code !== 0) {
+      const last = output.join("").trim().split("\n").at(-1);
+      throw refusal("no-browser", "check", `needs Chromium, and downloading it stopped: ${last}`, "npx playwright install chromium");
+    }
+  };
+}
+
 // A module the app has (resolved from its folder) or this kit's own; null when neither has it.
 function load(name: string, from: string[]): string | null {
   for (const base of from) {
@@ -1314,7 +1354,8 @@ async function runCheck(context: Env, cli: Cli, cmd: CommandDef, input: Input, j
   const playwright = env.PLAYWRIGHT_MODULE ?? ["playwright", "playwright-core"].map((name) => load(name, from)).find(Boolean);
   if (!playwright) throw refusal("no-playwright", "check", "needs Playwright", "install playwright (npm i -D playwright), or set PLAYWRIGHT_MODULE to it");
   const chromium = (createRequire(import.meta.url)(playwright) as { chromium: BrowserType }).chromium;
-  const executable = env.BROWSER_EXECUTABLE ? { executablePath: env.BROWSER_EXECUTABLE } : {};
+  // A browser the app names is used as it is; otherwise a missing Chromium is downloaded on first run.
+  const executable = env.BROWSER_EXECUTABLE ? { executablePath: env.BROWSER_EXECUTABLE } : { install: installer(playwright, cwd, log) };
   const configFile = resolve(cwd, args.config ?? "ouro-check.json");
   const hasConfig = args.config !== undefined || (await readFile(configFile).then(() => true, () => false));
   const config: Gate = hasConfig ? await readJson<Gate>(configFile) : {};
