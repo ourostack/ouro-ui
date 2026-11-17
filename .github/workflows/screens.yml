@@ -8,8 +8,7 @@ name: Screens
 # reports without failing: the findings are for whoever changes the page next. So it runs on main
 # once a day and on demand, never on a pull request: a pull request's gate is CI's design shards,
 # the same check at a phone's, a laptop's and a 4K screen's size, light and dark, which fail on a
-# finding. Screens on each pull request took about 145,000 job-minutes in 3 days (2026-11-14 to
-# 11-17), for a report no check waited on.
+# finding, so a report on each pull request cost runners and decided nothing.
 on:
   schedule:
     - cron: "37 4 * * *"
