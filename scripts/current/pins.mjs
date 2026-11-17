@@ -139,9 +139,17 @@ const resolveTarget = (target, roots) => {
   return alias && alias in roots ? `${roots[alias]}${target.slice(alias.length + 1)}` : null;
 };
 
+/** An import of the shared Ouro AX files (`@/registry/ouro/ax/component`), in an import, an export or an `import()`. */
+const AX_SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(["'])@\/registry\/ouro\/ax\/([^"'\n]+)\2/g;
+
 /**
  * The rewrite the shadcn CLI makes when it installs a registry file: the registry's own import paths become the app's
  * aliases (components.json). The install record keeps the hash of the registry's bytes, before this rewrite.
+ *
+ * An import of the shared Ouro AX files has no alias of its own: the CLI's alias pass sends it to the components alias,
+ * then its import-resolving pass finds the file the item installs (`@lib/ouro/ax/component.ts`) and writes the lib
+ * alias's path to it, without a `.ts`, `.tsx`, `.js` or `.jsx` extension or a trailing `/index`
+ * (`~/lib/ouro/ax/component`).
  */
 export function installRewrite(componentsJson) {
   const aliases = componentsJson?.aliases ?? {};
@@ -149,9 +157,11 @@ export function installRewrite(componentsJson) {
     ["@/registry/ouro/components/", aliases.components ? `${aliases.components}/` : null],
     ["@/registry/ouro/lib/", aliases.lib ? `${aliases.lib}/` : null],
   ].filter(([, to]) => to);
+  const ax = aliases.lib ? (all, head, quote, rest) => `${head}${quote}${aliases.lib}/${`ouro/ax/${rest}`.replace(/\.(?:tsx?|jsx?)$/, "").replace(/\/index$/, "")}${quote}` : null;
   return (bytes) => {
     if (pairs.length === 0) return bytes;
     let text = bytes.toString("utf8");
+    if (ax) text = text.replace(AX_SPECIFIER, ax);
     for (const [from, to] of pairs) text = text.split(from).join(to);
     return Buffer.from(text, "utf8");
   };
