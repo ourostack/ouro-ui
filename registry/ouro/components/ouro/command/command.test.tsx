@@ -1291,8 +1291,10 @@ describe("Command kept mounted", () => {
     await expect.poll(() => (input().element() as HTMLInputElement).value).toBe("ab");
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+    // Opening asks once for the empty search, each key asks again, and only a kept palette asks once more, once its
+    // closing transition has ended. One that is not kept unmounts only after that, so nothing more comes for it.
+    await expect.poll(() => queries).toEqual(keepMounted ? ["", "a", "ab", ""] : ["", "a", "ab"]);
     await act(async () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    // Opening asks once for the empty search, each key asks again, and only a kept palette asks once more as it closes.
     expect(queries).toEqual(keepMounted ? ["", "a", "ab", ""] : ["", "a", "ab"]);
     if (keepMounted) expect(document.querySelector<HTMLInputElement>('[data-ouro-part="input"]')!.value).toBe("");
   });
