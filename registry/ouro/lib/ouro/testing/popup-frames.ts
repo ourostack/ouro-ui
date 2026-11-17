@@ -16,8 +16,8 @@ interface PopupFrame {
 /** A recording started by {@link recordPopupFrames}. */
 interface PopupRecording {
   /**
-   * Stops recording, two animation frames on, so the frames hold the popup as it is when the test stops waiting,
-   * however a poll's reads fell between frames. Returns the frames drawn, in order, and where the positioner is
+   * Stops recording once the next frames have been sampled, so the frames hold the popup as it is when the test
+   * stops waiting, however a poll's reads fell between frames. Returns the frames drawn, in order, and where the positioner is
    * then: once the popup has settled, that is where it belongs.
    */
   stop(): Promise<{ frames: PopupFrame[]; settled: { top: number; left: number } }>;
