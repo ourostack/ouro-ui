@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: a Menu, Popover or Tooltip opened from inside a Sheet or a Dialog [shows above it](registry/ouro/components/ouro/menu/menu.test.tsx "verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu stacking > shows above a %s it is opened from)"). It renders in that layer's portal, under the layer's own backdrop and viewport, and now [stacks above them there](registry/ouro/lib/ouro/floating.ts "verify:fileLine(registry/ouro/lib/ouro/floating.ts, /in-\[\[data-ouro\$='-portal'\]\]:z-1001/)"), as Select's and Combobox's lists already did, while on the page it stays at `--ouro-layer`. Give-back from an app whose side panel lifted these popups with CSS of its own.
