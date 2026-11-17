@@ -3,14 +3,15 @@
 # by default, or the title given. It opens the issue, or comments on it when it is already open, so
 # the failure shows where the team looks and repeats don't pile up as new issues.
 #
-#   scripts/scheduled-failure.sh <run-url> [<title> <what failed>]
+#   scripts/scheduled-failure.sh <run-url> [<title> <what failed> [<comment>]]
 #
+# The comment, when given, replaces "Failed again: <run-url>" on an open issue.
 # Needs gh with GH_TOKEN and GH_REPO set; the job that runs it has `issues: write`. With
 # QUIET_HOURS set, an open issue opened or commented on within that many hours gets no comment, so
 # an hourly check does not comment hourly.
 set -euo pipefail
 
-url=${1:?usage: scheduled-failure.sh <run-url> [<title> <what failed>]}
+url=${1:?usage: scheduled-failure.sh <run-url> [<title> <what failed> [<comment>]]}
 title=${2:-Scheduled install failed}
 if [ -n "${3:-}" ]; then
   body="$3: $url
@@ -30,7 +31,7 @@ if [ -n "$number" ]; then
       exit 0
     fi
   fi
-  gh issue comment "$number" --body "Failed again: $url"
+  gh issue comment "$number" --body "${4:-Failed again: $url}"
 else
   gh issue create --title "$title" --body "$body"
 fi

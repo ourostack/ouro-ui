@@ -4,7 +4,7 @@ import { createServer } from "node:net";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, URL } from "node:url";
+import { fileURLToPath, pathToFileURL, URL } from "node:url";
 import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
@@ -658,6 +658,18 @@ test("Required checks compares the file with main's live rules hourly, on a chan
   assert.match(report, /QUIET_HOURS: 24/);
   assert.match(report, /permissions:\n\s+contents: read\n\s+issues: write/);
   assert.match(report, /run: scripts\/scheduled-failure\.sh "[^"]+" "Required checks drifted" /);
+});
+
+test("scheduled-failure.sh comments with the text it is given, and says \"Failed again\" by default", () => {
+  const bin = scratchDir("ouro-gh-");
+  const log = join(bin, "calls.log");
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\necho "$*" >> "${log}"\nif [ "$1 $2" = "issue list" ]; then printf '%s' 7; fi\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  const run = (...args) => spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/5", ...args], { encoding: "utf8", env: sandboxEnv({}, [bin]) });
+  assert.equal(run("Release waiting", "Waited too long").status, 0);
+  assert.equal(run("Release waiting", "Waited too long", "Still waiting: 90 minutes").status, 0);
+  const calls = readFileSync(log, "utf8").trim().split("\n").filter((call) => call.startsWith("issue comment "));
+  assert.deepEqual(calls, ["issue comment 7 --body Failed again: https://github.com/o/r/actions/runs/5", "issue comment 7 --body Still waiting: 90 minutes"]);
 });
 
 test("scheduled-failure.sh opens the issue once, then comments on it", () => {
@@ -2620,6 +2632,10 @@ test("Release auto starts nothing for a commit that only points the docs at a re
     git(["init", "-q"]);
     git(["config", "user.email", "maintainer@example.com"]);
     git(["config", "user.name", "Maintainer"]);
+    // origin's main is the released commit, so its workflow files are main's (the check fetches main).
+    const origin = join(scratchDir("ouro-release-auto-origin-"), "origin.git");
+    execFileSync("git", ["init", "-q", "--bare", origin]);
+    git(["remote", "add", "origin", pathToFileURL(origin).href]);
     mkdirSync(join(dir, "scripts"));
     mkdirSync(join(dir, "changes"));
     copyFileSync(join(root, "scripts/pin-only.mjs"), join(dir, "scripts/pin-only.mjs"));
@@ -2635,6 +2651,7 @@ test("Release auto starts nothing for a commit that only points the docs at a re
     git(["tag", "v1.3.56"]);
     commit({ "changes/fragment.md": fragment });
     const sha = commit(changes);
+    git(["push", "-q", "origin", "HEAD:refs/heads/main"]);
     const log = join(dir, "gh.log");
     // Stands in for gh: the newest release v1.3.56, and no run in progress.
     const stub = `gh() {

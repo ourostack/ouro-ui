@@ -30,6 +30,7 @@ jobs:
     permissions:
       actions: write # start Release
       contents: read # read changes/ and the newest release
+      issues: write # open or comment on "Release waiting" when a release has waited over an hour (wait_for)
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
@@ -57,6 +58,26 @@ jobs:
           last=$(gh release view --json tagName --jq .tagName)
           git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$sha"
           if [ -n "$last" ] && ! git rev-parse -q --verify "refs/tags/$last" >/dev/null; then git fetch -q --no-tags --depth=1 origin "refs/tags/$last:refs/tags/$last"; fi
+          # A wait says why, in the notice and the step summary. One that has lasted over an hour (scripts/release-wait.mjs: since
+          # the first first-parent commit of main after the newest release's tag that brought a change the release lacks, so a
+          # pin-only or CI-only commit does not start the clock) opens or comments on "Release waiting" and fails this run, so
+          # nothing waits silently for long.
+          wait_for() {
+            echo "::notice::$1"
+            printf -- '- %s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+            [ -n "$last" ] || return 0
+            git fetch -q --no-tags --depth=2 origin "refs/tags/$last:refs/tags/$last"
+            git fetch -q --no-tags --shallow-since="$(git log -1 --format=%cI "$last^")" origin main
+            age=$(node scripts/release-wait.mjs "$last")
+            read -r oldest minutes state <<< "$age" || true
+            [ "${state:-}" = over ] || return 0
+            msg="$1 Its oldest pending change, from $oldest, has waited $minutes minutes, over an hour"
+            run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            printf -- '- %s.\n' "$msg" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::$msg. Release waiting: $run"
+            scripts/scheduled-failure.sh "$run" "Release waiting" "$msg" "$msg: $run"
+            exit 1
+          }
           fresh=$(node --input-type=module -e 'import { releasedAt } from "./scripts/changes.mjs"; const [now, last] = process.argv.slice(1); const released = new Set(last ? releasedAt(last) : []); console.log(releasedAt(now).filter((line) => !released.has(line)).length);' "$sha" "$last")
           [ "$fresh" -gt 0 ] || { echo "::notice::changes/ lists no change the newest release lacks, so there is nothing to release."; exit 0; }
           # The docs pin (docs-pin.yml) changes what nobody ships: its commit and its parent are read here, the parent fetched when the checkout lacks it.
@@ -68,12 +89,20 @@ jobs:
           echo "$sha is not only a docs pin, so it releases: $why"
           # Both of main's runs for the commit must have ended, the lane passed; the later of the two finishing starts this.
           lane=$(gh run list --workflow screen-reader.yml --commit "$sha" --event push --json conclusion --jq '[.[] | select(.conclusion == "success")] | length')
-          [ "$lane" -gt 0 ] || { echo "::notice::The screen-reader lane has not passed on $sha yet; its end starts this again."; exit 0; }
+          [ "$lane" -gt 0 ] || { wait_for "The screen-reader lane has not passed on $sha yet; its end starts this again."; exit 0; }
           ci=$(gh run list --workflow ci.yml --commit "$sha" --event push --json status,conclusion --jq '[.[] | select(.status == "completed" and .conclusion != "cancelled")] | length')
-          [ "$ci" -gt 0 ] || { echo "::notice::CI has not finished on $sha yet; its end starts this again."; exit 0; }
+          [ "$ci" -gt 0 ] || { wait_for "CI has not finished on $sha yet; its end starts this again."; exit 0; }
+          # The workflow files Release pushes with the release commit must already be main's tip's: GitHub refuses a push by
+          # the workflow's token that adds or changes workflow content no branch holds (ourostack/ouro-ui#1951). A commit
+          # whose workflows main has moved past waits for a newer commit, which its own runs' end starts.
+          git fetch -q --no-tags --depth=1 origin main
+          if [ "$(git rev-parse -q --verify "$sha:.github/workflows" || echo none)" != "$(git rev-parse -q --verify "FETCH_HEAD:.github/workflows" || echo none)" ]; then
+            wait_for "main's .github/workflows changed after $sha, so the release waits for a commit that carries them; that commit's runs ending starts this again (#1951)."
+            exit 0
+          fi
           for status in queued in_progress; do
             running=$(gh run list --workflow release.yml --status "$status" --json databaseId --jq "[.[] | select(.databaseId != ${AFTER:-0})] | length")
-            [ "$running" -eq 0 ] || { echo "::notice::Release is $status; the release that follows starts this again."; exit 0; }
+            [ "$running" -eq 0 ] || { wait_for "Release is $status; the release that follows starts this again."; exit 0; }
           done
           latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
           [[ "$latest" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || { echo "::error::The newest release, \"$latest\", is not a tag such as v1.2.3."; exit 1; }

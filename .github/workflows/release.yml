@@ -185,6 +185,31 @@ jobs:
           scripts/release-commit.sh "$VERSION"
           git add CHANGES.md
           git commit -am "Release $TAG"
+          # The release branch carries the released commit's workflow files, unchanged, and they must be main's tip's:
+          # GitHub refuses a push by this token that adds or changes workflow content no branch holds (ourostack/ouro-ui#1951).
+          # So nothing is pushed when release-commit.sh touched a workflow, or when main has moved its workflows past $MAIN_SHA;
+          # Release auto releases a newer commit of main once its runs end.
+          git fetch --quiet --no-tags --depth=1 origin main
+          touched=$(git diff --name-only "$MAIN_SHA" HEAD -- .github/workflows)
+          moved=$(git diff --name-only "$MAIN_SHA" FETCH_HEAD -- .github/workflows)
+          if [ -n "$touched$moved" ]; then
+            names=$(printf '%s\n' "$touched" "$moved" | grep . | sort -u | paste -sd' ' -)
+            {
+              echo "### Release not pushed: the workflow files differ"
+              echo "GitHub refuses a push by this token that adds or changes workflow content no branch holds (ourostack/ouro-ui#1951)."
+              if [ -n "$touched" ]; then
+                echo "The release commit changes these workflow files, which release-commit.sh must never do:"
+                printf '%s\n' "$touched" | sed 's/^/- /'
+              fi
+              if [ -n "$moved" ]; then
+                echo "main's \`.github/workflows\` has moved past \`$MAIN_SHA\` (main is now \`$(git rev-parse --short FETCH_HEAD)\`), in these files:"
+                printf '%s\n' "$moved" | sed 's/^/- /'
+              fi
+              echo "Release auto releases a newer commit of main once its runs end; a dispatch of this sha stops here."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::The workflow files of $MAIN_SHA and the release commit do not match main's: $names. GitHub refuses a push by this token that adds or changes workflow content no branch holds (ourostack/ouro-ui#1951). Release auto releases a newer commit of main once its runs end; nothing was pushed."
+            exit 1
+          fi
           git push --force origin "$BRANCH"
       - if: steps.check.outputs.new == 'true'
         name: Build and check the @ouro namespace for the release commit
