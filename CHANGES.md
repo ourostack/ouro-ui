@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Changed: Ouro check [downloads Chromium on its first run when Playwright lacks it, instead of stopping, and when the download fails it names `npx playwright install chromium`](scripts/check/check-command.test.mts "verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > downloads Chromium once when Playwright has none, so a first run checks the pages, and names the download command when it can't)").
+- Fixed: Ouro check's off-theme and off-scale pass a variable of the app's own that the theme is built from or that holds a theme value, and a fixed fallback before the same property through a variable. New: `ouro-check.json`'s `known` passes the findings an update recorded for a rule it brought in, and Ouro Current records them in the update pull request, so only new findings of that rule fail.
