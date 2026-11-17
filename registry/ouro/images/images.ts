@@ -7,10 +7,7 @@ import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { quietPipes, runCli, type CliIo } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand, toArgv, type Cli, type Input } from "#ouro-ax/command.ts";
-import { outcome, type Outcome } from "#ouro-ax/outcome.ts";
-import { AxError, commandLine } from "#ouro-ax/problem.ts";
+import { quietPipes, runCli, type CliIo, defineCli, defineCommand, toArgv, type Cli, type Input, outcome, type Outcome, AxError, commandLine } from "./images.kit.mts";
 
 // Ouro images: each raster picture in a folder as AVIF and WebP at each width up to its own, and images.json with the
 // srcset of each, so a page draws a picture sharp at every screen size without sending a phone the widest file.

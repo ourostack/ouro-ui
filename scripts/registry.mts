@@ -376,7 +376,7 @@ function axItem(rest: string): string {
   if (rest.startsWith("fixtures/flows-")) return "ax-flows-tests";
   if (rest.startsWith("fixtures/")) return "ax-xray-tests";
   if (rest === "example-cli.ts") return "ax-example";
-  const stem = rest.replace(/\.test\.mts$|\.ts$/, "");
+  const stem = rest.replace(/\.test\.mts$|\.kit\.mts$|\.ts$/, "");
   const owner = stem === "help" ? "cli" : stem;
   return rest.endsWith(".test.mts") ? `ax-${owner}-tests` : `ax-${owner}`;
 }
@@ -731,6 +731,9 @@ export function buildRegistry(root: string): Registry {
         // which Node runs too, import the kit the same way. A file that installs outside src imports the shared kit as
         // #ouro-ax/<file>, since the shared files install beside the app's lib, and imports only files beside it relatively.
         if (specifier.startsWith(axImport)) {
+          // The shadcn CLI rewrites a # import in a .ts, .tsx, .js or .jsx file it installs to the app's path alias
+          // (~/lib/ouro/ax/cli), which Node cannot resolve. It leaves an .mts file alone, so the kit is named in one.
+          if (!path.endsWith(".mts")) throw new Error(`${path} imports ${specifier}, which the shadcn CLI rewrites to the app's path alias in a .ts file. Import the kit in ${path.replace(/\.[jt]sx?$/, ".kit.mts")} and import that file instead.`);
           const shared = `${axDir}${specifier.slice(axImport.length)}`;
           const dependency = owner.get(shared);
           if (!dependency || installsOutsideSrc(shared)) throw new Error(`${path} imports ${specifier}, which is no shared Ouro AX file.`);

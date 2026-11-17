@@ -19,11 +19,7 @@ import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
 import { findInteractionIssues } from "./interaction-check.ts";
-import { quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand, parse, toArgv, type Cli, type CommandDef, type FlagSpec, type Input } from "#ouro-ax/command.ts";
-import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE } from "#ouro-ax/exit-codes.ts";
-import { DEFAULT_OUTCOME_EXITS, outcome, type Outcome } from "#ouro-ax/outcome.ts";
-import { AxError, commandLine, didYouMean, isAxError } from "#ouro-ax/problem.ts";
+import { quietPipes, runCli, defineCli, defineCommand, parse, toArgv, type Cli, type CommandDef, type FlagSpec, type Input, BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE, DEFAULT_OUTCOME_EXITS, outcome, type Outcome, AxError, commandLine, didYouMean, isAxError } from "./run.kit.mts";
 import { findWrapIssues, readHeroArt, type HeroArt } from "./wrap-check.ts";
 
 // Ouro check: every page at every screen size from a 320px phone to a 3840px screen, plus the short landscape screens of

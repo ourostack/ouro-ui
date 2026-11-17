@@ -8,10 +8,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { quietPipes, runCli, type CliIo } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand, type Cli, type CommandDef, type FlagSpec, type Input } from "#ouro-ax/command.ts";
-import { outcome, type Outcome } from "#ouro-ax/outcome.ts";
-import { AxError, commandLine } from "#ouro-ax/problem.ts";
+import { quietPipes, runCli, type CliIo, defineCli, defineCommand, type Cli, type CommandDef, type FlagSpec, type Input, outcome, type Outcome, AxError, commandLine } from "./flows.kit.mts";
 
 /**
  * An adopter's agent flows as data, run in CI without a model: a flow is the calls a good agent makes for one task, and

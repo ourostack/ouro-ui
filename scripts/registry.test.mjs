@@ -402,7 +402,8 @@ test("Ouro check installs under scripts/ouro/check/, beside the Ouro AX items it
   assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/check.ts").target, "~/scripts/ouro/check/check.ts");
   assert.equal(item("ouro-check").files.find((file) => file.path === "registry/ouro/check/register.ts").type, "registry:file");
   for (const name of ["ax-cli", "ax-command", "ax-exit-codes", "ax-outcome", "ax-problem"]) assert.ok(item("ouro-check").registryDependencies.includes(repo(name)), name);
-  assert.deepEqual(item("ouro-images").files.map((file) => file.target), ["~/scripts/ouro/images/images.ts"]);
+  // images.kit.mts names the shared kit: the CLI rewrites a # import in a .ts file it installs, but not in an .mts file.
+  assert.deepEqual(item("ouro-images").files.map((file) => file.target).sort(), ["~/scripts/ouro/images/images.kit.mts", "~/scripts/ouro/images/images.ts"]);
 });
 
 test("the Node-only Ouro AX files install under scripts/ouro/ax, and the shared ones beside the app's lib, each as the exact set", () => {
@@ -410,7 +411,7 @@ test("the Node-only Ouro AX files install under scripts/ouro/ax, and the shared 
   const sources = (dir) => treeFiles(join(root, dir)).map((name) => `${dir}${name}`);
   const axDir = "registry/ouro/ax/";
   const nodeOnly = [
-    ...["xray.ts", "flows.ts", "surfaces.ts"].map((name) => `${axDir}${name}`),
+    ...["xray.ts", "flows.ts", "surfaces.ts", "xray.kit.mts", "flows.kit.mts", "surfaces.kit.mts"].map((name) => `${axDir}${name}`),
     ...readdirSync(join(root, axDir)).filter((name) => name.endsWith(".test.mts")).map((name) => `${axDir}${name}`),
     ...sources(`${axDir}fixtures/`),
   ].sort();

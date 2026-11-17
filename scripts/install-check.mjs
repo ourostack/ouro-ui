@@ -309,8 +309,9 @@ function filesUnder(app, dir) {
 /**
  * Problems with where the Node-only Ouro tools installed, as readable lines; empty when each is
  * under scripts/ouro, none is left in src, every Ouro AX file is installed once (compared by path
- * relative to its folder), and package.json maps `#ouro-ax/*` to the shared kit, which is how
- * Node resolves the tools' imports with no loader.
+ * relative to its folder), no installed file imports the kit by a path the CLI rewrote, and
+ * package.json maps `#ouro-ax/*` to the shared kit, which is how Node resolves the tools' imports
+ * with no loader.
  */
 export function checkNodeTools(app) {
   const problems = [];
@@ -326,6 +327,16 @@ export function checkNodeTools(app) {
   for (const file of filesUnder(app, "scripts/ouro/ax")) {
     if (shared.has(file)) {
       problems.push(`src/lib/ouro/ax/${file} and scripts/ouro/ax/${file} are both installed: remove the copy that does not belong, since each Ouro AX file installs once`);
+    }
+  }
+  // The shadcn CLI rewrites a # import in a .ts file it installs to the app's path alias (~/lib/ouro/ax/cli), which Node
+  // cannot resolve, so the tools name the kit in .mts files, which it leaves alone. Any such rewrite shows up here.
+  for (const file of filesUnder(app, "scripts/ouro")) {
+    const text = readFileSync(join(app, "scripts/ouro", file), "utf8");
+    for (const [, specifier] of text.matchAll(/^(?:import|export)\b[^;]*?\bfrom "([^"]+)"/gm)) {
+      if (!specifier.startsWith(".") && !specifier.startsWith("#ouro-ax/") && /\/ouro\/ax\//.test(specifier)) {
+        problems.push(`scripts/ouro/${file} imports ${specifier}, which Node cannot resolve: the CLI rewrote #ouro-ax/ there; import the kit in an .mts file, which it leaves alone`);
+      }
     }
   }
   const kit = JSON.parse(readFileSync(join(app, "package.json"), "utf8")).imports?.["#ouro-ax/*"];

@@ -4,7 +4,7 @@
 //
 // Each page: the item's purpose (its main file's first JSDoc comment), the install command, the files it installs and
 // the items it brings, then every export: its JSDoc, its signature or declaration, and its example.
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
 import { claim } from "../registry/ouro/lib/ouro/claims.ts";
@@ -108,9 +108,12 @@ export function axDocs(root: string, release: string): Map<string, string> {
   const checker = program.getTypeChecker();
   const pages = new Map<string, string>();
   const importsOf = (file: string) => [...(program.getSourceFile(join(root, file))?.text.matchAll(/from "(?:\.\/|#ouro-ax\/)([\w-]+)\.ts"/g) ?? [])].map((m) => m[1]!);
+  // A Node-only tool names the shared kit in <file>.kit.mts beside it, which the shadcn CLI leaves as it is (see registry.mts).
+  const kitOf = (file: string) => file.replace(/\.ts$/, ".kit.mts");
   for (const [name, paths] of items) {
+    const installed = paths.flatMap((path) => (existsSync(join(root, kitOf(path))) ? [kitOf(path), path] : [path]));
     const main = paths.find((path) => path.endsWith(`/${name.slice(3)}.ts`)) ?? paths[0]!;
-    const brings = [...new Set(paths.flatMap(importsOf).map((stem) => (stem === "help" ? "ax-cli" : stem === "example-cli" ? "ax-example" : `ax-${stem}`)))].filter((dep) => dep !== name).sort();
+    const brings = [...new Set(installed.flatMap(importsOf).map((stem) => (stem === "help" ? "ax-cli" : stem === "example-cli" ? "ax-example" : `ax-${stem}`)))].filter((dep) => dep !== name).sort();
     const lines = [
       GENERATED,
       "",
@@ -122,7 +125,7 @@ export function axDocs(root: string, release: string): Map<string, string> {
       `npx shadcn@latest add ourostack/ouro-ui/${name}#${release}`,
       "```",
       "",
-      `It installs ${paths.map((path) => `\`${installsOutsideSrc(path) ? "scripts/ouro/ax" : "lib/ouro/ax"}/${path.slice(AX_DIR.length + 1)}\``).join(" and ")}${brings.length ? `, with ${brings.map((dep) => `\`${dep}\``).join(", ")}` : ""}. Its tests are \`${name}-tests\`. ${paths.some(installsOutsideSrc) ? claim("Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`, and the shared kit as `#ouro-ax/<file>`.", { source: { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }, verify: { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" } }) : claim("Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`.", { source: { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }, verify: { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" } })} The [Ouro AX guide](../guides/ax.md) shows how they fit together.`,
+      `It installs ${installed.map((path) => `\`${installsOutsideSrc(path) ? "scripts/ouro/ax" : "lib/ouro/ax"}/${path.slice(AX_DIR.length + 1)}\``).join(" and ")}${brings.length ? `, with ${brings.map((dep) => `\`${dep}\``).join(", ")}` : ""}. Its tests are \`${name}-tests\`. ${paths.some(installsOutsideSrc) ? claim("Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`, and the shared kit as `#ouro-ax/<file>`.", { source: { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }, verify: { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" } }) : claim("Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`.", { source: { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }, verify: { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" } })} The [Ouro AX guide](../guides/ax.md) shows how they fit together.`,
     ];
     for (const path of paths) {
       const source = program.getSourceFile(join(root, path))!;

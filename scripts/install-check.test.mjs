@@ -328,6 +328,17 @@ test("a missing imports entry for the Ouro AX kit fails, with the npm pkg set th
   ]);
 });
 
+test("a tool whose #ouro-ax/ import the CLI rewrote to the app's path alias fails, and an .mts kit file passes", () => {
+  const dir = nodeToolsApp();
+  writeFileSync(join(dir, "scripts/ouro/ax/flows.ts"), 'import { runCli } from "~/lib/ouro/ax/cli";\nimport { outcome } from "./flows.kit.mts";\n');
+  writeFileSync(join(dir, "scripts/ouro/ax/flows.kit.mts"), 'export { outcome } from "#ouro-ax/outcome.ts";\n');
+  writeFileSync(join(dir, "scripts/ouro/check/run.ts"), 'import {\n  quietPipes,\n} from "@/lib/ouro/ax/cli";\n');
+  assert.deepEqual(checkNodeTools(dir).sort(), [
+    "scripts/ouro/ax/flows.ts imports ~/lib/ouro/ax/cli, which Node cannot resolve: the CLI rewrote #ouro-ax/ there; import the kit in an .mts file, which it leaves alone",
+    "scripts/ouro/check/run.ts imports @/lib/ouro/ax/cli, which Node cannot resolve: the CLI rewrote #ouro-ax/ there; import the kit in an .mts file, which it leaves alone",
+  ]);
+});
+
 test("a Node-only tool that did not install fails, and names the item that installs it", () => {
   const dir = nodeToolsApp();
   rmSync(join(dir, "scripts/ouro/ax/xray.ts"));

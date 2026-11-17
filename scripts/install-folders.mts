@@ -12,9 +12,9 @@ const axDir = "registry/ouro/ax/";
 
 export { axDir, checkDir, imagesDir };
 
-/** The Ouro AX files Node runs only: the X-ray, the flow runner, the surfaces check, and every test and fixture. */
+/** The Ouro AX files Node runs only: the X-ray, the flow runner, the surfaces check with the kit files they import (*.kit.mts), and every test and fixture. */
 export function axMovesOut(rest: string): boolean {
-  return rest === "xray.ts" || rest === "flows.ts" || rest === "surfaces.ts" || rest.endsWith(".test.mts") || rest.startsWith("fixtures/");
+  return rest === "xray.ts" || rest === "flows.ts" || rest === "surfaces.ts" || rest.endsWith(".kit.mts") || rest.endsWith(".test.mts") || rest.startsWith("fixtures/");
 }
 
 /** Whether a registry file installs under scripts/ouro/, out of the app's TypeScript project, rather than in its lib folder. */

@@ -10,19 +10,7 @@ import { accessSync, constants, readFileSync, realpathSync, statSync, writeFileS
 import { homedir } from "node:os";
 import { basename, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "#ouro-ax/claims.ts";
-import { isChecksReport, type ChecksReport } from "#ouro-ax/checks.ts";
-import { isReservedPersonOnly, type UiEntry } from "#ouro-ax/component.ts";
-import { devCommandIn, devCommandsIn, sourceCheckoutTexts } from "#ouro-ax/dev-commands.ts";
-import { checkFailureCopyAllow, vagueFailureIn, vagueFailuresIn, type FailureCopyAllow } from "#ouro-ax/precise-copy.ts";
-import { isGenericAudience, isOutcome, validateOutcome } from "#ouro-ax/outcome.ts";
-import { hasAnsi, stripAnsi } from "#ouro-ax/terminal.ts";
-import { isWait, validateWait } from "#ouro-ax/wait.ts";
-import { checkWorkEvent } from "#ouro-ax/work-event.ts";
-import { quietPipes, runCli } from "#ouro-ax/cli.ts";
-import { defineCli, defineCommand, parse, type FlagSpec, type Input } from "#ouro-ax/command.ts";
-import { defineExitCodes } from "#ouro-ax/exit-codes.ts";
-import { AxError, isAxError } from "#ouro-ax/problem.ts";
+import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface, isChecksReport, type ChecksReport, isReservedPersonOnly, type UiEntry, devCommandIn, devCommandsIn, sourceCheckoutTexts, checkFailureCopyAllow, vagueFailureIn, vagueFailuresIn, type FailureCopyAllow, isGenericAudience, isOutcome, validateOutcome, hasAnsi, stripAnsi, isWait, validateWait, checkWorkEvent, quietPipes, runCli, defineCli, defineCommand, parse, type FlagSpec, type Input, defineExitCodes, AxError, isAxError } from "./xray.kit.mts";
 
 /**
  * The Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports
