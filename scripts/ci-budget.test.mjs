@@ -222,12 +222,14 @@ test("a job's work time leaves out its setup steps: the runner, checkout, pnpm a
   assert.equal(criticalPath([job("plan", 0, 0, 1), browser, job("ci", 0, 0, 1)], graph).seconds, (1 + 10.5 + 1) * 60);
 });
 
-test("a stalled checkout's 3 minutes, its clearing and its retry are setup, so the work time leaves them out (#1765)", () => {
+test("a stalled checkout's tries, their clearings and their retries are setup, so the work time leaves them out (#1765)", () => {
   const checkout = "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1";
-  const stalled = stepped("browser (1/2)", [["Set up job", 0.5], [checkout, 3], ["actions/checkout stalled; clear it for one more try (#1765)", 0.25], [checkout, 0.5], ["Browser tests", 6]]);
+  const stalled = stepped("browser (1/2)", [["Set up job", 0.5], [checkout, 1], ["actions/checkout stalled; clear it for one more try (#1765)", 0.25], [checkout, 1], ["actions/checkout stalled again; clear it for a last try (#1765)", 0.25], [checkout, 0.5], ["Browser tests", 6]]);
   assert.equal(workSeconds(stalled), 6 * 60);
-  // ci.yml names the clearing step as setupSteps reads it.
-  assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {8}name: actions\/checkout stalled; clear it for one more try \(#1765\)$/m);
+  // ci.yml names the clearing steps as setupSteps reads them.
+  const ci = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
+  assert.match(ci, /^ {8}name: actions\/checkout stalled; clear it for one more try \(#1765\)$/m);
+  assert.match(ci, /^ {8}name: actions\/checkout stalled again; clear it for a last try \(#1765\)$/m);
 });
 
 test("a pnpm setup that fails is tried once more: its warning and its retry are setup too (#1911)", () => {
