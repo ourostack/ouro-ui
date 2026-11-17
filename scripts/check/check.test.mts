@@ -31,6 +31,12 @@ describe("Ouro check", () => {
     // axe runs only at the phone and laptop sizes.
     assert.ok(result.findings.some((f) => f.rule === "axe" && f.width === 390) && result.findings.some((f) => f.rule === "axe" && f.width === 1440));
     assert.equal(result.gated.length, result.findings.length);
+    // A swap's finding carries its two controls' HTML, first drawn and at rest, so it explains itself.
+    const swap = result.findings.find((f) => f.rule === "first-paint-swap")!.swap!;
+    assert.match(swap.gone.first, /^<(button|a)\b/);
+    assert.match(swap.taker.first, /^<(button|a)\b/);
+    assert.match(swap.taker.rest, /^<(button|a)\b/);
+    assert.ok(swap.gone.rest === null || /^<(button|a)\b/.test(swap.gone.rest));
     assert.equal(result.shots.length, 82 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
     assert.equal(report.pages.length, 82);
