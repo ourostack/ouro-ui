@@ -28,7 +28,7 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
 
 - It never writes to a default branch, and never merges anything itself.[^one-pr]
 - It never overwrites a file that differs from what the install wrote, and names that file in the pull request instead.[^hx]
-- It writes nothing for a repository whose update pull request merged or closed while the run read it, because what it read of the default branch is from before that: no branch on the old default branch, and no title on the merged pull request. The next run starts from the new default branch.[^raced]
+- It writes nothing for a repository whose update pull request merged or closed while the run read it, because what it read of the default branch is from before that: no branch on the old default branch, and no title on the merged pull request.[^raced] The next run starts from the new default branch.[^raced]
 - It never force-pushes over a commit someone else pushed to its pull request's branch, such as a fix the repository's checks needed; it leaves that pull request to them, as Dependabot does.[^edited]
 - It leaves `.github/workflows/` alone and says so in the pull request, or in the run's log when that is the whole update. GitHub lets an app change a workflow only with the `workflows` permission, which installations would have to approve again, and which would let the app write CI. A workflow that needs the Ouro UI version reads it at run time from a file Ouro Current moves, such as the tag in `.github/ouro-hx-installed.json`.[^workflows]
 - It never names a private repository in public: not in the run's log, and not on the page.[^private]
