@@ -692,7 +692,7 @@ export function buildRegistry(root: string): Registry {
         title: name.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase()),
         kind: "pattern" as const,
         description: `A page pattern: ${patternPurpose(name).replace(/^A /, "a ")}`,
-        docs: `${exported} is in components/patterns/${name}.tsx: render <${exported} /> and change it to what you are building. Docs: ${PATTERNS_URL}`,
+        docs: `${exported} is in components/patterns/${name}.tsx: render <${exported} /> and change it to what you are building. The comment above it says what it already does (Ouro tests that, so test only what you add), what your app wires up, and the props of the parts it uses. Docs: ${PATTERNS_URL}`,
       };
     }),
     ...axRuntime.map((name) => ({
