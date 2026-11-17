@@ -18,7 +18,6 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { BRANCH, keepRepo } from "./current.mjs";
 import { fakeRepo } from "./fake-github.mjs";
-import { installRewrite } from "./pins.mjs";
 import { readTarball } from "./tar.mjs";
 import { treeFiles } from "../tree.mjs";
 
@@ -42,13 +41,12 @@ export function appFiles(app) {
 }
 
 /**
- * A product's install record at `tag`: each file of the tag's registry the app holds unedited (what the CLI wrote, with
- * the registry's imports rewritten to the app's aliases), at the app path that ends with the file's target.
+ * A product's install record at `tag`, as products keep it: each file of the tag's registry the app holds, at the app
+ * path that ends with the file's target, with the sha256 of the registry's source. The record lists what the CLI
+ * installed, however the CLI rewrote it; Ouro Current decides which files it can update.
  */
 export function installRecord(files, tag, registry) {
   const items = JSON.parse(registry.get("registry.json").toString("utf8")).items ?? [];
-  const config = files.get("components.json");
-  const rewrite = installRewrite(config ? JSON.parse(config.toString("utf8")) : null);
   const paths = [...files.keys()];
   const record = {};
   for (const item of items) {
@@ -56,8 +54,7 @@ export function installRecord(files, tag, registry) {
       const rest = file.target?.replace(/^(@[a-z]+|~)\//, "");
       const source = registry.get(file.path);
       if (!rest || !source) continue;
-      const wrote = rewrite(source);
-      for (const path of paths) if ((path === rest || path.endsWith(`/${rest}`)) && files.get(path).equals(wrote)) record[path] = sha256(source);
+      for (const path of paths) if (path === rest || path.endsWith(`/${rest}`)) record[path] = sha256(source);
     }
   }
   const sorted = Object.fromEntries(Object.keys(record).sort().map((path) => [path, record[path]]));

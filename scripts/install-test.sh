@@ -333,7 +333,7 @@ if [ "$variant" = current ]; then
   cp -R "$root/test/install-fixture-tests/." "$app/"
   # The -tests items whose tests read `--radius-ouro-*`; the components are left as Ouro Current wrote them.
   # shellcheck disable=SC2207 # item names have no spaces
-  radius_tests=($(grep -rl -- '--radius-ouro' "$root/registry/ouro/components" --include='*.test.tsx' | sed -E 's|.*/([^/]+)\.test\.tsx$|\1|' | sort -u))
+  radius_tests=($(grep -rl --include='*.test.tsx' -e '--radius-ouro' "$root/registry/ouro/components" | sed -E 's|.*/([^/]+)\.test\.tsx$|\1|' | sort -u))
   [ "${#radius_tests[@]}" -gt 0 ] || { echo "no shipped test reads --radius-ouro-*"; exit 1; }
   test_items=()
   test_files=()
