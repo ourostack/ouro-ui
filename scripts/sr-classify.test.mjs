@@ -51,6 +51,8 @@ const logs = {
   1 failed`,
   runnerImage: `Error: browserType.launch: Executable doesn't exist at /Users/runner/Library/Caches/ms-playwright/webkit-2359/pw_run.sh`,
   diskFull: `ENOSPC: no space left on device, write`,
+  // Run 43996138023: \`--project\` takes every word after it, so the spec paths became project names (#1848).
+  projectsNotFound: `Error: Project(s) "registry/ouro/e2e/screen-reader/button.sr.spec.ts", "registry/ouro/e2e/screen-reader/dialog.sr.spec.ts" not found. Available projects: "stories", "voiceover", "nvda"`,
 };
 
 for (const [name, log, exit, expected] of [
@@ -69,11 +71,19 @@ for (const [name, log, exit, expected] of [
   ["a runner image without the browser", logs.runnerImage, 1, "infrastructure"],
   ["a full disk", logs.diskFull, 1, "infrastructure"],
   ["a lane that never ran its tests", "", null, "infrastructure"],
+  ["a command line Playwright refused, naming spec paths as projects", logs.projectsNotFound, 1, "harness"],
+  ["a command line that selected no test", "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.", 1, "harness"],
+  ["an option Playwright does not know", "error: unknown option '--shard-of'", 1, "harness"],
 ]) {
   test(`${name} is ${expected}`, () => {
     assert.equal(classify(log, exit), expected);
   });
 }
+
+test("a command line Playwright refused is harness, not an accessibility finding (#1848)", () => {
+  assert.equal(classify(logs.projectsNotFound, 1), "harness");
+  assert.equal(classify(`${logs.projectsNotFound}\n${logs.wrongUtterance}`, 1), "accessibility", "a failed assertion still decides first");
+});
 
 test("a run whose exit code is 0 passes, and one whose exit code says it failed never passes", () => {
   assert.equal(classify(logs.pass, 0), "pass");
@@ -102,6 +112,10 @@ test("the CLI prints SR_CLASS, writes the class as a step output and fails unles
   assert.equal(missing.status, 1);
   assert.match(missing.stdout, /^SR_CLASS=infrastructure$/m);
   assert.equal(missing.output, "class=infrastructure\n");
+  const refused = run(logs.projectsNotFound, "1");
+  assert.equal(refused.status, 1);
+  assert.match(refused.stdout, /^SR_CLASS=harness$/m);
+  assert.match(refused.stdout, /no test ran: fix the command in the workflow/);
 });
 
 // Recorded runs (scripts/fixtures/sr-logs/): the lane's log on main, run 39235687123, where NVDA's

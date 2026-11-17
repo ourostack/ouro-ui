@@ -49,6 +49,7 @@ It never runs for a pull request.[^sr-triggers]
 `scripts/sr-classify.mjs` reads the log and the exit code of `pnpm test:sr`:
 
 - **accessibility**: an expected utterance was missing or wrong, or a story the lane opens is missing.[^sr-classify] This fails the run and blocks a release.
+- **harness**: Playwright refused the lane's own command line or found no test to run (`Project(s) … not found`, `No tests found`, an unknown option), so no test started.[^sr-harness] This fails the run without a retry or an infrastructure issue: fix the command in the workflow.
 - **infrastructure**: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt appeared, a test timed out before the screen reader said anything, the Storybook server never became ready, the runner image was broken, or every error in the run is the browser failing to open or close a test's context, which only the fixtures around a test do (a missing utterance, a failed `expect` or any other error in the run makes it **accessibility**).[^sr-classify] A nightly run opens, or comments on, one issue labelled `screen-reader-infra` (`scripts/sr-infra-issue.sh`).[^sr-classify]
 
 ## Running it
@@ -86,6 +87,7 @@ Guidepup's setup changes the operating system: on macOS it enables VoiceOver's A
 [^sr-119]: https://github.com/ourostack/ouro-ui/issues/119; registry/ouro/e2e/screen-reader/screen-reader.ts verify:urlOk(https://github.com/ourostack/ouro-ui/issues/119) verify:fileLine(registry/ouro/e2e/screen-reader/screen-reader.ts, /ourostack\/ouro-ui#119/)
 [^sr-119-probe]: https://github.com/ourostack/ouro-ui/actions/runs/43978053969 verify:urlOk(https://github.com/ourostack/ouro-ui/issues/119)
 [^sr-1778]: https://github.com/ourostack/ouro-ui/issues/1778; https://github.com/nvaccess/nvda/issues/8971 verify:urlOk(https://github.com/ourostack/ouro-ui/issues/1778) verify:urlOk(https://github.com/nvaccess/nvda/issues/8971)
+[^sr-harness]: test:scripts/sr-classify.test.mjs::a command line Playwright refused is harness, not an accessibility finding (#1848) verify:testExists(scripts/sr-classify.test.mjs::a command line Playwright refused is harness, not an accessibility finding (#1848))
 [^sr-classify]: scripts/sr-classify.mjs verify:testExists(scripts/sr-classify.test.mjs::an expected utterance that never came stays accessibility, recorded or beside a teardown error)
 [^sr-config]: playwright.screen-reader.config.ts verify:fileLine(playwright.screen-reader.config.ts, /workers: 1,/) verify:fileLine(playwright.screen-reader.config.ts, /retries: 0,/) verify:fileLine(playwright.screen-reader.config.ts, /--output-dir \.tmp\/storybook-sr/) verify:testExists(scripts/workflows.test.mjs::the main Playwright config never runs a screen-reader spec, and the screen-reader config runs only those, one at a time)
 [^sr-permissions]: .github/workflows/screen-reader.yml verify:testExists(scripts/workflows.test.mjs::the screen-reader lane reads the repository and nothing more, and holds no secret) verify:testExists(scripts/workflows.test.mjs::every action is pinned to a full commit SHA, with its version in a comment)

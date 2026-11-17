@@ -12,6 +12,9 @@
 // - accessibility: an expected utterance was missing or wrong (an assertion failed), a story the
 //   lane opens is not in Storybook, or anything this cannot attribute to the runner. It fails the
 //   run and blocks a release.
+// - harness: Playwright refused the lane's own command line or found nothing to run (`Project(s) …
+//   not found`, `No tests found`, an unknown option), so no test started: the lane's command is
+//   wrong. It fails the run, a release does not retry it, and it opens no infrastructure issue.
 // - infrastructure: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt
 //   appeared, a test timed out before the screen reader said anything, the Storybook server never
 //   became ready, the runner image was broken, or the browser failed to open or close a test's
@@ -22,6 +25,9 @@ import { fileURLToPath } from "node:url";
 
 /** A failed assertion about what was spoken, or about the stories the lane opens. */
 const assertion = /\[sr\] no utterance matched|\[sr\] these story ids|Error: expect\(/;
+
+/** Playwright refusing its own command line, before any test ran (ourostack/ouro-ui#1848). */
+const harness = /^Error: Project\(s\) .* not found\. Available projects:|^Error: No tests found|^error: unknown option/m;
 
 /** The runner, not the components: each with the reason the summary gives. */
 const infrastructure = [
@@ -59,6 +65,7 @@ export function classify(log, exitCode) {
   if (exitCode === 0) return "pass";
   if (exitCode === null || exitCode === undefined || log.trim() === "") return "infrastructure";
   if (assertion.test(log)) return "accessibility";
+  if (harness.test(log)) return "harness";
   if (onlyBrowserLifecycleFailed(log)) return "infrastructure";
   if (infrastructure.some(([pattern]) => pattern.test(log))) return "infrastructure";
   // A timeout before the screen reader said anything: it never started speaking.
@@ -79,7 +86,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const log = file && existsSync(file) ? readFileSync(file, "utf8") : "";
   const exit = code === undefined || code === "" ? null : Number(code);
   const result = classify(log, log === "" ? null : exit);
-  const detail = { pass: "every utterance was as expected", accessibility: "an expected utterance was missing or wrong, or a story is missing: this blocks a release", infrastructure: `${why(log)}: not a finding about the components` }[result];
+  const detail = { pass: "every utterance was as expected", accessibility: "an expected utterance was missing or wrong, or a story is missing: this blocks a release", infrastructure: `${why(log)}: not a finding about the components`, harness: "Playwright refused the lane's own command, so no test ran: fix the command in the workflow, not the components" }[result];
   console.log(`SR_CLASS=${result}`);
   console.log(`Screen-reader lane: ${result} (${detail}).`);
   if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `class=${result}\n`);

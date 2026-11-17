@@ -5,7 +5,8 @@ name: Screen reader
 # passed on a push of that exact commit. scripts/sr-classify.mjs sorts a failure into accessibility (an
 # utterance missing or wrong: it blocks a release) and infrastructure (the runner could not drive
 # its screen reader: a release retries once, and a nightly run opens or updates one
-# `screen-reader-infra` issue). Guidepup's setup rewrites VoiceOver and TCC settings, so the lane
+# `screen-reader-infra` issue), and harness (Playwright refused the lane's own command: no retry,
+# no issue). Guidepup's setup rewrites VoiceOver and TCC settings, so the lane
 # runs only on GitHub's ephemeral hosted runners, with read-only contents and no secrets, and never
 # for a pull request: a dispatch needs write access and tests only the tip of the dispatched branch
 # (docs/guides/screen-reader-lane.md).
