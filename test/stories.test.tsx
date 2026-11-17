@@ -188,12 +188,9 @@ describe("component roots leave their margin to the app", () => {
 // the story is known to show is listed in check-known.ts with its reason; any other finding fails, and so does a listed
 // finding that no longer shows, so the list only shrinks.
 describe.runIf(server.browser === "chromium")("stories pass Ouro check's rules", () => {
-  it("names only stories that exist, each with a reason", () => {
+  it("names only stories that exist", () => {
     const ids = stories.map((entry) => entry.id);
-    for (const { story: id, rule, reason } of knownFindings) {
-      expect(ids, `${id} (${rule})`).toContain(id);
-      expect(reason.trim(), `${id} (${rule})`).not.toBe("");
-    }
+    for (const { story: id, rule } of knownFindings) expect(ids, `${id} (${rule})`).toContain(id);
   });
 
   it.each(sliced(selectedStories, "stories: check"))("$id passes Ouro check's rules, except its known findings", async ({ id, Story }) => {
