@@ -159,7 +159,7 @@ describe("SectionHeader development messages", () => {
     ["mt-8", ""],
   ])("checks the className %s", async (className, fix) => {
     await render(<SectionHeader title="T" className={className} />);
-    if (fix) expect(warn).toHaveBeenCalledWith(expect.stringContaining(`[ouro-ui] SectionHeader: "${className}"`));
+    if (fix) expect(warn).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^\\[ouro-ui\\] SectionHeader: "${className}".*${fix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)));
     else expect(warn).not.toHaveBeenCalled();
   });
 

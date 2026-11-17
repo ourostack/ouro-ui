@@ -85,7 +85,8 @@ export function SectionHeader(props: SectionHeaderProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; SectionHeader sets its own look from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "SectionHeader",
