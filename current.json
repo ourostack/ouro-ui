@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-17T22:05:21.798Z",
+  "generatedAt": "2026-11-17T22:26:43.057Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -58,7 +58,7 @@
     },
     {
       "repo": "ourostack/desk",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "plugins/desk/mcp/src/lib/ouro-actions/dist-manifest.json",
@@ -70,15 +70,12 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit d7e06fc",
+          "current": "commit e2ff016",
           "latest": "v1.3.270",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1173,
-        "url": "https://github.com/ourostack/desk/pull/1173"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/factory",
@@ -206,7 +203,7 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit eda0c0a",
+          "current": "commit d7e06fc",
           "latest": "v1.3.270",
           "behind": true
         },
@@ -219,8 +216,8 @@
         }
       ],
       "pr": {
-        "number": 375,
-        "url": "https://github.com/ourostack/m365crawl/pull/375"
+        "number": 376,
+        "url": "https://github.com/ourostack/m365crawl/pull/376"
       }
     },
     {
