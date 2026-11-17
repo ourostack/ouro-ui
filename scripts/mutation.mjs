@@ -17,7 +17,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, recordTests, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds } from "./mutation/cache.mjs";
+import { componentsDir, libDir, planShards, pruneChangedFiles, recordSources, recordTests, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
 export { runtimeSource, testFilesFor };
@@ -222,6 +222,18 @@ export function unitExclusions(ids, units) {
  */
 export const SHARD_TARGET_SECONDS = 900;
 
+/**
+ * Minutes Stryker gives the first run, which runs every test file the mutated files name, the
+ * importers' too: the measured seconds of those files, one after another, and never less than
+ * Stryker's default of 5. A lib file every component imports (cn.ts) names some 200 files, which
+ * take longer than 5 minutes even with Vitest running them side by side.
+ */
+export function dryRunMinutes(testsByFile, seconds = testSeconds()) {
+  const files = new Set(Object.values(testsByFile).flatMap(({ own, wider }) => [...own, ...wider]));
+  const total = [...files].reduce((sum, file) => sum + (seconds[file] ?? unmeasuredSeconds), 0);
+  return Math.max(5, Math.ceil(total / 60));
+}
+
 /** `--shard 2/3` as a 1-based index and a count; null without one. */
 export function parseShard(value) {
   if (value === undefined) return null;
@@ -399,6 +411,7 @@ async function main(args) {
     incremental: true,
     incrementalFile: ".tmp/stryker-incremental.json",
     timeoutMS: 10_000,
+    dryRunTimeoutMinutes: dryRunMinutes(testsByFile),
     thresholds: { high: 100, low: 100, break: null },
   });
   let results;

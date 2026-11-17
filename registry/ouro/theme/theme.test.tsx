@@ -274,7 +274,7 @@ describe("disclosure classes for pages with no script", () => {
   const disclosure =
     '<button id="start">Start</button>' +
     '<button class="outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid">Control</button>' +
-    '<span class="rounded-md">Corner</span>' +
+    '<span class="rounded-ouro-md">Corner</span>' +
     '<details class="ouro-disclosure"><summary class="ouro-disclosure-summary">Why it matters</summary><div class="ouro-disclosure-panel">Because</div></details>';
   const parts = (host: HTMLElement) => ({
     control: host.children[1] as HTMLElement,

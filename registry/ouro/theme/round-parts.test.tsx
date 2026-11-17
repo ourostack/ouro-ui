@@ -43,7 +43,7 @@ describe.each([
   it("keeps the unread dot, a slider's track, range and thumb and a progress bar round, even inside a squircle", async () => {
     if (polyfill) bridge();
     const host = await mount(
-      <div data-ouro="card" className="rounded-xl p-4">
+      <div data-ouro="card" className="rounded-ouro-xl p-4">
         <span data-testid="dot" className={unreadDotClass} />
         <Slider label="Servings" defaultValue={4} min={1} max={12} />
         <Progress label="Uploading" value={40} />
@@ -63,7 +63,7 @@ describe.each([
   it("keeps a rounded-full part round outside any Ouro component", async () => {
     if (polyfill) bridge();
     const host = await mount(
-      <div className="rounded-lg">
+      <div className="rounded-ouro-lg">
         <span aria-hidden="true" className="size-2 rounded-full" />
       </div>,
     );

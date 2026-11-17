@@ -63,6 +63,20 @@ test("the install delta result equals a full add when items are changed, added, 
   assert.deepEqual(plan(shared, manifestOf(before)).remove, ["button.test.tsx"]);
 });
 
+test("the install delta adds everything when a theme item changed, since only the base writes the app's stylesheet", () => {
+  const withTheme = () => ({ ...base(), "ouro-base": { ...item("o1", []), stylesheet: true } });
+  const before = manifestOf(withTheme());
+  assert.equal(plan(withTheme(), before).mode, "incremental");
+  const changed = withTheme();
+  changed["ouro-base"] = { ...item("o2", []), stylesheet: true };
+  assert.deepEqual(plan(changed, before), { mode: "full", reason: "ouro-base changed the app's stylesheet, which only the base adds" });
+  assert.equal(plan(withTheme(), manifestOf(base())).mode, "full");
+  // An item that is not a theme item and is outside the closure still changes nothing.
+  const outside = withTheme();
+  outside.extra = item("e2", ["extra.tsx"]);
+  assert.equal(plan(outside, before).mode, "incremental");
+});
+
 test("the install delta adds everything when the app cannot be proved to match a full add", () => {
   const before = manifestOf(base());
   const assertFull = (result) => {
@@ -118,6 +132,11 @@ test("the install delta reads built items without the folder their dependencies 
     assert.deepEqual(first.one.dependencies, ["two"]);
     write("one", ["/tmp/y/two.json"], "changed");
     assert.notEqual(readItems(dir).one.hash, first.one.hash);
+    assert.equal(first.one.stylesheet, false);
+    writeFileSync(join(dir, "theme.json"), JSON.stringify({ name: "theme", cssVars: { theme: { "radius-ouro-lg": "1rem" } } }));
+    writeFileSync(join(dir, "plain.json"), JSON.stringify({ name: "plain", css: { ".x": { color: "red" } } }));
+    assert.equal(readItems(dir).theme.stylesheet, true);
+    assert.equal(readItems(dir).plain.stylesheet, true);
   }
 });
 

@@ -107,7 +107,7 @@ const commandGroupLabelClass = "box-border px-2 pt-2 pb-1 text-xs leading-4 font
  * @claim "One command: 44px tall with 16px" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > moves the highlight with the arrow keys)
  */
 const commandItemClass =
-  "relative box-border flex min-h-11 pointer-fine:min-h-9 cursor-default items-center gap-3 rounded-md px-2 py-1.5 " +
+  "relative box-border flex min-h-11 pointer-fine:min-h-9 cursor-default items-center gap-3 rounded-ouro-md px-2 py-1.5 " +
   "text-base leading-5 pointer-fine:text-sm text-popover-foreground outline-none select-none [-webkit-tap-highlight-color:transparent] " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground active:bg-accent active:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 " +
   // Forced colours drop the fill, so the highlight takes the system's pair.
@@ -123,7 +123,7 @@ const commandItemClass =
 const commandCloseClass =
   "sr-only focus-visible:top-2 focus-visible:end-2 focus-visible:z-1 focus-visible:m-0 focus-visible:size-auto " +
   "focus-visible:overflow-visible focus-visible:[clip-path:none] focus-visible:px-2 focus-visible:py-1 " +
-  "focus-visible:rounded-md focus-visible:bg-muted focus-visible:text-foreground focus-visible:text-xs focus-visible:leading-4 focus-visible:font-medium " +
+  "focus-visible:rounded-ouro-md focus-visible:bg-muted focus-visible:text-foreground focus-visible:text-xs focus-visible:leading-4 focus-visible:font-medium " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid";
 
 /**

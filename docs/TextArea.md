@@ -22,7 +22,7 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
   onHighlightsChange={setHighlights}
 />
 // A chat composer: the box is the app's, and the textarea inside it has no frame.
-<form className="flex items-end gap-2 rounded-xl border border-border p-2 focus-within:border-ring">
+<form className="flex items-end gap-2 rounded-ouro-xl border border-border p-2 focus-within:border-ring">
   <TextArea label="Message" hideLabel name="message" placeholder="Ask anything" variant="plain" autoGrow rows={1} maxRows={8} className="flex-1" />
   <Button type="submit">Send</Button>
 </form>

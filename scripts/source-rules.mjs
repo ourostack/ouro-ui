@@ -25,6 +25,9 @@
 //   side in a right-to-left page. Components use the logical side (`start-2`, `ms-2`, `pe-4`,
 //   `border-s`, `rounded-e-xl`, `text-start`), unless `physicalAllowed` lists the class with why
 //   it must follow the screen, not the text.
+// - radiusSteps: a shadcn radius step (`rounded-lg`, `rounded-t-xl`, `var(--radius-lg)`) in a component or lib file.
+//   shadcn init writes shadcn's `--radius-*` steps into an app's theme and an add never replaces them, so Ouro's
+//   corners (the Safari fallback, --ouro-radius-scale) would not reach that app; components round with `rounded-ouro-lg`.
 // - layoutAnimationAllowed: the layout-property animations (ouro-source-rules' `layout-animation`)
 //   that Ouro's own components keep, each with its reason; scripts/source-rules.test.mjs fails on
 //   any other, and on an allowance no longer used.
@@ -323,6 +326,33 @@ export function physicalUtilities(path, text, allowed = physicalAllowed[path] ??
         const utility = utilityOf(token);
         const kind = reversibleKind(utility);
         if (physicalClass.test(utility) || (kind && !directional(token) && !reversed.has(kind))) found.push(`${line}: ${token}`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return found;
+}
+
+const shadcnRadiusClass = /^!?rounded(?:-(?:ss|se|es|ee|tl|tr|bl|br|t|r|b|l|s|e))?-(?:sm|md|lg|xl|2xl|3xl|4xl)(?![\w-])/;
+const shadcnRadiusVariable = /var\(--radius-(?:sm|md|lg|xl|2xl|3xl|4xl)\)/;
+
+/**
+ * The shadcn radius steps in a file's string literals and template text, as "line: token": a
+ * `rounded-*` class of a step (`rounded-lg`, `first:rounded-s-md`, `!rounded-sm`, `data-[x=y]:rounded-2xl`),
+ * or `var(--radius-<step>)` in any class or style. A component rounds with Ouro's own steps
+ * (`rounded-ouro-lg`, `var(--radius-ouro-lg)`), which ouro-base adds: shadcn init writes shadcn's
+ * `--radius-*` steps into an app's theme, and shadcn add never replaces them.
+ */
+export function radiusSteps(path, text) {
+  const source = parse(path, text);
+  const found = [];
+  const visit = (node) => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+      for (const token of node.text.split(/\s+/).filter(Boolean)) {
+        const utility = token.split(/:(?![^[]*\])/).at(-1);
+        if (shadcnRadiusClass.test(utility) || shadcnRadiusVariable.test(token)) found.push(`${line}: ${token}`);
       }
     }
     ts.forEachChild(node, visit);

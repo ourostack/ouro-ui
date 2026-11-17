@@ -265,20 +265,20 @@ const sendKeys = ["enter", "mod-enter"] as const;
 // One frame for the whole composer, with the field's border and one focus outline while the
 // text has focus; the textarea inside draws neither.
 const frameClass =
-  "relative box-border flex min-w-0 flex-col rounded-lg border border-solid border-input bg-card text-card-foreground " +
+  "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
   "outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears (not
 // with reduced motion). Message's quote looks the same (message.tsx).
 const quoteBoxClass =
-  "flex min-w-0 items-center gap-1 rounded-md bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
+  "flex min-w-0 items-center gap-1 rounded-ouro-md bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:transition-none";
 const quoteBodyClass = "flex min-w-0 flex-1 items-center gap-2 p-1.5";
 // The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
 // with two lines of text it is taller than a touch target already.
 const quoteButtonClass =
-  `${quoteBodyClass} m-0 cursor-pointer rounded-md border-0 bg-transparent text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent ` +
+  `${quoteBodyClass} m-0 cursor-pointer rounded-ouro-md border-0 bg-transparent text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent ` +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 /**

@@ -1180,9 +1180,9 @@ describe("Table development messages", () => {
   });
 
   it("checks the className", async () => {
-    await render(<Table caption="Recipes" className="rounded-lg border" columns={[...columns]} rows={recipes} />);
+    await render(<Table caption="Recipes" className="rounded-ouro-lg border" columns={[...columns]} rows={recipes} />);
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Table: "rounded-lg" sets appearance, and className is for layout only. Fix: put the Table inside a <Card> for a frame.',
+      '[ouro-ui] Table: "rounded-ouro-lg" sets appearance, and className is for layout only. Fix: put the Table inside a <Card> for a frame.',
     );
   });
 

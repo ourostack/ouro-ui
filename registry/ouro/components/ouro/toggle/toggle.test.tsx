@@ -358,9 +358,9 @@ describe("Toggle development messages", () => {
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Toggle: "rounded-full" sets appearance, and className is for layout only. Fix: <Toggle shape="pill">.');
     await render(<Toggle label="Bold" className="text-lg" />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Toggle: "text-lg" sets appearance, and className is for layout only. Fix: <Toggle size="lg">.');
-    await render(<Toggle label="Bold" className="rounded-md" />);
+    await render(<Toggle label="Bold" className="rounded-ouro-md" />);
     expect(warn).toHaveBeenCalledWith(
-      '[ouro-ui] Toggle: "rounded-md" sets appearance, and className is for layout only. Fix: :root { --radius: 0.75rem }.',
+      '[ouro-ui] Toggle: "rounded-ouro-md" sets appearance, and className is for layout only. Fix: :root { --radius: 0.75rem }.',
     );
     await render(<Toggle label="Bold" className="text-xs" />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Toggle: "text-xs" sets appearance, and className is for layout only. Fix: <Toggle size="xs">.');

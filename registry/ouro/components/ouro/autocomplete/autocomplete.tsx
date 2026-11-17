@@ -145,7 +145,7 @@ const popupClass = cn(
 );
 
 const optionClass =
-  "box-border flex min-h-11 cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-base leading-5 outline-none select-none " +
+  "box-border flex min-h-11 cursor-default items-center gap-2 rounded-ouro-md px-2 py-1.5 text-base leading-5 outline-none select-none " +
   "sm:pointer-fine:min-h-9 sm:pointer-fine:text-sm " +
   "data-highlighted:bg-accent data-highlighted:text-accent-foreground " +
   // Forced colours drop the fill, so the active option takes the system's pair.

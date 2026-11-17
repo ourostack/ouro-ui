@@ -235,7 +235,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       ref={merged}
       data-ouro="attachment"
       className={cn(
-        "relative box-border inline-flex max-w-full min-w-0 items-center rounded-lg border border-solid border-border bg-card",
+        "relative box-border inline-flex max-w-full min-w-0 items-center rounded-ouro-lg border border-solid border-border bg-card",
         "align-middle text-base text-card-foreground pointer-fine:text-sm",
         className,
       )}
@@ -274,7 +274,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           data-ouro-part="remove"
           onClick={onRemove}
           className={cn(
-            "press relative m-0 box-border inline-flex size-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-7 items-center justify-center rounded-md border-0 bg-transparent p-0",
+            "press relative m-0 box-border inline-flex size-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-7 items-center justify-center rounded-ouro-md border-0 bg-transparent p-0",
             "cursor-pointer text-muted-foreground touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
             "motion-safe:active:scale-(--ouro-press-scale)",
             focusRing,

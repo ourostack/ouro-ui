@@ -630,7 +630,7 @@ describe("Hero", () => {
     const { part } = await render(<Hero title="Corners" picture={pair(wide)} />);
     const frame = getComputedStyle(part("media")!);
     const probe = document.createElement("div");
-    probe.className = "rounded-xl";
+    probe.className = "rounded-ouro-xl";
     document.body.append(probe);
     const xl = parseFloat(getComputedStyle(probe).borderTopLeftRadius);
     probe.remove();

@@ -34,6 +34,9 @@ export function readItems(dir) {
       paths: (item.files ?? []).map((entry) => entry.target ?? entry.path).sort(),
       packages: [...(item.dependencies ?? []), ...(item.devDependencies ?? [])].sort(),
       dependencies: (registryDependencies ?? []).map((dependency) => basename(dependency).replace(/\.json$/, "")).sort(),
+      // ouro-base and the other theme items write the app's stylesheet. The base adds them once and no
+      // item depends on them, so they are outside the shipped tests' closure and a delta never adds them again.
+      stylesheet: Boolean(item.cssVars || item.css),
     };
   }
   return items;
@@ -55,7 +58,7 @@ const targetsOf = (entries, names) => new Set([...names].flatMap((name) => entri
 // The app holds what a full add of the built items would write when the files the new closure no longer
 // writes are removed and the items that are new, changed or newly in the closure are added again. Anything
 // that cannot be proved so (a package an item stopped needing, a manifest that predates the package list,
-// a changed root) plans a full add.
+// a changed root, a changed theme item) plans a full add.
 export function plan(items, manifest, root = "ouro-tests") {
   const full = (reason) => ({ mode: "full", reason });
   if (!manifest || typeof manifest.items !== "object" || manifest.items === null) return full("no manifest");
@@ -67,6 +70,9 @@ export function plan(items, manifest, root = "ouro-tests") {
   const rootBefore = before[root];
   const rootNow = items[root];
   if (rootBefore.hash !== rootNow.hash || rootBefore.paths.join() !== rootNow.paths.join()) return full(`${root} changed outside the delta`);
+  // A theme item writes the stylesheet the restored app holds from the base, which the delta never adds again.
+  const restyled = Object.keys(items).find((name) => items[name].stylesheet && before[name]?.hash !== items[name].hash);
+  if (restyled) return full(`${restyled} changed the app's stylesheet, which only the base adds`);
   const add = [...installed].filter((name) => name !== root && (!oldClosure.has(name) || before[name].hash !== items[name].hash || before[name].paths.join() !== items[name].paths.join() || before[name].dependencies.join() !== items[name].dependencies.join()));
   const kept = targetsOf(items, installed);
   const remove = [...targetsOf(before, oldClosure)].filter((target) => !kept.has(target)).sort();

@@ -22,7 +22,7 @@ const rootClass =
  */
 const viewportClass =
   "box-border flex min-w-0 gap-4 overflow-x-auto overflow-y-hidden overscroll-x-contain snap-x snap-mandatory " +
-  "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg " +
+  "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-ouro-lg " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "forced-colors:outline-1 forced-colors:outline-solid forced-colors:-outline-offset-1";
 

@@ -1178,7 +1178,7 @@ describe("Avatar development messages", () => {
   });
 
   it.each([
-    ["rounded-md", 'shape="square"'],
+    ["rounded-ouro-md", 'shape="square"'],
     ["rounded-none", 'shape="square"'],
     ["bg-blue-500", 'remove "bg-blue-500"; Avatar colors its initials from the name, or pass color="neutral"'],
     ["text-lg", 'size="lg"'],

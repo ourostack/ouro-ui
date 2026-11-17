@@ -144,9 +144,12 @@ export function checkInstall(app, variant, stage) {
     "--radius",
     "--color-input",
     "--radius-md",
+    // Components round with --radius-ouro-*, which only ouro-base adds: an app's own --radius-lg never replaces them.
+    "--radius-ouro-lg",
   ]) {
     if (!declares(name)) problems.push(`${cssPath} does not declare ${name}`);
   }
+  if (!/--radius-ouro-lg\s*:[^;]*--ouro-radius-scale/.test(css)) problems.push(`${cssPath} does not set --radius-ouro-lg from --ouro-radius-scale`);
   // `--x: var(--x)` is a cycle: it only works while another declaration of --x wins the cascade.
   // Only Ouro's tokens are checked: an app's own theme may map a variable that something else
   // sets on an element (shadcn's Next.js theme writes `--font-sans: var(--font-sans)` for next/font).

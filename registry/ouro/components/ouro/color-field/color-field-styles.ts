@@ -45,7 +45,7 @@ function toHex(color: string): string {
 const boxClass =
   "relative m-0 box-border flex w-full min-w-0 items-center gap-2 h-(--ouro-control-h) ps-2 pe-3 py-0 " +
   "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
-  "rounded-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
+  "rounded-ouro-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "has-[input[aria-invalid=true]]:border-destructive has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 " +
@@ -68,7 +68,7 @@ const swatchClass =
  * that takes it.
  * @claim "The swatch where the browser has" registry/ouro/components/ouro/color-field/color-field.test.tsx verify:testExists(registry/ouro/components/ouro/color-field/color-field.test.tsx::ColorField > shows a plain swatch and keeps the hex text where the browser has no color picker)
  */
-const plainSwatchClass = "relative block size-7 shrink-0 rounded-sm border border-solid border-border sm:pointer-fine:size-6";
+const plainSwatchClass = "relative block size-7 shrink-0 rounded-ouro-sm border border-solid border-border sm:pointer-fine:size-6";
 
 /**
  * Whether the browser has a color picker. One without it treats `type="color"` as text, so the
@@ -86,7 +86,7 @@ function supportsColorInput(): boolean {
  * @internal
  */
 const pickerClass =
-  "relative m-0 box-border block size-full cursor-[inherit] appearance-none rounded-sm border border-solid border-border bg-transparent p-0 " +
+  "relative m-0 box-border block size-full cursor-[inherit] appearance-none rounded-ouro-sm border border-solid border-border bg-transparent p-0 " +
   "outline-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[inherit] [&::-webkit-color-swatch]:border-0 " +
   "[&::-moz-color-swatch]:rounded-[inherit] [&::-moz-color-swatch]:border-0";
 

@@ -137,5 +137,5 @@ const plotClass =
   "[&_.recharts-reference-line_[stroke='#ccc']]:stroke-border " +
   "[&_.recharts-dot[stroke='#fff']]:stroke-transparent " +
   "[&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden " +
-  "[&_.recharts-surface]:rounded-md [&_.recharts-surface]:outline-ring [&_.recharts-surface]:outline-offset-2 " +
+  "[&_.recharts-surface]:rounded-ouro-md [&_.recharts-surface]:outline-ring [&_.recharts-surface]:outline-offset-2 " +
   "[&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid";

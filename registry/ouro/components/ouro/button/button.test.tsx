@@ -85,6 +85,20 @@ describe("button branch", () => {
     expect(button.textContent).toBe("Go");
   });
 
+  it("is a medium-weight label on one line, in a 1px solid border, rounded on Ouro's lg step", async () => {
+    const { button } = await render(<Button>Save the draft</Button>);
+    const style = getComputedStyle(button);
+    expect(style.fontWeight).toBe("500");
+    expect(style.whiteSpace).toBe("nowrap");
+    expect(style.borderTopStyle).toBe("solid");
+    expect(style.borderTopWidth).toBe("1px");
+    const step = document.body.appendChild(document.createElement("div"));
+    mounted.push(step);
+    step.style.borderRadius = "var(--radius-ouro-lg)";
+    expect(parseFloat(style.borderTopLeftRadius)).toBeGreaterThan(0);
+    expect(style.borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
+  });
+
   it("names its variant in data-variant, on buttons and links, so groups can style by look", async () => {
     const { host } = await render(
       <>

@@ -41,7 +41,7 @@ const gridClass = "m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100
  */
 const thumbnailClass =
   "group press relative box-border block aspect-4/3 w-full m-0 p-0 overflow-hidden cursor-zoom-in " +
-  "rounded-lg border border-solid border-border bg-muted [-webkit-tap-highlight-color:transparent] " +
+  "rounded-ouro-lg border border-solid border-border bg-muted [-webkit-tap-highlight-color:transparent] " +
   "motion-safe:active:scale-(--ouro-press-scale) " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
@@ -102,7 +102,7 @@ const mosaicFrameClass =
 /** The mosaic's frame: rounded corners and a hairline, with the card colour in the gaps between its pictures. @internal */
 const mosaicClass =
   "relative m-0 grid w-full list-none gap-0.5 overflow-hidden p-0 " +
-  "rounded-lg border border-solid border-border bg-card";
+  "rounded-ouro-lg border border-solid border-border bg-card";
 
 /**
  * A mosaic's cell; the first of three spans both rows. @internal
@@ -195,7 +195,7 @@ const figureClass =
  * @claim "as large as fits and never cropped" registry/ouro/components/ouro/lightbox/lightbox.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.test.tsx::Lightbox viewer > fits the image to the screen, uncropped, with the caption right under it, on a phone and on a desktop)
  */
 const imageClass =
-  "block min-h-0 max-h-full max-w-full object-contain rounded-lg ring-1 ring-border/60 outline-ring outline-offset-2 " +
+  "block min-h-0 max-h-full max-w-full object-contain rounded-ouro-lg ring-1 ring-border/60 outline-ring outline-offset-2 " +
   "in-[[data-ouro-carousel-viewport]:focus-visible]:outline-2 in-[[data-ouro-carousel-viewport]:focus-visible]:outline-solid";
 
 /**
@@ -207,7 +207,7 @@ const imageClass =
  * @claim "a swipe that reaches its edge" registry/ouro/components/ouro/lightbox/lightbox-styles.ts verify:fileLine(registry/ouro/components/ouro/lightbox/lightbox-styles.ts, /overflow-auto overscroll-contain/)
  */
 const zoomViewClass =
-  "absolute inset-0 flex overflow-auto overscroll-contain rounded-lg bg-popover " +
+  "absolute inset-0 flex overflow-auto overscroll-contain rounded-ouro-lg bg-popover " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "forced-colors:border forced-colors:border-solid";
 

@@ -162,7 +162,7 @@ describe("Stack development messages", () => {
 
   it.each([
     ["bg-muted", "<Card> for a surface, or wrap the Stack in an element of your own"],
-    ["rounded-lg", "<Card> for a surface, or wrap the Stack in an element of your own"],
+    ["rounded-ouro-lg", "<Card> for a surface, or wrap the Stack in an element of your own"],
     ["text-red-500", '<Text tone="destructive"> on the text inside'],
     ["font-bold", "<Text> or <Heading> on the text inside"],
     ["text-center", "<Text align=\"center\"> on the text inside, or <Stack align=\"center\"> to center the children"],

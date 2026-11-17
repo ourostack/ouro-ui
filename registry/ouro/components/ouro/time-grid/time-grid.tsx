@@ -989,7 +989,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             {nowAt && todayIndex >= 0 ? (
               <span data-ouro-time-grid-now-label="" className="absolute end-1 flex -translate-y-1/2 flex-col items-end gap-0.5" style={{ top: nowTop }}>
                 {nowAdornment ? <span className="absolute end-0 bottom-full mb-0.5">{nowAdornment}</span> : null}
-                <span className="rounded-sm bg-background px-0.5 text-[11px] leading-4 font-semibold whitespace-nowrap text-destructive tabular-nums">
+                <span className="rounded-ouro-sm bg-background px-0.5 text-[11px] leading-4 font-semibold whitespace-nowrap text-destructive tabular-nums">
                   {nowText}
                 </span>
               </span>
@@ -1026,7 +1026,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     {hover?.day === index ? (
                       <span
                         data-ouro-time-grid-slot=""
-                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-md border border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground"
+                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground"
                         style={{ top: minutesTall(hover.minutes), height: minutesTall(slotMinutes) }}
                       >
                         {formats.time.format(formats.clock.instant(day, hover.minutes))}

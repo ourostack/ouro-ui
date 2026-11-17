@@ -145,7 +145,7 @@ export function nearestCorner(
  * @claim "The picture's classes: a raised surface" registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx verify:testExists(registry/ouro/components/ouro/snap-pip/snap-pip.test.tsx::SnapPiP > jumps to its corner with reduced motion, with no lift and no rubberband)
  */
 export const pipClass = [
-  "absolute isolate box-border touch-none rounded-xl bg-muted text-foreground select-none data-dragging:cursor-grabbing",
+  "absolute isolate box-border touch-none rounded-ouro-xl bg-muted text-foreground select-none data-dragging:cursor-grabbing",
   "shadow-(--shadow-lg) ring-1 ring-white/10 data-dragging:shadow-(--shadow-2xl)",
   "motion-safe:transition-[scale,box-shadow] motion-safe:duration-(--ouro-duration-fast) motion-safe:ease-(--ouro-ease-out) motion-safe:data-dragging:scale-[1.04]",
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
@@ -170,7 +170,7 @@ export const hintClass = [
 
 /** The hint itself: one quiet line, as a tooltip is. */
 export const hintTextClass =
-  "block rounded-md bg-foreground px-2 py-1 text-xs leading-4 text-balance text-background forced-colors:border forced-colors:border-solid";
+  "block rounded-ouro-md bg-foreground px-2 py-1 text-xs leading-4 text-balance text-background forced-colors:border forced-colors:border-solid";
 
 /** How long the pointer rests on the picture before the hint shows, in ms: a tooltip's delay. */
 export const HINT_DELAY = 600;

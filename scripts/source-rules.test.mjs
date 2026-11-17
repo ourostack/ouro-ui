@@ -9,7 +9,7 @@ import postcss from "postcss";
 import { findOffendersInSource } from "../registry/ouro/source-rules/source-rules.mjs";
 import { viewportClass } from "../registry/ouro/components/ouro/toast/toaster-styles.ts";
 import { cn } from "../registry/ouro/lib/ouro/cn.ts";
-import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
+import { alarmingFileName, alarmingTestTitle, comments, directTabPresses, duplicateTestNames, hasClientDirective, leadingComment, namedRenderFunctions, needsClientDirective, layoutAnimationAllowed, physicalAllowed, physicalUtilities, pollTimeoutFiles, radiusSteps, realClockEscapeKeys, realClockEscapes, realClockProblems, shortPollTimeouts, testNames, timerBoundFiles, timerBoundReads, unpreservedHints } from "./source-rules.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
@@ -656,6 +656,38 @@ test("no component places, pads, borders or rounds a part by a physical side unl
       assert.ok(physicalUtilities(path, read(path).text, {}).some((found) => found.endsWith(`: ${token}`)), `${path} no longer uses ${token}: remove it from physicalAllowed`);
     }
   }
+});
+
+test("radiusSteps finds a shadcn radius step, a variant's or a side's included, and a var of one", () => {
+  const source = [
+    'const a = "rounded-lg first:rounded-s-md rounded-t-xl !rounded-sm data-[state=open]:rounded-2xl";',
+    'const b = `rounded-[calc(var(--radius-md)-1px)] style var(--radius-lg)`;',
+  ].join("\n");
+  assert.deepEqual(radiusSteps("x.tsx", source), [
+    "1: rounded-lg",
+    "1: first:rounded-s-md",
+    "1: rounded-t-xl",
+    "1: !rounded-sm",
+    "1: data-[state=open]:rounded-2xl",
+    "2: rounded-[calc(var(--radius-md)-1px)]",
+    "2: var(--radius-lg)",
+  ]);
+});
+
+test("radiusSteps leaves Ouro's own steps, circles, zero and the bare rounded class alone, and reads no comment", () => {
+  const source = [
+    '// rounded-lg in a comment',
+    'const a = "rounded-ouro-lg first:rounded-ouro-md rounded-t-ouro-xl rounded-full rounded-none rounded rounded-lgx rounded-[12px] var(--radius-ouro-lg)";',
+  ].join("\n");
+  assert.deepEqual(radiusSteps("x.tsx", source), []);
+});
+
+test("no component or lib file rounds with a shadcn radius step, so every app gets Ouro's corners", () => {
+  const runtime = tracked("registry/ouro/components/**/*.ts", "registry/ouro/components/**/*.tsx", "registry/ouro/lib/ouro/**/*.ts", "registry/ouro/lib/ouro/**/*.tsx").filter(
+    (path) => !/\.(test|test-d|stories)\.tsx?$|\.d\.ts$|\/lib\/ouro\/testing\/|\/e2e\/|\/theme\//.test(path),
+  );
+  const offenders = runtime.map(read).flatMap(({ path, text }) => radiusSteps(path, text).map((found) => `${path}:${found}`));
+  assert.deepEqual(offenders, [], "Round with Ouro's own step: rounded-ouro-lg (or var(--radius-ouro-lg) in a style). shadcn init's --radius-* steps keep shadcn's values in an app, so Ouro's corner shape and --ouro-radius-scale would not reach it.");
 });
 
 test("no component or theme file animates a layout property unless layoutAnimationAllowed says why, and every allowance is still used", () => {
