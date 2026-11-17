@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { judgedOn, knownFindings, knownProblems, type KnownFinding } from "./check-known.ts";
+import { judgedOn, knownFindings, knownProblems, staleEntries, type KnownFinding } from "./check-known.ts";
 
 // Every known finding names the open issue that tracks it, by a positive issue number, and says why it stays. A cast or
 // a missing field must not get past the type, so the data itself is checked here, and the check is proved to fail.
@@ -28,5 +28,21 @@ describe("known findings name an issue and a reason", () => {
     expect(judgedOn("lone-word", "linux")).toBe(true);
     expect(judgedOn("lone-word", "darwin")).toBe(false);
     expect(judgedOn("disabled-no-reason", "darwin")).toBe(true);
+  });
+});
+
+// A finding that shows on some runs and not others must not fail a run where it didn't show, or unrelated pull requests
+// go red (#1957); an ordinary entry still fails once its finding is gone, so the list still shrinks with each fix.
+describe("known findings that show only sometimes", () => {
+  const base = { story: "Message/Chat", rule: "overlap", issue: 1957, reason: "A reason." };
+
+  it("keeps an entry marked sometimes when a run doesn't show its finding, and an ordinary entry goes stale", () => {
+    expect(staleEntries([{ ...base, sometimes: true }], [])).toEqual([]);
+    expect(staleEntries([base], [])).toEqual([base]);
+    expect(staleEntries([base], [{ rule: "overlap" }])).toEqual([]);
+  });
+
+  it("marks Message/Chat's overlap as sometimes, since it comes and goes on CI with no change to Message", () => {
+    expect(knownFindings.find((entry) => entry.story === "Message/Chat" && entry.rule === "overlap")?.sometimes).toBe(true);
   });
 });

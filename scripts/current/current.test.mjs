@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-check.mjs";
-import { BRANCH, body, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
+import { BRANCH, body, createSources, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { checkRulesSection } from "./known.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
 import { UPDATERS, findPins, isBehind, isCandidate } from "./pins.mjs";
@@ -1406,4 +1406,48 @@ test("an Ouro check rule an update brings in has the findings the pull request's
   await keepRepo(repo.gh, "o/r", RELEASES, sources);
   assert.equal(repo.refs.get(BRANCH), head);
   assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), seeded);
+});
+
+test("when a failing shard cancelled the others and the round pushes nothing, the check's workflow is dispatched on the branch for a full run", async () => {
+  const lockOf = (commit, text) => JSON.stringify({ schemaVersion: 1, sources: [{ id: "check", repository: "ourostack/ouro-ui", commit, files: [{ sourcePath: "registry/ouro/check/run.ts", generatedPath: "scripts/ouro/check/run.ts", sha256: sha256(text) }] }] }, null, 2);
+  const old = 'const RULES = ["overlap"];\n';
+  const start = { "upstream-sources.lock.json": lockOf("old", old), "scripts/ouro/check/run.ts": old, "ouro-check.json": '{\n  "waive": {}\n}\n' };
+  const tarball = async () => new Map([["registry/ouro/check/run.ts", Buffer.from('const RULES = ["overlap", "linked-card-dead-zone"];\n')]]);
+  for (const [dispatch, said] of [[204, /^dispatched workflow 7 on ouro-current\/update/], [403, /^could not dispatch workflow 7 on ouro-current\/update \(403\)/]]) {
+    const repo = fakeRepo(start, { dispatch });
+    const reports = [{ findings: [{ rule: "linked-card-dead-zone", detail: "a click on 17 of 19 spots on it opens nothing" }] }];
+    let cut = [];
+    const sources = { tarball, ciReports: async () => reports, ciCutShort: async (gh, name, sha) => (sha === repo.refs.get(BRANCH) ? cut : []) };
+    await keepRepo(repo.gh, "o/r", RELEASES, sources);
+    cut = [7];
+    const seeded = await keepRepo(repo.gh, "o/r", RELEASES, sources);
+    assert.equal(seeded.pr.pushed, true);
+    assert.equal(seeded.pr.fullRun, undefined, "a round that pushes starts new checks of its own, so it dispatches nothing");
+    assert.ok(!repo.calls.some((call) => call.startsWith("dispatch")));
+    const settled = await keepRepo(repo.gh, "o/r", RELEASES, sources);
+    assert.equal(settled.pr.pushed, false);
+    assert.match(settled.pr.fullRun, said);
+    assert.deepEqual(repo.calls.filter((call) => call.startsWith("dispatch")), [`dispatch 7 on ${BRANCH}${dispatch < 400 ? "" : ` refused ${dispatch}`}`]);
+  }
+});
+
+test("ciCutShort names a check workflow whose run had a cancelled job, until a run of it is dispatched on the commit", async () => {
+  const runs = [
+    { id: 1, workflow_id: 7, event: "pull_request", status: "completed" },
+    { id: 2, workflow_id: 8, event: "pull_request", status: "completed" },
+    { id: 3, workflow_id: 9, event: "pull_request", status: "completed" },
+  ];
+  const jobs = { 1: ["failure", "cancelled", "success"], 2: ["success"], 3: ["cancelled"] };
+  const artifacts = { 1: ["ouro-check-5-of-6"], 2: ["ouro-check-1-of-1"], 3: ["site-checks-logs"] };
+  const client = { get: async (path) => {
+    if (/actions\/runs\?head_sha=/.test(path)) return { workflow_runs: runs };
+    const [, id, kind] = /runs\/(\d+)\/(jobs|artifacts)/.exec(path);
+    return kind === "jobs" ? { jobs: jobs[id].map((conclusion) => ({ conclusion })) } : { artifacts: artifacts[id].map((name) => ({ name })) };
+  } };
+  const sources = createSources(client);
+  assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [7], "only the check's workflow, and only when a job was cancelled");
+  runs.push({ id: 4, workflow_id: 7, event: "workflow_dispatch", status: "in_progress" });
+  assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [], "a full run already started on the commit");
+  const failing = { get: async () => { throw Object.assign(new Error("no"), { status: 403 }); } };
+  assert.deepEqual(await createSources(failing).ciCutShort(failing, "o/r", "abc"), []);
 });
