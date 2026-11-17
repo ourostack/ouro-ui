@@ -91,12 +91,6 @@ export const knownFindings: KnownFinding[] = [
     reason: "The description's last line is the end of a hyphenated word at this width; the copy is the story's.",
   },
   {
-    story: "Item/Steps",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "A step's text ends on one word at this width; the copy is the story's, not a component's wrap.",
-  },
-  {
     story: "ItemGroup/InContext",
     rule: "lone-word",
     issue: 1955,
@@ -115,10 +109,10 @@ export const knownFindings: KnownFinding[] = [
     reason: "The name and status sit over the letterboxed picture's box, which the story draws contained; the label is the tile's own overlay.",
   },
   {
-    story: "Message/Posts",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "A message's text ends on one word at this width; the copy is the story's, not a component's wrap.",
+    story: "Message/Chat",
+    rule: "overlap",
+    issue: 1957,
+    reason: "On Linux, a thumbs-up reaction (3px by 3px where it meets the text) overlaps the end of the message's text at this width; the reaction chip hangs over its bubble's edge.",
   },
   {
     story: "Message/Quote",
@@ -137,12 +131,6 @@ export const knownFindings: KnownFinding[] = [
     rule: "nested-frame",
     issue: 1958,
     reason: "In dark, the reply's 2px quote bar sits inside its 14px-cornered blockquote and nests at 8px by the rule, as the bar in Message/Quote does.",
-  },
-  {
-    story: "Message/Thread",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "A message's text ends on one word at this width; the copy is the story's, not a component's wrap.",
   },
   {
     story: "MessageList/LongConversation",
@@ -173,12 +161,6 @@ export const knownFindings: KnownFinding[] = [
   { story: "ReactionBar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Reorderable/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "SegmentedControl/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  {
-    story: "Sheet/NonModal",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "A paragraph of the sheet's copy ends on one word at this width; the copy is the story's, not a component's wrap.",
-  },
   { story: "Sidebar/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
   { story: "SidebarLayout/InContext", rule: "type-scale", issue: 1956, reason: layoutWeights },
   { story: "SidebarLayout/Playground", rule: "type-scale", issue: 1956, reason: layoutWeights },
@@ -218,4 +200,22 @@ export const knownFindings: KnownFinding[] = [
   { story: "Toggle/States", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
   { story: "ToggleGroup/Modes", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Toolbar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
+  {
+    story: "LiveCaptions/ReadAloud",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
+  },
+  {
+    story: "LiveCaptions/ReducedMotion",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
+  },
+  {
+    story: "DescriptionList/InANarrowPane",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The description's last line is one word, 'follow.', at this width in a narrow pane; the copy is the story's.",
+  },
 ];
