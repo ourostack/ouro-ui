@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Ouro Current adds to an app's stylesheet what an updated `ouro-base` or `ouro-theme` puts there and the stylesheet lacks, as `shadcn add` would, keeping the app's own values, so components that round with `rounded-ouro-*` (#1843) get their `--radius-ouro-*` tokens; an app already on the release whose stylesheet lacks them gets that update too.
