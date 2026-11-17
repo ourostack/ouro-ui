@@ -1,0 +1,1 @@
+- Fix: Empty with variant="plain" and align="start" lines its text up with the text around it, as its docs say, rather than indenting it.
