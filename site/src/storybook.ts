@@ -63,7 +63,7 @@ export const SCENES: Record<SceneName, Scene> = {
     phoneHeight: 576,
     band: 16,
     shortY: 20,
-    night: { phoneHeight: 576, alt: "At night in a calm studio by a window onto a city park, a small white robot in a blue apron checks the same settings card on a phone, a tablet and a laptop lined up on a long pale table, while Ouro, a smiling emerald snake curled into an O, watches from a folded cloth." },
+    night: { phoneHeight: 576, alt: "At night under a crescent moon, in a calm studio by a window onto a city park with a few lit windows across it, a small white robot in a blue apron checks the same settings card on a phone, a tablet and a laptop lined up on a long pale table, while Ouro, a smiling emerald snake curled into an O, watches from a folded cloth." },
   },
   "ouro-ui-core": {
     alt: "In a bright colour library under a skylight, a small lilac robot lays a row of colour chips on a glowing white table while a faceless glass designer holds a green chip up to the light, and Ouro, a smiling emerald snake curled into an O, rests on a felt pad at the table's end.",
