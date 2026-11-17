@@ -331,10 +331,11 @@ if [ "$variant" = current ]; then
   npx tsc -b
   npx vite build
   cp -R "$root/test/install-fixture-tests/." "$app/"
-  # The -tests items whose tests read `--radius-ouro-*`; the components are left as Ouro Current wrote them.
+  # The -tests items whose tests compare a component's corners with Ouro's radius steps, through a probe that
+  # wears a `rounded-ouro-*` class or reads `--radius-ouro-*`; the components are left as Ouro Current wrote them.
   # shellcheck disable=SC2207 # item names have no spaces
-  radius_tests=($(grep -rl --include='*.test.tsx' -e '--radius-ouro' "$root/registry/ouro/components" | sed -E 's|.*/([^/]+)\.test\.tsx$|\1|' | sort -u))
-  [ "${#radius_tests[@]}" -gt 0 ] || { echo "no shipped test reads --radius-ouro-*"; exit 1; }
+  radius_tests=($( (grep -rlE --include='*.test.tsx' -e '--radius-ouro|className = "absolute rounded-ouro-' "$root/registry/ouro/components" || true) | sed -E 's|.*/([^/]+)\.test\.tsx$|\1|' | sort -u))
+  [ "${#radius_tests[@]}" -gt 0 ] || { echo "no shipped test compares a component's corners with Ouro's radius steps"; exit 1; }
   test_items=()
   test_files=()
   for stem in "${radius_tests[@]}"; do

@@ -12,6 +12,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
 /** One entry of the list, and what its detail shows. Replace it with your app's records. */
 export interface Entry {
@@ -55,7 +56,8 @@ const sampleEntries: Entry[] = [
  * what your app shows.
  *
  * What it already does, which Ouro's own tests cover, so your tests need only cover what
- * you add: pressing a row shows its entry and marks the row shown; the search narrows the
+ * you add: pressing a row shows its entry and marks the row shown (on a phone, only while the entry
+ * shows in the list's place); the search narrows the
  * list and says when nothing matches; on a phone the detail replaces the list, focus moves
  * to its heading, and Back returns to the row.
  *
@@ -72,6 +74,7 @@ const sampleEntries: Entry[] = [
  * - `PageHeader`: `title`, `description`, `actions`. `Button`: `variant`. `Stack`: `gap`.
  * A component's whole API is on its page, https://ui.ouroboros.bot/docs/<item>.md.
  *
+ * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone marks a row shown only while its entry shows in the list's place)
  * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > shows the entry a row's press chooses, and marks that row shown)
  * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > narrows the list as you search, says how many match to a screen reader, and says when nothing matches)
  * @claim "What it already does, which Ouro's own" test/patterns.test.tsx verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone shows the list first, the detail in its place once chosen with focus on its heading, and Back to the row)
@@ -103,6 +106,9 @@ export function ListDetailPage({
   const open = entries.find((entry) => entry.id === openId) ?? entries[0];
   // On a phone the detail shows in the list's place while there is one to read.
   const inPlace = reading && open !== undefined;
+  // Beside the list (md and wider) the chosen entry always shows; on a phone, only in the list's place.
+  const wide = useMediaQuery("(min-width: 48rem)", true);
+  const showing = wide || inPlace ? open : undefined;
   const choose = (id: string) => {
     setOpenId(id);
     setReading(true);
@@ -149,7 +155,7 @@ export function ListDetailPage({
                   title={entry.title}
                   description={entry.summary}
                   size="sm"
-                  selected={entry.id === open?.id}
+                  selected={entry.id === showing?.id}
                   onSelect={() => choose(entry.id)}
                   buttonRef={(node) => void (node ? rows.current.set(entry.id, node) : rows.current.delete(entry.id))}
                 />

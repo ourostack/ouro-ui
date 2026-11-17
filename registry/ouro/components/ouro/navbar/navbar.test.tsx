@@ -217,11 +217,11 @@ describe("Navbar", () => {
     await expect.element(nav.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "page");
     await expect.poll(() => Math.round(sheet.element().getBoundingClientRect().left)).toBe(0);
     // Each link is a row with room at its sides and corners rounded on Ouro's md step, as the theme sets it.
-    const row = getComputedStyle(nav.getByRole("link", { name: "Cookbooks" }).element());
-    const step = document.body.appendChild(document.createElement("div"));
+    const link = nav.getByRole("link", { name: "Cookbooks" }).element();
+    const row = getComputedStyle(link);
+    const step = link.appendChild(document.createElement("div"));
     mounted.push(step);
-    step.style.borderRadius = "var(--radius-ouro-md)";
-    step.style.paddingInlineStart = "calc(var(--spacing) * 3)";
+    step.className = "absolute rounded-ouro-md ps-3";
     expect(row.borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
     expect(row.paddingInlineStart).toBe(getComputedStyle(step).paddingInlineStart);
   });

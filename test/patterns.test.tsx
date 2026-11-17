@@ -298,6 +298,22 @@ describe("ListDetailPage", () => {
     expect(shownNow(section())).toBe(false);
   });
 
+  it("on a phone marks a row shown only while its entry shows in the list's place", async () => {
+    await page.viewport(390, 844);
+    await render(<ListDetailPage />);
+    const current = () => host.querySelectorAll("[aria-current]").length;
+    expect(current()).toBe(0);
+    await userEvent.click(row("Lentil soup"));
+    await expect.element(page.getByRole("heading", { level: 2, name: "Lentil soup" })).toBeVisible();
+    // Found by tag, since the list is hidden while the detail shows in its place.
+    expect(host.querySelector("[aria-current]")?.textContent).toBe("Lentil soup");
+    await userEvent.click(page.getByRole("button", { name: "Back to recipes" }));
+    await expect.element(row("Lentil soup")).toBeVisible();
+    expect(current()).toBe(0);
+    await page.viewport(1280, 800);
+    await expect.poll(() => row("Lentil soup").element().getAttribute("aria-current")).toBe("true");
+  });
+
   it("leaves focus where it was on a wide screen, where the detail is beside the list, and hides the way back", async () => {
     await render(<ListDetailPage />);
     await userEvent.click(row("Lentil soup"));

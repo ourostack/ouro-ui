@@ -206,9 +206,9 @@ describe("ImageCropper", () => {
     await expect.element(page.getByRole("dialog", { name: "Crop cover" })).toBeVisible();
     await expect.poll(() => area().getBoundingClientRect().height).toBe(162);
     // The rectangle keeps its corners, rounded on Ouro's lg step as the theme sets it.
-    const step = document.body.appendChild(document.createElement("div"));
+    const step = area().appendChild(document.createElement("div"));
     mounted.push(step);
-    step.style.borderRadius = "var(--radius-ouro-lg)";
+    step.className = "absolute rounded-ouro-lg";
     expect(parseFloat(getComputedStyle(area()).borderTopLeftRadius)).toBeGreaterThan(0);
     expect(getComputedStyle(area()).borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
   });
