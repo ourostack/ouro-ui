@@ -172,12 +172,20 @@ async function openPr(gh, repo, owner) {
   return list[0] ?? null;
 }
 
-/** Turns on auto-merge (squash where allowed, else a merge commit), or says why it could not. */
-async function autoMerge(gh, pr) {
+/**
+ * Turns on auto-merge (squash where allowed, else a merge commit), or says why it could not. The merge commit's
+ * headline and body are given, never left to GitHub: its default squash text adds a `Co-authored-by: ouro-current[bot]`
+ * trailer, which the organisation's no-AI-attribution rule forbids on main.
+ */
+async function autoMerge(gh, pr, commitBody) {
   const failures = [];
+  const commitHeadline = `${pr.title} (#${pr.number})`;
   for (const method of ["SQUASH", "MERGE", "REBASE"]) {
     try {
-      await gh.graphql("mutation($id: ID!, $method: PullRequestMergeMethod!) { enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: $method }) { clientMutationId } }", { id: pr.node_id, method });
+      await gh.graphql(
+        "mutation($id: ID!, $method: PullRequestMergeMethod!, $headline: String, $body: String) { enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: $method, commitHeadline: $headline, commitBody: $body }) { clientMutationId } }",
+        { id: pr.node_id, method, headline: commitHeadline, body: commitBody },
+      );
       return { on: true, note: null };
     } catch (error) {
       failures.push(error.message);
@@ -279,7 +287,8 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   if (existing && !existing.ours && existingPr) {
     return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "edited by someone else, so left alone", pushed: false, edited: true } };
   }
-  const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}${MARK}${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`, existing);
+  const moves = `${MARK.trim()} ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`;
+  const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\n${moves}`, existing);
   if (commit.changed) {
     try {
       if (existing) await gh.patch(`repos/${repo}/git/refs/heads/${BRANCH}`, { sha: commit.sha, force: true });
@@ -298,7 +307,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   } else {
     pr = await gh.post(`repos/${repo}/pulls`, { title: name, body: text, head: BRANCH, base });
   }
-  const merge = await autoMerge(gh, pr);
+  const merge = await autoMerge(gh, pr, moves);
   return { ...result, state: "pr", pr: { number: pr.number, url: pr.html_url, title: name, autoMerge: merge.on, note: merge.note, pushed: commit.changed } };
 }
 
