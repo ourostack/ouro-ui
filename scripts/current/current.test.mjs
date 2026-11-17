@@ -121,6 +121,55 @@ test("Ouro HX takes the new tag's source as the CLI would write it, adds files i
   assert.ok(update.notes.some((note) => note.includes("alert.tsx") && /edited here/.test(note)));
 });
 
+test("Ouro HX adds the items an updated item now depends on, as the CLI follows registryDependencies, and leaves the app's own files alone", async () => {
+  const kbd = (v, imports) => `${imports}import { cn } from "@/registry/ouro/lib/ouro/cn";\nexport const Kbd = "${v}";\n`;
+  const lib = (name) => ({ name: `lib-${name}`, files: [{ path: `registry/ouro/lib/ouro/${name}.ts`, target: `@lib/ouro/${name}.ts` }] });
+  const oldRegistry = { items: [
+    { name: "kbd", registryDependencies: ["ourostack/ouro-ui/lib-cn#v1.3.117"], files: [{ path: "registry/ouro/components/ouro/kbd/kbd.tsx", target: "@components/ouro/kbd/kbd.tsx" }] },
+    lib("cn"),
+  ] };
+  const registry = { items: [
+    // As v1.3.232 lists kbd: addresses pinned to the tag, and a dependency that has its own (use-platform needs platform).
+    { name: "kbd", registryDependencies: ["ourostack/ouro-ui/lib-cn#v1.3.187", "ourostack/ouro-ui/lib-use-platform#v1.3.187"], files: [{ path: "registry/ouro/components/ouro/kbd/kbd.tsx", target: "@components/ouro/kbd/kbd.tsx" }] },
+    { ...lib("use-platform"), registryDependencies: ["ourostack/ouro-ui/lib-platform#v1.3.187"] },
+    lib("platform"),
+    lib("cn"),
+    lib("unrelated"),
+    { name: "lib-own", files: [{ path: "registry/ouro/lib/ouro/own.ts", target: "@lib/ouro/own.ts" }] },
+  ] };
+  registry.items[1].registryDependencies.push("ourostack/ouro-ui/lib-own#v1.3.187");
+  const newImports = 'import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";\n';
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const previous = files({ "registry.json": JSON.stringify(oldRegistry), "registry/ouro/components/ouro/kbd/kbd.tsx": kbd("v1", ""), "registry/ouro/lib/ouro/cn.ts": "cn" });
+  const next = files({
+    "registry.json": JSON.stringify(registry),
+    "registry/ouro/components/ouro/kbd/kbd.tsx": kbd("v2", newImports),
+    "registry/ouro/lib/ouro/use-platform.ts": 'import type { Platform } from "@/registry/ouro/lib/ouro/platform";\n',
+    "registry/ouro/lib/ouro/platform.ts": "export type Platform = string;\n",
+    "registry/ouro/lib/ouro/cn.ts": "cn",
+    "registry/ouro/lib/ouro/unrelated.ts": "unrelated",
+    "registry/ouro/lib/ouro/own.ts": "registry's own",
+  });
+  const record = { tag: "v1.3.117", tagCommit: "old", files: { "app/components/ouro/kbd/kbd.tsx": sha256(kbd("v1", "")), "app/lib/ouro/cn.ts": sha256("cn") } };
+  const consumer = new Map([
+    ["components.json", Buffer.from(JSON.stringify({ aliases: { components: "~/components", lib: "~/lib" } }))],
+    ["app/components/ouro/kbd/kbd.tsx", Buffer.from(kbd("v1", "").replace("@/registry/ouro/lib/", "~/lib/"))],
+    ["app/lib/ouro/cn.ts", Buffer.from("cn")],
+    ["app/lib/ouro/own.ts", Buffer.from("the app's own file")],
+  ]);
+  const ctx = { tarball: async (follows, tag) => (tag === "v1.3.117" ? previous : next), consumerFiles: async () => consumer };
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.equal(update.files["app/lib/ouro/use-platform.ts"].toString(), 'import type { Platform } from "~/lib/ouro/platform";\n', "the item kbd now imports comes with it");
+  assert.equal(update.files["app/lib/ouro/platform.ts"].toString(), "export type Platform = string;\n", "and the item that one depends on");
+  assert.equal(update.files["app/lib/ouro/unrelated.ts"], undefined, "an item nothing installed depends on stays out");
+  assert.equal(update.files["app/lib/ouro/own.ts"], undefined, "a file the app already has outside the record is its own");
+  const written = JSON.parse(update.files[pin.file]);
+  assert.equal(written.files["app/lib/ouro/platform.ts"], sha256("export type Platform = string;\n"));
+  assert.equal(written.files["app/lib/ouro/own.ts"], undefined);
+  assert.ok(update.notes.some((note) => note.includes("app/lib/ouro/use-platform.ts")));
+});
+
 test("Ouro HX keeps each file where the install record has it, as a site keeps Ouro check apart from its components", async () => {
   const registry = (gained) => ({ items: [
     { name: "button", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }, { path: "registry/ouro/lib/ouro/cn.ts", target: "@lib/ouro/cn.ts" }] },

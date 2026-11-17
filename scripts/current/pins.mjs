@@ -90,6 +90,23 @@ function registryTargets(tarball) {
   return out;
 }
 
+/** The item a registryDependencies entry names: `ourostack/ouro-ui/lib-platform#v1.3.232`, a URL to `lib-platform.json`, or `lib-platform`. */
+const dependencyName = (dependency) => dependency.replace(/#.*$/, "").replace(/\.json$/, "").split("/").at(-1);
+
+/** The items `names` install at one tag, with every item they depend on, as the shadcn CLI follows registryDependencies. */
+export function withDependencies(tarball, names) {
+  const registry = JSON.parse(tarball.get("registry.json").toString("utf8"));
+  const byName = new Map((registry.items ?? []).map((item) => [item.name, item]));
+  const out = new Set();
+  const visit = (name) => {
+    if (out.has(name) || !byName.has(name)) return;
+    out.add(name);
+    for (const dependency of byName.get(name).registryDependencies ?? []) visit(dependencyName(dependency));
+  };
+  for (const name of names) visit(name);
+  return out;
+}
+
 /** Where each alias lands in the consumer, read from the paths its install record already holds. */
 function aliasRoots(targets, installed) {
   const votes = {};
@@ -209,9 +226,12 @@ async function updateHxInstalled(pin, text, release, ctx) {
     const bytes = rewrite(source);
     if (!bytes.equals(now)) out[path] = bytes;
   }
+  // A file an updated item now includes, or a file of an item it now depends on (a new `lib/ouro/platform.ts` that an
+  // updated kbd imports), is added as the CLI would add it. A file the app already has outside the record is its own.
+  const wanted = withDependencies(next, items);
   const added = [];
   for (const [path, entry] of after) {
-    if (path in hashes || !items.has(entry.item)) continue;
+    if (path in hashes || !wanted.has(entry.item) || consumer.has(path)) continue;
     const source = next.get(entry.path);
     out[path] = rewrite(source);
     hashes[path] = sha256(source);
