@@ -214,6 +214,9 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
 
   /** Moves the stack to the first place that does not cover `box`, the control focus is on, and that fits. */
   function choose(box: DOMRect): void {
+    // Leaving the bottom, the gap to come back to is the viewport's, where the toasts rest: a toast still sliding in hangs
+    // below the window, and a gap read from it leaves no room to move back to (#1818).
+    if (place !== "top") size.gap = innerHeight - viewport.getBoundingClientRect().bottom;
     const next = CANDIDATES[place].find((candidate) => {
       const area = zone(candidate);
       return area.bottom <= innerHeight && !covers(box, area);
