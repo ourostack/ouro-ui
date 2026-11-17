@@ -833,6 +833,20 @@ describe("audit", () => {
     });
   });
 
+  it("measures a tall paragraph in a picture per screenful, not one per line, as a line once measured is not scrolled back to", async () => {
+    await atPhone(async () => {
+      mountPage(tallParagraph("#fff"));
+      const shots = vi.spyOn(page, "screenshot");
+      try {
+        expect(await measureTextContrast(document.querySelector("#tall")!, 4.5)).toEqual({ pass: true });
+        // The middle, then the top and the bottom: about 1500px of text on an 844px screen.
+        expect(shots.mock.calls.length).toBeLessThanOrEqual(4);
+      } finally {
+        shots.mockRestore();
+      }
+    });
+  });
+
   it("puts back the page's and a scrolled box's scroll positions after it measures a tall paragraph's parts", async () => {
     await atPhone(async () => {
       mountPage(`<div style="height:1000px"></div>${tallParagraph(darkBelowTheFold)}<div style="height:1000px"></div>`);

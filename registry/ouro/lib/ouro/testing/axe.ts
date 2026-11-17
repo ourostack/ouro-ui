@@ -988,7 +988,11 @@ async function measureParts(root: Element, items: Measured[], verdicts: Map<Meas
       if (!verdicts.get(item)!.pass) continue;
       const region = regionOf(item.element, root);
       const seen = tried.get(item)!;
-      const index = textBoxes(item.element).findIndex((box, i) => !seen.has(i) && !within(box, region));
+      // A line the last picture showed whole is measured, so a later scroll that takes it off the screen
+      // does not bring it back: a screenful of lines costs one picture, not one each.
+      const boxes = textBoxes(item.element);
+      boxes.forEach((box, i) => within(box, region) && seen.add(i));
+      const index = boxes.findIndex((_, i) => !seen.has(i));
       if (index >= 0) {
         next = { item, index };
         break;
