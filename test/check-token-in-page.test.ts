@@ -260,19 +260,23 @@ describe("findOffThemeIssues: what an app writes past the theme in other ways", 
 
   it("counts the app's own variable the theme is built from, or that holds a theme value, as the theme's, and judges a fallback by its variable", () => {
     render(`<style>
-      .w { --t-under: #152a1c; --t-paper: #fffaf0; --t-gutter: 1.5rem; --t-ink-soft: #3d4839; --t-odd: 1.1rem; --t-corner: 3px; }
+      .w { --t-under: #152a1c; --t-paper: #fffaf0; --t-gutter: 1.5rem; --t-ink-soft: #3d4839; --t-odd: 1.1rem; --t-corner: 3px; --t-step: 14px; --t-pal: var(--color-red-500); --t-calc: calc(17px + 3px); --t-mix: 0.5em 20px; }
       @media (min-width: 1px) { .w { --t-gutter: 3rem; } }
-      .w-theme { --muted: var(--t-under); --card: #fffaf0; }
-      .w-a { background: var(--t-under); padding: 0 var(--t-gutter); color: var(--t-paper); }
+      .w-theme { --muted: var(--t-under); --secondary: var(--t-under); --accent: var(--muted); --card: #fffaf0; --input: transparent; --ring: var(--t-nowhere); }
+      .w-a { background: var(--t-under); padding: 0 var(--t-gutter); color: var(--t-paper); border-radius: var(--t-step); }
       .w-b { color: var(--t-ink-soft); margin: var(--t-odd); border-radius: var(--t-corner); }
       .w-c { background-color: #1e3d284d; @supports (color: color-mix(in lab, red, red)) { background-color: color-mix(in oklab, var(--t-under) 30%, transparent); } }
       .w-d { background-color: #abcdef; }
-    </style><div class="w w-theme"><div class="w-a">A</div><div class="w-b">B</div><div class="w-c">C</div><div class="w-d">D</div></div>`);
+      .w-e { color: var(--t-pal); margin: var(--t-calc); padding: var(--t-mix); outline-color: var(--t-unset); }
+    </style><div class="w w-theme"><div class="w-a">A</div><div class="w-b">B</div><div class="w-c">C</div><div class="w-d">D</div><div class="w-e">E</div></div>`);
     expect(mine().map(([rule, , detail]) => [rule, detail])).toEqual([
       ["off-theme", expect.stringMatching(/^\.w-b sets color: var\(--t-ink-soft\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
       ["off-scale", ".w-b sets margin: var(--t-odd), a fixed spacing; use calc(var(--spacing) * 4) (m-4)"],
       ["off-theme", expect.stringMatching(/^\.w-b sets border-radius: var\(--t-corner\), a fixed radius; use .+ \(rounded-\w+\)$/)],
       ["off-theme", expect.stringMatching(/^\.w-d sets background: rgb\(171, 205, 239\), a fixed colour; use var\(--[\w-]+\) \(bg-[\w-]+\)$/)],
+      ["off-theme", expect.stringMatching(/^\.w-e sets color: var\(--t-pal\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
+      ["off-scale", expect.stringMatching(/^\.w-e sets margin: var\(--t-calc\), a fixed spacing; use calc\(var\(--spacing\) \* \d+\) \(m-\d+\)$/)],
+      ["off-scale", expect.stringMatching(/^\.w-e sets padding: var\(--t-mix\), a fixed spacing; use calc\(var\(--spacing\) \* 5\) \(p-5\)$/)],
     ]);
   });
 

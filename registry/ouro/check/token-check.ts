@@ -233,7 +233,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
         const selector = outer ? rule.selectorText.replaceAll("&", around) : rule.selectorText;
         found.push({ rule, layer, selector, supports });
         walk(rule.cssRules, layer, selector, supports);
-      } else if (outer && "CSSNestedDeclarations" in window && rule instanceof CSSNestedDeclarations) {
+      } else if (rule.constructor.name === "CSSNestedDeclarations") {
         // Declarations nested in a rule's own @supports, which hold the rule's selector.
         found.push({ rule, layer, selector: outer, supports });
       } else if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule || rule instanceof CSSContainerRule) walk(rule.cssRules, layer, outer, supports || rule instanceof CSSSupportsRule);
@@ -303,7 +303,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
   const onTheme = (kind: string, value: string) => {
     if (kind === "colour") return !palette.test(value) && themeColors.has(JSON.stringify(rgb(value)));
     const all = lengths(value).filter(({ n }) => n !== 0);
-    if (!all.length || value.includes("(")) return false;
+    if (value.includes("(")) return false;
     if (kind === "spacing") return all.every(({ n, unit }) => unit !== "em" && Number.isInteger(Math.round((px(`${n}${unit}`) / spacingPx) * 1000) / 1000));
     if (kind === "radius") return all.every(({ n, unit }) => radiusSteps.some((step) => Math.abs(step.px - px(`${n}${unit}`)) < 0.5));
     return false;
