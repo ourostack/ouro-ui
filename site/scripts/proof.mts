@@ -22,8 +22,9 @@
 // Vitest project), so the line is computed at build time and is never stale.
 // `node site/scripts/proof.mts` prints it.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -157,29 +158,64 @@ export function registryAt(tag: string, root = repo, retryAfter = 2000, tries = 
     // fails while the winner's brings the tag in (ourostack/ouro-ui#1746). So after a failed fetch the tag is read
     // again before the next try, and a failure says what git said first and last. A fetch that stalls is ended, by git
     // when its transfer stops and by a time limit otherwise, so the tries end within the 60 s Vite gives this module
-    // (ourostack/ouro-ui#1757): 4 tries of 10 s and 3 waits of 2 s.
-    const fetch = () =>
-      execFileSync("git", ["-c", "http.lowSpeedLimit=1000", "-c", `http.lowSpeedTime=${Math.ceil(fetchTimeout / 1000)}`, "fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], {
-        cwd: root,
-        stdio: ["ignore", "ignore", "pipe"],
-        timeout: fetchTimeout,
-        killSignal: "SIGKILL",
-      });
+    // (ourostack/ouro-ui#1757): 4 tries of 10 s and 3 waits of 2 s. The time limit ends git with SIGTERM, on which it
+    // removes its lock files (git's tempfile.c), and git's stderr goes to a file, so a helper git leaves behind cannot
+    // hold the call open. A shallow.lock older than the time limit is no live fetch's, so it is removed before a
+    // retry rather than failing every one (ourostack/ouro-ui#1781).
+    const logs = mkdtempSync(join(tmpdir(), "ouro-proof-fetch-"));
+    const shallowLock = () => {
+      try {
+        return resolve(root, execFileSync("git", ["rev-parse", "--git-path", "shallow.lock"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim());
+      } catch {
+        return undefined;
+      }
+    };
+    const clearStaleLock = () => {
+      const lock = shallowLock();
+      try {
+        if (lock && Date.now() - statSync(lock).mtimeMs > fetchTimeout) rmSync(lock);
+      } catch {
+        // no lock, or another process removed it first
+      }
+    };
+    const fetch = (attempt: number) => {
+      const log = join(logs, `${attempt}.log`);
+      const stderr = openSync(log, "w");
+      try {
+        execFileSync("git", ["-c", "http.lowSpeedLimit=1000", "-c", `http.lowSpeedTime=${Math.ceil(fetchTimeout / 1000)}`, "fetch", "--quiet", "--depth=1", "origin", `refs/tags/${tag}:refs/tags/${tag}`], {
+          cwd: root,
+          stdio: ["ignore", "ignore", stderr],
+          timeout: fetchTimeout,
+          killSignal: "SIGTERM",
+        });
+      } catch (error) {
+        throw Object.assign(error as Error, { stderr: readFileSync(log) });
+      } finally {
+        closeSync(stderr);
+      }
+    };
     const said = (error: unknown) => String((error as { stderr?: Buffer }).stderr ?? "").trim() || String(error);
     const failures: unknown[] = [];
-    for (let attempt = 0; attempt < tries; attempt++) {
-      if (attempt > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, retryAfter);
-      try {
-        fetch();
-        return show();
-      } catch (error) {
-        failures.push(error);
+    try {
+      for (let attempt = 0; attempt < tries; attempt++) {
+        if (attempt > 0) {
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, retryAfter);
+          clearStaleLock();
+        }
         try {
+          fetch(attempt);
           return show();
-        } catch {
-          // still missing: try the fetch again
+        } catch (error) {
+          failures.push(error);
+          try {
+            return show();
+          } catch {
+            // still missing: try the fetch again
+          }
         }
       }
+    } finally {
+      rmSync(logs, { recursive: true, force: true });
     }
     throw new Error(`git fetch of ${tag} failed ${tries} times, ${retryAfter} ms apart, each within ${fetchTimeout} ms. First: ${said(failures[0])}. Last: ${said(failures.at(-1))}`, { cause: failures.at(-1) });
   }
