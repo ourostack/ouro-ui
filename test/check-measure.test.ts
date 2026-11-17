@@ -126,6 +126,18 @@ describe("listenForMeasures", () => {
     expect(m.painted.get(document.getElementById("after")!)?.frame).toBe(1);
   });
 
+  it("keeps each control's HTML as its frame drew it, whitespace collapsed and cut at 500 characters", async () => {
+    const m = measures();
+    host = render(`<button id="short" class="a">Save
+      now</button><button id="long">${"word ".repeat(200)}</button>`);
+    await frames();
+    document.getElementById("short")!.textContent = "Changed";
+    expect(m.painted.get(document.getElementById("short")!)?.html).toBe('<button id="short" class="a">Save now</button>');
+    const long = m.painted.get(document.getElementById("long")!)!.html;
+    expect(long).toHaveLength(501);
+    expect(long.endsWith("…")).toBe(true);
+  });
+
   it("marks a control a skeleton, or one allowed first-paint-swap with a reason, holds as skipped", async () => {
     host = render(`
       <div aria-busy="true"><button id="busy">Busy</button></div>
@@ -191,7 +203,7 @@ const control = (text: string, attributes: Record<string, string> = {}) => {
   for (const [key, value] of Object.entries(attributes)) button.setAttribute(key, value);
   return button;
 };
-const drew = (el: Element, frame: number, box: Painted["box"] = rectOf(el), skipped = false): [Element, Painted] => [el, { frame, box, skipped }];
+const drew = (el: Element, frame: number, box: Painted["box"] = rectOf(el), skipped = false, html = el.outerHTML): [Element, Painted] => [el, { frame, box, skipped, html }];
 const swaps = async (painted: Measures["painted"]) => {
   recorded({ painted });
   return (await findLoadingIssues(budgets)).filter((issue) => issue.rule === "first-paint-swap");
@@ -204,8 +216,15 @@ describe("findLoadingIssues: first-paint-swap", () => {
     host.append(more);
     const settings = control("Settings");
     const tasks = control("Tasks");
-    expect(await swaps(new Map([drew(settings, 1, rectOf(more)), drew(more, 2), drew(tasks, 1, rectOf(more))]))).toEqual([
-      { ref: "m1", rule: "first-paint-swap", element: 'button "More"', detail: 'button "Settings" drew in the first frame, then button "More" took its place without input' },
+    expect(await swaps(new Map([drew(settings, 1, rectOf(more)), drew(more, 2, rectOf(more), false, '<button class="first">More</button>'), drew(tasks, 1, rectOf(more))]))).toEqual([
+      {
+        ref: "m1",
+        rule: "first-paint-swap",
+        element: 'button "More"',
+        detail: 'button "Settings" drew in the first frame, then button "More" took its place without input',
+        // Each as first drawn and at rest; the gone one has left the page.
+        swap: { gone: { first: "<button>Settings</button>", rest: null }, taker: { first: '<button class="first">More</button>', rest: "<button>More</button>" } },
+      },
     ]);
     expect(more.getAttribute("data-ouro-check-ref")).toBe("m1");
   });
@@ -235,6 +254,26 @@ describe("findLoadingIssues: first-paint-swap", () => {
       drew(control("Hidden gone"), 1, rectOf(hiddenTaker)), drew(hiddenTaker, 2),
       drew(control("Far"), 1, far), drew(farTaker, 2),
     ]))).toEqual([]);
+  });
+
+  it("gives a gone control's HTML at rest when it is still in the page but hidden, and cuts long HTML at 500 characters", async () => {
+    host = render("");
+    const more = control(`More ${"word ".repeat(200)}`);
+    host.append(more);
+    const hidden = control("Settings", { hidden: "" });
+    host.append(hidden);
+    const [issue] = await swaps(new Map([drew(hidden, 1, rectOf(more), false, "<button>Settings</button>"), drew(more, 2)]));
+    expect(issue!.swap!.gone).toEqual({ first: "<button>Settings</button>", rest: '<button hidden="">Settings</button>' });
+    expect(issue!.swap!.taker.rest).toHaveLength(501);
+    expect(issue!.swap!.taker.rest.endsWith("…")).toBe(true);
+  });
+
+  it("leaves the check's own marks out of the HTML at rest, as when first-content marked the taker first", async () => {
+    host = render("");
+    const more = control("More", { "data-ouro-check-ref": "m7" });
+    host.append(more);
+    const [issue] = await swaps(new Map([drew(control("Settings"), 1, rectOf(more)), drew(more, 2, rectOf(more), false, "<button>More</button>")]));
+    expect(issue!.swap!.taker.rest).toBe("<button>More</button>");
   });
 
   it("reports one taker once, for every control it took the place of", async () => {
