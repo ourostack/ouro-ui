@@ -39,7 +39,7 @@ test("probe says whether the server answered, gave no answer in time, or refused
   assert.equal(await probe(`http://127.0.0.1:${port}/`), "refused the connection (ECONNREFUSED)");
 });
 
-test("a test whose page.goto timed out gets a line with the server's answer and the machine's load; other failures get none", async () => {
+test("a test whose page.goto timed out gets a line with the server's answer and the machine's load, and other failures get none", async () => {
   const outputFile = join(scratchDir("ouro-goto-timeout-"), "stalls/goto-timeouts.txt");
   const asked = [];
   const reporter = new GotoTimeoutReporter({ outputFile, probe: async (url) => (asked.push(url), "gave no answer in 10 s") });
