@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 
-import { caption, dprAt, EXIT, group, LABELS, parseArgs, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
+import { caption, dprAt, EXIT, group, LABELS, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { serve } from "../../registry/ouro/check/serve.ts";
 import { browser, dir, fixtures, playwrightModule, require, root, run, scratch, site, two } from "./kit.mts";
@@ -16,6 +16,17 @@ import { browser, dir, fixtures, playwrightModule, require, root, run, scratch, 
 describe("Ouro check's command", () => {
   const folder = site("command", { "overlap.html": readFileSync(join(fixtures, "overlap-fail.html"), "utf8"), "fine.html": readFileSync(join(fixtures, "overlap-pass.html"), "utf8") });
   const fast = ["--sizes", "390x844", "--themes", "light"];
+
+  test("new-rules.json names rules Ouro check has, each once, with a one-line summary, for Ouro Current to list in an update", () => {
+    const listed = JSON.parse(readFileSync(join(root, "registry/ouro/check/new-rules.json"), "utf8")) as { rule: string; summary: string }[];
+    assert.ok(listed.length > 0);
+    assert.equal(new Set(listed.map((entry) => entry.rule)).size, listed.length);
+    for (const { rule, summary, ...rest } of listed) {
+      assert.ok(RULES.includes(rule), rule);
+      assert.ok(typeof summary === "string" && summary.length > 0 && !summary.includes("\n"), rule);
+      assert.deepEqual(rest, {}, rule);
+    }
+  });
 
   test("reads every option, and refuses what it cannot run", () => {
     assert.deepEqual(parseArgs(["site", "--pages", "docs/**", "--out", "o", "--sizes", " 390x844 ,1440x900", "--themes", "dark", "--shard", "2/4", "--before", "b.json", "--config", "c.json", "--no-axe", "--no-measured", "--ready-event", "a", "--ready-event", "b"]), {
