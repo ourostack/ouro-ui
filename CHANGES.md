@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: the AX kit's CLI overview [wraps a long command summary under itself](registry/ouro/ax/help.test.mts "verify:testExists(registry/ouro/ax/help.test.mts::an overview line too long for the width wraps its summary under itself)"), so a CLI on the kit passes `cli.help-width`, and [lists a multi-word command with no group summary by its whole name](registry/ouro/ax/help.test.mts "verify:testExists(registry/ouro/ax/help.test.mts::a multi-word command with no group summary is listed by its whole name, never as its first word)") (`peer send`, not `peer`), so an agent never reads a first word as a command. Give `groups` a summary to keep one line per group.
