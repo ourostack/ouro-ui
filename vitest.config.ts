@@ -102,7 +102,9 @@ export default defineConfig({
     ...(browserShard ? { maxWorkers: 2 } : {}),
     // A pull request's reduced run (scripts/test-impact.mjs) names the component folders whose
     // stories the shared suites in test/ render; unset, they render every story (test/stories.tsx).
-    provide: { ouroStories: process.env["OURO_STORIES"] ?? null, ouroSlice: shard, ouroShard: process.env["OURO_CONFORMANCE_SHARD"] ?? null },
+    // The host's platform, for the rules that depend on how text wraps: a host's fonts break lines differently, so the story
+    // guard (test/stories.test.tsx) judges those rules on Linux only, where CI's baseline comes from.
+    provide: { ouroStories: process.env["OURO_STORIES"] ?? null, ouroSlice: shard, ouroShard: process.env["OURO_CONFORMANCE_SHARD"] ?? null, hostPlatform: process.platform },
     // Each shard's files by measured time (scripts/shard-timings.json), and every shard the sliced suites.
     sequence: { sequencer: TimedSequencer },
     // Vitest's own reporters, and the motion evidence each run writes to .tmp/motion/ for
