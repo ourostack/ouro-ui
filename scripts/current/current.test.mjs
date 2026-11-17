@@ -10,6 +10,7 @@ import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-che
 import { BRANCH, body, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
 import { UPDATERS, findPins, isBehind, isCandidate } from "./pins.mjs";
+import { applyItem } from "./stylesheet.mjs";
 import { readTarball } from "./tar.mjs";
 import { scratchDir } from "../scratch.mjs";
 
@@ -244,6 +245,100 @@ test("Ouro HX keeps each file where the install record has it, as a site keeps O
   assert.equal(update.files["src/lib/ouro/check/check.ts"], undefined);
   assert.equal(update.files["src/components/ouro/button/button.tsx"].toString(), "button v2");
   assert.deepEqual(update.notes.filter((note) => /edited here/.test(note)), []);
+});
+
+/**
+ * An app that took ouro-base and button at v1.3.244, before #1843 rounded components with `rounded-ouro-*`: its
+ * stylesheet is what `shadcn init --preset nova` and `shadcn add ouro-base#v1.3.244` wrote (fixtures/), with values of
+ * its own: a raised `--ouro-layer`, its own `--radius-ouro-md`, and no `press` utility. The next tag's ouro-base is v1.3.248's.
+ */
+function themeFixture({ tag = "v1.3.244" } = {}) {
+  const fixture = (name) => readFileSync(join(import.meta.dirname, "fixtures", name), "utf8");
+  const base = { "v1.3.244": JSON.parse(fixture("ouro-base-v1.3.244.json")), "v1.3.248": JSON.parse(fixture("ouro-base-v1.3.248.json")) };
+  const button = (v) => `export const Button = "${v}";\n`;
+  const at = (version) => new Map(Object.entries({
+    "registry.json": JSON.stringify({ items: [base[version], { name: "button", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }] }] }),
+    "registry/ouro/components/ouro/button/button.tsx": button(version),
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  const css = fixture("shadcn-ouro-base-v1.3.244.css").replace("--ouro-layer: 50;", "--ouro-layer: 60;").replace("    --radius-sm: calc(var(--radius) * 0.6);", "    --radius-ouro-md: 0.5rem;\n    --radius-sm: calc(var(--radius) * 0.6);").replace(/\n@utility press \{[^}]*\}\n?/, "\n");
+  const files = {
+    "components.json": JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { components: "@/components", lib: "@/lib" } }),
+    "tsconfig.json": JSON.stringify({ compilerOptions: { paths: { "@/*": ["./src/*"] } } }),
+    "src/index.css": css,
+    "src/components/ouro/button/button.tsx": button(tag),
+    ".github/ouro-hx-installed.json": JSON.stringify({ tag, tagCommit: "old", files: { "src/components/ouro/button/button.tsx": sha256(button(tag)) } }),
+  };
+  return { files, css, at, tarball: async (follows, version) => at(version) };
+}
+
+/** The border radius `rounded-ouro-<size>` draws with, once Tailwind v4 compiles the stylesheet and the browser resolves its vars. */
+async function roundedOuro(css, size) {
+  const { compile } = await import("tailwindcss");
+  const tailwind = join(import.meta.dirname, "../../node_modules/tailwindcss/index.css");
+  // The other packages the stylesheet imports (tw-animate-css, the font) are not installed here, and draw no radius.
+  const own = css.replace(/^@import (?!"tailwindcss").*$/gm, "");
+  const compiler = await compile(own, { base: import.meta.dirname, loadStylesheet: async () => ({ path: tailwind, base: dirname(tailwind), content: readFileSync(tailwind, "utf8") }) });
+  const out = compiler.build([`rounded-ouro-${size}`]);
+  const rule = new RegExp(String.raw`\.rounded-ouro-${size}\s*\{\s*border-radius:\s*([^;]+);`).exec(out);
+  if (!rule) return null;
+  const root = Object.fromEntries([...(/(?:^|\n):root\s*\{([^}]*)\}/.exec(out)?.[1] ?? "").matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((match) => [match[1], match[2].trim()]));
+  let value = rule[1];
+  for (let pass = 0; pass < 8 && value.includes("var("); pass += 1) value = value.replace(/var\((--[\w-]+)(?:,\s*([^()]+))?\)/g, (all, name, fallback) => root[name] ?? fallback ?? all);
+  const calc = /^calc\((.*)\)$/.exec(value)?.[1] ?? value;
+  return calc.split("*").reduce((product, factor) => product * Number.parseFloat(factor), 1);
+}
+
+test("Ouro HX adds what an updated ouro-base puts in the app's stylesheet, as shadcn add does, and keeps the app's own values (#1843)", async () => {
+  const app = themeFixture();
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const release = { ...RELEASES.web, tag: "v1.3.248" };
+  const consumer = new Map(Object.entries(app.files).map(([k, v]) => [k, Buffer.from(v)]));
+  const update = await UPDATERS["hx-installed"](pin, app.files[pin.file], release, { tarball: app.tarball, consumerFiles: async () => consumer });
+  assert.equal(await roundedOuro(app.css, "lg"), null, "before: the app's stylesheet gives rounded-ouro-lg no radius");
+  const css = update.files["src/index.css"]?.toString();
+  assert.ok(css, "the stylesheet is written in the update");
+  for (const size of ["sm", "lg", "xl", "2xl", "3xl", "4xl"]) assert.match(css, new RegExp(String.raw`\n    --radius-ouro-${size}: calc\(var\(--radius\) \* var\(--ouro-radius-scale, 1\) \* var\(--ouro-corner-fallback, 1\)[^;\n]*\);\n`), `--radius-ouro-${size} lands in @theme inline, at its indent`);
+  assert.equal(css.match(/--radius-ouro-md:/g).length, 1, "a variable the app has is not added again");
+  assert.match(css, /--radius-ouro-md: 0\.5rem;/, "and keeps the app's value");
+  assert.match(css, /--ouro-layer: 60;/);
+  assert.doesNotMatch(css, /@utility press/, "a utility the old tag had and the app left out stays out");
+  const lines = css.split("\n");
+  let at = 0;
+  for (const line of app.css.split("\n")) {
+    at = lines.indexOf(line, at);
+    assert.notEqual(at, -1, `the app's line ${JSON.stringify(line)} stays, in its place`);
+    at += 1;
+  }
+  assert.ok(update.notes.some((note) => note.includes("`--radius-ouro-lg`") && note.includes("`src/index.css`") && note.includes("`ouro-base`")), "the pull request says what the stylesheet gained");
+  assert.ok((await roundedOuro(css, "lg")) > 0, "after: rounded-ouro-lg draws a radius");
+  assert.equal(await roundedOuro(css, "md"), 0.5, "rounded-ouro-md draws the app's own radius");
+
+  consumer.set("src/index.css", Buffer.from(css));
+  consumer.set(pin.file, Buffer.from(update.files[pin.file]));
+  consumer.set("src/components/ouro/button/button.tsx", update.files["src/components/ouro/button/button.tsx"]);
+  const again = await UPDATERS["hx-installed"](pin, update.files[pin.file], release, { tarball: app.tarball, consumerFiles: async () => consumer });
+  assert.equal(again.files["src/index.css"], undefined, "a second run changes nothing");
+});
+
+test("a theme item's entry Ouro Current cannot write is named and left out, never written as a guess", () => {
+  const css = ":root {\n  --ouro-layer: 50;\n}\n";
+  const result = applyItem(css, { name: "ouro-base", css: { "@font-face": { "font-family": "Ouro" }, ":root": { "--ouro-new": "1" } } });
+  assert.equal(result.text, ":root {\n  --ouro-layer: 50;\n  --ouro-new: 1;\n}\n");
+  assert.deepEqual(result.skipped, ["`@font-face`, which Ouro Current does not know how to write"]);
+});
+
+test("an install record already on the release whose stylesheet lacks what that release's ouro-base adds gets a pull request for the stylesheet", async () => {
+  const app = themeFixture({ tag: "v1.3.248" });
+  const releases = { ...RELEASES, web: { ...RELEASES.web, tag: "v1.3.248" } };
+  const repo = fakeRepo({ ...app.files, ".github/ouro-current.json": "{}" });
+  const kept = await keepRepo(repo.gh, "o/r", releases, { tarball: app.tarball });
+  assert.equal(kept.state, "pr");
+  assert.equal(kept.pr.title, "Update the stylesheet to Ouro UI v1.3.248");
+  assert.match(repo.fileAt(BRANCH, "src/index.css"), /--radius-ouro-lg: /);
+  assert.equal(repo.fileAt("main", "src/index.css"), app.css, "the default branch is never written");
+  repo.setMain({ "src/index.css": repo.fileAt(BRANCH, "src/index.css") });
+  const after = await keepRepo(repo.gh, "o/r", releases, { tarball: app.tarball });
+  assert.equal(after.state, "current", "once the stylesheet has it, the repository is current");
 });
 
 /**

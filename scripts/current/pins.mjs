@@ -7,6 +7,7 @@ import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { dirname, posix } from "node:path";
 import { isAfter } from "./rules.mjs";
+import { THEME_ITEMS, applyItem, hasItem } from "./stylesheet.mjs";
 
 export const REPOS = { web: "ourostack/ouro-ui", core: "ourostack/ouro-ui-core", apple: "ourostack/ouro-ui-apple" };
 export const NAMES = { web: "Ouro UI", core: "Ouro UI core", apple: "Ouro UI for Apple" };
@@ -466,6 +467,52 @@ function editPackage(text, { axImport, moves }) {
   return { text: `${JSON.stringify(data, null, indent)}${text.endsWith("\n") ? "\n" : ""}`, ...changed };
 }
 
+/** The app's stylesheet, as components.json names it (`tailwind.css`), from the folder that holds components.json. */
+const stylesheetOf = (found) => (typeof found?.json?.tailwind?.css === "string" && found.json.tailwind.css ? posix.normalize(`${found.dir}${found.json.tailwind.css}`).replace(/^\.\//, "") : null);
+
+const registryItem = (tarball, name) => (JSON.parse(tarball.get("registry.json").toString("utf8")).items ?? []).find((item) => item.name === name) ?? null;
+
+/**
+ * What `shadcn add <item>#<tag>` would add to the app's stylesheet for each theme item it has (`ouro-base`, and
+ * `ouro-theme` when its colours are there): what the item at the new tag adds and the stylesheet lacks. Component
+ * files alone leave a release's new theme variables out, and a component that reads one (`rounded-ouro-lg`, #1843)
+ * then draws without it. Null when the app has no stylesheet Ouro Current can read; `text` null when nothing is missing.
+ */
+export function stylesheetUpdate(previous, next, found, read, tag) {
+  const path = stylesheetOf(found);
+  const bytes = path && read(path);
+  if (!bytes) return null;
+  const original = bytes.toString("utf8");
+  let text = original;
+  const notes = [];
+  for (const name of THEME_ITEMS) {
+    const item = registryItem(next, name);
+    if (!item || !hasItem(text, item)) continue;
+    const result = applyItem(text, item, registryItem(previous, name));
+    text = result.text;
+    for (const { where, names } of result.added) notes.push(names.length ? `Adds ${list(names)} to ${where} in \`${path}\`, which \`${name}\` at \`${tag}\` puts there and the stylesheet lacked, as \`shadcn add\` would.` : `Adds ${where} to \`${path}\`, new in \`${name}\` at \`${tag}\`, as \`shadcn add\` would.`);
+    for (const reason of result.skipped) notes.push(`Leaves ${reason} out of \`${path}\` for \`${name}\`: add it by hand if the app needs it.`);
+  }
+  return { path, text: text === original ? null : text, notes };
+}
+
+/**
+ * Whether an install record already on the release left the app's stylesheet behind it: a component of that release
+ * reads a theme variable the stylesheet lacks, because an earlier update moved the components alone. Reads two files,
+ * components.json and the stylesheet, not the repository's whole tree.
+ */
+export async function hxStylesheetBehind(pin, text, release, ctx) {
+  const record = JSON.parse(text);
+  const configs = new Map();
+  for (const path of ctx.consumerPaths()) if (posix.basename(path) === "components.json") configs.set(path, await ctx.consumerFile(path));
+  const found = findComponentsJson(configs, Object.keys(record.files ?? {}));
+  const path = stylesheetOf(found);
+  if (!path) return false;
+  const sheet = await ctx.consumerFile(path);
+  const tarball = await ctx.tarball("web", release.tag);
+  return Boolean(stylesheetUpdate(tarball, tarball, found, () => sheet, release.tag)?.text);
+}
+
 /**
  * Ouro HX installed as source (`.github/ouro-hx-installed.json`: the tag, its commit, and the sha256 of each installed
  * file's registry source). A file is updated only when the old tag's source, rewritten as the CLI rewrites it, is
@@ -608,6 +655,9 @@ async function updateHxInstalled(pin, text, release, ctx) {
     out[from] = Buffer.from(forwarder(from, to), "utf8");
     forwarded.push({ from, to });
   }
+  // What the theme items add to the app's stylesheet (#1843's `--radius-ouro-*`), as `shadcn add` writes it there.
+  const sheet = stylesheetUpdate(previous, next, found, (path) => (typeof out[path] === "string" || Buffer.isBuffer(out[path]) ? asBytes(out[path]) : consumer.get(path)), release.tag);
+  if (sheet?.text) out[sheet.path] = Buffer.from(sheet.text, "utf8");
   const sorted = Object.fromEntries(Object.keys(hashes).sort().map((path) => [path, hashes[path]]));
   out[pin.file] = `${JSON.stringify({ ...record, tag: release.tag, tagCommit: release.sha, files: sorted }, null, 2)}\n`;
   const notes = [];
@@ -622,6 +672,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   for (const { path, line, from, to } of refs.docs) notes.push(`Check \`${path}:${line}\`: it names \`${from}\`, which moved to \`${to}\`. Ouro Current leaves prose to you.`);
   for (const { from, to } of forwarded) notes.push(`Leaves a forwarding file at \`${from}\` that runs \`${to}\`, so what still names the old path keeps working for one release. Delete it once the old path is gone from your workflows and scripts.`);
   if (added.length) notes.push(`Adds what installed items now include: ${list(added)}.`);
+  if (sheet) notes.push(...sheet.notes);
   if (edited.length) notes.push(`Leaves ${list(edited)} at \`${record.tag}\`, because ${one(edited, "it is", "they are")} not what the CLI wrote for \`${record.tag}\` (edited here, or rewritten in a way Ouro Current does not reproduce). Install ${one(edited, "it", "them")} again with the CLI, or move the change into Ouro UI.`);
   const kitApart = edited.filter((path) => before.get(path)?.target.startsWith(KIT) && axDir && !path.startsWith(axDir));
   if (kitApart.length) notes.push(`${list(kitApart)} ${one(kitApart, "stays", "stay")} where ${one(kitApart, "it is", "they are")} because ${one(kitApart, "it was", "they were")} edited here, but \`#ouro-ax/*\` resolves to \`${axDir}\`: move ${one(kitApart, "it", "them")} there, or point the import at ${one(kitApart, "it", "them")}.`);
