@@ -235,7 +235,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
         walk(rule.cssRules, layer, selector, supports);
       } else if (rule.constructor.name === "CSSNestedDeclarations") {
         // Declarations nested in a rule's own @supports, which hold the rule's selector.
-        found.push({ rule, layer, selector: outer, supports });
+        found.push({ rule: rule as CSSNestedDeclarations, layer, selector: outer, supports });
       } else if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule || rule instanceof CSSContainerRule) walk(rule.cssRules, layer, outer, supports || rule instanceof CSSSupportsRule);
     }
   };
