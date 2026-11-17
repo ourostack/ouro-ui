@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: [Empty's title, description and children take the width the app gives them](registry/ouro/components/ouro/empty/empty.test.tsx "verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > lays its text and children out in the width the app gives it, with no measure of its own)"), so `className` sets the measure, as `max-w-md` does on the docs demo.
+- Fixed: Popover's shipped test [allows the half device pixel the positioner rounds to](registry/ouro/components/ouro/popover/popover.test.tsx "verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::controlled Popover > sits its offset below an anchor whose edge falls between pixels, to within half a device pixel)") below an anchor whose edge falls between pixels, where an app's font or padding can put it. Before, an app whose trigger ended on half a pixel failed it with a gap of `9` for `8`.
