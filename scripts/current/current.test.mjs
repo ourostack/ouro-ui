@@ -365,7 +365,7 @@ test("an app on the newest release whose stylesheet lacks a keyframes ouro-base 
   assert.equal((await keepRepo(repo.gh, "o/r", releases, { tarball })).state, "current", "a second run finds nothing to add");
 });
 
-test("a keyframes or utility the app has under that name is kept as the app wrote it, and a plain rule the previous tag had stays out", () => {
+test("a keyframes the app has under that name is kept as the app wrote it, and a plain rule or utility line the previous tag had stays out", () => {
   const item = {
     name: "ouro-base",
     css: {
@@ -375,11 +375,21 @@ test("a keyframes or utility the app has under that name is kept as the app wrot
       "@keyframes ouro-new": { to: { opacity: "1" } },
     },
   };
-  const previous = { name: "ouro-base", css: { "@layer base": { "[data-ouro-surface]": { display: "none" } } } };
+  const previous = { name: "ouro-base", css: { "@layer base": { "[data-ouro-surface]": { display: "none" } }, "@utility press": { transition: "scale 160ms" } } };
   const css = ":root {\n  --ouro-layer: 50;\n}\n\n@utility press {\n  scale: 0.97;\n}\n\n@keyframes ouro-spin {\n  from {\n    rotate: 0;\n  }\n}\n";
   const result = applyItem(css, item, previous);
   assert.equal(result.text, `${css}\n@keyframes ouro-new {\n  to {\n    opacity: 1;\n  }\n}\n`, "only the keyframes the app has no block of that name for is added");
   assert.deepEqual(result.added, [{ where: "`@keyframes ouro-new`", names: [] }]);
+  assert.equal(applyItem(result.text, item, previous).text, result.text, "a second run changes nothing");
+});
+
+test("a utility the app has from the previous tag gains a line the new tag adds to it, once, and keeps its own lines", () => {
+  const previous = { name: "ouro-base", css: { "@utility press": { transition: "scale 160ms" } } };
+  const item = { name: "ouro-base", css: { "@utility press": { transition: "scale 160ms", "will-change": "scale" } } };
+  const css = ":root {\n  --ouro-layer: 50;\n}\n\n@utility press {\n  transition: scale 120ms;\n  scale: 0.97;\n}\n";
+  const result = applyItem(css, item, previous);
+  assert.equal(result.text, ":root {\n  --ouro-layer: 50;\n}\n\n@utility press {\n  transition: scale 120ms;\n  scale: 0.97;\n  will-change: scale;\n}\n");
+  assert.deepEqual(result.added, [{ where: "`@utility press`", names: ["will-change"] }]);
   assert.equal(applyItem(result.text, item, previous).text, result.text, "a second run changes nothing");
 });
 
