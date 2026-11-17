@@ -428,6 +428,9 @@ describe("Dialog stacking above the app's fixed bars", () => {
     const field = page.getByRole("textbox", { name: "Name" });
     await expect.element(field).toBeVisible();
     await expect.poll(() => onTop(field.element() as HTMLElement)).toBe(true);
+    // The dialog's backdrop covers the sheet too: a press on the sheet lands on the backdrop, not the sheet.
+    const sheet = document.querySelector<HTMLElement>('[data-ouro="sheet"]')!;
+    expect(onTop(sheet)).toBe(false);
   });
 
   it("puts the portal on the --ouro-layer level, as its own stacking context", async () => {
