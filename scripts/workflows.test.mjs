@@ -1264,12 +1264,16 @@ test("a pull request's run reports tree-proof, named for its tree, only when its
   const needsOf = (id) => jobs[id].match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
   assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest"].includes(id)).sort());
   const expression = block.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1];
-  const reports = ({ event = "pull_request", results = ["success", "success"], plan = {}, fallback = "false" } = {}) =>
+  // Every need is checked by name: a job's if: counts the jobs above its needs in needs.*.result too, so a skipped
+  // fallback shard upstream would make !contains(needs.*.result, 'skipped') false on every run.
+  assert.doesNotMatch(expression, /needs\.\*/);
+  for (const id of needsOf("tree-proof")) assert.ok(expression.includes(`needs.${id}.result == 'success'`), id);
+  const reports = ({ event = "pull_request", results = {}, plan = {}, fallback = "false" } = {}) =>
     runInNewContext(
       expression
         .replace("!cancelled()", "true")
         .replace("github.event_name", "event")
-        .replace(/contains\(needs\.\*\.result, ('\w+')\)/g, "results.includes($1)")
+        .replace(/needs\.([\w-]+)\.result == 'success'/g, "(results['$1'] ?? 'success') === 'success'")
         .replace(/needs\.plan\.outputs\.(\w+)/g, "plan.$1")
         .replace("needs.ci.outputs.fallback", "fallback"),
       { event, results, plan: { tree: "t", full: "true", browser: "true", design: "true", installs: "here", heavy: "here", ...plan }, fallback },
@@ -1278,7 +1282,7 @@ test("a pull request's run reports tree-proof, named for its tree, only when its
   // A plan that failed leaves its outputs empty: no tree, no proof.
   assert.equal(reports({ plan: { tree: "" } }), false);
   for (const plan of [{ full: "false" }, { browser: "false" }, { design: "false" }, { installs: "skip" }, { heavy: "skip" }, { installs: "" }, { heavy: "" }]) assert.equal(reports({ plan }), false, JSON.stringify(plan));
-  for (const result of ["failure", "cancelled", "skipped"]) assert.equal(reports({ results: ["success", result] }), false, result);
+  for (const result of ["failure", "cancelled", "skipped"]) for (const id of needsOf("tree-proof")) assert.equal(reports({ results: { [id]: result } }), false, `${id} ${result}`);
   assert.equal(reports({ fallback: "true" }), false);
   for (const event of ["push", "merge_group", "workflow_dispatch"]) assert.equal(reports({ event }), false, event);
   // It reads nothing and runs nothing but its notice.
