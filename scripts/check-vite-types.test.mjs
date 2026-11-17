@@ -50,25 +50,25 @@ const documents = (files, exclude) => {
   for (const file of files) assert.ok(readFileSync(join(root, file), "utf8").includes(line), `${file} gives ${line}`);
 };
 
-test("a Vite app type-checks with Ouro check installed once its folder is left out, as the docs say, and fails without that line", () => {
+test("a Vite app type-checks with Ouro check installed once its folders are left out, as the docs say, and fails without that line", () => {
   const files = installedFiles("ouro-check");
   assert.ok(files.some((path) => path.startsWith("registry/ouro/ax/")), "ouro-check installs Ouro AX files beside it");
   const without = tsc(viteApp(files));
   assert.notEqual(without.status, 0, "without the exclude, the app's tsc fails on Ouro check's Node imports");
   assert.match(without.stdout, /src\/lib\/ouro\/check\/[\w-]+\.ts\(\d+,\d+\): error TS/);
   assert.doesNotMatch(without.stdout, /src\/lib\/ouro\/ax\//, "the Ouro AX files ouro-check installs type-check in a Vite app");
-  const exclude = ["src/lib/ouro/check"];
+  const exclude = ["src/lib/ouro/check", "src/lib/ouro/ax"];
   const withLine = tsc(viteApp(files, exclude));
   assert.equal(withLine.status, 0, withLine.stdout);
   documents(["docs/guides/guardrails.md", "site/llms.txt", "scripts/registry.mts"], exclude);
 });
 
-test("a Vite app type-checks with the Ouro AX kit and its tests installed once their folder is left out, still checking what it imports, and fails without that line", () => {
-  const files = installedFiles("ouro-ax", "ouro-ax-tests");
+test("a Vite app type-checks with Ouro check, the Ouro AX kit and its tests installed once their folders are left out, still checking what it imports, and fails without that line", () => {
+  const files = installedFiles("ouro-check", "ouro-ax", "ouro-ax-tests");
   const without = tsc(viteApp(files, undefined, true));
   assert.notEqual(without.status, 0, "without the exclude, the app's tsc fails on the kit's Node-only files");
   assert.match(without.stdout, /src\/lib\/ouro\/ax\/[\w.-]+\.m?ts\(\d+,\d+\): error TS/);
-  const exclude = ["src/lib/ouro/ax"];
+  const exclude = ["src/lib/ouro/check", "src/lib/ouro/ax"];
   const withLine = tsc(viteApp(files, exclude, true));
   assert.equal(withLine.status, 0, withLine.stdout);
   const broken = viteApp(files, exclude, true);
