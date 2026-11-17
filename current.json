@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-17T07:28:00.131Z",
+  "generatedAt": "2026-11-17T07:46:38.513Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -23,20 +23,17 @@
   "repos": [
     {
       "repo": "arimendelow/mendelow.me",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.242",
+          "current": "v1.3.244",
           "latest": "v1.3.244",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 58,
-        "url": "https://github.com/arimendelow/mendelow.me/pull/58"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/apple-distribution-kit",
@@ -313,14 +310,14 @@
     },
     {
       "repo": "ourostack/ouroboros",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.243",
+          "current": "v1.3.244",
           "latest": "v1.3.244",
-          "behind": true
+          "behind": false
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -332,32 +329,26 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 6da58e6",
+          "current": "commit a36eb47",
           "latest": "v1.3.244",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1363,
-        "url": "https://github.com/ourostack/ouroboros/pull/1363"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouroboros-website",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.243",
+          "current": "v1.3.244",
           "latest": "v1.3.244",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 262,
-        "url": "https://github.com/ourostack/ouroboros-website/pull/262"
-      }
+      "pr": null
     },
     {
       "repo": "spoonjoy/spoonjoy-apple",
