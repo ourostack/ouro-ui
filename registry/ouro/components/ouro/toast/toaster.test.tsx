@@ -33,23 +33,41 @@ async function render(node: ReactNode) {
 
 /**
  * Waits on real frames, as `until` does, for `toast` to fade out. When it does not, the failure says what the fade was
- * doing (ourostack/ouro-ui#1789): the stack's collapses and expansions during the wait, the toast's last opacities and
- * its animations.
+ * doing (ourostack/ouro-ui#1789): each change during the wait to the attributes that hide or show a toast (the stack's
+ * collapse, and Base UI's expanded, behind, limited, starting and ending states on the toasts), the toast's opacities
+ * over the wait, and its animations with the values they run between.
  */
 async function fadesOut(toast: HTMLElement) {
   const stack = viewport()!;
-  const flips: string[] = [];
-  const watch = new MutationObserver(() => flips.push(stack.hasAttribute("data-ouro-toaster-collapsed") ? "collapsed" : "expanded"));
-  watch.observe(stack, { attributes: true, attributeFilter: ["data-ouro-toaster-collapsed"] });
+  const t0 = performance.now();
+  const at = () => `${Math.round(performance.now() - t0)} ms`;
+  const changes: string[] = [];
+  const watch = new MutationObserver((records) => {
+    for (const { target, attributeName } of records) {
+      const element = target as Element;
+      const who = element === stack ? "stack" : element === toast ? "toast" : element.closest('[data-ouro="toast"]') === toast ? "toast's content" : "another toast";
+      changes.push(`${at()} ${who} ${element.hasAttribute(attributeName!) ? "+" : "-"}${attributeName}`);
+    }
+  });
+  watch.observe(stack, { attributes: true, subtree: true, attributeFilter: ["data-ouro-toaster-collapsed", "data-expanded", "data-behind", "data-limited", "data-starting-style", "data-ending-style"] });
   const opacities: string[] = [];
-  const deadline = performance.now() + 10_000;
+  const deadline = t0 + 10_000;
   while (getComputedStyle(toast).opacity !== "0" && performance.now() < deadline) {
-    opacities.push(getComputedStyle(toast).opacity);
+    opacities.push(`${at()} ${getComputedStyle(toast).opacity}`);
     await new Promise((resolve) => requestAnimationFrame(resolve));
   }
   watch.disconnect();
-  const animations = toast.getAnimations().map((animation) => `${(animation as CSSTransition).transitionProperty ?? (animation as CSSAnimation).animationName} ${animation.playState} at ${Math.round(Number(animation.currentTime))} ms`);
-  expect(getComputedStyle(toast).opacity, `the stack ${stack.hasAttribute("data-ouro-toaster-collapsed") ? "collapsed" : "expanded"}; during the wait: ${flips.join(", ") || "no change"}; last opacities ${opacities.slice(-5).join(", ")}; animations: ${animations.join("; ") || "none"}`).toBe("0");
+  const values = (animation: Animation) =>
+    (animation.effect as KeyframeEffect | null)
+      ?.getKeyframes()
+      .map((frame) => frame.opacity ?? "?")
+      .join(" to ");
+  const animations = toast.getAnimations().map((animation) => `${(animation as CSSTransition).transitionProperty ?? (animation as CSSAnimation).animationName} ${values(animation)} ${animation.playState} at ${Math.round(Number(animation.currentTime))} ms`);
+  const sampled = opacities.filter((_, index) => index % Math.ceil(opacities.length / 12) === 0 || index >= opacities.length - 3);
+  expect(
+    getComputedStyle(toast).opacity,
+    `the stack ${stack.hasAttribute("data-ouro-toaster-collapsed") ? "collapsed" : "expanded"}; changes during the wait: ${changes.slice(-20).join(", ") || "none"}; opacities: ${sampled.join(", ")}; animations: ${animations.join("; ") || "none"}`,
+  ).toBe("0");
 }
 
 const viewport = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]');
