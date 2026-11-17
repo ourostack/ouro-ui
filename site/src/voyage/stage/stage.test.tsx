@@ -114,6 +114,14 @@ describe("the hero", () => {
     const link = page.getByRole("link", { name: NEW_APP_LINK.text, exact: true });
     await expect.element(link).toHaveAttribute("href", "/docs/installing/#start-a-new-app");
     expect(link.element().closest("[data-site-install-caption]")).not.toBeNull();
+    // On a phone it waits with the caption's second sentence, so the release stays on the caption's line and the
+    // stage keeps its place on the first screen.
+    const anchor = link.element();
+    await page.viewport(390, 844);
+    await expect.poll(() => anchor.checkVisibility()).toBe(false);
+    const caption = document.querySelector<HTMLElement>("[data-site-install-caption]")!.getBoundingClientRect();
+    const release = document.querySelector<HTMLElement>("[data-site-release]")!.getBoundingClientRect();
+    expect(release.top).toBeLessThan(caption.bottom);
   });
 
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
@@ -128,9 +136,10 @@ describe("the hero", () => {
       expect(INSTALL_CAPTION).not.toMatch(/\d/);
       // real clock: the hero's install command, which stays.
       await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
-      // real clock: the install command's caption, which stays; the new-app link follows it in the same line.
-      await expect.element(page.getByText(INSTALL_CAPTION.split(". ")[1]!)).toBeVisible();
-      expect(document.querySelector("[data-site-install-caption]")!.textContent).toContain(INSTALL_CAPTION);
+      // The caption, which stays, starts with these words; the new-app link follows them in the same line.
+      const caption = document.querySelector<HTMLElement>("[data-site-install-caption]")!;
+      expect(caption.checkVisibility()).toBe(true);
+      expect(caption.textContent).toContain(INSTALL_CAPTION);
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
       // A toast shows for five seconds, which a loaded runner can outlast between two steps; the

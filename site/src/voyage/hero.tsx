@@ -50,7 +50,11 @@ const title = (item: string) => item.charAt(0).toUpperCase() + item.slice(1);
 export const INSTALL_CAPTION = `Adds ${title(install.item)}. Any other part installs the same way.`;
 const [INSTALL_HOW, INSTALL_MORE] = [INSTALL_CAPTION.slice(0, INSTALL_CAPTION.indexOf(". ") + 1), INSTALL_CAPTION.slice(INSTALL_CAPTION.indexOf(". ") + 2)];
 
-/** Under the caption: where a newcomer without a set-up app goes first, since the command alone needs one. */
+/**
+ * Beside the caption: where a newcomer without a set-up app goes first, since the command alone needs one.
+ * Hidden with the caption's second sentence on a phone, so the stage stays on its first screen; the components
+ * index carries the same link there.
+ */
 export const NEW_APP_LINK = { href: "/docs/installing/#start-a-new-app", text: "New app? Set it up first." } as const;
 
 /** The release the command pins, beside it, linking to that release's notes. */
@@ -121,10 +125,13 @@ function Install(): JSX.Element {
       </div>
       <div className="site-install-foot">
         <p className="site-install-caption" data-site-install-caption="">
-          {INSTALL_HOW} <span className="site-install-more">{INSTALL_MORE}</span>{" "}
-          <Link href={NEW_APP_LINK.href} inline>
-            {NEW_APP_LINK.text}
-          </Link>
+          {INSTALL_HOW}{" "}
+          <span className="site-install-more">
+            {INSTALL_MORE}{" "}
+            <Link href={NEW_APP_LINK.href} inline>
+              {NEW_APP_LINK.text}
+            </Link>
+          </span>
         </p>
         <Badge href={RELEASE_HREF} tone="primary" variant="soft" data-site-release="">
           {`${latestRelease} · latest release`}
