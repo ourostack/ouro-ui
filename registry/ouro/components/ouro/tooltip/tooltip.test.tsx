@@ -668,6 +668,6 @@ describe("Tooltip first frame", () => {
     const recording = recordPopupFrames(positioner);
     await userEvent.hover(trigger());
     await settledBox(drawn(positioner));
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 });
