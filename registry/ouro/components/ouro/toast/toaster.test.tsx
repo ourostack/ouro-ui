@@ -31,6 +31,27 @@ async function render(node: ReactNode) {
   return { host, root, unmount: () => act(async () => root.unmount()) };
 }
 
+/**
+ * Waits on real frames, as `until` does, for `toast` to fade out. When it does not, the failure says what the fade was
+ * doing (ourostack/ouro-ui#1789): the stack's collapses and expansions during the wait, the toast's last opacities and
+ * its animations.
+ */
+async function fadesOut(toast: HTMLElement) {
+  const stack = viewport()!;
+  const flips: string[] = [];
+  const watch = new MutationObserver(() => flips.push(stack.hasAttribute("data-ouro-toaster-collapsed") ? "collapsed" : "expanded"));
+  watch.observe(stack, { attributes: true, attributeFilter: ["data-ouro-toaster-collapsed"] });
+  const opacities: string[] = [];
+  const deadline = performance.now() + 10_000;
+  while (getComputedStyle(toast).opacity !== "0" && performance.now() < deadline) {
+    opacities.push(getComputedStyle(toast).opacity);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  watch.disconnect();
+  const animations = toast.getAnimations().map((animation) => `${(animation as CSSTransition).transitionProperty ?? (animation as CSSAnimation).animationName} ${animation.playState} at ${Math.round(Number(animation.currentTime))} ms`);
+  expect(getComputedStyle(toast).opacity, `the stack ${stack.hasAttribute("data-ouro-toaster-collapsed") ? "collapsed" : "expanded"}; during the wait: ${flips.join(", ") || "no change"}; last opacities ${opacities.slice(-5).join(", ")}; animations: ${animations.join("; ") || "none"}`).toBe("0");
+}
+
 const viewport = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]');
 const toasts = () => [...document.querySelectorAll<HTMLElement>('[data-ouro="toast"]')];
 const toastNamed = (message: string) => toasts().find((item) => item.querySelector("[data-ouro-toast-title]")?.textContent === message);
@@ -2081,7 +2102,7 @@ describe("keyboard focus under the stack", () => {
     await until(() => viewport()!.hasAttribute("data-ouro-toaster-collapsed"), true);
     expect(moved()).toBeNull();
     expect(intersects(peek.getBoundingClientRect(), toasts()[0]!.getBoundingClientRect())).toBe(false);
-    await until(() => getComputedStyle(toasts()[1]!).opacity, "0");
+    await fadesOut(toasts()[1]!);
   });
 
   it("leaves the stack where it is when the front toast covers the control and the top edge is out of reach", async () => {
