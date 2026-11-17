@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { knownFindings, knownProblems, type KnownFinding } from "./check-known.ts";
+import { judgedOn, knownFindings, knownProblems, type KnownFinding } from "./check-known.ts";
 
 // Every known finding names the open issue that tracks it, by a positive issue number, and says why it stays. A cast or
 // a missing field must not get past the type, so the data itself is checked here, and the check is proved to fail.
@@ -22,5 +22,11 @@ describe("known findings name an issue and a reason", () => {
     expect(knownProblems([{ story: "Button/Disabled", rule: "disabled-no-reason", issue: 1953, reason: "  " }])).toEqual([
       "Button/Disabled (disabled-no-reason): no reason",
     ]);
+  });
+
+  it("judges the text-wrap rules on Linux only, and every other rule on every host", () => {
+    expect(judgedOn("lone-word", "linux")).toBe(true);
+    expect(judgedOn("lone-word", "darwin")).toBe(false);
+    expect(judgedOn("disabled-no-reason", "darwin")).toBe(true);
   });
 });

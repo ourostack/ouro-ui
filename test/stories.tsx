@@ -128,6 +128,8 @@ declare module "vitest" {
   export interface ProvidedContext {
     /** OURO_STORIES, from vitest.config.ts: see `selectedStories`. */
     ouroStories: string | null;
+    /** The host's `process.platform`, from vitest.config.ts: the story guard judges text-wrap rules on Linux only. */
+    hostPlatform: string;
   }
 }
 

@@ -15,6 +15,14 @@ export interface KnownFinding {
   reason: string;
 }
 
+/** The rules whose findings depend on how the text wraps. A host's fonts break lines differently, so these are judged only on Linux, where CI's baseline comes from. */
+export const textWrapRules: readonly string[] = ["lone-word", "overlap", "narrow-heading", "clipped-text"];
+
+/** Whether a rule is judged on this host: every rule is, except the text-wrap rules off Linux, which neither count as a finding nor as a stale entry there. */
+export function judgedOn(rule: string, platform: string): boolean {
+  return platform === "linux" || !textWrapRules.includes(rule);
+}
+
 /** The problems with each entry: a missing or non-positive issue number, or an empty reason. Empty when every entry is complete. */
 export function knownProblems(entries: readonly KnownFinding[]): string[] {
   return entries.flatMap(({ story, rule, issue, reason }) => {
