@@ -140,6 +140,24 @@ describe("SettingsPage", () => {
     expect(status().element().textContent).toBe("");
   });
 
+  it("lets a save still running when the account is deleted change nothing on the emptied form", async () => {
+    let finish = () => {};
+    const onSave = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    await render(<SettingsPage onSave={onSave} initial={{ name: "Ada", email: "ada@example.com", language: "en", notifications: true }} />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => onSave.mock.calls.length).toBe(1);
+    await userEvent.click(page.getByRole("button", { name: "Delete account" }));
+    await userEvent.click(page.getByRole("alertdialog").getByRole("button", { name: "Delete account" }));
+    await expect.element(field("Display name")).toHaveValue("");
+    finish();
+    await act(async () => {
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+    });
+    expect(status().element().textContent).toBe("");
+    await expect.element(field("Display name")).toHaveValue("");
+  });
+
   it("works with no handlers, as installed", async () => {
     await render(<SettingsPage />);
     await userEvent.fill(field("Display name"), "Ada");

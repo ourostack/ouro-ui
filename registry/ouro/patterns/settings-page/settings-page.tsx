@@ -114,8 +114,9 @@ export function SettingsPage({
               confirmLabel="Delete account"
               tone="destructive"
               onConfirm={async () => {
-                latest.current++;
                 await onDelete?.();
+                // Only once it's deleted, so a failed delete leaves the last save's answer.
+                latest.current++;
                 cancelAnimationFrame(frame.current);
                 setAnswer(undefined);
                 setSaved(false);
