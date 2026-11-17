@@ -1,0 +1,1 @@
+- Fixed: Ouro Current vendors the shared Ouro AX files that a vendored kit imports as `#ouro-ax/*`, and adds that import to the package.json Node resolves it through, pointed at the vendored folder, so a repository that vendors Ouro AX by lock runs its X-ray after an update.

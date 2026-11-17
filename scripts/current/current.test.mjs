@@ -552,13 +552,18 @@ test("a vendored source moves to the release's commit with each file's new bytes
   assert.equal(written.sources[0].files[0].sha256, sha256("cli v2"));
 });
 
-test("a vendored file that imports the shared Ouro AX files as #ouro-ax is named in the pull request unless a package.json above it maps that import", async () => {
+test("a vendored file that imports the shared Ouro AX files as #ouro-ax gets the import in the package.json Node resolves it through, and is named when none is above it", async () => {
   const entry = (name) => ({ sourcePath: `registry/ouro/ax/${name}`, generatedPath: `lib/ouro-ui/registry/ouro/ax/${name}`, sha256: "old" });
   const text = `${JSON.stringify({ schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [entry("command.ts"), entry("xray.ts")] }] }, null, 2)}\n`;
   const tarball = new Map(Object.entries({ "registry/ouro/ax/command.ts": "export const command = 2;\n", "registry/ouro/ax/xray.ts": 'import { command } from "#ouro-ax/command.ts";\n' }).map(([k, v]) => [k, Buffer.from(v)]));
   const pin = { kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "web", source: "ax" };
   const run = (repo) => UPDATERS["vendor-lock"](pin, text, RELEASES.web, { tarball: async () => tarball, consumerFile: async (path) => (path in repo ? Buffer.from(repo[path]) : null) });
-  const unmapped = await run({ "package.json": JSON.stringify({ name: "root" }) });
+  // Node resolves `#ouro-ax/*` through the nearest package.json above the importing file, so that one gets the entry.
+  const nearest = await run({ "package.json": JSON.stringify({ name: "root" }) });
+  assert.deepEqual(JSON.parse(nearest.files["package.json"]).imports, { "#ouro-ax/*": "./lib/ouro-ui/registry/ouro/ax/*" });
+  assert.equal("lib/ouro-ui/package.json" in nearest.files, false, "no package.json is created");
+  assert.deepEqual(nearest.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  const unmapped = await run({});
   assert.ok(unmapped.notes.includes("`lib/ouro-ui/registry/ouro/ax/xray.ts` imports the shared Ouro AX files as `#ouro-ax/*`, which needs an `imports` entry in a package.json above it. Add one that points at `lib/ouro-ui/registry/ouro/ax/` to the package.json that should hold it; the vendored folder may take one of its own."));
   assert.equal("lib/ouro-ui/package.json" in unmapped.files, false, "no package.json is guessed at");
   assert.deepEqual(unmapped.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
@@ -627,6 +632,48 @@ test("a vendored file that now imports a file beside it brings that file, and wh
   assert.equal(lock, expected, "each new file is a line like its neighbours, in source-path order, and every other byte is kept");
   assert.ok(update.notes.some((note) => note.includes("`lib/ouro-ui/registry/ouro/ax/xray.kit.mts`")));
   assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+});
+
+test("vendored Ouro AX files that import each other as #ouro-ax/ bring what they import, and the package's imports entry points at the vendored folder", async () => {
+  const lockFor = (dir) => `${JSON.stringify({ schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [
+    { sourcePath: "registry/ouro/ax/claims.ts", generatedPath: `${dir}claims.ts`, sha256: "a" },
+    { sourcePath: "registry/ouro/ax/xray.ts", generatedPath: `${dir}xray.ts`, sha256: "b" },
+  ] }] }, null, 2)}\n`;
+  const KIT = 'import { claims } from "#ouro-ax/claims.ts";\nimport { extra } from "#ouro-ax/extra.ts";\nexport const run = [claims, extra];\n';
+  const tarball = new Map(Object.entries({
+    "registry/ouro/ax/claims.ts": "export const claims = 1;\n",
+    "registry/ouro/ax/extra.ts": "export const extra = 1;\n",
+    "registry/ouro/ax/xray.ts": 'import { run } from "./xray.kit.mts";\n',
+    "registry/ouro/ax/xray.kit.mts": KIT,
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  const pin = { kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "web", source: "ax" };
+  const run = async (dir, packageJson) => {
+    const consumer = new Map([["package.json", Buffer.from(packageJson)]]);
+    return UPDATERS["vendor-lock"](pin, lockFor(dir), RELEASES.web, { tarball: async () => tarball, consumerFile: async (path) => consumer.get(path) ?? null });
+  };
+  const agree = (update, dir) => {
+    const lock = JSON.parse(update.files[pin.file]);
+    const folders = new Set(lock.sources[0].files.map((file) => `${dirname(file.generatedPath)}/`));
+    const target = JSON.parse(update.files["package.json"]).imports["#ouro-ax/*"];
+    assert.deepEqual([...folders], [dir]);
+    assert.equal(target, `./${dir}*`, "the import resolves to the folder the lock vendors Ouro AX in");
+  };
+
+  // As housesitter and friends vendor it, and as apple-distribution-kit does under src/.
+  for (const dir of ["lib/ouro-ui/registry/ouro/ax/", "src/ouro-ax/"]) {
+    const update = await run(dir, '{\n  "name": "tool",\n  "type": "module"\n}\n');
+    assert.equal(update.files[`${dir}xray.kit.mts`]?.toString(), KIT);
+    assert.equal(update.files[`${dir}extra.ts`]?.toString(), "export const extra = 1;\n", "a file the kit imports as #ouro-ax/ is vendored beside it");
+    agree(update, dir);
+    assert.ok(update.notes.some((note) => note.includes("`#ouro-ax/*`") && note.includes(`\`${dir}\``)));
+    assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+  }
+
+  // An entry that already points elsewhere is named, not changed.
+  const other = await run("src/ouro-ax/", '{ "imports": { "#ouro-ax/*": "./lib/ax/*" } }\n');
+  assert.equal(other.files["package.json"], undefined);
+  assert.ok(other.notes.some((note) => note.includes("point it at `./src/ouro-ax/*`")));
+  assert.deepEqual(other.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
 });
 
 test("a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out", async () => {
