@@ -12,8 +12,8 @@ export const CONFIG = "ouro-check.json";
 /** What a finding says up to the token to use, as registry/ouro/check/run.ts's knownKey records it. */
 export const knownKey = (detail) => String(detail).split("; use ")[0];
 
-/** The folders of the vendored Ouro check this update writes: those holding a check's run.ts. */
-const checkFolders = (files) => [...new Set(Object.keys(files).filter((path) => /(^|\/)check\/run\.ts$/.test(path)).map((path) => path.slice(0, -"run.ts".length)))];
+/** The folders of the vendored Ouro check this update writes to: a check/ folder it changes a file of. */
+const checkFolders = (files) => [...new Set(Object.keys(files).filter((path) => /(^|\/)check\/[^/]+\.ts$/.test(path)).map((path) => path.slice(0, path.lastIndexOf("/") + 1)))];
 
 const parse = (text) => {
   if (!text) return {};
@@ -29,7 +29,8 @@ const parse = (text) => {
  * ouro-check.json with the findings of the rules this update brings in recorded as known, and the note that says so;
  * null when the update brings no rule with findings to record.
  *
- * files: the update's files. oldCheck(folder): the repository's own files in that folder, as text. reports: the
+ * files: the update's files. oldCheck(folder): the repository's own files in that folder, as text, or none when it
+ * keeps no check there (a run.ts of its own). reports: the
  * pull request's own Ouro check reports. base and branch: ouro-check.json on the default branch and on the update's
  * branch, as text or null; the branch's keeps what an earlier run recorded while the newest commit's checks still run.
  */
@@ -39,6 +40,7 @@ export async function seedKnown({ files, oldCheck, reports, base, branch }) {
   const config = parse(base);
   // A config the check itself could not read is the repository's to fix; the update leaves it alone.
   if (config === null) return null;
+  // Only a folder the repository already keeps a check in (a run.ts of its own) is an update of the check.
   const old = (await Promise.all(folders.map(oldCheck))).flat().join("\n");
   // A repository with no check yet takes every rule at once, as it does any new tool.
   if (!old) return null;

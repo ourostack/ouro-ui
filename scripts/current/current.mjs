@@ -348,7 +348,10 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   if (existing?.ours && sources.ciReports) {
     const seed = await seedKnown({
       files,
-      oldCheck: async (folder) => [...(await ctx.consumerFolder(folder.replace(/\/$/, ""))).values()].map(String),
+      oldCheck: async (folder) => {
+        const own = await ctx.consumerFolder(folder.replace(/\/$/, ""));
+        return own.has(`${folder}run.ts`) ? [...own.values()].map(String) : [];
+      },
       reports: await sources.ciReports(gh, repo, existing.sha),
       base: await read(CHECK_CONFIG),
       branch: await readAt(existing.sha, CHECK_CONFIG),
