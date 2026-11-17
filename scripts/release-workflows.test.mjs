@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -8,10 +8,11 @@ import { sandboxEnv } from "./sandbox.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 // The workflow files a release pushes must already be main's tip's (ourostack/ouro-ui#1951): release.yml's guard
-// before its push, and release-auto.yml's choice of the commit to release. Both run here as written, against a
-// local bare repository as origin, with no network.
+// before its push, and release-auto.yml's choice of the commit to release and its waits. Both run here as written,
+// against a local bare repository as origin, with no network and a stand-in gh.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const dedent = (block) => block.split("\n").map((line) => line.slice(10)).join("\n");
 
 /** A run block of a step in a workflow, as GitHub reads it (the step's ten-space indent removed). */
 const stepRun = (file, name) => {
@@ -24,25 +25,43 @@ const stepRun = (file, name) => {
   return lines.slice(0, end === -1 ? undefined : end).map((line) => line.slice(10)).join("\n");
 };
 
-/** Release auto's check of the workflow files, from its comment down to the release loop, which follows it. */
+/** Release auto's wait_for function, then its check of the workflow files, as the step runs them. */
 const autoCheck = () => {
   const text = readFileSync(join(root, ".github/workflows/release-auto.yml"), "utf8");
+  const fnStart = text.indexOf("          wait_for() {\n");
+  const fnEnd = text.indexOf("\n          }\n", fnStart);
   const start = text.indexOf("          # The workflow files Release pushes");
   const end = text.indexOf("          for status in queued in_progress; do");
-  assert.ok(start !== -1 && end > start, "release-auto.yml has no workflow-file check before the release loop");
-  return text.slice(start, end).split("\n").map((line) => line.slice(10)).join("\n");
+  assert.ok(fnStart !== -1 && fnEnd > fnStart && start > fnEnd && end > start, "release-auto.yml has no wait_for and workflow-file check before the release loop");
+  return `${dedent(text.slice(fnStart, fnEnd + "\n          }".length))}\n${dedent(text.slice(start, end))}`;
 };
 
-/** Git with a fixed identity for the commits the fixture makes; the release step sets its own. */
+/** Git with a fixed identity; `at` (Unix seconds) dates the commits the fixture makes. */
 const git = (cwd, ...args) => execFileSync("git", ["-c", "safe.bareRepository=all", ...args], {
   cwd,
   encoding: "utf8",
   env: sandboxEnv({ GIT_AUTHOR_NAME: "Test", GIT_AUTHOR_EMAIL: "test@example.com", GIT_COMMITTER_NAME: "Test", GIT_COMMITTER_EMAIL: "test@example.com" }),
 }).trim();
+const gitAt = (cwd, at, ...args) => execFileSync("git", ["-c", "safe.bareRepository=all", ...args], {
+  cwd,
+  encoding: "utf8",
+  env: sandboxEnv({ GIT_AUTHOR_NAME: "Test", GIT_AUTHOR_EMAIL: "test@example.com", GIT_COMMITTER_NAME: "Test", GIT_COMMITTER_EMAIL: "test@example.com", GIT_AUTHOR_DATE: `@${at} +0000`, GIT_COMMITTER_DATE: `@${at} +0000` }),
+}).trim();
 const write = (dir, path, text) => {
   mkdirSync(dirname(join(dir, path)), { recursive: true });
   writeFileSync(join(dir, path), text);
 };
+
+/** A bare origin and a work folder with its remote; the work folder is not yet on any commit. */
+function repos() {
+  const dir = scratchDir("ouro-release-workflows-");
+  const origin = join(dir, "origin.git");
+  const work = join(dir, "work");
+  git(dir, "init", "-q", "--bare", "-b", "main", origin);
+  git(dir, "init", "-q", "-b", "main", work);
+  git(work, "remote", "add", "origin", pathToFileURL(origin).href);
+  return { dir, origin, work };
+}
 
 /**
  * origin's main holds the released commit R and, after it, M, which changes app.txt and, when `mainWorkflowsMoved`,
@@ -51,13 +70,8 @@ const write = (dir, path, text) => {
  * it push that clone's main first.
  */
 function fixture({ mainWorkflowsMoved = false } = {}) {
-  const dir = scratchDir("ouro-release-workflows-");
-  const origin = join(dir, "origin.git");
-  const work = join(dir, "work");
+  const { dir, origin, work } = repos();
   const mover = join(dir, "mover");
-  git(dir, "init", "-q", "--bare", "-b", "main", origin);
-  git(dir, "init", "-q", "-b", "main", work);
-  git(work, "remote", "add", "origin", pathToFileURL(origin).href);
   write(work, ".github/workflows/ci.yml", "ci: released\n");
   write(work, ".github/workflows/lane.yml", "lane: released\n");
   write(work, "app.txt", "released content\n");
@@ -80,6 +94,32 @@ function fixture({ mainWorkflowsMoved = false } = {}) {
   return { dir, origin, work, mover, released };
 }
 
+/**
+ * A release v1.0.0 whose release commit sits on R0, and main one commit past R0 that changes the workflows, committed
+ * `ageMinutes` ago. Release auto's wait for R0 is then a wait for main's workflows, and the change has waited that long.
+ */
+function ageFixture(ageMinutes) {
+  const { dir, origin, work } = repos();
+  const now = Math.floor(Date.now() / 1000);
+  write(work, ".github/workflows/ci.yml", "ci: released\n");
+  write(work, "app.txt", "released content\n");
+  git(work, "add", "-A");
+  gitAt(work, now - 3 * 3600, "commit", "-q", "-m", "released");
+  const released = git(work, "rev-parse", "HEAD");
+  git(work, "checkout", "-q", "-b", "release");
+  write(work, "CHANGES.md", "released 1.0.0\n");
+  git(work, "add", "-A");
+  gitAt(work, now - 3 * 3600, "commit", "-q", "-m", "Release v1.0.0");
+  git(work, "tag", "v1.0.0");
+  git(work, "checkout", "-q", "main");
+  write(work, ".github/workflows/ci.yml", "ci: main\n");
+  git(work, "add", "-A");
+  gitAt(work, now - ageMinutes * 60, "commit", "-q", "-m", "main changes its workflows");
+  git(work, "push", "-q", "origin", "main", "refs/tags/v1.0.0");
+  git(work, "checkout", "-q", "--detach", released);
+  return { dir, origin, work, released };
+}
+
 /** Runs release.yml's push step in the work folder, as the release job does, with MAIN_SHA set as the check step sets it. */
 function runPush(f, extra = {}) {
   const summary = join(f.dir, "summary.md");
@@ -91,12 +131,40 @@ function runPush(f, extra = {}) {
   return { ...result, summary: () => readFileSync(summary, "utf8") };
 }
 
-/** Runs Release auto's workflow-file check for `sha` in the work folder; it prints "proceeds" when it lets the release on. */
-const runAutoCheck = (f, sha) => spawnSync("bash", ["-e", "-o", "pipefail", "-c", `sha=${sha}\n${autoCheck()}\necho proceeds`], {
-  cwd: f.work,
-  encoding: "utf8",
-  env: sandboxEnv(),
-});
+/**
+ * Runs Release auto's wait_for and workflow-file check for `sha` in the work folder, with `last` as the newest release's
+ * tag. It prints "proceeds" when it lets the release on. The release's scripts are copied in, and `bin` holds a stand-in
+ * gh that logs its calls to bin/calls.log.
+ */
+function runAutoCheck(f, sha, { last = "", bin } = {}) {
+  for (const script of ["scheduled-failure.sh", "release-wait.mjs"]) {
+    mkdirSync(join(f.work, "scripts"), { recursive: true });
+    copyFileSync(join(root, "scripts", script), join(f.work, "scripts", script));
+    chmodSync(join(f.work, "scripts", script), 0o755);
+  }
+  const summary = join(f.dir, "summary.md");
+  rmSync(summary, { force: true });
+  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `sha=${sha}\nlast='${last}'\n${autoCheck()}\necho proceeds`], {
+    cwd: f.work,
+    encoding: "utf8",
+    env: sandboxEnv({
+      GITHUB_STEP_SUMMARY: summary,
+      GITHUB_SERVER_URL: "https://github.com",
+      GITHUB_REPOSITORY: "ourostack/ouro-ui",
+      GITHUB_RUN_ID: "42",
+      GH_REPO: "ourostack/ouro-ui",
+    }, bin ? [bin] : []),
+  });
+  return { ...result, summary: () => (existsSync(summary) ? readFileSync(summary, "utf8") : "") };
+}
+
+/** A stand-in gh: logs each call, and answers `issue list` with nothing, so the issue is opened. */
+function stubGh() {
+  const bin = scratchDir("ouro-release-wait-bin-");
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\necho "$*" >> "${join(bin, "calls.log")}"\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  return bin;
+}
 
 /** Whether origin has the release branch. */
 const branchPushed = (f) => spawnSync("git", ["-c", "safe.bareRepository=all", "-C", f.origin, "rev-parse", "--verify", "-q", "refs/heads/release/v9.9.9"], { encoding: "utf8" }).status === 0;
@@ -146,6 +214,7 @@ test("release auto waits for a commit whose workflows main has moved past", () =
   const result = runAutoCheck(f, f.released);
   assert.equal(result.status, 0, result.stderr);
   assert.ok(result.stdout.includes(`::notice::main's .github/workflows changed after ${f.released}, so the release waits`), result.stdout);
+  assert.match(result.summary(), /^- main's \.github\/workflows changed after \S+, so the release waits/m);
   assert.doesNotMatch(result.stdout, /proceeds/);
 });
 
@@ -154,4 +223,25 @@ test("release auto goes on with a commit whose workflows equal main's tip", () =
   const result = runAutoCheck(f, f.released);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout, "proceeds\n");
+});
+
+test("a wait under an hour says why in the step summary, and opens no issue", () => {
+  const f = ageFixture(30);
+  const bin = stubGh();
+  const result = runAutoCheck(f, f.released, { last: "v1.0.0", bin });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.summary(), /^- main's \.github\/workflows changed after \S+, so the release waits/m);
+  assert.equal(existsSync(join(bin, "calls.log")), false);
+});
+
+test("a release that has waited over an hour opens the Release waiting issue and fails release auto", () => {
+  const f = ageFixture(120);
+  const bin = stubGh();
+  const result = runAutoCheck(f, f.released, { last: "v1.0.0", bin });
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stdout, /^::error::main's \.github\/workflows changed after \S+, so the release waits .* has waited 120 minutes, over an hour\. Release waiting: https:\/\/github\.com\/ourostack\/ouro-ui\/actions\/runs\/42$/m);
+  assert.match(result.summary(), /has waited 120 minutes, over an hour/);
+  const calls = readFileSync(join(bin, "calls.log"), "utf8");
+  assert.match(calls, /^issue create --title Release waiting --body .*has waited 120 minutes, over an hour/m);
+  assert.doesNotMatch(calls, /proceeds/);
 });

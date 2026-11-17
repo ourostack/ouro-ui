@@ -660,6 +660,18 @@ test("Required checks compares the file with main's live rules hourly, on a chan
   assert.match(report, /run: scripts\/scheduled-failure\.sh "[^"]+" "Required checks drifted" /);
 });
 
+test("scheduled-failure.sh comments with the text it is given, and says \"Failed again\" by default", () => {
+  const bin = scratchDir("ouro-gh-");
+  const log = join(bin, "calls.log");
+  writeFileSync(join(bin, "gh"), `#!/usr/bin/env bash\necho "$*" >> "${log}"\nif [ "$1 $2" = "issue list" ]; then printf '%s' 7; fi\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  const run = (...args) => spawnSync("bash", [join(root, "scripts/scheduled-failure.sh"), "https://github.com/o/r/actions/runs/5", ...args], { encoding: "utf8", env: sandboxEnv({}, [bin]) });
+  assert.equal(run("Release waiting", "Waited too long").status, 0);
+  assert.equal(run("Release waiting", "Waited too long", "Still waiting: 90 minutes").status, 0);
+  const calls = readFileSync(log, "utf8").trim().split("\n").filter((call) => call.startsWith("issue comment "));
+  assert.deepEqual(calls, ["issue comment 7 --body Failed again: https://github.com/o/r/actions/runs/5", "issue comment 7 --body Still waiting: 90 minutes"]);
+});
+
 test("scheduled-failure.sh opens the issue once, then comments on it", () => {
   const bin = scratchDir("ouro-gh-");
   const log = join(bin, "calls.log");
