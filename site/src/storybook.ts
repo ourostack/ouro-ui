@@ -97,14 +97,14 @@ export const SCENES: Record<SceneName, Scene> = {
     },
   },
   ourostack: {
-    alt: "On a meadow hillside at dawn, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
-    sky: ["#bab2c6", "#c7bdc8", "#ddcacc", "#eecfb5", "#d4c2c0"],
+    alt: "On a meadow hillside at dawn, two faceless glass friends wrapped in plaid throws share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
+    sky: ["#adbfe6", "#b6caeb", "#b8ceec", "#c6b29a", "#cbd4e7"],
     height: 512,
     phoneHeight: 384,
     band: 65,
     night: {
       phoneHeight: 384,
-      alt: "On a meadow hillside at night, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
+      alt: "On a meadow hillside at night, two faceless glass friends wrapped in plaid throws share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
     },
   },
 };
