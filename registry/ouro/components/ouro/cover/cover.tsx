@@ -10,7 +10,7 @@ export interface CoverOwnProps {
   /**
    * What the cover belongs to: "Lemon rice". Without a picture, its first letter is the tile's
    * mark. Required, so every cover has one.
-   * @claim "its first letter is the tile's mark" registry/ouro/components/ouro/cover/cover.test.tsx verify:testExists(registry/ouro/components/ouro/cover/cover.test.tsx::Cover > draws the title's first letter in the heading font on a wash from the muted color toward the primary, without a picture)
+   * @claim "its first letter is the tile's mark" registry/ouro/components/ouro/cover/cover.test.tsx verify:testExists(registry/ouro/components/ouro/cover/cover.test.tsx::Cover > draws the title's first letter in the heading font, in the primary toward the foreground, on a wash from the muted color toward the primary, without a picture)
    */
   title: string;
   /**
@@ -128,7 +128,7 @@ export function Cover(props: CoverProps): JSX.Element {
       {picture ? (
         <img src={src} alt={alt} onError={() => setFailed(src)} className="absolute inset-0 size-full object-cover" />
       ) : (
-        <span aria-hidden="true" className="font-[family-name:var(--font-heading,inherit)] text-[42cqh] leading-none font-semibold text-(--ouro-cover-ink,var(--primary))">
+        <span aria-hidden="true" className="font-[family-name:var(--font-heading,inherit)] text-[42cqh] leading-none font-semibold text-(--ouro-cover-ink,color-mix(in_oklab,var(--primary)_60%,var(--foreground)))">
           {initial}
         </span>
       )}

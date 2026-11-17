@@ -50,13 +50,13 @@ afterEach(async () => {
 });
 
 describe("Cover", () => {
-  it("draws the title's first letter in the heading font on a wash from the muted color toward the primary, without a picture", async () => {
+  it("draws the title's first letter in the heading font, in the primary toward the foreground, on a wash from the muted color toward the primary, without a picture", async () => {
     const { cover } = await render(<Cover title="  lemon rice" />);
     const letter = cover.querySelector("span")!;
     expect(letter.textContent).toBe("L");
     expect(letter.getAttribute("aria-hidden")).toBe("true");
     expect(getComputedStyle(letter).fontFamily).toBe(themed("fontFamily", "var(--font-heading)"));
-    expect(getComputedStyle(letter).color).toBe(themed("color", "var(--primary)"));
+    expect(getComputedStyle(letter).color).toBe(themed("color", "color-mix(in oklab, var(--primary) 60%, var(--foreground))"));
     expect(getComputedStyle(cover).backgroundImage).toMatch(/^linear-gradient\(135deg/);
     // The letter is 42% of the tile's height.
     expect(Number.parseFloat(getComputedStyle(letter).fontSize)).toBeCloseTo(56 * 0.42, 0);
