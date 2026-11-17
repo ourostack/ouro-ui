@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       max-parallel: ${{ github.event_name == 'schedule' && 2 || 3 }}
       matrix:
-        include: ${{ fromJSON(github.event_name == 'never' && '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"1/2"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"2/2"},{"os":"windows-2025","project":"nvda","advisory":false,"shard":"1/1"},{"os":"macos-15","project":"voiceover","advisory":true,"shard":"1/1"}]' || '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"dialog-menu","specs":"registry/ouro/e2e/screen-reader/dialog.sr.spec.ts registry/ouro/e2e/screen-reader/menu.sr.spec.ts"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"item-menu","specs":"registry/ouro/e2e/screen-reader/item.sr.spec.ts registry/ouro/e2e/screen-reader/menu.sr.spec.ts"}]') }}
+        include: ${{ fromJSON(github.event_name == 'never' && '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"1/2"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"2/2"},{"os":"windows-2025","project":"nvda","advisory":false,"shard":"1/1"},{"os":"macos-15","project":"voiceover","advisory":true,"shard":"1/1"}]' || '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"no-wait","wait":"0","specs":"registry/ouro/e2e/screen-reader/aa-probe.sr.spec.ts registry/ouro/e2e/screen-reader/dialog.sr.spec.ts registry/ouro/e2e/screen-reader/dz-probe.sr.spec.ts registry/ouro/e2e/screen-reader/menu.sr.spec.ts"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"wait-30s","wait":"30000","specs":"registry/ouro/e2e/screen-reader/aa-probe.sr.spec.ts registry/ouro/e2e/screen-reader/dialog.sr.spec.ts registry/ouro/e2e/screen-reader/dz-probe.sr.spec.ts registry/ouro/e2e/screen-reader/menu.sr.spec.ts"}]') }}
     name: ${{ matrix.project }} (${{ matrix.os }}${{ matrix.shard != '1/1' && format(', {0}', matrix.shard) || '' }})${{ matrix.advisory && ', advisory' || '' }}
     continue-on-error: ${{ matrix.advisory }}
     runs-on: ${{ matrix.os }}
@@ -47,6 +47,7 @@ jobs:
       SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
       PROJECT: ${{ matrix.project }}
       SHARD: ${{ matrix.shard }}
+      PROBE_WAIT: ${{ matrix.wait }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
