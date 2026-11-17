@@ -13,7 +13,11 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.235         # the kit and t
 npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.235   # with their node:test tests
 ```
 
-The shadcn CLI copies the files into `lib/ouro/ax/` under your lib alias. Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
+The shadcn CLI copies the files into `lib/ouro/ax/` under your lib alias. Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps] In a Vite app, whose `tsconfig.app.json` has no Node types, leave the kit's folder out of the app's own type check, or `tsc -b` fails on its Node-only files. What your app imports from it is still checked:[^ax-vite]
+
+```json
+"exclude": ["src/lib/ouro/check", "src/lib/ouro/ax"]
+```
 
 ## A tool
 
@@ -328,3 +332,4 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^failure-allow]: test:registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry verify:testExists(registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry) verify:testExists(registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through)
 [^surfaces-checks]: test:registry/ouro/ax/surfaces.test.mts::error.leads-with-fix: says whether the fix is missing or only late verify:testExists(registry/ouro/ax/surfaces.test.mts::error.leads-with-fix: says whether the fix is missing or only late) verify:testExists(registry/ouro/ax/surfaces.test.mts::tool.says-when and tool.description-budget: when to use it, within the size budget) verify:testExists(registry/ouro/ax/surfaces.test.mts::reply.reports-outcome: an action's reply carries a field that says what happened; a read needs none) verify:testExists(registry/ouro/ax/surfaces.test.mts::text.no-script: no error, tool description or text sends the agent to a script)
 [^surfaces-ratchet]: test:registry/ouro/ax/surfaces.test.mts::a baseline is written once, fails what is new, and only ever shrinks verify:testExists(registry/ouro/ax/surfaces.test.mts::a baseline is written once, fails what is new, and only ever shrinks)
+[^ax-vite]: test:scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check, the Ouro AX kit and its tests installed once their folders are left out, still checking what it imports, and fails without that line verify:testExists(scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check, the Ouro AX kit and its tests installed once their folders are left out, still checking what it imports, and fails without that line)

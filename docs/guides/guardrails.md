@@ -324,7 +324,13 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.235
 node lib/ouro/check/check.ts dist
 ```
 
-`ouro-check` installs `lib/ouro/check/`, with the [Ouro AX](ax.md) files it runs on beside it in `lib/ouro/ax/`, and names `playwright` and `axe-core` as devDependencies, without a version.[^kit-versions] It writes `ouro-check/report.json`, `summary.md`, a contact sheet of every size a page was checked at in `sheets/`, and a captioned close-up of each finding in `findings/`, at most 40 a page.[^check-many] Its exit code is the one every Ouro tool gives, from the Ouro AX kit's table, so it can gate CI:[^check-exit]
+`ouro-check` installs `lib/ouro/check/` in your lib folder (`src/lib/ouro/check/` in an app with `src/`, so run `node src/lib/ouro/check/check.ts dist` there), with the [Ouro AX](ax.md) files it runs on beside it in `lib/ouro/ax/`, and names `playwright` and `axe-core` as devDependencies, without a version.[^kit-versions] It runs in Node, so it imports Node's modules, which a Vite app's `tsconfig.app.json` leaves out (`"types": ["vite/client"]`), and `tsc -b` then fails on it.[^check-vite] Leave Ouro's Node-only folders out of the app's type check there (what your app imports from them is still checked):
+
+```json
+"exclude": ["src/lib/ouro/check", "src/lib/ouro/ax"]
+```
+
+It writes `ouro-check/report.json`, `summary.md`, a contact sheet of every size a page was checked at in `sheets/`, and a captioned close-up of each finding in `findings/`, at most 40 a page.[^check-many] Its exit code is the one every Ouro tool gives, from the Ouro AX kit's table, so it can gate CI:[^check-exit]
 
 | Exit | Meaning |
 | --- | --- |
@@ -336,7 +342,7 @@ node lib/ouro/check/check.ts dist
 
 
 - `--pages "docs/**"` checks only the pages a glob matches; `--sizes 390x844,1440x900` and `--themes light` narrow the sweep.
-- `--shard 1/4` checks the first of four shares, and `node lib/ouro/check/check.ts merge <out folders>…` joins the shares' folders into one report, the same as one run's.[^check-shard]
+- `--shard 1/4` checks the first of four shares, and `node lib/ouro/check/check.ts merge <out folders>…` (`src/lib/ouro/check/check.ts` with `src/`) joins the shares' folders into one report, the same as one run's.[^check-shard]
 - `--before <earlier report.json>` adds a captioned before and after for each finding gone since.[^check-before]
 - A page that draws after it loads says when it is ready: it fires `ouro:ready` (or an event you name with `--ready-event`), or sets `data-app-ready`. The check waits up to 15 seconds, then checks the page as it is.[^check-ready]
 
@@ -412,7 +418,7 @@ jobs:
 End a picture on a hard edge, or put it on a solid band. Don't fade it into the page, or into nothing, at any edge, by a mask, an overlay or a pseudo-element's wash. Keep light painted into the picture itself, and gradients that are not over a picture, such as a painted sky band or a skeleton's shimmer. The screen check's `image-fade` rule finds a fade the browser draws. `fades.ts`, which `ouro-check` installs beside `check.ts`, finds one in the source before anything is built: every gradient used as a mask in a stylesheet, a style attribute, a Tailwind class (an arbitrary `mask-image` property or `mask` value, or one of Tailwind's gradient mask utilities) or a style object.[^fades] It finds a wash too: a gradient that reaches transparent on a layer over a picture, a `::before` or `::after` or an absolutely positioned or fixed box other than a hairline, in a file that draws an `<img>`, `<picture>`, `<video>` or `url()` picture (not a font's, a stylesheet's or a cursor's), or a gradient named a wash, scrim, fade, veil or haze. A sky band or a glow with no such role passes.[^fades-wash]
 
 ```sh
-node lib/ouro/check/fades.ts src
+node lib/ouro/check/fades.ts src       # node src/lib/ouro/check/fades.ts src in an app with src/
 ```
 
 It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.astro`, `.html`, `.svelte` and `.vue` files, skipping `node_modules`, build output (`dist`, `build`, `storybook-static`, `coverage`) and hidden folders.[^fades-files] Each finding gives the file, the line, the declaration and the fix, and it exits 3 when there is one, 0 when there is none and 2 on a usage problem, as `check.ts` does.[^fades-exit] A mask or a wash that fades text or controls rather than a picture, such as a row that scrolls sideways or a folded paragraph, stays when its line, or the comment just above it, says why, `fade-ok: <reason>`; a wash in a rule may say so at the rule's start too, and a marker without a reason does not count.[^fades-ok] Ouro HX's own such masks (Tabs' overflow, Collapsible's fold and the scroll fade) carry one, and this repository's CI runs `fades.ts` over `registry/` and `site/` in the required `ci` check.[^fades-ci]
@@ -559,3 +565,4 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [^check-swap-frames]: registry/ouro/check/measure.ts verify:fileLine(registry/ouro/check/measure.ts, /const FIRST_FRAMES = 10;/) verify:testExists(test/check-measure.test.ts::listenForMeasures > reads at most ten frames)
 [^check-swap-read]: test:test/check-measure.test.ts::listenForMeasures > records each control the first frame draws, once, and no control drawn after input; test:test/check-measure.test.ts::listenForMeasures > reads at most ten frames; test:test/check-measure.test.ts::listenForMeasures > marks a control a skeleton, or one allowed first-paint-swap with a reason, holds as skipped verify:testExists(test/check-measure.test.ts::listenForMeasures > records each control the first frame draws, once, and no control drawn after input) verify:testExists(test/check-measure.test.ts::listenForMeasures > reads at most ten frames) verify:testExists(test/check-measure.test.ts::listenForMeasures > marks a control a skeleton, or one allowed first-paint-swap with a reason, holds as skipped) verify:fileLine(registry/ouro/check/check.ts, /if \(measured\) \{/) verify:fileLine(registry/ouro/check/measure.ts, /if \(value === undefined\) issues\.push/)
 [^check-dark-art]: test:scripts/check/check-pages.test.mts::Ouro check > dark-art: finds a dark page that shows the light run's picture, and passes night art, a light page and a dark run first; test:test/check-wrap-in-page.test.ts::readHeroArt > reads the largest picture in the first screen, marks it, and says whether the page is dark; test:test/check-wrap-in-page.test.ts::readHeroArt > finds nothing without a big picture in view, and leaves out a hidden or allowed one verify:testExists(scripts/check/check-pages.test.mts::Ouro check > dark-art: finds a dark page that shows the light run's picture, and passes night art, a light page and a dark run first) verify:testExists(test/check-wrap-in-page.test.ts::readHeroArt > reads the largest picture in the first screen, marks it, and says whether the page is dark) verify:testExists(test/check-wrap-in-page.test.ts::readHeroArt > finds nothing without a big picture in view, and leaves out a hidden or allowed one) verify:fileLine(registry/ouro/check/wrap-check.ts, /minArea = 60000/)
+[^check-vite]: test:scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check installed once its folders are left out, as the docs say, and fails without that line verify:testExists(scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check installed once its folders are left out, as the docs say, and fails without that line)
