@@ -123,6 +123,30 @@ test("Ouro HX takes the new tag's source as the CLI would write it, adds files i
   assert.ok(update.notes.some((note) => note.includes("alert.tsx") && /edited here/.test(note)));
 });
 
+test("Ouro HX reads a file that imports the shared Ouro AX files as the CLI wrote it, under the lib alias without an extension, and updates it", async () => {
+  const registry = { items: [
+    { name: "live-captions", files: [{ path: "registry/ouro/components/ouro/live-captions/live-captions-styles.ts", target: "@components/ouro/live-captions/live-captions-styles.ts" }], registryDependencies: ["ax-component"] },
+    { name: "ax-component", files: [{ path: "registry/ouro/ax/component.ts", target: "@lib/ouro/ax/component.ts" }, { path: "registry/ouro/ax/index.ts", target: "@lib/ouro/ax/index.ts" }] },
+  ] };
+  const styles = (v) => `import { defineComponentAx } from "@/registry/ouro/ax/component";\nimport { kit } from '@/registry/ouro/ax/index.ts';\nexport * from "@/registry/ouro/ax/component.ts";\nexport const ax = defineComponentAx({ rounded: "${v}" }); // @/registry/ouro/ax/ in prose stays\n`;
+  const at = (v) => new Map(Object.entries({ "registry.json": JSON.stringify(registry), "registry/ouro/components/ouro/live-captions/live-captions-styles.ts": styles(v), "registry/ouro/ax/component.ts": `export const component = "${v}";\n`, "registry/ouro/ax/index.ts": `export const kit = "${v}";\n` }).map(([k, value]) => [k, Buffer.from(value)]));
+  const written = (v) => `import { defineComponentAx } from "~/lib/ouro/ax/component";\nimport { kit } from '~/lib/ouro/ax';\nexport * from "~/lib/ouro/ax/component";\nexport const ax = defineComponentAx({ rounded: "${v}" }); // @/registry/ouro/ax/ in prose stays\n`;
+  const path = "app/components/ouro/live-captions/live-captions-styles.ts";
+  const record = { tag: "v1.3.244", tagCommit: "old", files: { [path]: sha256(styles("rounded-xl")), "app/lib/ouro/ax/component.ts": sha256('export const component = "rounded-xl";\n'), "app/lib/ouro/ax/index.ts": sha256('export const kit = "rounded-xl";\n') } };
+  const consumer = new Map([
+    ["components.json", Buffer.from(JSON.stringify({ aliases: { components: "~/components", lib: "~/lib" } }))],
+    [path, Buffer.from(written("rounded-xl"))],
+    ["app/lib/ouro/ax/component.ts", Buffer.from('export const component = "rounded-xl";\n')],
+    ["app/lib/ouro/ax/index.ts", Buffer.from('export const kit = "rounded-xl";\n')],
+  ]);
+  const ctx = { tarball: async (follows, tag) => at(tag === "v1.3.244" ? "rounded-xl" : "rounded-ouro-xl"), consumerFiles: async () => consumer };
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.deepEqual(update.notes.filter((note) => /edited here/.test(note)), [], "the CLI's own rewrite is not an edit");
+  assert.equal(update.files[path]?.toString(), written("rounded-ouro-xl"));
+  assert.equal(JSON.parse(update.files[pin.file]).files[path], sha256(styles("rounded-ouro-xl")));
+});
+
 test("Ouro HX puts an added item where the app's own aliases resolve, and rewrites its imports, at the root or in a package", async () => {
   const kbd = (v, imports) => `${imports}export const Kbd = "${v}";\n`;
   const lib = (name, deps = []) => ({ name: `lib-${name}`, registryDependencies: deps, files: [{ path: `registry/ouro/lib/ouro/${name}.ts`, target: `@lib/ouro/${name}.ts` }] });
