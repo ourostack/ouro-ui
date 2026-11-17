@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { after } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { main, type Finding } from "../../registry/ouro/check/check.ts";
+import { main, type Finding } from "../../registry/ouro/check/run.ts";
 
 // Shared setup of the Ouro check's node:test files: a scratch folder of its own per process, and fixture builders.
 

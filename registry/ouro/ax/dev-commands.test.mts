@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { devCommandIn, devCommandsIn, MESSAGE_KEYS, sourceCheckoutTexts } from "./dev-commands.ts";
+import { devCommandIn, devCommandsIn, MESSAGE_KEYS, sourceCheckoutTexts } from "#ouro-ax/dev-commands.ts";
 
 const command = (text: string) => devCommandIn(text, true)?.match ?? null;
 const prose = (text: string) => devCommandIn(text)?.match ?? null;

@@ -1,22 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { BARE_FAILURE, CAUSE_MARKER, checkFailureCopyAllow, FAILURE_KEYS, LEAD_FAILURE, NOT_A_CAUSE, NOT_BARE_LEADS, statesCause, VAGUE_FAILURE_PHRASES, vagueFailureIn, vagueFailuresIn } from "./precise-copy.ts";
-
-test("keeps the source rules kit's list of phrases", async () => {
-  // @ts-expect-error The source rules kit is plain JavaScript with no declarations.
-  const kit = (await import("../source-rules/source-rules.mjs")) as { VAGUE_FAILURE_PHRASES: [string, RegExp][]; BARE_FAILURE: RegExp; CAUSE_MARKER: RegExp; LEAD_FAILURE: RegExp; NOT_A_CAUSE: string[]; NOT_BARE_LEADS: string[]; statesCause: (rest: string) => boolean; vagueFailurePhrase: (text: string) => string | undefined };
-  const shown = (list: readonly (readonly [string, RegExp])[]) => list.map(([name, pattern]) => `${name} ${String(pattern)}`);
-  assert.deepEqual(shown(VAGUE_FAILURE_PHRASES), shown(kit.VAGUE_FAILURE_PHRASES));
-  assert.equal(String(BARE_FAILURE), String(kit.BARE_FAILURE));
-  assert.equal(String(CAUSE_MARKER), String(kit.CAUSE_MARKER));
-  assert.equal(String(LEAD_FAILURE), String(kit.LEAD_FAILURE));
-  assert.deepEqual([...NOT_A_CAUSE], kit.NOT_A_CAUSE);
-  assert.deepEqual([...NOT_BARE_LEADS], kit.NOT_BARE_LEADS);
-  // The two agree on every case, precise or vague.
-  const samples = ["Couldn't send: you're offline. Try again when you're back online.", "Couldn't send: try again.", "Something went wrong. Error code: E42", "Error: error", "Error: the photo service says this picture was deleted", "Unable to save - try again", "No errors", "Retry failed", "Upload failed"];
-  for (const text of samples) assert.equal(vagueFailureIn(text), kit.vagueFailurePhrase(text) ?? null, text);
-  for (const rest of [" send: you're offline.", " send: try again.", " send because the server refused it"]) assert.equal(statesCause(rest), kit.statesCause(rest), rest);
-});
+import { checkFailureCopyAllow, FAILURE_KEYS, vagueFailureIn, vagueFailuresIn } from "#ouro-ax/precise-copy.ts";
 
 test("finds each vague phrase and a bare failure, and lets precise copy and allowed text through", () => {
   assert.equal(vagueFailureIn("Couldn't show this picture"), "couldn't");

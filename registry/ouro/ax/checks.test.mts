@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CHECKS_VERSION, checksText, defineChecks, isChecksReport, printChecks, type CheckDef, type ChecksReport } from "./checks.ts";
-import { BASE_EXIT_CODES, FINDINGS_EXIT_CODE } from "./exit-codes.ts";
-import { hasAnsi, stripAnsi, terminalStyle, type Timers } from "./terminal.ts";
-import { vagueFailureIn } from "./precise-copy.ts";
+import { CHECKS_VERSION, checksText, defineChecks, isChecksReport, printChecks, type CheckDef, type ChecksReport } from "#ouro-ax/checks.ts";
+import { BASE_EXIT_CODES, FINDINGS_EXIT_CODE } from "#ouro-ax/exit-codes.ts";
+import { hasAnsi, stripAnsi, terminalStyle, type Timers } from "#ouro-ax/terminal.ts";
+import { vagueFailureIn } from "#ouro-ax/precise-copy.ts";
 
 const TTY = terminalStyle({ isTTY: true }, {});
 const PIPE = terminalStyle({}, {});

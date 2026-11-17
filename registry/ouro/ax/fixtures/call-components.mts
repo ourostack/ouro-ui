@@ -1,4 +1,4 @@
-import { bindAx, defineComponentAx } from "../component.ts";
+import { bindAx, defineComponentAx } from "#ouro-ax/component.ts";
 
 const theirs = "You can't turn on the person's microphone, camera or screen; only they can.";
 

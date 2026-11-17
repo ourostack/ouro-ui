@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { EXIT } from "../../registry/ouro/check/check.ts";
+import { EXIT } from "../../registry/ouro/check/run.ts";
 import { FADE_FIX, findFades, main, SCANNED, SKIPPED, scan, WASH_FIX } from "../../registry/ouro/check/fades.ts";
 
 // The fade check (registry/ouro/check/fades.ts): every syntax a gradient mask is written in fails, and so does a wash over
@@ -303,7 +303,7 @@ describe("the fade check's command", () => {
     for (const flag of ["--help", "-h"]) {
       const help = await run([flag]);
       assert.equal(help.code, EXIT.ok);
-      assert.match(help.out, /^Usage: node lib\/ouro\/check\/fades\.ts <folder \| file>…/);
+      assert.match(help.out, /^Usage: node scripts\/ouro\/check\/fades\.ts <folder \| file>…/);
     }
     const none = await run([]);
     assert.equal(none.code, EXIT.usage);

@@ -107,9 +107,11 @@ function typeCheck(tag) {
     const appConfig = JSON.parse(file("tsconfig.app.json"));
     assert.deepEqual(appConfig.compilerOptions.paths, { "@/*": ["./src/*"] });
     assert.deepEqual(JSON.parse(file("tsconfig.json")).compilerOptions.paths, { "@/*": ["./src/*"] });
-    // The exclude the ouro-check item's install message gives, so tsc -b never reads its Node code.
+    // When ouro-check's install message gives an exclude (releases that installed its Node code in
+    // src), the guide's is the same. Once it installs under scripts/ouro, tsc -b never reads that
+    // code, and the guide's exclude only keeps the newest such release type-checking.
     const check = registry.items.find((item) => item.name === "ouro-check");
-    if (!tag) assert.match(check.docs, new RegExp(`"exclude": ${JSON.stringify(appConfig.exclude).replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll(",", ", ")}`));
+    if (!tag && /"exclude":/.test(check.docs)) assert.match(check.docs, new RegExp(`"exclude": ${JSON.stringify(appConfig.exclude).replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll(",", ", ")}`));
     assert.match(file("vite.config.ts"), /from "\.\/src\/lib\/ouro\/color-scheme-script\.ts";/, "vite.config.ts imports the script with .ts, as tsconfig.node.json's nodenext needs");
     const result = spawnSync(process.execPath, [tsc, "-b", join(app, "tsconfig.json"), "--pretty", "false"], { cwd: app, encoding: "utf8" });
     assert.equal(result.status, 0, `the quickstart's app fails to type-check with ${tag ?? "main"}'s registry:\n${result.stdout}${result.stderr}`);

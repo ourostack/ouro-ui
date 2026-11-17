@@ -1,8 +1,8 @@
 // The kit's example tool (example-cli.ts) as a program, for the X-ray's tests: `node fixtures/notes.mts <args>`.
 // State lives in $NOTES_STATE (a JSON file), so the X-ray's state snapshots can see what changed between calls.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { quietPipes, runCli } from "../cli.ts";
-import { exampleCli, rooms } from "../example-cli.ts";
+import { quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { exampleCli, rooms } from "#ouro-ax/example-cli.ts";
 
 const file = process.env["NOTES_STATE"];
 if (file && existsSync(file)) Object.assign(rooms, JSON.parse(readFileSync(file, "utf8")));

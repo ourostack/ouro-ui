@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BASE_EXIT_CODES, defineExitCodes } from "./exit-codes.ts";
-import { nextStep } from "./outcome.ts";
-import { DEFAULT_WAIT_EXITS, formatDuration, isWait, parseDuration, validateWait, wait, waitExit, waitFor, waitText, type AxEvent, type WaitRead } from "./wait.ts";
+import { BASE_EXIT_CODES, defineExitCodes } from "#ouro-ax/exit-codes.ts";
+import { nextStep } from "#ouro-ax/outcome.ts";
+import { DEFAULT_WAIT_EXITS, formatDuration, isWait, parseDuration, validateWait, wait, waitExit, waitFor, waitText, type AxEvent, type WaitRead } from "#ouro-ax/wait.ts";
 
 const AT = "2026-10-30T20:00:00.000Z";
 const again = nextStep("tool watch abc123 --cursor 17", "wait again from here");

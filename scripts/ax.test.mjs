@@ -36,9 +36,25 @@ test("the Ouro AX tests pass and cover every line, branch and function of Ouro A
   assert.match(result.stdout, /^# all files\s+\|\s+100\.00 \|\s+100\.00 \|\s+100\.00 \|/m, result.stdout);
 });
 
+test("the precise-copy list keeps the source rules kit's phrases", async () => {
+  const kit = await import("../registry/ouro/source-rules/source-rules.mjs");
+  const copy = await import("../registry/ouro/ax/precise-copy.ts");
+  const shown = (list) => list.map(([name, pattern]) => `${name} ${String(pattern)}`);
+  assert.deepEqual(shown(copy.VAGUE_FAILURE_PHRASES), shown(kit.VAGUE_FAILURE_PHRASES));
+  assert.equal(String(copy.BARE_FAILURE), String(kit.BARE_FAILURE));
+  assert.equal(String(copy.CAUSE_MARKER), String(kit.CAUSE_MARKER));
+  assert.equal(String(copy.LEAD_FAILURE), String(kit.LEAD_FAILURE));
+  assert.deepEqual([...copy.NOT_A_CAUSE], kit.NOT_A_CAUSE);
+  assert.deepEqual([...copy.NOT_BARE_LEADS], kit.NOT_BARE_LEADS);
+  // The two agree on every case, precise or vague.
+  const samples = ["Couldn't send: you're offline. Try again when you're back online.", "Couldn't send: try again.", "Something went wrong. Error code: E42", "Error: error", "Error: the photo service says this picture was deleted", "Unable to save - try again", "No errors", "Retry failed", "Upload failed"];
+  for (const text of samples) assert.equal(copy.vagueFailureIn(text), kit.vagueFailurePhrase(text) ?? null, text);
+  for (const rest of [" send: you're offline.", " send: try again.", " send because the server refused it"]) assert.equal(copy.statesCause(rest), kit.statesCause(rest), rest);
+});
+
 test("the guide shows the tasks tool as it is, and the answers it gives", () => {
   const guide = readFileSync(join(root, "docs/guides/ax.md"), "utf8");
-  const tool = readFileSync(join(root, dir, "fixtures/tasks.mts"), "utf8").replaceAll('from "../', 'from "./lib/ouro/ax/');
+  const tool = readFileSync(join(root, dir, "fixtures/tasks.mts"), "utf8");
   assert.ok(guide.includes(`\`\`\`ts\n${tool}\`\`\``), "docs/guides/ax.md shows registry/ouro/ax/fixtures/tasks.mts, with the app's import paths");
   const shown = guide.split("```text\n")[1].split("```")[0];
   const answers = shown.split(/^\$ tasks /m).filter(Boolean).map((block) => {
@@ -55,6 +71,6 @@ test("the guide shows the tasks tool as it is, and the answers it gives", () => 
 
 test("the guide shows the calling components' declarations as they are", () => {
   const guide = readFileSync(join(root, "docs/guides/ax.md"), "utf8");
-  const declarations = readFileSync(join(root, dir, "fixtures/call-components.mts"), "utf8").replaceAll('from "../', 'from "./lib/ouro/ax/');
+  const declarations = readFileSync(join(root, dir, "fixtures/call-components.mts"), "utf8");
   assert.ok(guide.includes(`\`\`\`ts\n${declarations}\`\`\``), "docs/guides/ax.md shows registry/ouro/ax/fixtures/call-components.mts, with the app's import paths");
 });

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { outcome } from "./outcome.ts";
-import { checkVoice, checkVoiceLine, createVoice, isCi, VOICE_MAX, voiceLines, voiceOn } from "./voice.ts";
+import { outcome } from "#ouro-ax/outcome.ts";
+import { checkVoice, checkVoiceLine, createVoice, isCi, VOICE_MAX, voiceLines, voiceOn } from "#ouro-ax/voice.ts";
 
 const on = { tty: true, json: false, quiet: false, env: {} };
 

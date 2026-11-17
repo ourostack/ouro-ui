@@ -12,7 +12,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.241
 ```
 
-It installs `lib/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-cli`, `ax-command`, `ax-component`, `ax-dev-commands`, `ax-exit-codes`, `ax-outcome`, `ax-precise-copy`, `ax-problem`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
+It installs `scripts/ouro/ax/xray.kit.mts` and `scripts/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-cli`, `ax-command`, `ax-component`, `ax-dev-commands`, `ax-exit-codes`, `ax-outcome`, `ax-precise-copy`, `ax-problem`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`, and the shared kit as `#ouro-ax/<file>`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
 
 ## Exports
 

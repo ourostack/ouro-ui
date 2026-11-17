@@ -2,10 +2,10 @@
 // DOCTOR_BROKEN=1 makes its cache check fail, so the doctor exits with the findings code; DOCTOR_CRASH=1 makes its
 // config check throw, so it exits 1; DOCTOR_TEXT_EXIT=1 makes its text exit 1 whatever the report says, a text that
 // disagrees with its JSON; DOCTOR_SHARED=1 passes the share check.
-import { defineChecks } from "../checks.ts";
-import { quietPipes, runCli } from "../cli.ts";
-import { defineCli, defineCommand } from "../command.ts";
-import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE } from "../exit-codes.ts";
+import { defineChecks } from "#ouro-ax/checks.ts";
+import { quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE } from "#ouro-ax/exit-codes.ts";
 
 const exits = defineExitCodes([...BASE_EXIT_CODES, FINDINGS_EXIT_CODE]);
 const broken = process.env["DOCTOR_BROKEN"] === "1";

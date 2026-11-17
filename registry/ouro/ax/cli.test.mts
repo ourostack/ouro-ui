@@ -1,13 +1,13 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { defineChecks } from "./checks.ts";
-import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "./cli.ts";
-import { checkOwner, defineCli, defineCommand, parse, type Cli, type Input, type Parsed, type RunContext } from "./command.ts";
-import { commandManifest } from "./help.ts";
-import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "./example-cli.ts";
-import { nextStep, outcome } from "./outcome.ts";
-import { hasAnsi, stripAnsi } from "./terminal.ts";
+import { defineChecks } from "#ouro-ax/checks.ts";
+import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { checkOwner, defineCli, defineCommand, parse, type Cli, type Input, type Parsed, type RunContext } from "#ouro-ax/command.ts";
+import { commandManifest } from "#ouro-ax/help.ts";
+import { exampleCli as cli, exits, postMessage, resetRooms, rooms, setClock } from "#ouro-ax/example-cli.ts";
+import { nextStep, outcome } from "#ouro-ax/outcome.ts";
+import { hasAnsi, stripAnsi } from "#ouro-ax/terminal.ts";
 
 async function run(argv: string[], stdin?: string) {
   let out = "";
@@ -266,7 +266,7 @@ test("a voice line follows the fact it adds to: a done outcome, an empty list, t
       defineCommand({ name: "both", summary: "B.", effect: "private", run: async () => {
         // Two done outcomes in one process: the second gets no celebration.
         const io = { stdout: { write: (s: string) => void told.push(s) }, stderr: { write: () => undefined } };
-        const voice = (await import("./voice.ts")).createVoice(tool.voice, { tty: true, json: false, quiet: false, env: {} });
+        const voice = (await import("#ouro-ax/voice.ts")).createVoice(tool.voice, { tty: true, json: false, quiet: false, env: {} });
         printResult(tool, tool.commands[3]!, {}, outcome({ action: "one", state: "done", summary: "One." }), false, io, voice);
         printResult(tool, tool.commands[3]!, {}, outcome({ action: "two", state: "queued", summary: "Two.", receipt: { id: "r", at: "x", by: "agent", why: null }, next: [nextStep("t list", "see it")] }), false, io, voice);
         printResult(tool, tool.commands[3]!, {}, outcome({ action: "three", state: "planned", summary: "Three." }), false, io, voice);
@@ -301,8 +301,8 @@ test("voice variants rotate from the memory a tool keeps between runs", async ()
 
 /** Runs the example tool, with or without quietPipes, its stdout already closed, as `notes --help | head -0` leaves it. */
 function closedPipe(argv: string[], quiet = true) {
-  const url = (file: string) => JSON.stringify(new URL(file, import.meta.url).href);
-  const program = `import { quietPipes, runCli } from ${url("./cli.ts")}; import { exampleCli } from ${url("./example-cli.ts")};${quiet ? " quietPipes(process);" : ""} process.exitCode = await runCli(exampleCli, process.argv.slice(1), process);`;
+  const url = (file: string) => JSON.stringify(import.meta.resolve(`#ouro-ax/${file}`));
+  const program = `import { quietPipes, runCli } from ${url("cli.ts")}; import { exampleCli } from ${url("example-cli.ts")};${quiet ? " quietPipes(process);" : ""} process.exitCode = await runCli(exampleCli, process.argv.slice(1), process);`;
   return new Promise<{ code: number | null; err: string }>((done) => {
     const child = spawn(process.execPath, ["--input-type=module", "-e", program, "--", ...argv], { stdio: ["ignore", "pipe", "pipe"] });
     child.stdout.destroy();

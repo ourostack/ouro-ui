@@ -131,7 +131,7 @@ function loadClaimSet(value: unknown): ClaimSet
 
 ## The claims
 
-Must claims first. `node lib/ouro/ax/xray.ts claims` prints their rules and checks; [the standard](../guides/ax-standard.md) says how a claim is admitted.
+Must claims first. `node scripts/ouro/ax/xray.ts claims` prints their rules and checks; [the standard](../guides/ax-standard.md) says how a claim is admitted.
 
 | Claim | Tier | Admitted by |
 | --- | --- | --- |

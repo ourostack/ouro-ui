@@ -245,6 +245,129 @@ test("Ouro HX keeps each file where the install record has it, as a site keeps O
   assert.deepEqual(update.notes.filter((note) => /edited here/.test(note)), []);
 });
 
+/**
+ * An app at `dir` (the folder of its components.json) that installed Ouro check and the X-ray under its lib folder at
+ * v1.3.117. The next tag moves both to `~/scripts/ouro/`, and the shared AX file `command.ts` stays under the lib folder.
+ */
+function moveFixture(dir, { checkHere = 'export const check = "v1";\n' } = {}) {
+  const lib = `${dir}src/lib/`;
+  const CHECK = (v) => `export const check = "${v}";\n`;
+  const XRAY = (v) => `import { command } from "#ouro-ax/command.ts";\nexport const xray = "${v}";\n`;
+  const COMMAND = (v) => `export const command = "${v}";\n`;
+  const registry = (checkTarget, xrayTarget) => ({ items: [
+    // At the new tag Ouro check also gains a file, which goes beside its moved files.
+    { name: "ouro-check", files: [{ path: "registry/ouro/check/check.ts", target: checkTarget }, ...(checkTarget.startsWith("~/") ? [{ path: "registry/ouro/check/run.ts", target: "~/scripts/ouro/check/run.ts" }] : [])] },
+    { name: "ax-xray", files: [{ path: "registry/ouro/ax/xray.ts", target: xrayTarget }] },
+    { name: "ax-command", files: [{ path: "registry/ouro/ax/command.ts", target: "@lib/ouro/ax/command.ts" }] },
+  ] });
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const previous = files({ "registry.json": JSON.stringify(registry("@lib/ouro/check/check.ts", "@lib/ouro/ax/xray.ts")), "registry/ouro/check/check.ts": CHECK("v1"), "registry/ouro/ax/xray.ts": XRAY("v1"), "registry/ouro/ax/command.ts": COMMAND("v1") });
+  const next = files({ "registry.json": JSON.stringify(registry("~/scripts/ouro/check/check.ts", "~/scripts/ouro/ax/xray.ts")), "registry/ouro/check/check.ts": CHECK("v2"), "registry/ouro/check/run.ts": "export const run = 2;\n", "registry/ouro/ax/xray.ts": XRAY("v2"), "registry/ouro/ax/command.ts": COMMAND("v2") });
+  const installed = { [`${lib}ouro/check/check.ts`]: checkHere, [`${lib}ouro/ax/xray.ts`]: XRAY("v1"), [`${lib}ouro/ax/command.ts`]: COMMAND("v1") };
+  const record = { tag: "v1.3.117", tagCommit: "old", files: { [`${lib}ouro/check/check.ts`]: sha256(CHECK("v1")), [`${lib}ouro/ax/xray.ts`]: sha256(XRAY("v1")), [`${lib}ouro/ax/command.ts`]: sha256(COMMAND("v1")) } };
+  // The package's scripts name the files by their path from the package folder, as a package.json does.
+  const packageJson = `{\n    "name": "app",\n    "scripts": {\n        "check": "node ${lib.slice(dir.length)}ouro/check/check.ts dist"\n    }\n}\n`;
+  const consumer = files({
+    [`${dir}components.json`]: JSON.stringify({ aliases: { components: "@/components", lib: "@/lib" } }),
+    [`${dir}tsconfig.json`]: JSON.stringify({ compilerOptions: { paths: { "@/*": ["./src/*"] } } }),
+    [`${dir}package.json`]: packageJson,
+    ...installed,
+  });
+  const ctx = { tarball: async (follows, tag) => (tag === "v1.3.117" ? previous : next), consumerFiles: async () => consumer };
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  return { record, ctx, pin, consumer };
+}
+
+test("Ouro HX moves Ouro check and the X-ray to scripts/ouro where their items now install, deleting the old copies and fixing package.json", async () => {
+  const { record, ctx, pin } = moveFixture("");
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.equal(update.files["src/lib/ouro/check/check.ts"], null, "the old copy is deleted, as a null value");
+  assert.equal(update.files["src/lib/ouro/ax/xray.ts"], null);
+  assert.equal(update.files["scripts/ouro/check/check.ts"].toString(), 'export const check = "v2";\n');
+  assert.equal(update.files["scripts/ouro/ax/xray.ts"].toString(), 'import { command } from "#ouro-ax/command.ts";\nexport const xray = "v2";\n');
+  assert.equal(update.files["src/lib/ouro/ax/command.ts"].toString(), 'export const command = "v2";\n', "the shared file is updated where it is");
+  const written = JSON.parse(update.files[pin.file]);
+  assert.equal(written.files["scripts/ouro/check/check.ts"], sha256('export const check = "v2";\n'));
+  assert.equal(written.files["scripts/ouro/ax/xray.ts"], sha256('import { command } from "#ouro-ax/command.ts";\nexport const xray = "v2";\n'), "the record keeps the registry source's hash");
+  assert.equal(written.files["src/lib/ouro/ax/command.ts"], sha256('export const command = "v2";\n'));
+  assert.equal("src/lib/ouro/check/check.ts" in written.files, false, "the record holds the new path, not the old");
+  assert.equal("src/lib/ouro/ax/xray.ts" in written.files, false);
+  assert.equal(update.files["package.json"].toString(), `{
+    "name": "app",
+    "scripts": {
+        "check": "node scripts/ouro/check/check.ts dist"
+    },
+    "imports": {
+        "#ouro-ax/*": "./src/lib/ouro/ax/*"
+    }
+}
+`, "the imports entry is added and the script points at the moved file, in the file's own indentation");
+  assert.ok(update.notes.includes("Moves `src/lib/ouro/check/check.ts` to `scripts/ouro/check/check.ts`, outside the app's TypeScript project."));
+  assert.ok(update.notes.includes("Moves `src/lib/ouro/ax/xray.ts` to `scripts/ouro/ax/xray.ts`, outside the app's TypeScript project."));
+  assert.ok(update.notes.some((note) => note.includes("`#ouro-ax/*`") && note.includes("`imports`")));
+  assert.ok(update.notes.some((note) => note.includes("`scripts`")));
+  assert.deepEqual(lintMarkdown(body([{ file: pin.file, follows: "web", current: "v1.3.117" }], { web: RELEASES.web }, update.notes), { file: "pull request body" }), []);
+});
+
+test("Ouro HX leaves a moved file it was edited into where it is, and says so, while an unedited file still moves", async () => {
+  const { record, ctx, pin } = moveFixture("", { checkHere: 'export const check = "edited here";\n' });
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.equal("src/lib/ouro/check/check.ts" in update.files, false, "not deleted, and not overwritten");
+  assert.equal("scripts/ouro/check/check.ts" in update.files, false, "not moved");
+  assert.equal(update.files["src/lib/ouro/ax/xray.ts"], null, "the unedited X-ray still moves");
+  assert.equal(update.files["package.json"].toString().includes("node src/lib/ouro/check/check.ts dist"), true, "its script still names the file it is at");
+  const written = JSON.parse(update.files[pin.file]);
+  assert.equal(written.files["src/lib/ouro/check/check.ts"], sha256('export const check = "v1";\n'), "the record keeps the file and its old source's hash");
+  assert.ok(update.notes.some((note) => note.includes("`src/lib/ouro/check/check.ts`") && /edited here/.test(note)));
+  assert.ok(!update.notes.some((note) => note.includes("Moves `src/lib/ouro/check/check.ts`")));
+});
+
+test("Ouro HX leaves a file where it is when the app already has its own file at the new path", async () => {
+  const { record, ctx, pin, consumer } = moveFixture("");
+  consumer.set("scripts/ouro/check/check.ts", Buffer.from("the app's own script"));
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.equal("src/lib/ouro/check/check.ts" in update.files, false, "the old copy is not deleted");
+  assert.equal("scripts/ouro/check/check.ts" in update.files, false, "the app's own file is not replaced");
+  assert.ok(update.notes.includes("Leaves `src/lib/ouro/check/check.ts` where it is, because `scripts/ouro/check/check.ts` already exists in the app and is not replaced."));
+  assert.equal(update.files["src/lib/ouro/ax/xray.ts"], null, "the other file still moves");
+});
+
+test("Ouro HX moves a file in a monorepo package to that package's scripts folder, with the package's own imports and script paths", async () => {
+  const { record, ctx, pin } = moveFixture("packages/web/");
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.equal(update.files["packages/web/src/lib/ouro/check/check.ts"], null);
+  assert.equal(update.files["packages/web/scripts/ouro/check/run.ts"]?.toString(), "export const run = 2;\n", "a file the moved item gained goes in the package too");
+  assert.equal(update.files["scripts/ouro/check/run.ts"], undefined, "and not at the repository's root");
+  assert.equal(update.files["packages/web/scripts/ouro/check/check.ts"].toString(), 'export const check = "v2";\n');
+  assert.equal(update.files["packages/web/scripts/ouro/ax/xray.ts"].toString(), 'import { command } from "#ouro-ax/command.ts";\nexport const xray = "v2";\n');
+  assert.equal(update.files["package.json"], undefined, "the repository's root package.json is not the package's");
+  assert.equal(update.files["packages/web/package.json"].toString(), `{
+    "name": "app",
+    "scripts": {
+        "check": "node scripts/ouro/check/check.ts dist"
+    },
+    "imports": {
+        "#ouro-ax/*": "./src/lib/ouro/ax/*"
+    }
+}
+`);
+  const written = JSON.parse(update.files[pin.file]);
+  assert.equal(written.files["packages/web/scripts/ouro/check/check.ts"], sha256('export const check = "v2";\n'));
+});
+
+test("a move reaches the update's commit as a deletion of the old copy, with the moved file and the package's fixes in the same tree", async () => {
+  const { record, ctx, consumer } = moveFixture("");
+  const repo = fakeRepo({ ...Object.fromEntries([...consumer].map(([path, bytes]) => [path, bytes.toString("utf8")])), ".github/ouro-hx-installed.json": JSON.stringify(record) });
+  const kept = await keepRepo(repo.gh, "o/r", RELEASES, { tarball: ctx.tarball });
+  assert.equal(kept.state, "pr");
+  assert.equal(repo.fileAt(BRANCH, "src/lib/ouro/check/check.ts"), undefined, "the old copy is gone from the branch");
+  assert.equal(repo.fileAt(BRANCH, "scripts/ouro/check/check.ts"), 'export const check = "v2";\n');
+  assert.equal(repo.fileAt(BRANCH, "src/lib/ouro/ax/command.ts"), 'export const command = "v2";\n');
+  assert.match(repo.fileAt(BRANCH, "package.json"), /"#ouro-ax\/\*": "\.\/src\/lib\/ouro\/ax\/\*"/);
+  assert.equal(JSON.parse(repo.fileAt(BRANCH, ".github/ouro-hx-installed.json")).tag, "v1.3.187");
+  assert.match(repo.pulls[0].body, /Moves `src\/lib\/ouro\/check\/check\.ts` to `scripts\/ouro\/check\/check\.ts`/);
+});
+
 test("a vendored source moves to the release's commit with each file's new bytes and hash", async () => {
   const lock = { schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [{ sourcePath: "registry/ouro/ax/cli.ts", generatedPath: "lib/ouro-ui/registry/ouro/ax/cli.ts", sha256: "x" }] }] };
   const ctx = { tarball: async () => new Map([["registry/ouro/ax/cli.ts", Buffer.from("cli v2")]]) };
@@ -504,6 +627,10 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
     if ((match = /^repos\/o\/r\/contents\/([^?]+)\?ref=(.+)$/.exec(path)) && method === "GET") {
       const sha = trees.get(commits.get(match[2]).tree).get(decodeURIComponent(match[1]));
       return sha ? ok({ content: blobs.get(sha).toString("base64") }) : missing();
+    }
+    if ((match = /^repos\/o\/r\/tarball\/(.+)$/.exec(path)) && method === "GET") {
+      const at = [...trees.get(commits.get(match[1]).tree)].map(([p, s]) => [p, blobs.get(s).toString("utf8")]);
+      return { status: 200, headers: new Map(), arrayBuffer: async () => tarball(Object.fromEntries(at)) };
     }
     if (path === "repos/o/r/releases/latest") return latestRelease ? ok({ tag_name: latestRelease }) : missing();
     if (path.startsWith("repos/o/r/pulls?state=open")) return ok(pulls.filter((pr) => pr.state === "open"));

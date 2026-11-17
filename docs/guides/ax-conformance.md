@@ -4,7 +4,7 @@
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.241
-node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --home .xray-home --mock "http://127.0.0.1:5999/api/state mock=true"
+node scripts/ouro/ax/xray.ts --cli "node bin/tool.mjs" --home .xray-home --mock "http://127.0.0.1:5999/api/state mock=true"
 ```
 
 ## What it checks
@@ -57,7 +57,7 @@ Run it against your mock, with the inventory your build generates, and keep the 
 - name: Ouro AX X-ray
   run: |
     node scripts/inventory.mjs > inventory.json   # from your command table and router
-    node lib/ouro/ax/xray.ts --cli "node bin/tool.mjs" --http "$MOCK_URL" --routes routes.json \
+    node scripts/ouro/ax/xray.ts --cli "node bin/tool.mjs" --http "$MOCK_URL" --routes routes.json \
       --inventory inventory.json --conformance --home "$RUNNER_TEMP/xray-home" --guard "node scripts/assert-mock.mjs" \
       --env "TOOL_URL=$MOCK_URL" --state "log --json" --commit "$GITHUB_SHA" --json --md xray.md > xray.json
 - uses: actions/upload-artifact@v4
