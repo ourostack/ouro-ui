@@ -1,0 +1,1 @@
+- New: the agent quickstart (docs/agent-quickstart.md), the steps and whole files for a new Vite app with a validated form, a color scheme toggle and a confirmation dialog, and llms.txt points to it first.
