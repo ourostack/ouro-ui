@@ -566,8 +566,22 @@ test("an agent that searches llms.txt for dark mode finds the item that does it"
   const llms = readFileSync(join(root, "site/public/llms.txt"), "utf8");
   const line = llms.split("\n").find((each) => each.startsWith("- `color-scheme-toggle`:"));
   assert.match(line, /\bdark mode\b/i, "color-scheme-toggle's line says dark mode; run pnpm registry");
-  const first = llms.split("\n").findIndex((each) => /\bdark mode\b/i.test(each));
-  assert.equal(first, llms.split("\n").indexOf(line), "the first line that says dark mode is color-scheme-toggle's");
+  const first = llms.split("\n").find((each) => /\bdark mode\b/i.test(each));
+  assert.match(first, /`color-scheme-toggle`/, "the first line that says dark mode names color-scheme-toggle");
+});
+
+test("llms.txt names the items for common needs before an agent's first fetch ends, and each is a registry item", () => {
+  const llms = readFileSync(join(root, "site/public/llms.txt"), "utf8");
+  const start = llms.indexOf("\n## Common needs\n");
+  assert.ok(start > 0, "llms.txt has a Common needs section");
+  const end = llms.indexOf("\n## ", start + 1);
+  // An agent's fetch tool returns the start of a page, often 5,000 to 20,000 characters, and the full item list starts
+  // far past that; this section has to be read in the first window.
+  assert.ok(end <= 8000, `Common needs ends at character ${end}, past the 8,000 an agent's first fetch is sure to read`);
+  const named = [...llms.slice(start, end).matchAll(/`([a-z][a-z0-9-]*)`/g)].map((match) => match[1]);
+  const items = new Set(registry.items.map((entry) => entry.name));
+  for (const name of named) assert.ok(items.has(name), `Common needs names ${name}, which is no registry item`);
+  for (const need of ["color-scheme-toggle", "confirm-dialog", "form", "toaster"]) assert.ok(named.includes(need), `Common needs names ${need}`);
 });
 
 test("--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag)", () => {

@@ -1,0 +1,1 @@
+- New: llms.txt names [the items for common needs](scripts/registry.test.mjs "verify:testExists(scripts/registry.test.mjs::llms.txt names the items for common needs before an agent's first fetch ends, and each is a registry item)") (dark mode, a form, a confirmation, a toast) near its top, so an agent whose fetch reads only the start of the file finds them.
