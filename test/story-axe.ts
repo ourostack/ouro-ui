@@ -128,6 +128,9 @@ function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] 
             // it, which the hover's own hit test, refused, never makes (#1856). Only then does the pointer arrive over the
             // trigger's corner first, as a person's does; any other trigger gets the one hover it always had, since the
             // extra move came with two tooltips that did not open in CI (Menu IconTrigger's and a MessageList reaction's).
+            // Measured once the trigger is in view: off screen, nothing is at its centre, and a trigger below the fold
+            // (a MessageList reaction at 390 px) was taken for a covered one and given the extra move.
+            element.scrollIntoView({ block: "nearest", inline: "nearest" });
             const box = element.getBoundingClientRect();
             const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
             if (!hit || !element.contains(hit)) await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
