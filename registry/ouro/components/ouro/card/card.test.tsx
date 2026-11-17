@@ -351,6 +351,31 @@ describe("Card with href", () => {
     expect(open.mock.calls).toEqual(Array.from({ length: 3 }, () => [link.href, "_blank", "noopener"]));
   });
 
+  it("hands its click on out of a shadow root, as the browser's own click goes, so the page's link handler sees it", async () => {
+    const outer = document.createElement("div");
+    document.body.append(outer);
+    mounted.push(outer);
+    const host = document.createElement("div");
+    outer.attachShadow({ mode: "open" }).append(host);
+    const root = createRoot(host);
+    roots.push(root);
+    await act(async () => root.render(<Card href="#shadow" title="Searing" media={<img src={pixel} alt="" data-picture="" />} />));
+    const link = host.querySelector<HTMLAnchorElement>("[data-card-link]")!;
+    const seen: EventTarget[] = [];
+    const onPage = (event: MouseEvent) => {
+      seen.push(event.composedPath()[0]!);
+      event.preventDefault();
+    };
+    document.addEventListener("click", onPage);
+    try {
+      host.querySelector<HTMLElement>("[data-picture]")!.click();
+    } finally {
+      document.removeEventListener("click", onPage);
+    }
+    // The root hands the click on as the browser's own passes it, so the link's reaches the page first.
+    expect(seen).toEqual([link, host.querySelector("[data-picture]")]);
+  });
+
   it("hands a plain click to the app's router link, whose own handler sees it and can stop the browser's navigation", async () => {
     const seen: boolean[] = [];
     const Router: OuroLinkComponent = ({ onClick, ...props }) => (
