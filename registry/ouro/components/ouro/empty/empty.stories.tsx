@@ -42,13 +42,12 @@ export const InContext: Story = {
     <Page>
       <Heading level={2}>Recipes</Heading>
       <Empty
-        className="max-w-md"
         icon={<BookIcon />}
         title="No recipes yet"
         description="Start by creating your first recipe for this pantry."
         action={<Button href="#new">Create recipe</Button>}
       />
-      <Empty className="max-w-md" variant="plain" align="start" title="No saved recipes" description="Save a recipe and it shows up here." />
+      <Empty variant="plain" align="start" title="No saved recipes" description="Save a recipe and it shows up here." />
     </Page>
   ),
 };
