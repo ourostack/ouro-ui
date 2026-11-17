@@ -334,7 +334,8 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       <div data-ouro-chart-plot="" className={plotClass}>
         <ChartContext value={state}>
           {drawn && (
-            <ResponsiveContainer width="100%" height="100%">
+            // A first size of its own draws the chart, and its legend, in the commit that takes the placeholder legend away.
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
               {plot}
             </ResponsiveContainer>
           )}
@@ -345,7 +346,7 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden">
         {!drawn && (child ? hasLegend(child) : series.length > 1) && (
           <ChartContext value={state}>
-            <LegendContent payload={series.map((item) => ({ dataKey: item.key }))} />
+            <LegendContent payload={child ? drawnKeys(child) : series.map((item) => ({ dataKey: item.key }))} />
           </ChartContext>
         )}
       </div>
@@ -540,9 +541,17 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
   );
 }
 
+/** The parts of a recharts chart passed as children. */
+const partsOf = (chart: ReactElement) => Children.toArray((chart.props as { children?: ReactNode }).children).filter(isValidElement);
+
 /** Whether a recharts chart passed as children holds a `ChartLegend`. */
 function hasLegend(chart: ReactElement): boolean {
-  return Children.toArray((chart.props as { children?: ReactNode }).children).some((part) => isValidElement(part) && part.type === ChartLegend);
+  return partsOf(chart).some((part) => part.type === ChartLegend);
+}
+
+/** The series a recharts chart passed as children draws, as its legend lists them: each part's `dataKey`. */
+function drawnKeys(chart: ReactElement): { dataKey?: unknown }[] {
+  return partsOf(chart).map((part) => ({ dataKey: (part.props as { dataKey?: unknown }).dataKey }));
 }
 
 /**

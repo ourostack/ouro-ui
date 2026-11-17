@@ -90,7 +90,7 @@ describe("Chart", () => {
       if (counting) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-    const seen: { figure?: number; plot?: number; height?: number; whole?: number } = {};
+    const seen: { figure?: number; plot?: number; height?: number; whole?: number; emptyLegend?: boolean } = {};
     const observer = new MutationObserver(() => {
       const figure = document.querySelector('[data-ouro="chart"]');
       if (figure && seen.figure === undefined) {
@@ -99,6 +99,8 @@ describe("Chart", () => {
         seen.whole = figure.getBoundingClientRect().height;
       }
       if (document.querySelector('[data-ouro="chart"] .recharts-surface') && seen.plot === undefined) seen.plot = frames;
+      // The legend swaps in one commit: its slot is never empty once the figure is in the page.
+      if (figure && figure.querySelector("[data-ouro-chart-legend-slot]")!.textContent === "") seen.emptyLegend = true;
     });
     observer.observe(document.body, { childList: true, subtree: true });
     try {
@@ -109,6 +111,7 @@ describe("Chart", () => {
       expect(chart.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height).toBe(seen.height);
       // Its legend held its place too: nothing under the chart moved when the plot drew.
       expect(chart.getBoundingClientRect().height).toBe(seen.whole);
+      expect(seen.emptyLegend, "an empty legend slot between the placeholder and recharts' legend").toBeUndefined();
     } finally {
       counting = false;
       observer.disconnect();
@@ -120,14 +123,14 @@ describe("Chart", () => {
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
           <Line dataKey="cooked" />
-          <Line dataKey="saved" />
           {legend && <ChartLegend />}
         </LineChart>
       </Chart>
     );
     const { chart } = await render(custom(true));
     const before = chart.getBoundingClientRect().height;
-    expect(chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("Recipes cookedRecipes saved");
+    // Only the series the chart draws, as recharts' own legend lists them.
+    expect(chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("Recipes cooked");
     await drawn(chart);
     expect(chart.getBoundingClientRect().height).toBe(before);
     // A chart of one series has no legend, before the plot draws or after.
