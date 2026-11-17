@@ -21,7 +21,7 @@ name: Release
 # refuses to start while changes/ lists no change the last release lacks. Rerunning is safe: a
 # released tag exits cleanly, a tag without a release fails with the fix, and a failed run deletes
 # its branch. A tag out without Pages following opens an issue (the finish job).
-# Recovery: AGENTS.md, "Pages and releases".
+# Recovery: contributing/releases.md, "Pages and releases".
 on:
   workflow_dispatch:
     inputs:
@@ -338,7 +338,7 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1 || { echo "No $TAG tag was pushed; nothing is published."; exit 0; }
           url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          body="$TAG is tagged, but Pages did not follow ($RESULTS): $url. Finish it by hand: deploy Pages (AGENTS.md, \"Pages and releases\")."
+          body="$TAG is tagged, but Pages did not follow ($RESULTS): $url. Finish it by hand: deploy Pages (contributing/releases.md, \"Pages and releases\")."
           gh issue create --title "Release $TAG: main or Pages did not follow" --body "$body" || echo "::warning::Could not open the issue."
           echo "::error::$body"
           exit 1
