@@ -41,10 +41,11 @@ export const budget = { targetMinutes: 10, margin: 0.2, baselineRuns: 5, regress
 
 /**
  * The steps that set a job up rather than do its work: the runner's own, the checkout, pnpm and
- * Node, the install, and the browsers and their system packages. Their time is the runner's and the
+ * Node, the install, and the browsers and their system packages; a stalled checkout's clearing and its retry
+ * too (ourostack/ouro-ui#1765). Their time is the runner's and the
  * network's more than the change's, so a regression is judged without them (`workSeconds`).
  */
-export const setupSteps = [/^Set up job$/, /^Run actions\/checkout@/, /^Run pnpm\/action-setup@/, /^Run actions\/setup-node@/, /^Run pnpm i\b/, /^Run \.\/\.github\/actions\/playwright-browsers\b/, /^Browser system packages\b/, /install-deps/];
+export const setupSteps = [/^Set up job$/, /^Run actions\/checkout@/, /^actions\/checkout stalled\b/, /^Run pnpm\/action-setup@/, /^Run actions\/setup-node@/, /^Run pnpm i\b/, /^Run \.\/\.github\/actions\/playwright-browsers\b/, /^Browser system packages\b/, /install-deps/];
 
 /**
  * The steps that wait for runners rather than use one for the change: the plan's yield to the
