@@ -522,6 +522,7 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name
       const pr = pulls.find((item) => item.node_id === input.variables.id);
       if (!mergeMethods.includes(input.variables.method)) return ok({ errors: [{ message: `Merge method ${input.variables.method.toLowerCase()} merging is not allowed on this repository` }] });
       pr.autoMerge = input.variables.method;
+      pr.mergeCommit = { headline: input.variables.headline, body: input.variables.body };
       return ok({ data: { enablePullRequestAutoMerge: { clientMutationId: null } } });
     }
     throw new Error(`fake GitHub has no ${method} ${path}`);
@@ -748,4 +749,13 @@ test("--with-token opens the update with GH_TOKEN, only for the repositories nam
   await assert.rejects(main(["--with-token"], {}), /--with-token needs --only/);
   await assert.rejects(main(["--with-token", "--only", "org/app", "--dry-run"], { GH_TOKEN: "t" }), /is not --dry-run/);
   await assert.rejects(main(["--with-token", "--only", "org/app"], {}), /--with-token needs GH_TOKEN/);
+});
+
+test("auto-merge names the merge commit itself, so GitHub adds no Co-authored-by trailer for the bot", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  const result = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const { headline, body } = repo.pulls[0].mergeCommit;
+  assert.equal(headline, `${result.pr.title} (#${result.pr.number})`);
+  assert.equal(body, "Ouro Current: Package.swift 0.6.0 to v0.9.0.");
+  assert.doesNotMatch(`${headline}\n${body}`, /co-authored-by|\[bot\]/i);
 });
