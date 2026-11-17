@@ -4041,19 +4041,25 @@ describe("MessageList switching conversations", () => {
   });
 
   it("makes a switched conversation of the same count as tall as a fresh list of it, with no height of the one before", async () => {
-    const before = varied("mara", 900, 4);
-    // One role, so every message is the same height: a height carried over from the one before would show.
+    // Tall messages before, short ones after: a height carried over from the one before would make the list far taller.
+    const long = " a long line of words to fill the message".repeat(6);
+    const before = conversation("mara", 900).map((item, at) => ({ ...item, text: `${item.text}${long.repeat(1 + (at % 4))}` }));
     const after = conversation("theo", 900).map((item) => ({ ...item, role: "assistant" as const }));
     const list = mount();
     await list.commit(<Switcher open="mara" keyed={false} named items={before} />);
     await settle(list.scroller);
+    // Every row of the one before is measured: scroll through it from the top to its end.
+    await scrollUpTo(list.scroller, 0);
+    while (list.scroller.scrollTop + list.scroller.clientHeight < list.scroller.scrollHeight) await upBy(list.scroller, -800);
     await list.commit(<Switcher open="theo" keyed={false} named items={after} />);
     await settle(list.scroller);
+    // Compared as the switch settles, before the rows of the new conversation are measured.
+    expect(messagesOf(list.scroller).length).toBeLessThan(100);
     const fresh = mount();
     await fresh.commit(<Switcher open="theo" keyed={false} named items={after} />);
     await settle(fresh.scroller);
     expect(list.scroller.scrollHeight).toBe(fresh.scroller.scrollHeight);
-  }, 60_000);
+  }, 120_000);
 
   it("gives each row a full re-key that changes the count has not drawn the one estimate, not the height of the row before it", async () => {
     const items = varied("mara", 900, 4);
