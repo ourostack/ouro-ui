@@ -401,6 +401,11 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       if (existing) await gh.patch(`repos/${repo}/git/refs/heads/${BRANCH}`, { sha: commit.sha, force: true });
       else await gh.post(`repos/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: commit.sha });
     } catch (error) {
+      // The branch went between the read and the write: its pull request merged or closed and GitHub deleted it, as the
+      // check above catches when it happens earlier. The next run starts from the new main (ourostack/ouro-ui#1993).
+      if (existing && error.status === 422 && /reference does not exist/i.test(error.message)) {
+        return { ...result, state: "skipped", reason: `${existingPr ? `#${existingPr.number}'s branch` : `The ${BRANCH} branch`} was deleted while this run wrote it (its pull request merged or closed), so the next run starts from the new main.`, pr: null };
+      }
       // GitHub keeps the branch of a pull request in a merge queue as it is: the queued update merges, or leaves the
       // queue, and the next run brings it up to date (ourostack/ouro-ui#1809).
       if (!(existing && existingPr && error.status === 422 && /merge queue/i.test(error.message))) throw error;

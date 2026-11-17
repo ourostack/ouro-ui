@@ -1248,6 +1248,17 @@ test("a run that overlaps the update pull request's merge writes nothing: no bra
   assert.notEqual(next.pr.number, first.pr.number);
 });
 
+test("a branch deleted between the read and the write skips the repository for this run, not fails it (#1993)", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const gh = { ...repo.gh, patch: async (path, input) => (path.includes("/git/refs/heads/") ? Promise.reject(Object.assign(new Error(`PATCH ${path}: 422 {"message":"Reference does not exist"}`), { status: 422 })) : repo.gh.patch(path, input)) };
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  const gone = await keepRepo(gh, "o/r", newer, {});
+  assert.equal(gone.state, "skipped");
+  assert.equal(gone.pr, null);
+  assert.match(gone.reason, /was deleted while this run wrote it \(its pull request merged or closed\), so the next run starts from the new main\./);
+});
+
 test("a branch write that fails for any other reason still fails the repository", async () => {
   const repo = fakeRepo({ "Package.swift": SWIFT });
   await keepRepo(repo.gh, "o/r", RELEASES, {});
