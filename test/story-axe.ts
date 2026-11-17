@@ -124,10 +124,13 @@ function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] 
         name,
         open: async () => {
           if (opensOn === "hover") {
-            // The pointer reaches the trigger as a person's does, over its corner first: a bar that auto-hid while the scan
-            // opened its other popups takes no pointer events until a move over it, which the hover's own hit test, refused,
-            // never makes (#1856). The hover then moves on to the trigger, so its popup opens.
-            await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
+            // A bar that auto-hid while the scan opened its other popups takes no pointer events until a pointer moves over
+            // it, which the hover's own hit test, refused, never makes (#1856). Only then does the pointer arrive over the
+            // trigger's corner first, as a person's does; any other trigger gets the one hover it always had, since the
+            // extra move came with two tooltips that did not open in CI (Menu IconTrigger's and a MessageList reaction's).
+            const box = element.getBoundingClientRect();
+            const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+            if (!hit || !element.contains(hit)) await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
             await userEvent.hover(element);
           }
           else if (opensOn === "press") await userEvent.click(element);
