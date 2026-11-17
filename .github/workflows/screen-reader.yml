@@ -26,16 +26,17 @@ concurrency:
   cancel-in-progress: false
 jobs:
   lane:
-    # VoiceOver on macos-26, what current users run, and NVDA gate the run. VoiceOver on macos-15 runs
-    # beside them so main's runs show what older macOS's users hear, but it is advisory: its failure does
-    # not fail the run, which release.yml reads. macOS runners are the scarce pool, so it runs only on a
-    # push to main and nightly, not for a dispatch, where it would gate nothing either.
+    # VoiceOver on macos-26, what current users run, and NVDA gate the run. VoiceOver on macos-26 runs in
+    # two shards, each a half of the specs by their measured times (scripts/shard.mjs sr), so the run
+    # release.yml waits on ends sooner. VoiceOver on macos-15 shows what older macOS's users hear, but it is
+    # advisory (its failure does not fail the run, which release.yml reads) and runs only nightly: macOS
+    # runners are the scarce pool, so at most two macOS jobs run at once.
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: ${{ github.event_name == 'schedule' && 2 || 3 }}
       matrix:
-        include: ${{ fromJSON((github.event_name == 'push' || github.event_name == 'schedule') && '[{"os":"macos-26","project":"voiceover","advisory":false},{"os":"macos-15","project":"voiceover","advisory":true},{"os":"windows-2025","project":"nvda","advisory":false}]' || '[{"os":"macos-26","project":"voiceover","advisory":false},{"os":"windows-2025","project":"nvda","advisory":false}]') }}
-    name: ${{ matrix.project }} (${{ matrix.os }})${{ matrix.advisory && ', advisory' || '' }}
+        include: ${{ fromJSON(github.event_name == 'schedule' && '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"1/2"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"2/2"},{"os":"windows-2025","project":"nvda","advisory":false,"shard":"1/1"},{"os":"macos-15","project":"voiceover","advisory":true,"shard":"1/1"}]' || '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"1/2"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"2/2"},{"os":"windows-2025","project":"nvda","advisory":false,"shard":"1/1"}]') }}
+    name: ${{ matrix.project }} (${{ matrix.os }}${{ matrix.shard != '1/1' && format(', {0}', matrix.shard) || '' }})${{ matrix.advisory && ', advisory' || '' }}
     continue-on-error: ${{ matrix.advisory }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -45,6 +46,7 @@ jobs:
     env:
       SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
       PROJECT: ${{ matrix.project }}
+      SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -91,7 +93,12 @@ jobs:
         name: Screen-reader tests
         run: |
           set +e
-          pnpm test:sr --project "$PROJECT" 2>&1 | tee "$RUNNER_TEMP/sr.log"
+          # This shard's specs (no spaces in their paths); the stories check runs in every shard. An empty
+          # list would run every spec, so it stops the job instead.
+          specs=$(node scripts/shard.mjs sr "$SHARD")
+          [ -n "$specs" ] || { echo "::error::No screen-reader specs for shard $SHARD."; exit 1; }
+          # shellcheck disable=SC2086
+          pnpm test:sr --project "$PROJECT" $specs 2>&1 | tee "$RUNNER_TEMP/sr.log"
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       # Runs whatever failed before it (but not a failed guard): no log means the tests never ran.
       - id: classify
@@ -105,7 +112,7 @@ jobs:
       - if: always() && steps.classify.outcome != 'skipped'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: screen-reader-${{ matrix.project }}-${{ matrix.os }}
+          name: screen-reader-${{ matrix.project }}-${{ matrix.os }}-${{ strategy.job-index }}
           path: |
             ${{ runner.temp }}/sr.log
             ${{ runner.temp }}/sr-class.txt

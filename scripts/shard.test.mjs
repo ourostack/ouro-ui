@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, projectOf, readTimings, shardKeys, slicedSuites, srFiles } from "./shard.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -125,6 +125,22 @@ test("every script test file the runner finds runs in exactly one scripts shard,
   const ran = [cli("scripts", "1/3"), cli("scripts", "2/3"), cli("scripts", "3/3"), cli("scripts-browser")].flat();
   // Sorted and compared whole, so a file in two shards, or a file no shard runs, fails.
   assert.deepEqual(ran.sort(), found);
+});
+
+test("the screen-reader specs split into the lane's shards by their times, each spec in exactly one shard, each with a time", () => {
+  const found = srFiles();
+  assert.ok(found.length > 0 && found.every((file) => /^registry\/ouro\/e2e\/screen-reader\/[\w-]+\.sr\.spec\.ts$/.test(file)), found.join("\n"));
+  const cli = (...args) => spawnSync(process.execPath, [join(root, "scripts/shard.mjs"), ...args], { cwd: root, encoding: "utf8" }).stdout.trim().split("\n");
+  // The lane's two VoiceOver shards (screen-reader.yml), sorted and compared whole: a spec in both, or in neither, fails.
+  const shards = [cli("sr", "1/2"), cli("sr", "2/2")];
+  assert.ok(shards.every((files) => files.length > 0 && files[0] !== ""));
+  assert.deepEqual(shards.flat().sort(), found);
+  // NVDA and the advisory job run the one shard of all.
+  assert.deepEqual(cli("sr", "1/1"), found);
+  // Each spec has a time from a macos-26 run, so the shards stay even; refresh keeps them, since no CI report holds them.
+  const times = readTimings("sr");
+  assert.deepEqual(found.filter((file) => typeof times[file] !== "number"), [], "add the spec's time on macos-26 to the sr timings in scripts/shard-timings.json");
+  assert.match(readFileSync(join(root, "scripts/shard.mjs"), "utf8"), /\["vitest", "scripts", "e2e", "subset", "sr"\]\.map\(/);
 });
 
 /** A test file as Vitest's sequencer sees it. */

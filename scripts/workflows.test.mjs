@@ -1844,21 +1844,38 @@ test("the screen-reader lane reads the repository and nothing more, and holds no
   assert.match(jobs.report, /scripts\/sr-infra-issue\.sh "\$RUN_URL" "nightly"/);
 });
 
-test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory on main's pushes and nightly, at the commit it was given", () => {
+test("the screen-reader lane gates on VoiceOver on macos-26, in two shards, and NVDA on windows-2025, with VoiceOver on macos-15 advisory nightly, at the commit it was given", () => {
   const lane = srJobs().lane;
-  // The matrix for an event: a push to main and the nightly run add the advisory macos-15 job; a dispatch runs the two that gate.
+  // The matrix for an event: VoiceOver on macos-26 in two shards and NVDA on every event; the nightly run adds the
+  // advisory macos-15 job.
   const include = lane.match(/include: \$\{\{ (fromJSON\(.*\)) \}\}\n/)[1];
   const matrix = (event_name) => runInNewContext(include.replace(/github\.event_name/g, JSON.stringify(event_name)).replace(/'/g, "`"), { fromJSON: JSON.parse });
-  const gate = [{ os: "macos-26", project: "voiceover", advisory: false }, { os: "windows-2025", project: "nvda", advisory: false }];
-  const advisory = { os: "macos-15", project: "voiceover", advisory: true };
-  assert.deepEqual(matrix("push"), [gate[0], advisory, gate[1]]);
-  assert.deepEqual(matrix("schedule"), [gate[0], advisory, gate[1]]);
+  const gate = [
+    { os: "macos-26", project: "voiceover", advisory: false, shard: "1/2" },
+    { os: "macos-26", project: "voiceover", advisory: false, shard: "2/2" },
+    { os: "windows-2025", project: "nvda", advisory: false, shard: "1/1" },
+  ];
+  const advisory = { os: "macos-15", project: "voiceover", advisory: true, shard: "1/1" };
+  assert.deepEqual(matrix("push"), gate);
   assert.deepEqual(matrix("workflow_dispatch"), gate);
-  // An advisory job's failure does not fail the run, whose conclusion release.yml reads; each job keeps its own artifact.
+  assert.deepEqual(matrix("schedule"), [...gate, advisory]);
+  // At most two macOS runners at once: the jobs that run side by side, max-parallel at a time from the top of the matrix.
+  const maxParallel = (event_name) => runInNewContext(lane.match(/max-parallel: \$\{\{ (.*) \}\}\n/)[1].replace(/github\.event_name/g, JSON.stringify(event_name)));
+  for (const event of ["push", "workflow_dispatch", "schedule"]) {
+    const jobs = matrix(event);
+    const width = maxParallel(event);
+    for (let start = 0; start < jobs.length; start++) {
+      const running = jobs.slice(start, start + width);
+      assert.ok(running.filter((job) => job.os.startsWith("macos-")).length <= 2, `${event}: ${JSON.stringify(running)}`);
+    }
+  }
+  // Each job runs its shard of the specs, never all of them by default, and keeps its own artifact.
+  assert.match(lane, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}$/m);
+  assert.match(lane, /specs=\$\(node scripts\/shard\.mjs sr "\$SHARD"\)\n\s+\[ -n "\$specs" \] \|\| \{ echo "::error::No screen-reader specs for shard \$SHARD\."; exit 1; \}/);
+  assert.match(lane, /pnpm test:sr --project "\$PROJECT" \$specs 2>&1/);
+  assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}-\$\{\{ strategy\.job-index \}\}\n/);
+  // An advisory job's failure does not fail the run, whose conclusion release.yml reads.
   assert.match(lane, /^ {4}continue-on-error: \$\{\{ matrix\.advisory \}\}$/m);
-  assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}\n/);
-  // At most two macOS runners at once.
-  assert.equal(matrix("push").filter((job) => job.os.startsWith("macos-")).length, 2);
   assert.match(lane, /^ {4}runs-on: \$\{\{ matrix\.os \}\}$/m);
   assert.match(lane, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}ref: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}\n {10}persist-credentials: false\n/);
   assert.match(lane, /^ {6}SOURCE_SHA: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}$/m);

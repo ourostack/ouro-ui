@@ -909,5 +909,25 @@
     "dialog": 78591,
     "field,fieldset,text-field,text-area,checkbox,checkbox-group,radio-group,switch,form,select,native-select,combobox": 128173,
     "sheet": 73588
+  },
+  "sr": {
+    "registry/ouro/e2e/screen-reader/button.sr.spec.ts": 60000,
+    "registry/ouro/e2e/screen-reader/celebrate.sr.spec.ts": 78000,
+    "registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts": 41100,
+    "registry/ouro/e2e/screen-reader/checklist.sr.spec.ts": 35000,
+    "registry/ouro/e2e/screen-reader/color-scheme-toggle.sr.spec.ts": 38600,
+    "registry/ouro/e2e/screen-reader/command.sr.spec.ts": 48700,
+    "registry/ouro/e2e/screen-reader/dialog.sr.spec.ts": 60000,
+    "registry/ouro/e2e/screen-reader/item.sr.spec.ts": 51300,
+    "registry/ouro/e2e/screen-reader/menu.sr.spec.ts": 42500,
+    "registry/ouro/e2e/screen-reader/reorderable.sr.spec.ts": 38200,
+    "registry/ouro/e2e/screen-reader/route-progress.sr.spec.ts": 34700,
+    "registry/ouro/e2e/screen-reader/select.sr.spec.ts": 72000,
+    "registry/ouro/e2e/screen-reader/switch.sr.spec.ts": 33500,
+    "registry/ouro/e2e/screen-reader/sync-status.sr.spec.ts": 44500,
+    "registry/ouro/e2e/screen-reader/tabs.sr.spec.ts": 34600,
+    "registry/ouro/e2e/screen-reader/text-field.sr.spec.ts": 70800,
+    "registry/ouro/e2e/screen-reader/timer.sr.spec.ts": 33800,
+    "registry/ouro/e2e/screen-reader/toast.sr.spec.ts": 31200
   }
 }

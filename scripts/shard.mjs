@@ -7,6 +7,8 @@
 //   node scripts/shard.mjs e2e <index>/<count> [<path>...]
 //                                                    the end-to-end spec files of one shard, of those
 //                                                    that are a <path> or under one when any is given
+//   node scripts/shard.mjs sr <index>/<count>        the screen-reader spec files of one VoiceOver shard
+//                                                    (screen-reader.yml), by their times on macos-26
 //   node scripts/shard.mjs install <index>/<count> <app>
 //                                                    the shipped Vitest test files of one install
 //                                                    shard, paths in the installed app <app>
@@ -171,6 +173,16 @@ export function e2eFiles(rootDir = root) {
 
 const SWEEP = /^site\/e2e\/(sameness|states)-[\w-]+\.spec\.ts$/;
 
+/**
+ * The screen-reader spec files (`pnpm test:sr`, playwright.screen-reader.config.ts), which the lane splits by their
+ * measured times so the run Release waits on ends sooner (screen-reader.yml). Their times are `sr` in the timings file,
+ * from a macos-26 VoiceOver run; refresh keeps them, since no CI timing report holds them.
+ */
+export function srFiles(rootDir = root) {
+  const dir = join(rootDir, "registry/ouro/e2e/screen-reader");
+  return existsSync(dir) ? treeFiles(dir).filter((file) => /\.sr\.spec\.ts$/.test(file)).map((file) => `registry/ouro/e2e/screen-reader/${file}`).sort() : [];
+}
+
 /** The sweep specs (cross-page sameness and state sweeps), which run in their own shards beside the e2e ones. */
 export function sweepFiles(rootDir = root) {
   const dir = join(rootDir, "site/e2e");
@@ -253,6 +265,10 @@ function main([command, ...args]) {
     console.log(shardKeys(files, parseShard(args[0]), readTimings("e2e")).join("\n"));
     return 0;
   }
+  if (command === "sr") {
+    console.log(shardKeys(srFiles(), parseShard(args[0]), readTimings("sr")).join("\n"));
+    return 0;
+  }
   if (command === "sweeps") {
     console.log(shardKeys(sweepFiles(), parseShard(args[0]), readTimings("e2e")).join("\n"));
     return 0;
@@ -268,7 +284,7 @@ function main([command, ...args]) {
   if (command === "plan") {
     const [kind, count] = args;
     const timings = readTimings(kind);
-    const keys = kind === "scripts" ? scriptTestFiles() : kind === "e2e" ? [...e2eFiles(), ...sweepFiles()] : Object.keys(timings).filter((key) => !isSliced(key));
+    const keys = kind === "scripts" ? scriptTestFiles() : kind === "e2e" ? [...e2eFiles(), ...sweepFiles()] : kind === "sr" ? srFiles() : Object.keys(timings).filter((key) => !isSliced(key));
     // Every browser shard also runs its slice of each sliced suite; a shard's report holds its slice's time.
     const sliced = kind === "vitest" ? Object.keys(timings).filter(isSliced).reduce((sum, key) => sum + timings[key], 0) : 0;
     for (const [position, shard] of balance(keys, Number(count), timings).entries()) console.log(`${position + 1}/${count}: ${((shard.weight + sliced) / 1000).toFixed(0)} s of test files, ${shard.keys.length} files${sliced ? " and a slice of each sliced suite" : ""}`);
@@ -282,12 +298,12 @@ function main([command, ...args]) {
       return 1;
     }
     const previous = existsSync(timingsFile) ? JSON.parse(readFileSync(timingsFile, "utf8")) : {};
-    const next = Object.fromEntries(["vitest", "scripts", "e2e", "subset"].map((kind) => [kind, sortedObject(Object.keys(found[kind]).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
+    const next = Object.fromEntries(["vitest", "scripts", "e2e", "subset", "sr"].map((kind) => [kind, sortedObject(Object.keys(found[kind] ?? {}).length > 0 ? found[kind] : (previous[kind] ?? {}))]));
     writeFileSync(timingsFile, `${JSON.stringify(next, null, 2)}\n`);
     console.log(`Wrote ${relative(root, timingsFile)}: ${counts.join(", ")} timings.`);
     return 0;
   }
-  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser [<index>/<count>] | e2e <index>/<count> [<path>...] | install <index>/<count> <app> | install-e2e <index>/<count> <app> | plan <kind> <count> | refresh <dir>");
+  console.error("Usage: node scripts/shard.mjs scripts <index>/<count> | scripts-browser [<index>/<count>] | e2e <index>/<count> [<path>...] | install <index>/<count> <app> | install-e2e <index>/<count> <app> | sr <index>/<count> | plan <kind> <count> | refresh <dir>");
   return 2;
 }
 
