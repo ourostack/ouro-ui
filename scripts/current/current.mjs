@@ -40,7 +40,7 @@ export function title(behind, releases) {
   return `Update to ${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0]}`;
 }
 
-export function body(behind, releases, notes) {
+export function body(behind, releases, notes, sections = []) {
   const rows = behind.map((pin) => `| \`${pin.file}\` | ${NAMES[pin.follows]} | \`${pin.current}\` | [\`${releases[pin.follows].tag}\`](${releases[pin.follows].url}) |`);
   return [
     // Versions and file names stay in code spans: a repository that runs Ouro UI's claims check on pull requests
@@ -52,6 +52,7 @@ export function body(behind, releases, notes) {
     ...[...new Set(rows)],
     "",
     ...(notes.length ? [...notes.map((note) => `- ${note}`), ""] : []),
+    ...sections.flatMap((section) => [section, ""]),
     "Your checks decide: this pull request merges itself when they pass. A newer release updates this same pull request. The release notes say what changed: https://github.com/ourostack/ouro-ui/blob/main/UPGRADING.md",
     "",
     "<!-- ouro-current -->",
@@ -269,11 +270,14 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   // Each file's pins apply in turn to its text, so two pins in one file (two vendored sources) both land.
   const files = {};
   const notes = [];
+  // Whole parts of the body under their own heading (the new Ouro check rules), after the notes.
+  const sections = [];
   for (const pin of behind) {
     const text = typeof files[pin.file] === "string" ? files[pin.file] : texts[pin.file];
     const update = await UPDATERS[pin.kind](pin, text, releases[pin.follows], ctx);
     Object.assign(files, update.files);
     notes.push(...update.notes);
+    sections.push(...(update.sections ?? []));
   }
   // GitHub lets an app write under .github/workflows/ only with the `workflows` permission, which Ouro Current does not
   // ask for: it would need every installation approved again, and give the app write access to every repository's CI.
@@ -300,7 +304,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   notes.splice(0, notes.length, ...new Set(notes));
   // Every updater held back (a set that moves together or not at all): there is nothing to propose, and the notes say why.
   if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
-  if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes } };
+  if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes, sections: [...new Set(sections)] } };
   const existing = await branchState(gh, repo);
   // The pull request open when this run began may have merged or closed since (GitHub deletes a merged pull request's
   // branch): main as this run read it is from before that, so nothing is written, neither a branch on the old main nor
@@ -332,7 +336,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "in the merge queue, so left as it is until it merges or leaves the queue", pushed: false } };
     }
   }
-  const text = body(behind, releases, notes);
+  const text = body(behind, releases, notes, [...new Set(sections)]);
   let pr = existingPr;
   if (pr) {
     if (pr.title !== name || pr.body !== text) pr = await gh.patch(`repos/${repo}/pulls/${pr.number}`, { title: name, body: text });
