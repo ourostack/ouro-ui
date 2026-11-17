@@ -2535,7 +2535,7 @@ test("Docs pin points main's docs at the newest release through one pull request
   assert.match(open, /gh pr list --head "\$BRANCH" --base main --state open/);
   assert.match(open, /gh pr edit "\$number" --title "\$title"/);
   assert.match(open, /gh pr create --base main --head "\$BRANCH"/);
-  assert.match(open, /gh pr merge "\$number" --auto --squash/);
+  assert.match(open, /gh pr merge "\$number" --auto --squash --subject "\$subject" --body "\$message"/);
 });
 
 test("Docs pin pushes as the Ouro Current app when it is installed here, so CI starts with no approval (#1610), and goes on without it", () => {
@@ -2638,7 +2638,7 @@ test("Docs pin reuses its open pull request and turns auto-merge on for it", () 
   const calls = readFileSync(join(dir, "gh.log"), "utf8");
   assert.match(calls, /^gh pr edit 7 --title Point the docs at a release /m);
   assert.doesNotMatch(calls, /gh pr create/);
-  assert.match(calls, /^gh pr merge 7 --auto --squash$/m);
+  assert.match(calls, /^gh pr merge 7 --auto --squash --subject {2}--body $/m);
   assert.match(readFileSync(join(dir, "summary.md"), "utf8"), /Auto-merge is on for #7/);
 });
 
