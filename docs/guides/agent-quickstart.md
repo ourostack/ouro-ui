@@ -87,7 +87,7 @@ This sets up shadcn/ui, registers the `@ouro` namespace, which serves the newest
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
-node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("components.json","utf8"));c.registries={"@ouro":"https://ui.ouroboros.bot/r/{name}.json"};fs.writeFileSync("components.json",JSON.stringify(c,null,2)+"\n")'
+node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('components.json','utf8'));c.registries={'@ouro':'https://ui.ouroboros.bot/r/{name}.json'};fs.writeFileSync('components.json',JSON.stringify(c,null,2))"
 npx shadcn@latest add @ouro/ouro-base --yes
 npx shadcn@latest add @ouro/ouro-theme @ouro/page-header @ouro/stack @ouro/form @ouro/text-field @ouro/select @ouro/switch @ouro/button @ouro/confirm-dialog @ouro/color-scheme-toggle @ouro/ouro-check --yes
 ```
