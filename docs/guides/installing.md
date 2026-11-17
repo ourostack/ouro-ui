@@ -149,6 +149,10 @@ A component that finds no `ouro-base` tokens still installs, type checks and bui
 
 Each component has a `<name>-tests` item with its Vitest browser tests, type tests, stories and Playwright spec, and the tests of everything the component installed.[^tests-closure] CI verifies 100% line and branch coverage of the installed runtime files for five sets: button, dialog, sheet, the forms set and their union.[^subsets] Other items receive their full test dependency closure but are not measured individually. [Testing](testing.md) lists the forms set, says what the tests need and how to run them.
 
+## Changing a component
+
+Change any component in your app whenever your app needs it: the copied files are yours, and you and your agents don't need to ask first. If the change would help other apps too, such as a missing option, a bug fix or a fix for keyboard or screen reader users, also open a pull request to [ourostack/ouro-ui](https://github.com/ourostack/ouro-ui) with the change and a test, so the next release carries it, and link that pull request in a comment beside your change. The comment tells whoever next [updates](#updating) the component whether a release has the change yet.
+
 ## Updating
 
 List what a release changes with `npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.267 --dry-run`, review each changed file with `--diff <path>`, then add the item again with `--overwrite` and reapply your edits. Files Ouro UI never ships are never overwritten: your stylesheet (after `ouro-base`), `e2e/ouro-fixtures.ts`, and your Vitest, Storybook and Playwright configs.[^not-shipped]

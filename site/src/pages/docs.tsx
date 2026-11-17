@@ -466,7 +466,10 @@ export function Switching(): JSX.Element {
 export function Updating(): JSX.Element {
   return (
     <DocsShell current="/docs/updating/" opener={{ scene: "ouroboros-skills", eyebrow: "Guides", title: "Updating components" }}>
-      <Lead>Ouro HX components are copied into your project, so they're yours to edit. To take an upstream change, compare first, then decide.</Lead>
+      <Lead>
+        Ouro HX components are copied into your project, so they're yours to edit (
+        <a href={href("/docs/installing/#changing-a-component")} className={linkClass}>Changing a component</a>). To take an upstream change, compare first, then decide.
+      </Lead>
       <ol className="m-0 grid list-none gap-12 p-0">
         <li className="grid gap-3">
           <Heading level={2} size="lg">

@@ -46,7 +46,7 @@ New to shadcn? [Quick start](#quick-start) has the `init` line.
 
 Browse first with `npx shadcn@latest search 'ourostack/ouro-ui#v1.3.267'` (list the items) and `npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.267'` (read one). The same commands and the item list, for agents: [llms.txt](https://ui.ouroboros.bot/llms.txt).
 
-Ouro HX is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes.[^tailwind-4] Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it.
+Ouro HX is copy-in source in the shadcn/ui registry format: the shadcn CLI copies each component into your app, and your app's own Tailwind CSS v4 compiles its classes.[^tailwind-4] Like shadcn/ui's own items, a component item installs only the component's source; its tests are a separate, optional item. The components read shadcn's theme variables (`--primary`, `--background`, `--radius`…), so an app that already has a shadcn theme keeps it. The copied files are yours to change ([Changing a component](docs/guides/installing.md#changing-a-component)).
 
 ```tsx
 import { Button } from "@/components/ouro/button/button";
