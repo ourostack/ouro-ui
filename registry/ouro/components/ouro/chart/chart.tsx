@@ -303,8 +303,10 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       // Stryker disable next-line CallExpression: an unmounted chart ignores the late update
       clearTimeout(timer);
     };
+  },
     // Stryker disable next-line ArrayDeclaration: any list that never changes runs the effect once, as the empty one does
-  }, []);
+    [],
+  );
   // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
   const state = useMemo<ChartState>(
     () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget }),

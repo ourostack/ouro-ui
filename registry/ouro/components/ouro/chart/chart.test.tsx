@@ -130,6 +130,12 @@ describe("Chart", () => {
     expect(chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("Recipes cookedRecipes saved");
     await drawn(chart);
     expect(chart.getBoundingClientRect().height).toBe(before);
+    // A chart of one series has no legend, before the plot draws or after.
+    const single = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={{ month: config.month, cooked: config.cooked }} />);
+    const one = single.chart.getBoundingClientRect().height;
+    expect(single.chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("");
+    await drawn(single.chart);
+    expect(single.chart.getBoundingClientRect().height).toBe(one);
     const bare = await render(custom(false));
     expect(bare.chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("");
   });
