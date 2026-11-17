@@ -38,7 +38,7 @@ export function tarball(files) {
 
 // ---- A GitHub in memory: one repository, its refs, commits, trees, blobs and pull requests ----------------
 
-export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r", queued = () => false } = {}) {
+export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r", queued = () => false, dispatch = 204 } = {}) {
   let next = 1;
   const id = () => `${(next++).toString(16).padStart(40, "0")}`;
   const blobs = new Map();
@@ -127,6 +127,10 @@ export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = nul
       const pr = pulls[Number(match[1]) - 1];
       Object.assign(pr, input);
       return ok(pr);
+    }
+    if ((match = /^repos\/o\/r\/actions\/workflows\/([^/]+)\/dispatches$/.exec(path)) && method === "POST") {
+      calls.push(`dispatch ${match[1]} on ${input.ref}${dispatch < 400 ? "" : ` refused ${dispatch}`}`);
+      return dispatch < 400 ? ok({}, dispatch) : ok({ message: "Resource not accessible by integration" }, dispatch);
     }
     if (/^repos\/o\/r\/issues\/\d+\/comments$/.test(path)) return ok({}, 201);
     if (path === "graphql") {

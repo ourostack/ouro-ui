@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
 import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate } from "./pins.mjs";
-import { CONFIG as CHECK_CONFIG, checkRulesSection, seedKnown } from "./known.mjs";
+import { CONFIG as CHECK_CONFIG, bringsCheck, checkRulesSection, seedKnown } from "./known.mjs";
 import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
@@ -106,6 +106,32 @@ export function createSources(publicGh, { unzip = defaultUnzip } = {}) {
             }
           }
           return reports;
+        } catch {
+          // this token may not read the repository's Actions: the next one tries
+        }
+      }
+      return [];
+    },
+    /**
+     * The workflows whose run on a commit uploaded an Ouro check report but had a job cancelled, with no run of the
+     * same workflow dispatched on that commit yet: a sharded check that fails fast cancels the other shards, so their
+     * findings were never reported (ourostack/ouroboros-website#293: 8 findings of a new rule, all from shards a
+     * failing one cancelled). Read like ciReports; none when neither token can.
+     */
+    async ciCutShort(gh, repo, sha) {
+      for (const client of [gh, publicGh]) {
+        try {
+          const { workflow_runs: runs = [] } = await client.get(`repos/${repo}/actions/runs?head_sha=${sha}&per_page=100`);
+          const full = new Set(runs.filter((run) => run.event === "workflow_dispatch").map((run) => run.workflow_id));
+          const cut = new Set();
+          for (const run of runs) {
+            if (run.status !== "completed" || full.has(run.workflow_id) || cut.has(run.workflow_id)) continue;
+            const { jobs = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`);
+            if (!jobs.some((job) => job.conclusion === "cancelled")) continue;
+            const { artifacts = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`);
+            if (artifacts.some((item) => /^ouro-check/.test(item.name))) cut.add(run.workflow_id);
+          }
+          return [...cut];
         } catch {
           // this token may not read the repository's Actions: the next one tries
         }
@@ -350,7 +376,8 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   // An Ouro check rule this update brings in: the findings the pull request's own checks reported for it are recorded as
   // known, so they pass and a new one fails (known.mjs). The run after the one that brought the rule writes them.
   let seed = null;
-  if (existing?.ours && sources.ciReports) {
+  const seeding = Boolean(existing?.ours && sources.ciReports && bringsCheck(files));
+  if (seeding) {
     seed = await seedKnown({
       files,
       oldCheck: async (folder) => {
@@ -381,6 +408,21 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "in the merge queue, so left as it is until it merges or leaves the queue", pushed: false } };
     }
   }
+  // The reports seeding read came from a run that a failing shard cut short, and nothing new was pushed, so no run on
+  // the branch will ever report the cancelled shards: a run of the same workflow dispatched on the branch runs every
+  // shard, and the next round records what it reports. It needs the app's Actions write permission; without it the
+  // result says so and the round goes on.
+  let fullRun = null;
+  if (seeding && !commit.changed && sources.ciCutShort) {
+    for (const workflow of await sources.ciCutShort(gh, repo, existing.sha)) {
+      try {
+        await gh.post(`repos/${repo}/actions/workflows/${workflow}/dispatches`, { ref: BRANCH });
+        fullRun = `dispatched workflow ${workflow} on ${BRANCH}, since a failing shard cancelled the others`;
+      } catch (error) {
+        fullRun = `could not dispatch workflow ${workflow} on ${BRANCH} (${error.status ?? error.message}), so the cancelled shards' findings wait for a run that reports them`;
+      }
+    }
+  }
   const text = body(behind, releases, notes, [checkRulesSection(checkRules, seed)].filter(Boolean));
   let pr = existingPr;
   if (pr) {
@@ -389,7 +431,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
     pr = await gh.post(`repos/${repo}/pulls`, { title: name, body: text, head: BRANCH, base });
   }
   const merge = await autoMerge(gh, pr, moves);
-  return { ...result, state: "pr", pr: { number: pr.number, url: pr.html_url, title: name, autoMerge: merge.on, note: merge.note, pushed: commit.changed } };
+  return { ...result, state: "pr", pr: { number: pr.number, url: pr.html_url, title: name, autoMerge: merge.on, note: merge.note, pushed: commit.changed, ...(fullRun ? { fullRun } : {}) } };
 }
 
 /**
