@@ -30,7 +30,7 @@ Type: `EmptyProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `action` | `ReactNode` |  | The way out, usually one `Button`: `action={<Button href="/recipes/new">Create recipe</Button>}`. |
-| `align` | `"start" \| "center"` | `"center"` | `center` centers everything, for a page or panel; `start` lines it up with the text around it. |
+| `align` | `"start" \| "center"` | `"center"` | `center` centers everything, for a page or panel; `start` lines it up with the text around it (flush with it when `variant="plain"`, with no room at its sides). |
 | `children` | `ReactNode` |  | Anything else under the description, such as a search field. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development; use `variant`. |
 | `description` | `ReactNode` |  | What the person can do about it, in a sentence: "Start by creating your first recipe." |
