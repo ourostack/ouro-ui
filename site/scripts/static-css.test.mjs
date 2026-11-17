@@ -43,7 +43,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
     ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-scroll-fade-left", "ouro-scroll-fade-right", "ouro-hero-rise", "ouro-hero-fade"],
   );
   const css = outputs["ouro-base.css"];
-  const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@supports[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
+  const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@(?:supports|container)[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
   const rootLines = declarations(root.body);
   for (const line of [...declarations(split.inline), ...declarations(split.blocks.find((block) => block.selector === ":root").body)]) {
     assert.ok(rootLines.includes(line), line);

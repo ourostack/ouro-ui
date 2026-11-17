@@ -13,6 +13,12 @@
  * - --ouro-corner-shape: the shape of every corner, a squircle (CSS corner-shape, n=4), applied to each
  *   Ouro element; set it to round to go back to circular arcs. Switch, radios, slider thumbs,
  *   presence dots and spinners stay round.
+ * - --ouro-control-radius and --ouro-control-corner-shape: the shape of the controls a person presses
+ *   or types into (Button, Toggle, SegmentedControl, TextField, Select, Combobox, NumberField and
+ *   Field's inputs). Unset, they follow --radius and --ouro-corner-shape, as every other corner does; a
+ *   theme sets them to give its controls their own shape, such as capsules (9999px and round) on a
+ *   page of square cards. --ouro-check-radius and --ouro-check-corner-shape do the same for the
+ *   checkbox's box (Checkbox and Checklist), such as circles (9999px and round).
  * - --ouro-layer: the z-index of sheet and dialog portals.
  * - --input and --radius, with shadcn's stock values, for an app whose theme has neither:
  *   fields draw their border in --input and round their corners on the --radius-ouro-* steps.
@@ -210,6 +216,16 @@
   [data-ouro-surface],
   [data-ouro-avatar-surface] {
     --ouro-sq-path: shape(from 0 calc(var(--ouro-sq-r)*1), curve to calc(var(--ouro-sq-r)*.1591) calc(var(--ouro-sq-r)*.1591) with 0 calc(var(--ouro-sq-r)*.613) / calc(var(--ouro-sq-r)*-.0092) calc(var(--ouro-sq-r)*.3274), curve to calc(var(--ouro-sq-r)*1) 0 with calc(var(--ouro-sq-r)*.3274) calc(var(--ouro-sq-r)*-.0092) / calc(var(--ouro-sq-r)*.613) 0, line to calc(100% - var(--ouro-sq-r)*1) 0, curve to calc(100% - var(--ouro-sq-r)*.1591) calc(var(--ouro-sq-r)*.1591) with calc(100% - var(--ouro-sq-r)*.613) 0 / calc(100% - var(--ouro-sq-r)*.3274) calc(var(--ouro-sq-r)*-.0092), curve to 100% calc(var(--ouro-sq-r)*1) with calc(100% + var(--ouro-sq-r)*.0092) calc(var(--ouro-sq-r)*.3274) / 100% calc(var(--ouro-sq-r)*.613), line to 100% calc(100% - var(--ouro-sq-r)*1), curve to calc(100% - var(--ouro-sq-r)*.1591) calc(100% - var(--ouro-sq-r)*.1591) with 100% calc(100% - var(--ouro-sq-r)*.613) / calc(100% + var(--ouro-sq-r)*.0092) calc(100% - var(--ouro-sq-r)*.3274), curve to calc(100% - var(--ouro-sq-r)*1) 100% with calc(100% - var(--ouro-sq-r)*.3274) calc(100% + var(--ouro-sq-r)*.0092) / calc(100% - var(--ouro-sq-r)*.613) 100%, line to calc(var(--ouro-sq-r)*1) 100%, curve to calc(var(--ouro-sq-r)*.1591) calc(100% - var(--ouro-sq-r)*.1591) with calc(var(--ouro-sq-r)*.613) 100% / calc(var(--ouro-sq-r)*.3274) calc(100% + var(--ouro-sq-r)*.0092), curve to 0 calc(100% - var(--ouro-sq-r)*1) with calc(var(--ouro-sq-r)*-.0092) calc(100% - var(--ouro-sq-r)*.3274) / 0 calc(100% - var(--ouro-sq-r)*.613), close);
+  }
+}
+
+/* Where the surface shows (no corner-shape), a control whose corner shape is round, such as a capsule from --ouro-control-radius and --ouro-control-corner-shape or a theme that sets --ouro-corner-shape to round, is clipped and ringed by circular arcs, not the squircle's curve. Elsewhere the surface is hidden and this changes nothing. */
+@container style(--corner-shape: round) {
+  [data-ouro-squircle] > [data-ouro-surface] {
+    clip-path: inset(0 round var(--ouro-sq-r));
+  }
+  [data-ouro-squircle] > [data-ouro-surface]::after {
+    border-radius: var(--ouro-sq-r);
   }
 }
 

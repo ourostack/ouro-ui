@@ -28,7 +28,7 @@ export {
 const chipsGroupClass =
   "relative m-0 box-border flex w-full min-w-0 flex-wrap items-center gap-1.5 py-1.5 ps-1.5 pe-3 cursor-text " +
   "min-h-(--ouro-control-h) [--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
-  "rounded-ouro-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
+  "rounded-[calc(var(--ouro-control-radius,calc(var(--radius)*0.8))*var(--ouro-radius-scale,1)*var(--ouro-corner-fallback,1))] [--corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] [corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "has-[input[aria-invalid=true]]:border-destructive has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50 " +
@@ -129,7 +129,7 @@ const statusClass = "box-border flex items-center gap-2 px-3 py-2 text-sm leadin
  */
 const triggerClass =
   "relative m-0 box-border flex w-full min-w-0 items-center justify-between gap-2 h-(--ouro-control-h) px-3 py-0 " +
-  "[--ouro-control-h:calc(var(--spacing)*11)] rounded-ouro-md border border-solid border-input bg-transparent " +
+  "[--ouro-control-h:calc(var(--spacing)*11)] rounded-[calc(var(--ouro-control-radius,calc(var(--radius)*0.8))*var(--ouro-radius-scale,1)*var(--ouro-corner-fallback,1))] [--corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] [corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] border border-solid border-input bg-transparent " +
   "text-start text-base text-foreground font-[inherit] cursor-pointer [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "not-disabled:active:bg-accent/60 aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +

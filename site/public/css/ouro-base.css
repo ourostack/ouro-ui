@@ -180,6 +180,15 @@
   }
 }
 
+@container style(--corner-shape: round) {
+  [data-ouro-squircle] > [data-ouro-surface] {
+    clip-path: inset(0 round var(--ouro-sq-r));
+  }
+  [data-ouro-squircle] > [data-ouro-surface]::after {
+    border-radius: var(--ouro-sq-r);
+  }
+}
+
 @keyframes ouro-spin {
   to {
     rotate: 1turn;

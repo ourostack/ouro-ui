@@ -112,7 +112,7 @@ const sheetQuery = "(max-width: 639.98px) and (pointer: coarse)";
 const triggerClass =
   "relative m-0 box-border flex w-full min-w-0 items-center justify-between gap-2 h-(--ouro-control-h) px-3 py-0 " +
   "[--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
-  "rounded-ouro-md border border-solid border-input bg-transparent text-start text-base text-foreground sm:pointer-fine:text-sm " +
+  "rounded-[calc(var(--ouro-control-radius,calc(var(--radius)*0.8))*var(--ouro-radius-scale,1)*var(--ouro-corner-fallback,1))] [--corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] [corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] border border-solid border-input bg-transparent text-start text-base text-foreground sm:pointer-fine:text-sm " +
   "font-[inherit] cursor-pointer select-none [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "transition-[border-color,background-color] duration-(--ouro-duration-fast) ease-[ease] " +
