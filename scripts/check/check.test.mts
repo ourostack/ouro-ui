@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { chromium } from "playwright";
-import { BUDGETS, check, merge, RULES, type Finding, type Gate, type Report } from "../../registry/ouro/check/check.ts";
+import { BUDGETS, check, merge, RULES, type Finding, type Gate, type Report } from "../../registry/ouro/check/run.ts";
 
 
 import { axe, browser, dir, fixtures, page, quiet, site, spots, two } from "./kit.mts";

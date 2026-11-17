@@ -20,9 +20,9 @@ export type { BaselineResult, ErrorSurface, ReplySurface, SurfaceFinding, Surfac
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { devCommandIn } from "./dev-commands.ts";
-import { FINDINGS_EXIT_CODE } from "./exit-codes.ts";
-import { errorMessage } from "./problem.ts";
+import { devCommandIn } from "#ouro-ax/dev-commands.ts";
+import { FINDINGS_EXIT_CODE } from "#ouro-ax/exit-codes.ts";
+import { errorMessage } from "#ouro-ax/problem.ts";
 
 /**
  * What a repository hands the checker: its agent-facing words as one JSON file a repository can produce cheaply. The

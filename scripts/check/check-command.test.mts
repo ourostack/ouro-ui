@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 
-import { caption, dprAt, EXIT, group, LABELS, parseArgs, SIZES, summary, type Finding } from "../../registry/ouro/check/check.ts";
+import { caption, dprAt, EXIT, group, LABELS, parseArgs, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { serve } from "../../registry/ouro/check/serve.ts";
 import { browser, dir, fixtures, playwrightModule, require, root, run, scratch, site, two } from "./kit.mts";

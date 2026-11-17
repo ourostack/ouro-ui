@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, isReservedPersonOnly, READ_CONSENTS, RESERVED_PERSON_ONLY, type AxAction } from "./component.ts";
+import { AX_ACTION_ATTRIBUTE, bindAx, defineComponentAx, expectAxRendered, isReservedPersonOnly, READ_CONSENTS, RESERVED_PERSON_ONLY, type AxAction } from "#ouro-ax/component.ts";
 import { agentPresenceAx, liveCaptionsAx, mediaTileAx, callControlsAx, ui } from "./fixtures/call-components.mts";
 
 const throwsLine = (fn: () => unknown, line: string) => assert.throws(fn, (e: Error) => e.message === line);

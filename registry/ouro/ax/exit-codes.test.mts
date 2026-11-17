@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BASE_EXIT_CODES, defineExitCodes } from "./exit-codes.ts";
+import { BASE_EXIT_CODES, defineExitCodes } from "#ouro-ax/exit-codes.ts";
 
 test("a tool's table keeps 0 ok, 1 error, 2 usage and numbers its own from 3", () => {
   const t = defineExitCodes([...BASE_EXIT_CODES, { code: 3, name: "unavailable", short: "unavailable", meaning: "down" }]);

@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { defineCli, defineCommand } from "./command.ts";
-import { exampleCli } from "./example-cli.ts";
-import { lintCli } from "./lint.ts";
+import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { exampleCli } from "#ouro-ax/example-cli.ts";
+import { lintCli } from "#ouro-ax/lint.ts";
 
 test("the example tool conforms: every command typed, no problems", () => {
   assert.deepEqual(lintCli(exampleCli), { typed: ["rooms", "note", "post", "watch"], loose: [], bypassed: [], undeclared: [], stale: [], problems: [], ok: true });

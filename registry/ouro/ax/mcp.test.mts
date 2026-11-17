@@ -1,11 +1,11 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { createMcpHandler, mcpTools, serveMcp } from "./mcp.ts";
-import { AxError } from "./problem.ts";
-import { defineCli, defineCommand } from "./command.ts";
-import { exampleCli as cli, resetRooms, rooms } from "./example-cli.ts";
-import { outcome } from "./outcome.ts";
-import { wait } from "./wait.ts";
+import { createMcpHandler, mcpTools, serveMcp } from "#ouro-ax/mcp.ts";
+import { AxError } from "#ouro-ax/problem.ts";
+import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { exampleCli as cli, resetRooms, rooms } from "#ouro-ax/example-cli.ts";
+import { outcome } from "#ouro-ax/outcome.ts";
+import { wait } from "#ouro-ax/wait.ts";
 
 const handle = createMcpHandler({ cli, version: "1.0.0", maxChars: 300 });
 const call = async (name: string, args: unknown) => ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } })) as { result: { content: { text: string }[]; isError: boolean; structuredContent?: { error?: { code: string; fix: string } } } }).result;

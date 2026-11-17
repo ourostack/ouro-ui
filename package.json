@@ -17,6 +17,9 @@
   "engines": {
     "node": ">=22"
   },
+  "imports": {
+    "#ouro-ax/*": "./registry/ouro/ax/*"
+  },
   "devEngines": {
     "runtime": {
       "name": "node",

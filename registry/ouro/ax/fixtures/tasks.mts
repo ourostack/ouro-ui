@@ -1,7 +1,7 @@
-import { quietPipes, runCli } from "../cli.ts";
-import { defineCli, defineCommand } from "../command.ts";
-import { AxError } from "../problem.ts";
-import { outcome } from "../outcome.ts";
+import { quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { AxError } from "#ouro-ax/problem.ts";
+import { outcome } from "#ouro-ax/outcome.ts";
 
 const tasks = new Map([["t1", { title: "Book the room", owner: "Jo" }]]);
 const team = { only: false, who: "the team" };

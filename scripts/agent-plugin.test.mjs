@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { RULES } from "../registry/ouro/check/check.ts";
+import { RULES } from "../registry/ouro/check/run.ts";
 
 // plugins/ouro-check ships the ouro-check agent skill to Agency, Copilot and Claude Code. These hold its two
 // manifests together, and hold the skill to the check it teaches, so a release that changes the check

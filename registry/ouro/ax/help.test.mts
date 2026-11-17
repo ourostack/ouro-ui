@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { defineCli, defineCommand, findCommand } from "./command.ts";
-import { exampleCli as cli } from "./example-cli.ts";
-import { helpJson, renderCommand, renderOverview, wrap } from "./help.ts";
+import { defineCli, defineCommand, findCommand } from "#ouro-ax/command.ts";
+import { exampleCli as cli } from "#ouro-ax/example-cli.ts";
+import { helpJson, renderCommand, renderOverview, wrap } from "#ouro-ax/help.ts";
 
 test("the overview is the two headings, one line per command, and the exit codes", () => {
   assert.equal(

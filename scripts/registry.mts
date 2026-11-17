@@ -49,6 +49,7 @@ import ts from "typescript";
 import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
 import { componentsDir, MANIFEST, readComponents } from "./components.mts";
+import { axDir, axMovesOut, checkDir, imagesDir, installsOutsideSrc } from "./install-folders.mts";
 import { treeFiles } from "./tree.mjs";
 
 const REPO = "ourostack/ouro-ui";
@@ -268,6 +269,9 @@ const foundation = [
  * registry:file into the app's own folders (the census beside its end-to-end specs, the source
  * rule beside its scripts), with the tools they run on as devDependencies.
  */
+/** What a Node-only Ouro AX file needs in package.json, once, to import the shared kit: the imports entry it names. */
+const AX_IMPORTS = `Its Node files import the shared Ouro AX files as #ouro-ax/<file>, so add that line to package.json once, with src/lib replaced by the folder your components.json lib alias points at: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*".`;
+
 const kits = [
   {
     name: "ouro-census",
@@ -299,18 +303,18 @@ const kits = [
       `Optional: the screen check. ${claim(
         "It opens every page of a built folder or a URL in headless Chromium at every screen size from 320 to 3840 wide, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures, pictures that fade into the page and serious axe-core violations, and long lines only where ouro-check.json declares a measure, each with a captioned close-up and a contact sheet per page.",
         {
-          source: [{ test: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" }, { file: "registry/ouro/check/check.ts" }],
+          source: [{ test: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" }, { file: "registry/ouro/check/run.ts" }],
           verify: [
             { testExists: "scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups" },
-            { fileLine: "registry/ouro/check/check.ts", pattern: "^  \\[320, 640\\], " },
-            { fileLine: "registry/ouro/check/check.ts", pattern: "\\[3840, 2160\\],$" },
+            { fileLine: "registry/ouro/check/run.ts", pattern: "^  \\[320, 640\\], " },
+            { fileLine: "registry/ouro/check/run.ts", pattern: "\\[3840, 2160\\],$" },
           ],
         },
       )} ${claim("It measures layout shift while loading, the time to the first content and each press's time to paint, each against a budget, and records each number in its report.", {
         source: { test: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
         verify: { testExists: "scripts/check/check.test.mts::Ouro check > measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number" },
-      })} ${claim("A run split with --shard k/n and joined with merge finds what one run does.", { source: { test: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" }, verify: { testExists: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" } })} ${claim("Its fades.ts finds every gradient used as a mask in your source, and every wash laid over a picture, so no picture fades into the page.", { source: { test: "scripts/check/fades.test.mts::the fade check > finds a gradient mask in a stylesheet: mask-image, -webkit-mask-image, mask and -webkit-mask, over several lines too" }, verify: { testExists: "scripts/check/fades.test.mts::the fade check > finds a gradient mask in a stylesheet: mask-image, -webkit-mask-image, mask and -webkit-mask, over several lines too" } })} It installs lib/ouro/check/.`,
-    docs: `Ouro check is in lib/ouro/check/ in your lib folder (src/lib/ouro/check/ in an app with src/). Build your app, run node lib/ouro/check/check.ts <built folder | URL> (node src/lib/ouro/check/check.ts with src/) and fix what it reports. It runs in Node: in a Vite app, add "exclude": ["src/lib/ouro/check", "src/lib/ouro/ax"] to tsconfig.app.json, or tsc -b fails on its Node imports. Run node lib/ouro/check/fades.ts src (node src/lib/ouro/check/fades.ts src with src/) to find a picture that fades into the page in your source. Docs: ${DOCS_URL}/guardrails.md`,
+      })} ${claim("A run split with --shard k/n and joined with merge finds what one run does.", { source: { test: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" }, verify: { testExists: "scripts/check/check.test.mts::Ouro check > a sharded run, merged, finds what one run does, with every shot, and a config gates the merge again" } })} ${claim("Its fades.ts finds every gradient used as a mask in your source, and every wash laid over a picture, so no picture fades into the page.", { source: { test: "scripts/check/fades.test.mts::the fade check > finds a gradient mask in a stylesheet: mask-image, -webkit-mask-image, mask and -webkit-mask, over several lines too" }, verify: { testExists: "scripts/check/fades.test.mts::the fade check > finds a gradient mask in a stylesheet: mask-image, -webkit-mask-image, mask and -webkit-mask, over several lines too" } })} It installs scripts/ouro/check/.`,
+    docs: `${claim("Ouro check is in scripts/ouro/check/, outside your TypeScript project, so tsc -b does not read its Node imports.", { source: { test: "scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check and Ouro images installed where the CLI puts them, outside src, and fails with their Node files in src" }, verify: { testExists: "scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check and Ouro images installed where the CLI puts them, outside src, and fails with their Node files in src" } })} Build your app, run node scripts/ouro/check/check.ts <built folder | URL> and fix what it reports. ${AX_IMPORTS} Run node scripts/ouro/check/fades.ts src to find a picture that fades into the page in your source. Docs: ${DOCS_URL}/guardrails.md`,
     uses: ["axe-core", "playwright"],
   },
   {
@@ -319,8 +323,8 @@ const kits = [
     description: `Optional: the picture sizes. ${claim(
       "It writes each raster picture in a folder as AVIF and WebP at each width up to its own, with sharp, and images.json with the srcset of each, for a <picture> element.",
       { source: { test: "scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each" }, verify: { testExists: "scripts/images/images.test.mts::Ouro images > writes each picture as AVIF and WebP at each width, and a manifest with the srcset of each" } },
-    )} It installs lib/ouro/images/.`,
-    docs: `Ouro images is in lib/ouro/images/. Run node lib/ouro/images/images.ts <folder of pictures> --out public/images --base /images/ and draw each picture from images.json. Docs: ${DOCS_URL}/guardrails.md`,
+    )} It installs scripts/ouro/images/.`,
+    docs: `Ouro images is in scripts/ouro/images/. Run node scripts/ouro/images/images.ts <folder of pictures> --out public/images --base /images/ and draw each picture from images.json. ${AX_IMPORTS} Docs: ${DOCS_URL}/guardrails.md`,
   },
 ];
 
@@ -366,12 +370,6 @@ const e2eDir = "registry/ouro/e2e/ouro/";
 const themeDir = "registry/ouro/theme/";
 const censusDir = "registry/ouro/census/";
 const sourceRulesDir = "registry/ouro/source-rules/";
-const checkDir = "registry/ouro/check/";
-const imagesDir = "registry/ouro/images/";
-// Ouro AX: the agent-experience kit, Node TypeScript with no dependencies, one item per file (ax-<stem>), its node:test
-// tests as ax-<stem>-tests, the X-ray's fixtures with its tests (a flow suite's with ax-flows'), and the example tool as
-// ax-example.
-const axDir = "registry/ouro/ax/";
 
 /** The item that ships an ax file. help.ts is part of ax-cli, which renders it. */
 function axItem(rest: string): string {
@@ -382,6 +380,9 @@ function axItem(rest: string): string {
   const owner = stem === "help" ? "cli" : stem;
   return rest.endsWith(".test.mts") ? `ax-${owner}-tests` : `ax-${owner}`;
 }
+
+/** How a file that installs outside src imports a shared Ouro AX file: the package's imports entry for the kit. */
+const axImport = "#ouro-ax/";
 
 /** Test-runner packages, which only the -tests items and ouro-testing may import. */
 const testTooling = /^(storybook|@storybook\/.*|vitest|@vitest\/.*|playwright|@playwright\/.*)$/;
@@ -454,10 +455,13 @@ function fileEntry(path: string): RegistryFile {
   if (path.startsWith(e2eDir)) return { path, type: "registry:file", target: `~/e2e/ouro/${file}` };
   if (path.startsWith(censusDir)) return { path, type: "registry:file", target: `~/e2e/ouro-census/${file}` };
   if (path.startsWith(sourceRulesDir)) return { path, type: "registry:file", target: `~/scripts/ouro-${file}` };
-  if (path.startsWith(checkDir)) return { path, type: "registry:lib", target: `@lib/ouro/check/${file}` };
-  if (path.startsWith(imagesDir)) return { path, type: "registry:lib", target: `@lib/ouro/images/${file}` };
+  if (path.startsWith(checkDir)) return { path, type: "registry:file", target: `~/scripts/ouro/check/${file}` };
+  if (path.startsWith(imagesDir)) return { path, type: "registry:file", target: `~/scripts/ouro/images/${file}` };
   if (path.startsWith(libDir)) return { path, type: "registry:lib", target: `@lib/ouro/${path.slice(libDir.length)}` };
-  if (path.startsWith(axDir)) return { path, type: "registry:lib", target: `@lib/ouro/ax/${path.slice(axDir.length)}` };
+  if (path.startsWith(axDir)) {
+    const rest = path.slice(axDir.length);
+    return axMovesOut(rest) ? { path, type: "registry:file", target: `~/scripts/ouro/ax/${rest}` } : { path, type: "registry:lib", target: `@lib/ouro/ax/${rest}` };
+  }
   const target = `@components/ouro/${path.slice(componentsDir.length)}`;
   return { path, type: devFile.test(file) ? "registry:component" : "registry:ui", target };
 }
@@ -668,15 +672,15 @@ export function buildRegistry(root: string): Registry {
       title: name,
       kind: "ax" as const,
       description: name === "ax-example" ? "Ouro AX: a small tool built only from the kit, the pattern to copy; the ax tests use it." : `Ouro AX: ${axPurpose(name).replace(/^[A-Z](?=[a-z])/, (c) => c.toLowerCase())}`,
-      docs: `Docs: ${DOCS_URL}/${name}.md`,
+      docs: `${shipped(name).some(installsOutsideSrc) ? `${AX_IMPORTS} ` : ""}Docs: ${DOCS_URL}/${name}.md`,
     })),
-    ...axTests.map((name) => ({ name, title: `${name.slice(0, -6)} tests`, of: name.slice(0, -6), kind: "ax-tests" as const, description: `Optional: the node:test tests for ${name.slice(0, -6)}; run them with node --test.`, docs: `Docs: ${DOCS_URL}/${name.slice(0, -6)}.md` })),
+    ...axTests.map((name) => ({ name, title: `${name.slice(0, -6)} tests`, of: name.slice(0, -6), kind: "ax-tests" as const, description: `Optional: the node:test tests for ${name.slice(0, -6)}, in scripts/ouro/ax/; run them with node --test scripts/ouro/ax/*.test.mts.`, docs: `${AX_IMPORTS} Docs: ${DOCS_URL}/${name.slice(0, -6)}.md` })),
     {
       name: "ouro-ax",
       title: "Ouro AX",
       kind: "aggregate" as const,
       description: "Ouro AX, the agent-experience kit, in one item: the ax-* items, from one command definition to the X-ray that checks an interface against the claims.",
-      docs: `Ouro AX is in lib/ouro/ax. Parts of it run only in Node: in a Vite app, add "exclude": ["src/lib/ouro/check", "src/lib/ouro/ax"] to tsconfig.app.json (what your app imports from them is still checked), or tsc -b fails on their Node imports. ${claim("It runs on Node 22.18 or later, which strips the types, and has no dependencies.", { source: [{ file: "package.json" }, { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }], verify: [{ equals: "package.json#devEngines.runtime.version", is: ">=22.18" }, { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }] })} Docs: ${AX_GUIDE_URL}`,
+      docs: `Ouro AX is in lib/ouro/ax. ${claim("Its Node-only files (the X-ray, the flow runner, the surfaces check and their tests) are in scripts/ouro/ax, outside your TypeScript project, so tsc -b does not read them.", { source: { test: "scripts/check-vite-types.test.mjs::a Vite app type-checks with the Ouro AX kit and its tests installed, and still checks what it imports from the kit" }, verify: { testExists: "scripts/check-vite-types.test.mjs::a Vite app type-checks with the Ouro AX kit and its tests installed, and still checks what it imports from the kit" } })} ${AX_IMPORTS} ${claim("It runs on Node 22.18 or later, which strips the types, and has no dependencies.", { source: [{ file: "package.json" }, { test: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }], verify: [{ equals: "package.json#devEngines.runtime.version", is: ">=22.18" }, { testExists: "scripts/ax.test.mjs::the Ouro AX tests pass and cover every line, branch and function of Ouro AX" }] })} Docs: ${AX_GUIDE_URL}`,
     },
     { name: "ouro-ax-tests", title: "Ouro AX tests", kind: "aggregate" as const, description: "Optional: Ouro AX with the ax-* tests, the X-ray's fixtures and the example tool.", docs: `Docs: ${AX_GUIDE_URL}` },
   ];
@@ -724,10 +728,20 @@ export function buildRegistry(root: string): Registry {
       if (entry.name === "lib-router-link" || entry.name === "tooltip") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
         // An ax file imports its siblings relatively, so Node runs the copied files as they are. The images and check tools,
-        // which Node runs too, import the kit the same way.
+        // which Node runs too, import the kit the same way. A file that installs outside src imports the shared kit as
+        // #ouro-ax/<file>, since the shared files install beside the app's lib, and imports only files beside it relatively.
+        if (specifier.startsWith(axImport)) {
+          const shared = `${axDir}${specifier.slice(axImport.length)}`;
+          const dependency = owner.get(shared);
+          if (!dependency || installsOutsideSrc(shared)) throw new Error(`${path} imports ${specifier}, which is no shared Ouro AX file.`);
+          if (dependency !== entry.name) registryDeps.add(dependency);
+          continue;
+        }
         if ((path.startsWith(axDir) || path.startsWith(imagesDir) || path.startsWith(checkDir)) && specifier.startsWith(".")) {
-          const dependency = owner.get(join(dirname(path), specifier).split("\\").join("/"));
+          const target = join(dirname(path), specifier).split("\\").join("/");
+          const dependency = owner.get(target);
           if (!dependency) throw new Error(`${path} imports ${specifier}, which no item ships.`);
+          if (installsOutsideSrc(target) !== installsOutsideSrc(path)) throw new Error(`${path} imports ${specifier}, which installs in another folder. Import a shared Ouro AX file as ${axImport}<file>.`);
           if (dependency !== entry.name) registryDeps.add(dependency);
           continue;
         }

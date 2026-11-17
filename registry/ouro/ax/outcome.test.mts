@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BASE_EXIT_CODES, defineExitCodes } from "./exit-codes.ts";
-import { DEFAULT_OUTCOME_EXITS, isGenericAudience, isOutcome, nextStep, OUTCOME_STATES, outcome, outcomeExit, outcomeText, validateOutcome, type Outcome } from "./outcome.ts";
+import { BASE_EXIT_CODES, defineExitCodes } from "#ouro-ax/exit-codes.ts";
+import { DEFAULT_OUTCOME_EXITS, isGenericAudience, isOutcome, nextStep, OUTCOME_STATES, outcome, outcomeExit, outcomeText, validateOutcome, type Outcome } from "#ouro-ax/outcome.ts";
 
 const AT = "2026-10-30T20:00:00.000Z";
 const receipt = { id: "a1b2c3d4e5f6", at: AT, by: "agent:planner", why: "Jo asked: tell Design sync I'm running late" };

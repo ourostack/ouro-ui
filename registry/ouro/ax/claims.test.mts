@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkClaimSet, CLAIM_SCOPES, CLAIM_SET, CLAIM_SET_VERSION, claimSetText, loadClaimSet } from "./claims.ts";
+import { checkClaimSet, CLAIM_SCOPES, CLAIM_SET, CLAIM_SET_VERSION, claimSetText, loadClaimSet } from "#ouro-ax/claims.ts";
 
 test("the claim set follows its own admission rule: every must claim cites a run or states a hazard", () => {
   assert.deepEqual(checkClaimSet(CLAIM_SET), []);

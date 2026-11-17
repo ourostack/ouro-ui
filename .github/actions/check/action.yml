@@ -1,6 +1,6 @@
 name: Ouro check
 description: >-
-  Runs Ouro check (node lib/ouro/check/check.ts, from the ouro-check item) on a built folder or
+  Runs Ouro check (node scripts/ouro/check/check.ts, from the ouro-check item) on a built folder or
   URLs: every page at every screen size, light and dark, for overlap, sideways scroll, clipped
   text, long lines, blurry pictures and serious axe-core violations, and measures layout shift, first
   content and each press against their budgets. Writes the report to the job's
@@ -39,7 +39,7 @@ inputs:
     default: ""
   script:
     description: Where check.ts is.
-    default: lib/ouro/check/check.ts
+    default: scripts/ouro/check/check.ts
   artifact:
     description: The artifact's name; a shard's is <artifact>-<k>-of-<n>, and report-<name> holds report.json and summary.md alone.
     default: ouro-check

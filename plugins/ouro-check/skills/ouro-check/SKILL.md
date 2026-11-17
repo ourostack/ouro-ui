@@ -13,7 +13,7 @@ In an app built on Ouro UI, install it once and run it on the built folder or a 
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ouro-check#<release>
-node lib/ouro/check/check.ts dist --sizes 390x844,1440x900,3840x2160
+node scripts/ouro/check/check.ts dist --sizes 390x844,1440x900,3840x2160
 ```
 
 Anywhere else, such as a site you don't own, fetch its files from the newest release into a folder of their own, then point it at the URL:[^latest]
@@ -51,7 +51,7 @@ Fix from `rule`, `element` and `detail`. Open the close-up only when those leave
 Run the check again with the earlier report, and it writes a captioned before and after for each finding gone since:
 
 ```sh
-node lib/ouro/check/check.ts dist --before ouro-check/report.json --out ouro-check-after
+node scripts/ouro/check/check.ts dist --before ouro-check/report.json --out ouro-check-after
 ```
 
 Put the before and after in the pull request as the proof. A finding you keep on purpose gets `data-ouro-allow="<rule>"` and `data-ouro-allow-why="<reason>"` on the element; one without a reason does not count. `blurry-image` can't be waived: an allow or a waiver of it is itself a problem, so give the picture a larger source; `--images-report <file.json>` lists the blurry pictures with the files they drew and the widths they need. To let a new rule report without failing while its findings are fixed, waive it in `ouro-check.json` with the reason, and remove the waiver with the last fix.
@@ -66,4 +66,4 @@ It decides what measurement can decide. Whether a picture is the right picture, 
 [^check-states]: test:scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing)
 [^node]: package.json verify:equals(package.json#devEngines.runtime.version)=>=22.18
 [^check-exit]: test:scripts/check/check-command.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings)
-[^report]: registry/ouro/check/check.ts; test:scripts/check/check-pages.test.mts::Ouro check > names an axe finding the same at every size, whatever the other rules marked on the page verify:fileLine(registry/ouro/check/check.ts, /^  element: string;$/) verify:fileLine(registry/ouro/check/check.ts, /^  gated: boolean;$/) verify:fileLine(registry/ouro/check/check.ts, /^  closeUp\?: string;$/) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > names an axe finding the same at every size, whatever the other rules marked on the page)
+[^report]: registry/ouro/check/run.ts; test:scripts/check/check-pages.test.mts::Ouro check > names an axe finding the same at every size, whatever the other rules marked on the page verify:fileLine(registry/ouro/check/run.ts, /^  element: string;$/) verify:fileLine(registry/ouro/check/run.ts, /^  gated: boolean;$/) verify:fileLine(registry/ouro/check/run.ts, /^  closeUp\?: string;$/) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > names an axe finding the same at every size, whatever the other rules marked on the page)

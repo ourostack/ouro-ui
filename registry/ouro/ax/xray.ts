@@ -10,19 +10,19 @@ import { accessSync, constants, readFileSync, realpathSync, statSync, writeFileS
 import { homedir } from "node:os";
 import { basename, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "./claims.ts";
-import { isChecksReport, type ChecksReport } from "./checks.ts";
-import { isReservedPersonOnly, type UiEntry } from "./component.ts";
-import { devCommandIn, devCommandsIn, sourceCheckoutTexts } from "./dev-commands.ts";
-import { checkFailureCopyAllow, vagueFailureIn, vagueFailuresIn, type FailureCopyAllow } from "./precise-copy.ts";
-import { isGenericAudience, isOutcome, validateOutcome } from "./outcome.ts";
-import { hasAnsi, stripAnsi } from "./terminal.ts";
-import { isWait, validateWait } from "./wait.ts";
-import { checkWorkEvent } from "./work-event.ts";
-import { quietPipes, runCli } from "./cli.ts";
-import { defineCli, defineCommand, parse, type FlagSpec, type Input } from "./command.ts";
-import { defineExitCodes } from "./exit-codes.ts";
-import { AxError, isAxError } from "./problem.ts";
+import { CLAIM_SET, claimSetText, type Claim, type ClaimSurface } from "#ouro-ax/claims.ts";
+import { isChecksReport, type ChecksReport } from "#ouro-ax/checks.ts";
+import { isReservedPersonOnly, type UiEntry } from "#ouro-ax/component.ts";
+import { devCommandIn, devCommandsIn, sourceCheckoutTexts } from "#ouro-ax/dev-commands.ts";
+import { checkFailureCopyAllow, vagueFailureIn, vagueFailuresIn, type FailureCopyAllow } from "#ouro-ax/precise-copy.ts";
+import { isGenericAudience, isOutcome, validateOutcome } from "#ouro-ax/outcome.ts";
+import { hasAnsi, stripAnsi } from "#ouro-ax/terminal.ts";
+import { isWait, validateWait } from "#ouro-ax/wait.ts";
+import { checkWorkEvent } from "#ouro-ax/work-event.ts";
+import { quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { defineCli, defineCommand, parse, type FlagSpec, type Input } from "#ouro-ax/command.ts";
+import { defineExitCodes } from "#ouro-ax/exit-codes.ts";
+import { AxError, isAxError } from "#ouro-ax/problem.ts";
 
 /**
  * The Ouro AX conformance checker: it calls a CLI, an HTTP API or an MCP server the way an agent would, and reports

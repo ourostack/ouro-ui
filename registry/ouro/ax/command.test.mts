@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, invocation, parse, toArgv, usageOf, type Parsed } from "./command.ts";
-import { renderCommand } from "./help.ts";
-import { AxError } from "./problem.ts";
-import { DEFAULT_OUTCOME_EXITS } from "./outcome.ts";
-import { exampleCli as cli } from "./example-cli.ts";
+import { checkInput, defineCli, defineCommand, exampleArgv, findCommand, inputSchema, invocation, parse, toArgv, usageOf, type Parsed } from "#ouro-ax/command.ts";
+import { renderCommand } from "#ouro-ax/help.ts";
+import { AxError } from "#ouro-ax/problem.ts";
+import { DEFAULT_OUTCOME_EXITS } from "#ouro-ax/outcome.ts";
+import { exampleCli as cli } from "#ouro-ax/example-cli.ts";
 
 const run = (argv: string[]) => {
   const p = parse(cli, argv);

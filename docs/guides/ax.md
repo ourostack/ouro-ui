@@ -13,21 +13,16 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.239         # the kit and t
 npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.239   # with their node:test tests
 ```
 
-The shadcn CLI copies the files into `lib/ouro/ax/` under your lib alias. Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps] In a Vite app, whose `tsconfig.app.json` has no Node types, leave the kit's folder out of the app's own type check, or `tsc -b` fails on its Node-only files. What your app imports from it is still checked:[^ax-vite]
-
-```json
-"exclude": ["src/lib/ouro/check", "src/lib/ouro/ax"]
-```
-
+The shadcn CLI copies the shared files into `lib/ouro/ax/` under your lib alias. The X-ray, the flow runner, the surfaces check and their tests go to `scripts/ouro/ax/`, outside your TypeScript project, so `tsc -b` never reads their Node imports.[^ax-outside] Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and the shared files as `#ouro-ax/<file>`, which package.json names once: `npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"`, with `src/lib` as your lib folder. Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
 ## A tool
 
 This tool has a read and an action other people see. The kit gives it the rest:
 
 ```ts
-import { quietPipes, runCli } from "./lib/ouro/ax/cli.ts";
-import { defineCli, defineCommand } from "./lib/ouro/ax/command.ts";
-import { AxError } from "./lib/ouro/ax/problem.ts";
-import { outcome } from "./lib/ouro/ax/outcome.ts";
+import { quietPipes, runCli } from "#ouro-ax/cli.ts";
+import { defineCli, defineCommand } from "#ouro-ax/command.ts";
+import { AxError } from "#ouro-ax/problem.ts";
+import { outcome } from "#ouro-ax/outcome.ts";
 
 const tasks = new Map([["t1", { title: "Book the room", owner: "Jo" }]]);
 const team = { only: false, who: "the team" };
@@ -163,7 +158,7 @@ A read, such as a snapshot, follows nothing: it reports the launch and the optio
 
 A repository that has not adopted the kit can still hold its agent-facing words to Ouro AX. `ax-surfaces` reads a manifest of them, `{ "ax": "surfaces/1", "tool": "notes", "errors": [...], "tools": [...], "replies": [...], "texts": [...] }`, and finds an error that does not open with what to do, an error with no stable `code`, a tool description that does not say when to use the tool or runs past 600 characters, an action reply with no field that says what happened, and any message that sends the agent to run a script.[^surfaces-checks] `node lib/ouro/ax/surfaces.ts extract src --tool notes --out surfaces.json` writes a first manifest from JavaScript or TypeScript source, as a start to edit.
 
-Record today's findings once, then let CI hold the line: `node lib/ouro/ax/surfaces.ts check surfaces.json --baseline surfaces-baseline.json --init` writes the baseline, and every later `check` with `--baseline` exits 3 on a finding the baseline does not list, and on a listed finding that is fixed, so the pull request that fixes one lowers its count (`--update`) and the count only goes down. The baseline counts findings per check and file, so rewording an error does not change it.[^surfaces-ratchet]
+Record today's findings once, then let CI hold the line: `node scripts/ouro/ax/surfaces.ts check surfaces.json --baseline surfaces-baseline.json --init` writes the baseline, and every later `check` with `--baseline` exits 3 on a finding the baseline does not list, and on a listed finding that is fixed, so the pull request that fixes one lowers its count (`--update`) and the count only goes down. The baseline counts findings per check and file, so rewording an error does not change it.[^surfaces-ratchet]
 
 ## A voice
 
@@ -184,7 +179,7 @@ The kit prints a voice line only when stdout is a terminal, and never under `--j
 An Ouro HX component an agent can act through declares its agent side next to it: what an agent may read from it, with the fields, and its actions' effects, with `agent: true` for an action an agent may take or `personOnly` with the reason for one only the person takes, said to the agent ("You can't turn on the person's camera; only they can."). Leaving out that choice, or making both, is a type error and a one-line error at load.[^component] Some actions are the person's whatever the component. Name them with the canonical ids `unmute`, `camera`, `share`, `answer`, `decline`, `admit` and `record`, and their reverse with `mute`, `camera-off` and `stop-share`, which stay an agent's. `isReservedPersonOnly` also catches aliases (`Unmute`, `mic-on`, `share-screen`, `accept`, `start-recording`), bare devices (`mic`, `video`) and toggles (`toggle-mute`), so declaring any of them `agent: true` throws. A call verb away from a call, such as `share-link` or `answer-message`, stays an agent's.[^reserved] The app binds each read and agent action to its CLI twin, because a component does not know the app's command names, and gives each person-only action the CLI words an agent might try (`refuseAs`); `bindAx` throws when one has no twin or no words, or when a person-only action is given a twin, and returns the entries for the X-ray's inventory.[^bind] Each component renders `data-ax-action="<id>"` on the control for each action it declares, and its tests check that with `expectAxRendered(ax, container)`.[^rendered] Declare it beside the component whose actions it names, such as `CallControls`, rather than the generic `Toolbar` that holds it: a container exports one only when it has agent reads or actions of its own. A component imports the kit as `import { defineComponentAx } from "@/registry/ouro/ax/component";`. The shadcn CLI rewrites that to the app's lib alias (`@/lib/ouro/ax/component`) when it installs the component, and the component's item brings `ax-component` with it.[^install] These are the calling components, bound to a `call` tool:
 
 ```ts
-import { bindAx, defineComponentAx } from "./lib/ouro/ax/component.ts";
+import { bindAx, defineComponentAx } from "#ouro-ax/component.ts";
 
 const theirs = "You can't turn on the person's microphone, camera or screen; only they can.";
 
@@ -279,7 +274,7 @@ Take a problem report as the example. When the person tells their inbox-agent "s
 The X-ray checks the rules a command must keep; a flow checks what a task needs. A flow is the calls a good agent makes for one task, as data, with what the calls must show:
 
 ```ts
-import { defineFlow, defineSuite, inProcess } from "./lib/ouro/ax/flows.ts";
+import { defineFlow, defineSuite, inProcess } from "../scripts/ouro/ax/flows.ts";
 
 const send = defineFlow({
   id: "T3", surface: "agent-cli", title: "Post what someone asked for, after a preview", rubric: ["honest", "forgiving"],
@@ -294,7 +289,7 @@ export default defineSuite({ tool: "notes", flows: [send], cli: inProcess(main),
 ```
 
 ```sh
-node lib/ouro/ax/flows.ts run flows/suite.ts --out report --xray xray.json
+node scripts/ouro/ax/flows.ts run flows/suite.ts --out report --xray xray.json
 ```
 
 `--help` and `--json` come from the Ouro AX kit: under `--json`, stdout holds the outcome alone and each flow's line goes to stderr.[^flows-json] It writes `report/findings.jsonl`, one check a line, and `report/report.json` with the X-ray attached, in the `flow-review/0` format. Each call is checked for its exit code, JSON shape and fields, one-line errors that name the fix, time and size budgets, text it must have or must not, and the voice: plain stderr and JSON alone under `--json`.[^flows-checks] The runner also checks a flow for commands the overview leaves out, and a flow marked `readOnly` for a state that changed. Nothing runs until your guard proves the mock is a mock.[^flows-guard] A step marked `known` with its issue is reported and doesn't fail the run; once it passes, the run fails until the mark goes.[^flows-known] `fixtures/flows-suite.mts` is a whole suite over the example tool, with a reply that arrives partway through a wait.
@@ -332,4 +327,4 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^failure-allow]: test:registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry verify:testExists(registry/ouro/ax/precise-copy.test.mts::an allow-list needs a match and a reason in every entry) verify:testExists(registry/ouro/ax/xray.test.mts::a CLI whose failures say something went wrong fails copy.precise-failure once per text, and an allow-list with reasons lets precise text through)
 [^surfaces-checks]: test:registry/ouro/ax/surfaces.test.mts::error.leads-with-fix: says whether the fix is missing or only late verify:testExists(registry/ouro/ax/surfaces.test.mts::error.leads-with-fix: says whether the fix is missing or only late) verify:testExists(registry/ouro/ax/surfaces.test.mts::tool.says-when and tool.description-budget: when to use it, within the size budget) verify:testExists(registry/ouro/ax/surfaces.test.mts::reply.reports-outcome: an action's reply carries a field that says what happened; a read needs none) verify:testExists(registry/ouro/ax/surfaces.test.mts::text.no-script: no error, tool description or text sends the agent to a script)
 [^surfaces-ratchet]: test:registry/ouro/ax/surfaces.test.mts::a baseline is written once, fails what is new, and only ever shrinks verify:testExists(registry/ouro/ax/surfaces.test.mts::a baseline is written once, fails what is new, and only ever shrinks)
-[^ax-vite]: test:scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check, the Ouro AX kit and its tests installed once their folders are left out, still checking what it imports, and fails without that line verify:testExists(scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check, the Ouro AX kit and its tests installed once their folders are left out, still checking what it imports, and fails without that line)
+[^ax-outside]: test:scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check and Ouro images installed where the CLI puts them, outside src, and fails with their Node files in src; test:scripts/check-vite-types.test.mjs::a Vite app type-checks with the Ouro AX kit and its tests installed, and still checks what it imports from the kit verify:testExists(scripts/check-vite-types.test.mjs::a Vite app type-checks with Ouro check and Ouro images installed where the CLI puts them, outside src, and fails with their Node files in src) verify:testExists(scripts/check-vite-types.test.mjs::a Vite app type-checks with the Ouro AX kit and its tests installed, and still checks what it imports from the kit)

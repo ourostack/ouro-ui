@@ -1,8 +1,8 @@
-// Ouro check, and parts of the Ouro AX kit (its X-ray, flows and tests), run only in Node, and land in a Vite
-// app's src/lib/ouro/, where the app's own tsconfig.app.json ("types": ["vite/client"]) has no Node types. The
-// guides, llms.txt and the items' install messages tell a Vite app to leave those folders out of its type check;
-// this proves each install fails the app's `tsc` without that line and passes with it, while what the app imports
-// from the folder is still checked.
+// Ouro check, Ouro images and the Node-only parts of the Ouro AX kit (the X-ray, the flow runner, the surfaces check and
+// their tests) run only in Node. They install under scripts/ouro/, outside the app's TypeScript project, so a Vite app's
+// tsconfig.app.json (`"types": ["vite/client"]`, `"include": ["src"]`) never reads their node:* imports, process or Buffer.
+// This proves each install passes the app's `tsc` where the CLI puts it, that the same files left in src fail it, and
+// that what the app imports from the kit is still type-checked.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -13,8 +13,8 @@ import { scratchDir } from "./scratch.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** The registry files an add of `names` writes into lib/ouro: theirs and their Ouro dependencies', from registry.json. */
-function installedFiles(...names) {
+/** The files an add of `names` writes, from registry.json, with their repository path and where the CLI puts them in an app. */
+function installed(...names) {
   const items = new Map(JSON.parse(readFileSync(join(root, "registry.json"), "utf8")).items.map((item) => [item.name, item]));
   const seen = new Set();
   const visit = (each) => {
@@ -24,55 +24,45 @@ function installedFiles(...names) {
     for (const dependency of items.get(each).registryDependencies ?? []) visit(dependency.replace(/^.*\//, "").replace(/#.*$/, ""));
   };
   for (const name of names) visit(name);
-  return [...seen].flatMap((each) => items.get(each).files ?? []).map((file) => file.path).filter((path) => /^registry\/ouro\/(check|ax)\/[\w./-]+\.m?ts$/.test(path));
+  return [...seen].flatMap((each) => items.get(each).files ?? []).map((file) => ({ from: file.path, to: file.target.replace(/^~\//, "").replace(/^@lib\//, "src/lib/") }));
 }
 
-/** A Vite app's type-check project with `files` where the CLI puts them, an app file importing `imports`, and `exclude`. */
-function viteApp(files, exclude, imports) {
+/** A Vite app's type-check project with `files` written where given, and an app file that imports the kit wrongly if `broken`. */
+function viteApp(files, broken) {
   const app = scratchDir("ouro-node-items-vite-");
-  for (const path of files) {
-    const into = join(app, "src/lib/ouro", path.slice("registry/ouro/".length));
-    mkdirSync(dirname(into), { recursive: true });
-    cpSync(join(root, path), into);
+  for (const { from, to } of files) {
+    mkdirSync(dirname(join(app, to)), { recursive: true });
+    cpSync(join(root, from), join(app, to));
   }
-  writeFileSync(join(app, "src/main.ts"), imports ? `import { defineCommand } from "./lib/ouro/ax/command.ts";\nexport const made = defineCommand;\n` : "export {};\n");
+  mkdirSync(join(app, "src"), { recursive: true });
+  writeFileSync(join(app, "src/main.ts"), broken ? `import { defineCommand } from "./lib/ouro/ax/command.ts";\nexport const made: number = defineCommand;\n` : "export {};\n");
   const config = JSON.parse(readFileSync(join(root, "test/install-fixture/tsconfig.app.json"), "utf8"));
   delete config.compilerOptions.tsBuildInfoFile;
-  if (exclude) config.exclude = exclude;
   writeFileSync(join(app, "tsconfig.app.json"), JSON.stringify(config, null, 2));
   symlinkSync(join(root, "node_modules"), join(app, "node_modules"), "dir");
   return app;
 }
 
 const tsc = (app) => spawnSync(process.execPath, [join(root, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.app.json", "--noEmit"], { cwd: app, encoding: "utf8" });
-const documents = (files, exclude) => {
-  const line = `"exclude": ${JSON.stringify(exclude).replaceAll(",", ", ")}`;
-  for (const file of files) assert.ok(readFileSync(join(root, file), "utf8").includes(line), `${file} gives ${line}`);
-};
 
-test("a Vite app type-checks with Ouro check installed once its folders are left out, as the docs say, and fails without that line", () => {
-  const files = installedFiles("ouro-check");
-  assert.ok(files.some((path) => path.startsWith("registry/ouro/ax/")), "ouro-check installs Ouro AX files beside it");
-  const without = tsc(viteApp(files));
-  assert.notEqual(without.status, 0, "without the exclude, the app's tsc fails on Ouro check's Node imports");
-  assert.match(without.stdout, /src\/lib\/ouro\/check\/[\w-]+\.ts\(\d+,\d+\): error TS/);
-  assert.doesNotMatch(without.stdout, /src\/lib\/ouro\/ax\//, "the Ouro AX files ouro-check installs type-check in a Vite app");
-  const exclude = ["src/lib/ouro/check", "src/lib/ouro/ax"];
-  const withLine = tsc(viteApp(files, exclude));
-  assert.equal(withLine.status, 0, withLine.stdout);
-  documents(["docs/guides/guardrails.md", "site/llms.txt", "scripts/registry.mts"], exclude);
+test("a Vite app type-checks with Ouro check and Ouro images installed where the CLI puts them, outside src, and fails with their Node files in src", () => {
+  const files = installed("ouro-check", "ouro-images");
+  assert.ok(files.some((file) => file.to.startsWith("scripts/ouro/check/")), "ouro-check installs outside src");
+  assert.ok(files.some((file) => file.to.startsWith("src/lib/ouro/ax/")), "ouro-check installs the Ouro AX kit beside the lib");
+  assert.equal(tsc(viteApp(files, false)).status, 0, "the app's tsc passes with no exclude");
+  const inSrc = files.map((file) => ({ ...file, to: file.to.replace(/^scripts\/ouro\//, "src/lib/ouro/") }));
+  const failed = tsc(viteApp(inSrc, false));
+  assert.notEqual(failed.status, 0, "the same Node files in src fail the app's tsc");
+  assert.match(failed.stdout, /src\/lib\/ouro\/check\/[\w-]+\.ts\(\d+,\d+\): error TS/);
 });
 
-test("a Vite app type-checks with Ouro check, the Ouro AX kit and its tests installed once their folders are left out, still checking what it imports, and fails without that line", () => {
-  const files = installedFiles("ouro-check", "ouro-ax", "ouro-ax-tests");
-  const without = tsc(viteApp(files, undefined, true));
-  assert.notEqual(without.status, 0, "without the exclude, the app's tsc fails on the kit's Node-only files");
-  assert.match(without.stdout, /src\/lib\/ouro\/ax\/[\w.-]+\.m?ts\(\d+,\d+\): error TS/);
-  const exclude = ["src/lib/ouro/check", "src/lib/ouro/ax"];
-  const withLine = tsc(viteApp(files, exclude, true));
-  assert.equal(withLine.status, 0, withLine.stdout);
-  const broken = viteApp(files, exclude, true);
-  writeFileSync(join(broken, "src/main.ts"), `import { defineCommand } from "./lib/ouro/ax/command.ts";\nexport const made: number = defineCommand;\n`);
-  assert.notEqual(tsc(broken).status, 0, "an app's mistake with what it imports from the excluded folder is still a type error");
-  documents(["docs/guides/ax.md", "site/llms.txt", "scripts/registry.mts"], exclude);
+test("a Vite app type-checks with the Ouro AX kit and its tests installed, and still checks what it imports from the kit", () => {
+  const files = installed("ouro-ax", "ouro-ax-tests");
+  assert.ok(files.some((file) => file.to === "scripts/ouro/ax/xray.ts"), "the X-ray installs outside src");
+  assert.ok(files.some((file) => file.to === "scripts/ouro/ax/flows.test.mts"), "the flow runner's tests install outside src");
+  assert.ok(files.some((file) => file.to === "src/lib/ouro/ax/command.ts"), "the shared kit installs in src");
+  assert.equal(tsc(viteApp(files, false)).status, 0, "the app's tsc passes with the kit and its tests installed");
+  const result = tsc(viteApp(files, true));
+  assert.notEqual(result.status, 0, "an app's mistake with what it imports from the kit is still a type error");
+  assert.match(result.stdout, /src\/main\.ts\(2,\d+\): error TS/);
 });
