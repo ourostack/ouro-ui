@@ -528,6 +528,24 @@ test("a pull request someone else pushed to is left to them, never force-pushed 
   assert.equal(repo.fileAt(BRANCH, "test.mjs"), "assert(tag)");
 });
 
+test("a workflow is left alone and said so, since an app may write .github/workflows/ only with a permission Ouro Current does not ask for", async () => {
+  const workflow = "env:\n  OURO_UI_TAG: v1.3.100\n";
+  const only = fakeRepo({ ".github/workflows/checks.yml": workflow });
+  const skipped = await keepRepo(only.gh, "o/r", RELEASES, {});
+  assert.equal(skipped.state, "skipped");
+  assert.equal(skipped.pr, null);
+  assert.match(skipped.reason, /`\.github\/workflows\/checks\.yml` alone: GitHub lets an app change `\.github\/workflows\/` only with the `workflows` permission/);
+  assert.equal(only.calls.filter((call) => call.startsWith("POST repos/o/r/git/")).length, 0, "nothing is written");
+
+  const both = fakeRepo({ ".github/workflows/checks.yml": workflow, "Package.swift": SWIFT });
+  const updated = await keepRepo(both.gh, "o/r", RELEASES, {});
+  assert.equal(updated.state, "pr");
+  assert.equal(updated.pr.title, "Update to Ouro UI for Apple v0.9.0", "the title names only what it moves");
+  assert.equal(both.fileAt(BRANCH, "Package.swift"), SWIFT.replace("0.6.0", "0.9.0"));
+  assert.equal(both.fileAt(BRANCH, ".github/workflows/checks.yml"), workflow);
+  assert.match(both.pulls[0].body, /`\.github\/workflows\/checks\.yml` alone/);
+});
+
 test("a repository that caught up on its own has its stale pull request closed", async () => {
   const repo = fakeRepo({ "Package.swift": SWIFT });
   await keepRepo(repo.gh, "o/r", RELEASES, {});
