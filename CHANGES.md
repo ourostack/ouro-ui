@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Ouro Current reads an installed file that imports the shared Ouro AX files (`@/registry/ouro/ax/component`) as the shadcn CLI writes it, under the lib alias without its extension (`~/lib/ouro/ax/component`), so it updates that file instead of leaving it at its old release as edited.
