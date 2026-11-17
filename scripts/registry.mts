@@ -264,14 +264,14 @@ const foundation = [
   },
 ];
 
+/** What a Node-only Ouro AX file needs in package.json, once, to import the shared kit: the imports entry it names. */
+const AX_IMPORTS = `Its Node files import the shared Ouro AX files as #ouro-ax/<file>, so add that line to package.json once, with src/lib replaced by the folder your components.json lib alias points at: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*".`;
+
 /**
  * The guardrail kits: files an app runs to hold itself to Ouro UI, not components. Each ships as
  * registry:file into the app's own folders (the census beside its end-to-end specs, the source
  * rule beside its scripts), with the tools they run on as devDependencies.
  */
-/** What a Node-only Ouro AX file needs in package.json, once, to import the shared kit: the imports entry it names. */
-const AX_IMPORTS = `Its Node files import the shared Ouro AX files as #ouro-ax/<file>, so add that line to package.json once, with src/lib replaced by the folder your components.json lib alias points at: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*".`;
-
 const kits = [
   {
     name: "ouro-census",
@@ -544,7 +544,6 @@ export function cssToItem(source: string): { cssVars: CssVars; css?: CssTree } {
   return Object.keys(css).length > 0 ? { cssVars: vars, css } : { cssVars: vars };
 }
 
-/** Bare and alias import specifiers in a source file. */
 /** The modules a file imports, statically or dynamically; an import written in a comment does not count. */
 function importsOf(source: string): string[] {
   return ts.preProcessFile(source, true, true).importedFiles.map((file) => file.fileName);

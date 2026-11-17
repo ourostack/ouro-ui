@@ -1152,7 +1152,6 @@ function extra(slot: "footer" | "thread", end: boolean, post: boolean, children:
   );
 }
 
-/** A circle with an exclamation mark: the message did not send. */
 /** How long a send runs before it shows as pending. */
 const PENDING_DELAY = 1000;
 
@@ -1170,6 +1169,7 @@ function PendingIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
+/** A circle with an exclamation mark: the message did not send. */
 function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...props}>

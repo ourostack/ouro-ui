@@ -353,11 +353,6 @@ const shown = (node: ReactNode): boolean => node !== undefined && node !== null 
 // Muted, but mixed toward the text so it keeps its contrast on the highlighted row.
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
-/**
- * A 16px magnifier in the text color.
- *
- * @claim "A 16px magnifier in the text" registry/ouro/components/ouro/command/command.tsx verify:fileLine(registry/ouro/components/ouro/command/command.tsx, /<svg\saria-hidden="true"\sviewBox="0\s0\s16\s16"\sfill="none">/)
- */
 /** Sets the palette's width to its width now, so it neither grows nor shrinks while it is open; it still narrows with the screen. */
 function holdWidth(popup: HTMLElement): void {
   popup.style.width = `min(100%, ${getComputedStyle(popup).width})`;
@@ -366,6 +361,11 @@ function holdWidth(popup: HTMLElement): void {
 /** Marks the hidden input Base UI keeps the query in. */
 const markInput = controlRef("command", "hidden-input");
 
+/**
+ * A 16px magnifier in the text color.
+ *
+ * @claim "A 16px magnifier in the text" registry/ouro/components/ouro/command/command.tsx verify:fileLine(registry/ouro/components/ouro/command/command.tsx, /<svg\saria-hidden="true"\sviewBox="0\s0\s16\s16"\sfill="none">/)
+ */
 function SearchIcon(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="none">
@@ -937,10 +937,6 @@ function SearchingLabel({ label }: { label: string }): JSX.Element | null {
   );
 }
 
-/**
- * The list of results, hidden while nothing matches: an empty listbox says nothing, and the
- * empty state beside it says why.
- */
 /** Rows in a result's shape under the results shown, while some match; otherwise the empty state speaks. */
 function LoadingRows(): JSX.Element | null {
   if (Autocomplete.useFilteredItems().length === 0) return null;
@@ -956,6 +952,10 @@ function LoadingRows(): JSX.Element | null {
   );
 }
 
+/**
+ * The list of results, hidden while nothing matches: an empty listbox says nothing, and the
+ * empty state beside it says why.
+ */
 function CommandList({ children, className, after }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode }): JSX.Element {
   const empty = Autocomplete.useFilteredItems().length === 0;
   return (

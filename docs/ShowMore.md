@@ -84,7 +84,7 @@ Not in this mode (a type error):
 - `estimate`: Text and height modes only: a list shows its first items.
 - `hasMore`: Only with `onShowMore`.
 - `href`: Only with `onShowMore`.
-- `lines`: 
+- `lines`: Text mode only: not with `items`.
 - `loadedLabel`: Only with `onShowMore`.
 - `loading`: Only with `onShowMore`.
 - `loadingLabel`: Only with `onShowMore`.
@@ -140,7 +140,7 @@ Not in this mode (a type error):
 - `children`: Text mode only: a list takes `items`.
 - `estimate`: Text and height modes only: a list shows its first items.
 - `initialCount`: Only with `items` and no `onShowMore`.
-- `lines`: 
+- `lines`: Text mode only: not with `items`.
 - `maxHeight`: Height mode only: not with `items`.
 - `onOpenChange`: Not for a list that loads more, which only grows.
 - `open`: Not for a list that loads more, which only grows.

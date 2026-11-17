@@ -269,6 +269,9 @@ function median(values: readonly number[]): number {
   return sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
 }
 
+/** Whether this worker's browser has measured a control yet (LATENCY.firstWarmUps). */
+let browserWarmed = false;
+
 /**
  * Presses a control warmUps + samples times on a throttled CPU and returns each counted press's
  * click-to-paint time in ms, LATENCY.more presses more when `more` says so of the first samples (morePresses). Event Timing reports nothing under 16 ms (its durationThreshold floor),
@@ -277,9 +280,6 @@ function median(values: readonly number[]): number {
  * so does its tail (the porthole's repaint after the press), and the page then settles again at the
  * throttle before the press, so a press is measured from a settled page, as a person's would be a beat later.
  */
-/** Whether this worker's browser has measured a control yet (LATENCY.firstWarmUps). */
-let browserWarmed = false;
-
 export async function measure(
   page: Page,
   label: string,

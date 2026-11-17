@@ -127,7 +127,6 @@ export function readCommits(base, head, git = runGit) {
   return commits;
 }
 
-/** Checks base..head, printing each problem; returns the exit status. */
 /** The pull request's title and body, judged as the one message that lands when the merge passes its own. */
 export const textProblems = (title, body) =>
   problems([{ sha: "pull request", authorName: MAINTAINER.name, authorEmail: MAINTAINER.email, committerName: MAINTAINER.name, committerEmail: MAINTAINER.email, message: `${title}\n\n${body}` }]).map((found) => ({
@@ -135,6 +134,7 @@ export const textProblems = (title, body) =>
     fix: "edit the pull request's title or body to remove the line, then merge with gh ouro-pr, which passes them as the commit message",
   }));
 
+/** Checks base..head, printing each problem; returns the exit status. */
 export function main([base, head] = [], { git = runGit, log = console.log, actions = Boolean(process.env.GITHUB_ACTIONS), env = process.env } = {}) {
   const prefix = actions ? "::error::" : "";
   let commits;

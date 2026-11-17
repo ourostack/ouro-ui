@@ -15,8 +15,7 @@ const OURO_HOME = "https://ouroboros.bot/";
 /** The Nautilus in profile, the stage's own drawing, coloured from the theme (stage.css); its one id renamed so the page has it once. */
 const SHIP = art.nautilus.inner.replaceAll("nautilus-sheen", "ship-card-sheen");
 
-/** One showcase: open text on the page under a hairline, no card around it, and its picture beside it. */
-/** A showcase row: its words, then its art beside them, or, when `wide`, under them across the row. */
+/** One showcase: open text on the page under a hairline, no card around it, and its art beside it, or, when `wide`, under it across the row. */
 function Showcase({ id, title, body, art, wide = false, children }: { id: string; title: string; body: string; art: ReactNode; wide?: boolean; children: ReactNode }): JSX.Element {
   return (
     <article
