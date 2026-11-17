@@ -281,8 +281,15 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   }
   const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}${MARK}${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`, existing);
   if (commit.changed) {
-    if (existing) await gh.patch(`repos/${repo}/git/refs/heads/${BRANCH}`, { sha: commit.sha, force: true });
-    else await gh.post(`repos/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: commit.sha });
+    try {
+      if (existing) await gh.patch(`repos/${repo}/git/refs/heads/${BRANCH}`, { sha: commit.sha, force: true });
+      else await gh.post(`repos/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: commit.sha });
+    } catch (error) {
+      // GitHub keeps the branch of a pull request in a merge queue as it is: the queued update merges, or leaves the
+      // queue, and the next run brings it up to date (ourostack/ouro-ui#1809).
+      if (!(existing && existingPr && error.status === 422 && /merge queue/i.test(error.message))) throw error;
+      return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "in the merge queue, so left as it is until it merges or leaves the queue", pushed: false } };
+    }
   }
   const text = body(behind, releases, notes);
   let pr = existingPr;
