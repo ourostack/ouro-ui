@@ -6,7 +6,7 @@
 # the ouro-testing message prints) and the ouro-tests item, and runs the app's type check,
 # build, the shipped Vitest browser tests and the shipped Playwright specs.
 #
-#   scripts/install-test.sh <shadcn|ouro|github|namespace|next|upgrade> <app-dir> [ref]
+#   scripts/install-test.sh <shadcn|ouro|github|current|namespace|next|upgrade> <app-dir> [ref]
 #
 # Every variant adds ouro-base first, once, as the README says: no component installs it.
 #
@@ -32,6 +32,13 @@
 #         dependency from GitHub at that tag, into the tag's own fixture app with the tag's
 #         shadcn pin, then type check, build and the tag's own runtime checks, on the tag's own
 #         dependencies (CI runs it on push to main).
+# current: an app on the newest release (package.json ouro.latestRelease, or OURO_CURRENT_FROM): the tag's fixture
+#         app with ouro-base and every component from GitHub at that tag, and the install record a product keeps.
+#         Ouro Current then updates it to this commit as it updates a product (scripts/current/local-update.mjs runs
+#         keepRepo against a GitHub in memory holding the app). The stylesheet must gain what this commit's ouro-base
+#         adds, every installed file must equal this commit's source, and an app already on this commit whose
+#         stylesheet is still the tag's must get the same stylesheet. Type check, build, and the shipped tests that
+#         read the theme's radius steps, in Chromium.
 # namespace: the @ouro namespace as Pages serves it (pages.yml): built from the newest release
 #         tag (package.json ouro.latestRelease) by scripts/namespace.sh, served on localhost and
 #         registered in components.json, then `shadcn add @ouro/ouro-base @ouro/dialog`. Every
@@ -87,7 +94,7 @@
 # from those (scripts/registry.mts --deps). Release tags pin them (release.yml).
 set -euo pipefail
 
-usage="usage: install-test.sh <shadcn|ouro|github|namespace|next|upgrade> <app-dir> [ref]"
+usage="usage: install-test.sh <shadcn|ouro|github|current|namespace|next|upgrade> <app-dir> [ref]"
 variant=${1:?$usage}
 app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -261,6 +268,83 @@ if [ "$variant" = github ]; then
   declare -F runtime_only >/dev/null || { echo "$tag's scripts/install-test.sh defines no runtime_only"; exit 1; }
   root=$harness
   runtime_only shadcn
+  echo "::endgroup::"
+  exit 0
+fi
+
+if [ "$variant" = current ]; then
+  # An app on the newest release, updated to this commit by Ouro Current exactly as a product is: keepRepo opens its
+  # pull request in a GitHub in memory holding the app (scripts/current/local-update.mjs), and its change is written
+  # back. Components alone are not an update: the app's stylesheet must gain what this commit's ouro-base adds (#1843's
+  # `--radius-ouro-*`, which `rounded-ouro-*` reads), and an app already on this commit whose stylesheet is behind must
+  # get it too.
+  from=${OURO_CURRENT_FROM:-$(node "$root/scripts/latest-release.mjs")}
+  git -C "$root" rev-parse -q --verify "refs/tags/$from^{commit}" >/dev/null || git -C "$root" fetch --quiet --depth=1 origin "refs/tags/$from:refs/tags/$from"
+  harness="$registry/tag"
+  mkdir -p "$harness"
+  git -C "$root" archive "$from" test/install-fixture scripts/install-test.sh registry.json | tar -x -C "$harness"
+  tag_shadcn=$(grep -m1 -oE 'shadcn@[0-9]+\.[0-9]+\.[0-9]+' "$harness/scripts/install-test.sh")
+  echo "::group::An app on $from: its fixture, ouro-base and every component from GitHub at that tag"
+  cp -R "$harness/test/install-fixture/." "$app/"
+  cd "$app"
+  npm install --no-audit --no-fund
+  npx --yes "$tag_shadcn" init --base base --preset "$preset" --yes --no-monorepo
+  # shellcheck disable=SC2207 # item names have no spaces
+  released=($(node -e 'for (const item of require(process.argv[1]).items) if (item.type === "registry:ui") console.log(item.name)' "$harness/registry.json"))
+  [ "${#released[@]}" -gt 0 ] || { echo "$from's registry.json lists no component"; exit 1; }
+  addresses=("ourostack/ouro-ui/ouro-base#$from")
+  for item in "${released[@]}"; do addresses+=("ourostack/ouro-ui/$item#$from"); done
+  add_retrying_raw_fetch "$tag_shadcn" "${addresses[@]}"
+  # The install record a product keeps, as Ouro Current reads it: every file the CLI wrote, at $from.
+  node "$root/scripts/current/local-update.mjs" "$app" --record "$from"
+  css=$(node -e 'console.log(require("./components.json").tailwind.css)')
+  cp "$css" "$registry/stylesheet.from.css"
+  echo "::endgroup::"
+
+  node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
+  "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
+  # The update's outcome, which must be a pull request: its state, title, notes and the files it changed.
+  current_update() {
+    node "$root/scripts/current/local-update.mjs" "$app" --to next --registry "$registry/registry.json" | tee "$registry/update.json"
+    node -e 'const done = require(process.argv[1]); if (done.state !== "pr") { console.error(`Ouro Current opened no pull request: ${done.state} ${done.reason ?? ""}`); process.exit(1); }' "$registry/update.json"
+  }
+
+  echo "::group::Ouro Current updates the app from $from to this commit"
+  current_update
+  node "$root/scripts/install-check.mjs" --theme-item "$css" "$registry/registry.json" ouro-base
+  node "$root/scripts/install-check.mjs" --sources "$app" "$root"
+  echo "::endgroup::"
+
+  echo "::group::An app already on this commit whose stylesheet is still $from's"
+  cp "$css" "$registry/stylesheet.updated.css"
+  cp "$registry/stylesheet.from.css" "$css"
+  if node "$root/scripts/install-check.mjs" --theme-item "$css" "$registry/registry.json" ouro-base > /dev/null 2>&1; then
+    echo "$from's stylesheet already has everything this commit's ouro-base adds, so this case has nothing to update."
+    cp "$registry/stylesheet.updated.css" "$css"
+  else
+    current_update
+    cmp "$css" "$registry/stylesheet.updated.css" || { echo "the stylesheet's own update differs from the one the release update wrote"; diff "$registry/stylesheet.updated.css" "$css" || true; exit 1; }
+  fi
+  echo "::endgroup::"
+
+  echo "::group::Type check, build, and the shipped tests that read the theme's radius steps"
+  npx tsc -b
+  npx vite build
+  cp -R "$root/test/install-fixture-tests/." "$app/"
+  # The -tests items whose tests read `--radius-ouro-*`; the components are left as Ouro Current wrote them.
+  # shellcheck disable=SC2207 # item names have no spaces
+  radius_tests=($(grep -rl -- '--radius-ouro' "$root/registry/ouro/components" --include='*.test.tsx' | sed -E 's|.*/([^/]+)\.test\.tsx$|\1|' | sort -u))
+  [ "${#radius_tests[@]}" -gt 0 ] || { echo "no shipped test reads --radius-ouro-*"; exit 1; }
+  test_items=()
+  test_files=()
+  for stem in "${radius_tests[@]}"; do
+    test_items+=("$registry/r/$stem-tests.json")
+    test_files+=("$stem.test.tsx")
+  done
+  "${shadcn[@]}" add --yes "${test_items[@]}"
+  node "$root/scripts/install-check.mjs" --sources "$app" "$root"
+  npx playwright install ${CI:+--with-deps} chromium
+  npx vitest run --project ouro-chromium "${test_files[@]}"
   echo "::endgroup::"
   exit 0
 fi
