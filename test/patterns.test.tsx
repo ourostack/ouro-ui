@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { DashboardPage } from "@/registry/ouro/patterns/dashboard-page/dashboard-page";
+import { ListDetailPage } from "@/registry/ouro/patterns/list-detail-page/list-detail-page";
 import { SettingsPage } from "@/registry/ouro/patterns/settings-page/settings-page";
 import dashboardSource from "@/registry/ouro/patterns/dashboard-page/dashboard-page.tsx?raw";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -24,6 +25,7 @@ async function render(node: ReactNode) {
 }
 
 afterEach(async () => {
+  await page.viewport(1280, 800);
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   host?.remove();
   vi.restoreAllMocks();
@@ -229,5 +231,152 @@ describe("DashboardPage", () => {
     await expect.element(page.getByText("No change")).toBeVisible();
     await expect.element(page.getByText("No activity yet.")).toBeVisible();
     expect(host.querySelector('[data-ouro="table"]')).toBeNull();
+  });
+});
+
+describe("ListDetailPage", () => {
+  const row = (name: string) => page.getByRole("button", { name, exact: true });
+  // Found by tag, since a part hidden on a phone is out of the accessibility tree.
+  const section = () => host.querySelector("section")!;
+  const shownNow = (element: Element) => element.checkVisibility();
+  const backButton = () => [...host.querySelectorAll("button")].find((button) => button.textContent === "Back to recipes")!;
+  const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+
+  it("is a whole page: a heading, a search, the list and the detail of the first entry, and passes axe", async () => {
+    await render(<ListDetailPage />);
+    expect(host.querySelector("main h1")?.textContent).toBe("Recipes");
+    await expect.element(page.getByRole("searchbox", { name: "Search recipes" })).toBeVisible();
+    await expect.element(page.getByRole("list", { name: "Recipes" })).toBeVisible();
+    await expect.element(row("Braised short ribs")).toHaveAttribute("aria-current", "true");
+    await expect.element(page.getByRole("heading", { level: 2, name: "Braised short ribs" })).toBeVisible();
+    await passesAxe();
+  });
+
+  it("shows the entry a row's press chooses, and marks that row shown", async () => {
+    await render(<ListDetailPage />);
+    await userEvent.click(row("Lentil soup"));
+    await expect.element(page.getByRole("heading", { level: 2, name: "Lentil soup" })).toBeVisible();
+    await expect.element(row("Lentil soup")).toHaveAttribute("aria-current", "true");
+    expect(row("Braised short ribs").element().hasAttribute("aria-current")).toBe(false);
+    expect(section().getAttribute("aria-label")).toBe("Lentil soup");
+  });
+
+  it("narrows the list as you search, says how many match to a screen reader, and says when nothing matches", async () => {
+    await render(<ListDetailPage />);
+    const found = () => host.querySelector('p[role="status"]')!.textContent;
+    expect(found()).toBe("");
+    await userEvent.fill(page.getByRole("searchbox", { name: "Search recipes" }), "lemon");
+    await expect.element(row("Lemon olive oil cake")).toBeVisible();
+    expect(host.querySelectorAll("[data-ouro=item]")).toHaveLength(1);
+    expect(found()).toBe("1 match");
+    await userEvent.fill(page.getByRole("searchbox", { name: "Search recipes" }), "o");
+    expect(found()).toBe("3 matches");
+    await userEvent.fill(page.getByRole("searchbox", { name: "Search recipes" }), "pizza");
+    await expect.element(page.getByText("Nothing matches")).toBeVisible();
+    expect(host.querySelectorAll("[data-ouro=item]")).toHaveLength(0);
+    expect(found()).toBe("0 matches");
+    await passesAxe();
+  });
+
+  it("on a phone shows the list first, the detail in its place once chosen with focus on its heading, and Back to the row", async () => {
+    await page.viewport(390, 844);
+    await render(<ListDetailPage />);
+    expect(shownNow(section())).toBe(false);
+    await userEvent.click(row("Lemon olive oil cake"));
+    const heading = page.getByRole("heading", { level: 2, name: "Lemon olive oil cake" });
+    await expect.element(heading).toBeVisible();
+    await expect.poll(() => document.activeElement).toBe(heading.element());
+    expect(shownNow(host.querySelector("ul")!)).toBe(false);
+    const back = page.getByRole("button", { name: "Back to recipes" });
+    // Its chevron keeps the size the button gives it, and points back in a right-to-left page.
+    const chevron = back.element().querySelector("svg")!;
+    expect(chevron.getBoundingClientRect().width).toBeGreaterThan(0);
+    expect(chevron.getAttribute("class")).toContain("rtl:-scale-x-100");
+    await userEvent.click(back);
+    await expect.element(row("Lemon olive oil cake")).toBeVisible();
+    await expect.poll(() => document.activeElement).toBe(row("Lemon olive oil cake").element());
+    expect(shownNow(section())).toBe(false);
+  });
+
+  it("leaves focus where it was on a wide screen, where the detail is beside the list, and hides the way back", async () => {
+    await render(<ListDetailPage />);
+    await userEvent.click(row("Lentil soup"));
+    await frame();
+    expect(document.activeElement).not.toBe(page.getByRole("heading", { level: 2, name: "Lentil soup" }).element());
+    expect(shownNow(section())).toBe(true);
+    expect(shownNow(backButton())).toBe(false);
+  });
+
+  it("names its list and empty state after its title, and says when there are no entries", async () => {
+    await render(<ListDetailPage entries={[]} title="Notes" />);
+    await expect.element(page.getByRole("searchbox", { name: "Search notes" })).toBeVisible();
+    await expect.element(page.getByText("No notes yet")).toBeVisible();
+    // Nothing was searched, so the list doesn't say nothing matches.
+    expect(host.textContent).not.toContain("Nothing matches");
+    // On a phone too, the page says there is nothing yet.
+    await page.viewport(390, 844);
+    expect(shownNow(page.getByText("No notes yet").element())).toBe(true);
+    await passesAxe();
+    expect(section().getAttribute("aria-label")).toBe("Notes");
+  });
+
+  it("shows the first entry once entries arrive, and the first again when the one shown goes", async () => {
+    const roots0 = roots.length;
+    await render(<ListDetailPage entries={[]} />);
+    const root = roots[roots0]!;
+    const entries = [
+      { id: "a", title: "Apple tart", summary: "One hour", body: "Bake it.", updated: "Jun 1" },
+      { id: "b", title: "Bean stew", summary: "Two hours", body: "Simmer it.", updated: "Jun 2" },
+    ];
+    await act(async () => root.render(<ListDetailPage entries={entries} />));
+    await expect.element(page.getByRole("heading", { level: 2, name: "Apple tart" })).toBeVisible();
+    await expect.element(row("Apple tart")).toHaveAttribute("aria-current", "true");
+    await userEvent.click(row("Bean stew"));
+    await act(async () => root.render(<ListDetailPage entries={entries.slice(0, 1)} />));
+    await expect.element(page.getByRole("heading", { level: 2, name: "Apple tart" })).toBeVisible();
+  });
+
+  it("on a phone keeps a way back to the list when the entry shown goes away", async () => {
+    await page.viewport(390, 844);
+    const roots0 = roots.length;
+    const entries = [{ id: "a", title: "Apple tart", summary: "One hour", body: "Bake it.", updated: "Jun 1" }];
+    await render(<ListDetailPage entries={entries} />);
+    await userEvent.click(row("Apple tart"));
+    await expect.element(page.getByRole("heading", { level: 2, name: "Apple tart" })).toBeVisible();
+    await act(async () => roots[roots0]!.render(<ListDetailPage entries={[]} />));
+    // Nothing to read, so the list and its search come back, and the page says there is nothing.
+    expect(shownNow(host.querySelector("input")!)).toBe(true);
+    expect(shownNow(page.getByText("No recipes yet").element())).toBe(true);
+  });
+
+  it("on a phone sends Back to the search when a search has left the shown row out", async () => {
+    await page.viewport(390, 844);
+    await render(<ListDetailPage />);
+    await userEvent.fill(page.getByRole("searchbox", { name: "Search recipes" }), "lentil");
+    await userEvent.click(row("Lentil soup"));
+    await expect.poll(() => document.activeElement).toBe(page.getByRole("heading", { level: 2, name: "Lentil soup" }).element());
+    // The search no longer finds the entry shown, so its row is gone from the list.
+    await act(async () => {
+      const input = host.querySelector("input")!;
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      set.call(input, "cake");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await userEvent.click(page.getByRole("button", { name: "Back to recipes" }));
+    await expect.poll(() => document.activeElement).toBe(host.querySelector("input"));
+  });
+
+  it("turns its back chevron to point back in a right-to-left page", async () => {
+    await page.viewport(390, 844);
+    await render(
+      <div dir="rtl">
+        <ListDetailPage />
+      </div>,
+    );
+    await userEvent.click(row("Lentil soup"));
+    const chevron = page.getByRole("button", { name: "Back to recipes" }).element().querySelector("svg")!;
+    // Tailwind's scale-x utility sets the scale property.
+    expect(getComputedStyle(chevron).scale).toBe("-1 1");
+
   });
 });

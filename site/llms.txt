@@ -2,7 +2,7 @@
 
 > Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). It is not an npm package: the shadcn CLI copies the components you add into your app.
 
-Building a settings page or a dashboard? Install its page pattern, a whole page the theme draws, then change it: npx shadcn@latest add @ouro/ouro-base @ouro/settings-page --yes (or dashboard-page), after the quickstart's step 3. A page is done when it builds and Ouro check passes. Guide: https://ui.ouroboros.bot/docs/patterns.md
+Building a settings page, a dashboard or a list beside its detail? Install its page pattern, a whole page the theme draws, then change it: npx shadcn@latest add @ouro/ouro-base @ouro/settings-page --yes (or dashboard-page, list-detail-page), after the quickstart's step 3. A page is done when it builds and Ouro check passes. Guide: https://ui.ouroboros.bot/docs/patterns.md
 
 Building a new app? Start at https://ui.ouroboros.bot/docs/agent-quickstart.md: five steps, every file whole, for a new Vite app with a validated form, a light and dark toggle and a confirmation dialog.[^quickstart] Then change the page to what you are building.
 

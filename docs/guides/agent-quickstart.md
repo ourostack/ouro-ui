@@ -114,7 +114,7 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-Building a settings page or a dashboard? Install its [page pattern](patterns.md) instead of writing `App.tsx`: `npx shadcn@latest add @ouro/settings-page --yes` (or `@ouro/dashboard-page`), then make `src/App.tsx` render `<SettingsPage />` from `@/components/patterns/settings-page`, and go on to step 5.
+Building a settings page, a dashboard or a list beside its detail? Install its [page pattern](patterns.md) instead of writing `App.tsx`: `npx shadcn@latest add @ouro/settings-page --yes` (or `@ouro/dashboard-page`, `@ouro/list-detail-page`), then make `src/App.tsx` render `<SettingsPage />` from `@/components/patterns/settings-page`, and go on to step 5.
 
 Otherwise, `src/App.tsx` is the whole page, laid out by Ouro's Stack and PageHeader rather than CSS of its own: start from it and change its fields to what you are building, rather than writing the page from scratch. A component's props are on its page, `https://ui.ouroboros.bot/docs/<item>.md`, and in the JSDoc of the installed source, `src/components/ouro/<item>/<item>.tsx`.
 

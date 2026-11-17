@@ -1,0 +1,1 @@
+- New: the `list-detail-page` page pattern, [a list you can search beside the detail of the entry chosen, which on a phone shows the detail in the list's place with a way back](test/patterns.test.tsx "verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone shows the list first, the detail in its place once chosen with focus on its heading, and Back to the row)").
