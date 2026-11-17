@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, dryRunMinutes, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -577,4 +577,14 @@ test("mutationRunners starts two test runners on four cores or more, one below, 
   assert.equal(mutationRunners(2, undefined), 1);
   assert.equal(mutationRunners(4, "3"), 3);
   assert.equal(mutationRunners(4, "0"), 1);
+});
+
+test("the first run gets the minutes its test files take one after another, and at least Stryker's 5", () => {
+  const seconds = { "a.test.tsx": 200, "b.test.tsx": 400, "c.test.tsx": 30 };
+  assert.equal(dryRunMinutes({ "x.ts": { own: ["c.test.tsx"], wider: [] } }, seconds), 5);
+  // Each file once, the importers' too: 200 + 400 + 30 seconds is 10.5 minutes, so 11.
+  assert.equal(dryRunMinutes({ "x.ts": { own: ["c.test.tsx"], wider: ["a.test.tsx", "b.test.tsx"] }, "y.ts": { own: ["a.test.tsx"], wider: [] } }, seconds), 11);
+  assert.equal(dryRunMinutes({ "x.ts": { own: ["unmeasured.test.tsx"], wider: [] } }, {}), 5);
+  // cn.ts, which every component imports, names more than five minutes of tests.
+  assert.ok(dryRunMinutes({ "registry/ouro/lib/ouro/cn.ts": testFilesFor(["registry/ouro/lib/ouro/cn.ts"]) }) > 5);
 });
