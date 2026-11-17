@@ -13,6 +13,11 @@ export interface KnownFinding {
   issue: number;
   /** Why the finding stays, and what would have to change for it to go. */
   reason: string;
+  /**
+   * The finding shows on some runs and not others with nothing changed (a few pixels that depend on timing), so a run
+   * without it is no sign it was fixed. Its reason says why; a new finding of another rule in the story still fails.
+   */
+  sometimes?: true;
 }
 
 /** The rules whose findings depend on how the text wraps. A host's fonts break lines differently, so these are judged only on Linux, where CI's baseline comes from. */
@@ -21,6 +26,11 @@ export const textWrapRules: readonly string[] = ["lone-word", "overlap", "narrow
 /** Whether a rule is judged on this host: every rule is, except the text-wrap rules off Linux, which neither count as a finding nor as a stale entry there. */
 export function judgedOn(rule: string, platform: string): boolean {
   return platform === "linux" || !textWrapRules.includes(rule);
+}
+
+/** The entries a run's findings no longer match, which a fix should remove: every entry with no finding of its rule, except one that shows only sometimes. */
+export function staleEntries(known: readonly KnownFinding[], found: readonly { rule: string }[]): KnownFinding[] {
+  return known.filter((entry) => !entry.sometimes && !found.some((finding) => finding.rule === entry.rule));
 }
 
 /** The problems with each entry: a missing or non-positive issue number, or an empty reason. Empty when every entry is complete. */
@@ -112,7 +122,9 @@ export const knownFindings: KnownFinding[] = [
     story: "Message/Chat",
     rule: "overlap",
     issue: 1957,
-    reason: "On Linux, a thumbs-up reaction (3px by 3px where it meets the text) overlaps the end of the message's text at this width; the reaction chip hangs over its bubble's edge.",
+    reason:
+      "On Linux, a thumbs-up reaction (3px by 3px where it meets the text) overlaps the end of the message's text at this width; the reaction chip hangs over its bubble's edge. It shows on some CI runs and not others with no change to Message (#1957).",
+    sometimes: true,
   },
   {
     story: "Message/Quote",
