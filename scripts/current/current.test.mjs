@@ -383,6 +383,22 @@ test("a keyframes the app has under that name is kept as the app wrote it, and a
   assert.equal(applyItem(result.text, item, previous).text, result.text, "a second run changes nothing");
 });
 
+test("a rule under an at-rule the stylesheet has no block of comes whole, even when the previous tag had it, and a second run changes nothing", () => {
+  const item = {
+    name: "ouro-base",
+    css: {
+      "@supports not (corner-shape: squircle)": { "[data-ouro-surface]": { display: "block" } },
+      "@container style(--corner-shape: round)": { "[data-ouro-squircle] > [data-ouro-surface]": { "clip-path": "inset(0 round var(--ouro-sq-r))" } },
+    },
+  };
+  // The app's install record is on the tag, so the previous tag is the tag itself, and its stylesheet is older.
+  const css = ":root {\n  --ouro-layer: 50;\n}\n\n@supports not (corner-shape: squircle) {\n  [data-ouro-surface] {\n    display: grid;\n  }\n}\n";
+  const result = applyItem(css, item, item);
+  assert.equal(result.text, `${css}\n@container style(--corner-shape: round) {\n  [data-ouro-squircle] > [data-ouro-surface] {\n    clip-path: inset(0 round var(--ouro-sq-r));\n  }\n}\n`, "the @supports block the app has keeps its own value; the @container block it lacks comes whole");
+  assert.deepEqual(result.added, [{ where: "`[data-ouro-squircle] > [data-ouro-surface]` in `@container style(--corner-shape: round)`", names: ["clip-path"] }]);
+  assert.equal(applyItem(result.text, item, item).text, result.text, "a second run changes nothing");
+});
+
 test("a utility the app has from the previous tag gains a line the new tag adds to it, once, and keeps its own lines", () => {
   const previous = { name: "ouro-base", css: { "@utility press": { transition: "scale 160ms" } } };
   const item = { name: "ouro-base", css: { "@utility press": { transition: "scale 160ms", "will-change": "scale" } } };
