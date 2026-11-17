@@ -53,8 +53,12 @@ jobs:
     # The jobs that read the plan run whatever happens to it and run everything unless it says
     # `full=false`, so every required check still reports: a reduced job passes on what it ran.
     #
-    # A push to main whose commit the merge queue already tested runs nothing more than install-github:
-    # `tested=true`.
+    # A push to main whose tree already passed runs nothing more than install-github: `tested=true`
+    # (scripts/ci-proof.mjs). Its proof is the merge queue's run on that very commit, or the newest run of
+    # the pull request merged as it, when that run passed and its tree-proof job, which reports only after
+    # the full suite, names the same tree. Release passes that run to scripts/required-ci.sh beside main's
+    # own. Anything else (main moved after the pull request's run, a reduced plan, a red or unfinished run,
+    # a direct push, GitHub unreadable) runs everything, as before.
     #
     # The install test (install-prep, install-shard, install-upgrade, install-current and their checks) and the heavy tier
     # (themes, visual, theme-install, latency-shard, latency, lighthouse) run on every pull request into
@@ -62,14 +66,17 @@ jobs:
     # `installs` and `heavy`; only files the tier never reads, such as change fragments or workflows
     # other than ci.yml). Any doubt, and every push, dispatch and release branch, runs them in full.
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 10 }}
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 15 }}
     permissions:
       actions: read
       contents: read
+      pull-requests: read # the pull request merged as a push to main, whose run may prove its tree
     outputs:
       full: ${{ steps.plan.outputs.full }}
       components: ${{ steps.plan.outputs.components }}
       tested: ${{ steps.tested.outputs.tested }}
+      tree: ${{ steps.tree.outputs.tree }}
+      design: ${{ steps.design.outputs.run }}
       installs: ${{ steps.tiers.outputs.installs }}
       heavy: ${{ steps.tiers.outputs.heavy }}
       browser: ${{ steps.browser.outputs.run }}
@@ -84,23 +91,6 @@ jobs:
           queued=$(gh api "repos/$REPO/actions/runs?status=queued&per_page=1" --jq .total_count) || queued="unknown (the API did not answer)"
           echo "Queued runs in $REPO: $queued"
           echo "**Queued runs** in $REPO as this run planned: $queued" >> "$GITHUB_STEP_SUMMARY"
-      - id: tested
-        name: Did the merge queue test this commit?
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-        run: |
-          # A merge group's run, or the run release.yml dispatches on a queue branch (a queue entry
-          # made with GITHUB_TOKEN starts no merge_group run), that passed on this very commit.
-          passed=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$SHA&status=success&per_page=100" --jq '[.workflow_runs[] | select(.event == "merge_group" or (.event == "workflow_dispatch" and (.head_branch | startswith("gh-readonly-queue/main/"))))] | length') || passed=0
-          if [ "${passed:-0}" -gt 0 ]; then
-            echo "The merge queue's CI passed on $SHA: only install-github runs."
-            echo "tested=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No merge queue run passed on $SHA: everything runs."
-          fi
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -169,6 +159,25 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      # The tree this run tests (a pull request's: GitHub's merge of it into its base), which tree-proof names.
+      - id: tree
+        name: The tree this run tests
+        run: echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+      - id: tested
+        name: Has this tree already passed?
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        timeout-minutes: 5
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci-proof.mjs "$GITHUB_SHA" --wait 180
+      - name: Passed by proof
+        if: steps.tested.outputs.tested == 'true'
+        env:
+          PROOF: ${{ steps.tested.outputs.proof }}
+        run: |
+          echo "::notice title=Passed by proof::This tree passed the full suite in $PROOF; only install-github runs again."
+          echo "**Passed by proof:** this commit's tree passed the full suite in $PROOF, so only install-github runs again." >> "$GITHUB_STEP_SUMMARY"
       - name: Yield to the merge queue
         if: github.event_name == 'pull_request'
         continue-on-error: true
@@ -176,7 +185,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-yield.mjs
-      - id: install
+      - if: steps.tested.outputs.tested != 'true'
+        id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
       # A failed install is run once more, as a failed pnpm setup is (ourostack/ouro-ui#1914).
@@ -244,6 +254,30 @@ jobs:
             node scripts/ci-relevance.mjs browser HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "The browser shards run: $EVENT on $REF${BASE_REF:+ into $BASE_REF}."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Whether the design shards run (scripts/ci-relevance.mjs screens), decided here so that a pull request into
+      # main that changes nothing the site build or Ouro check reads (a test, a story, a spec, a change fragment,
+      # another workflow) starts none of their nine runners; a change to ci.yml itself runs them. The ci check
+      # passes their skip only when this said so. Anything else, a diff that cannot be read, and every other
+      # event run them.
+      - id: design
+        name: Can the change reach the site?
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
+            # The design job's own file is one Screens' list leaves out; a change to it runs the check.
+            if git diff --name-only HEAD^1 HEAD | grep -qx ".github/workflows/ci.yml"; then
+              echo "This workflow changed: the design check runs."
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            else
+              node scripts/ci-relevance.mjs screens HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Design check run: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
   checks:
@@ -948,10 +982,10 @@ jobs:
     # rules (type scale, blurry or upscaled pictures, overlap, repaints at rest and the rest), axe-core
     # and the size rules, with the waivers and their reasons in .github/ouro-check.json. A gated
     # finding fails it, and it is part of the ci check. Screens runs the same check at every size and
-    # only reports. A pull request that changes nothing the site build or the check reads passes
-    # without building (scripts/ci-relevance.mjs screens).
+    # only reports. A pull request that changes nothing the site build or the check reads starts none
+    # of its runners (the plan's `design`, scripts/ci-relevance.mjs screens), and the ci check passes that skip.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.design != 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -1004,45 +1038,22 @@ jobs:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
           fetch-depth: 2
-      - id: relevance
-        name: Can the change reach the site?
-        env:
-          EVENT: ${{ github.event_name }}
-          HEAD_REF: ${{ github.head_ref }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          if [ "$EVENT" = pull_request ] && [ "$BASE_REF" = main ] && [[ "$HEAD_REF" != release/* ]]; then
-            # This job's own file is one Screens' list leaves out; a change to it runs the check.
-            if git diff --name-only HEAD^1 HEAD | grep -qx ".github/workflows/ci.yml"; then
-              echo "This workflow changed: the design check runs."
-              echo "run=true" >> "$GITHUB_OUTPUT"
-            else
-              node scripts/ci-relevance.mjs screens HEAD^1 HEAD || echo "run=true" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "Design check run: $EVENT."
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          fi
-      - if: steps.relevance.outputs.run != 'false'
-        id: pnpm
+      - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - if: steps.relevance.outputs.run != 'false'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: ""
-      - if: steps.relevance.outputs.run != 'false'
-        id: install
+      - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
       - *pnpm-install-stalled
       - *pnpm-install-retry
-      - if: steps.relevance.outputs.run != 'false'
-        run: pnpm site:build
-      - if: steps.relevance.outputs.run != 'false' && matrix.shard != 'fallback'
+      - run: pnpm site:build
+      - if: matrix.shard != 'fallback'
         uses: ./.github/actions/check
         with:
           targets: site/dist
@@ -1055,7 +1066,7 @@ jobs:
       # Safari and macOS WebView have no corner-shape, and Playwright's WebKit and Chromium do, so the
       # fallback (the clip-path surfaces) never shows in the shards above. Its own entry runs the check on
       # the pages of every converted component with the fallback rules switched on in every engine.
-      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 'fallback'
+      - if: matrix.shard == 'fallback'
         name: Prepare the fallback copy of the site
         run: |
           fallback=site/dist-fallback
@@ -1064,7 +1075,7 @@ jobs:
           find "$fallback/docs" -mindepth 1 -maxdepth 1 ! -name button ! -name card ! -name dialog ! -name text-field ! -name avatar ! -name badge ! -name toggle -exec rm -rf {} +
           find "$fallback" -name '*.css' -exec sed -i.bak -E 's/@supports not \(corner-shape: ?squircle\)/@media all/g' {} +
           grep -rlE '@media all' "$fallback" --include='*.css' | head -1 | grep -q .
-      - if: steps.relevance.outputs.run != 'false' && matrix.shard == 'fallback'
+      - if: matrix.shard == 'fallback'
         uses: ./.github/actions/check
         with:
           targets: site/dist-fallback
@@ -1079,7 +1090,8 @@ jobs:
     # job and every script test job) and the browser shards' merged coverage reached 100%; or, on a
     # reduced pull request whose merged coverage fell short, when every browser-fallback shard passed
     # too and their merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs); or,
-    # when the plan skipped the browser shards because nothing they read changed, without them. Its
+    # when the plan skipped the browser shards or the design shards because nothing they read changed,
+    # without them. Its
     # outputs tell motion-coverage which shards' motion evidence to read, if any.
     needs: [plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
@@ -1094,6 +1106,7 @@ jobs:
       FALLBACK: ${{ needs.coverage.outputs.fallback }}
       FALLBACK_SHARDS: 16
       BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' }}
+      DESIGN_RUN: ${{ needs.plan.outputs.design != 'false' }}
     steps:
       - name: Every part passed
         env:
@@ -1109,6 +1122,8 @@ jobs:
           failed=0
           # Skipped by the plan, the browser shards count as passed; skipped for any other reason, they do not.
           if [ "$BROWSER_RUN" = false ] && [ "$BROWSER" = skipped ]; then BROWSER=success; fi
+          # So do the design shards, skipped by the plan when nothing the site build or Ouro check reads changed.
+          if [ "$DESIGN_RUN" = false ] && [ "$DESIGN" = skipped ]; then DESIGN=success; fi
           for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
@@ -3333,3 +3348,20 @@ jobs:
           path: ${{ runner.temp }}/ci-timings.json
           if-no-files-found: ignore
           retention-days: 90
+  tree-proof:
+    # The proof a push to main reads (scripts/ci-proof.mjs): a pull request's run whose plan left nothing out (every
+    # browser test, the design shards, the install test and the heavy tier) and whose every job passed reports this
+    # job, named for the tree it tested, GitHub's merge of the pull request into main. When the pull request merges
+    # with main unmoved, main's commit has that tree, and main's run tests nothing again. It waits on what ci-budget
+    # waits on, beside it, so it has finished by the time the required checks let the pull request merge; it is no
+    # required check, and a reduced run skips it. install-github and install-latest run only on main and on
+    # release branches, and fresh-main checks a newer main, not this tree: ci-budget fails the run when that fails.
+    name: Full suite passed on tree ${{ needs.plan.outputs.tree }}
+    needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-upgrade, install-current]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') && needs.plan.outputs.tree != '' && needs.plan.outputs.full != 'false' && needs.plan.outputs.browser != 'false' && needs.plan.outputs.design != 'false' && needs.plan.outputs.installs == 'here' && needs.plan.outputs.heavy == 'here' && needs.ci.outputs.fallback != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - env:
+          TREE: ${{ needs.plan.outputs.tree }}
+        run: echo "::notice title=Tree proof::The full suite passed on tree $TREE. A push to main with this tree runs only install-github."

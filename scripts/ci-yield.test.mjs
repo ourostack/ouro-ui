@@ -93,7 +93,8 @@ test("it never holds a run back past its deadline, which fits the step's and the
   assert.ok(limit, "the plan's time limit depends on the event");
   const [prMinutes, otherMinutes] = [Number(limit[1]), Number(limit[2])];
   assert.ok(prMinutes >= stepMinutes + 8, "on a pull request the plan keeps its own 8 minutes besides the yield");
-  assert.equal(otherMinutes, 10, "every other run, which never yields, keeps the plan's 10 minutes");
+  // Every other run never yields; a push to main keeps the plan's 10 minutes besides the tree proof's wait (scripts/ci-proof.mjs).
+  assert.equal(otherMinutes, 15, "every other run, which never yields, keeps the plan's 10 minutes and 5 for the tree proof");
   assert.match(step, /^ {8}if: github\.event_name == 'pull_request'$/m, "only a pull request yields");
 });
 

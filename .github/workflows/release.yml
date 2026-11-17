@@ -41,6 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the release branch and the tag, create the release
+      actions: read # main's CI runs and their jobs, and the pull request run that proved the commit's tree
+      pull-requests: read # the pull request merged as the commit (scripts/ci-proof.mjs)
     # Waiting for none of main's runs: reading them, the install, the release commit and the
     # namespace checks, 20 minutes, and 1.5 times that 30 (scripts/workflows.test.mjs, which holds
     # the numbers). Pages is a later job with its own.
@@ -93,7 +95,7 @@ jobs:
           echo "PRODUCERS=$(echo $producers)" >> "$GITHUB_ENV"
           # Main's runs of each on this commit: a push run, a dispatch on main, and the merge queue's run, which tested this very commit
           # before main fast-forwarded to it (the push run after it then skips every job but
-          # install-github). A check main's rules require passes when one of them passed it
+          # install-github), and the pull request run whose tree-proof job passed on this commit's tree. A check main's rules require passes when one of them passed it
           # (scripts/required-ci.sh), whatever the runs' overall conclusions, which ci-budget's
           # failure would decide too.
           runs=
@@ -102,6 +104,14 @@ jobs:
             [ -n "$ci" ] || { echo "::error::$workflow has not run on main ($sha)"; exit 1; }
             runs="$runs $ci"
           done
+          # A push whose tree a pull request's run already passed in full skipped the jobs it ran
+          # (scripts/ci-proof.mjs, ci.yml's tree-proof job): that run, found again here, is passed with main's.
+          if [ -f scripts/ci-proof.mjs ]; then
+            proof_out=$(mktemp)
+            GITHUB_OUTPUT="$proof_out" node scripts/ci-proof.mjs "$sha"
+            proof=$(sed -n 's/^proof-run=//p' "$proof_out")
+            if [ -n "$proof" ]; then runs="$runs $proof"; fi
+          fi
           # shellcheck disable=SC2086 # one argument per run
           scripts/required-ci.sh $runs || { echo "::error::CI on main ($sha) did not pass the checks main's rules require"; exit 1; }
           # install-github, the install a user runs today (`shadcn add` at the newest release tag), runs only in main's

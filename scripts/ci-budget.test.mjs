@@ -105,6 +105,23 @@ test("the critical path leaves out fail-fast, which waits for the whole run, que
   }
 });
 
+test("the critical path and the wall time leave out tree-proof, which runs beside ci-budget once the work is done, and is no unmatched job", () => {
+  const graph = jobGraph(`${workflow}  tree-proof:
+    name: Full suite passed on tree \${{ needs.plan.outputs.tree }}
+    needs: [plan, ci]
+    runs-on: ubuntu-latest
+  ci-budget:
+    needs: [plan, ci]
+    runs-on: ubuntu-latest
+`);
+  // tree-proof waited 20 minutes for a runner after ci finished.
+  const jobs = [job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 8), job("browser (2/2)", 1, 1, 6), job("ci", 8, 8, 9), job("lint", 0, 0, 6), job("Full suite passed on tree abc", 9, 29, 30)];
+  const path = criticalPath(jobs, graph);
+  assert.deepEqual(path.jobs.map((entry) => entry.name), ["plan", "browser (1/2)", "ci"]);
+  assert.deepEqual(path.unmatched, []);
+  assert.equal(wallTime(jobs, graph), 9 * 60);
+});
+
 test("a skipped job adds nothing, and a job no name matches is reported", () => {
   const path = criticalPath([job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 9, "skipped"), job("lint", 0, 0, 3), job("mystery", 0, 0, 30)], jobGraph(workflow));
   assert.equal(path.seconds, 3 * 60);

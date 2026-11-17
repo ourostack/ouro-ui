@@ -59,6 +59,8 @@ const stepSeconds = (job, patterns) => (job.steps ?? []).filter((step) => patter
 
 /** This job, which is still running when it reads the run, and never on its own critical path. */
 const self = "ci-budget";
+/** tree-proof (scripts/ci-proof.mjs), which only names the tree a full run passed, beside this job. */
+const proof = "tree-proof";
 
 /** ci.yml's jobs: each one's id, the name its jobs report as a pattern, and the ids it needs. */
 export function jobGraph(text) {
@@ -102,14 +104,15 @@ export function heldSeconds(job) {
  * (`workSeconds`).
  */
 export function criticalPath(jobs, graph, { work = false } = {}) {
-  const nodes = graph.filter((node) => node.id !== self && node.id !== watcher);
+  // tree-proof runs beside this job on what it waits on, after the work is done: it is on no path a developer waits on.
+  const nodes = graph.filter((node) => node.id !== self && node.id !== watcher && node.id !== proof);
   const slowest = new Map();
   const unmatched = [];
   for (const job of jobs) {
     // A matrix job its `if` skipped reports once, under its name with the expressions unexpanded.
     const node = nodes.find((candidate) => candidate.pattern.test(job.name) || candidate.template === job.name);
     if (!node) {
-      if (!graph.some((candidate) => (candidate.id === self || candidate.id === watcher) && candidate.pattern.test(job.name))) unmatched.push(job.name);
+      if (!graph.some((candidate) => (candidate.id === self || candidate.id === watcher || candidate.id === proof) && candidate.pattern.test(job.name))) unmatched.push(job.name);
       continue;
     }
     const duration = job.conclusion === "skipped" ? 0 : work ? workSeconds(job) : heldSeconds(job);
@@ -129,10 +132,11 @@ export function criticalPath(jobs, graph, { work = false } = {}) {
   return { ...path, unmatched };
 }
 
-/** The run's wall time: the first job's creation to the last job's end, this job left out. */
+/** The run's wall time: the first job's creation to the last job's end, this job and tree-proof left out. */
 export function wallTime(jobs, graph) {
   const own = graph.find((node) => node.id === self)?.pattern;
-  const others = jobs.filter((job) => !own?.test(job.name) && job.completed_at);
+  const after = graph.find((node) => node.id === proof)?.pattern;
+  const others = jobs.filter((job) => !own?.test(job.name) && !after?.test(job.name) && job.completed_at);
   if (others.length === 0) return 0;
   return seconds(new Date(Math.min(...others.map((job) => Date.parse(job.created_at)))).toISOString(), new Date(Math.max(...others.map((job) => Date.parse(job.completed_at)))).toISOString());
 }
