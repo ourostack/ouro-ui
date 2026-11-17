@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { commands, page } from "vitest/browser";
+import { commands, page, server } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
+import { checkStory } from "./check-story.ts";
+import { knownFindings } from "./check-known.ts";
 import { describeFindings, parkPointer, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
-import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles } from "./stories.tsx";
+import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles, type ComposedStory } from "./stories.tsx";
 import { sliced } from "./slice.ts";
 
 // Every Storybook story renders and passes axe with zero violations (spec §8:
@@ -179,4 +181,41 @@ describe("component roots leave their margin to the app", () => {
     }
     expect([...new Set(found)]).toEqual([]);
   });
+});
+
+// Ouro check's rules (registry/ouro/check) at rest over every story: the page the check sweeps, in the browser it runs in
+// (Chromium), at a phone and a desktop width, light and dark. A component Ouro check would fail fails here first. A finding
+// the story is known to show is listed in check-known.ts with its reason; any other finding fails, and so does a listed
+// finding that no longer shows, so the list only shrinks.
+describe.runIf(server.browser === "chromium")("stories pass Ouro check's rules", () => {
+  it("names only stories that exist, each with a reason", () => {
+    const ids = stories.map((entry) => entry.id);
+    for (const { story: id, rule, reason } of knownFindings) {
+      expect(ids, `${id} (${rule})`).toContain(id);
+      expect(reason.trim(), `${id} (${rule})`).not.toBe("");
+    }
+  });
+
+  it.each(sliced(selectedStories, "stories: check"))("$id passes Ouro check's rules, except its known findings", async ({ id, Story }) => {
+    const found = new Map<string, string[]>();
+    try {
+      for (const [width, height] of [[390, 844], [1280, 800]] as const) {
+        await page.viewport(width, height);
+        for (const scheme of ["light", "dark"] as const) {
+          setScheme(scheme);
+          const layout = (Story as ComposedStory).parameters?.layout;
+          for (const issue of await checkStory(Story, layout)) {
+            found.set(issue.rule, [...(found.get(issue.rule) ?? []), `${width}x${height} ${scheme}: ${issue.element}: ${issue.detail}`]);
+          }
+          await cleanupStories();
+          await parkPointer();
+        }
+      }
+    } finally {
+      await page.viewport(390, 844);
+    }
+    const known = knownFindings.filter((entry) => entry.story === id).map((entry) => entry.rule);
+    expect(Object.fromEntries([...found].filter(([rule]) => !known.includes(rule))), "findings not in check-known.ts").toEqual({});
+    expect(known.filter((rule) => !found.has(rule)), "known findings that no longer show: remove them from check-known.ts").toEqual([]);
+  }, storyScanTimeout);
 });

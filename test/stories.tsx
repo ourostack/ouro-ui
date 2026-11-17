@@ -66,6 +66,8 @@ export interface OuroStoryParameters {
   openShortcut?: string;
   screenshot?: { name: string; open?: boolean; focus?: boolean; forcedColors?: boolean };
   mode?: string;
+  /** Storybook's layout: the frame Ouro check gives the story (`fullscreen` none, the others 1rem of padding). */
+  layout?: string;
   conformance?: ConformanceParameters;
 }
 
@@ -97,7 +99,7 @@ export interface ConformanceParameters {
   clientOnly?: string;
 }
 
-type ComposedStory = ComponentType & {
+export type ComposedStory = ComponentType & {
   parameters?: OuroStoryParameters;
   /** The story's play function, which brings it to the state it shows (a discard prompt, chosen files). */
   play?: (context?: { canvasElement?: HTMLElement }) => Promise<void>;
