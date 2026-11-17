@@ -275,7 +275,19 @@ jobs:
             sleep "${POLL_SECONDS:-5}"
           done
           [ "$run" != "$before" ] || { echo "::error::Pages did not start. Run it by hand: gh workflow run pages.yml --ref main"; exit 1; }
-          gh run watch "$run" --exit-status --interval 30
+          gh run watch "$run" --interval 30 || true
+          conclusion=$(gh run view "$run" --json conclusion --jq .conclusion)
+          case "$conclusion" in
+            success) ;;
+            cancelled)
+              # GitHub keeps one pending run per concurrency group, so a newer Pages run for main (a push's) cancels this one
+              # while it waits. That run deploys main, which names this release, so verify-live below waits for its deploy.
+              newer=$(gh run list --workflow pages.yml --branch main --limit 10 --json databaseId --jq "[.[] | select(.databaseId > $run)] | length")
+              [ "$newer" -gt 0 ] || { echo "::error::Pages run $run was cancelled, and no newer Pages run replaced it. Run it by hand: gh workflow run pages.yml --ref main"; exit 1; }
+              echo "::notice::Pages run $run was replaced by a newer Pages run for main, so the namespace check waits for that deploy."
+              ;;
+            *) echo "::error::Pages run $run ended ${conclusion:-without a conclusion}. Run it by hand: gh workflow run pages.yml --ref main"; exit 1 ;;
+          esac
           unset GH_TOKEN
           # The @ouro namespace Pages now serves is this release, every item byte for byte as built
           # from the tag.
