@@ -229,6 +229,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.266 (cards):** Ouro check has two new gated rules: `linked-card-dead-zone`, a linked card or row where a click on some spot opens nothing, and `reveal-reflow`, a card whose hover or focus reveal moves the page.[^upgrade-card-rules] Ouro Current records the findings an app already has as known.[^upgrade-card-known] A linked Card, Item or Table row now opens from a click anywhere on it itself, so the app can drop a click handler it added to its cards.[^upgrade-card-click]
 
+- **After v1.3.273 (first run):** Ouro check has three new gated rules: `blank-pane`, a pane with nothing to read, press or wait for; `dismissable-step`, a modal dialog a person can put away onto a blank page, or onto a signed-out page with no way to sign in; and `signed-out-empty`, an empty state shown while signed out.[^upgrade-first-run] Ouro Current records the findings an app already has as known.[^upgrade-card-known] Mark the app's shell with `data-ouro-session="signed-in"` or `"signed-out"` so the check knows which it is looking at, and give its own words in `ouro-check.json`'s `firstRun` if they aren't English.
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -347,6 +349,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-trigger-or-open]: scripts/agent-types.test.mjs verify:testExists(scripts/agent-types.test.mjs::tsc reports exactly the expected errors, naming the fix where the case says so)
 [^upgrade-card-rules]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/new-rules.json, /"rule": "reveal-reflow"/)
 [^upgrade-card-known]: scripts/current/current.test.mjs verify:testExists(scripts/current/current.test.mjs::an Ouro check rule an update brings in has the findings the pull request's checks reported recorded as known, the run after, and kept while the next checks run)
+[^upgrade-first-run]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/new-rules.json, /"rule": "signed-out-empty"/)
 [^upgrade-card-click]: registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens its link from a click anywhere on it, though the app positions its body over the media, with the same button and keys)
 [^upgrade-scripts-ouro]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::Ouro check installs under scripts/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does) verify:testExists(scripts/current/current.test.mjs::Ouro HX moves Ouro check and the X-ray to scripts/ouro where their items now install, deleting the old copies and fixing package.json)
 <!-- upgrade:end -->

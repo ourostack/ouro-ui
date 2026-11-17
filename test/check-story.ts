@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { findDesignIssues } from "@/registry/ouro/check/design-check";
+import { findFirstRunIssues } from "@/registry/ouro/check/first-run-check";
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findInteractionIssues } from "@/registry/ouro/check/interaction-check";
 import { findLayoutIssues } from "@/registry/ouro/check/layout-check";
@@ -33,6 +34,7 @@ export async function checkStory(Story: ComponentType, layout: string = "centere
     ...(await findOffThemeIssues({ maxIssues: 100000 })),
     ...(await findInteractionIssues()),
     ...(await findWrapIssues({})),
+    ...(await findFirstRunIssues()),
   ];
 }
 
