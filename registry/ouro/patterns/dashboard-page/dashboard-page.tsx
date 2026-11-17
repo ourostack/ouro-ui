@@ -60,9 +60,9 @@ const statusTone = { Paid: "success", Pending: "secondary", Refunded: "warning" 
  * last months and a table of recent activity. It draws itself from Ouro's theme, with layout classes only. Render it
  * with your data, then change the cards and columns to what your app tracks.
  *
- * What it already does, which Ouro's own tests cover: each card is headed by its number, read with its label; the
- * table says when there is no activity; it renders from a Server Component, since it passes no function to the
- * client components inside it.
+ * What it already does, which Ouro's own tests cover: each card is headed by its number, read with its label; with
+ * no activity it says "No activity yet." in place of the table; it renders from a Server Component, since it passes
+ * no function to the client components inside it.
  *
  * What the app wires up: the toggle needs `ColorSchemeProvider` around the app, and the script that sets light or
  * dark before the first paint, as the agent quickstart sets up: https://ui.ouroboros.bot/docs/agent-quickstart.md.
