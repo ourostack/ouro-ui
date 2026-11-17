@@ -187,13 +187,15 @@ describe("component roots leave their margin to the app", () => {
 // (Chromium), at a phone and a desktop width, light and dark. A component Ouro check would fail fails here first. A finding
 // the story is known to show is listed in check-known.ts with its reason; any other finding fails, and so does a listed
 // finding that no longer shows, so the list only shrinks.
-describe.runIf(server.browser === "chromium")("stories pass Ouro check's rules", () => {
+describe("stories pass Ouro check's rules", () => {
   it("names only stories that exist", () => {
     const ids = stories.map((entry) => entry.id);
     for (const { story: id, rule } of knownFindings) expect(ids, `${id} (${rule})`).toContain(id);
   });
 
   it.each(sliced(selectedStories, "stories: check"))("$id passes Ouro check's rules, except its known findings", async ({ id, Story }) => {
+    // Chromium only, the browser Ouro check runs in: the other projects have no page to check here.
+    if (server.browser !== "chromium") return;
     const found = new Map<string, string[]>();
     try {
       for (const [width, height] of [[390, 844], [1280, 800]] as const) {
