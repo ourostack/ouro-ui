@@ -660,6 +660,18 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     expect([card.getBoundingClientRect().width, card.getBoundingClientRect().height]).toEqual([box.width, box.height]);
   });
 
+  it("lays a rising title on the page's background under a theme with no card color, never on the bare picture", async () => {
+    const { card } = await render(<div style={{ "--card": "initial", "--card-foreground": "initial" } as never}>{tile({ revealDescription: "rise" })}</div>);
+    // The block that holds the title and the rising description, over the media.
+    const surface = card.querySelector('[data-card-reveal="rise"]')!.parentElement!.parentElement!;
+    const probe = document.createElement("div");
+    probe.style.cssText = "background-color:var(--background);color:var(--foreground)";
+    card.parentElement!.append(probe);
+    expect(getComputedStyle(probe).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(surface).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    expect(getComputedStyle(surface).color).toBe(getComputedStyle(probe).color);
+  });
+
   it("grows a rising card to fit a title and description taller than its media, rather than cutting the title off", async () => {
     const long = "Low heat, a lid, and time: brown the meat well, add the liquid halfway up, and leave it in a slow oven for hours.";
     const { card } = await render(

@@ -375,7 +375,7 @@ export function Card(props: CardProps): JSX.Element {
     rise && (
       <div className={cn("grid overflow-hidden", mediaPull[variant][size])}>
         <div className={cn("relative overflow-hidden [grid-area:1/1]", zoom && zoomMediaClass)}>{media}</div>
-        {titleBlock("z-1 self-end [grid-area:1/1] bg-card py-3 text-card-foreground")}
+        {titleBlock("z-1 self-end [grid-area:1/1] bg-(--card,var(--background)) py-3 text-(--card-foreground,var(--foreground))")}
       </div>
     ),
     !rise && titleBlock(),
