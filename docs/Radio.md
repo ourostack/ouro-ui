@@ -32,7 +32,7 @@ Type: `RadioProps`.
 | `disabled` | `boolean` | Disables this one radio; the arrow keys skip it. |
 | `hideLabel` | `boolean` | Hides the label visually; screen readers still read it as the radio's name. |
 | `label` (required) | `string` | The choice's name, shown to the right of the radio. Required: every control needs a name. |
-| `ref` | `Ref<HTMLElement>` | The radio element, a `<span role="radio">`. |
+| `ref` | `Ref<HTMLElement>` | The radio element, a `<button role="radio">`, which the label names with `for`. |
 | `value` (required) | `string` | What the group submits when this radio is picked, and the group's `value` then. |
 
 ## Don't use

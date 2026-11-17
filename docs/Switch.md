@@ -40,7 +40,7 @@ Type: `SwitchProps`.
 | `name` | `string` | The form field name it submits under when on. |
 | `onCheckedChange` | `((checked: boolean) => void)` | Called with the new state when it turns on or off. |
 | `readOnly` | `boolean` | Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. |
-| `ref` | `Ref<HTMLElement>` | The track element, a `<span role="switch">`. |
+| `ref` | `Ref<HTMLElement>` | The track element, a `<button role="switch">`, which the label names with `for`. |
 | `required` | `boolean` | The switch must be on to submit the form: it gets `required` and `aria-required`, and the label a marker. |
 | `value` | `string` | What it submits when on (`on` without one). |
 

@@ -37,7 +37,7 @@ Type: `CheckboxProps`.
 | `name` | `string` | The form field name it submits under when checked. In a `CheckboxGroup`, the group's `name` applies. |
 | `onCheckedChange` | `((checked: boolean) => void)` | Called with the new state when it is checked or unchecked. |
 | `readOnly` | `boolean` | Shows the state but ignores clicks and keys, unlike `disabled`, which also fades it. |
-| `ref` | `Ref<HTMLElement>` | The box element, a `<span role="checkbox">`. |
+| `ref` | `Ref<HTMLElement>` | The box element, a `<button role="checkbox">`, which the label names with `for`. |
 | `required` | `boolean` | The box must be checked to submit the form (accepting terms): it gets `required` and `aria-required`, and the label a marker. In a `CheckboxGroup`, pass it to the group. |
 | `value` | `string` | What a checked box submits (`on` without one). In a `CheckboxGroup`, it identifies the box in the group's `value`, so it is required there. |
 

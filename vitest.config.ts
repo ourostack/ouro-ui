@@ -226,7 +226,9 @@ export default defineConfig({
               test: {
                 name: "visual",
                 expect: { poll: { timeout: 10_000 } },
-                setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts"],
+                // The pointer is parked before each shot, as in the mouse projects, so no screenshot
+                // shows a hover left by an earlier subject's press (a hovered label hovers its control).
+                setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts", "./registry/ouro/lib/ouro/testing/pointer-setup.ts"],
                 include: ["test/**/*.visual.test.{ts,tsx}"],
                 browser: {
                   enabled: true,
