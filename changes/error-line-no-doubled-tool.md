@@ -1,0 +1,1 @@
+- Fixed: an error line no longer says the tool twice when the failing thing is the tool itself, as in a one-command CLI (`notes: ENOENT: ...`, not `notes: notes: ENOENT: ...`) ([test](registry/ouro/ax/problem.test.mts "verify:fileLine(registry/ouro/ax/problem.test.mts, /is not said twice|is one of a, b/)")).

@@ -8,6 +8,7 @@ test("the line is <tool>: <thing>: <problem>. Fix: <exact code>.", () => {
   assert.equal(errorLine("tool", shape), 'tool: send: needs --why. Fix: tool send abc "hi" --why "<who asked>".');
   assert.equal(errorMessage({ thing: "x", problem: "gone", fix: null }), "x: gone.");
   assert.equal(errorLine("t", { thing: "x", problem: "a\nb", fix: null }), "t: x: a b.");
+  assert.equal(errorLine("t", { thing: "t", problem: "--n is one of a, b", fix: "t --n a" }), "t: --n is one of a, b. Fix: t --n a.");
 });
 
 test("AxError carries the shape, its exit and the same message; errorJson adds the message", () => {
