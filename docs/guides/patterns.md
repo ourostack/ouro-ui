@@ -2,7 +2,7 @@
 
 Whole pages built from Ouro's components, which an app installs into its own components folder and then changes, as shadcn's blocks are. Start from one when you build a page it covers: the theme draws it, so the page needs no stylesheet of its own, and what you change is the fields, the numbers and the copy.[^axe]
 
-A pattern brings the components it uses, through the `@ouro` namespace, as in the [agent quickstart](agent-quickstart.md):[^deps]
+A pattern brings the components it uses, through the `@ouro` namespace. Add it once the app has Ouro's theme and base tokens, as step 3 of the [agent quickstart](agent-quickstart.md) adds them:[^deps]
 
 ```sh
 npx shadcn@latest add @ouro/settings-page --yes

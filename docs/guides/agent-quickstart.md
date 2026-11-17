@@ -114,7 +114,9 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-`src/App.tsx` is the whole page, laid out by Ouro's Stack and PageHeader rather than CSS of its own: start from it and change its fields to what you are building, rather than writing the page from scratch. A component's props are on its page, `https://ui.ouroboros.bot/docs/<item>.md`, and in the JSDoc of the installed source, `src/components/ouro/<item>/<item>.tsx`.
+Building a settings page or a dashboard? Install its [page pattern](patterns.md) instead of writing `App.tsx`: `npx shadcn@latest add @ouro/settings-page --yes` (or `@ouro/dashboard-page`), then make `src/App.tsx` render `<SettingsPage />` from `@/components/patterns/settings-page`, and go on to step 5.
+
+Otherwise, `src/App.tsx` is the whole page, laid out by Ouro's Stack and PageHeader rather than CSS of its own: start from it and change its fields to what you are building, rather than writing the page from scratch. A component's props are on its page, `https://ui.ouroboros.bot/docs/<item>.md`, and in the JSDoc of the installed source, `src/components/ouro/<item>/<item>.tsx`.
 
 ```tsx
 import { useState } from "react";
@@ -195,7 +197,7 @@ node scripts/ouro/check/check.ts dist --sizes 390x844,1440x900
 
 Ouro check opens the build at a phone's and a laptop's size, light and dark, and lists what to fix; leave out `--sizes` to check it at the full set of sizes. It needs Chromium: `npx playwright install chromium` if it asks.
 
-The app is done when the build passes and Ouro check reports `0 finding(s)`. The components come with their own tests (add `@ouro/<item>-tests` to run them), so tests you write cover your own logic.
+The app is done when the build passes and Ouro check reports `0 finding(s)`. A page pattern passes as installed, so a page that fails has moved off the theme: the finding names the token to use. The components come with their own tests (add `@ouro/<item>-tests` to run them), so tests you write cover your own logic.
 
 ## Next
 
