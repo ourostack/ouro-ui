@@ -58,21 +58,23 @@ jobs:
           last=$(gh release view --json tagName --jq .tagName)
           git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$sha"
           if [ -n "$last" ] && ! git rev-parse -q --verify "refs/tags/$last" >/dev/null; then git fetch -q --no-tags --depth=1 origin "refs/tags/$last:refs/tags/$last"; fi
-          # A wait says why, in the notice and the step summary. One that has lasted over an hour (scripts/release-wait.mjs: the
-          # oldest first-parent commit of main after the newest release's tag) opens or comments on "Release waiting" and fails
-          # this run, so nothing waits silently for long.
+          # A wait says why, in the notice and the step summary. One that has lasted over an hour (scripts/release-wait.mjs: since
+          # the first first-parent commit of main after the newest release's tag that brought a change the release lacks, so a
+          # pin-only or CI-only commit does not start the clock) opens or comments on "Release waiting" and fails this run, so
+          # nothing waits silently for long.
           wait_for() {
             echo "::notice::$1"
             printf -- '- %s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
             [ -n "$last" ] || return 0
             git fetch -q --no-tags --depth=2 origin "refs/tags/$last:refs/tags/$last"
             git fetch -q --no-tags --shallow-since="$(git log -1 --format=%cI "$last^")" origin main
-            read -r oldest minutes state <<< "$(git log --first-parent --reverse --format='%H %ct' "$last..origin/main" | node scripts/release-wait.mjs)" || true
+            age=$(node scripts/release-wait.mjs "$last")
+            read -r oldest minutes state <<< "$age" || true
             [ "${state:-}" = over ] || return 0
-            msg="$1 Its oldest unreleased commit, $oldest, has waited $minutes minutes, over an hour."
+            msg="$1 Its oldest pending change, from $oldest, has waited $minutes minutes, over an hour"
             run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            printf -- '- %s\n' "$msg" >> "$GITHUB_STEP_SUMMARY"
-            echo "::error::$msg Release waiting: $run"
+            printf -- '- %s.\n' "$msg" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::$msg. Release waiting: $run"
             scripts/scheduled-failure.sh "$run" "Release waiting" "$msg" "$msg: $run"
             exit 1
           }

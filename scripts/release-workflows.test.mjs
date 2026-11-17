@@ -95,10 +95,11 @@ function fixture({ mainWorkflowsMoved = false } = {}) {
 }
 
 /**
- * A release v1.0.0 whose release commit sits on R0, and main one commit past R0 that changes the workflows, committed
- * `ageMinutes` ago. Release auto's wait for R0 is then a wait for main's workflows, and the change has waited that long.
+ * A release v1.0.0 whose release commit sits on R0, and main past R0: optionally a pin-only commit `pinAgeMinutes` ago,
+ * then a commit `ageMinutes` ago that changes the workflows and brings a change fragment. Release auto's wait for R0 is
+ * then a wait for main's workflows, and the pending change has waited `ageMinutes`.
  */
-function ageFixture(ageMinutes) {
+function ageFixture({ ageMinutes, pinAgeMinutes }) {
   const { dir, origin, work } = repos();
   const now = Math.floor(Date.now() / 1000);
   write(work, ".github/workflows/ci.yml", "ci: released\n");
@@ -112,7 +113,13 @@ function ageFixture(ageMinutes) {
   gitAt(work, now - 3 * 3600, "commit", "-q", "-m", "Release v1.0.0");
   git(work, "tag", "v1.0.0");
   git(work, "checkout", "-q", "main");
+  if (pinAgeMinutes !== undefined) {
+    write(work, "README.md", "Install #v1.0.0.\n");
+    git(work, "add", "-A");
+    gitAt(work, now - pinAgeMinutes * 60, "commit", "-q", "-m", "Point the docs at a release");
+  }
   write(work, ".github/workflows/ci.yml", "ci: main\n");
+  write(work, "changes/fresh.md", "- New: a change\n");
   git(work, "add", "-A");
   gitAt(work, now - ageMinutes * 60, "commit", "-q", "-m", "main changes its workflows");
   git(work, "push", "-q", "origin", "main", "refs/tags/v1.0.0");
@@ -137,7 +144,7 @@ function runPush(f, extra = {}) {
  * gh that logs its calls to bin/calls.log.
  */
 function runAutoCheck(f, sha, { last = "", bin } = {}) {
-  for (const script of ["scheduled-failure.sh", "release-wait.mjs"]) {
+  for (const script of ["scheduled-failure.sh", "release-wait.mjs", "changes.mjs"]) {
     mkdirSync(join(f.work, "scripts"), { recursive: true });
     copyFileSync(join(root, "scripts", script), join(f.work, "scripts", script));
     chmodSync(join(f.work, "scripts", script), 0o755);
@@ -226,7 +233,16 @@ test("release auto goes on with a commit whose workflows equal main's tip", () =
 });
 
 test("a wait under an hour says why in the step summary, and opens no issue", () => {
-  const f = ageFixture(30);
+  const f = ageFixture({ ageMinutes: 30 });
+  const bin = stubGh();
+  const result = runAutoCheck(f, f.released, { last: "v1.0.0", bin });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.summary(), /^- main's \.github\/workflows changed after \S+, so the release waits/m);
+  assert.equal(existsSync(join(bin, "calls.log")), false);
+});
+
+test("a wait runs from the pending change, not from a pin-only commit that came before it", () => {
+  const f = ageFixture({ ageMinutes: 10, pinAgeMinutes: 120 });
   const bin = stubGh();
   const result = runAutoCheck(f, f.released, { last: "v1.0.0", bin });
   assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -235,7 +251,7 @@ test("a wait under an hour says why in the step summary, and opens no issue", ()
 });
 
 test("a release that has waited over an hour opens the Release waiting issue and fails release auto", () => {
-  const f = ageFixture(120);
+  const f = ageFixture({ ageMinutes: 120 });
   const bin = stubGh();
   const result = runAutoCheck(f, f.released, { last: "v1.0.0", bin });
   assert.equal(result.status, 1, result.stdout + result.stderr);
