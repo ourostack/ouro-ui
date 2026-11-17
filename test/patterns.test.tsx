@@ -7,6 +7,7 @@ import { SettingsPage } from "@/registry/ouro/patterns/settings-page/settings-pa
 import dashboardSource from "@/registry/ouro/patterns/dashboard-page/dashboard-page.tsx?raw";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
+import { settle } from "./stories.tsx";
 
 // The page patterns an app installs whole, in a real browser: each draws a whole page from the components with no
 // stylesheet of its own, passes axe at a phone's and a laptop's width, and does what its words say.
@@ -28,10 +29,14 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-/** axe over the page and anything it opened, at each width. */
+/**
+ * axe over the page and anything it opened, at each width. Scanned only once the page has settled: an overlay that has just
+ * mounted is still fading in, and a colour read mid-fade (#1894) fails contrast the finished overlay passes.
+ */
 async function passesAxe() {
   for (const [width, height] of [[390, 844], [1280, 800]] as const) {
     await page.viewport(width, height);
+    await settle();
     expect(describeFindings(await audit({ include: [document.body], exclude: axeExclude.map((selector) => [selector]) }))).toBe("");
   }
 }
