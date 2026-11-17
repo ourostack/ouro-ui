@@ -59,7 +59,7 @@ export interface SheetBaseProps {
    * Whether the sheet shuts off the rest of the page while it is open. `false` makes it a
    * panel beside a page the person keeps using, such as a live preview of a look: no backdrop,
    * no focus trap and no scroll lock, the page stays at full strength and in reach, and a press
-   * or focus on the page leaves the sheet open. Escape, with focus in the sheet, and its close
+   * or focus on the page leaves the sheet open, unless you pass `closeOnOutsidePress`. Escape, with focus in the sheet, and its close
    * button, shown at its top corner, close it. @default true
    * @claim "Whether the sheet shuts off the" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > draws no backdrop and leaves the page at full strength, in reach and scrolling)
    * @claim "Whether the sheet shuts off the" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > is a dialog without aria-modal, lets focus leave it, and stays open when focus or a press goes to the page)
@@ -69,6 +69,20 @@ export interface SheetBaseProps {
    * @claim "Whether the sheet shuts off the" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > stays modal by default, with its backdrop)
    */
   modal?: boolean | undefined;
+  /**
+   * Whether a press outside the sheet closes it. With `modal={false}`, `true` makes the panel
+   * beside the page close when the person presses the page, so a press on another row both closes
+   * it and reaches that row. Focus moving out of it closes it too, by Tab or from your code, so a
+   * keyboard closes it as a press does, and focus stays where it went. Menus, popovers and dialogs
+   * opened from inside the sheet are part of it, so a press in one of them leaves the sheet open.
+   * `false` on a modal sheet keeps it open when its backdrop is pressed.
+   * @default `true` for a modal sheet, `false` with `modal={false}`
+   * @claim "With `modal={false}`, `true` makes the" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with closeOnOutsidePress, closes on a press on the page, and the press still reaches the page)
+   * @claim "Menus, popovers and dialogs opened from" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with closeOnOutsidePress, stays open on a press in a menu or a dialog opened from inside it)
+   * @claim "Focus moving out of it closes" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with closeOnOutsidePress, closes when focus moves out of it by %s, and leaves focus where it went)
+   * @claim "`false` on a modal sheet keeps it" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > closeOnOutsidePress={false} keeps a modal sheet open on a press on its backdrop)
+   */
+  closeOnOutsidePress?: boolean | undefined;
   /** The body. It scrolls when it is taller than the sheet. */
   children: ReactNode;
   /** The actions row, stacked full width on phones; primary action last. */
@@ -162,6 +176,7 @@ export function Sheet(props: SheetProps): JSX.Element {
     side: sideProp = "bottom",
     snapPoints,
     modal,
+    closeOnOutsidePress,
     children,
     footer,
     className,
@@ -214,6 +229,7 @@ export function Sheet(props: SheetProps): JSX.Element {
       side={side}
       snapPoints={snapPoints}
       modal={modal}
+      closeOnOutsidePress={closeOnOutsidePress}
       className={className}
       trigger={trigger}
       open={open}
@@ -244,6 +260,8 @@ export interface SheetFrameProps {
   snapPoints?: SheetSnapPoint[] | undefined;
   /** `false` leaves the page in use beside the sheet (`Sheet`'s `modal`). @default true */
   modal?: boolean | undefined;
+  /** Whether a press outside closes the sheet (`Sheet`'s `closeOnOutsidePress`). @default `modal` */
+  closeOnOutsidePress?: boolean | undefined;
   children: ReactNode;
   className?: string | undefined;
   /** The opening element. May come with `open`, when `Dialog` owns the state. */
@@ -283,6 +301,7 @@ export function SheetFrame({
   side,
   snapPoints,
   modal = true,
+  closeOnOutsidePress = modal,
   children,
   className,
   trigger,
@@ -305,6 +324,7 @@ export function SheetFrame({
       side={side}
       snapPoints={snapPoints}
       modal={modal}
+      disablePointerDismissal={!closeOnOutsidePress}
       {...(open !== undefined ? { open, onOpenChange: (next: boolean) => onOpenChange!(next) } : {})}
       {...(onOpenChangeComplete ? { onOpenChangeComplete } : {})}
     >
