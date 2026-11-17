@@ -667,7 +667,8 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     // The block that holds the title and the rising description, over the media.
     const band = card.querySelector<HTMLElement>("[data-card-glass]")!;
     const title = card.querySelector('[data-card-reveal="rise"]')!.parentElement!.parentElement!;
-    // The glass lies under the whole of the title's block.
+    // The glass lies under the whole of the title's block, and is no content of its own.
+    expect(band.getAttribute("aria-hidden")).toBe("true");
     expect(band.getBoundingClientRect().toJSON()).toEqual(title.getBoundingClientRect().toJSON());
     const probe = document.createElement("div");
     probe.style.cssText = "background-color:var(--background);color:var(--foreground)";
