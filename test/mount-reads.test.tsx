@@ -15,7 +15,6 @@ const modules = import.meta.glob<{ default: () => JSX.Element }>("../site/src/do
 
 /** Demos whose mount reads layout, by item name, each with what it reads and why it stays. A waiver that stops reading fails, so it goes with the fix. */
 const waivers: Record<string, string> = {
-  "chart": "Recharts measures its container and tick text before it can draw a first frame, and it is third-party code",
   "composer": "the composer measures its action row's offsetHeight before paint so the text box and its buttons are sized in the first frame",
   "family-bar": "the bar measures which chips fit before paint, or the first frame would show chips that overflow and then drop them",
   "hero": "the hero checks whether its picture is shown (getComputedStyle) before paint, to choose between the picture and its fallback in the first frame",

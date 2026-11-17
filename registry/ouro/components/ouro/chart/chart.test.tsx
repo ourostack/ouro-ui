@@ -81,6 +81,37 @@ afterEach(async () => {
 });
 
 describe("Chart", () => {
+  it("shows the page before it draws its plot, in the room the plot box keeps, and draws it after the first paint", async () => {
+    // Frames counted from before the mount, and the frame each of the figure and its plot was put in the page.
+    let frames = 0;
+    let counting = true;
+    const tick = () => {
+      frames++;
+      if (counting) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    const seen: { figure?: number; plot?: number; height?: number } = {};
+    const observer = new MutationObserver(() => {
+      const figure = document.querySelector('[data-ouro="chart"]');
+      if (figure && seen.figure === undefined) {
+        seen.figure = frames;
+        seen.height = figure.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height;
+      }
+      if (document.querySelector('[data-ouro="chart"] .recharts-surface') && seen.plot === undefined) seen.plot = frames;
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    try {
+      const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+      await drawn(chart);
+      expect(seen.plot! - seen.figure!, "frames between the figure and its plot").toBeGreaterThanOrEqual(1);
+      expect(seen.height).toBeGreaterThan(100);
+      expect(chart.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height).toBe(seen.height);
+    } finally {
+      counting = false;
+      observer.disconnect();
+    }
+  });
+
   it("is a figure named by its title, with a focusable plot named the same", async () => {
     const { chart } = await render(<Chart title="Cooking this quarter" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
@@ -544,7 +575,7 @@ describe("Chart development messages", () => {
     ["ChartLegend", "content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"],
   ])("warns when %s gets shadcn's content prop", async (part, problem, fix) => {
     const Part = (part === "ChartTooltip" ? ChartTooltip : ChartLegend) as (props: { content: unknown }) => ReactNode;
-    await render(
+    const { chart } = await render(
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
           <Line dataKey="cooked" />
@@ -552,6 +583,8 @@ describe("Chart development messages", () => {
         </LineChart>
       </Chart>,
     );
+    // The parts render with the plot, once the page has painted.
+    await drawn(chart);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`);
   });
 

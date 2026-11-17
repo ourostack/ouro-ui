@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, cloneElement, createContext, isValidElement, useContext, useId, useMemo, useRef, useState } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -219,6 +219,9 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  * that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the
  * fold.
  *
+ * The plot draws in the task after the page's first paint, in the room its box keeps, so the
+ * rest of a page shows without waiting for recharts to lay the chart out.
+ *
  * Colors come from the theme's `--chart-1` to `--chart-5`, which must reach 3:1 against the
  * background for the marks to be seen (WCAG's non-text contrast).
  *
@@ -244,6 +247,7 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  * @claim "Each series is labeled in a" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > labels each series in a legend with a marker shape, so color is not the only cue)
  * @claim "Each series is labeled in a" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > gives five series five marker shapes)
  * @claim "Built on recharts, which Bundlephobia measures" https://bundlephobia.com/package/recharts@3.10.1 verify:urlOk(https://bundlephobia.com/package/recharts@3.10.1)
+ * @claim "The plot draws in the task" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > shows the page before it draws its plot, in the room the plot box keeps, and draws it after the first paint)
  */
 export function Chart<Row extends object = Record<string, unknown>>(props: ChartProps<Row>): JSX.Element {
   const {
@@ -284,6 +288,19 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const tableRef = useRef<HTMLDivElement>(null);
   useScrollFade(tableRef);
   const [legendTarget, setLegendTarget] = useState<HTMLElement | null>(null);
+  // Recharts lays a chart out in script, a long task on its first use, so the plot draws in the task after the
+  // page's first paint, in the room the plot box keeps for it: the rest of the page shows without waiting for it.
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => {
+      timer = setTimeout(() => setDrawn(true));
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, []);
   // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
   const state = useMemo<ChartState>(
     () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget }),
@@ -310,9 +327,11 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       {description !== undefined && <p className="-mt-2 mb-0 text-sm text-muted-foreground">{description}</p>}
       <div data-ouro-chart-plot="" className={plotClass}>
         <ChartContext value={state}>
-          <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
-            {plot}
-          </ResponsiveContainer>
+          {drawn && (
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+              {plot}
+            </ResponsiveContainer>
+          )}
         </ChartContext>
       </div>
       {/* Empty until a ChartLegend portals its list here, so it takes no gap. */}

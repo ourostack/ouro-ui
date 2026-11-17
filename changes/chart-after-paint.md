@@ -1,0 +1,1 @@
+- Chart draws its plot in the task after the page's first paint, in the room its box keeps, so a page with a chart shows without waiting for recharts; a test that reads the plot right after it renders waits for it.
