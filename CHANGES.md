@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Changed: Ouro check lists [a report's findings and shots in the order it sweeps them, size then theme then page](scripts/check/check-command.test.mts "verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > keeps a report in the sweep's order, size then theme then page, whichever page of those checked at once finishes first)"), so the same pages give the same report whichever page of those checked at once finishes first.
+- New: the `list-detail-page` page pattern, [a list you can search beside the detail of the entry chosen, which on a phone shows the detail in the list's place with a way back](test/patterns.test.tsx "verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone shows the list first, the detail in its place once chosen with focus on its heading, and Back to the row)").
