@@ -3,6 +3,7 @@
 import { Children, isValidElement, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { HTMLAttributes, JSX, Key, KeyboardEvent, ReactNode, Ref } from "react";
 import type { MessageBarData, MessageBarLayer } from "@/registry/ouro/components/ouro/message/message-parts";
+import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { halveShown } from "@/registry/ouro/lib/ouro/halve";
@@ -341,8 +342,6 @@ const olderClass =
   "relative m-0 box-border inline-flex h-8 items-center gap-2 rounded-full border border-solid border-border bg-background px-3 " +
   "text-sm text-muted-foreground shadow-(--shadow-md) whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
 
-/** How many older messages go into the list in a frame when a page of them comes at once, to keep the frame short. */
-const CHUNK = 20;
 /**
  * How many of the newest children's keys, with the first child's, say the list's messages changed enough to look again for a switch.
  * @claim "How many of the newest children's keys" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList switching conversations > switches a list %s to another conversation of a thousand at its newest, in its first frame, from anywhere in the one before)
@@ -1101,7 +1100,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [drewWhole, setDrewWhole] = useState(!windowed);
   // A windowed list puts a page of older messages in at once, as space above the messages drawn, so it waits for none and
   // spares the render this would cost. Should it become whole again, what it drew first stays the edge.
-  if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > CHUNK ? edge.drawn : top });
+  if (!windowed && top !== edge.first) setEdge({ first: top, drawn: all.findIndex((child) => keyOf(child) === edge.drawn) > OLDER_CHUNK ? edge.drawn : top });
   const shown = windowed ? all : all.slice(Math.max(0, all.findIndex((child) => keyOf(child) === edge.drawn)));
   const keys = useMemo(() => all.map((child, index) => String(keyOf(child) ?? index)), [all]);
 
@@ -1311,7 +1310,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const frame = requestAnimationFrame(() =>
       setEdge((now) => {
         const list = latest.current;
-        return { ...now, drawn: keyOf(list[Math.max(0, list.findIndex((child) => keyOf(child) === now.drawn) - CHUNK)]) };
+        return { ...now, drawn: keyOf(list[Math.max(0, list.findIndex((child) => keyOf(child) === now.drawn) - OLDER_CHUNK)]) };
       }),
     );
     // Stryker disable next-line all: a step left from before goes in the same render as the next one; cancelling it only spares the call.
