@@ -1,0 +1,1 @@
+- New: Item's revealActions keeps a row's actions back until the pointer rests on the row, focus is in it or a menu of theirs is open; on a touch screen they show from the start.

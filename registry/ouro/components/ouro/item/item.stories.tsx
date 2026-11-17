@@ -106,6 +106,36 @@ export const RecipeList: Story = {
   ),
 };
 
+/** Each row's Edit and Delete wait until the pointer rests on it or focus is in it; on a touch screen they always show. */
+export const ActionsOnHover: Story = {
+  parameters: { mode: "link" },
+  render: () => (
+    <Page>
+      <ItemGroup label="Recipes">
+        {["Braised short ribs", "Lemon olive oil cake"].map((title) => (
+          <Item
+            key={title}
+            href={`#${title.toLowerCase().replace(/ /g, "-")}`}
+            title={title}
+            description="Saved this week"
+            actions={
+              <>
+                <Button variant="plain" size="sm">
+                  Edit
+                </Button>
+                <Button variant="plain" size="sm" tone="destructive">
+                  Delete
+                </Button>
+              </>
+            }
+            revealActions
+          />
+        ))}
+      </ItemGroup>
+    </Page>
+  ),
+};
+
 function TimerIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
