@@ -32,6 +32,7 @@ Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` wi
 ## Use instead when
 
 - Use `Dialog` instead when the content should be a centered dialog on larger screens; it renders this sheet on phones.
+- Use the page itself (`AuthLayout`) instead for a step the person must take, such as signing in: a person can always put a Sheet away, and Ouro check's `dismissable-step` fails one over a blank page, or over a signed-out page with no way to sign in.
 
 ## Props
 

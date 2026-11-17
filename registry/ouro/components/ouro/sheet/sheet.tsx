@@ -134,7 +134,10 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  *
  * Use `trigger` for a sheet a button opens, or `open` with `onOpenChange` to
  * control it. Use `Dialog` instead when the content should be a centered
- * dialog on larger screens; it renders this sheet on phones.
+ * dialog on larger screens; it renders this sheet on phones. Use the page itself
+ * (`AuthLayout`) instead for a step the person must take, such as signing in: a
+ * person can always put a Sheet away, and Ouro check's `dismissable-step` fails one
+ * over a blank page, or over a signed-out page with no way to sign in.
  *
  * To close the sheet from an action, control it (`open`/`onOpenChange`) and set
  * `open` to `false` in the handler, or wrap each action in `SheetClose`
@@ -150,6 +153,7 @@ export type SheetProps = SheetWithTriggerProps | SheetControlledProps;
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
  *
+ * @claim "Ouro check's `dismissable-step` fails one" test/check-first-run-in-page.test.ts verify:testExists(test/check-first-run-in-page.test.ts::findFirstRunIssues: dismissable-step > finds a modal dialog that Escape or its close button puts away onto a blank page)
  * @group Overlays
  * @see https://ui.ouroboros.bot/docs/sheet
  *
