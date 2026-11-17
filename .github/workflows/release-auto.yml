@@ -71,6 +71,14 @@ jobs:
           [ "$lane" -gt 0 ] || { echo "::notice::The screen-reader lane has not passed on $sha yet; its end starts this again."; exit 0; }
           ci=$(gh run list --workflow ci.yml --commit "$sha" --event push --json status,conclusion --jq '[.[] | select(.status == "completed" and .conclusion != "cancelled")] | length')
           [ "$ci" -gt 0 ] || { echo "::notice::CI has not finished on $sha yet; its end starts this again."; exit 0; }
+          # The workflow files Release pushes with the release commit must already be main's tip's: GitHub refuses a push by
+          # the workflow's token that adds or changes workflow content no branch holds (ourostack/ouro-ui#1951). A commit
+          # whose workflows main has moved past waits for a newer commit, which its own runs' end starts.
+          git fetch -q --no-tags --depth=1 origin main
+          if [ "$(git rev-parse -q --verify "$sha:.github/workflows" || echo none)" != "$(git rev-parse -q --verify "FETCH_HEAD:.github/workflows" || echo none)" ]; then
+            echo "::notice::main's .github/workflows changed after $sha, so the release waits for a commit that carries them; that commit's runs ending starts this again (#1951)."
+            exit 0
+          fi
           for status in queued in_progress; do
             running=$(gh run list --workflow release.yml --status "$status" --json databaseId --jq "[.[] | select(.databaseId != ${AFTER:-0})] | length")
             [ "$running" -eq 0 ] || { echo "::notice::Release is $status; the release that follows starts this again."; exit 0; }

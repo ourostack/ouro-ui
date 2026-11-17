@@ -4,7 +4,7 @@ import { createServer } from "node:net";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, URL } from "node:url";
+import { fileURLToPath, pathToFileURL, URL } from "node:url";
 import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
@@ -2620,6 +2620,10 @@ test("Release auto starts nothing for a commit that only points the docs at a re
     git(["init", "-q"]);
     git(["config", "user.email", "maintainer@example.com"]);
     git(["config", "user.name", "Maintainer"]);
+    // origin's main is the released commit, so its workflow files are main's (the check fetches main).
+    const origin = join(scratchDir("ouro-release-auto-origin-"), "origin.git");
+    execFileSync("git", ["init", "-q", "--bare", origin]);
+    git(["remote", "add", "origin", pathToFileURL(origin).href]);
     mkdirSync(join(dir, "scripts"));
     mkdirSync(join(dir, "changes"));
     copyFileSync(join(root, "scripts/pin-only.mjs"), join(dir, "scripts/pin-only.mjs"));
@@ -2635,6 +2639,7 @@ test("Release auto starts nothing for a commit that only points the docs at a re
     git(["tag", "v1.3.56"]);
     commit({ "changes/fragment.md": fragment });
     const sha = commit(changes);
+    git(["push", "-q", "origin", "HEAD:refs/heads/main"]);
     const log = join(dir, "gh.log");
     // Stands in for gh: the newest release v1.3.56, and no run in progress.
     const stub = `gh() {
