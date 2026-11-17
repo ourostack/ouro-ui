@@ -1,1 +1,1 @@
-- Fixed: Button's and Navbar's shipped tests compare weight, padding and corners with the app's theme, so an app whose theme changes the medium weight (Spoonjoy uses 600) no longer fails them.
+- Fixed: Button's and Navbar's shipped tests compare weight, padding and corners with the app's own theme, so an app whose theme makes the medium weight heavier no longer fails them.
