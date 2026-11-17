@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
-import { NAMES, REPOS, UPDATERS, asBytes, findPins, isBehind, isCandidate } from "./pins.mjs";
+import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, asBytes, findPins, isBehind, isCandidate } from "./pins.mjs";
 import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
@@ -198,7 +198,7 @@ async function autoMerge(gh, pr, commitBody) {
 /** Whether a path is a workflow, which an app writes only with the `workflows` permission. */
 export const inWorkflows = (path) => /^\.github\/workflows\//.test(path);
 const workflowNote = (paths) =>
-  `Leaves ${paths.map((path) => `\`${path}\``).join(", ")} alone: GitHub lets an app change \`.github/workflows/\` only with the \`workflows\` permission, which Ouro Current does not ask for. Keep the Ouro UI version in a file the workflow reads at run time, such as \`.github/ouro-hx-installed.json\`.`;
+  `Leaves ${paths.map((path) => `\`${path}\``).join(", ")} alone: ${WORKFLOWS_PERMISSION}. Keep the Ouro UI version in a file the workflow reads at run time, such as \`.github/ouro-hx-installed.json\`.`;
 
 /** One repository: current, or updated through the bot's one pull request. */
 export async function keepRepo(gh, repo, releases, sources, { dryRun = false } = {}) {
@@ -239,6 +239,8 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   const ctx = {
     ...sources,
     consumerFiles: async () => (consumer ??= readTarball(await gh.get(`repos/${repo}/tarball/${head}`, { raw: true }))),
+    /** One file of the repository, or null when it has none at that path. */
+    consumerFile: async (path) => (blobs.has(path) ? Buffer.from((await gh.get(`repos/${repo}/git/blobs/${blobs.get(path)}`)).content, "base64") : null),
     /** The files directly in one folder of the repository, read one blob at a time rather than as a tarball. */
     consumerFolder: async (dir) => {
       const out = new Map();

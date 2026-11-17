@@ -247,6 +247,8 @@ function installedPaths(tarball, installed, declared = {}) {
 }
 
 const list = (paths) => paths.map((path) => `\`${path}\``).join(", ");
+/** Paths in code spans, the last after "and". */
+const listAnd = (paths) => (paths.length > 1 ? `${list(paths.slice(0, -1))} and \`${paths.at(-1)}\`` : list(paths));
 
 /** A path in a script, where it stands as a word: `src/lib/x.ts`, or `./src/lib/x.ts` after a space or a quote. */
 const scriptPath = (path) => new RegExp(String.raw`(^|[\s"'=(])((?:\.\/)?)${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\w-]|\.\w)`, "g");
@@ -264,72 +266,156 @@ function axImportOf(text) {
 /** The registry folder of Ouro AX's shared files, which the app's `#ouro-ax/*` import must resolve to. */
 const KIT = "@lib/ouro/ax/";
 
-/** Files whose old paths may be named in the app's own scripts and docs. */
-const TEXT = /\.(?:[cm]?[jt]sx?|json|md|mdx|ya?ml|sh|txt|astro|html|toml)$/;
-const notRead = /(^|\/)(?:node_modules|dist|\.git)\//;
+/** Files whose old paths may be named in the app's own scripts and docs, Makefiles and justfiles among them. */
+const TEXT = /(?:\.(?:[cm]?[jt]sx?|json|md|mdx|ya?ml|sh|bash|mk|txt|astro|html|toml)|(?:^|\/)(?:Makefile|makefile|GNUmakefile|justfile|Justfile|\.justfile))$/;
+/** Folders an install or a build wrote, which hold no reference of the app's own. */
+const notRead = /(^|\/)(?:node_modules|\.git|dist|build|out|\.next|\.nuxt|\.output|\.svelte-kit|\.turbo|\.vercel|\.wrangler|\.cache|coverage|storybook-static|vendor)\//;
+/** A larger file is generated, not written by hand, and is not read for references. */
+const REFERENCE_LIMIT = 512 * 1024;
 const isWorkflow = (path) => /^\.github\/workflows\//.test(path);
 const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** Why Ouro Current leaves `.github/workflows/` to the repository, said the same way wherever it comes up. */
+export const WORKFLOWS_PERMISSION = "GitHub lets an app change `.github/workflows/` only with the `workflows` permission, which Ouro Current does not ask for";
+
 /**
- * A moved file's old path, where the app's own files name it: from the repository's root (`node lib/ouro/check/x.ts`),
- * from a package's folder, or relative to the file (`../lib/ouro/check/x.ts`). Each is pointed at the new path, in
- * the same form. A workflow is not changed (an app may write one only with the `workflows` permission); its lines are
- * returned with the change they need, for the pull request to name.
+ * The folders a move empties of Ouro's files: each folder in the app's package whose every installed file moves, each to
+ * the same place under one new folder (`lib/ouro/check/` when its files all went to `scripts/ouro/check/`), with that
+ * new folder. A file of the app's own left in it keeps its path, since a folder is matched only where its path ends.
  */
-function rewriteReferences(consumer, moves, skip, packageDir, installed = []) {
-  // A folder whose installed files all moved to one folder is named by its path too (`diff -r … lib/ouro/check`).
-  const folders = new Map();
-  for (const { from, to } of moves) {
-    const dir = posix.dirname(from);
-    folders.set(dir, [...(folders.get(dir) ?? []), posix.dirname(to)]);
+function movedFolders(installed, moves, packageDir) {
+  const movedTo = new Map(moves.map(({ from, to }) => [from, to]));
+  const paths = installed;
+  const folders = [];
+  const seen = new Set();
+  for (const { from } of moves) {
+    for (let dir = posix.dirname(from); dir !== "." && `${dir}/`.startsWith(packageDir) && `${dir}/` !== packageDir; dir = posix.dirname(dir)) {
+      if (seen.has(dir)) continue;
+      seen.add(dir);
+      const targets = new Set(paths.filter((path) => path.startsWith(`${dir}/`)).map((path) => {
+        const to = movedTo.get(path);
+        const rest = path.slice(dir.length);
+        return to?.endsWith(rest) ? to.slice(0, to.length - rest.length) : null;
+      }));
+      const [target] = targets;
+      if (targets.size === 1 && target && target !== dir) folders.push({ from: dir, to: target });
+    }
   }
-  const movedFrom = new Set(moves.map((move) => move.from));
-  const dirMoves = [...folders].flatMap(([dir, targets]) => {
-    const whole = installed.filter((path) => posix.dirname(path) === dir).every((path) => movedFrom.has(path));
-    return whole && new Set(targets).size === 1 && targets[0] !== dir ? [{ from: dir, to: targets[0], dir: true }] : [];
-  });
-  const pairs = [...moves, ...dirMoves].flatMap(({ from, to, dir }) => [
-    { old: from, now: to, base: "", dir },
-    ...(packageDir && from.startsWith(packageDir) && to.startsWith(packageDir) ? [{ old: from.slice(packageDir.length), now: to.slice(packageDir.length), base: packageDir, dir }] : []),
+  return folders;
+}
+
+/** Prose, whose mentions of a moved path are listed for the pull request rather than rewritten. */
+const DOCS = /\.(?:md|mdx|txt)$/;
+/** Tests, which run the app's tools as its scripts do, wherever they sit. */
+const TESTS = /(?:^|\/)(?:tests?|__tests__|e2e)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/;
+
+/**
+ * A moved file's old path, or a folder a move emptied, where the repository's own files name it: from the root
+ * (`node lib/ouro/check/x.ts`), from the app's package folder (`src/lib/…` in that package's scripts, or at the root
+ * when the root has nothing of its own there), or relative to the file (`../lib/ouro/check/x.ts`). Each is pointed at
+ * the new path, in the same form, as a whole path: never a part of a longer one. Scripts and tests are rewritten, and a
+ * stylesheet's `@source` lines; the rest of the app's source, Ouro's install folders and what the update writes are read
+ * only to learn what still names a moved file. A workflow is not changed (an app may write one only with the
+ * `workflows` permission), nor is prose: their lines are returned with the path to write, for the pull request to name.
+ */
+function rewriteReferences(consumer, moves, { skip, app, ouro, packageDir, installed }) {
+  const pairs = [...moves.map(({ from, to }) => ({ from, to, folder: false })), ...movedFolders(installed, moves, packageDir).map(({ from, to }) => ({ from, to, folder: true }))];
+  const forms = pairs.flatMap(({ from, to, folder }) => [
+    { old: from, now: to, base: "", folder },
+    ...(packageDir && from.startsWith(packageDir) && to.startsWith(packageDir) ? [{ old: from.slice(packageDir.length), now: to.slice(packageDir.length), base: packageDir, folder }] : []),
   ]);
   const files = {};
   const fixed = [];
   const stuck = [];
+  const docs = [];
   const named = new Set();
-  if (pairs.length === 0) return { files, fixed, stuck, named };
-  for (const [path, bytes] of consumer) {
-    if (skip.has(path) || !TEXT.test(path) || notRead.test(path) || bytes.length > 1_000_000) continue;
-    const text = bytes.toString("utf8");
-    if (!pairs.some(({ old }) => text.includes(old))) continue;
-    let next = text;
-    for (const { old, now, base, dir } of pairs) {
-      // A folder is matched only where it ends, or before `/*`, so a file in it that did not move keeps its path.
-      const end = dir ? String.raw`(?=$|[\s"'\`)\],;:]|\/(?:\*|$|[\s"'\`]))` : String.raw`(?![\w-]|\.\w)`;
-      const re = new RegExp(String.raw`(^|[\s"'\`=(:,[])((?:\.{1,2}\/)*)${escapeRe(old)}${end}`, "gm");
-      next = next.replace(re, (all, lead, prefix) => {
-        if (prefix.includes("..")) {
-          const from = posix.dirname(path);
-          if (posix.normalize(posix.join(from, prefix + old)) !== `${base}${old}`) return all;
-          const rel = posix.relative(from, `${base}${now}`);
-          named.add(`${base}${old}`);
-          return `${lead}${rel.startsWith(".") ? rel : `./${rel}`}`;
-        }
-        named.add(`${base}${old}`);
-        return `${lead}${prefix}${now}`;
-      });
+  if (forms.length === 0) return { files, fixed, stuck, docs, named };
+  const paths = [...consumer.keys()];
+  const packages = new Set(paths.filter((path) => posix.basename(path) === "package.json").map((path) => (posix.dirname(path) === "." ? "" : `${posix.dirname(path)}/`)));
+  const home = (path) => {
+    for (let dir = posix.dirname(path); ; dir = posix.dirname(dir)) {
+      if (packages.has(dir === "." ? "" : `${dir}/`) || dir === ".") return dir === "." ? "" : `${dir}/`;
     }
-    if (next === text) continue;
-    if (isWorkflow(path)) {
-      const before = text.split("\n");
-      next.split("\n").forEach((line, index) => {
-        if (line !== before[index]) stuck.push({ path, line: index + 1, text: line.trim() });
+  };
+  // The root's own file or folder at a package path means a root file naming that path means the root's.
+  const atRoot = (form) => consumer.has(form.old) || (form.folder && paths.some((path) => path.startsWith(`${form.old}/`)));
+  const patterns = new Map();
+  const patternFor = (scope, dir) => {
+    const key = `${scope} ${dir}`;
+    if (!patterns.has(key)) {
+      const usable = forms.filter((form) => form.base === "" || scope === "package" || (scope === "root" && !atRoot(form)));
+      // From a file in a folder, a path may also be written relative to it (`../lib/ouro/check` in `app/styles/`).
+      const relative = dir === "." ? [] : forms.filter((form) => form.base === "").flatMap((form) => {
+        const rel = posix.relative(dir, form.old);
+        const now = posix.relative(dir, form.now);
+        return rel.startsWith("../") ? [{ ...form, old: rel, now, relative: true }] : [{ ...form, old: `./${rel}`, now: now.startsWith("../") ? now : `./${now}`, relative: true }];
+      });
+      const all = [...usable, ...relative].sort((a, b) => b.old.length - a.old.length);
+      // A folder is matched only where its path ends, or before `/*`, so a file in it that did not move keeps its path.
+      const alternatives = all.map((form) => `${escapeRe(form.old)}${form.folder ? String.raw`(?=$|[\s"'\`)\],;:]|\/(?:\*|$|[\s"'\`]))` : String.raw`(?![\w/-]|\.\w)`}`);
+      patterns.set(key, { byOld: new Map(all.map((form) => [form.old, form])), re: new RegExp(String.raw`(^|[\s"'\`=(:,[])((?:\.{1,2}\/)*)(${alternatives.join("|")})`, "gm") });
+    }
+    return patterns.get(key);
+  };
+  const rewrite = (path, text) => {
+    const at = home(path);
+    const dir = posix.dirname(path);
+    const { byOld, re } = patternFor(at === packageDir ? "package" : at === "" ? "root" : "other", dir);
+    const hits = [];
+    const next = text.replace(re, (all, lead, prefix, old) => {
+      const form = byOld.get(old);
+      let now = `${prefix}${form.now}`;
+      if (form.relative) {
+        if (prefix) return all;
+      } else if (prefix.includes("..")) {
+        if (posix.normalize(posix.join(dir, prefix + old)) !== `${form.base}${old}`) return all;
+        const rel = posix.relative(dir, `${form.base}${form.now}`);
+        now = rel.startsWith(".") ? rel : `./${rel}`;
+      }
+      const target = form.relative ? posix.normalize(posix.join(dir, old)) : `${form.base}${old}`;
+      if (!form.folder) named.add(target);
+      hits.push({ from: `${prefix}${old}`, to: now, shown: `${form.relative ? posix.normalize(posix.join(dir, form.now)) : `${form.base}${form.now}`}${form.folder ? "/" : ""}` });
+      return `${lead}${now}`;
+    });
+    return { next, hits };
+  };
+  // A file is read only when it holds the end of a moved path (`ouro/check`, `check/fades.ts`), however it is written.
+  const tails = [...new Set(pairs.map(({ from }) => from.split("/").slice(-2).join("/")))];
+  const byLine = (path, text, each) => text.split("\n").map((line, index) => each(line, index + 1)).join("\n");
+  const within = (roots, path) => roots.some((root) => path.startsWith(root));
+  for (const [path, bytes] of [...consumer].sort(([a], [b]) => a.localeCompare(b))) {
+    const css = /\.css$/.test(path);
+    if (skip.has(path) || !(TEXT.test(path) || css) || notRead.test(path) || bytes.length > REFERENCE_LIMIT || bytes.includes(0)) continue;
+    const text = bytes.toString("utf8");
+    if (!tails.some((tail) => text.includes(tail))) continue;
+    if (isWorkflow(path) || DOCS.test(path)) {
+      const lines = isWorkflow(path) ? stuck : within(ouro, path) ? [] : docs;
+      byLine(path, text, (line, number) => {
+        for (const hit of rewrite(path, line).hits) lines.push({ path, line: number, ...hit });
+        return line;
       });
       continue;
     }
+    if (within(ouro, path)) continue;
+    let hits = [];
+    let next;
+    if (css) {
+      // A stylesheet names files only in Tailwind's `@source` lines, which say which files its classes come from.
+      next = byLine(path, text, (line) => {
+        if (!/^\s*@source\b/.test(line)) return line;
+        const done = rewrite(path, line);
+        hits.push(...done.hits);
+        return done.next;
+      });
+    } else {
+      ({ next, hits } = rewrite(path, text));
+      if (within(app, path) && !TESTS.test(path)) continue;
+    }
+    if (hits.length === 0) continue;
     files[path] = Buffer.from(next, "utf8");
-    fixed.push(path);
+    fixed.push({ path, shown: [...new Set(hits.map((hit) => hit.shown))] });
   }
-  return { files, fixed, stuck, named };
+  return { files, fixed, stuck, docs, named };
 }
 
 /**
@@ -401,12 +487,14 @@ async function updateHxInstalled(pin, text, release, ctx) {
     if (!nextByPath.has(entry.path)) nextByPath.set(entry.path, entry);
   }
   const rewrite = installRewrite(found?.json ?? null);
-  // Ouro AX's shared files sit where the app's `#ouro-ax/*` import points, or, without one, under its lib folder,
-  // where the import this adds will point: the two always agree.
+  // Ouro AX's shared files sit where the app's `#ouro-ax/*` import points. Without one they stay where the install
+  // record has them (a root `lib/ouro/ax/` beside a `src/lib/`), and only an app that has none yet takes its lib folder;
+  // the import this adds points there, so the two always agree.
   const pkgPath = found ? `${found.dir}package.json` : null;
   const pkgText = pkgPath && consumer.get(pkgPath)?.toString("utf8");
   const declaredAx = axImportOf(pkgText);
-  const axDir = found && declaredAx ? `${found.dir}${declaredAx}` : nextRoots["@lib"] ? `${nextRoots["@lib"]}ouro/ax/` : null;
+  const recordedAx = Object.entries(Object.groupBy([...before].filter(([, entry]) => entry.target.startsWith(KIT)), ([path, entry]) => path.slice(0, path.length - (entry.target.length - KIT.length)))).sort((a, b) => b[1].length - a[1].length)[0]?.[0];
+  const axDir = found && declaredAx ? `${found.dir}${declaredAx}` : recordedAx ?? (nextRoots["@lib"] ? `${nextRoots["@lib"]}ouro/ax/` : null);
   const kitPath = (target) => (axDir && target.startsWith(KIT) ? `${axDir}${target.slice(KIT.length)}` : null);
   const out = {};
   const hashes = {};
@@ -501,7 +589,17 @@ async function updateHxInstalled(pin, text, release, ctx) {
   // The app's own scripts and docs that name a moved file's old path are pointed at the new one; a workflow cannot be,
   // so its lines are named. A moved file that is run, or still named somewhere, keeps a forwarding file at its old path.
   const skip = new Set([...installed, ...Object.keys(out), pin.file, ...(pkgPath ? [pkgPath] : [])]);
-  const refs = rewriteReferences(consumer, moves, skip, found?.dir ?? "", installed);
+  // The app's source folders (the top folder of each alias it resolves, `src/` or `app/`) and Ouro's install folders
+  // (the `ouro/` folder each installed or moved file sits in) are the app's code and Ouro's, not its scripts.
+  const appFolders = [...Object.entries(rootsOf(presentTargets(previous), installed, declared)), ...Object.entries(nextRoots)].flatMap(([alias, root]) => {
+    const rest = alias !== "~" && found && root.startsWith(found.dir) ? root.slice(found.dir.length) : "";
+    return rest ? [`${found.dir}${rest.split("/")[0]}/`] : [];
+  });
+  const ouroFolders = [...installed, ...moves.map(({ to }) => to)].flatMap((path) => {
+    const at = `/${path}`.indexOf("/ouro/");
+    return at >= 0 ? [path.slice(0, at + "ouro/".length)] : [];
+  });
+  const refs = rewriteReferences(consumer, moves, { skip, app: [...new Set(appFolders)], ouro: [...new Set(ouroFolders)], packageDir: found?.dir ?? "", installed });
   Object.assign(out, refs.files);
   const forwarded = [];
   for (const { from, to } of moves) {
@@ -518,9 +616,10 @@ async function updateHxInstalled(pin, text, release, ctx) {
   for (const { from, to, target } of moves) notes.push(target.startsWith("~/") ? `Moves \`${from}\` to \`${to}\`, outside the app's TypeScript project.` : target.startsWith(KIT) ? `Moves \`${from}\` to \`${to}\`, where \`#ouro-ax/*\` resolves.` : `Moves \`${from}\` to \`${to}\`.`);
   if (pkg.imports) notes.push(`Adds \`#ouro-ax/*\` to \`imports\` in \`${pkgPath}\`, which the moved files resolve the shared Ouro AX files through.`);
   if (pkg.scripts) notes.push(`Points the \`scripts\` in \`${pkgPath}\` at the moved files.`);
-  if (refs.fixed.length) notes.push(`Points ${list(refs.fixed)} at the moved files.`);
-  const span = (text) => (text.includes("`") ? `\`\` ${text} \`\`` : `\`${text}\``);
-  for (const { path, line, text } of refs.stuck) notes.push(`Ouro Current does not edit workflows, so change \`${path}:${line}\` to ${span(text)}.`);
+  for (const { path, shown } of refs.fixed) notes.push(`Points \`${path}\` at ${listAnd(shown)}, where ${one(shown, "it", "they")} moved.`);
+  for (const { path, line, from, to } of refs.stuck) notes.push(`To do: \`${path}:${line}\` names \`${from}\`; change it to \`${to}\`, where it moved.`);
+  if (refs.stuck.length) notes.push(`Ouro Current leaves those workflow lines to you: ${WORKFLOWS_PERMISSION}.`);
+  for (const { path, line, from, to } of refs.docs) notes.push(`Check \`${path}:${line}\`: it names \`${from}\`, which moved to \`${to}\`. Ouro Current leaves prose to you.`);
   for (const { from, to } of forwarded) notes.push(`Leaves a forwarding file at \`${from}\` that runs \`${to}\`, so what still names the old path keeps working for one release. Delete it once the old path is gone from your workflows and scripts.`);
   if (added.length) notes.push(`Adds what installed items now include: ${list(added)}.`);
   if (edited.length) notes.push(`Leaves ${list(edited)} at \`${record.tag}\`, because ${one(edited, "it is", "they are")} not what the CLI wrote for \`${record.tag}\` (edited here, or rewritten in a way Ouro Current does not reproduce). Install ${one(edited, "it", "them")} again with the CLI, or move the change into Ouro UI.`);
@@ -709,7 +808,39 @@ async function updateVendorLock(pin, text, release, ctx) {
   const actions = pin.follows === "core" && source.files.some((file) => /(^|\/)actions\//.test(file.sourcePath));
   const notes = actions ? projectionsNote(release) : [];
   if (added.length) notes.push(`Vendors what the updated files now import: ${list(added.map((file) => file.generatedPath))}.`);
+  notes.push(...(await unresolvedAxImports(source.files, files, ctx)));
   return { files, notes };
+}
+
+/**
+ * Vendored files that import the shared Ouro AX files as `#ouro-ax/*` resolve them through the `imports` of the nearest
+ * package.json above them, as an app's do. Where none maps it, the pull request says so and gives the entry, without
+ * guessing which package.json should hold it.
+ */
+async function unresolvedAxImports(entries, files, ctx) {
+  const importing = entries.filter((entry) => /\.[cm]?[jt]sx?$/.test(entry.generatedPath) && /["']#ouro-ax\//.test(files[entry.generatedPath]?.toString("utf8") ?? ""));
+  if (importing.length === 0 || !ctx.consumerFile) return [];
+  const scopes = new Map();
+  const unresolved = [];
+  for (const entry of importing) {
+    let found = null;
+    for (let dir = posix.dirname(entry.generatedPath); ; dir = posix.dirname(dir)) {
+      const path = dir === "." ? "package.json" : `${dir}/package.json`;
+      if (!scopes.has(path)) scopes.set(path, await ctx.consumerFile(path));
+      if (scopes.get(path)) {
+        found = scopes.get(path);
+        break;
+      }
+      if (dir === ".") break;
+    }
+    if (!axImportOf(found?.toString("utf8"))) unresolved.push(entry.generatedPath);
+  }
+  if (unresolved.length === 0) return [];
+  const one = (single, several) => (unresolved.length === 1 ? single : several);
+  const kit = entries.find((entry) => entry.sourcePath.startsWith("registry/ouro/ax/") && entry.generatedPath.endsWith(entry.sourcePath.slice("registry/ouro/ax/".length)));
+  const folder = kit ? kit.generatedPath.slice(0, kit.generatedPath.length - (kit.sourcePath.length - "registry/ouro/ax/".length)) : null;
+  const where = folder ? ` that points at \`${folder}\`` : "";
+  return [`${list(unresolved)} ${one("imports", "import")} the shared Ouro AX files as \`#ouro-ax/*\`, which needs an \`imports\` entry in a package.json above ${one("it", "them")}. Add one${where} to the package.json that should hold it; the vendored folder may take one of its own.`];
 }
 
 /** The relative imports a module names: `from "./x.ts"`, `import "./x.ts"`, `import("./x.ts")`. */
