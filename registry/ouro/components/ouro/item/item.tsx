@@ -118,7 +118,7 @@ export interface ItemOwnProps {
 }
 
 /** Props for {@link Item}. The HTML attributes sit outside the `href` union, which keeps the editor's hover docs. */
-export type ItemProps = Omit<HTMLAttributes<HTMLElement>, keyof ItemOwnProps | "title"> &
+export type ItemProps = Omit<HTMLAttributes<HTMLElement>, keyof ItemOwnProps | "title" | "onSelect"> &
   ItemOwnProps & {
     /** What the row is: a name, a recipe title, a setting. It is the link's text with `href`. */
     title: ReactNode;
@@ -437,7 +437,7 @@ export function Item(props: ItemProps): JSX.Element {
             data-stretched-link=""
             data-ouro-control="item"
             data-ouro-part="select"
-            className={cn(buttonReset, stretchedLinkClass, "after:rounded-ouro-lg", choosableControl)}
+            className={cn(buttonReset, stretchedLinkClass, variant === "outline" ? "after:rounded-ouro-xl" : "after:rounded-ouro-lg", choosableControl)}
           >
             {title}
           </button>

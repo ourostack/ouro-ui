@@ -451,7 +451,7 @@ describe("Item with onSelect", () => {
     const { host } = await render(
       <ItemGroup aria-label="Recipes">
         <Item onSelect={() => {}} selected title="Short ribs" description="Four hours" data-row="chosen" />
-        <Item onSelect={() => {}} selected={false} title="Lentil soup" data-row="other" />
+        <Item onSelect={() => {}} selected={false} title="Lentil soup" description="Forty minutes" data-row="other" />
       </ItemGroup>,
     );
     await expect.element(page.getByRole("button", { name: "Short ribs" })).toHaveAttribute("aria-current", "true");
@@ -460,7 +460,13 @@ describe("Item with onSelect", () => {
     const other = host.querySelector<HTMLElement>('[data-row="other"]')!;
     expect(getComputedStyle(chosen).backgroundColor).toBe(themeColor("--accent"));
     expect(getComputedStyle(other).backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    expect(getComputedStyle(chosen.querySelector("[data-ouro-text]")!).color).not.toBe(getComputedStyle(other.querySelector("button")!).color);
+    // The selected row's description mixes 20% toward the foreground, for contrast on the selected colour.
+    const probe = document.createElement("div");
+    probe.style.color = "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))";
+    document.body.append(probe);
+    mounted.push(probe);
+    expect(getComputedStyle(chosen.querySelector("[data-ouro-text]")!).color).toBe(getComputedStyle(probe).color);
+    expect(getComputedStyle(other.querySelector("[data-ouro-text]")!).color).not.toBe(getComputedStyle(probe).color);
   });
 
   it("keeps its padding and corners in a divided or plain group, so the selected colour has room, and a plain row keeps none", async () => {
@@ -478,8 +484,9 @@ describe("Item with onSelect", () => {
     }
   });
 
-  it("keeps an outlined row's corners and padding", async () => {
+  it("keeps an outlined row's corners and padding, and rounds its press layer to them", async () => {
     const { item } = await render(<Item onSelect={() => {}} selected variant="outline" title="Short ribs" />);
+    expect(getComputedStyle(item.querySelector("button")!, "::after").borderTopLeftRadius).toBe(getComputedStyle(item).borderTopLeftRadius);
     const outline = (await render(<Item variant="outline" title="Lentil soup" />)).item;
     expect(getComputedStyle(item).borderTopLeftRadius).toBe(getComputedStyle(outline).borderTopLeftRadius);
     expect(getComputedStyle(item).paddingInlineStart).toBe(getComputedStyle(outline).paddingInlineStart);
