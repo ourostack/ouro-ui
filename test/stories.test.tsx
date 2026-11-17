@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, inject } from "vitest";
 import { commands, page, server } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
 import { checkStory } from "./check-story.ts";
-import { judgedOn, knownFindings } from "./check-known.ts";
+import { judgedOn, knownFindings, staleEntries } from "./check-known.ts";
 import { describeFindings, parkPointer, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
 import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles, type ComposedStory } from "./stories.tsx";
 import { sliced } from "./slice.ts";
@@ -218,7 +218,7 @@ describe("stories pass Ouro check's rules", () => {
     const known = knownFindings.filter((entry) => entry.story === id && judgedOn(entry.rule, platform));
     const unknown = found.filter((finding) => !known.some((entry) => entry.rule === finding.rule));
     if (unknown.length > 0) throw new Error(`findings not in check-known.ts, as JSON:\n${JSON.stringify(unknown, null, 2)}`);
-    const stale = known.filter((entry) => !found.some((finding) => finding.rule === entry.rule));
+    const stale = staleEntries(known, found);
     if (stale.length > 0) throw new Error(`known findings that no longer show: remove them from check-known.ts, as JSON:\n${JSON.stringify(stale, null, 2)}`);
   }, storyScanTimeout);
 });
