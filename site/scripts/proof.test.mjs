@@ -193,6 +193,58 @@ exec "${realGit}" "$@"
   assert.equal(readFileSync(calls, "utf8"), "x\nx\n");
 });
 
+test("a shallow.lock left by a fetch its time limit ended is cleared before the next try, not hit by every one (#1781)", () => {
+  const dir = releaseCheckout("9.9.9");
+  // A stand-in git whose first fetch takes .git/shallow.lock and hangs, and is ended without removing it, as a killed
+  // git leaves it; each later fetch fails on a held lock, as git does, or brings the tag in.
+  const bin = scratchDir("ouro-proof-git-");
+  const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+  const calls = join(bin, "fetches");
+  const lock = join(dir, ".git", "shallow.lock");
+  writeFileSync(join(bin, "git"), `#!/bin/sh
+for arg in "$@"; do
+  if [ "$arg" = fetch ]; then
+    echo x >> "${calls}"
+    if [ "$(wc -l < "${calls}")" -eq 1 ]; then touch "${lock}"; exec sleep 30; fi
+    if [ -e "${lock}" ]; then echo "fatal: Unable to create '.git/shallow.lock': File exists." >&2; exit 128; fi
+    exec "${realGit}" tag v9.9.5
+  fi
+done
+exec "${realGit}" "$@"
+`, { mode: 0o755 });
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    assert.equal(registryAt("v9.9.5", dir, 100, 4, 500), readFileSync(join(dir, "registry.json"), "utf8"));
+  } finally {
+    process.env.PATH = path;
+  }
+  assert.equal(readFileSync(calls, "utf8"), "x\nx\n");
+  assert.equal(existsSync(lock), false);
+});
+
+test("a shallow.lock younger than the fetch time limit is another fetch's, and is left for it", () => {
+  const dir = releaseCheckout("9.9.9");
+  const lock = join(dir, ".git", "shallow.lock");
+  // Another process holds the lock throughout: every fetch fails on it, and it stays.
+  const bin = scratchDir("ouro-proof-git-");
+  const realGit = execFileSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).trim();
+  writeFileSync(join(bin, "git"), `#!/bin/sh
+for arg in "$@"; do
+  if [ "$arg" = fetch ]; then touch "${lock}"; echo "fatal: Unable to create '.git/shallow.lock': File exists." >&2; exit 128; fi
+done
+exec "${realGit}" "$@"
+`, { mode: 0o755 });
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    assert.throws(() => registryAt("v9.9.4", dir, 0, 4, 10_000), /Last: fatal: Unable to create '\.git\/shallow\.lock'/);
+  } finally {
+    process.env.PATH = path;
+  }
+  assert.equal(existsSync(lock), true);
+});
+
 test("the install command switches to Checklist once a release has it", () => {
   const registry = (names) => JSON.stringify({ items: names.map((name) => ({ name, type: "registry:ui" })) });
   assert.deepEqual(pickInstall("v1.0.2", registry(["button", "switch"])), { item: "switch", release: "v1.0.2", count: 2 });
