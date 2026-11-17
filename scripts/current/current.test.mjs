@@ -661,6 +661,83 @@ test("a move reaches the update's commit as a deletion of the old copy, with the
   assert.match(repo.pulls[0].body, /Moves `src\/lib\/ouro\/check\/check\.ts` to `scripts\/ouro\/check\/check\.ts`/);
 });
 
+const OFF_THEME = { rule: "off-theme", gatesFrom: "2026-11-24", summary: "A colour, radius, shadow or font written past the theme where the theme has a token for it; each finding names the token to use." };
+const OFF_SCALE = { rule: "off-scale", gatesFrom: "2026-11-24", summary: "Spacing (a margin, padding or gap) off the theme's spacing scale; each finding names the step to use." };
+
+/**
+ * An app on v1.3.117 with Button and, unless `check` is false, Ouro check in scripts/ouro/check/, whose release tags
+ * hold `registry/ouro/check/new-rules.json` as given (text, or undefined for a tag without the file).
+ */
+function checkRulesFixture({ before, after, check = true }) {
+  const items = [
+    { name: "button", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }] },
+    { name: "ouro-check", files: [{ path: "registry/ouro/check/check.ts", target: "~/scripts/ouro/check/check.ts" }, { path: "registry/ouro/check/new-rules.json", target: "~/scripts/ouro/check/new-rules.json" }] },
+  ];
+  const tag = (version, rules) => {
+    const files = { "registry/ouro/components/ouro/button/button.tsx": `export const Button = "${version}";\n`, "registry/ouro/check/check.ts": `export const check = "${version}";\n`, ...(rules === undefined ? {} : { "registry/ouro/check/new-rules.json": rules }) };
+    const registry = { items: items.map((item) => ({ ...item, files: item.files.filter((file) => file.path in files) })) };
+    return new Map(Object.entries({ "registry.json": JSON.stringify(registry), ...files }).map(([k, v]) => [k, Buffer.from(v)]));
+  };
+  const previous = tag("v1", before);
+  const next = tag("v2", after);
+  const installed = { "src/components/ouro/button/button.tsx": 'export const Button = "v1";\n', ...(check ? { "scripts/ouro/check/check.ts": 'export const check = "v1";\n' } : {}) };
+  const record = { tag: "v1.3.117", tagCommit: "old", files: Object.fromEntries(Object.entries(installed).map(([path, text]) => [path, sha256(text)])) };
+  const consumer = new Map(Object.entries({ "components.json": JSON.stringify({ aliases: { components: "@/components", lib: "@/lib" } }), "tsconfig.json": JSON.stringify({ compilerOptions: { paths: { "@/*": ["./src/*"] } } }), ...installed }).map(([k, v]) => [k, Buffer.from(v)]));
+  const ctx = { tarball: async (follows, at) => (at === "v1.3.117" ? previous : next), consumerFiles: async () => consumer, now: () => new Date("2026-11-20T12:00:00Z") };
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  return { pin, ctx, consumer, record, update: () => UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx) };
+}
+
+const prBody = (update, pin) => body([{ file: pin.file, follows: "web", current: "v1.3.117" }], { web: RELEASES.web }, update.notes, update.sections);
+
+test("new Ouro check rules: a release that adds new-rules.json lists both of its rules in the pull request, with their dates and summaries", async () => {
+  const { update, pin } = checkRulesFixture({ before: undefined, after: JSON.stringify([OFF_THEME, OFF_SCALE]) });
+  const result = await update();
+  const text = prBody(result, pin);
+  assert.match(text, /### New Ouro check rules\n\n- `off-theme` \(gates from `2026-11-24`\): A colour, radius, shadow or font written past the theme where the theme has a token for it; each finding names the token to use\.\[\^ouro-check-off-theme\]\n- `off-scale` \(gates from `2026-11-24`\): Spacing \(a margin, padding or gap\) off the theme's spacing scale; each finding names the step to use\.\[\^ouro-check-off-scale\]\n/);
+  assert.match(text, /marked "new rule: gates from <date>"\. They don't fail the check until that date\./);
+  assert.match(text, /\[\^ouro-check-off-theme\]: https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/v1\.3\.187\/registry\/ouro\/check\/new-rules\.json verify:urlOk\(/);
+  assert.deepEqual(lintMarkdown(text, { file: "pull request body" }), [], "a repository that lints its pull requests for claims accepts the section");
+});
+
+test("new Ouro check rules: only a rule the old tag's file lacks is listed, by name, and one whose day has come gates now", async () => {
+  const { update, pin } = checkRulesFixture({ before: JSON.stringify([OFF_THEME]), after: JSON.stringify([{ ...OFF_THEME, gatesFrom: "2026-12-01" }, { ...OFF_SCALE, gatesFrom: "2026-11-20" }]) });
+  const text = prBody(await update(), pin);
+  assert.match(text, /- `off-scale` \(gates now\): Spacing/);
+  assert.doesNotMatch(text, /`off-theme`/, "a rule the app's old release already listed is not new to it, whatever its date");
+  assert.doesNotMatch(text, /They don't fail the check until that date/);
+  assert.match(text, /A rule that gates now fails the check on its findings/);
+  assert.deepEqual(lintMarkdown(text, { file: "pull request body" }), []);
+});
+
+test("new Ouro check rules: an app without Ouro check installed gets no section", async () => {
+  const { update } = checkRulesFixture({ before: undefined, after: JSON.stringify([OFF_THEME, OFF_SCALE]), check: false });
+  const result = await update();
+  assert.deepEqual(result.sections, []);
+  assert.equal(result.notes.some((note) => /Ouro check/.test(note)), false);
+});
+
+test("new Ouro check rules: a new-rules.json that cannot be read leaves the section out with a note, and the update goes on", async () => {
+  for (const [before, after, tag] of [[undefined, "{ not json", "v1.3.187"], [JSON.stringify({ rule: "off-theme" }), JSON.stringify([OFF_THEME]), "v1.3.117"], [undefined, JSON.stringify([{ rule: "off-theme", gatesFrom: "soon", summary: "x" }]), "v1.3.187"]]) {
+    const { update, pin } = checkRulesFixture({ before, after });
+    const result = await update();
+    assert.deepEqual(result.sections, []);
+    assert.equal(result.files["scripts/ouro/check/check.ts"].toString(), 'export const check = "v2";\n', "the files still update");
+    const note = result.notes.find((entry) => /new Ouro check rules/.test(entry));
+    assert.ok(note?.includes(`\`registry/ouro/check/new-rules.json\` at \`${tag}\` could not be read`), note);
+    assert.deepEqual(lintMarkdown(prBody(result, pin), { file: "pull request body" }), []);
+  }
+});
+
+test("new Ouro check rules reach the update pull request's body", async () => {
+  const { record, ctx, consumer } = checkRulesFixture({ before: undefined, after: JSON.stringify([OFF_THEME]) });
+  const repo = fakeRepo({ ...Object.fromEntries([...consumer].map(([path, bytes]) => [path, bytes.toString("utf8")])), ".github/ouro-hx-installed.json": JSON.stringify(record) });
+  const kept = await keepRepo(repo.gh, "o/r", RELEASES, { tarball: ctx.tarball, now: ctx.now });
+  assert.equal(kept.state, "pr");
+  assert.match(repo.pulls[0].body, /### New Ouro check rules\n\n- `off-theme` \(gates from `2026-11-24`\)/);
+  assert.match(repo.pulls[0].body, /new rule: gates from <date>[\s\S]*\nYour checks decide/, "the section sits after the notes");
+});
+
 test("a vendored source moves to the release's commit with each file's new bytes and hash", async () => {
   const lock = { schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "old", files: [{ sourcePath: "registry/ouro/ax/cli.ts", generatedPath: "lib/ouro-ui/registry/ouro/ax/cli.ts", sha256: "x" }] }] };
   const ctx = { tarball: async () => new Map([["registry/ouro/ax/cli.ts", Buffer.from("cli v2")]]) };
