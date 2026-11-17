@@ -472,11 +472,11 @@
       "repo": "ourostack/ouroboros-website",
       "pins": [
         {
-          "label": "OURO_UI_TAG",
+          "label": "Ouro HX",
           "latest": "web",
-          "from": "regex",
-          "file": ".github/workflows/site-checks.yml",
-          "regex": "OURO_UI_TAG:\\s*(v[0-9.]+)"
+          "from": "json",
+          "file": ".github/ouro-hx-installed.json",
+          "key": "tag"
         }
       ],
       "hx": {
