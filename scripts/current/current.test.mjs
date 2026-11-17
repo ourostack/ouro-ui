@@ -300,7 +300,7 @@ test("Ouro HX adds what an updated ouro-base puts in the app's stylesheet, as sh
   assert.equal(css.match(/--radius-ouro-md:/g).length, 1, "a variable the app has is not added again");
   assert.match(css, /--radius-ouro-md: 0\.5rem;/, "and keeps the app's value");
   assert.match(css, /--ouro-layer: 60;/);
-  assert.doesNotMatch(css, /@utility press/, "a utility the old tag had and the app left out stays out");
+  assert.equal(css.match(/@utility press \{/g)?.length, 1, "a utility the app lacks comes back whole, once");
   const lines = css.split("\n");
   let at = 0;
   for (const line of app.css.split("\n")) {
@@ -338,6 +338,49 @@ test("an install record already on the release whose stylesheet lacks what that 
   repo.setMain({ "src/index.css": repo.fileAt(BRANCH, "src/index.css") });
   const after = await keepRepo(repo.gh, "o/r", releases, { tarball: app.tarball });
   assert.equal(after.state, "current", "once the stylesheet has it, the repository is current");
+});
+
+test("an app on the newest release whose stylesheet lacks a keyframes ouro-base has gets the stylesheet update adding that block alone, and a second run is current", async () => {
+  const app = themeFixture({ tag: "v1.3.248" });
+  // The app already has every theme variable and utility of the release, and none of its keyframes changed: only the
+  // new `@keyframes ouro-moment-arrive` is missing, as for an app whose pins named the release before it gained it.
+  const tarball = async (follows, version) => {
+    const files = await app.tarball(follows, version);
+    const registry = JSON.parse(files.get("registry.json").toString());
+    const base = registry.items.find((item) => item.name === "ouro-base");
+    base.css["@keyframes ouro-moment-arrive"] = { from: { opacity: "0" } };
+    files.set("registry.json", Buffer.from(JSON.stringify(registry)));
+    return files;
+  };
+  const releases = { ...RELEASES, web: { ...RELEASES.web, tag: "v1.3.248" } };
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const consumer = new Map(Object.entries(app.files).map(([k, v]) => [k, Buffer.from(v)]));
+  const caughtUp = (await UPDATERS["hx-installed"](pin, app.files[pin.file], releases.web, { tarball: app.tarball, consumerFiles: async () => consumer })).files["src/index.css"].toString();
+  const repo = fakeRepo({ ...app.files, "src/index.css": caughtUp, ".github/ouro-current.json": "{}" });
+  const kept = await keepRepo(repo.gh, "o/r", releases, { tarball });
+  assert.equal(kept.state, "pr");
+  assert.equal(kept.pr.title, "Update the stylesheet to Ouro UI v1.3.248");
+  assert.equal(repo.fileAt(BRANCH, "src/index.css"), `${caughtUp.trimEnd()}\n\n@keyframes ouro-moment-arrive {\n    from {\n        opacity: 0;\n    }\n}\n`);
+  repo.setMain({ "src/index.css": repo.fileAt(BRANCH, "src/index.css") });
+  assert.equal((await keepRepo(repo.gh, "o/r", releases, { tarball })).state, "current", "a second run finds nothing to add");
+});
+
+test("a keyframes or utility the app has under that name is kept as the app wrote it, and a plain rule the previous tag had stays out", () => {
+  const item = {
+    name: "ouro-base",
+    css: {
+      "@layer base": { "[data-ouro-surface]": { display: "none" } },
+      "@utility press": { transition: "scale 160ms" },
+      "@keyframes ouro-spin": { to: { rotate: "1turn" } },
+      "@keyframes ouro-new": { to: { opacity: "1" } },
+    },
+  };
+  const previous = { name: "ouro-base", css: { "@layer base": { "[data-ouro-surface]": { display: "none" } } } };
+  const css = ":root {\n  --ouro-layer: 50;\n}\n\n@utility press {\n  scale: 0.97;\n}\n\n@keyframes ouro-spin {\n  from {\n    rotate: 0;\n  }\n}\n";
+  const result = applyItem(css, item, previous);
+  assert.equal(result.text, `${css}\n@keyframes ouro-new {\n  to {\n    opacity: 1;\n  }\n}\n`, "only the keyframes the app has no block of that name for is added");
+  assert.deepEqual(result.added, [{ where: "`@keyframes ouro-new`", names: [] }]);
+  assert.equal(applyItem(result.text, item, previous).text, result.text, "a second run changes nothing");
 });
 
 /**

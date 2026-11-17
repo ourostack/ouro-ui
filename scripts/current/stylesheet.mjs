@@ -205,20 +205,26 @@ const ruleKey = (target, prop) => `${target.wrappers.map(collapse).join(" ")}|${
 /**
  * The stylesheet with what the item adds and it lacks, and what was added and left out. A theme variable the
  * stylesheet lacks is added whenever the item has it: a variable does nothing until something reads it, so a missing
- * one is never a choice the app made, and an update that skipped the stylesheet left it out. A rule, utility or
- * keyframes is added only when it is new since `previous` (the item at the tag the app updates from): one the app
- * lacks that `previous` already had was left out or rewritten on purpose, as a site that keeps its own corner shapes
- * does. A stylesheet with no `.dark` rule switches dark mode another way, so the item's `.dark` values are left out.
+ * one is never a choice the app made, and an update that skipped the stylesheet left it out. A named block, a
+ * `@keyframes` or `@utility`, is added whole whenever the stylesheet has no block of that name, as a component that
+ * names it draws nothing without it; one of that name the app has is never replaced. A plain rule is added only when
+ * it is new since `previous` (the item at the tag the app updates from): one the app lacks that `previous` already had
+ * was left out or rewritten on purpose, as a site that keeps its own corner shapes does. A stylesheet with no `.dark`
+ * rule switches dark mode another way, so the item's `.dark` values are left out.
  */
 export function applyItem(text, item, previous = null) {
   const tree = parseCss(text);
   if (!tree) return { text, added: [], skipped: [`the stylesheet's braces do not balance, so it is not read`] };
-  const { rules: wanted, blocks: allBlocks, unknown } = itemTargets(item);
+  const { rules: wanted, blocks, unknown } = itemTargets(item);
   const before = previous ? itemTargets(previous) : null;
   const had = new Set(before?.rules.flatMap((target) => target.decls.map(([prop]) => ruleKey(target, prop))) ?? []);
-  const hadBlocks = new Set(before?.blocks.map((target) => collapse(target.prelude)) ?? []);
-  const rules = wanted.map((target) => (isVariables(target) ? target : { ...target, decls: target.decls.filter(([prop]) => !had.has(ruleKey(target, prop))) })).filter((target) => target.decls.length);
-  const blocks = allBlocks.filter((target) => !hadBlocks.has(collapse(target.prelude)));
+  const named = new Set([...walk(tree)].map(({ node }) => collapse(node.prelude)));
+  const utility = (target) => atName(target.prelude) === "@utility";
+  // A named block the app has is its own, kept as it wrote it; one it lacks comes whole, whatever the previous tag had.
+  const rules = wanted
+    .filter((target) => !utility(target) || !named.has(collapse(target.prelude)))
+    .map((target) => (isVariables(target) || utility(target) ? target : { ...target, decls: target.decls.filter(([prop]) => !had.has(ruleKey(target, prop))) }))
+    .filter((target) => target.decls.length);
   const darkClass = [...walk(tree)].some(({ node }) => !node.prelude.startsWith("@") && selectors(node.prelude).includes(".dark"));
   const unit = indentUnit(text);
   // Insertions are collected by position and applied from the end, so earlier indexes stay right.
@@ -277,7 +283,6 @@ export function applyItem(text, item, previous = null) {
       inserts.push({ at: node.open + 1 + text.slice(node.open + 1, node.close).trimEnd().length, text: `\n${render(prelude, inner, unit.repeat(levelOf(node) + 1), unit)}` });
     }
   }
-  const named = new Set([...walk(tree)].map(({ node }) => collapse(node.prelude)));
   for (const target of blocks) {
     if (named.has(target.prelude)) continue;
     added.push({ where: `\`${target.prelude}\``, names: [] });

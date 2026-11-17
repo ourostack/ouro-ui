@@ -500,7 +500,7 @@ export function stylesheetUpdate(previous, next, found, read, tag) {
     if (!item || !hasItem(text, item)) continue;
     const result = applyItem(text, item, registryItem(previous, name));
     text = result.text;
-    for (const { where, names } of result.added) notes.push(names.length ? `Adds ${list(names)} to ${where} in \`${path}\`, which \`${name}\` at \`${tag}\` puts there and the stylesheet lacked, as \`shadcn add\` would.` : `Adds ${where} to \`${path}\`, new in \`${name}\` at \`${tag}\`, as \`shadcn add\` would.`);
+    for (const { where, names } of result.added) notes.push(names.length ? `Adds ${list(names)} to ${where} in \`${path}\`, which \`${name}\` at \`${tag}\` puts there and the stylesheet lacked, as \`shadcn add\` would.` : `Adds ${where} to \`${path}\`, which \`${name}\` at \`${tag}\` has and the stylesheet lacked, as \`shadcn add\` would.`);
     for (const reason of result.skipped) notes.push(`Leaves ${reason} out of \`${path}\` for \`${name}\`: add it by hand if the app needs it.`);
   }
   return { path, text: text === original ? null : text, notes };
@@ -508,7 +508,8 @@ export function stylesheetUpdate(previous, next, found, read, tag) {
 
 /**
  * Whether an install record already on the release left the app's stylesheet behind it: a component of that release
- * reads a theme variable the stylesheet lacks, because an earlier update moved the components alone. Reads two files,
+ * reads a theme variable, keyframes or utility the stylesheet lacks, because an earlier update moved the components
+ * alone or the stylesheet never had it. Reads two files,
  * components.json and the stylesheet, not the repository's whole tree.
  */
 export async function hxStylesheetBehind(pin, text, release, ctx) {
