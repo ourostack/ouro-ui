@@ -1714,12 +1714,9 @@ describe("TimeGrid slot preview", () => {
     for (const event of events()) expect(meets(textBox(preview(grid)!), event.getBoundingClientRect())).toBe(false);
   });
 
-  it.each([
-    ["an event", "events"],
-    ["a background event", "backgroundEvents"],
-  ] as const)("shows no preview where %s would cover the slot, and shows one again once the pointer is clear", async (_, prop) => {
+  it("shows no preview where one of the person's own events would cover the slot, and shows one again once the pointer is clear", async () => {
     const covering: TimeGridEvent = { id: "covering", title: "Design review", start: at(12, "10:10"), end: at(12, "11:00") };
-    const { grid } = await render({ view: "day", [prop]: [covering], onSlotSelect: vi.fn() });
+    const { grid } = await render({ view: "day", events: [covering], onSlotSelect: vi.fn() });
     await hover(grid, 9 * 60 + 15);
     await expect.poll(() => previewText(grid)).toBe("9:00 AM");
     // The slot from 10:00 to 10:30 is where the event starts at 10:10, so its text would sit under the card.
@@ -1728,6 +1725,30 @@ describe("TimeGrid slot preview", () => {
     await expect.poll(() => previewText(grid)).toBeNull();
     await hover(grid, 9 * 60 + 15);
     await expect.poll(() => previewText(grid)).toBe("9:00 AM");
+  });
+
+  it.each(["ltr", "rtl"] as const)("shows the preview past the background lane where a background event covers the slot (%s)", async (direction) => {
+    // The lane sits at the day's start, which is the right in a right-to-left page; the preview starts past it there too.
+    if (direction === "rtl") {
+      document.documentElement.dir = "rtl";
+      onTestFinished(() => {
+        document.documentElement.dir = "";
+      });
+    }
+    const busy: TimeGridEvent = { id: "busy", title: "Room booked", start: at(12, "10:10"), end: at(12, "11:00") };
+    const { grid } = await render({ view: "day", backgroundEvents: [busy], onSlotSelect: vi.fn() });
+    const slots = grid.querySelectorAll<HTMLElement>("[data-ouro-time-grid-slots]")[0]!;
+    const lane = slots.parentElement!.querySelector<HTMLElement>("[data-ouro-time-grid-background]")!;
+    // The point is over the slot's empty part past the lane, where a pointer can reach it.
+    const point = await hover(grid, 10 * 60 + 5);
+    expect(document.elementFromPoint(point.x, point.y)).toBe(slots);
+    await expect.poll(() => previewText(grid)).toBe("10:00 AM");
+    const box = preview(grid)!.getBoundingClientRect();
+    const laneBox = lane.getBoundingClientRect();
+    if (direction === "ltr") expect(box.left).toBeGreaterThanOrEqual(laneBox.right);
+    else expect(box.right).toBeLessThanOrEqual(laneBox.left);
+    const text = textBox(preview(grid)!);
+    for (const bar of grid.querySelectorAll<HTMLElement>("[data-background]")) expect(meets(text, bar.getBoundingClientRect())).toBe(false);
   });
 
   it("keeps the preview of a day that no event covers, beside another day's event", async () => {
