@@ -85,17 +85,26 @@ describe("listenForMeasures", () => {
     expect(m.painted.get(at("first"))).toMatchObject({ frame: 1, skipped: false });
     expect(m.painted.get(at("link"))?.frame).toBe(1);
     expect(["zero", "tall", "hidden", "left", "up", "right", "down", "faded", "unseen"].map((id) => m.painted.has(at(id)))).toEqual([false, false, false, false, false, false, false, false, false]);
-    // Input ends the reading, even one that lands while a frame is on its way to be read: this runs in the frame after the
-    // recorder's own callback, so the frame it posts is read once the input has come and the control is drawn.
+    // Input ends the reading.
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    host.append(Object.assign(document.createElement("button"), { id: "late", textContent: "Late" }));
+    await frames();
+    expect(m.painted.has(at("late"))).toBe(false);
+  });
+
+  it("ends the reading at input that lands while a frame is on its way to be read", async () => {
+    host = render('<button id="first">First</button>');
+    const m = measures();
+    // Registered after the recorder's first frame callback, this runs after it in the same frame, and so before the message
+    // that callback posts to read the frame: the input lands between the two whatever the runner's speed.
     await new Promise<void>((done) =>
       requestAnimationFrame(() => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
-        host.append(Object.assign(document.createElement("button"), { id: "late", textContent: "Late" }));
         done();
       }),
     );
     await frames();
-    expect(m.painted.has(at("late"))).toBe(false);
+    expect(m.painted.size).toBe(0);
   });
 
   it("reads at most ten frames", async () => {
