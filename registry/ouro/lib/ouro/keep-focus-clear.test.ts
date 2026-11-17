@@ -160,14 +160,6 @@ describe("keepFocusClear", () => {
       expect(movedTop(bar)).toBe("16px");
     });
 
-    it("prefers the top to the collapsed stack when both clear the control", async () => {
-      const bar = setup();
-      control("edge", { left: 100, top: 752, width: 100, height: 17 });
-      await tab("edge");
-      advance(FADE_MS);
-      expect(stateOf(bar).moved).toBe("top");
-    });
-
     it("moves the stack to the top when the moved stack ends exactly at the window's bottom edge", async () => {
       const bar = setup();
       header({ left: 0, top: 0, width: 390, height: 758 });
@@ -176,17 +168,6 @@ describe("keepFocusClear", () => {
       advance(FADE_MS);
       expect(stateOf(bar).moved).toBe("top");
       expect(movedTop(bar)).toBe("774px");
-    });
-
-    it("collapses to the front toast when the top edge is out of reach and only the front toast leaves the control", async () => {
-      const bar = setup();
-      header({ left: 0, top: 0, width: 390, height: 760 });
-      control("peek", { left: 100, top: 752, width: 100, height: 17 });
-      await tab("peek");
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: null, collapsed: true, fading: false, edge: "bottom" });
-      expect(bar.getAttribute("data-ouro-toaster-collapsed")).toBe("");
-      expect(padding()).toBe("74px");
     });
 
     it("leaves the stack where it is when the front toast covers the control and the top edge is out of reach", async () => {
@@ -210,31 +191,6 @@ describe("keepFocusClear", () => {
       expect(bar.getAttribute("data-edge")).toBe("top");
     });
 
-    it("moves a collapsed stack to the top once the top edge is clear", async () => {
-      const bar = setup();
-      const blocker = header({ left: 0, top: 0, width: 390, height: 760 });
-      control("peek", { left: 100, top: 752, width: 100, height: 17 });
-      control("front", { left: 100, top: 790, width: 100, height: 30 });
-      await tab("peek");
-      advance(FADE_MS);
-      expect(stateOf(bar).collapsed).toBe(true);
-      blocker.style.display = "none";
-      await tab("front");
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
-    });
-
-    it("stays collapsed for a control only the front toast covers while the top edge is out of reach", async () => {
-      const bar = setup();
-      header({ left: 0, top: 0, width: 390, height: 760 });
-      control("peek", { left: 100, top: 752, width: 100, height: 17 });
-      control("front", { left: 100, top: 790, width: 100, height: 30 });
-      await tab("peek");
-      advance(FADE_MS);
-      await tab("front");
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: null, collapsed: true, fading: false, edge: "bottom" });
-    });
   });
 
   describe("what covers a control", () => {

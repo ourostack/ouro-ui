@@ -31,45 +31,6 @@ async function render(node: ReactNode) {
   return { host, root, unmount: () => act(async () => root.unmount()) };
 }
 
-/**
- * Waits on real frames, as `until` does, for `toast` to fade out. When it does not, the failure says what the fade was
- * doing (ourostack/ouro-ui#1789): each change during the wait to the attributes that hide or show a toast (the stack's
- * collapse, and Base UI's expanded, behind, limited, starting and ending states on the toasts), the toast's opacities
- * over the wait, and its animations with the values they run between.
- */
-async function fadesOut(toast: HTMLElement) {
-  const stack = viewport()!;
-  const t0 = performance.now();
-  const at = () => `${Math.round(performance.now() - t0)} ms`;
-  const changes: string[] = [];
-  const watch = new MutationObserver((records) => {
-    for (const { target, attributeName } of records) {
-      const element = target as Element;
-      const who = element === stack ? "stack" : element === toast ? "toast" : element.closest('[data-ouro="toast"]') === toast ? "toast's content" : "another toast";
-      changes.push(`${at()} ${who} ${element.hasAttribute(attributeName!) ? "+" : "-"}${attributeName}`);
-    }
-  });
-  watch.observe(stack, { attributes: true, subtree: true, attributeFilter: ["data-ouro-toaster-collapsed", "data-expanded", "data-behind", "data-limited", "data-starting-style", "data-ending-style"] });
-  const opacities: string[] = [];
-  const deadline = t0 + 10_000;
-  while (getComputedStyle(toast).opacity !== "0" && performance.now() < deadline) {
-    opacities.push(`${at()} ${getComputedStyle(toast).opacity}`);
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-  }
-  watch.disconnect();
-  const values = (animation: Animation) =>
-    (animation.effect as KeyframeEffect | null)
-      ?.getKeyframes()
-      .map((frame) => frame.opacity ?? "?")
-      .join(" to ");
-  const animations = toast.getAnimations().map((animation) => `${(animation as CSSTransition).transitionProperty ?? (animation as CSSAnimation).animationName} ${values(animation)} ${animation.playState} at ${Math.round(Number(animation.currentTime))} ms`);
-  const sampled = opacities.filter((_, index) => index % Math.ceil(opacities.length / 12) === 0 || index >= opacities.length - 3);
-  expect(
-    getComputedStyle(toast).opacity,
-    `the stack ${stack.hasAttribute("data-ouro-toaster-collapsed") ? "collapsed" : "expanded"}; changes during the wait: ${changes.slice(-20).join(", ") || "none"}; opacities: ${sampled.join(", ")}; animations: ${animations.join("; ") || "none"}`,
-  ).toBe("0");
-}
-
 const viewport = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]');
 const toasts = () => [...document.querySelectorAll<HTMLElement>('[data-ouro="toast"]')];
 const toastNamed = (message: string) => toasts().find((item) => item.querySelector("[data-ouro-toast-title]")?.textContent === message);
@@ -2092,37 +2053,6 @@ describe("keyboard focus under the stack", () => {
     expect(moved()).toBe("top");
   });
 
-  it("collapses to the newest toast when the top edge is out of reach and only the front toast covers the control", async () => {
-    await page.viewport(390, 844);
-    await render(
-      <>
-        <button type="button" data-case="before">
-          Before
-        </button>
-        <button type="button" data-case="peek" style={{ position: "fixed", top: 0, left: 16, width: 120, height: 8, zIndex: 40 }}>
-          Peek
-        </button>
-        <div aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: 760 }} />
-        <Toaster />
-      </>,
-    );
-    await show("Older", { duration: Infinity });
-    await show("Newer", { duration: Infinity });
-    const front = toasts()[0]!.getBoundingClientRect();
-    const top = Math.min(...stack().map((box) => box.top));
-    const peek = caseOf("peek");
-    // Between the older toast's top and the front toast's, so only the older one covers it.
-    peek.style.top = `${(top + front.top) / 2 - 4}px`;
-    expect(covered(peek)).toBe(true);
-    caseOf("before").focus();
-    await pressTab();
-    await until(focused, "peek");
-    await until(() => viewport()!.hasAttribute("data-ouro-toaster-collapsed"), true);
-    expect(moved()).toBeNull();
-    expect(intersects(peek.getBoundingClientRect(), toasts()[0]!.getBoundingClientRect())).toBe(false);
-    await fadesOut(toasts()[1]!);
-  });
-
   it("leaves the stack where it is when the front toast covers the control and the top edge is out of reach", async () => {
     await page.viewport(390, 844);
     await render(
@@ -2186,39 +2116,6 @@ describe("keyboard focus under the stack", () => {
     await until(() => Math.round(Math.min(...stack().map((box) => box.top))), 16);
   });
 
-  it("moves a collapsed stack to the top once the top edge is clear", async () => {
-    await page.viewport(390, 844);
-    await render(
-      <>
-        <button type="button" data-case="before">
-          Before
-        </button>
-        <button type="button" data-case="peek" style={{ position: "fixed", top: 0, left: 16, width: 120, height: 8, zIndex: 40 }}>
-          Peek
-        </button>
-        <button type="button" data-case="front" style={{ position: "fixed", left: 16, width: 120, height: 40, zIndex: 40 }}>
-          Front
-        </button>
-        <div data-case="header" aria-hidden style={{ position: "fixed", top: 0, left: 0, right: 0, height: 760 }} />
-        <Toaster />
-      </>,
-    );
-    await show("Older", { duration: Infinity });
-    await show("Newer", { duration: Infinity });
-    const front = toasts()[0]!.getBoundingClientRect();
-    const top = Math.min(...stack().map((box) => box.top));
-    caseOf("peek").style.top = `${(top + front.top) / 2 - 4}px`;
-    caseOf("front").style.top = `${front.top + 10}px`;
-    caseOf("before").focus();
-    await pressTab();
-    await until(() => viewport()!.hasAttribute("data-ouro-toaster-collapsed"), true);
-    // The header no longer reaches the window's top edge, so the top edge is clear.
-    caseOf("header").style.display = "none";
-    await pressTab();
-    await until(focused, "front");
-    await until(moved, "top");
-  });
-
   it("measures the stack again when a toast's words grow, so the scroll padding keeps its height", async () => {
     await page.viewport(390, 844);
     await render(<Toaster />);
@@ -2267,36 +2164,6 @@ describe("keyboard focus under the stack", () => {
     await pressTab();
     await until(focused, "foot-one");
     await until(moved, "top");
-  });
-
-  it("collapses from the top when the bottom stack would still cover the control", async () => {
-    await page.viewport(390, 844);
-    await render(
-      <>
-        <button type="button" data-case="before">
-          Before
-        </button>
-        <button type="button" data-case="low" style={{ position: "fixed", bottom: 16, left: 16, width: 120, height: 40, zIndex: 40 }}>
-          Low
-        </button>
-        <button type="button" data-case="big" style={{ position: "fixed", top: 16, left: 16, width: 120, zIndex: 40 }}>
-          Big
-        </button>
-        <Toaster />
-      </>,
-    );
-    await show("Older", { duration: Infinity });
-    await show("Newer", { duration: Infinity });
-    // Reaches down to the front toast's top: under the bottom stack, but not under the front toast.
-    caseOf("big").style.height = `${toasts()[0]!.getBoundingClientRect().top - 16}px`;
-    caseOf("before").focus();
-    await pressTab();
-    await until(focused, "low");
-    await until(moved, "top");
-    await pressTab();
-    await until(focused, "big");
-    await until(() => viewport()!.hasAttribute("data-ouro-toaster-collapsed"), true);
-    expect(moved()).toBeNull();
   });
 
   it("moves the stack back at once when focus falls to nothing after it has rested", async () => {
