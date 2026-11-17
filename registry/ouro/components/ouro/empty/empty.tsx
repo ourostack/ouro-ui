@@ -38,8 +38,9 @@ export interface EmptyOwnProps {
   variant?: "outline" | "plain" | (string & { 'Use "outline" or "plain"': never }) | undefined;
   /**
    * `center` centers everything, for a page or panel; `start` lines it up with the text
-   * around it.
+   * around it (flush with it when `variant="plain"`, with no room at its sides).
    * @default "center"
+   * @claim "`center` centers everything, for a page" registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > lines its text up with the text around it with variant=plain and align=start, in either direction)
    * @claim "`center` centers everything, for a page" registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > centers its content and draws a dashed outline by default)
    * @claim "`center` centers everything, for a page" registry/ouro/components/ouro/empty/empty.test.tsx verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > has no outline with variant=plain, and aligns to the start with align=start)
    */
@@ -129,7 +130,14 @@ export function Empty(props: EmptyProps): JSX.Element {
     <div
       {...rest}
       data-ouro="empty"
-      className={cn("flex min-w-0 flex-col gap-4 px-6 py-10 text-balance", variants[variant], aligns[align], className)}
+      className={cn(
+        "flex min-w-0 flex-col gap-4 py-10 text-balance",
+        // With no edge and its text at the start, it lines up with the text around it; otherwise it keeps room at its sides.
+        !(variant === "plain" && align === "start") && "px-6",
+        variants[variant],
+        aligns[align],
+        className,
+      )}
     >
       {icon && (
         <div

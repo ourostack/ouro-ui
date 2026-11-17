@@ -137,5 +137,7 @@ const plotClass =
   "[&_.recharts-reference-line_[stroke='#ccc']]:stroke-border " +
   "[&_.recharts-dot[stroke='#fff']]:stroke-transparent " +
   "[&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden " +
+  // Some fonts draw a glyph's ink past its box (a 1's flag), so the plot lets the axis labels show whole.
+  "[&_.recharts-surface]:overflow-visible " +
   "[&_.recharts-surface]:rounded-ouro-md [&_.recharts-surface]:outline-ring [&_.recharts-surface]:outline-offset-2 " +
   "[&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid";

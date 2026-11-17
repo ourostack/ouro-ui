@@ -190,6 +190,34 @@ describe("Chart", () => {
     expect(fills()).toEqual(new Set([resolved("var(--muted-foreground)")]));
   });
 
+  it("draws each axis label whole, though its ink, like a 1's flag in some fonts, reaches past the label's box", async () => {
+    // A stroke makes every label's ink reach 3px past its box, whatever the font; the host's padding is a card's.
+    const { chart } = await render(
+      <div style={{ padding: 16 }}>
+        <style>{".chart-ink text { stroke: currentColor; stroke-width: 6px; }"}</style>
+        <Chart title="Cooking" data={rows} categoryKey="month" config={config} className="chart-ink" />
+      </div>,
+      320,
+    );
+    await drawn(chart);
+    const measure = document.createElement("canvas").getContext("2d")!;
+    const labels = [...chart.querySelectorAll<SVGTextElement>(".recharts-cartesian-axis-tick-value")];
+    expect(labels.map((label) => label.textContent)).toContain("1,400");
+    for (const label of labels) {
+      const style = getComputedStyle(label);
+      measure.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      const ink = measure.measureText(label.textContent!);
+      const stroke = parseFloat(style.strokeWidth) / 2;
+      const box = label.getBoundingClientRect();
+      // The nearest box that clips what the label draws.
+      let clip: Element = label.ownerSVGElement!;
+      while (getComputedStyle(clip).overflowX === "visible" && clip.parentElement) clip = clip.parentElement;
+      const edge = clip.getBoundingClientRect();
+      expect(box.left - ink.actualBoundingBoxLeft - stroke, label.textContent!).toBeGreaterThanOrEqual(edge.left);
+      expect(box.left + ink.actualBoundingBoxRight + stroke, label.textContent!).toBeLessThanOrEqual(edge.right);
+    }
+  });
+
   it("maps tones to theme tokens and gives series without one the chart tokens in order", async () => {
     const { chart } = await render(
       <Chart
