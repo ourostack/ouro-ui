@@ -562,6 +562,14 @@ test("site/public/llms.txt gives the init, search and add commands and lists eve
   assert.ok(llms.includes("https://ui.ouroboros.bot/docs/parts.md"), "llms.txt links parts.md");
 });
 
+test("an agent that searches llms.txt for dark mode finds the item that does it", () => {
+  const llms = readFileSync(join(root, "site/public/llms.txt"), "utf8");
+  const line = llms.split("\n").find((each) => each.startsWith("- `color-scheme-toggle`:"));
+  assert.match(line, /\bdark mode\b/i, "color-scheme-toggle's line says dark mode; run pnpm registry");
+  const first = llms.split("\n").findIndex((each) => /\bdark mode\b/i.test(each));
+  assert.equal(first, llms.split("\n").indexOf(line), "the first line that says dark mode is color-scheme-toggle's");
+});
+
 test("--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag)", () => {
   const dir = scratchDir("ouro-registry-");
   const released = join(dir, "released.json");
