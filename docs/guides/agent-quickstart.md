@@ -178,6 +178,8 @@ export default function App() {
 }
 ```
 
+The look comes from the theme. Ouro's components paint themselves from the theme's CSS variables,[^tokens] so the page needs no stylesheet of its own, and a different look is a few variables at the end of `src/index.css`: see [Mix your own paint](theming.md#mix-your-own-paint). Keep `className` for layout, as `App.tsx` does.
+
 Remove what only the template's page used:
 
 ```sh
@@ -203,3 +205,4 @@ The app is done when the build passes and Ouro check reports `0 finding(s)`. The
 
 [^quickstart]: test:scripts/agent-quickstart.test.mjs::the agent quickstart's app type-checks against the registry, with the files and commands it gives verify:testExists(scripts/agent-quickstart.test.mjs::the agent quickstart's app type-checks against the registry, with the files and commands it gives)
 [^namespace]: test:scripts/registry.test.mjs::--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag) verify:testExists(scripts/registry.test.mjs::--from rewrites a released registry.json for the @ouro namespace, keeping its version and docs (Pages serves the newest tag))
+[^tokens]: test/action-token.test.tsx verify:testExists(test/action-token.test.tsx::the action token > repaints the solid primary Button, as a button and as a link, and leaves every selection on --primary)
