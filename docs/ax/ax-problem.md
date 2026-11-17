@@ -68,7 +68,7 @@ function errorJson(shape: AxErrorShape): { error: AxErrorBody; }
 
 ### `errorLine`
 
-The one stderr line: `<tool>: <thing>: <problem>. Fix: <fix>.` Line breaks in any part become spaces.
+The one stderr line: `<tool>: <thing>: <problem>. Fix: <fix>.` Line breaks in any part become spaces. A thing that is the tool itself (a one-command CLI names its only command after the tool) is not said twice.
 
 ```ts
 function errorLine(tool: string, shape: Pick<AxErrorShape, "fix" | "thing" | "problem">): string
