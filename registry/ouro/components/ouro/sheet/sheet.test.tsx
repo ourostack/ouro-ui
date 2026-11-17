@@ -905,6 +905,28 @@ describe("non-modal sheet", () => {
     expect(document.querySelectorAll('[data-ouro="sheet"]')).toHaveLength(2);
   });
 
+  it.each(["tab", "code"] as const)("with closeOnOutsidePress, closes when focus moves out of it by %s, and leaves focus where it went", async (leave) => {
+    await page.viewport(1280, 800);
+    await render(
+      <>
+        <input aria-label="Page field" />
+        <Sheet title="Look" side="right" modal={false} closeOnOutsidePress trigger={<Button>Open look</Button>}>
+          <Button>Ocean</Button>
+        </Sheet>
+      </>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Open look" }));
+    await settled();
+    const ocean = page.getByRole("button", { name: "Ocean" }).element() as HTMLElement;
+    const field = page.getByRole("textbox", { name: "Page field" }).element() as HTMLElement;
+    ocean.focus();
+    if (leave === "tab") await userEvent.keyboard("{Tab}{Tab}");
+    else field.focus();
+    await expect.poll(() => popup()).toBeNull();
+    expect(document.activeElement).not.toBe(document.body);
+    if (leave === "code") expect(document.activeElement).toBe(field);
+  });
+
   it("closeOnOutsidePress={false} keeps a modal sheet open on a press on its backdrop", async () => {
     const onOpenChange = vi.fn();
     await render(

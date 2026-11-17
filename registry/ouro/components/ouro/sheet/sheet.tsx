@@ -72,11 +72,14 @@ export interface SheetBaseProps {
   /**
    * Whether a press outside the sheet closes it. With `modal={false}`, `true` makes the panel
    * beside the page close when the person presses the page, so a press on another row both closes
-   * it and reaches that row. Menus, popovers and dialogs opened from inside the sheet are part of
-   * it, so a press in one of them leaves the sheet open. `false` on a modal sheet keeps it open
-   * when its backdrop is pressed. @default `true` for a modal sheet, `false` with `modal={false}`
+   * it and reaches that row. Focus moving out of it closes it too, by Tab or from your code, so a
+   * keyboard closes it as a press does, and focus stays where it went. Menus, popovers and dialogs
+   * opened from inside the sheet are part of it, so a press in one of them leaves the sheet open.
+   * `false` on a modal sheet keeps it open when its backdrop is pressed.
+   * @default `true` for a modal sheet, `false` with `modal={false}`
    * @claim "With `modal={false}`, `true` makes the" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with closeOnOutsidePress, closes on a press on the page, and the press still reaches the page)
    * @claim "Menus, popovers and dialogs opened from" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with closeOnOutsidePress, stays open on a press in a menu or a dialog opened from inside it)
+   * @claim "Focus moving out of it closes" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with closeOnOutsidePress, closes when focus moves out of it by %s, and leaves focus where it went)
    * @claim "`false` on a modal sheet keeps it" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > closeOnOutsidePress={false} keeps a modal sheet open on a press on its backdrop)
    */
   closeOnOutsidePress?: boolean | undefined;
