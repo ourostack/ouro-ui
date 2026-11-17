@@ -28,14 +28,22 @@ import { Card } from "@/registry/ouro/components/ouro/card/card";
   zoomMedia
   revealDescription
 />
+<Card
+  href="/guides/searing"
+  media={<AspectRatio ratio={4 / 3}><img src={cover} alt="" /></AspectRatio>}
+  title="Searing"
+  description="A dry pan and patience"
+  revealDescription="rise"
+/>
 ```
 
 ## Usage
 
-A linked card can answer the pointer and the keyboard: `zoomMedia` grows its pictures a little inside their frame, and `revealDescription` keeps its description back until the card is hovered or focused, on a screen with a mouse. Both honour reduced motion.
+Both honour reduced motion. A click anywhere on a linked card opens it, whatever the app's own layout does to its parts, and a middle or Cmd/Ctrl click opens it in a new tab.
 
 ## Use instead when
 
+- A linked card can answer the pointer and the keyboard: `zoomMedia` grows its pictures a little inside their frame, and `revealDescription` keeps its description back until the card is hovered or focused, on a screen with a mouse; `revealDescription="rise"` lays the title on the media and raises the description over it instead, from folded away.
 - Use `Item` instead for a compact row in a list (media, title, description and actions side by side), and `Stack` when the group needs no surface.
 
 ## Props
@@ -56,7 +64,7 @@ Type: `CardProps`.
 | `linkRef` | `Ref<HTMLAnchorElement>` |  | With `href`: a ref to the link's `<a>`, to move focus to it (as a "Show more" does for the first new card). |
 | `media` | `ReactNode` |  | An image or video across the top, edge to edge: usually an `AspectRatio` around an `<img>`, so the card keeps its shape while the image loads. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
-| `revealDescription` | `boolean` |  | With `href` and `description`: on a screen with a mouse the description waits, transparent and keeping its room, until the pointer rests on the card or keyboard focus is in it, then fades in. On a touch screen it shows from the start. Screen readers read it while it is transparent too, and the link names it as its description, so a person who tabs to the card hears it. |
+| `revealDescription` | `boolean \| "rise"` |  | With `href` and `description`: on a screen with a mouse the description waits, transparent and keeping its room, until the pointer rests on the card or keyboard focus is in it, then fades in. On a touch screen it shows from the start. Screen readers read it while it is transparent too, and the link names it as its description, so a person who tabs to the card hears it. With `"rise"`, and `media` too, the title sits on the bottom of the media, and the description stays folded away until the pointer rests on the card or keyboard focus is in it, then rises over the media, while the card's box stays the same. On a touch screen a rising description shows from the start. With reduced motion a rising description fades in place. |
 | `size` | `"sm" \| "md"` | `"md"` | Padding: `md` is 24px, `sm` 16px for dense grids. |
 | `stackBelow` | `"sm" \| "md"` |  | Below this breakpoint the `action` drops under the title and description, as in a settings panel on a phone. Without it the action stays beside the title at every width. |
 | `title` | `ReactNode` |  | The card's title, as a heading. With `href` it is the link's text, so a linked card needs one. |

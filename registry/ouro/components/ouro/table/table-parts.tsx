@@ -21,7 +21,7 @@ import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { RouterLink, safeRel } from "@/registry/ouro/lib/ouro/router-link";
-import { raiseControlsClass, stretchedLinkClass } from "@/registry/ouro/lib/ouro/stretched-link";
+import { followStretchedLink, raiseControlsClass, stretchedLinkClass } from "@/registry/ouro/lib/ouro/stretched-link";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import {
   alignClasses,
@@ -360,6 +360,9 @@ export function TableRow(props: TableRowProps): JSX.Element {
       <tr
         {...rest}
         ref={merged}
+        // A click anywhere on a linked row opens its link, though a sticky cell keeps the link's layer to itself.
+        onClick={linked ? (event) => (rest.onClick?.(event), followStretchedLink(event)) : rest.onClick}
+        onAuxClick={linked ? (event) => (rest.onAuxClick?.(event), followStretchedLink(event)) : rest.onAuxClick}
         data-linked={linked ? "" : undefined}
         className={cn(
           table.striped && kind === "body" && "even:bg-muted/50",

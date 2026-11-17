@@ -29,6 +29,20 @@ export default function CardDemo(): JSX.Element {
         zoomMedia
         revealDescription
       />
+      <Card
+        headingLevel={2}
+        href="#searing"
+        media={
+          <AspectRatio ratio={16 / 9}>
+            <img src={braise} alt="" />
+          </AspectRatio>
+        }
+        title="Searing"
+        description="A dry pan and patience"
+        size="sm"
+        zoomMedia
+        revealDescription="rise"
+      />
     </div>
   );
 }

@@ -307,6 +307,72 @@ describe("Card with href", () => {
     expect(getComputedStyle(cardLink).position).toBe("static");
   });
 
+  // An app's layout that positions the card's body over its media, as a front door's tiles do: the link's layer then
+  // covers the body alone, which is the box it is positioned in.
+  const overMedia = '[data-consumer] [data-ouro="card"] > div:last-child { position: absolute; inset: auto 0 0 0; background: var(--card); }';
+  const consumerCard = (extra: ReactNode = null) => (
+    <div data-consumer="">
+      <style>{overMedia}</style>
+      <Card
+        href="#opened"
+        title="Braising"
+        description="Low heat, a lid, and time"
+        media={
+          <AspectRatio ratio={4 / 3}>
+            <img src={pixel} alt="" data-picture="" />
+          </AspectRatio>
+        }
+        action={extra}
+      />
+    </div>
+  );
+
+  it("opens its link from a click anywhere on it, though the app positions its body over the media, with the same button and keys", async () => {
+    const { card } = await render(consumerCard());
+    const link = card.querySelector<HTMLAnchorElement>("[data-card-link]")!;
+    const picture = card.querySelector("[data-picture]")!.getBoundingClientRect();
+    // The app's layout leaves the top of the picture outside the link's layer.
+    expect(document.elementFromPoint(picture.left + 8, picture.top + 8)?.closest("a")).toBeNull();
+    const clicks: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }[] = [];
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      clicks.push({ button: event.button, metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
+    });
+    const at = { position: { x: 8, y: 8 } };
+    await userEvent.click(card.querySelector("[data-picture]")!, at);
+    await userEvent.click(card.querySelector("[data-picture]")!, { ...at, modifiers: ["ControlOrMeta"] } as never);
+    await userEvent.click(card.querySelector("[data-picture]")!, { ...at, modifiers: ["Shift"] } as never);
+    await userEvent.click(card.querySelector("[data-picture]")!, { ...at, button: "middle" } as never);
+    const mac = navigator.platform.startsWith("Mac");
+    expect(clicks).toEqual([
+      { button: 0, metaKey: false, ctrlKey: false, shiftKey: false },
+      { button: 0, metaKey: mac, ctrlKey: !mac, shiftKey: false },
+      { button: 0, metaKey: false, ctrlKey: false, shiftKey: true },
+      { button: 1, metaKey: false, ctrlKey: false, shiftKey: false },
+    ]);
+  });
+
+  it("opens nothing from a click that ends a text selection, or one a control of its own takes", async () => {
+    const onClick = vi.fn();
+    const { card } = await render(consumerCard(<Button variant="plain" onClick={onClick}>Save</Button>));
+    const link = card.querySelector<HTMLAnchorElement>("[data-card-link]")!;
+    const opened = vi.fn((event: Event) => event.preventDefault());
+    link.addEventListener("click", opened);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(opened).not.toHaveBeenCalled();
+    const picture = card.querySelector("[data-picture]")!;
+    const range = document.createRange();
+    range.selectNodeContents(page.getByText("Low heat, a lid, and time").element());
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
+    picture.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(opened).not.toHaveBeenCalled();
+    getSelection()!.removeAllRanges();
+    picture.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(opened).toHaveBeenCalledTimes(1);
+  });
+
   it("outlines the whole card when the link has keyboard focus", async () => {
     const { card } = await render(<Card href="/x" title="Go" />);
     expect(getComputedStyle(card).outlineStyle).toBe("none");
@@ -428,7 +494,7 @@ describe("Card with href, zoomMedia and revealDescription", () => {
         return still ? value : undefined;
       }, { interval: 50 });
   }
-  const tile = (props: { zoomMedia?: boolean; revealDescription?: boolean }) => (
+  const tile = (props: { zoomMedia?: boolean; revealDescription?: boolean | "rise" }) => (
     <Card
       href="#braising"
       title="Braising"
@@ -479,6 +545,47 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     const conditions = hidingConditions(CSS.escape("group/card"));
     expect(conditions).not.toEqual([]);
     for (const chain of conditions) expect(chain).toContain("(hover: hover)");
+  });
+
+  it('rises the description over the media with revealDescription="rise", taking no room before, and the card\'s box never changes', async () => {
+    const { card } = await render(tile({ revealDescription: "rise" }));
+    const reveal = card.querySelector<HTMLElement>('[data-card-reveal="rise"]')!;
+    const picture = card.querySelector("[data-picture]")!.getBoundingClientRect();
+    const box = card.getBoundingClientRect();
+    const title = page.getByRole("heading", { name: "Braising" }).element();
+    // At rest: the title sits on the media's bottom, and the description takes no room.
+    expect(title.getBoundingClientRect().bottom).toBeLessThanOrEqual(picture.bottom);
+    expect(reveal.getBoundingClientRect().height).toBe(0);
+    expect(getComputedStyle(reveal).opacity).toBe("0");
+    await expect.element(page.getByRole("link", { name: "Braising" })).toHaveAccessibleDescription("Low heat, a lid, and time");
+    const titleTop = title.getBoundingClientRect().top;
+    await userEvent.hover(title);
+    await settled(reveal, () => getComputedStyle(reveal).opacity).toBe("1");
+    expect(reveal.getBoundingClientRect().height).toBeGreaterThan(0);
+    // It rose: the title moved up over the media, and the card kept its box.
+    expect(title.getBoundingClientRect().top).toBeLessThan(titleTop);
+    expect(reveal.getBoundingClientRect().bottom).toBeLessThanOrEqual(picture.bottom);
+    expect(card.getBoundingClientRect().toJSON()).toEqual(box.toJSON());
+    await commands.parkPointer();
+    await settled(reveal, () => getComputedStyle(reveal).opacity).toBe("0");
+    expect(reveal.getBoundingClientRect().height).toBe(0);
+    const start = document.createElement("button");
+    card.parentElement!.prepend(start);
+    start.focus();
+    await pressTab();
+    await pressTab();
+    expect(document.activeElement).toBe(card.querySelector("[data-card-link]"));
+    await settled(reveal, () => getComputedStyle(reveal).opacity).toBe("1");
+    // The button before it moved the card down; its size is the same.
+    expect([card.getBoundingClientRect().width, card.getBoundingClientRect().height]).toEqual([box.width, box.height]);
+  });
+
+  it("with reduced motion, a rising description only fades, and nothing moves", async () => {
+    const { card } = await render(tile({ revealDescription: "rise" }));
+    const reveal = card.querySelector<HTMLElement>('[data-card-reveal="rise"]')!;
+    expect(getComputedStyle(reveal).transitionProperty).toContain("grid-template-rows");
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    expect(getComputedStyle(reveal).transitionProperty).toBe("opacity");
   });
 
   it("shows the description on hover or keyboard focus, keeping its room, and names it as the link's description", async () => {
@@ -542,6 +649,8 @@ describe("Card development messages", () => {
     ["as span", { title: "x", as: "span" }, 'as="span" is not an element Card renders; use "div", "article", "section", "li"', '<Card as="div">'],
     ["stackBelow", { title: "x", stackBelow: "lg" }, 'stackBelow="lg" is not a breakpoint; use "sm", "md"', '<Card stackBelow="sm">'],
     ["headingLevel", { title: "x", headingLevel: 1 }, "headingLevel must be 2, 3, 4, 5 or 6, got 1", "<Card headingLevel={2}>"],
+    ["revealDescription", { href: "#x", title: "x", description: "y", revealDescription: "slide" }, 'revealDescription="slide" is not a reveal; use revealDescription or "rise"', '<Card revealDescription="rise">'],
+    ["rise without media", { href: "#x", title: "x", description: "y", revealDescription: "rise" }, 'revealDescription="rise" needs media to rise over', '<Card href="/path" title="…" description="…" media={…} revealDescription="rise">'],
   ])("warns for %s with the fix", async (_name, props, problem, fix) => {
     const { card } = await render(<Card {...(props as unknown as Parameters<typeof Card>[0])} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Card: ${problem}. Fix: ${fix}.`);

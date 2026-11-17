@@ -1,4 +1,5 @@
-export { raiseControlsClass, stretchedLinkClass };
+export { followStretchedLink, raiseControlsClass, stretchedLinkClass };
+export type { StretchedClick };
 
 /**
  * The class for a link that stretches over its whole row or card through its `::after`,
@@ -35,3 +36,48 @@ const stretchedLinkClass =
 const raiseControlsClass =
   "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button],[data-linked]):not([data-stretched-link]))]:relative " +
   "[:where(&_:is(a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button],[data-linked]):not([data-stretched-link]))]:z-10";
+
+/** The mouse event a linked root's `onClick` and `onAuxClick` hand to {@link followStretchedLink}. */
+type StretchedClick = {
+  readonly currentTarget: HTMLElement;
+  readonly target: EventTarget | null;
+  readonly button: number;
+  readonly type: string;
+  readonly defaultPrevented: boolean;
+  readonly ctrlKey: boolean;
+  readonly metaKey: boolean;
+  readonly shiftKey: boolean;
+  readonly altKey: boolean;
+};
+
+// What takes its own click inside a linked root: its stretched link, and every control raiseControlsClass lifts.
+const ownClick = "a,button,input,select,textarea,label,summary,[tabindex]:not([tabindex='-1']),[role=button],[role=link],[contenteditable=true],[data-linked]";
+
+/**
+ * The `onClick` and `onAuxClick` of a linked root: a click anywhere on it that no control of its
+ * own takes opens its stretched link, though the app's layout leaves the link's `::after` short
+ * of that spot (a body the app positions over the media, so the layer covers the body alone). It
+ * hands the link a click with the same button and keys, so a middle click and a Cmd or Ctrl click
+ * open a new tab, a router link navigates as its own click does, and the keyboard is untouched:
+ * the link stays the one tab stop. A click that ends a text selection selects, and opens nothing.
+ *
+ * @internal
+ * @example
+ * <div data-linked="" onClick={followStretchedLink} onAuxClick={followStretchedLink}>…</div>
+ * @claim "a click anywhere on it that no" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens its link from a click anywhere on it, though the app positions its body over the media, with the same button and keys)
+ * @claim "A click that ends a text" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens nothing from a click that ends a text selection, or one a control of its own takes)
+ */
+function followStretchedLink(event: StretchedClick): void {
+  // A main click, or a middle click, which browsers send as auxclick.
+  if (event.defaultPrevented || event.button !== (event.type === "auxclick" ? 1 : 0)) return;
+  const root = event.currentTarget;
+  const link = [...root.querySelectorAll<HTMLElement>("[data-stretched-link]")].find((candidate) => candidate.parentElement?.closest("[data-linked]") === root);
+  const target = event.target instanceof Element ? event.target : null;
+  const control = target?.closest(ownClick);
+  if (!link || !target || (control && control !== root && root.contains(control))) return;
+  const selection = root.ownerDocument.getSelection();
+  if (selection && !selection.isCollapsed) return;
+  const { button, ctrlKey, metaKey, shiftKey, altKey } = event;
+  link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: root.ownerDocument.defaultView, button, ctrlKey, metaKey, shiftKey, altKey }));
+}
+
