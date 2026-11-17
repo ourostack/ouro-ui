@@ -338,18 +338,16 @@ describe("Card with href", () => {
       event.preventDefault();
       clicks.push({ button: event.button, metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
     });
+    // A middle or modified click opens the address in a new tab: Safari ignores the keys on a click a script hands on.
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
     const at = { position: { x: 8, y: 8 } };
     await userEvent.click(card.querySelector("[data-picture]")!, at);
+    expect(clicks).toEqual([{ button: 0, metaKey: false, ctrlKey: false, shiftKey: false }]);
     await userEvent.click(card.querySelector("[data-picture]")!, { ...at, modifiers: ["ControlOrMeta"] } as never);
     await userEvent.click(card.querySelector("[data-picture]")!, { ...at, modifiers: ["Shift"] } as never);
     await userEvent.click(card.querySelector("[data-picture]")!, { ...at, button: "middle" } as never);
-    const mac = navigator.platform.startsWith("Mac");
-    expect(clicks).toEqual([
-      { button: 0, metaKey: false, ctrlKey: false, shiftKey: false },
-      { button: 0, metaKey: mac, ctrlKey: !mac, shiftKey: false },
-      { button: 0, metaKey: false, ctrlKey: false, shiftKey: true },
-      { button: 1, metaKey: false, ctrlKey: false, shiftKey: false },
-    ]);
+    expect(clicks).toHaveLength(1);
+    expect(open.mock.calls).toEqual(Array.from({ length: 3 }, () => [link.href, "_blank", "noopener"]));
   });
 
   it("opens nothing from a click that ends a text selection, or one a control of its own takes", async () => {
@@ -368,9 +366,17 @@ describe("Card with href", () => {
     getSelection()!.addRange(range);
     picture.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     expect(opened).not.toHaveBeenCalled();
+    // Text selected elsewhere on the page, which a press on a picture leaves selected, does not stop the card.
+    const elsewhere = document.createElement("p");
+    elsewhere.textContent = "Notes beside the card";
+    card.parentElement!.after(elsewhere);
+    mounted.push(elsewhere);
+    range.selectNodeContents(elsewhere);
     getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
     picture.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     expect(opened).toHaveBeenCalledTimes(1);
+    getSelection()!.removeAllRanges();
   });
 
   it("outlines the whole card when the link has keyboard focus", async () => {
@@ -566,6 +572,8 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     expect(title.getBoundingClientRect().top).toBeLessThan(titleTop);
     expect(reveal.getBoundingClientRect().bottom).toBeLessThanOrEqual(picture.bottom);
     expect(card.getBoundingClientRect().toJSON()).toEqual(box.toJSON());
+    // The link's layer covers the picture too, so the browser's own link handles a click there: its address, its menu.
+    expect(document.elementFromPoint(picture.left + 8, picture.top + 8)?.closest("a")).toBe(card.querySelector("[data-card-link]"));
     await commands.parkPointer();
     await settled(reveal, () => getComputedStyle(reveal).opacity).toBe("0");
     expect(reveal.getBoundingClientRect().height).toBe(0);
@@ -578,6 +586,29 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     await settled(reveal, () => getComputedStyle(reveal).opacity).toBe("1");
     // The button before it moved the card down; its size is the same.
     expect([card.getBoundingClientRect().width, card.getBoundingClientRect().height]).toEqual([box.width, box.height]);
+  });
+
+  it("grows a rising card to fit a title and description taller than its media, rather than cutting the title off", async () => {
+    const long = "Low heat, a lid, and time: brown the meat well, add the liquid halfway up, and leave it in a slow oven for hours.";
+    const { card } = await render(
+      <Card
+        href="#braising"
+        title="Braising"
+        description={long}
+        media={
+          <AspectRatio ratio={4}>
+            <img src={pixel} alt="" />
+          </AspectRatio>
+        }
+        revealDescription="rise"
+      />,
+    );
+    const title = page.getByRole("heading", { name: "Braising" }).element();
+    await userEvent.hover(title);
+    const reveal = card.querySelector<HTMLElement>('[data-card-reveal="rise"]')!;
+    await settled(reveal, () => getComputedStyle(reveal).opacity).toBe("1");
+    expect(title.getBoundingClientRect().top).toBeGreaterThanOrEqual(card.getBoundingClientRect().top);
+    expect(reveal.getBoundingClientRect().bottom).toBeLessThanOrEqual(card.getBoundingClientRect().bottom);
   });
 
   it("with reduced motion, a rising description only fades, and nothing moves", async () => {

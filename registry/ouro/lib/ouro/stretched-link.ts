@@ -56,15 +56,18 @@ const ownClick = "a,button,input,select,textarea,label,summary,[tabindex]:not([t
 /**
  * The `onClick` and `onAuxClick` of a linked root: a click anywhere on it that no control of its
  * own takes opens its stretched link, though the app's layout leaves the link's `::after` short
- * of that spot (a body the app positions over the media, so the layer covers the body alone). It
- * hands the link a click with the same button and keys, so a middle click and a Cmd or Ctrl click
- * open a new tab, a router link navigates as its own click does, and the keyboard is untouched:
- * the link stays the one tab stop. A click that ends a text selection selects, and opens nothing.
+ * of that spot (a body the app positions over the media, so the layer covers the body alone). A
+ * plain click it hands to the link, so a router link navigates as its own click does. A middle
+ * click, or a click with Cmd, Ctrl or Shift, opens the link's address in a new tab, since Safari
+ * ignores the keys on a click a script hands on and would open it in place. The keyboard is
+ * untouched: the link stays the one tab stop. A click that ends a text selection in the root
+ * selects, and opens nothing.
  *
  * @internal
  * @example
  * <div data-linked="" onClick={followStretchedLink} onAuxClick={followStretchedLink}>…</div>
  * @claim "a click anywhere on it that no" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens its link from a click anywhere on it, though the app positions its body over the media, with the same button and keys)
+ * @claim "A middle click, or a click with" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens its link from a click anywhere on it, though the app positions its body over the media, with the same button and keys)
  * @claim "A click that ends a text" registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens nothing from a click that ends a text selection, or one a control of its own takes)
  */
 function followStretchedLink(event: StretchedClick): void {
@@ -75,9 +78,15 @@ function followStretchedLink(event: StretchedClick): void {
   const target = event.target instanceof Element ? event.target : null;
   const control = target?.closest(ownClick);
   if (!link || !target || (control && control !== root && root.contains(control))) return;
+  // Text selected elsewhere on the page stays selected through a press on a picture, so only a selection in the root counts.
   const selection = root.ownerDocument.getSelection();
-  if (selection && !selection.isCollapsed) return;
-  const { button, ctrlKey, metaKey, shiftKey, altKey } = event;
-  link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: root.ownerDocument.defaultView, button, ctrlKey, metaKey, shiftKey, altKey }));
+  if (selection && !selection.isCollapsed && selection.containsNode(root, true)) return;
+  const view = root.ownerDocument.defaultView;
+  const href = link.getAttribute("href");
+  if (event.button === 1 || event.ctrlKey || event.metaKey || event.shiftKey) {
+    if (href) view?.open((link as HTMLAnchorElement).href, "_blank", "noopener");
+    return;
+  }
+  link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view, altKey: event.altKey }));
 }
 

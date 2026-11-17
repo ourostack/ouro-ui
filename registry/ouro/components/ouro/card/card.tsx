@@ -369,10 +369,12 @@ export function Card(props: CardProps): JSX.Element {
     },
     variant === "outline" && <span data-ouro-surface="" aria-hidden="true" style={{ zIndex: -1 }} />,
     media && !rise && <div className={cn("relative overflow-hidden", mediaPull[variant][size], zoom && zoomMediaClass)}>{media}</div>,
+    // The title stacked over the media in one grid cell, not positioned, so the link's layer still covers the whole
+    // card; a cell grows to fit a title and description taller than the media rather than cutting the title off.
     rise && (
-      <div className={cn("relative overflow-hidden", mediaPull[variant][size])}>
-        <div className={cn("overflow-hidden", zoom && zoomMediaClass)}>{media}</div>
-        {titleBlock("absolute inset-x-0 bottom-0 bg-card py-3 text-card-foreground")}
+      <div className={cn("grid overflow-hidden", mediaPull[variant][size])}>
+        <div className={cn("relative overflow-hidden [grid-area:1/1]", zoom && zoomMediaClass)}>{media}</div>
+        {titleBlock("z-1 self-end [grid-area:1/1] bg-card py-3 text-card-foreground")}
       </div>
     ),
     !rise && titleBlock(""),

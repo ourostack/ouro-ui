@@ -6,5 +6,13 @@
   {
     "rule": "off-scale",
     "summary": "Spacing (a margin, padding or gap) off the theme's spacing scale; each finding names the step to use."
+  },
+  {
+    "rule": "linked-card-dead-zone",
+    "summary": "A card or row that is one link where a click at some spot on it opens nothing, as when the page positions a part of it and the link's layer stops there."
+  },
+  {
+    "rule": "reveal-reflow",
+    "summary": "A card whose hover or keyboard focus reveals a part and moves the card's own box or anything around it."
   }
 ]

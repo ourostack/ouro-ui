@@ -1,2 +1,3 @@
 - Fix: a linked Card, Item or Table row opens its link from a click anywhere on it, though the app's layout keeps the link's layer to one part, with middle and Cmd/Ctrl clicks still opening a new tab.
 - New: Card's revealDescription="rise" lays the title on the media and raises the description over it on hover or focus, taking room over the media only once shown; on a touch screen it shows from the start.
+- New: Ouro check rules linked-card-dead-zone, a linked card or row where a click on some spot opens nothing, and reveal-reflow, a card whose hover or focus reveal moves the page.
