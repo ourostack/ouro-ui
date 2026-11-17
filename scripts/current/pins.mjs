@@ -688,18 +688,18 @@ async function updateHxInstalled(pin, text, release, ctx) {
   if (kitApart.length) notes.push(`${list(kitApart)} ${one(kitApart, "stays", "stay")} where ${one(kitApart, "it is", "they are")} because ${one(kitApart, "it was", "they were")} edited here, but \`#ouro-ax/*\` resolves to \`${axDir}\`: move ${one(kitApart, "it", "them")} there, or point the import at ${one(kitApart, "it", "them")}.`);
   for (const { from, to } of blocked) notes.push(`Leaves \`${from}\` where it is, because \`${to}\` already exists in the app and is not replaced.`);
   if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
-  const sections = [];
+  let checkRules = [];
   if (installed.some((path) => CHECK_INSTALLED.test(path))) {
-    const rules = newCheckRules(previous, next, record.tag, release, ctx.now?.() ?? new Date());
-    if (rules.section) sections.push(rules.section);
+    const rules = newCheckRules(previous, next, record.tag, release);
+    checkRules = rules.rules;
     notes.push(...rules.notes);
   }
-  return { files: out, notes, sections };
+  return { files: out, notes, checkRules };
 }
 
 /** Where the ouro-check item's files sit in an app: `scripts/ouro/check/` now, `lib/ouro/check/` before it moved. */
 const CHECK_INSTALLED = /(^|\/)(scripts|lib)\/ouro\/check\//;
-/** The rules Ouro check reports without failing until their day (`gatesFrom`, a UTC date). */
+/** The rules a release of Ouro check adds, by name, each with a summary. */
 const NEW_RULES = "registry/ouro/check/new-rules.json";
 
 function readNewRules(tarball) {
@@ -712,47 +712,32 @@ function readNewRules(tarball) {
     // The parser's own message names positions, which a repository's claims lint reads as numbers to cite.
     throw new Error("it is not JSON");
   }
-  const valid = (rule) => rule && typeof rule.rule === "string" && typeof rule.summary === "string" && typeof rule.gatesFrom === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rule.gatesFrom);
-  if (!Array.isArray(rules) || !rules.every(valid)) throw new Error("it is not a list of { rule, gatesFrom, summary }");
+  const valid = (rule) => rule && typeof rule.rule === "string" && (rule.summary === undefined || typeof rule.summary === "string");
+  if (!Array.isArray(rules) || !rules.every(valid)) throw new Error("it is not a list of { rule, summary }");
   return rules;
 }
 
 /**
- * The Ouro check rules new to an app between two releases: in the new tag's `new-rules.json` and not in the old's,
- * by name, whatever their dates. The pull request lists them, so a rule that will fail the app's check is named a week
- * before it does. Each summary is cited to the release's file, since a repository may lint the body for claims.
+ * The Ouro check rules new to an app between two releases: in the new tag's `new-rules.json` and not in the old's, by
+ * name, each with its summary and the release's file to cite it to, since a repository may lint the body for claims.
+ * The update pull request lists them with the findings it records as known for each (known.mjs).
  */
-export function newCheckRules(previous, next, from, release, now) {
+export function newCheckRules(previous, next, from, release) {
   let before;
   let after;
   try {
     before = readNewRules(previous);
   } catch (error) {
-    return { section: null, notes: [`Leaves the new Ouro check rules out of this list: \`${NEW_RULES}\` at \`${from}\` could not be read (${error.message}). The release notes name them.`] };
+    return { rules: [], notes: [`Leaves the new Ouro check rules out of this list: \`${NEW_RULES}\` at \`${from}\` could not be read (${error.message}). The release notes name them.`] };
   }
   try {
     after = readNewRules(next);
   } catch (error) {
-    return { section: null, notes: [`Leaves the new Ouro check rules out of this list: \`${NEW_RULES}\` at \`${release.tag}\` could not be read (${error.message}). The release notes name them.`] };
+    return { rules: [], notes: [`Leaves the new Ouro check rules out of this list: \`${NEW_RULES}\` at \`${release.tag}\` could not be read (${error.message}). The release notes name them.`] };
   }
-  const known = new Set(before.map((rule) => rule.rule));
-  const added = after.filter((rule) => !known.has(rule.rule));
-  if (added.length === 0) return { section: null, notes: [] };
-  const today = now.toISOString().slice(0, 10);
+  const listed = new Set(before.map((rule) => rule.rule));
   const source = `https://github.com/${release.repo ?? REPOS.web}/blob/${release.tag}/${NEW_RULES}`;
-  const id = (rule) => `ouro-check-${rule.rule.replace(/[^\w-]/g, "-")}`;
-  const pending = added.filter((rule) => rule.gatesFrom > today);
-  const lines = [
-    "### New Ouro check rules",
-    "",
-    ...added.map((rule) => `- \`${rule.rule}\` (${rule.gatesFrom > today ? `gates from \`${rule.gatesFrom}\`` : "gates now"}): ${rule.summary.replace(/\s+/g, " ").trim()}[^${id(rule)}]`),
-    "",
-    ...(pending.length ? ['This pull request\'s Ouro check run lists your findings for them, marked "new rule: gates from <date>". They don\'t fail the check until that date.'] : []),
-    ...(pending.length < added.length ? ["A rule that gates now fails the check on its findings, so fix them for this pull request to merge."] : []),
-    "",
-    ...added.map((rule) => `[^${id(rule)}]: ${source} verify:urlOk(${source})`),
-  ];
-  return { section: lines.join("\n"), notes: [] };
+  return { rules: after.filter((rule) => !listed.has(rule.rule)).map((rule) => ({ rule: rule.rule, summary: rule.summary, source })), notes: [] };
 }
 
 /** The release asset that holds ouro-ui-core's built `dist/`, which the repository does not commit. */

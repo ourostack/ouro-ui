@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
 import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate } from "./pins.mjs";
-import { CONFIG as CHECK_CONFIG, seedKnown } from "./known.mjs";
+import { CONFIG as CHECK_CONFIG, checkRulesSection, seedKnown } from "./known.mjs";
 import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
@@ -299,14 +299,14 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   // Each file's pins apply in turn to its text, so two pins in one file (two vendored sources) both land.
   const files = {};
   const notes = [];
-  // Whole parts of the body under their own heading (the new Ouro check rules), after the notes.
-  const sections = [];
+  // The Ouro check rules the release adds, which the body lists under their own heading, after the notes.
+  const checkRules = [];
   for (const pin of behind) {
     const text = typeof files[pin.file] === "string" ? files[pin.file] : texts[pin.file];
     const update = await UPDATERS[pin.kind](pin, text, releases[pin.follows], ctx);
     Object.assign(files, update.files);
     notes.push(...update.notes);
-    sections.push(...(update.sections ?? []));
+    checkRules.push(...(update.checkRules ?? []));
   }
   // GitHub lets an app write under .github/workflows/ only with the `workflows` permission, which Ouro Current does not
   // ask for: it would need every installation approved again, and give the app write access to every repository's CI.
@@ -333,7 +333,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   notes.splice(0, notes.length, ...new Set(notes));
   // Every updater held back (a set that moves together or not at all): there is nothing to propose, and the notes say why.
   if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
-  if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes, sections: [...new Set(sections)] } };
+  if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes, sections: [checkRulesSection(checkRules, null)].filter(Boolean) } };
   const existing = await branchState(gh, repo);
   // The pull request open when this run began may have merged or closed since (GitHub deletes a merged pull request's
   // branch): main as this run read it is from before that, so nothing is written, neither a branch on the old main nor
@@ -349,8 +349,9 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   }
   // An Ouro check rule this update brings in: the findings the pull request's own checks reported for it are recorded as
   // known, so they pass and a new one fails (known.mjs). The run after the one that brought the rule writes them.
+  let seed = null;
   if (existing?.ours && sources.ciReports) {
-    const seed = await seedKnown({
+    seed = await seedKnown({
       files,
       oldCheck: async (folder) => {
         const own = await ctx.consumerFolder(folder.replace(/\/$/, ""));
@@ -360,10 +361,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       base: await read(CHECK_CONFIG),
       branch: await readAt(existing.sha, CHECK_CONFIG),
     });
-    if (seed) {
-      files[CHECK_CONFIG] = seed.file;
-      notes.push(seed.note);
-    }
+    if (seed) files[CHECK_CONFIG] = seed.file;
   }
   const moves = `${MARK.trim()} ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`;
   const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\n${moves}`, existing);
@@ -383,7 +381,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "in the merge queue, so left as it is until it merges or leaves the queue", pushed: false } };
     }
   }
-  const text = body(behind, releases, notes, [...new Set(sections)]);
+  const text = body(behind, releases, notes, [checkRulesSection(checkRules, seed)].filter(Boolean));
   let pr = existingPr;
   if (pr) {
     if (pr.title !== name || pr.body !== text) pr = await gh.patch(`repos/${repo}/pulls/${pr.number}`, { title: name, body: text });

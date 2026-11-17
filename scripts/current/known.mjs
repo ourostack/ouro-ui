@@ -26,7 +26,7 @@ const parse = (text) => {
 };
 
 /**
- * ouro-check.json with the findings of the rules this update brings in recorded as known, and the note that says so;
+ * ouro-check.json with the findings of the rules this update brings in recorded as known, and how many each rule has;
  * null when the update brings no rule with findings to record.
  *
  * files: the update's files. oldCheck(folder): the repository's own files in that folder, as text, or none when it
@@ -64,12 +64,31 @@ export async function seedKnown({ files, oldCheck, reports, base, branch }) {
     known[rule] = all;
   }
   if (!added) return null;
-  const rules = [...found.keys()].sort();
-  const named = rules.map((rule) => `\`${rule}\``);
-  const list = named.length > 1 ? `${named.slice(0, -1).join(", ")} and ${named.at(-1)}` : named[0];
-  const count = rules.reduce((sum, rule) => sum + known[rule].length, 0);
-  return {
-    file: `${JSON.stringify({ ...config, known }, null, 2)}\n`,
-    note: `Records the \`${count}\` findings of ${list}, which this update brings in, in \`${CONFIG}\`'s \`known\`: they pass, and a new finding of ${rules.length > 1 ? "those rules" : "that rule"} fails. Move them onto the theme and its spacing scale in a pull request of its own.`,
-  };
+  return { file: `${JSON.stringify({ ...config, known }, null, 2)}\n`, counts: Object.fromEntries([...found.keys()].map((rule) => [rule, known[rule].length])) };
+}
+
+/**
+ * The update pull request's part on the Ouro check rules it brings in: each by name, with the release's summary where
+ * new-rules.json gives one (`listed`), and the findings recorded as known for it (`seed`, from seedKnown). A rule the
+ * release does not list, but whose findings were recorded, is named too.
+ */
+export function checkRulesSection(listed, seed) {
+  const rules = new Map();
+  for (const rule of listed) if (!rules.has(rule.rule)) rules.set(rule.rule, rule);
+  for (const rule of Object.keys(seed?.counts ?? {}).sort()) if (!rules.has(rule)) rules.set(rule, { rule });
+  if (!rules.size) return null;
+  const id = (rule) => `ouro-check-${rule.replace(/[^\w-]/g, "-")}`;
+  const recorded = (rule) =>
+    seed?.counts?.[rule]
+      ? `\`${seed.counts[rule]}\` findings this app already has are recorded in \`${CONFIG}\`'s \`known\`: they pass, and a new one fails.`
+      : `The findings this app already has are recorded in \`${CONFIG}\`'s \`known\` once this pull request's checks report them: they pass, and a new one fails.`;
+  const cited = [...rules.values()].filter((rule) => rule.summary);
+  return [
+    "### New Ouro check rules",
+    "",
+    ...[...rules.values()].map((rule) => `- \`${rule.rule}\`: ${rule.summary ? `${rule.summary.replace(/\s+/g, " ").trim()}[^${id(rule.rule)}] ` : ""}${recorded(rule.rule)}`),
+    "",
+    "Move the recorded findings onto the theme in a pull request of their own.",
+    ...(cited.length ? ["", ...cited.map((rule) => `[^${id(rule.rule)}]: ${rule.source} verify:urlOk(${rule.source})`)] : []),
+  ].join("\n");
 }
