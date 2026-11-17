@@ -430,9 +430,12 @@ describe("MessageList windowing", () => {
     await scrollTo(scroller, Math.min(from, scroller.scrollHeight));
     await settle(scroller);
     const reading = firstVisible(scroller);
-    // A message a few above, which the scroll it waits for does not bring into view: on a loaded machine the scroll's first event
-    // comes a hundred pixels or more into it, and the message right above would be in view by then, holding the place itself (#1646).
-    const above = Number(reading.message.id.slice(1)) - 3;
+    // The nearest message whose bottom is farther above the view than the whole 300px scroll goes, so the scroll never brings it into
+    // view: on a loaded machine the scroll's first event comes a hundred pixels or more into it, and a nearer message would be in view
+    // by then, holding the place itself (#1646). The list keeps 800px above the view drawn, so it is there.
+    const viewTop = scroller.getBoundingClientRect().top;
+    let above = Number(reading.message.id.slice(1)) - 1;
+    while (document.getElementById(`m${above}`)!.getBoundingClientRect().bottom > viewTop - 340) above--;
     // Whether the message was still above the view as it changed, as the test means it to be.
     let aboveView: boolean | undefined;
     const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
