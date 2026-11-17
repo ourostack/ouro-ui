@@ -411,6 +411,6 @@ describe("HoverCard first frame", () => {
     const recording = recordPopupFrames(positioner);
     await userEvent.hover(link());
     await settledBox(drawn(positioner));
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 });

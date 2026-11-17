@@ -1006,6 +1006,6 @@ describe("Autocomplete first frame", () => {
     const recording = recordPopupFrames(positioner);
     await type(control, "@");
     await settledBox(drawn(positioner));
-    expectFirstFramesInPlace(recording.stop());
+    expectFirstFramesInPlace(await recording.stop());
   });
 });
