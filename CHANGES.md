@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: [Switch's off track is the muted surface inside a 1px `muted-foreground` hairline, 2px with more contrast, where it was a 2px outline around the page colour; the thumb keeps its place](registry/ouro/components/ouro/switch/switch.test.tsx "verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > draws the off hairline 1px, and 2px with more contrast, with the thumb in the same place)"), and [the hairline keeps 3:1 against the page](registry/ouro/components/ouro/switch/switch.test.tsx "verify:testExists(registry/ouro/components/ouro/switch/switch.test.tsx::Switch look and motion > tells on from off without hue, with a 1px off hairline at 3:1 against the page, in light and dark)").
