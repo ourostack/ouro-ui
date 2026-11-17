@@ -123,7 +123,13 @@ function passingOpeners(host: HTMLElement): (PassingOpener & { key: string })[] 
         key: `${name} #${nth}`,
         name,
         open: async () => {
-          if (opensOn === "hover") await userEvent.hover(element);
+          if (opensOn === "hover") {
+            // The pointer reaches the trigger as a person's does, over its corner first: a bar that auto-hid while the scan
+            // opened its other popups takes no pointer events until a move over it, which the hover's own hit test, refused,
+            // never makes (#1856). The hover then moves on to the trigger, so its popup opens.
+            await userEvent.hover(element, { force: true, position: { x: 1, y: 1 } });
+            await userEvent.hover(element);
+          }
           else if (opensOn === "press") await userEvent.click(element);
           else {
             // Focus from the keyboard, as a hover card opens for it; WebKit's Tab skips links by default.
