@@ -23,6 +23,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.235     # install a componen
 
 - Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.7.0] Without it, overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.[^theme-check]
 
+- Starting from nothing? Set up a new Vite or Next.js app first: https://ui.ouroboros.bot/docs/installing.md#start-a-new-app
 - A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6) before init: shadcn reads the root file, and tsc -b builds the app one.[^vite-app]
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
 - A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.235, github: and /tree/ URLs do not work.

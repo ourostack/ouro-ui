@@ -305,6 +305,11 @@ describe("home page", () => {
 });
 
 describe("docs", () => {
+  it("sends a newcomer from the components index to the installing guide's first steps", async () => {
+    await renderPage("/docs/");
+    await expect.element(page.getByRole("link", { name: "Start a new app", exact: true })).toHaveAttribute("href", "/docs/installing/#start-a-new-app");
+  });
+
   it("keeps linked guide summaries as text inside their catalog links", async () => {
     expect(summary("# Guide\n\nRead [the `Form` guide](form.md). More detail.")).toBe("Read the `Form` guide.");
     const host = await renderPage("/docs/");

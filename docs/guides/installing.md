@@ -2,6 +2,60 @@
 
 Add `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` and `ouro-source-rules` need 6.0.3.[^typescript]
 
+## Start a new app
+
+Ouro HX goes into a React app set up with Tailwind CSS and an `@/*` import alias. These steps make one, then [Once per app](#once-per-app) adds Ouro HX to it. An app you already have skips to that section.
+
+### Vite
+
+Create the app, then add Tailwind CSS and Node's types (for `vite.config.ts`):
+
+```sh
+npm create vite@latest my-app -- --template react-ts
+cd my-app
+npm install
+npm install -D tailwindcss @tailwindcss/vite @types/node
+```
+
+Replace everything in `src/index.css` with Tailwind:
+
+```css
+@import "tailwindcss";
+```
+
+Give `vite.config.ts` Tailwind's plugin and the `@` alias:
+
+```ts
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+});
+```
+
+Add the same alias under `compilerOptions` in both `tsconfig.json` and `tsconfig.app.json`, creating `compilerOptions` in `tsconfig.json`, which has none. shadcn reads the first file, and `tsc -b` builds the app with the second. Leave out `baseUrl`, which TypeScript 6 and later refuse:
+
+```json
+"paths": { "@/*": ["./src/*"] }
+```
+
+These are the install test's own Vite app, which it builds after every add, with `~` where you write `@`.[^vite-fixture] Then run [Once per app](#once-per-app).
+
+### Next.js
+
+`create-next-app` sets up Tailwind CSS and the alias itself:
+
+```sh
+npx create-next-app@latest my-app --ts --tailwind --app --src-dir --import-alias "@/*" --yes
+cd my-app
+```
+
+Then run [Once per app](#once-per-app), and wrap the app in [OuroProvider](../OuroProvider.md), which sends links through `next/link`. For dark mode, wrap it in [ColorSchemeProvider](../ColorSchemeProvider.md) too and put a [ColorSchemeToggle](../ColorSchemeToggle.md) in the header.
+
 ## Once per app
 
 In an app with Tailwind CSS v4 and an `@/*` path alias, run shadcn's `init` once, with the Base UI base, then add the base tokens:
@@ -151,3 +205,4 @@ build: {
 [^plain-state-classes]: test:registry/ouro/theme/theme.test.tsx::current, toggle, segment and option classes for plain markup > selects the segment whose radio is checked, by click or arrow key, and rings it on keyboard focus verify:testExists(registry/ouro/theme/theme.test.tsx::current, toggle, segment and option classes for plain markup > draws links as Link in the text colour, and marks the current one as Link's current does, semibold with a 2px primary underline) verify:testExists(registry/ouro/theme/theme.test.tsx::current, toggle, segment and option classes for plain markup > draws a pressed toggle as Toggle's outline variant does, tinted with the primary colour) verify:testExists(registry/ouro/theme/theme.test.tsx::current, toggle, segment and option classes for plain markup > selects the segment whose radio is checked, by click or arrow key, and rings it on keyboard focus) verify:testExists(registry/ouro/theme/theme.test.tsx::current, toggle, segment and option classes for plain markup > highlights the selected option as Command does)
 [^plain-state-classes-rule]: test:scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > names ouro-nav-link, ouro-toggle and ouro-segment as the fix for a current, pressed or checked state written by hand verify:testExists(scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > names ouro-nav-link, ouro-toggle and ouro-segment as the fix for a current, pressed or checked state written by hand) verify:testExists(scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > exempts exactly the classes ouro-plain defines, and counts an app's own .ouro- class like any other)
 [^plain-item]: test:scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them)
+[^vite-fixture]: test:scripts/new-app-steps.test.mjs::the guide's new Vite app steps write the install test's Vite app, with @ for its ~ verify:testExists(scripts/new-app-steps.test.mjs::the guide's new Vite app steps write the install test's Vite app, with @ for its ~) verify:fileLine(scripts/install-test.sh, /npx tsc -b/)

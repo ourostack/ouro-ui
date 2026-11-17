@@ -6,7 +6,7 @@ import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
+import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, NEW_APP_LINK, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt, partsOf } from "./art";
@@ -109,6 +109,13 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
+  it("sends a newcomer without a set-up app to the installing guide's first steps, beside the install command", async () => {
+    await renderPage("/");
+    const link = page.getByRole("link", { name: NEW_APP_LINK.text, exact: true });
+    await expect.element(link).toHaveAttribute("href", "/docs/installing/#start-a-new-app");
+    expect(link.element().closest("[data-site-install-caption]")).not.toBeNull();
+  });
+
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
@@ -121,8 +128,9 @@ describe("the hero", () => {
       expect(INSTALL_CAPTION).not.toMatch(/\d/);
       // real clock: the hero's install command, which stays.
       await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
-      // real clock: the install command's caption, which stays.
-      await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
+      // real clock: the install command's caption, which stays; the new-app link follows it in the same line.
+      await expect.element(page.getByText(INSTALL_CAPTION.split(". ")[1]!)).toBeVisible();
+      expect(document.querySelector("[data-site-install-caption]")!.textContent).toContain(INSTALL_CAPTION);
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
       // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
