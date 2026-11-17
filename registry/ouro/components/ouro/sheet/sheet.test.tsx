@@ -765,6 +765,28 @@ describe("close control", () => {
   });
 });
 
+describe("sheet in a sheet", () => {
+  it.each([true, false])("shows a Sheet opened from inside a Sheet above it, outer modal %s", async (modal) => {
+    await page.viewport(390, 844);
+    await render(
+      <Sheet title="Look" modal={modal} open onOpenChange={() => {}}>
+        <Sheet title="Rename look" trigger={<Button>Rename</Button>}>
+          <input aria-label="Name" />
+        </Sheet>
+      </Sheet>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Rename" }));
+    const field = page.getByRole("textbox", { name: "Name" });
+    await expect.element(field).toBeVisible();
+    await expect
+      .poll(() => {
+        const box = (field.element() as HTMLElement).getBoundingClientRect();
+        return field.element().contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+      })
+      .toBe(true);
+  });
+});
+
 describe("non-modal sheet", () => {
   /** A page with its own controls and a side sheet beside it that leaves it in use. */
   function Preview({
