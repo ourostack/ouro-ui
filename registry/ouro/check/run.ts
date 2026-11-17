@@ -282,7 +282,7 @@ const HINTS: Record<string, string> = {
   "off-scale": "take the spacing from the step the finding names (its Tailwind class, or a layout component's gap)",
   "hero-dark-art": "pass picture={{ light, dark }}, the same scene by day and at night",
   "disabled-no-reason": "say why beside it and tie the words to it with aria-describedby, or give it a title",
-  "linked-card-dead-zone": "keep the card's parts unpositioned so the link's layer covers the whole card, or open the link from a click on the card's root (Ouro's Card, Item and Table do)",
+  "linked-card-dead-zone": "use Ouro's Card, Item or Table, which open from a click anywhere on them; or keep the card's parts unpositioned so the link's layer covers the whole card; or open the link from any click on the card's root and mark the root data-follows-link",
   "reveal-reflow": "lay the revealed part over the card (absolute, or Card's revealDescription=\"rise\") or keep its room at rest, so revealing it changes no box",
   "lone-word": "wrap it with text-wrap: pretty (balance for a heading or centred text), or keep a short phrase together",
   "tall-heading": "say it in fewer words, or draw it a step smaller on this screen",
@@ -810,12 +810,13 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     // move nothing outside it. A page that moves on its own between two readings at rest is not judged.
     for (const reveal of await page.evaluate(markReveals, WALK_EACH)) {
       await page.mouse.move(0, 0);
+      // Aimed first, as aiming scrolls the card into view: every reading after it is at the same scroll.
+      const point = await aim(page, reveal.ref);
+      if (!point) continue;
       await settle();
       const rest = await page.evaluate(revealLayout, { ref: reveal.ref });
       await settle();
       if (movedSince(rest, await page.evaluate(revealLayout, { ref: reveal.ref })) !== 0) continue;
-      const point = await aim(page, reveal.ref);
-      if (!point) continue;
       await page.mouse.move(point.x, point.y);
       await settle();
       const hovered = movedSince(rest, await page.evaluate(revealLayout, { ref: reveal.ref }));
@@ -825,7 +826,9 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await settle();
       const focused = movedSince(rest, await page.evaluate(revealLayout, { ref: reveal.ref }));
       await page.evaluate(revealLayout, { ref: reveal.ref, blur: true });
-      const moves = [hovered !== 0 ? "hovering it" : "", focused !== 0 ? "keyboard focus in it" : ""].filter(Boolean);
+      // A page that changed shape (it loaded more as it scrolled) is not judged.
+      if (hovered < 0 || focused < 0) continue;
+      const moves = [hovered > 0 ? "hovering it" : "", focused > 0 ? "keyboard focus in it" : ""].filter(Boolean);
       if (!moves.length) continue;
       found++;
       await record(page, target, { ref: reveal.ref, rule: "reveal-reflow", element: reveal.element, detail: `${moves.join(" and ")} moved its own box or the page around it: a reveal must open over the card, not make room` }, width, height, theme);
@@ -890,7 +893,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       if (inpAt === `${width}x${height} ${theme}`) shown.push(...(await page.evaluate(findOffThemeIssues, { maxIssues: 100000 })));
       shown.push(...(await page.evaluate(findInteractionIssues)));
       shown.push(...(await page.evaluate(findWrapIssues, {})));
-      // Last, as it clicks each spot of each linked card (caught before the app acts on it) and scrolls them into view.
+      // Last, as it scrolls the window to each linked card to hit-test it, and puts the scroll back.
       shown.push(...(await page.evaluate(findDeadZones)));
       const behind = new Set(await page.evaluate(behindModal, [...new Set(shown.map((issue) => issue.ref))]));
       issues.push(...shown.filter((issue) => !behind.has(issue.ref)));

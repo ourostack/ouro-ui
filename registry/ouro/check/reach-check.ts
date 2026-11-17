@@ -8,9 +8,9 @@ import type { PageIssue } from "./size-check.ts";
 //   linked-card-dead-zone  a card or row that is one link (Ouro's data-linked, or a box around a link whose ::after is
 //                          stretched over it) where a click at some spot on it, which no control of its own takes,
 //                          opens nothing: an app that positions one of its parts (a body laid over the media, a sticky
-//                          cell) keeps the link's layer to that part. Each spot is clicked, as a person would, with the
-//                          click caught before the app or the browser acts on it, so a card that opens its link from
-//                          its own click handler passes.
+//                          cell) keeps the link's layer to that part. Each spot is hit-tested, as a click would be, and
+//                          nothing is clicked, so no app code runs. A card whose root opens its link from any click on it
+//                          says so with data-follows-link (Ouro's Card, Item and Table do), and passes.
 //   reveal-reflow          a card whose hover or keyboard focus reveals a part (Ouro's data-card-reveal, an Item's
 //                          revealed actions, or data-ouro-reveal) and moves the card's own box or anything outside it.
 //                          The runner hovers and focuses each and compares revealLayout before and after.
@@ -62,7 +62,10 @@ function findDeadZones(): PageIssue[] {
       if (optedOut(card) || card.closest('[hidden], [inert], [aria-hidden="true"]')) continue;
       const box = card.getBoundingClientRect();
       if (box.width < 24 || box.height < 24) continue;
-      card.scrollIntoView({ block: "nearest", inline: "nearest" });
+      // A card that opens its link from a click on its root, as Ouro's Card, Item and Table do, reaches it everywhere.
+      if (card.closest("[data-follows-link]") === card) continue;
+      // The window alone scrolls, so a carousel or other box the card is in keeps its place.
+      if (box.top < 0 || box.bottom > innerHeight) scrollTo(scrollX, scrollY + box.top - Math.max(0, (innerHeight - box.height) / 2));
       const r = card.getBoundingClientRect();
       let points = 0;
       let dead = 0;
@@ -77,22 +80,7 @@ function findDeadZones(): PageIssue[] {
           const control = hit.closest(own);
           if (control && control !== card && card.contains(control) && control !== link && !link.contains(control)) continue;
           points++;
-          let reached = false;
-          // Caught first, at the window, so neither the app nor the browser acts on the click it reaches.
-          const catcher = (event: Event) => {
-            if (event.target instanceof Node && link.contains(event.target)) {
-              reached = true;
-              event.preventDefault();
-              event.stopImmediatePropagation();
-            }
-          };
-          addEventListener("click", catcher, true);
-          try {
-            hit.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, view: window }));
-          } finally {
-            removeEventListener("click", catcher, true);
-          }
-          if (!reached) dead++;
+          if (!link.contains(hit)) dead++;
         }
       }
       if (!dead) continue;
@@ -144,7 +132,7 @@ function revealLayout(args: { ref: string; focus?: boolean; blur?: boolean }): n
   const root = document.querySelector<HTMLElement>(`[data-ouro-check-ref~="${args.ref}"]`);
   if (!root) return [];
   const target = root.querySelector<HTMLElement>("[data-card-link], [data-stretched-link], a[href], button, [tabindex]:not([tabindex='-1'])");
-  if (args.focus) (target as (HTMLElement & { focus(options?: { focusVisible?: boolean }): void }) | null)?.focus({ focusVisible: true } as FocusOptions);
+  if (args.focus) target?.focus({ focusVisible: true, preventScroll: true } as FocusOptions);
   if (args.blur) (document.activeElement as HTMLElement | null)?.blur();
   const at = (el: Element) => {
     const r = el.getBoundingClientRect();

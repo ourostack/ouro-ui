@@ -357,6 +357,7 @@ export function Card(props: CardProps): JSX.Element {
       "data-ouro": "card",
       "data-ouro-squircle": variant === "outline" ? "" : undefined,
       "data-linked": linked ? "" : undefined,
+      "data-follows-link": linked ? "" : undefined,
       className: cn(
         "relative isolate flex min-w-0 list-none flex-col overflow-hidden",
         variants[variant],

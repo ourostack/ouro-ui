@@ -425,6 +425,7 @@ export function Item(props: ItemProps): JSX.Element {
       onAuxClick: linked ? (event: MouseEvent<HTMLElement>) => (rest.onAuxClick?.(event), followStretchedLink(event)) : rest.onAuxClick,
       "data-ouro": "item",
       "data-linked": linked || pressable ? "" : undefined,
+      "data-follows-link": linked || pressable ? "" : undefined,
       "data-choosable": choosable ? "" : undefined,
       className: cn(
         "relative isolate grid min-w-0 list-none items-center gap-x-4 gap-y-2",

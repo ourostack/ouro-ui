@@ -55,6 +55,16 @@ describe("findDeadZones: linked-card-dead-zone", () => {
     expect(location.hash).not.toBe("#dead-zone-nav");
   });
 
+  it("runs none of the page's code: a root's own click handler never runs, and only a root marked data-follows-link passes", () => {
+    render(card('style="position: relative"'));
+    let clicks = 0;
+    host.querySelector("article")!.addEventListener("click", () => clicks++);
+    expect(issues()).toHaveLength(1);
+    expect(clicks).toBe(0);
+    host.querySelector("article")!.setAttribute("data-follows-link", "");
+    expect(issues()).toEqual([]);
+  });
+
   it("passes a card whose link's layer covers it all, a spot a control of its own takes, and a card allowed with a reason", () => {
     render(card(""));
     expect(issues()).toEqual([]);

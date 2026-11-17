@@ -364,6 +364,7 @@ export function TableRow(props: TableRowProps): JSX.Element {
         onClick={linked ? (event) => (rest.onClick?.(event), followStretchedLink(event)) : rest.onClick}
         onAuxClick={linked ? (event) => (rest.onAuxClick?.(event), followStretchedLink(event)) : rest.onAuxClick}
         data-linked={linked ? "" : undefined}
+        data-follows-link={linked ? "" : undefined}
         className={cn(
           table.striped && kind === "body" && "even:bg-muted/50",
           linked && "relative isolate cursor-pointer pointer-coarse:h-11",
