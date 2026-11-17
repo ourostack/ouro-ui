@@ -36,7 +36,7 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.236     # install a componen
 
 The full item list, under Items below, is long. These are the items for needs apps often have; read one's page at https://ui.ouroboros.bot/docs/<item>.md.
 
-- Dark mode: `color-scheme-toggle`, with `ColorSchemeProvider` around the app (`@/lib/ouro/color-scheme`); for a plain on/off, a `switch` with `useColorScheme()`.
+- Dark mode: `color-scheme-toggle`, with `ColorSchemeProvider` around the app (`@/lib/ouro/color-scheme`); for a plain on/off, a `switch` with `useColorScheme()` from `lib-color-scheme`.
 - A form that validates: `form` with `text-field`, `select`, `switch`, `checkbox`; errors from your own `onSubmit` or from a server action.
 - Asking before a destructive action: `confirm-dialog`. Other dialogs: `dialog`; a panel from the edge: `sheet`; editing in a panel that saves and closes: `edit-sheet`.
 - Saying something happened: `toaster`. A message on the page: `alert`. Nothing here yet: `moment`. Loading: `skeleton`, `spinner`.
