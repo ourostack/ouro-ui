@@ -61,7 +61,7 @@ export interface EmptyOwnProps {
 /** Props for {@link Empty}: its own props and the div attributes it passes through. */
 export type EmptyProps = Omit<HTMLAttributes<HTMLDivElement>, keyof EmptyOwnProps> & EmptyOwnProps;
 
-const variants = { outline: "border border-dashed border-border rounded-xl", plain: "" } as const;
+const variants = { outline: "border border-dashed border-border rounded-ouro-xl", plain: "" } as const;
 const aligns = { center: "items-center text-center", start: "items-start text-start" } as const;
 const levels = [2, 3, 4, 5, 6] as const;
 

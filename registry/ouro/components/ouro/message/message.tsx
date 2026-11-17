@@ -428,8 +428,8 @@ const variants = ["default", "chat", "post", "reply"] as const;
 const placements = ["corner", "beside"] as const;
 
 const bubbles = {
-  user: "rounded-2xl rounded-ee-md bg-primary px-3.5 py-2 text-primary-foreground",
-  assistant: "rounded-2xl rounded-es-md bg-muted px-3.5 py-2 text-foreground",
+  user: "rounded-ouro-2xl rounded-ee-ouro-md bg-primary px-3.5 py-2 text-primary-foreground",
+  assistant: "rounded-ouro-2xl rounded-es-ouro-md bg-muted px-3.5 py-2 text-foreground",
   system: "bg-transparent text-center text-muted-foreground",
 } as const;
 
@@ -481,12 +481,12 @@ const mutedInk = {
 const layouts = {
   filled: {
     // A transparent border, which forced colours draw, so a bubble that is only a fill keeps its edge there.
-    user: `rounded-2xl rounded-ee-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
-    assistant: "rounded-2xl rounded-es-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
+    user: `rounded-ouro-2xl rounded-ee-ouro-md border border-solid border-transparent px-3 py-2 ${filledInk}`,
+    assistant: "rounded-ouro-2xl rounded-es-ouro-md border border-solid border-transparent bg-muted px-3 py-2 text-foreground",
   },
   raised: {
-    user: "rounded-lg bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
-    assistant: `rounded-lg px-3 py-2 ${raised}`,
+    user: "rounded-ouro-lg bg-[color-mix(in_oklab,var(--primary)_12%,var(--card))] px-3 py-2 text-foreground",
+    assistant: `rounded-ouro-lg px-3 py-2 ${raised}`,
   },
 } as const;
 
@@ -525,7 +525,7 @@ const loadBar = () => (barModule ??= import("@/registry/ouro/components/ouro/mes
 
 // The ring a message shows when it has keyboard focus, as one in a MessageList takes: the focus
 // outline Ouro's controls have, with rounded corners, since the message's own box is bare.
-const focusRing = "rounded-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+const focusRing = "rounded-ouro-lg outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 /**
  * The author's name as text, or the app's content for it shown while screen readers hear the text.
@@ -1088,7 +1088,7 @@ function avatarSlot(avatar: string | ReactElement | undefined, name: string | nu
 
 // The quote: a box on the muted surface with a hairline, as Composer's quote (composer.tsx).
 const quoteClass =
-  "m-0 mb-2 flex min-w-0 items-center gap-2 rounded-md bg-muted p-1.5 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid";
+  "m-0 mb-2 flex min-w-0 items-center gap-2 rounded-ouro-md bg-muted p-1.5 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid";
 // The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
 // with two lines of text it is taller than a touch target already.
 const quoteButtonClass =

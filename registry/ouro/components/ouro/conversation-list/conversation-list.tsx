@@ -213,7 +213,7 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 // full touch target on a coarse pointer. The focus outline sits inside the row, so a list
 // in a scrolling pane never clips it.
 const controlClass =
-  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
+  "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-ouro-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:hover:bg-muted active:bg-muted";
 // A row opens and closes at once (`press` eases no colour): the open row is drawn in its accent on the first frame after

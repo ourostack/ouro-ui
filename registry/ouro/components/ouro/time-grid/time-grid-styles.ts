@@ -339,7 +339,7 @@ function stepTo(pieces: ReadonlyArray<{ key: string; day: number; start: number 
  * @claim "Under forced colours every event" registry/ouro/components/ouro/time-grid/time-grid-styles.ts verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid-styles.ts, /forced-colors:border forced-colors:border-s-3/)
  */
 const eventClass =
-  "m-0 box-border flex min-w-0 flex-col rounded-md border-solid px-1.5 py-0.5 " +
+  "m-0 box-border flex min-w-0 flex-col rounded-ouro-md border-solid px-1.5 py-0.5 " +
   "font-[inherit] text-start text-xs leading-4 text-foreground no-underline [overflow-wrap:anywhere] " +
   "cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-(--ouro-ease-out) " +

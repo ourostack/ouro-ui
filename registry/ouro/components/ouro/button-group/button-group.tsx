@@ -62,7 +62,7 @@ export interface ButtonGroupProps {
  */
 const groupClass =
   "relative isolate box-border inline-flex max-w-full items-stretch " +
-  "[&>*]:m-0 [&>*]:rounded-none [&>*:first-child]:rounded-s-lg [&>*:last-child]:rounded-e-lg " +
+  "[&>*]:m-0 [&>*]:rounded-none [&>*:first-child]:rounded-s-ouro-lg [&>*:last-child]:rounded-e-ouro-lg " +
   "[&>*:not(:first-child)]:-ms-px [&>*:focus-visible]:z-10 " +
   "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:pointer-events-none " +
   "[&>[data-variant]:not([data-variant=outline])+[data-variant]:not([data-variant=outline])]:after:absolute " +

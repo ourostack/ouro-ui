@@ -52,7 +52,7 @@ export type ItemGroupProps = Omit<HTMLAttributes<HTMLDivElement>, keyof ItemGrou
 const variants = {
   divided: "[&>li:not(:last-child)]:border-b [&>li]:border-border [&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-0",
   outline:
-    "rounded-xl border border-border bg-card text-card-foreground overflow-hidden [&>li:not(:last-child)]:border-b [&>li]:border-border " +
+    "rounded-ouro-xl border border-border bg-card text-card-foreground overflow-hidden [&>li:not(:last-child)]:border-b [&>li]:border-border " +
     "[&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-4",
   plain: "[&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-0",
 } as const;

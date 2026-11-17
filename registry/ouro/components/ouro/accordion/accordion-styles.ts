@@ -52,7 +52,7 @@ const headerClass = "m-0 p-0 text-base font-medium";
  */
 const triggerClass =
   "group/trigger press relative m-0 box-border flex w-full cursor-pointer items-center justify-between gap-4 " +
-  "min-h-11 sm:pointer-fine:min-h-10 px-0 py-3 rounded-md border-0 bg-transparent text-start " +
+  "min-h-11 sm:pointer-fine:min-h-10 px-0 py-3 rounded-ouro-md border-0 bg-transparent text-start " +
   "font-[inherit] text-base font-medium text-foreground sm:pointer-fine:text-sm " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "underline-offset-4 not-data-disabled:pointer-fine:hover:underline not-data-disabled:active:opacity-70 " +

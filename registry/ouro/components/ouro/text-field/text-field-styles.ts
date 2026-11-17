@@ -76,7 +76,7 @@ const typeDefaults: Readonly<Record<TextFieldType, TypeDefaults>> = {
  */
 const groupBaseClass =
   "relative m-0 box-border flex w-full min-w-0 items-center gap-2 h-(--ouro-control-h) py-0 cursor-text " +
-  "rounded-md text-foreground " +
+  "rounded-ouro-md text-foreground " +
   "outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
   "has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50";
 

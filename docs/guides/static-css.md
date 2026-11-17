@@ -28,7 +28,7 @@ h2 {
 .panel {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-ouro-lg);
   box-shadow: var(--shadow-sm);
 }
 

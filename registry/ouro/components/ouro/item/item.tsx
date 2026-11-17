@@ -51,7 +51,7 @@ export interface ItemOwnProps {
    * `mediaSize`. `always` keeps it above at every width.
    * @claim "Below this breakpoint the media leaves" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > always puts the media above the text with mediaAbove=always, with the actions beside the title)
    * @claim "Below this breakpoint the media leaves" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > stacks the actions beside media below md and the media above below sm)
-   * @claim "Below this breakpoint the media leaves" registry/ouro/components/ouro/item/item.tsx verify:fileLine(registry/ouro/components/ouro/item/item.tsx, /media:\s"col-span-full\sw-full\sh-auto\saspect-\[4\/3\]\srounded-lg"/)
+   * @claim "Below this breakpoint the media leaves" registry/ouro/components/ouro/item/item.tsx verify:fileLine(registry/ouro/components/ouro/item/item.tsx, /media:\s"col-span-full\sw-full\sh-auto\saspect-\[4\/3\]\srounded-ouro-lg"/)
    * @claim "`always` keeps it above at every" registry/ouro/components/ouro/item/item.test.tsx verify:testExists(registry/ouro/components/ouro/item/item.test.tsx::Item > always puts the media above the text with mediaAbove=always, with the actions beside the title)
    */
   mediaAbove?: "always" | "sm" | "md" | (string & { 'Use "always", "sm" (640px) or "md" (768px)': never }) | undefined;
@@ -143,13 +143,13 @@ export type ItemProps = Omit<HTMLAttributes<HTMLElement>, keyof ItemOwnProps | "
   );
 
 const elements = ["div", "li", "article"] as const;
-const variants = { plain: "", outline: "rounded-xl border border-border px-4" } as const;
+const variants = { plain: "", outline: "rounded-ouro-xl border border-border px-4" } as const;
 const sizes = { md: "py-3", sm: "py-2" } as const;
 const mediaSizes = {
-  icon: "size-10 rounded-lg bg-muted text-muted-foreground flex items-center justify-center *:[svg]:size-5",
-  sm: "size-10 rounded-md overflow-hidden *:size-full *:object-cover",
-  md: "size-16 rounded-lg overflow-hidden *:size-full *:object-cover",
-  lg: "size-28 rounded-lg overflow-hidden *:size-full *:object-cover",
+  icon: "size-10 rounded-ouro-lg bg-muted text-muted-foreground flex items-center justify-center *:[svg]:size-5",
+  sm: "size-10 rounded-ouro-md overflow-hidden *:size-full *:object-cover",
+  md: "size-16 rounded-ouro-lg overflow-hidden *:size-full *:object-cover",
+  lg: "size-28 rounded-ouro-lg overflow-hidden *:size-full *:object-cover",
 } as const;
 // With a description, the media lines up with the title and the description's first line (24px,
 // 2px apart, 20px: 46px) instead of the whole text, so it stays level with the title when the
@@ -190,15 +190,15 @@ const linkRoot =
 const above = {
   always: {
     root: { actions: "grid-cols-[minmax(0,1fr)_auto]", none: "grid-cols-[minmax(0,1fr)]" },
-    media: "col-span-full w-full h-auto aspect-[4/3] rounded-lg",
+    media: "col-span-full w-full h-auto aspect-[4/3] rounded-ouro-lg",
   },
   sm: {
     root: { actions: "max-sm:grid-cols-[minmax(0,1fr)_auto]", none: "max-sm:grid-cols-[minmax(0,1fr)]" },
-    media: "max-sm:col-span-full max-sm:w-full max-sm:h-auto max-sm:aspect-[4/3] max-sm:rounded-lg",
+    media: "max-sm:col-span-full max-sm:w-full max-sm:h-auto max-sm:aspect-[4/3] max-sm:rounded-ouro-lg",
   },
   md: {
     root: { actions: "max-md:grid-cols-[minmax(0,1fr)_auto]", none: "max-md:grid-cols-[minmax(0,1fr)]" },
-    media: "max-md:col-span-full max-md:w-full max-md:h-auto max-md:aspect-[4/3] max-md:rounded-lg",
+    media: "max-md:col-span-full max-md:w-full max-md:h-auto max-md:aspect-[4/3] max-md:rounded-ouro-lg",
   },
 } as const;
 
@@ -358,7 +358,7 @@ export function Item(props: ItemProps): JSX.Element {
             data-stretched-link=""
             data-ouro-control="item"
             data-ouro-part="link"
-            className={cn(stretchedLinkClass, variant === "outline" && "after:rounded-xl")}
+            className={cn(stretchedLinkClass, variant === "outline" && "after:rounded-ouro-xl")}
           >
             {title}
             {external && <span className="sr-only"> (opens in a new tab)</span>}

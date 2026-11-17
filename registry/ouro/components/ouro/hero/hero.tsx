@@ -660,7 +660,7 @@ export function Hero(props: HeroProps): JSX.Element {
           onTransitionEnd={() => setRising(false)}
           style={pictureStyle}
           className={cn(
-            "block w-[var(--hero-width)] overflow-clip rounded-xl",
+            "block w-[var(--hero-width)] overflow-clip rounded-ouro-xl",
             layoutMedia[layout],
             motion === "rise" && riseMotion,
             crop && "relative min-[40rem]:aspect-[var(--hero-crop)]",

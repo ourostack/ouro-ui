@@ -63,7 +63,7 @@ type Tone = (typeof tones)[number];
 const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 const open =
-  "press relative box-border block w-full min-w-0 cursor-pointer rounded-md border-0 bg-transparent p-0 text-start text-inherit " +
+  "press relative box-border block w-full min-w-0 cursor-pointer rounded-ouro-md border-0 bg-transparent p-0 text-start text-inherit " +
   "touch-manipulation [-webkit-tap-highlight-color:transparent] outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
   "pointer-fine:hover:underline pointer-fine:hover:underline-offset-4";
 
@@ -147,7 +147,7 @@ export function AttentionCard(props: AttentionCardProps): JSX.Element {
       ref={merged}
       data-ouro="attention-card"
       aria-labelledby={`${id}-reason ${id}-title`}
-      className={cn("box-border flex min-w-0 flex-col gap-1.5 rounded-xl border border-solid border-border bg-card p-3 text-card-foreground", className)}
+      className={cn("box-border flex min-w-0 flex-col gap-1.5 rounded-ouro-xl border border-solid border-border bg-card p-3 text-card-foreground", className)}
     >
       <div className="flex min-w-0 items-center gap-2">
         <Badge id={`${id}-reason`} tone={tone} variant="soft">

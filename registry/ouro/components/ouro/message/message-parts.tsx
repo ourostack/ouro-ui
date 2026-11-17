@@ -18,7 +18,7 @@ import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 // hidden bar is over the message, which shows it; on a touch screen the hidden bar lets taps
 // through, so a tap on the message above never lands on it.
 const barClass =
-  "z-10 flex items-center gap-0.5 rounded-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
+  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
   "opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100 group-focus-within/message:transition-none " +
   "group-data-ouro-message-active/message:opacity-100 data-menu-open:opacity-100 " +
@@ -312,7 +312,7 @@ export function MessageActionBar({
 
 // Loaded with this file: the list's one bar shows as soon as the pointer is over a message.
 const layerClass =
-  "z-10 flex items-center gap-0.5 rounded-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid";
+  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid";
 
 /**
  * A MessageList's shared action bar and menu: the bar on the message the pointer is over (or that

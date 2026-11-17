@@ -15,7 +15,7 @@
  *   presence dots and spinners stay round.
  * - --ouro-layer: the z-index of sheet and dialog portals.
  * - --input and --radius, with shadcn's stock values, for an app whose theme has neither:
- *   fields draw their border in --input and round their corners on the --radius scale.
+ *   fields draw their border in --input and round their corners on the --radius-ouro-* steps.
  *   shadcn add writes a variable only when the app's stylesheet lacks it, and a theme
  *   loaded after this file wins, so an app that has them keeps its own.
  * - The press transition and the keyframes for spinners, indeterminate progress, skeletons and the
@@ -37,6 +37,17 @@
  */
 @theme inline {
   --color-input: var(--input);
+  /* Components round with the --radius-ouro-* steps (rounded-ouro-lg). shadcn init writes its own
+     --radius-* steps into an app's theme, and shadcn add never replaces a variable the app has, so
+     those names keep shadcn's values there. The --radius-ouro-* names are new, so every add appends
+     them. The --radius-sm..4xl lines below give an app without shadcn's steps Ouro's factors for its own rounded-* classes. */
+  --radius-ouro-sm: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6);
+  --radius-ouro-md: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.8);
+  --radius-ouro-lg: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));
+  --radius-ouro-xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 1.4);
+  --radius-ouro-2xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 1.8);
+  --radius-ouro-3xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 2.2);
+  --radius-ouro-4xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 2.6);
   --radius-sm: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6);
   --radius-md: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.8);
   --radius-lg: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));

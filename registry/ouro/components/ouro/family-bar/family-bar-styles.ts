@@ -15,7 +15,7 @@ import type { DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
  * @internal
  */
 const familyLinkClass =
-  "relative m-0 box-border inline-flex min-h-11 min-w-11 pointer-fine:min-h-8 pointer-fine:min-w-0 items-center justify-center rounded-md px-2.5 whitespace-nowrap no-underline select-none touch-manipulation " +
+  "relative m-0 box-border inline-flex min-h-11 min-w-11 pointer-fine:min-h-8 pointer-fine:min-w-0 items-center justify-center rounded-ouro-md px-2.5 whitespace-nowrap no-underline select-none touch-manipulation " +
   "text-base pointer-fine:text-sm leading-5 font-normal text-muted-foreground [-webkit-tap-highlight-color:transparent] " +
   "transition-colors duration-(--ouro-duration-fast) ease-[ease] pointer-fine:hover:text-foreground active:text-foreground " +
   "aria-[current=true]:text-foreground aria-[current=true]:underline aria-[current=true]:decoration-primary aria-[current=true]:decoration-2 " +

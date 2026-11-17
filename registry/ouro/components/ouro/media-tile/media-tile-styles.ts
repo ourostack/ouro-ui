@@ -173,7 +173,7 @@ const smallPhotos: readonly string[] = ["xs", "sm", "md", "lg"];
  * @claim "The tile: a 16:9 box in" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile > is a 16:9 tile as wide as its container, and keeps layout classes, ids, refs and div attributes)
  */
 const tileClass =
-  "@container/tile group/tile relative isolate box-border block aspect-video w-full overflow-hidden rounded-xl " +
+  "@container/tile group/tile relative isolate box-border block aspect-video w-full overflow-hidden rounded-ouro-xl " +
   "bg-muted text-foreground forced-colors:border forced-colors:border-solid forced-colors:border-[CanvasText]";
 
 /** The layer the app's media fills, hidden but still mounted while the photo shows, so a `<video>` keeps its stream. @internal */
@@ -218,7 +218,7 @@ const ringClass =
  * @claim "The tile's controls in its top" registry/ouro/components/ouro/media-tile/media-tile.touch.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.touch.test.tsx::MediaTile on a touch screen > always shows its controls, and gives the Pin toggle a 44px target)
  */
 const controlsClass =
-  "absolute end-2 top-2 z-20 flex items-center gap-1 rounded-lg p-0.5 " +
+  "absolute end-2 top-2 z-20 flex items-center gap-1 rounded-ouro-lg p-0.5 " +
   "opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:group-hover/tile:opacity-100 group-focus-within/tile:opacity-100 group-focus-within/tile:transition-none " +
   "data-pinned:opacity-100 pointer-coarse:opacity-100";

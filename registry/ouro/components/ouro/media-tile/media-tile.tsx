@@ -505,7 +505,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
       {status && (
         <div aria-hidden="true" data-ouro-media-tile-status="" className="absolute start-2 top-2 z-20 flex gap-1">
           {handRaised && (
-            <span data-ouro-media-tile-hand="" title={upperFirst(labels.handRaised)} className={cn(plateClass, "flex size-7 items-center justify-center rounded-md")}>
+            <span data-ouro-media-tile-hand="" title={upperFirst(labels.handRaised)} className={cn(plateClass, "flex size-7 items-center justify-center rounded-ouro-md")}>
               <HandGlyph />
             </span>
           )}
@@ -513,7 +513,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
             <span
               data-ouro-media-tile-connection=""
               title={upperFirst(labels.poorConnection)}
-              className={cn(plateClass, "flex size-7 items-center justify-center rounded-md text-[color-mix(in_oklab,var(--warning)_70%,var(--foreground))]")}
+              className={cn(plateClass, "flex size-7 items-center justify-center rounded-ouro-md text-[color-mix(in_oklab,var(--warning)_70%,var(--foreground))]")}
             >
               <SignalGlyph />
             </span>
@@ -525,7 +525,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
         data-ouro-media-tile-plate=""
         className={cn(
           plateClass,
-          "absolute start-2 bottom-2 z-20 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-md px-1.5 py-0.5 text-xs leading-5 font-medium @2xs/tile:text-sm",
+          "absolute start-2 bottom-2 z-20 flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-ouro-md px-1.5 py-0.5 text-xs leading-5 font-medium @2xs/tile:text-sm",
         )}
       >
         {muted && (

@@ -166,7 +166,7 @@ function monthGrid(month: string, firstDay: number): Array<Array<string | null>>
  */
 const dayClass =
   "press relative m-0 box-border inline-flex size-11 items-center justify-center pointer-fine:size-9 " +
-  "rounded-md border-0 bg-transparent p-0 font-[inherit] text-sm leading-none text-foreground tabular-nums " +
+  "rounded-ouro-md border-0 bg-transparent p-0 font-[inherit] text-sm leading-none text-foreground tabular-nums " +
   "cursor-pointer select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "outline-ring outline-offset-2 focus-visible:z-1 focus-visible:outline-2 focus-visible:outline-solid " +
   "not-aria-disabled:not-data-selected:pointer-fine:hover:bg-accent not-aria-disabled:not-data-selected:pointer-fine:hover:text-accent-foreground " +
