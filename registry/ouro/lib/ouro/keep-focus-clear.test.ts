@@ -535,6 +535,18 @@ describe("keepFocusClear", () => {
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
     });
 
+    it("leaves a scroll before any focus change to the person, as when the stack first shows", async () => {
+      // 790px down the window once the page is scrolled 2000px: under the bottom stack. Focus is on it before the stack shows.
+      const low = scrolledAway("low", "the window", 2790);
+      low.node.focus({ preventScroll: true });
+      const bar = stage();
+      handle = keepFocusClear(bar);
+      await frames();
+      scrollTo(0, 2000);
+      await frames(3);
+      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
+    });
+
     it("does not look after it is released, for a scroll that had started or one that comes after", async () => {
       const bar = setup();
       // 790px down the window once the page is scrolled 2000px: under the bottom stack.

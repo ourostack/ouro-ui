@@ -250,6 +250,7 @@ function keepFocusClear(viewport: HTMLElement): FocusClearHandle {
   // frame, focus is looked at again. Any other scroll is the person's (a screen reader's, the scrollbar's), and leaves the
   // stack where it is, as before.
   let focusScroll = false;
+  // Stryker disable next-line BooleanLiteral: a wait for the scroll to stop starts only from a scroll, which sets scrolled first.
   let scrolled = false;
   let scrollFrame = 0;
   let focusFrame = 0;
