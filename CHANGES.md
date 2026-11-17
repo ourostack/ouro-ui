@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Changed: llms.txt's Install section leads with the @ouro namespace, which installs much faster than the GitHub addresses, and the agent quickstart says when its app is done.
+- Fixed: where the browser has no `corner-shape` (Safari), Button's, Badge's, TextField's, Dialog's and Card's squircles took corners about 1.4 times too large in an app whose radius steps came from `shadcn init`, and a rect Toggle's were smaller than a Button's; each is now `--radius` times its step and `--ouro-radius-scale` ([the test](registry/ouro/theme/squircle-surface.test.tsx "verify:testExists(registry/ouro/theme/squircle-surface.test.tsx::the squircle's corner size where the engine has no corner-shape > is --radius times its step, with shadcn init's radius steps in place of ouro-base's (#1828))")).
