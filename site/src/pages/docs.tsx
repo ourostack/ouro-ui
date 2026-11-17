@@ -325,7 +325,8 @@ export function DocsIndex(): JSX.Element {
         {claim("Every Ouro HX component, with a live demo, install commands, its props and what to use instead. The same docs live in each component's JSDoc, so an agent reading the installed source sees them too.", {
           source: [{ file: "site/src/site.test.tsx" }, { file: "scripts/gen-docs.mts" }],
           verify: [{ testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" }, { fileLine: "scripts/gen-docs.mts", pattern: "from the JSDoc and prop types in" }],
-        })}
+        })}{" "}
+        New here? <Link href="/docs/installing/#start-a-new-app">Start a new app</Link>.
       </Lead>
       {groups.map((group) => (
         <section key={group} aria-labelledby={groupId(group)} className="mt-12 first-of-type:mt-0">

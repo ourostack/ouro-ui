@@ -6,7 +6,7 @@ import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, RELEASE_HREF } from "../hero";
+import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, NEW_APP_LINK, RELEASE_HREF } from "../hero";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt, partsOf } from "./art";
@@ -109,6 +109,21 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
+  it("sends a newcomer without a set-up app to the installing guide's first steps, beside the install command", async () => {
+    await renderPage("/");
+    const link = page.getByRole("link", { name: NEW_APP_LINK.text, exact: true });
+    await expect.element(link).toHaveAttribute("href", "/docs/installing/#start-a-new-app");
+    expect(link.element().closest("[data-site-install-caption]")).not.toBeNull();
+    // On a phone it waits with the caption's second sentence, so the release stays on the caption's line and the
+    // stage keeps its place on the first screen.
+    const anchor = link.element();
+    await page.viewport(390, 844);
+    await expect.poll(() => anchor.checkVisibility()).toBe(false);
+    const caption = document.querySelector<HTMLElement>("[data-site-install-caption]")!.getBoundingClientRect();
+    const release = document.querySelector<HTMLElement>("[data-site-release]")!.getBoundingClientRect();
+    expect(release.top).toBeLessThan(caption.bottom);
+  });
+
   it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
@@ -121,8 +136,10 @@ describe("the hero", () => {
       expect(INSTALL_CAPTION).not.toMatch(/\d/);
       // real clock: the hero's install command, which stays.
       await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
-      // real clock: the install command's caption, which stays.
-      await expect.element(page.getByText(INSTALL_CAPTION)).toBeVisible();
+      // The caption, which stays, starts with these words; the new-app link follows them in the same line.
+      const caption = document.querySelector<HTMLElement>("[data-site-install-caption]")!;
+      expect(caption.checkVisibility()).toBe(true);
+      expect(caption.textContent).toContain(INSTALL_CAPTION);
       const code = document.querySelector<HTMLElement>("[data-site-install]")!;
       expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
       // A toast shows for five seconds, which a loaded runner can outlast between two steps; the

@@ -1,0 +1,1 @@
+- New: the Installing guide starts with the steps that set up a new Vite or Next.js app, [the Vite ones the install test's own app](scripts/new-app-steps.test.mjs "verify:testExists(scripts/new-app-steps.test.mjs::the guide's new Vite app steps write the install test's Vite app, with @ for its ~)"), and the home page and the components index link to them.
