@@ -22,6 +22,7 @@ import { FieldOwnerContext, useField, useFormErrors, type ReadonlyErrorMessages 
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { holdPageAtPress } from "@/registry/ouro/lib/ouro/page-scroll-hold";
+import { floatingPositionMethod } from "@/registry/ouro/lib/ouro/floating";
 import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 
 export type { SelectOption, SelectOptionGroup, SelectOptions } from "@/registry/ouro/components/ouro/select/select-styles";
@@ -233,6 +234,7 @@ function SelectControl({
           {sheet && <BaseSelect.Backdrop data-ouro="select-backdrop" className={backdropClass} />}
           <BaseSelect.Positioner
             className={positionerClass}
+            positionMethod={floatingPositionMethod}
             sideOffset={4}
             collisionPadding={8}
             alignItemWithTrigger={!sheet}

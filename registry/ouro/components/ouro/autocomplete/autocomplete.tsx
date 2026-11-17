@@ -25,7 +25,7 @@ import { emojiToken, searchCatalogue, toneOf } from "@/registry/ouro/components/
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow } from "@/registry/ouro/lib/ouro/dev";
-import { floatingMotionClass, floatingPortalClass, floatingSurfaceClass } from "@/registry/ouro/lib/ouro/floating";
+import { floatingMotionClass, floatingPortalClass, floatingPositionMethod, floatingSurfaceClass } from "@/registry/ouro/lib/ouro/floating";
 import { PortalScope, usePortalContainer } from "@/registry/ouro/lib/ouro/portal-container";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { serverElement } from "@/registry/ouro/lib/ouro/server-element";
@@ -481,7 +481,7 @@ function SuggestionList({ open, listId, label, query, items, current, anchor, on
     <BasePopover.Root open={open}>
       <BasePopover.Portal {...portal} data-ouro="autocomplete-portal" className={floatingPortalClass}>
         <PortalScope>
-          <BasePopover.Positioner anchor={anchor} side="bottom" align="start" sideOffset={4} collisionPadding={8} data-ouro="autocomplete-positioner">
+          <BasePopover.Positioner anchor={anchor} positionMethod={floatingPositionMethod} side="bottom" align="start" sideOffset={4} collisionPadding={8} data-ouro="autocomplete-positioner">
             <BasePopover.Popup initialFocus={false} finalFocus={false} role="listbox" id={listId} aria-label={label} data-ouro="autocomplete" className={popupClass}>
               {items.map((item, index) => (
                 <div

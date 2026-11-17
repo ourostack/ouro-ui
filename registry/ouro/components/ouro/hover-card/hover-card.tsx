@@ -11,6 +11,7 @@ import {
   floatingMotionClass,
   floatingPlacementWarnings,
   floatingPortalClass,
+  floatingPositionMethod,
   floatingSide,
   floatingSurfaceClass,
   type FloatingAlign,
@@ -225,7 +226,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
         <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
           <PortalScope>
             <PreviewCard.Positioner
-              anchor={triggerRef}
+              positionMethod={floatingPositionMethod}              anchor={triggerRef}
               side={side}
               align={align}
               sideOffset={8}
