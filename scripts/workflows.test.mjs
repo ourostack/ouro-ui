@@ -300,7 +300,7 @@ test("scripts/retry.sh runs a failed fetch again after each wait, and fails with
   assert.equal(first.stdout, "");
 });
 
-test("only the jobs that push, release.yml's release job and docs-pin.yml's pin job, keep the checkout's credentials", () => {
+test("only the jobs that push, release.yml's release job, docs-pin.yml's pin job and sync-brand.yml's sync job, keep the checkout's credentials", () => {
   const problems = [];
   for (const { file, text } of workflows) {
     const lines = text.split("\n");
@@ -309,7 +309,7 @@ test("only the jobs that push, release.yml's release job and docs-pin.yml's pin 
       const step = lines.slice(index + 1, index + 4).join("\n");
       const persists = !/^\s+persist-credentials: false$/m.test(step);
       const job = lines.slice(0, index).findLast((above) => /^ {2}[\w-]+:$/.test(above))?.trim().slice(0, -1);
-      const pushes = (file === "release.yml" && job === "release") || (file === "docs-pin.yml" && job === "pin");
+      const pushes = (file === "release.yml" && job === "release") || (file === "docs-pin.yml" && job === "pin") || (file === "sync-brand.yml" && job === "sync");
       if (persists !== pushes) problems.push(`${file}:${index + 1}`);
     });
   }

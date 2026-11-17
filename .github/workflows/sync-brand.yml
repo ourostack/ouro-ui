@@ -1,0 +1,78 @@
+name: Sync brand art
+# Keeps site/public/brand/storybook/ the same bytes as ourostack/.github's brand/ art (site/scripts/sync-storybook.mjs).
+# Every 10 minutes it copies the art this site serves; when a brand merge changed any of it, it keeps one pull request
+# open on one branch and turns auto-merge on, so it merges once the checks main's ruleset requires pass, and Pages then
+# deploys main. The brand audit in ourostack/.github shows site:ui.ouroboros.bot as pending, not stale, for 90 minutes
+# after a brand merge, so its main stays green while this runs.
+# The branch is pushed, and the pull request opened, as the Ouro Current GitHub App (a token from OURO_CURRENT_APP_ID and
+# OURO_CURRENT_PRIVATE_KEY), so a push starts CI at once and the merge starts Pages, as in docs-pin.yml.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: sync-brand
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GH_REPO: ${{ github.repository }}
+      BRANCH: brand/sync-storybook
+    steps:
+      - id: app
+        name: Sign in as the Ouro Current app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.OURO_CURRENT_APP_ID }}
+          private-key: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          token: ${{ steps.app.outputs.token }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Copy the art from ourostack/.github main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node site/scripts/sync-storybook.mjs main
+      - id: changes
+        name: See whether it changed
+        run: |
+          if [ -z "$(git status --porcelain -- site/public/brand/storybook)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.changes.outputs.changed == 'true'
+        name: Open or update the pull request, and turn auto-merge on
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          brand=$(gh api repos/ourostack/.github/commits/main --jq '.sha[0:7]')
+          title="Sync the storybook art with ourostack/.github@$brand"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -q -c "$BRANCH"
+          git add site/public/brand/storybook
+          git commit -q -m "$title"
+          git push -q --force origin "$BRANCH"
+          body="A brand merge changed art this site serves. Sync brand art copied it byte for byte with site/scripts/sync-storybook.mjs; this pull request merges once the required checks pass."
+          number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --title "$title" --body "$body"
+          else
+            gh pr create --base main --head "$BRANCH" --title "$title" --body "$body"
+            number=$(gh pr view "$BRANCH" --json number --jq .number)
+          fi
+          if ! gh pr merge "$number" --auto --squash; then
+            [ "$(gh pr view "$number" --json state --jq .state)" = MERGED ] || { echo "::error::Could not turn auto-merge on for #$number."; exit 1; }
+          fi
+          echo "Auto-merge is on for #$number." >> "$GITHUB_STEP_SUMMARY"
