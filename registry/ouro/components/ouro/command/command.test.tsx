@@ -10,6 +10,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command, type CommandEntry, type CommandProps } from "@/registry/ouro/components/ouro/command/command";
 import { queryRanges } from "@/registry/ouro/components/ouro/command/command-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { useCommandShortcut } from "@/registry/ouro/lib/ouro/use-command-shortcut";
 import { audit, axeExclude, describeFindings, measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -103,15 +104,85 @@ async function openPalette(props: Partial<CommandProps> = {}) {
   return settled();
 }
 
+/** The palette, controlled, open or closed. `flushSync` opens it in the same frame the test reads it, before the browser starts any transition. */
+const controlled = (open: boolean) => <Command title="Command palette" items={entries()} open={open} onOpenChange={() => {}} />;
+
+const palettePopup = () => document.querySelector<HTMLElement>("[data-ouro-presentation]");
+const paletteBackdrop = () => document.querySelector<HTMLElement>('[data-ouro="dialog-backdrop"]');
+
+/** Nothing left to enter or leave: no starting style and no animation still listed on the element. */
+const quiet = (element: Element) => !element.hasAttribute("data-starting-style") && element.getAnimations().length === 0;
+
+/** The CSS transitions still running on the element, each property with its duration in milliseconds. */
+function runningTransitions(element: Element): Record<string, number> {
+  const running = element
+    .getAnimations()
+    .filter((animation): animation is CSSTransition => animation instanceof CSSTransition && animation.playState !== "finished" && animation.playState !== "idle");
+  return Object.fromEntries(running.map((animation) => [animation.transitionProperty, Math.round(Number(animation.effect?.getComputedTiming().duration))]));
+}
+
+/** The first (or last) keyframe of the running transition of `property`, read before the browser ends it. */
+function keyframeOf(element: Element, property: string, end: boolean): Record<string, unknown> {
+  const animation = element.getAnimations().find((running): running is CSSTransition => running instanceof CSSTransition && running.transitionProperty === property)!;
+  return (animation.effect as KeyframeEffect).getKeyframes().at(end ? -1 : 0)!;
+}
+
 describe("Command motion", () => {
-  it("opens and closes without animating, its backdrop included, because a shortcut opens it", async () => {
-    const element = await openPalette();
-    const backdrop = document.querySelector<HTMLElement>('[data-ouro="dialog-backdrop"]')!;
-    for (const surface of [element, backdrop]) {
-      expect(getComputedStyle(surface).transitionProperty).toBe("none");
+  // Base UI starts the enter one frame after the popup mounts, when it drops data-starting-style, so no
+  // transition runs yet when the popup mounts: the test waits for them to start, then reads them.
+  it("fades and scales in from 0.96 on the Dialog's slow token, and only fades with reduced motion", async () => {
+    const tokens = getComputedStyle(document.documentElement);
+    const slow = parseDuration(tokens.getPropertyValue("--ouro-duration-slow"));
+    const base = parseDuration(tokens.getPropertyValue("--ouro-duration-base"));
+    await render(controlled(false));
+    const root = roots.at(-1)!;
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      flushSync(() => root.render(controlled(true)));
+      const popup = palettePopup()!;
+      const backdrop = paletteBackdrop()!;
+      expect(popup.hasAttribute("data-starting-style")).toBe(true);
+      expect(Number(getComputedStyle(popup).opacity)).toBe(0);
+      if (reduced) {
+        expect(getComputedStyle(popup).transform).toBe("none");
+      } else {
+        expect(new DOMMatrix(getComputedStyle(popup).transform).a).toBeCloseTo(0.96);
+      }
+      await expect.poll(() => popup.getAnimations().length > 0 && backdrop.getAnimations().length > 0).toBe(true);
+      expect(runningTransitions(popup)).toEqual(reduced ? { opacity: base } : { opacity: slow, transform: slow });
+      expect(runningTransitions(backdrop)).toEqual({ opacity: slow });
+      if (!reduced) {
+        expect(Number(keyframeOf(popup, "opacity", false).opacity)).toBe(0);
+        expect(new DOMMatrix(String(keyframeOf(popup, "transform", false).transform)).a).toBeCloseTo(0.96);
+      }
+      await expect.poll(() => quiet(popup) && quiet(backdrop)).toBe(true);
+      expect(getComputedStyle(popup).opacity).toBe("1");
+      flushSync(() => root.render(controlled(false)));
+      await expect.poll(palettePopup).toBeNull();
     }
-    for (const surface of [element, backdrop]) surface.setAttribute("data-ending-style", "");
-    for (const surface of [element, backdrop]) expect(getComputedStyle(surface).transitionProperty).toBe("none");
+  });
+
+  it("fades and scales out on the base token, and only fades with reduced motion", async () => {
+    const tokens = getComputedStyle(document.documentElement);
+    const base = parseDuration(tokens.getPropertyValue("--ouro-duration-base"));
+    await render(controlled(false));
+    const root = roots.at(-1)!;
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      flushSync(() => root.render(controlled(true)));
+      const popup = palettePopup()!;
+      const backdrop = paletteBackdrop()!;
+      // Closing while the backdrop still fades in would reverse that transition, which runs shorter than the exit.
+      await expect.poll(() => quiet(popup) && quiet(backdrop)).toBe(true);
+      flushSync(() => root.render(controlled(false)));
+      expect(runningTransitions(popup)).toEqual(reduced ? { opacity: base } : { opacity: base, transform: base });
+      expect(runningTransitions(backdrop)).toEqual({ opacity: base });
+      if (!reduced) {
+        expect(Number(keyframeOf(popup, "opacity", true).opacity)).toBe(0);
+        expect(new DOMMatrix(String(keyframeOf(popup, "transform", true).transform)).a).toBeCloseTo(0.96);
+      }
+      await expect.poll(palettePopup).toBeNull();
+    }
   });
 });
 

@@ -816,10 +816,9 @@ export function Command(props: CommandProps): JSX.Element {
       ) : (
         <DialogRoot open={isOpenNow} onOpenChange={(next) => setOpen(next)} onOpenChangeComplete={emptyOnceClosed}>
           <DialogPortal keepMounted={keepMounted}>
-            <DialogBackdrop data-ouro-instant="" />
+            <DialogBackdrop />
             <DialogViewport>
               <DialogPopupUnchecked
-                data-ouro-instant=""
                 ref={holdOnOpen}
                 size="auto"
                 className={cn("max-w-[min(100%,40rem)]", className)}
