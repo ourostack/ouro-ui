@@ -146,7 +146,7 @@ test("ci.yml yields on pull requests only, in the plan before any other job queu
   assert.match(jobs.plan, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m, "it reads Actions and writes nothing");
   // After the checkout that brings the script, before the install and the plan itself.
   assert.ok(steps.findIndex((block) => block.startsWith("uses: actions/checkout@")) < index);
-  assert.ok(steps.findIndex((block) => block.startsWith("run: pnpm i ")) > index);
+  assert.ok(steps.findIndex((block) => /^ {0,8}run: pnpm i /m.test(block)) > index);
   // Every other job waits on the plan, so none queues for a runner while the plan yields.
   for (const id of Object.keys(jobs).filter((key) => key !== "plan")) {
     const waits = (key, seen = new Set()) => needsOf(key).some((need) => need === "plan" || (!seen.has(need) && (seen.add(need), waits(need, seen))));
