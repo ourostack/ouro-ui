@@ -63,8 +63,8 @@ test("a failure that is already a whole `<tool>: ...` line prints as it is, not 
     return { code, err };
   };
   assert.deepEqual(await once("desk: sync: the lock is held.\nFix: wait."), { code: 1, err: "desk: sync: the lock is held. Fix: wait.\n" });
-  assert.equal((await once("ENOENT: no such file")).err, "notes: notes: ENOENT: no such file.\n");
-  assert.equal((await once("plain")).err, "notes: notes: plain.\n");
+  assert.equal((await once("ENOENT: no such file")).err, "notes: ENOENT: no such file.\n");
+  assert.equal((await once("plain")).err, "notes: plain.\n");
 });
 
 test("help: the overview, a command, a topic, as text and --json; an unknown topic is usage", async () => {
@@ -127,11 +127,11 @@ test("a refused or failed outcome is the one error line on stderr, its own exit;
   assert.match(e.o.err, /plain: this command has no run\(\) in its definition\./);
   const f = io();
   assert.equal(await runCli(t, ["boom", "--json"], f.io), 1);
-  assert.equal(f.o.err, "t: t: disk full.\n");
+  assert.equal(f.o.err, "t: disk full.\n");
   assert.equal(JSON.parse(f.o.out).error.code, "error");
   const g = io();
   assert.equal(await runCli(t, ["odd"], g.io), 1);
-  assert.equal(g.o.err, "t: t: odd.\n");
+  assert.equal(g.o.err, "t: odd.\n");
   const h = io();
   assert.equal(await runCli(t, ["two", "-", "--b", "-"], { ...h.io, stdin: ["x"] }), 2);
   assert.match(h.o.err, /only one "-" \(stdin\) per command, and a and b both ask for it/);
