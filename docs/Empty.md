@@ -32,7 +32,7 @@ Type: `EmptyProps`.
 | `action` | `ReactNode` |  | The way out, usually one `Button`: `action={<Button href="/recipes/new">Create recipe</Button>}`. |
 | `align` | `"start" \| "center"` | `"center"` | `center` centers everything, for a page or panel; `start` lines it up with the text around it (flush with it when `variant="plain"`, with no room at its sides). |
 | `children` | `ReactNode` |  | Anything else under the description, such as a search field. |
-| `className` | `string` |  | Layout only: margins, width, grid placement (`mt-6`). Appearance classes warn in development; use `variant`. |
+| `className` | `string` |  | Layout only: margins, width (`max-w-md` holds the whole Empty to a column), grid placement (`mt-6`). Appearance classes warn in development; use `variant`. |
 | `description` | `ReactNode` |  | What the person can do about it, in a sentence: "Start by creating your first recipe." |
 | `headingLevel` | `2 \| 3 \| 4 \| 5 \| 6` | `3` | The title's heading level. Pick the level below the section the Empty sits in. |
 | `icon` | `ReactNode` |  | A decorative icon above the title, in a muted circle. Hidden from screen readers. |

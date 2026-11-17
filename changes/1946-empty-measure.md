@@ -1,0 +1,1 @@
+- Fixed: [Empty's title, description and children take the width the app gives them](registry/ouro/components/ouro/empty/empty.test.tsx "verify:testExists(registry/ouro/components/ouro/empty/empty.test.tsx::Empty > lays its text and children out in the width the app gives it, with no measure of its own)"), so `className` sets the measure, as `max-w-md` does on the docs demo.
