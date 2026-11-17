@@ -88,14 +88,15 @@ describe("button branch", () => {
   it("is a medium-weight label on one line, in a 1px solid border, rounded on Ouro's lg step", async () => {
     const { button } = await render(<Button>Save the draft</Button>);
     const style = getComputedStyle(button);
-    expect(style.fontWeight).toBe("500");
     expect(style.whiteSpace).toBe("nowrap");
     expect(style.borderTopStyle).toBe("solid");
     expect(style.borderTopWidth).toBe("1px");
     const step = document.body.appendChild(document.createElement("div"));
     mounted.push(step);
+    // An app's theme may change the medium weight and the radius scale, so compare with the theme's own values.
     step.style.borderRadius = "var(--radius-ouro-lg)";
-    expect(parseFloat(style.borderTopLeftRadius)).toBeGreaterThan(0);
+    step.style.fontWeight = "var(--font-weight-medium)";
+    expect(style.fontWeight).toBe(getComputedStyle(step).fontWeight);
     expect(style.borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
   });
 
