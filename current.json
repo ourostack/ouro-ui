@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-17T18:07:59.727Z",
+  "generatedAt": "2026-11-17T18:28:30.702Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -79,20 +79,17 @@
     },
     {
       "repo": "ourostack/factory",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.264",
+          "current": "v1.3.266",
           "latest": "v1.3.266",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1019,
-        "url": "https://github.com/ourostack/factory/pull/1019"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/flow-review",
