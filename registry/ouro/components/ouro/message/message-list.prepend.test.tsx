@@ -3,17 +3,17 @@ import { afterEach, describe, expect, it } from "vitest";
 import { commands, server } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
-// Layout-shift and long-task entries are Chromium's; the other browsers have no such measure.
+// Layout-shift entries are Chromium's; the other browsers have no such measure.
 const chromiumOnly = it.skipIf(server.browser !== "chromium");
 
 /** The tolerance for where a message sits, in pixels: a sub-pixel rounding, as the windowing tests allow. */
 const ROUNDING = 2;
-/** A task longer than this blocks input for a person; the browser reports only tasks past it, as long tasks. */
-const LONG_TASK_MS = 50;
-const PAGES = 3;
 const PAGE = 200;
+const PAGES = 3;
+const MESSAGE = '[data-ouro="message"]';
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -52,9 +52,11 @@ function Chat({ items, loadingOlder, windowing }: { items: Item[]; loadingOlder?
 /** The first message whose top is inside the list's view, and where that top is. */
 function firstVisible(scroller: HTMLElement): { message: Element; top: number } {
   const viewTop = scroller.getBoundingClientRect().top;
-  const message = [...scroller.querySelectorAll('[data-ouro="message"]')].find((node) => node.getBoundingClientRect().top >= viewTop)!;
+  const message = [...scroller.querySelectorAll(MESSAGE)].find((node) => node.getBoundingClientRect().top >= viewTop)!;
   return { message, top: message.getBoundingClientRect().top };
 }
+
+const drawn = (scroller: HTMLElement) => scroller.querySelectorAll(MESSAGE).length;
 
 const frames = async (count: number) => {
   for (let frame = 0; frame < count; frame++) await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -83,42 +85,52 @@ async function atMotion<T>(reduced: boolean, body: () => Promise<T>): Promise<T>
   }
 }
 
-interface Page {
-  /** The layout shift of the page, where the browser measures it: shifts a person's input caused are left out. */
-  shift: number;
-  /** How far the reader's message moved in the furthest frame, or after the page, in pixels. */
-  moved: number;
-  /** Each task the browser reports as long during the page, in milliseconds. */
-  longTasks: number[];
-}
-
 /**
- * Pages of 200 older messages (three, by default), each going in above a reader scrolled up, after the one before it has
- * settled. Each page first shows "Loading older messages" (`loadingOlder`), as an app does while it fetches, then the messages come.
+ * Mounts a list of PAGE messages, scrolled up to the middle, as a reader who has scrolled up sees it. Returns its scroller,
+ * and what an app does to it: starts loading older messages (`startLoading`, which shows "Loading older messages"), then
+ * prepends a page (`prepend`, with `page` counting from 1).
  */
-async function prependPages(windowing?: boolean, count = PAGES): Promise<Page[]> {
+async function mountScrolledUp(windowing?: boolean) {
   const host = document.createElement("div");
   document.body.append(host);
   mounted.push(host);
   const root = createRoot(host);
   roots.push(root);
   let items = history(PAGE);
-  await act(async () => root.render(<Chat items={items} windowing={windowing} />));
+  const draw = (loadingOlder?: boolean) => act(async () => root.render(<Chat items={items} loadingOlder={loadingOlder} windowing={windowing} />));
+  await draw();
   const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
   await settle(scroller);
   scroller.scrollTop = 3000;
   await settle(scroller);
-  const pages: Page[] = [];
-  for (let page = 1; page <= count; page++) {
+  return {
+    scroller,
+    startLoading: () => draw(true),
+    prepend: (page: number) => {
+      items = [...history(PAGE, -PAGE * page), ...items];
+      return draw();
+    },
+  };
+}
+
+interface Shifts {
+  /** The layout shift of the pages, where the browser measures it, leaving out shifts a person's input caused. */
+  shift: number;
+  /** How far the reader's message moved in the furthest frame, in pixels. */
+  moved: number;
+}
+
+/** Each of PAGES pages of older messages going in above a reader scrolled up, after the one before it has settled. */
+async function prependPages(windowing?: boolean): Promise<Shifts[]> {
+  const { scroller, startLoading, prepend } = await mountScrolledUp(windowing);
+  const pages: Shifts[] = [];
+  for (let page = 1; page <= PAGES; page++) {
     const reading = firstVisible(scroller);
     const shifts: { value: number; recent: boolean }[] = [];
     const layout = new PerformanceObserver((list) => {
       for (const entry of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) shifts.push({ value: entry.value, recent: entry.hadRecentInput });
     });
     layout.observe({ type: "layout-shift" });
-    const longTasks: number[] = [];
-    const long = new PerformanceObserver((list) => list.getEntries().forEach((entry) => longTasks.push(entry.duration)));
-    long.observe({ type: "longtask" });
     let moved = 0;
     let watching = true;
     const watch = () => {
@@ -126,28 +138,56 @@ async function prependPages(windowing?: boolean, count = PAGES): Promise<Page[]>
       if (watching) requestAnimationFrame(watch);
     };
     requestAnimationFrame(watch);
-    await act(async () => root.render(<Chat items={items} loadingOlder windowing={windowing} />));
+    await startLoading();
     await frames(5);
-    items = [...history(PAGE, -PAGE * page), ...items];
-    await act(async () => root.render(<Chat items={items} windowing={windowing} />));
-    // A list that draws every message puts the page in a few at a time, so it is done when all of them are in the page.
-    if (windowing === false) {
-      await expect.poll(() => scroller.querySelectorAll('[data-ouro="message"]').length).toBe(PAGE * (page + 1));
-    }
+    await prepend(page);
+    // A list that draws every message puts the page in a few at a time, so it is done once all of them are in.
+    if (windowing === false) await expect.poll(() => drawn(scroller)).toBe(PAGE * (page + 1));
     await settle(scroller);
     await frames(2);
     watching = false;
     for (const record of layout.takeRecords() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) shifts.push({ value: record.value, recent: record.hadRecentInput });
     layout.disconnect();
-    long.disconnect();
     moved = Math.max(moved, Math.abs(reading.message.getBoundingClientRect().top - reading.top));
-    pages.push({
-      shift: shifts.filter((shift) => !shift.recent).reduce((sum, shift) => sum + shift.value, 0),
-      moved,
-      longTasks,
-    });
+    pages.push({ shift: shifts.filter((shift) => !shift.recent).reduce((sum, shift) => sum + shift.value, 0), moved });
   }
   return pages;
+}
+
+/**
+ * The messages added to the list in each animation frame while one page of PAGE older messages goes in above a reader
+ * scrolled up: from the frame its loading starts to the frame the page settles.
+ */
+async function messagesAddedPerFrame(windowing?: boolean): Promise<number[]> {
+  const { scroller, startLoading, prepend } = await mountScrolledUp(windowing);
+  // A message added counts once, whatever it is wrapped in.
+  const messagesIn = (node: Node) => (node instanceof Element ? Number(node.matches(MESSAGE)) + node.querySelectorAll(MESSAGE).length : 0);
+  let added = 0;
+  const collect = (records: MutationRecord[]) => {
+    for (const record of records) for (const node of record.addedNodes) added += messagesIn(node);
+  };
+  const observer = new MutationObserver(collect);
+  observer.observe(scroller, { childList: true, subtree: true });
+  // Each frame takes what was added since the last one.
+  const perFrame: number[] = [];
+  let watching = true;
+  const tick = () => {
+    perFrame.push(added);
+    added = 0;
+    if (watching) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  await startLoading();
+  await frames(5);
+  await prepend(1);
+  if (windowing === false) await expect.poll(() => drawn(scroller)).toBe(2 * PAGE);
+  await settle(scroller);
+  await frames(2);
+  watching = false;
+  collect(observer.takeRecords());
+  observer.disconnect();
+  perFrame.push(added);
+  return perFrame;
 }
 
 describe("MessageList prepending older history", () => {
@@ -159,10 +199,16 @@ describe("MessageList prepending older history", () => {
       for (const page of pages) expect(page.moved).toBeLessThanOrEqual(ROUNDING);
     });
 
-    chromiumOnly(`spends no task over ${LONG_TASK_MS} ms on a page of ${PAGE} older messages, at ${motion}`, async () => {
-      const pages = await atMotion(reduced, () => prependPages());
-      // Only tasks past the threshold are reported, so a long task is one that is reported at all.
-      pages.forEach((page, index) => expect(page.longTasks, `page ${index + 1}`).toEqual([]));
+    it(`adds no more than ${OLDER_CHUNK} messages in any frame while a page of ${PAGE} older messages goes in above a windowed list, at ${motion}`, async () => {
+      const added = await atMotion(reduced, () => messagesAddedPerFrame());
+      expect(Math.max(...added)).toBeLessThanOrEqual(OLDER_CHUNK);
+    });
+
+    it(`puts a page of ${PAGE} older messages in over several frames, no more than ${OLDER_CHUNK} in any one, above a list that draws every message, at ${motion}`, async () => {
+      const added = await atMotion(reduced, () => messagesAddedPerFrame(false));
+      expect(Math.max(...added)).toBeLessThanOrEqual(OLDER_CHUNK);
+      expect(added.filter((count) => count > 0).length).toBeGreaterThan(1);
+      expect(added.reduce((sum, count) => sum + count, 0)).toBe(PAGE);
     });
   }
 
@@ -170,11 +216,5 @@ describe("MessageList prepending older history", () => {
     const pages = await prependPages(false);
     expect(pages.reduce((sum, page) => sum + page.shift, 0)).toBeLessThan(0.01);
     for (const page of pages) expect(page.moved).toBeLessThanOrEqual(ROUNDING);
-  });
-
-  chromiumOnly(`spends no task over ${LONG_TASK_MS} ms on a page of ${PAGE} older messages, when every message is drawn`, async () => {
-    // One page: a list that draws every message gets more costly with each page, which the windowed list does not.
-    const [page] = await prependPages(false, 1);
-    expect(page!.longTasks).toEqual([]);
   });
 });
