@@ -40,6 +40,7 @@ Type: `TimerProps`.
 | `silent` | `boolean` |  | No chime and no vibration at zero; it still shows and says that the time is up. |
 | `size` | `"md" \| "lg"` | `"md"` | How large the time is: `md` beside other content, `lg` as a screen's focus. |
 | `timerId` | `string` |  | Keeps the timer through a reload and a closed tab, and shares it with a `TimerTray` and every other `Timer` or `useTimer` given the same `timerId`. Without it the timer ends with the component. (`id` is the element's, as on any `<div>`.) |
+| `variant` | `"plain" \| "ring"` | `"plain"` | How it is drawn. `plain` is the time over its buttons. `ring` sets the time, in light figures, and its Start, Pause or Resume inside a ring whose arc shows the time left, for a screen where the timer is the focus, such as a cooking step; Cancel or Restart sits under the ring. |
 
 ## Native attributes
 
