@@ -74,6 +74,11 @@ describe("Ouro check", () => {
     const again = await check({ ...options, out: dir("known"), config: { known: { "off-theme": [knownKey(kept.detail)] } } });
     assert.deepEqual(again.findings.filter((f) => !f.gated).map((f) => f.detail), [kept.detail]);
     assert.equal(again.gated.length, first.gated.length - 1);
+    // Every finding of a page is reported, past the 40 a page's other rules stop at, so a record of them is complete.
+    const rules = Array.from({ length: 45 }, (_, i) => `.k${i} { padding: ${17 + i * 4}px; }`).join("\n");
+    const many = site("known-many", { "index.html": `<!doctype html><html lang="en"><title>Many</title><style>:root { --spacing: 0.25rem; } ${rules}</style><main>${Array.from({ length: 45 }, (_, i) => `<p class="k${i}">Line ${i}</p>`).join("")}</main></html>` });
+    const all = await check({ ...options, targets: [many], out: dir("known") });
+    assert.equal(all.findings.filter((f) => f.rule === "off-scale").length, 45);
   });
 
   test("measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number", async () => {

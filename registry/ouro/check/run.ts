@@ -839,8 +839,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findTextIssues)));
       shown.push(...(await page.evaluate(findLayoutIssues, {})));
       shown.push(...(await page.evaluate(findThemeIssues, {})));
-      // off-theme and off-scale read the page's style rules, the same at every size and theme: at one, inp's.
-      if (inpAt === `${width}x${height} ${theme}`) shown.push(...(await page.evaluate(findOffThemeIssues, {})));
+      // off-theme and off-scale read the page's style rules, the same at every size and theme: at one, inp's. Every one
+      // is reported, not the first 40 (close-ups have their own limit), so the findings an update records as known are
+      // all of them, and fixing one never brings an unrecorded one into view.
+      if (inpAt === `${width}x${height} ${theme}`) shown.push(...(await page.evaluate(findOffThemeIssues, { maxIssues: 100000 })));
       shown.push(...(await page.evaluate(findInteractionIssues)));
       shown.push(...(await page.evaluate(findWrapIssues, {})));
       const behind = new Set(await page.evaluate(behindModal, [...new Set(shown.map((issue) => issue.ref))]));
