@@ -135,7 +135,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
     test: (property: string) => boolean;
     on: boolean;
     fixed: (value: string, property: string) => boolean;
-    use: (value: string, property: string, el: Element, scoped: boolean) => string;
+    suggest: (value: string, property: string, el: Element, scoped: boolean) => string;
   }[] = [
     {
       kind: "colour",
@@ -144,7 +144,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
       on: colorTokens.length > 0,
       // A background picture counts only as a gradient, by the colours it names outside the theme's.
       fixed: (v, p) => (p === "background-image" ? /gradient\(/.test(v) && (palette.test(v) || fixedColor(v.replace(/var\([^)]*\)/g, ""))) : fixedColor(v)),
-      use: (v, p, _el, scoped) => colorUse(p, v, scoped),
+      suggest: (v, p, _el, scoped) => colorUse(p, v, scoped),
     },
     {
       kind: "radius",
@@ -153,7 +153,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
       on: radiusTokens.length > 0,
       // A pill's 9999px or calc(infinity * 1px), and a circle's 50%, are shapes, not steps.
       fixed: (v) => !v.includes("var(") && !/infinity/i.test(v) && lengths(v).some(({ n, unit }) => n !== 0 && !(unit === "px" && n >= 999)),
-      use: (v) => {
+      suggest: (v) => {
         const want = parseFloat(computed("border-top-left-radius", v.split(/\s+/)[0]!));
         const best = radiusSteps.reduce((a, b) => (Math.abs(b.px - want) < Math.abs(a.px - want) ? b : a));
         return `${radiusValue(best.step)} (rounded-${best.step})`;
@@ -165,7 +165,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
       test: (p) => p === "box-shadow",
       on: shadowTokens.length > 0,
       fixed: (v) => !v.includes("var("),
-      use: () => {
+      suggest: () => {
         const step = shadowTokens.includes("md") ? "md" : shadowTokens[0];
         return `one of the theme's shadows, such as var(--shadow-${step}) (shadow-(--shadow-${step}))`;
       },
@@ -176,7 +176,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
       test: (p) => p === "font-family",
       on: fontTokens.length > 0,
       fixed: (v) => !v.includes("var("),
-      use: (_v, _p, el) => {
+      suggest: (_v, _p, el) => {
         const want = [
           [el.matches("h1, h2, h3, h4, h5, h6"), "heading"],
           [el.matches("code, pre, kbd, samp"), "mono"],
@@ -196,7 +196,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
         !v.includes("var(") &&
         !/\b(?:clamp|min|max)\(|\d(?:vw|vh|vi|vb|dvh|svh|lvh|cq\w*)\b/.test(v) &&
         lengths(v).some(({ n, unit }) => unit !== "em" && Math.abs(px(`${n}${unit}`)) >= spacingPx / 2),
-      use: (v, p) => {
+      suggest: (v, p) => {
         const first = lengths(v).find(({ n, unit }) => unit !== "em" && Math.abs(px(`${n}${unit}`)) >= spacingPx / 2)!;
         const steps = Math.round(Math.abs(px(`${first.n}${first.unit}`)) / spacingPx);
         const prefix = p.startsWith("padding") ? "p" : p.startsWith("margin") ? "m" : "gap";
@@ -319,7 +319,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
           rule: kind.rule,
           element: describe(el),
           // The shorthand's value where the rule has one, as it was written.
-          detail: `${selector} sets ${family(property)}: ${rule.style.getPropertyValue(family(property)).trim() || value}, a fixed ${kind.kind}; use ${kind.use(held, property, el, unscoped(selector) !== selector)}`,
+          detail: `${selector} sets ${family(property)}: ${rule.style.getPropertyValue(family(property)).trim() || value}, a fixed ${kind.kind}; use ${kind.suggest(held, property, el, unscoped(selector) !== selector)}`,
         });
       }
     }
