@@ -1274,7 +1274,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     } else fresh = conversation === undefined && strangers(track.keys);
     // A full re-key that keeps the conversation: the same messages under new keys, as many as before. Their heights were measured under
     // the old keys, so they carry over by position, and the space above the view stays where it was. A partial re-key takes no part.
-    if (conversation !== undefined && !fresh && all.length === track.order.length && strangers(track.keys)) {
+    if (!fresh && all.length === track.order.length && strangers(track.keys)) {
       const carried = new Map<string, number>();
       track.order.forEach((key, index) => {
         const height = measured.heights.get(key);
