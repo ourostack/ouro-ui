@@ -9,6 +9,7 @@ import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { measureTextContrast } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -731,6 +732,16 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     } finally {
       document.documentElement.classList.remove("dark");
     }
+  });
+
+  it("mutes only its own description on the glass, leaving a tone the app gives text inside it", async () => {
+    const { card } = await render(
+      <Card href="#braising" title="Braising" description={<>Ready in 20 min · <Text as="span" tone="destructive">Sold out</Text></>} media={<AspectRatio ratio={4 / 3}><img src={pixel} alt="" /></AspectRatio>} revealDescription="rise" />,
+    );
+    const probe = document.createElement("span");
+    probe.style.color = "var(--destructive)";
+    card.append(probe);
+    expect(getComputedStyle(card.querySelector('[data-card-reveal] span[data-ouro="text"]')!).color).toBe(getComputedStyle(probe).color);
   });
 
   it("insets a plain rising card's title from the edges of its band, as an outlined card's", async () => {

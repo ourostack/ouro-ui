@@ -178,13 +178,13 @@ const riseClass =
 // solid where the browser cannot blur behind it, the person asks for less transparency or more contrast, or forced
 // colours paint it. A theme with no card color gets the page's background, as the card itself shows. The glass is a
 // layer of its own beside the title, never around it: a backdrop filter on the link's ancestor would hold the link's
-// layer to the band.
+// layer to the band. The wrapper is no stacking context, so the glass blurs the picture, not an empty layer of its own.
 const riseBandClass =
-  "z-1 grid self-end [grid-area:1/1] text-(--card-foreground,var(--foreground)) " +
+  "grid self-end [grid-area:1/1] text-(--card-foreground,var(--foreground)) " +
   // Muted text halfway to the foreground, which holds 4.5:1 on the glass over any picture.
-  "[&_[data-card-reveal]_[data-ouro=text]]:text-[color-mix(in_oklab,var(--muted-foreground)_50%,var(--foreground))]";
+  "[&_[data-card-reveal]>[data-ouro=text]]:text-[color-mix(in_oklab,var(--muted-foreground)_50%,var(--foreground))]";
 const riseGlassClass =
-  "[grid-area:1/1] bg-[color-mix(in_oklab,var(--card,var(--background))_78%,transparent)] backdrop-blur-md backdrop-saturate-150 " +
+  "z-1 [grid-area:1/1] bg-[color-mix(in_oklab,var(--card,var(--background))_78%,transparent)] backdrop-blur-md backdrop-saturate-150 " +
   "supports-[not(backdrop-filter:blur(1px))]:bg-(--card,var(--background)) " +
   "[@media(prefers-reduced-transparency:reduce)]:bg-(--card,var(--background)) [@media(prefers-reduced-transparency:reduce)]:backdrop-filter-none " +
   "contrast-more:bg-(--card,var(--background)) contrast-more:backdrop-filter-none contrast-more:border-t contrast-more:border-solid contrast-more:border-foreground " +
@@ -399,7 +399,7 @@ export function Card(props: CardProps): JSX.Element {
         <div className={cn("relative overflow-hidden [grid-area:1/1]", zoom && zoomMediaClass)}>{media}</div>
         <div className={riseBandClass}>
           <div aria-hidden="true" data-card-glass="" className={riseGlassClass} />
-          {titleBlock("isolate py-3 [grid-area:1/1]")}
+          {titleBlock("z-2 py-3 [grid-area:1/1]")}
         </div>
       </div>
     ),
