@@ -6,7 +6,7 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 /** Code inside running text. */
 export function InlineCode({ children }: { children: ReactNode }): JSX.Element {
   return (
-    <code className="rounded-[0.3rem] bg-muted px-[0.3em] py-[0.1em] font-mono [font-size-adjust:0.46] text-foreground [overflow-wrap:anywhere]">
+    <code className="rounded-[calc(var(--radius-sm)*0.45)] bg-muted px-[0.3em] py-[0.1em] font-mono [font-size-adjust:0.46] text-foreground [overflow-wrap:anywhere]">
       {children}
     </code>
   );

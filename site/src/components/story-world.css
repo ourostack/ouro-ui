@@ -23,7 +23,7 @@
     .story-world {
       max-width: max(1536px, 79rem);
       margin: 1.5rem auto 0;
-      border-radius: 1.5rem;
+      border-radius: calc(var(--radius) * 4 / 3);
       overflow: clip;
     }
   }
@@ -39,7 +39,7 @@
     align-items: center;
     min-height: 2.25rem;
     color: var(--foreground);
-    border-radius: 0.25rem;
+    border-radius: calc(var(--radius-sm) * 0.37);
     text-decoration-line: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.25em;

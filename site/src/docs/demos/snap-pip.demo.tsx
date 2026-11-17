@@ -10,6 +10,8 @@ export default function SnapPiPDemo(): JSX.Element {
   return (
     <div className="grid w-full max-w-2xl gap-3">
       <div
+        data-ouro-allow="off-theme"
+        data-ouro-allow-why="A stand-in for a video call's frame: its caption and scrim stay white on black over the picture in either theme."
         className="relative h-80 overflow-hidden rounded-xl text-white"
         style={{ background: "radial-gradient(circle at 40% 35%, oklch(0.72 0.09 60), oklch(0.42 0.07 30) 55%, oklch(0.24 0.04 260))" }}
       >

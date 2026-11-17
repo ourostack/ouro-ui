@@ -327,7 +327,7 @@
   .apple-door-link:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 3px;
-    border-radius: 4px;
+    border-radius: calc(var(--radius-sm) * 0.37);
   }
   .apple-door-body,
   .apple-quad-body {
@@ -486,7 +486,7 @@
   .apple-next-link:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 4px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius-sm) * 0.55);
   }
 
   /* The Ouro AX hero's anglerfish, lamp up to the manual Siri reads. */
@@ -780,7 +780,7 @@
     min-height: 2.75rem;
     padding: 0;
     border: 0;
-    border-radius: 10px;
+    border-radius: calc(var(--radius-sm) * 0.93);
     background: none;
     color: inherit;
     font: inherit;
@@ -1004,7 +1004,7 @@
   .apple-claim-summary:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius-sm) * 0.55);
   }
   .apple-claim-rule {
     min-width: 0;
@@ -1054,7 +1054,7 @@
   }
   .apple-code {
     padding: 0.05em 0.3em;
-    border-radius: 0.3rem;
+    border-radius: calc(var(--radius-sm) * 0.45);
     background: var(--muted);
     font-family: var(--font-mono);
     font-size-adjust: 0.46;
