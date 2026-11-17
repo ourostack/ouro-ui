@@ -15,6 +15,9 @@ export const knownKey = (detail) => String(detail).split("; use ")[0];
 /** The folders of the vendored Ouro check this update writes to: a check/ folder it changes a file of. */
 const checkFolders = (files) => [...new Set(Object.keys(files).filter((path) => /(^|\/)check\/[^/]+\.ts$/.test(path)).map((path) => path.slice(0, path.lastIndexOf("/") + 1)))];
 
+/** Whether an update writes to a vendored Ouro check (a check/ folder's .ts file), the only kind seedKnown records for. */
+export const bringsCheck = (files) => checkFolders(files).length > 0;
+
 const parse = (text) => {
   if (!text) return {};
   try {
