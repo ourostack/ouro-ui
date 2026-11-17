@@ -32,6 +32,17 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.237     # install a componen
 - Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.237 ourostack/ouro-ui/dialog-tests#v1.3.237), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
 - The @ouro namespace serves the newest release (the same code as #v1.3.237)[^namespace]: add "registries": { "@ouro": "https://ui.ouroboros.bot/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
 
+## Common needs
+
+The full item list, under Items below, is long. These are the items for needs apps often have; read one's page at https://ui.ouroboros.bot/docs/<item>.md.
+
+- Dark mode: `color-scheme-toggle`, with `ColorSchemeProvider` around the app (`@/lib/ouro/color-scheme`); for a plain on/off, a `switch` with `useColorScheme()` from `lib-color-scheme`.
+- A form that validates: `form` with `text-field`, `select`, `switch`, `checkbox`; errors from your own `onSubmit` or from a server action.
+- Asking before a destructive action: `confirm-dialog`. Other dialogs: `dialog`; a panel from the edge: `sheet`; editing in a panel that saves and closes: `edit-sheet`.
+- Saying something happened: `toaster`. A message on the page: `alert`. Nothing here yet: `moment`. Loading: `skeleton`, `spinner`.
+- Getting around: `navbar`, `sidebar`, `tabs`, `menu`, `command` (a command palette).
+- Data: `table`, `combobox`, `date-picker`.
+
 ## Ouro AX
 
 Ouro AX is Ouro UI's half for agents: it is for the interfaces an agent uses, such as a CLI, an HTTP API or an MCP server, as Ouro HX is for the screens a person uses. Its parts:
