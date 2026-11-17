@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@e3372d7be835058783abe59a3773c000e46ab811:brand/",
+  "origin": "ourostack/.github@609831b1a4ad52574c95253bc7967b93cba214c1:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -29,11 +29,11 @@
     },
     {
       "file": "headers/ouroboros-skills-dark.webp",
-      "sha256": "fd9cbf4918aa2d91b170de3473e378c262f24fc58ac9057c189280b8d1eaacf2"
+      "sha256": "613ae99bb2a9c1ab60bbda29e57f780f08ae0c8224e5b742390cee6893a83aca"
     },
     {
       "file": "headers/ouroboros-skills.webp",
-      "sha256": "1219e7385c611b0586371ffe6c82198b58c1f40153593bb585d686f5b9139617"
+      "sha256": "bd44d40f49e6c6ea86cb41e36ef09d89d092cc24059245cde3dbf3843b1652f1"
     },
     {
       "file": "headers/ourostack-dark.webp",
@@ -81,7 +81,7 @@
     },
     {
       "file": "og/ouroboros-skills.jpg",
-      "sha256": "e13cf21751670aa65e7a6eb536855336f97a1e68fd91db83dae8d8e7e28fd788"
+      "sha256": "d03b1049d4bb20be41f4baa0f22561b086df00a9684a19745af5daab3267386b"
     },
     {
       "file": "og/playwright-focus-proof.jpg",
@@ -281,67 +281,67 @@
     },
     {
       "file": "phone/ouroboros-skills-1152.avif",
-      "sha256": "605bc28ecc6b0a857b5a64c46da3cb925c356349ece452c9deae7fdb1a620404"
+      "sha256": "4e0356b8018ffcf595dd5ad718ab605d6ad0af4edf88ccf0e24ba31f6117d741"
     },
     {
       "file": "phone/ouroboros-skills-1152.webp",
-      "sha256": "e158a894b356e375ac8a897e80b7c4e5a78b176729168521a00146a735ead751"
+      "sha256": "99bbf765dfaa0a2cdd962cd370bd11300d196f1a86acad87d38e0ca5336b0709"
     },
     {
       "file": "phone/ouroboros-skills-1536.avif",
-      "sha256": "ea112b9361d58a538ea33372f6b4ceb3f6f11b4d81abb1d132774d0e281c622c"
+      "sha256": "7b88b3c724e8ee8e8d0dd61da4fca9c44b0fdef019bfbe7e608452755e03658a"
     },
     {
       "file": "phone/ouroboros-skills-1536.webp",
-      "sha256": "d25c4bc79e0afcba06493ee61e8656ac44a0af739c13bbdda7a478ab3c497404"
+      "sha256": "746641da6f4186351d77b5c7f68bf8d687a8e831f5651b3c4f5722f0d9511bfd"
     },
     {
       "file": "phone/ouroboros-skills-384.avif",
-      "sha256": "5c5ed1b4489878e86f9338577da8c36f835eb3dc222d8e8ade4a38428a40179e"
+      "sha256": "40e0c99bdac688c1180025775cb968418be97ec726c3c5a5e64c7ad2d6acfb46"
     },
     {
       "file": "phone/ouroboros-skills-384.webp",
-      "sha256": "2576329755b63a64a737b8b636b99df45296c91374a92045d035626ee6b3f41c"
+      "sha256": "8fd48c02608a93b93ca6ba801e5af768b3c04ad8d10a40804166155e7cba0ca2"
     },
     {
       "file": "phone/ouroboros-skills-768.avif",
-      "sha256": "6cf7bff7cf69987bf8ad70cc0603484663eb8e45c707f86b513e009c2cab15f2"
+      "sha256": "0e638d417474a48cf26cbd8f89fe0c084b261e5930543b9b2a8f08c3e56589b2"
     },
     {
       "file": "phone/ouroboros-skills-768.webp",
-      "sha256": "92d63e27433a16b6f0f5fe11285862ac04299df28f47ab89ea0ed2895b3b1308"
+      "sha256": "adff0eace98d2c52f096ff485806e26a96743399e224f9cd1444515185c6fd9c"
     },
     {
       "file": "phone/ouroboros-skills-dark-1152.avif",
-      "sha256": "9a548d92c02a3bee9d482933f40b6acf343ae9f895217842c0dbe545052fb8b9"
+      "sha256": "f906c05da9b9c10f26ec1355260bb9dd6d72c90e29e171de7863cd492fbc794e"
     },
     {
       "file": "phone/ouroboros-skills-dark-1152.webp",
-      "sha256": "9f3752dd2b6fa3d1f4cd27a451b8dc3d1b2271a89e263c2bc54219ca700240c3"
+      "sha256": "dd414e6e83ca90b3244cfc5b320106d02afa481c8490e32487c8c2254bdae2d3"
     },
     {
       "file": "phone/ouroboros-skills-dark-1536.avif",
-      "sha256": "f043b3885f43f9201bb8c9d7199c3d089108d88e24800c3f84cd8771a07eb4db"
+      "sha256": "3cebf4b35f0e49f4e4b9c5ff599bdf0a78e8f5c464c11b6e922290aaa80b7944"
     },
     {
       "file": "phone/ouroboros-skills-dark-1536.webp",
-      "sha256": "831bc3efdc93ce443e8af0fc3550d65e9fd6b93632d9c8070264d418661872ab"
+      "sha256": "d5e5a9cd38cabbdf39d715a311a90b260c3c848dc75757b28dd0c80bf57dbafa"
     },
     {
       "file": "phone/ouroboros-skills-dark-384.avif",
-      "sha256": "5c3cd3c2c2284df51d6012068f85c825e80be0e1ca3a78c32fc5e6be847e8c76"
+      "sha256": "e5be22e3a4826ddf3bb98d8dd746f2f20a2ae3c0e0a3adc2a5b521d963f7d491"
     },
     {
       "file": "phone/ouroboros-skills-dark-384.webp",
-      "sha256": "e4fad8acb4766c247b3f5bd73247d0ff949fcda7119c5c68c1a141f0e08e26d7"
+      "sha256": "53510b54e5d67b6bb88a650bed5b7ac88a6030779114ec92589ab3a79123c900"
     },
     {
       "file": "phone/ouroboros-skills-dark-768.avif",
-      "sha256": "c631eb0036644fc83b2ece15d8533580cae73670e0efd1919d6a27254d92fda2"
+      "sha256": "b00c8d5c17b5cc8730329d6dfe8b6023a457d1b4c2ab226903e61f0a445cf831"
     },
     {
       "file": "phone/ouroboros-skills-dark-768.webp",
-      "sha256": "6ec7efc0fb4029bcc5108e7e293b9c940ecafbdec31e62a6a481feb081dee7db"
+      "sha256": "4e29330951a732644a52bad09f8949b39049b4f2149da84a4e214a417ee4b0e1"
     },
     {
       "file": "phone/ourostack-1152.avif",
@@ -641,59 +641,59 @@
     },
     {
       "file": "scenes/ouroboros-skills-1536.avif",
-      "sha256": "b957b45d0278c4af36caf43a45e583eadd60ee314bab9a1cbfc8bb2cd51ab24d"
+      "sha256": "0cd5fd95c6ffd2a2b4b7d3273c3d466de141f2e06ba671fd909d0c93d705ccbe"
     },
     {
       "file": "scenes/ouroboros-skills-3072.avif",
-      "sha256": "ec68a5d5011e344377f514d59fc45fc551e1c760b19e7c86aee2bb48b4b31d42"
+      "sha256": "6274417cde2894726d450f57521e8851bd188a5a9df74a1a02c473f18caff782"
     },
     {
       "file": "scenes/ouroboros-skills-3072.webp",
-      "sha256": "bf1125bf6bd5852c667b8b4f7e4ced9ec8f21967edf0facb82b89f11c23d6670"
+      "sha256": "f4fcaeb1e5989d2724ba8edef19b1dea521038bb9d29f8dca5a179e30315115a"
     },
     {
       "file": "scenes/ouroboros-skills-640.avif",
-      "sha256": "2b499fe75437c75943c099153066af035c13070cc5722cf3d8b621397471ab1e"
+      "sha256": "dae525c26e07883ba49a59a4eeaa6dd711b922909bdb91df786eefe13766bf27"
     },
     {
       "file": "scenes/ouroboros-skills-640.webp",
-      "sha256": "85a0d0d2817e32c676c2a3f88ed248f58280eeca3a8e5537df1d0c9999dba0ca"
+      "sha256": "adf6975d1ddd494eba4877d0ab2210e58868bb29879795a0143850a41118887e"
     },
     {
       "file": "scenes/ouroboros-skills-960.avif",
-      "sha256": "b26568f4bcf9f188e27bebe32a88407944847c90ed3647fea3b3c732d671a10c"
+      "sha256": "b98ada406f029d6bfe8b302fa57277f2031f7ac068dd589fc02fa1612b295ae9"
     },
     {
       "file": "scenes/ouroboros-skills-960.webp",
-      "sha256": "48392e3ef1d2b5eb445af2ac988329095c99a3f1ce32b071277cfe819729eb30"
+      "sha256": "93d51462d2061d2d2d27c2a659e1e3b267eaa7d3eeb6cb81a0639ba94360d60b"
     },
     {
       "file": "scenes/ouroboros-skills-dark-1536.avif",
-      "sha256": "d8c0a020228fa2a7ebb71d038b276d88bfc660e094db3c1568c39e9fb5643177"
+      "sha256": "f9c2a53240eab298298c9bdaef6900dcb632c22db7ecab07145fd0a4114a0097"
     },
     {
       "file": "scenes/ouroboros-skills-dark-3072.avif",
-      "sha256": "0abdf3e636d21ae31298458cc62bfef6b8eff0c775b28c21fec22a5c53c5043c"
+      "sha256": "ed852729e8661faf450fa6568ce3db7d2d9b323b9552e32edfc5e927647ec849"
     },
     {
       "file": "scenes/ouroboros-skills-dark-3072.webp",
-      "sha256": "b72a179e2b47f1fb73b6ca5a8ff0764d8b11060c381cfbb371b86e5d770f9695"
+      "sha256": "bcfcaa6c5f15645dc553ed847c6e7f4f12ec4dc9a3de121eaf20a7f2e276ea0f"
     },
     {
       "file": "scenes/ouroboros-skills-dark-640.avif",
-      "sha256": "7dbb2e3a67ad45dad114c50e8633b7cff5783667f7d5e893235fadcac314ddcd"
+      "sha256": "f53331110706f52861a1d4bda46f042066c6fb2fc3f423fddf49694673733470"
     },
     {
       "file": "scenes/ouroboros-skills-dark-640.webp",
-      "sha256": "fbbbfea2ea6193ed8c803a00b75efc70f86a44b951d259e746b9752256115a79"
+      "sha256": "e69dabb4699e40c003b2b1ddb5396f769c88c9c762718d18d6731da1b10feadc"
     },
     {
       "file": "scenes/ouroboros-skills-dark-960.avif",
-      "sha256": "ea129c4179c0135728a4154880c961c70b0103eae68d68002bf06eae1d3aef5d"
+      "sha256": "95dcc1eee50f777386c64639873183aaedd28ee791597a749267e8d4fc4b5f3f"
     },
     {
       "file": "scenes/ouroboros-skills-dark-960.webp",
-      "sha256": "f2eda89f74e9d334c13f05b2f95ffb1e4d8638b97c04b80920bb54542a85b088"
+      "sha256": "c05eadbd56c6c7fcffefda0c3467cdb9f6f94dfbd91fb52f80154294db124d17"
     },
     {
       "file": "scenes/ourostack-1536.avif",

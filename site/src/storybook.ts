@@ -85,15 +85,15 @@ export const SCENES: Record<SceneName, Scene> = {
     },
   },
   "ouroboros-skills": {
-    alt: "In a bright kitchen on a sunny morning, a small blue robot in an apron reads a blank recipe card while a small apricot robot in a chef's cap whisks batter, and Ouro the green snake watches from a folded tea towel.",
-    sky: ["#937f64", "#cfbcaf", "#ceddda", "#d0cfc0", "#d3d7b2"],
+    alt: "In a bright kitchen on a sunny morning, a small blue robot in an apron reads a blank recipe card while a small apricot robot in a chef's cap whisks batter under a white pendant lamp, and Ouro the green snake watches from a folded tea towel.",
+    sky: ["#937f64", "#c8bab0", "#cededb", "#cfcdbf", "#d3d7b2"],
     height: 576,
     phoneHeight: 576,
     band: 25,
     shortY: 8,
     night: {
       phoneHeight: 576,
-      alt: "In a kitchen in the evening, under warm kitchen lights with a deep blue night sky in the windows, a small blue robot in an apron reads a blank recipe card while a small apricot robot in a chef's cap whisks batter, and Ouro the green snake watches from a folded tea towel.",
+      alt: "The same kitchen at night, lit by the white pendant lamp over the counter, with a deep blue night sky in the windows: a small blue robot in an apron reads a blank recipe card while a small apricot robot in a chef's cap whisks batter, and Ouro the green snake watches from a folded tea towel.",
     },
   },
   ourostack: {
