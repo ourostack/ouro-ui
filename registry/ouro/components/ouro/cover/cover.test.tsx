@@ -122,6 +122,11 @@ describe("Cover", () => {
     await expect.element(page.getByRole("img", { name: "Lemon rice in a blue bowl" })).toBeInTheDocument();
     await expect.element(page.getByRole("img", { name: "Cover for Soup" })).toBeInTheDocument();
     expect(page.getByRole("img").elements()).toHaveLength(2);
+    // Only the initial with alt is itself an image: a plain cover is decoration, and a picture's <img> carries the name.
+    const [plain, rice, soup] = document.querySelectorAll<HTMLElement>('[data-ouro="cover"]');
+    expect([plain.getAttribute("role"), plain.getAttribute("aria-label")]).toEqual([null, null]);
+    expect([rice.getAttribute("role"), rice.getAttribute("aria-label")]).toEqual([null, null]);
+    expect([soup.getAttribute("role"), soup.getAttribute("aria-label")]).toEqual(["img", "Cover for Soup"]);
   });
 
   it("is 40, 56 and 96px square at sm, md and lg, and as wide as its container at fill", async () => {
@@ -155,6 +160,7 @@ describe("Cover", () => {
     expect(rounded).toBe(themed("borderTopLeftRadius", "rounded-ouro-lg"));
     expect(Number.parseFloat(rounded!)).toBeGreaterThan(0);
     expect(square).toBe("0px");
+    expect([...host.querySelectorAll('[data-ouro="cover"]')].map((element) => element.getAttribute("data-shape"))).toEqual(["rounded", "square"]);
   });
 
   it("forwards a ref and passes attributes through", async () => {

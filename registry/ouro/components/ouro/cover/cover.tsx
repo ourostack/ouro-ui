@@ -74,6 +74,7 @@ export function Cover(props: CoverProps): JSX.Element {
     title,
     src,
     alt = "",
+    // Stryker disable next-line StringLiteral: a size that is not one falls back to "md", so the default's value is the fallback's.
     size: sizeProp = "md",
     shape: shapeProp = "rounded",
     className,
@@ -106,7 +107,7 @@ export function Cover(props: CoverProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const picture = src !== undefined && src !== "" && failed !== src;
+  const picture = Boolean(src) && failed !== src;
   // Array.from splits by code point, so an emoji keeps both halves of its surrogate pair.
   const initial = Array.from(title.trim())[0]?.toLocaleUpperCase() ?? "";
   return (
