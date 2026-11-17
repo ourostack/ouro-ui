@@ -18,6 +18,8 @@ const SIDES = "ss|se|es|ee|tl|tr|bl|br|t|r|b|l|s|e";
 const CLASS = new RegExp(`(?<![\\w-])rounded((?:-(?:${SIDES}))?)-(${STEPS})(?![\\w-])`, "g");
 const VARIABLE = new RegExp(`var\\(--radius-(${STEPS})\\)`, "g");
 const THEME_DEFINITIONS = new Set(["registry/ouro/theme/ouro-base.css", "registry/ouro/theme/ouro-theme.css"]);
+// cn's test merges a shadcn step after an Ouro step on purpose, to show the later radius wins.
+const SHADCN_STEPS_ON_PURPOSE = new Set(["registry/ouro/lib/ouro/cn.test.ts"]);
 
 /** The text with each radius step renamed, and a count per class or variable it renamed. */
 export function renameRadius(text) {
@@ -39,7 +41,7 @@ export function renameRadius(text) {
 export function radiusFiles() {
   return execFileSync("git", ["ls-files", "registry/ouro"], { cwd: root, encoding: "utf8" })
     .split("\n")
-    .filter((file) => /\.(tsx?|css)$/.test(file) && !THEME_DEFINITIONS.has(file));
+    .filter((file) => /\.(tsx?|css)$/.test(file) && !THEME_DEFINITIONS.has(file) && !SHADCN_STEPS_ON_PURPOSE.has(file));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
