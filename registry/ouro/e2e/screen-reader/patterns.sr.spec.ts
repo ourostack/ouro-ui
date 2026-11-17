@@ -23,6 +23,6 @@ test.describe("the list-and-detail pattern on a phone", () => {
     await startReading(sr, page);
     const search = page.getByRole("searchbox", { name: "Search recipes" });
     await search.focus();
-    await heard(sr, () => search.pressSequentially("zzzz"), (phrase) => /\b0 matches\b/i.test(phrase), '"0 matches", the search\'s status');
+    await heard(sr, () => search.pressSequentially("zzzz"), (phrase) => inOneSentence(phrase, /\b0 matches\b/i), '"0 matches", the search\'s status');
   });
 });
