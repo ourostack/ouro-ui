@@ -140,6 +140,14 @@ describe("Switch", () => {
     expect(input.checked).toBe(false);
   });
 
+  it("takes focus on a press, in WebKit too, so Space flips it next", async () => {
+    const { track } = await render(<Switch label="Wi-Fi" />);
+    await userEvent.click(track);
+    expect(document.activeElement).toBe(track);
+    await userEvent.keyboard(" ");
+    expect(track.getAttribute("aria-checked")).toBe("false");
+  });
+
   it("follows a controlled checked value", async () => {
     function Controlled() {
       const [on, setOn] = useState(true);

@@ -139,6 +139,14 @@ describe("Checkbox", () => {
     expect(input.checked).toBe(true);
   });
 
+  it("takes focus on a press, in WebKit too, so Space toggles it next", async () => {
+    const { box } = await render(<Checkbox label="Basil" />);
+    await userEvent.click(box);
+    expect(document.activeElement).toBe(box);
+    await userEvent.keyboard(" ");
+    expect(box.getAttribute("aria-checked")).toBe("false");
+  });
+
   it("does not toggle with Enter", async () => {
     const { box } = await render(<Checkbox label="Basil" />);
     box.focus();

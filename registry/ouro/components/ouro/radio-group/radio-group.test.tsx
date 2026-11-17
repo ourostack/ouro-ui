@@ -131,6 +131,16 @@ describe("RadioGroup", () => {
     expect(document.activeElement).toBe(radios[1]);
   });
 
+  it("takes focus on a press, in WebKit too, so the arrow keys carry on from the radio pressed", async () => {
+    const onValueChange = vi.fn();
+    const { radios } = await render(<RadioGroup legend="Size" options={sizes} onValueChange={onValueChange} />);
+    await userEvent.click(radios[1]!);
+    expect(document.activeElement).toBe(radios[1]);
+    await userEvent.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(radios[3]);
+    expect(onValueChange).toHaveBeenLastCalledWith("family");
+  });
+
   it("moves to the next radio with ArrowLeft in a right-to-left page, laid out in a row", async () => {
     document.documentElement.dir = "rtl";
     try {
