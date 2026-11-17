@@ -251,6 +251,96 @@ const list = (paths) => paths.map((path) => `\`${path}\``).join(", ");
 /** A path in a script, where it stands as a word: `src/lib/x.ts`, or `./src/lib/x.ts` after a space or a quote. */
 const scriptPath = (path) => new RegExp(String.raw`(^|[\s"'=(])((?:\.\/)?)${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\w-]|\.\w)`, "g");
 
+/** Where a package.json's `#ouro-ax/*` import points, as a folder in the package (`src/lib/ouro/ax/`), or null. */
+function axImportOf(text) {
+  try {
+    const target = JSON.parse(text ?? "null")?.imports?.["#ouro-ax/*"];
+    return typeof target === "string" && target.endsWith("/*") ? posix.normalize(target.slice(0, -1)).replace(/^\.\//, "").replace(/\/?$/, "/") : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The registry folder of Ouro AX's shared files, which the app's `#ouro-ax/*` import must resolve to. */
+const KIT = "@lib/ouro/ax/";
+
+/** Files whose old paths may be named in the app's own scripts and docs. */
+const TEXT = /\.(?:[cm]?[jt]sx?|json|md|mdx|ya?ml|sh|txt|astro|html|toml)$/;
+const notRead = /(^|\/)(?:node_modules|dist|\.git)\//;
+const isWorkflow = (path) => /^\.github\/workflows\//.test(path);
+const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * A moved file's old path, where the app's own files name it: from the repository's root (`node lib/ouro/check/x.ts`),
+ * from a package's folder, or relative to the file (`../lib/ouro/check/x.ts`). Each is pointed at the new path, in
+ * the same form. A workflow is not changed (an app may write one only with the `workflows` permission); its lines are
+ * returned with the change they need, for the pull request to name.
+ */
+function rewriteReferences(consumer, moves, skip, packageDir) {
+  const pairs = moves.flatMap(({ from, to }) => [
+    { old: from, now: to, base: "" },
+    ...(packageDir && from.startsWith(packageDir) && to.startsWith(packageDir) ? [{ old: from.slice(packageDir.length), now: to.slice(packageDir.length), base: packageDir }] : []),
+  ]);
+  const files = {};
+  const fixed = [];
+  const stuck = [];
+  const named = new Set();
+  if (pairs.length === 0) return { files, fixed, stuck, named };
+  for (const [path, bytes] of consumer) {
+    if (skip.has(path) || !TEXT.test(path) || notRead.test(path) || bytes.length > 1_000_000) continue;
+    const text = bytes.toString("utf8");
+    if (!pairs.some(({ old }) => text.includes(old))) continue;
+    let next = text;
+    for (const { old, now, base } of pairs) {
+      const re = new RegExp(String.raw`(^|[\s"'\`=(:,[])((?:\.{1,2}\/)*)${escapeRe(old)}(?![\w-]|\.\w)`, "gm");
+      next = next.replace(re, (all, lead, prefix) => {
+        if (prefix.includes("..")) {
+          const from = posix.dirname(path);
+          if (posix.normalize(posix.join(from, prefix + old)) !== `${base}${old}`) return all;
+          const rel = posix.relative(from, `${base}${now}`);
+          named.add(`${base}${old}`);
+          return `${lead}${rel.startsWith(".") ? rel : `./${rel}`}`;
+        }
+        named.add(`${base}${old}`);
+        return `${lead}${prefix}${now}`;
+      });
+    }
+    if (next === text) continue;
+    if (isWorkflow(path)) {
+      const before = text.split("\n");
+      next.split("\n").forEach((line, index) => {
+        if (line !== before[index]) stuck.push({ path, line: index + 1, text: line.trim() });
+      });
+      continue;
+    }
+    files[path] = Buffer.from(next, "utf8");
+    fixed.push(path);
+  }
+  return { files, fixed, stuck, named };
+}
+
+/**
+ * A file left at a moved file's old path for one release: run, it runs the new file with the same arguments. It
+ * imports nothing of the new file, and is not type-checked, so an old path inside the app's TypeScript project does not
+ * pull the Node-only tools back into it.
+ */
+function forwarder(from, to) {
+  let rel = posix.relative(posix.dirname(from), to);
+  if (!rel.startsWith(".")) rel = `./${rel}`;
+  return `// @ts-nocheck
+// Ouro UI moved this file to ${to}. This copy runs it, for one release, so a workflow or script that still names the
+// old path keeps working. Point those at the new path, then delete this file.
+import { spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+  const target = fileURLToPath(new URL("${rel}", import.meta.url));
+  process.exit(spawnSync(process.execPath, [target, ...process.argv.slice(2)], { stdio: "inherit" }).status ?? 1);
+}
+`;
+}
+
 /**
  * A package.json the moved files need: the `#ouro-ax/*` import their shared Ouro AX files resolve through, when it lacks
  * one, and each `scripts` value that names a moved file, pointed where it now sits. Only what changed is rewritten, in
@@ -298,6 +388,13 @@ async function updateHxInstalled(pin, text, release, ctx) {
     if (!nextByPath.has(entry.path)) nextByPath.set(entry.path, entry);
   }
   const rewrite = installRewrite(found?.json ?? null);
+  // Ouro AX's shared files sit where the app's `#ouro-ax/*` import points, or, without one, under its lib folder,
+  // where the import this adds will point: the two always agree.
+  const pkgPath = found ? `${found.dir}package.json` : null;
+  const pkgText = pkgPath && consumer.get(pkgPath)?.toString("utf8");
+  const declaredAx = axImportOf(pkgText);
+  const axDir = found && declaredAx ? `${found.dir}${declaredAx}` : nextRoots["@lib"] ? `${nextRoots["@lib"]}ouro/ax/` : null;
+  const kitPath = (target) => (axDir && target.startsWith(KIT) ? `${axDir}${target.slice(KIT.length)}` : null);
   const out = {};
   const hashes = {};
   const edited = [];
@@ -315,6 +412,24 @@ async function updateHxInstalled(pin, text, release, ctx) {
       continue;
     }
     const entry = after.get(path);
+    const kitTo = entry && kitPath(entry.target);
+    if (kitTo && kitTo !== path) {
+      // An Ouro AX shared file away from where `#ouro-ax/*` resolves (a root `lib/ouro/ax/` beside a `src/lib/`): it
+      // moves there, unless the app already has a file at that path.
+      if (consumer.has(kitTo) || kitTo in record.files || kitTo in out) {
+        blocked.push({ from: path, to: kitTo });
+        items.add(entry.item);
+        continue;
+      }
+      const source = next.get(entry.path);
+      delete hashes[path];
+      out[path] = null;
+      hashes[kitTo] = sha256(source);
+      out[kitTo] = rewrite(source);
+      items.add(entry.item);
+      moves.push({ from: path, to: kitTo, target: entry.target });
+      continue;
+    }
     if (!entry) {
       // The registry still has the file at this tag, but its target moved (Node-only tools now install under scripts/):
       // the unedited file moves there, unless the app already has a file at the new path.
@@ -347,7 +462,8 @@ async function updateHxInstalled(pin, text, release, ctx) {
   // updated kbd imports), is added as the CLI would add it. A file the app already has outside the record is its own.
   const wanted = withDependencies(next, items);
   const added = [];
-  for (const [path, entry] of after) {
+  for (const [at, entry] of after) {
+    const path = kitPath(entry.target) ?? at;
     if (path in hashes || !wanted.has(entry.item) || consumer.has(path)) continue;
     const source = next.get(entry.path);
     out[path] = rewrite(source);
@@ -356,8 +472,6 @@ async function updateHxInstalled(pin, text, release, ctx) {
   }
   // Ouro AX's shared files are imported as `#ouro-ax/*`, which the app's package.json must map to its lib folder. Only
   // the package beside components.json changes, and a script that ran a moved file is pointed at where it now sits.
-  const pkgPath = found ? `${found.dir}package.json` : null;
-  const pkgText = pkgPath && consumer.get(pkgPath)?.toString("utf8");
   const writesAx = Object.values(out).some((value) => Buffer.isBuffer(value) && value.includes("#ouro-ax/"));
   const lib = nextRoots["@lib"];
   const libIn = found && lib?.startsWith(found.dir) ? lib.slice(found.dir.length) : null;
@@ -365,21 +479,40 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const pkg = { imports: false, scripts: false };
   if (pkgText !== undefined && (moves.length > 0 || writesAx)) {
     const scriptMoves = moves.flatMap(({ from, to }) => (inPackage(from) && inPackage(to) ? [{ from: inPackage(from), to: inPackage(to) }] : []));
-    const edit = editPackage(pkgText, { axImport: writesAx && libIn !== null ? `./${libIn}ouro/ax/*` : null, moves: scriptMoves });
+    const axIn = axDir && inPackage(axDir);
+    const edit = editPackage(pkgText, { axImport: writesAx && libIn !== null && axIn !== null ? `./${axIn}*` : null, moves: scriptMoves });
     if (edit.text !== pkgText) out[pkgPath] = Buffer.from(edit.text, "utf8");
     pkg.imports = edit.imports;
     pkg.scripts = edit.scripts;
+  }
+  // The app's own scripts and docs that name a moved file's old path are pointed at the new one; a workflow cannot be,
+  // so its lines are named. A moved file that is run, or still named somewhere, keeps a forwarding file at its old path.
+  const skip = new Set([...installed, ...Object.keys(out), pin.file, ...(pkgPath ? [pkgPath] : [])]);
+  const refs = rewriteReferences(consumer, moves, skip, found?.dir ?? "");
+  Object.assign(out, refs.files);
+  const forwarded = [];
+  for (const { from, to } of moves) {
+    if (!/\.[cm]?[jt]s$/.test(from) || !Buffer.isBuffer(out[to])) continue;
+    if (!refs.named.has(from) && !out[to].includes("process.argv[1]")) continue;
+    out[from] = Buffer.from(forwarder(from, to), "utf8");
+    forwarded.push({ from, to });
   }
   const sorted = Object.fromEntries(Object.keys(hashes).sort().map((path) => [path, hashes[path]]));
   out[pin.file] = `${JSON.stringify({ ...record, tag: release.tag, tagCommit: release.sha, files: sorted }, null, 2)}\n`;
   const notes = [];
   // No counts or bare versions: a repository that runs Ouro UI's claims check on pull requests reads them as claims.
   const one = (paths, single, several) => (paths.length === 1 ? single : several);
-  for (const { from, to, target } of moves) notes.push(target.startsWith("~/") ? `Moves \`${from}\` to \`${to}\`, outside the app's TypeScript project.` : `Moves \`${from}\` to \`${to}\`.`);
+  for (const { from, to, target } of moves) notes.push(target.startsWith("~/") ? `Moves \`${from}\` to \`${to}\`, outside the app's TypeScript project.` : target.startsWith(KIT) ? `Moves \`${from}\` to \`${to}\`, where \`#ouro-ax/*\` resolves.` : `Moves \`${from}\` to \`${to}\`.`);
   if (pkg.imports) notes.push(`Adds \`#ouro-ax/*\` to \`imports\` in \`${pkgPath}\`, which the moved files resolve the shared Ouro AX files through.`);
   if (pkg.scripts) notes.push(`Points the \`scripts\` in \`${pkgPath}\` at the moved files.`);
+  if (refs.fixed.length) notes.push(`Points ${list(refs.fixed)} at the moved files.`);
+  const span = (text) => (text.includes("`") ? `\`\` ${text} \`\`` : `\`${text}\``);
+  for (const { path, line, text } of refs.stuck) notes.push(`Ouro Current does not edit workflows, so change \`${path}:${line}\` to ${span(text)}.`);
+  for (const { from, to } of forwarded) notes.push(`Leaves a forwarding file at \`${from}\` that runs \`${to}\`, so what still names the old path keeps working for one release. Delete it once the old path is gone from your workflows and scripts.`);
   if (added.length) notes.push(`Adds what installed items now include: ${list(added)}.`);
   if (edited.length) notes.push(`Leaves ${list(edited)} at \`${record.tag}\`, because ${one(edited, "it is", "they are")} not what the CLI wrote for \`${record.tag}\` (edited here, or rewritten in a way Ouro Current does not reproduce). Install ${one(edited, "it", "them")} again with the CLI, or move the change into Ouro UI.`);
+  const kitApart = edited.filter((path) => before.get(path)?.target.startsWith(KIT) && axDir && !path.startsWith(axDir));
+  if (kitApart.length) notes.push(`${list(kitApart)} ${one(kitApart, "stays", "stay")} where ${one(kitApart, "it is", "they are")} because ${one(kitApart, "it was", "they were")} edited here, but \`#ouro-ax/*\` resolves to \`${axDir}\`: move ${one(kitApart, "it", "them")} there, or point the import at ${one(kitApart, "it", "them")}.`);
   for (const { from, to } of blocked) notes.push(`Leaves \`${from}\` where it is, because \`${to}\` already exists in the app and is not replaced.`);
   if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
   return { files: out, notes };
