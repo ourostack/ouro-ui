@@ -203,6 +203,54 @@ describe("a Dialog where the engine has no corner-shape", () => {
   });
 });
 
+describe("the squircle's corner size where the engine has no corner-shape", () => {
+  /** Each squircle's corner size in px, read through a probe that is as wide as --ouro-sq-r, by the element that sets it. */
+  async function cornerSizes() {
+    await mount(
+      <>
+        <Button>Save</Button>
+        <Badge>New</Badge>
+        <TextField label="Name" />
+        <Toggle label="Bold" variant="outline" />
+        <Card title="Outlined">x</Card>
+        <Dialog title="Edit" presentation="dialog" open onOpenChange={() => {}}>
+          body
+        </Dialog>
+      </>,
+    );
+    const sizes: Record<string, number> = {};
+    for (const element of document.querySelectorAll<HTMLElement>('[class*="--ouro-sq-r:calc"]')) {
+      const probe = document.createElement("span");
+      probe.style.cssText = "position:absolute;display:block;width:var(--ouro-sq-r)";
+      element.append(probe);
+      sizes[element.closest("[data-ouro]")!.getAttribute("data-ouro")!] = Number.parseFloat(getComputedStyle(probe).width);
+      probe.remove();
+    }
+    return sizes;
+  }
+  const expected = { button: 10, badge: 8, "text-field": 8, toggle: 10, card: 14, dialog: 14 };
+
+  it("is --radius times its step, with shadcn init's radius steps in place of ouro-base's (#1828)", async () => {
+    applyFallback();
+    const shadcn = document.createElement("style");
+    shadcn.textContent = ":root { --radius: 10px; --radius-md: calc(var(--radius) * 0.8); --radius-lg: var(--radius); --radius-xl: calc(var(--radius) * 1.4); }";
+    document.head.append(shadcn);
+    styles.push(shadcn);
+    expect(await cornerSizes()).toEqual(expected);
+  });
+
+  it("is --radius times its step with ouro-base's own radius steps, and follows --ouro-radius-scale", async () => {
+    applyFallback();
+    const radius = document.createElement("style");
+    radius.textContent = ":root { --radius: 10px; }";
+    document.head.append(radius);
+    styles.push(radius);
+    expect(await cornerSizes()).toEqual(expected);
+    radius.textContent = ":root { --radius: 10px; --ouro-radius-scale: 2; }";
+    expect(await cornerSizes()).toEqual(Object.fromEntries(Object.entries(expected).map(([name, size]) => [name, size * 2])));
+  });
+});
+
 describe("scrolling past squircle controls where the engine has no corner-shape", () => {
   // A layer of its own for every control kept its clip paths drawn, but WKWebView then composited every one on each
   // scroll frame of a long list. Chromium's layers stand in for WebKit's: CDP lists them, and WebKit's do not.
