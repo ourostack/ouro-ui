@@ -408,3 +408,29 @@ test("a report in a folder of its artifact is read, so an X-ray uploaded with ot
   assert.deepEqual([xray.value.must, xray.value.mustHolding], [12, 7]);
   assert.equal(mustPasses(xray), false);
 });
+
+test("a pin on a release published after the run read the releases is current, and a tag that is no release is still unknown", () => {
+  const web = config.surfaces[0];
+  const latest = { web: { repo: "ourostack/ouro-ui", tag: "v1.3.15" } };
+  const pinned = (tag, answer) =>
+    createContext({
+      gh: (args) => {
+        const line = args.join(" ");
+        if (line.includes("ouro-hx-installed.json")) return b64({ tag });
+        if (line.includes("releases/tags/")) {
+          if (!answer) throw new Error("gh api: Not Found");
+          return JSON.stringify(answer);
+        }
+        return fakeGh()(args);
+      },
+      now: () => NOW,
+      sleep: () => {},
+      searchGapMs: 0,
+    });
+  const newer = measurePins(pinned("v1.3.16", { tag_name: "v1.3.16", published_at: "2099-01-01T00:00:00Z", draft: false, prerelease: false }), web, latest);
+  assert.deepEqual([newer.value[0].behind, newer.value[0].late], [0, 0]);
+  assert.equal(isCurrent(newer), true);
+  assert.equal(measurePins(pinned("v9.9.9", null), web, latest).value[0].behind, null);
+  const pre = measurePins(pinned("v1.3.16", { tag_name: "v1.3.16", published_at: "2099-01-01T00:00:00Z", draft: false, prerelease: true }), web, latest);
+  assert.equal(pre.value[0].behind, null, "a prerelease is not a stable release");
+});

@@ -150,6 +150,18 @@ const lateAfter = (ctx, releases, since) => {
   return releases.filter((release) => release.at > since && release.at <= cutoff).length;
 };
 
+/** The stable release `tag`, when it came out after every release in `releases` (the run's earlier read), else null. */
+function releaseAfterSnapshot(ctx, repo, tag, releases) {
+  try {
+    const release = ctx.api(`repos/${repo}/releases/tags/${tag}`);
+    if (!release || release.draft || release.prerelease) return null;
+    const newest = releases.reduce((at, item) => (item.at > at ? item.at : at), "");
+    return release.published_at > newest ? { at: release.published_at } : null;
+  } catch {
+    return null;
+  }
+}
+
 function measurePin(ctx, surface, pin, latest) {
   const target = latest[pin.latest];
   const base = { label: pin.label, latestOf: target.repo, latestTag: target.tag };
@@ -170,7 +182,12 @@ function measurePin(ctx, surface, pin, latest) {
     if (!tag) throw new Error(`no version found in ${file}`);
     const releases = ctx.releases(target.repo);
     const found = releases.find((release) => norm(release.tag) === norm(tag));
-    if (!found) return { ...base, source, tag, behind: null, late: null, note: `${tag} is not among ${target.repo}'s stable releases.` };
+    if (!found) {
+      // A release published after this run read the list is newer than every release in it, so the pin lacks none.
+      const newer = releaseAfterSnapshot(ctx, target.repo, tag, releases);
+      if (newer) return { ...base, source, tag, behind: 0, late: 0, note: `${tag} came out at ${newer.at}, after this run read ${target.repo}'s releases.` };
+      return { ...base, source, tag, behind: null, late: null, note: `${tag} is not among ${target.repo}'s stable releases.` };
+    }
     return { ...base, source, tag, behind: releasesAfter(releases, found.at), late: lateAfter(ctx, releases, found.at), note: null };
   } catch (error) {
     return { ...base, source, tag: null, behind: null, late: null, note: `not measured: ${error.message}` };
