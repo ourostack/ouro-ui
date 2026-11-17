@@ -161,7 +161,11 @@ describe("Toggle looks", () => {
   it("draws its hover wash with the toggle's own corner shape", async () => {
     const { toggle } = await render(<Toggle label="Bold" />);
     const own = getComputedStyle(toggle).getPropertyValue("corner-shape");
-    expect(own).toBe("superellipse(2)");
+    // The theme's control corner shape, which falls back to its corner shape (a squircle unless it sets another).
+    const probe = toggle.appendChild(document.createElement("span"));
+    probe.style.setProperty("corner-shape", "var(--ouro-control-corner-shape, var(--ouro-corner-shape))");
+    expect(own).toBe(getComputedStyle(probe).getPropertyValue("corner-shape"));
+    probe.remove();
     expect(getComputedStyle(toggle, "::before").getPropertyValue("corner-shape")).toBe(own);
   });
 
@@ -228,7 +232,11 @@ describe("Toggle looks", () => {
     expect(getComputedStyle(rect!).fontWeight).toBe("500");
     expect(getComputedStyle(pill!).fontWeight).toBe("400");
     const radius = (element: HTMLElement) => parseFloat(getComputedStyle(element).borderTopLeftRadius);
-    expect(radius(rect!)).toBeLessThan(rect!.getBoundingClientRect().height / 2);
+    // A rect wears the theme's control radius: Ouro's lg step unless the theme sets --ouro-control-radius.
+    const probe = rect!.appendChild(document.createElement("span"));
+    probe.style.borderRadius = "calc(var(--ouro-control-radius, var(--radius)) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1))";
+    expect(radius(rect!)).toBe(radius(probe));
+    probe.remove();
     expect(radius(pill!)).toBeGreaterThanOrEqual(pill!.getBoundingClientRect().height / 2);
     // An icon-only pill is a circle.
     const box = round!.getBoundingClientRect();
