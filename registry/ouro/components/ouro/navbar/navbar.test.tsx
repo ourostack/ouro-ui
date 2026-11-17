@@ -170,7 +170,6 @@ describe("Navbar", () => {
   it("hides the menu button from 640px up", async () => {
     const { menuButton } = await render(<Navbar label="Main" items={items} />);
     expect(getComputedStyle(menuButton).display).toBe("none");
-    expect(menuButton.hasAttribute("aria-haspopup")).toBe(false);
   });
 
   it("puts the links in the server HTML, with the current page marked", () => {

@@ -374,8 +374,9 @@ export function overlayOpeners(
 export async function settle(): Promise<void> {
   // A Navbar whose menu button shows builds its sheet, hidden, once the page is idle, in a transition no animation waits
   // for: scanned before it lands, the page changed under axe (heading-order undecided, StackedLayout/Reader at 390 px).
+  // Only a shown button counts: at a desktop width the button is in the markup too, hidden, and builds no sheet.
   await vi.waitFor(() => {
-    const menus = document.querySelectorAll('[data-ouro-navbar-menu][aria-haspopup="dialog"]').length;
+    const menus = [...document.querySelectorAll("[data-ouro-navbar-menu]")].filter((menu) => menu.getClientRects().length > 0).length;
     if (document.querySelectorAll('[data-ouro="sheet"]').length < menus) throw new Error("a Navbar's sheet is not built yet");
   }, waitOptions);
   // One quiet check is not enough: a fade that begins a frame after it was scanned mid-way (#1303), so
