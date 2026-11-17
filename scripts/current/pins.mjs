@@ -276,10 +276,21 @@ const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
  * the same form. A workflow is not changed (an app may write one only with the `workflows` permission); its lines are
  * returned with the change they need, for the pull request to name.
  */
-function rewriteReferences(consumer, moves, skip, packageDir) {
-  const pairs = moves.flatMap(({ from, to }) => [
-    { old: from, now: to, base: "" },
-    ...(packageDir && from.startsWith(packageDir) && to.startsWith(packageDir) ? [{ old: from.slice(packageDir.length), now: to.slice(packageDir.length), base: packageDir }] : []),
+function rewriteReferences(consumer, moves, skip, packageDir, installed = []) {
+  // A folder whose installed files all moved to one folder is named by its path too (`diff -r … lib/ouro/check`).
+  const folders = new Map();
+  for (const { from, to } of moves) {
+    const dir = posix.dirname(from);
+    folders.set(dir, [...(folders.get(dir) ?? []), posix.dirname(to)]);
+  }
+  const movedFrom = new Set(moves.map((move) => move.from));
+  const dirMoves = [...folders].flatMap(([dir, targets]) => {
+    const whole = installed.filter((path) => posix.dirname(path) === dir).every((path) => movedFrom.has(path));
+    return whole && new Set(targets).size === 1 && targets[0] !== dir ? [{ from: dir, to: targets[0], dir: true }] : [];
+  });
+  const pairs = [...moves, ...dirMoves].flatMap(({ from, to, dir }) => [
+    { old: from, now: to, base: "", dir },
+    ...(packageDir && from.startsWith(packageDir) && to.startsWith(packageDir) ? [{ old: from.slice(packageDir.length), now: to.slice(packageDir.length), base: packageDir, dir }] : []),
   ]);
   const files = {};
   const fixed = [];
@@ -291,8 +302,10 @@ function rewriteReferences(consumer, moves, skip, packageDir) {
     const text = bytes.toString("utf8");
     if (!pairs.some(({ old }) => text.includes(old))) continue;
     let next = text;
-    for (const { old, now, base } of pairs) {
-      const re = new RegExp(String.raw`(^|[\s"'\`=(:,[])((?:\.{1,2}\/)*)${escapeRe(old)}(?![\w-]|\.\w)`, "gm");
+    for (const { old, now, base, dir } of pairs) {
+      // A folder is matched only where it ends, or before `/*`, so a file in it that did not move keeps its path.
+      const end = dir ? String.raw`(?=$|[\s"'\`)\],;:]|\/(?:\*|$|[\s"'\`]))` : String.raw`(?![\w-]|\.\w)`;
+      const re = new RegExp(String.raw`(^|[\s"'\`=(:,[])((?:\.{1,2}\/)*)${escapeRe(old)}${end}`, "gm");
       next = next.replace(re, (all, lead, prefix) => {
         if (prefix.includes("..")) {
           const from = posix.dirname(path);
@@ -488,7 +501,7 @@ async function updateHxInstalled(pin, text, release, ctx) {
   // The app's own scripts and docs that name a moved file's old path are pointed at the new one; a workflow cannot be,
   // so its lines are named. A moved file that is run, or still named somewhere, keeps a forwarding file at its old path.
   const skip = new Set([...installed, ...Object.keys(out), pin.file, ...(pkgPath ? [pkgPath] : [])]);
-  const refs = rewriteReferences(consumer, moves, skip, found?.dir ?? "");
+  const refs = rewriteReferences(consumer, moves, skip, found?.dir ?? "", installed);
   Object.assign(out, refs.files);
   const forwarded = [];
   for (const { from, to } of moves) {
@@ -555,7 +568,48 @@ function valueAt(text, key, from, to) {
  * repository's own layout (one file to a line, say) and its checks of it survive. Null when the text is laid out in a
  * way this cannot follow; the caller then writes the file whole.
  */
-export function editLock(text, sourceId, commit, shas, release = {}) {
+export function editLock(text, sourceId, commit, shas, release = {}, added = []) {
+  const edited = editLockValues(text, sourceId, commit, shas, release);
+  if (edited === null || added.length === 0) return edited;
+  // A new file goes in as a line like its neighbour's, in the order of source paths; a lock that does not keep one
+  // file to a line is written whole instead (null).
+  let out = edited;
+  for (const file of added) {
+    const id = new RegExp(String.raw`"id"\s*:\s*"${sourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).exec(out);
+    const nextId = /"id"\s*:\s*"/g;
+    nextId.lastIndex = id.index + id[0].length;
+    const end = nextId.exec(out)?.index ?? out.length;
+    const lines = [...out.slice(id.index, end).matchAll(/^([ \t]*)(\{[^\n]*"sourcePath"\s*:\s*"([^"]*)"[^\n]*\})(,?)[ \t]*$/gm)].map((match) => ({ start: id.index + match.index, end: id.index + match.index + match[0].length, indent: match[1], body: match[2], sourcePath: JSON.parse(`"${match[3]}"`), comma: match[4] === "," }));
+    if (lines.length === 0) return null;
+    const line = (template) => {
+      // A neighbour with keys of its own (`upstreamPath`) is no template for a new file.
+      const keys = [...template.matchAll(/"([^"]+)"\s*:/g)].map((match) => match[1]);
+      if (keys.some((key) => !["sourcePath", "generatedPath", "sha256"].includes(key))) return null;
+      let body = template;
+      for (const [key, value] of Object.entries({ sourcePath: file.sourcePath, generatedPath: file.generatedPath, sha256: file.sha256 })) {
+        const re = new RegExp(String.raw`("${key}"\s*:\s*")[^"]*(")`);
+        if (!re.test(body)) return null;
+        body = body.replace(re, `$1${value}$2`);
+      }
+      return body;
+    };
+    const at = insertAt(lines, file.sourcePath);
+    if (at === lines.length) {
+      const last = lines.at(-1);
+      const body = line(last.body);
+      if (!body) return null;
+      out = `${out.slice(0, last.end)}${last.comma ? "" : ","}\n${last.indent}${body}${last.comma ? "," : ""}${out.slice(last.end)}`;
+    } else {
+      const before = lines[at];
+      const body = line(before.body);
+      if (!body) return null;
+      out = `${out.slice(0, before.start)}${before.indent}${body},\n${out.slice(before.start)}`;
+    }
+  }
+  return out;
+}
+
+function editLockValues(text, sourceId, commit, shas, release = {}) {
   const id = new RegExp(String.raw`"id"\s*:\s*"${sourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).exec(text);
   if (!id) return null;
   const nextId = /"id"\s*:\s*"/g;
@@ -639,8 +693,11 @@ async function updateVendorLock(pin, text, release, ctx) {
     files[file.generatedPath] = bytes;
   }
   if (missing.length) throw new Error(`${pin.file}: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not in ${REPOS[pin.follows]} ${release.tag}${asset ? ` (${asset})` : ""}`);
+  // A vendored file that now imports a file beside it (`xray.ts` importing `./xray.kit.mts`) needs that file too: it is
+  // vendored beside it, and so is what it imports in turn.
+  const added = asset ? [] : followImports(source.files, files, read);
   // Only this source's values change; the edit is kept when it reads back as the lock this run means to write.
-  const edited = editLock(text, pin.source, release.sha, shas, named);
+  const edited = editLock(text, pin.source, release.sha, shas, named, added);
   const same = (value) => {
     try {
       return JSON.stringify(JSON.parse(value)) === JSON.stringify(lock);
@@ -650,7 +707,47 @@ async function updateVendorLock(pin, text, release, ctx) {
   };
   files[pin.file] = edited !== null && same(edited) ? edited : `${JSON.stringify(lock, null, 2)}\n`;
   const actions = pin.follows === "core" && source.files.some((file) => /(^|\/)actions\//.test(file.sourcePath));
-  return { files, notes: actions ? projectionsNote(release) : [] };
+  const notes = actions ? projectionsNote(release) : [];
+  if (added.length) notes.push(`Vendors what the updated files now import: ${list(added.map((file) => file.generatedPath))}.`);
+  return { files, notes };
+}
+
+/** The relative imports a module names: `from "./x.ts"`, `import "./x.ts"`, `import("./x.ts")`. */
+const relativeImports = (text) => [...text.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["'](\.{1,2}\/[^"']+)["']/g)].map((match) => match[1]);
+
+/** The file before which a new lock entry goes: the entries are kept in the order of their source paths. */
+const insertAt = (entries, sourcePath) => {
+  const after = entries.findIndex((entry) => entry.sourcePath > sourcePath);
+  return after === -1 ? entries.length : after;
+};
+
+/**
+ * Adds to a lock source each file a vendored module imports by a relative path that the source does not list yet,
+ * from the same commit, at the same place relative to its importer. Returns the entries added, in the lock's order.
+ */
+function followImports(entries, files, read) {
+  const listed = new Set(entries.map((entry) => entry.sourcePath));
+  const queue = [...entries];
+  const added = [];
+  while (queue.length) {
+    const entry = queue.shift();
+    const bytes = files[entry.generatedPath];
+    if (!bytes || !/\.[cm]?[jt]sx?$/.test(entry.sourcePath)) continue;
+    for (const spec of relativeImports(bytes.toString("utf8"))) {
+      const sourcePath = posix.normalize(posix.join(posix.dirname(entry.sourcePath), spec));
+      if (listed.has(sourcePath)) continue;
+      const found = read(sourcePath);
+      if (!found) continue;
+      listed.add(sourcePath);
+      const generatedPath = posix.normalize(posix.join(posix.dirname(entry.generatedPath), spec));
+      const next = { sourcePath, generatedPath, sha256: sha256(found) };
+      entries.splice(insertAt(entries, sourcePath), 0, next);
+      files[generatedPath] = found;
+      added.push(next);
+      queue.push(next);
+    }
+  }
+  return added;
 }
 
 /**

@@ -331,7 +331,9 @@ function apartFixture({ imports } = {}) {
     "components.json": JSON.stringify({ aliases: { components: "@/components", lib: "@/lib" } }),
     "tsconfig.json": JSON.stringify({ include: ["src/**/*"], compilerOptions: { paths: { "@/*": ["./src/*"] } } }),
     "package.json": `${JSON.stringify({ name: "site", type: "module", scripts: { "check:screens": "node lib/ouro/check/check.ts dist" }, ...(imports ? { imports } : {}) }, null, 2)}\n`,
-    ".github/workflows/pages.yml": "jobs:\n  check:\n    steps:\n      - run: node lib/ouro/check/check.ts _site --sizes 390x844\n",
+    ".github/workflows/pages.yml": "jobs:\n  check:\n    steps:\n      - run: node lib/ouro/check/check.ts _site --sizes 390x844\n      - run: diff -r .ouro-ui/registry/ouro/check lib/ouro/check\n      - run: for f in lib/ouro/ax/*.ts; do cmp a \"$f\"; done\n",
+    "lib/ouro/check/README.md": "ours\n",
+    "scripts/list.sh": "ls lib/ouro/check/README.md lib/ouro/check\n",
     "scripts/check-fades.mjs": "spawnSync(process.execPath, ['lib/ouro/check/fades.ts', 'src']);\n",
     "readme.md": "Run `node lib/ouro/check/check.ts dist` after a build.\n",
     "tests/fades.test.mjs": 'import { fades } from "../lib/ouro/check/fades.ts";\n',
@@ -375,6 +377,10 @@ test("Ouro HX points the app's scripts and docs at a moved file, names a workflo
   assert.equal(update.files["tests/fades.test.mjs"]?.toString(), 'import { fades } from "../scripts/ouro/check/fades.ts";\n', "a path relative to the file stays relative");
   assert.equal(update.files[".github/workflows/pages.yml"], undefined, "a workflow is not written");
   assert.ok(update.notes.includes("Ouro Current does not edit workflows, so change `.github/workflows/pages.yml:4` to `- run: node scripts/ouro/check/check.ts _site --sizes 390x844`."));
+  // A folder whose installed files all moved is named by its new path; a file in it that did not move keeps its own.
+  assert.ok(update.notes.includes("Ouro Current does not edit workflows, so change `.github/workflows/pages.yml:5` to `- run: diff -r .ouro-ui/registry/ouro/check scripts/ouro/check`."));
+  assert.ok(update.notes.includes('Ouro Current does not edit workflows, so change `.github/workflows/pages.yml:6` to `- run: for f in src/lib/ouro/ax/*.ts; do cmp a "$f"; done`.'));
+  assert.equal(update.files["scripts/list.sh"]?.toString(), "ls lib/ouro/check/README.md scripts/ouro/check\n");
   assert.ok(update.notes.some((note) => note.startsWith("Leaves a forwarding file at `lib/ouro/check/check.ts` that runs `scripts/ouro/check/check.ts`")));
   assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
   const recorded = JSON.parse(update.files[pin.file]).files;
@@ -468,6 +474,69 @@ test("a vendored source moves to the release's commit with each file's new bytes
   const written = JSON.parse(update.files["upstream-sources.lock.json"]);
   assert.equal(written.sources[0].commit, RELEASES.web.sha);
   assert.equal(written.sources[0].files[0].sha256, sha256("cli v2"));
+});
+
+test("a vendored file that now imports a file beside it brings that file, and what it imports, into the lock in the lock's own layout", async () => {
+  // As ouro-work-substrate vendors Ouro AX: one file to a line, in the order of source paths, the release as `tag`.
+  const entry = (name, sha) => `        { "sourcePath": "registry/ouro/ax/${name}", "generatedPath": "lib/ouro-ui/registry/ouro/ax/${name}", "sha256": "${sha}" }`;
+  const text = [
+    "{",
+    '  "schemaVersion": 1,',
+    '  "sources": [',
+    "    {",
+    '      "id": "ax",',
+    '      "repository": "ourostack/ouro-ui",',
+    '      "tag": "v1.3.243",',
+    '      "commit": "old",',
+    '      "files": [',
+    `${entry("cli.ts", "a")},`,
+    `${entry("wait.ts", "b")},`,
+    entry("xray.ts", "c"),
+    "      ]",
+    "    }",
+    "  ]",
+    "}",
+    "",
+  ].join("\n");
+  const XRAY = 'import { run } from "./xray.kit.mts";\nexport const xray = run;\n';
+  const KIT = 'export { kit } from "./kit-shared.ts";\nimport "./cli.ts";\nexport const run = 2;\n';
+  const tarball = new Map(Object.entries({
+    "registry/ouro/ax/cli.ts": "cli v2\n",
+    "registry/ouro/ax/wait.ts": "wait v2\n",
+    "registry/ouro/ax/xray.ts": XRAY,
+    "registry/ouro/ax/xray.kit.mts": KIT,
+    "registry/ouro/ax/kit-shared.ts": "export const kit = 1;\n",
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  const pin = { kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "web", source: "ax" };
+  const update = await UPDATERS["vendor-lock"](pin, text, RELEASES.web, { tarball: async () => tarball });
+  assert.equal(update.files["lib/ouro-ui/registry/ouro/ax/xray.kit.mts"]?.toString(), KIT, "the file xray.ts now imports is vendored beside it");
+  assert.equal(update.files["lib/ouro-ui/registry/ouro/ax/kit-shared.ts"]?.toString(), "export const kit = 1;\n", "and the file that one imports");
+  const lock = update.files[pin.file];
+  const sha = (body) => createHash("sha256").update(body).digest("hex");
+  const expected = [
+    "{",
+    '  "schemaVersion": 1,',
+    '  "sources": [',
+    "    {",
+    '      "id": "ax",',
+    '      "repository": "ourostack/ouro-ui",',
+    `      "tag": "${RELEASES.web.tag}",`,
+    `      "commit": "${RELEASES.web.sha}",`,
+    '      "files": [',
+    `${entry("cli.ts", sha("cli v2\n"))},`,
+    `${entry("kit-shared.ts", sha("export const kit = 1;\n"))},`,
+    `${entry("wait.ts", sha("wait v2\n"))},`,
+    `${entry("xray.kit.mts", sha(KIT))},`,
+    entry("xray.ts", sha(XRAY)),
+    "      ]",
+    "    }",
+    "  ]",
+    "}",
+    "",
+  ].join("\n");
+  assert.equal(lock, expected, "each new file is a line like its neighbours, in source-path order, and every other byte is kept");
+  assert.ok(update.notes.some((note) => note.includes("`lib/ouro-ui/registry/ouro/ax/xray.kit.mts`")));
+  assert.deepEqual(update.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
 });
 
 test("a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out", async () => {
