@@ -19,9 +19,24 @@ import { treeFiles } from "./tree.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = join(root, ".github/workflows");
-const workflows = readdirSync(dir)
+/**
+ * ci.yml's checkouts as each would read without its stall guard (#1765): a first try with a time limit, the step that
+ * clears a stalled one, and its retry fold back into the one step they guard, so the tests of each job read its
+ * checkout as written. The guard itself is tested on the raw text.
+ */
+const checkoutGuard = new RegExp(
+  [
+    String.raw`^ {6}- id: checkout\n((?: {8}if: .*\n)?) {8}uses: (\S+ # v[\d.]+)\n {8}timeout-minutes: 3\n {8}continue-on-error: true\n {8}env:\n {10}GIT_TRACE_CURL: \S+\n {10}GIT_TRACE_CURL_NO_DATA: "1"\n((?: {8}with:\n(?: {10}.*\n)+)?)`,
+    String.raw` {6}- (?:\*checkout-stalled\n|&checkout-stalled\n(?: {8}.*\n| *\n)+?)`,
+    String.raw` {6}- if: steps\.checkout\.outcome == 'failure'\n((?: {8}continue-on-error: true\n)?) {8}uses: \2\n {8}timeout-minutes: 3\n\3`,
+  ].join(""),
+  "gm",
+);
+const unguarded = (text) => text.replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
+const rawWorkflows = readdirSync(dir)
   .filter((file) => file.endsWith(".yml"))
   .map((file) => ({ file, text: readFileSync(join(dir, file), "utf8") }));
+const workflows = rawWorkflows.map(({ file, text }) => ({ file, text: unguarded(text) }));
 // The repository's own composite actions, which the workflows use from their checkout.
 const actionsDir = join(root, ".github/actions");
 const actions = readdirSync(actionsDir).map((name) => ({ file: `actions/${name}/action.yml`, text: readFileSync(join(actionsDir, name, "action.yml"), "utf8") }));
@@ -50,6 +65,31 @@ test("a CI git transfer that stalls ends after a minute below 1 KB/s, so actions
       }
     });
   });
+});
+
+test("a checkout that stalls or fails is cleared and tried once more after 3 minutes, with a trace of its HTTP requests (#1765)", () => {
+  const ci = rawWorkflows.find(({ file }) => file === "ci.yml").text;
+  // Every guard folds back into the step it guards, and the fold leaves none behind (the other tests read the fold).
+  assert.doesNotMatch(unguarded(ci), /checkout-stalled|steps\.checkout\.outcome|ouro-checkout-trace/);
+  // Each step, by its "- " at the steps' indent, with its lines.
+  const steps = ci.split(/\n(?= {6}- )/).map((step) => step.split(/\n(?! {8}| {6}- |\s*$)/)[0]);
+  const checkouts = steps.flatMap((step, index) => (/uses: actions\/checkout@/.test(step) ? [index] : []));
+  const withBlock = (step) => step.slice(step.indexOf("\n        with:") + 1 || step.length);
+  const attempts = checkouts.filter((index) => /^ {6}- id: checkout$/m.test(steps[index]));
+  assert.ok(attempts.length >= 30, `${attempts.length} checkouts with a time limit`);
+  assert.equal(checkouts.length, attempts.length * 2, "every checkout is a first try or its one retry");
+  for (const index of attempts) {
+    const [attempt, stalled, retry] = steps.slice(index, index + 3);
+    assert.match(attempt, /\n {8}timeout-minutes: 3\n {8}continue-on-error: true\n {8}env:\n {10}GIT_TRACE_CURL: \/tmp\/ouro-checkout-trace\.log\n {10}GIT_TRACE_CURL_NO_DATA: "1"/);
+    assert.match(stalled, /^ {6}- (\*checkout-stalled$|&checkout-stalled\n)/);
+    assert.match(retry, /^ {6}- if: steps\.checkout\.outcome == 'failure'\n(?: {8}continue-on-error: true\n)? {8}uses: actions\/checkout@\S+ # v[\d.]+\n {8}timeout-minutes: 3\n/);
+    assert.equal(withBlock(retry), withBlock(attempt), `the retry fetches what the first try did:\n${attempt}`);
+  }
+  const stalled = steps.find((step) => step.includes("&checkout-stalled"));
+  assert.match(stalled, /name: actions\/checkout stalled; clear it for one more try/);
+  assert.match(stalled, /::warning title=actions\/checkout stalled::.*ourostack\/ouro-ui#1765/);
+  assert.match(stalled, /tail -n 60 \/tmp\/ouro-checkout-trace\.log/);
+  assert.match(stalled, /rm -rf "\$GITHUB_WORKSPACE\/\.git"/);
 });
 
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
