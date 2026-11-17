@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-17T01:00:29.171Z",
+  "generatedAt": "2026-11-17T01:28:02.156Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -93,8 +93,8 @@
         }
       ],
       "pr": {
-        "number": 990,
-        "url": "https://github.com/ourostack/factory/pull/990"
+        "number": 991,
+        "url": "https://github.com/ourostack/factory/pull/991"
       }
     },
     {
@@ -186,27 +186,24 @@
     },
     {
       "repo": "ourostack/housesitter",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "tools/ouro-actions/dist-manifest.json",
           "follows": "core",
-          "current": "v0.16.0",
+          "current": "v0.17.6",
           "latest": "v0.17.6",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 357d266",
+          "current": "commit 89e04bf",
           "latest": "v1.3.235",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 130,
-        "url": "https://github.com/ourostack/housesitter/pull/130"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/m365crawl",
