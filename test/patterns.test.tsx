@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { DashboardPage } from "@/registry/ouro/patterns/dashboard-page/dashboard-page";
 import { SettingsPage } from "@/registry/ouro/patterns/settings-page/settings-page";
+import dashboardSource from "@/registry/ouro/patterns/dashboard-page/dashboard-page.tsx?raw";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 
@@ -82,8 +83,23 @@ describe("SettingsPage", () => {
     await passesAxe();
     await userEvent.click(page.getByRole("alertdialog").getByRole("button", { name: "Delete account" }));
     await expect.poll(() => onDelete.mock.calls.length).toBe(1);
-    await expect.element(field("Display name")).toHaveValue("Ada");
+    await expect.element(field("Display name")).toHaveValue("");
+    await expect.element(field("Email")).toHaveValue("");
     expect(status().element().textContent).toBe("");
+  });
+
+  it("clears what it said while the next save runs, so each save is announced and a failed one never reads as saved", async () => {
+    let finish = () => {};
+    const onSave = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    await render(<SettingsPage onSave={onSave} initial={{ name: "Ada", email: "ada@example.com", language: "en", notifications: true }} />);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    finish();
+    await expect.element(status()).toHaveTextContent("Settings saved.");
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    await expect.poll(() => onSave.mock.calls.length).toBe(2);
+    expect(status().element().textContent).toBe("");
+    finish();
+    await expect.element(status()).toHaveTextContent("Settings saved.");
   });
 
   it("works with no handlers, as installed", async () => {
@@ -99,6 +115,12 @@ describe("SettingsPage", () => {
 });
 
 describe("DashboardPage", () => {
+  it("is a Server Component that hands no function to the client components it renders", () => {
+    expect(dashboardSource.startsWith('"use client"')).toBe(false);
+    // A prop or column field that is a function, such as Table's cell: (row) => …, can't cross to the client.
+    expect(dashboardSource.match(/\b\w+(?::|=\{)\s*(?:async\s*)?\([^()]*\)\s*=>/g)).toBeNull();
+  });
+
   it("is a whole page: a heading, a card per number, headed by the number with its label, with how it moved, a chart and the recent activity, and passes axe", async () => {
     await render(<DashboardPage />);
     expect(host.querySelector("main h1")?.textContent).toBe("Overview");

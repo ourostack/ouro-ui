@@ -56,6 +56,9 @@ export function SettingsPage({
   const [answer, setAnswer] = useState<{ errors: FormErrors }>();
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState(0);
+  // After a delete the fields start empty, not from the deleted account's settings.
+  const [deleted, setDeleted] = useState(false);
+  const start = deleted ? empty : initial;
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-10">
@@ -68,6 +71,8 @@ export function SettingsPage({
             onSubmit={async (event) => {
               // The browser's own checks (required, type="email") pass before this runs.
               event.preventDefault();
+              // Cleared first, so each save is announced and a pending or failed one never shows the last success.
+              setSaved(false);
               const data = new FormData(event.currentTarget);
               const settings: Settings = {
                 name: String(data.get("name")).trim(),
@@ -81,10 +86,10 @@ export function SettingsPage({
             }}
           >
             <Stack gap="md">
-              <TextField label="Display name" name="name" defaultValue={initial.name} required autoComplete="nickname" />
-              <TextField label="Email" name="email" type="email" defaultValue={initial.email} required autoComplete="email" />
-              <Select label="Language" name="language" defaultValue={initial.language} options={languages} />
-              <Switch label="Email notifications" name="notifications" defaultChecked={initial.notifications} />
+              <TextField label="Display name" name="name" defaultValue={start.name} required autoComplete="nickname" />
+              <TextField label="Email" name="email" type="email" defaultValue={start.email} required autoComplete="email" />
+              <Select label="Language" name="language" defaultValue={start.language} options={languages} />
+              <Switch label="Email notifications" name="notifications" defaultChecked={start.notifications} />
               <div>
                 <Button type="submit">Save</Button>
               </div>
@@ -105,6 +110,7 @@ export function SettingsPage({
                 await onDelete?.();
                 setAnswer(undefined);
                 setSaved(false);
+                setDeleted(true);
                 setForm((n) => n + 1);
               }}
               trigger={<Button tone="destructive" variant="soft">Delete account</Button>}

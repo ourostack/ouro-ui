@@ -124,9 +124,17 @@ export function DashboardPage({
                 { key: "customer", header: "Customer" },
                 { key: "placed", header: "Placed" },
                 { key: "total", header: "Total", align: "end" },
-                { key: "status", header: "Status", cell: (row) => <Badge tone={statusTone[row.status]} variant="soft">{row.status}</Badge> },
+                { key: "status", header: "Status" },
               ]}
-              rows={[...activity]}
+              // Each badge is in its row's field, not a cell function, which a Server Component can't pass on.
+              rows={activity.map((row) => ({
+                ...row,
+                status: (
+                  <Badge tone={statusTone[row.status]} variant="soft">
+                    {row.status}
+                  </Badge>
+                ),
+              }))}
             />
           ) : (
             <Text tone="muted">No activity yet.</Text>
