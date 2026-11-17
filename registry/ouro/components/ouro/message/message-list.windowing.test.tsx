@@ -430,8 +430,11 @@ describe("MessageList windowing", () => {
     await scrollTo(scroller, Math.min(from, scroller.scrollHeight));
     await settle(scroller);
     const reading = firstVisible(scroller);
-    // Growing, the message right above; shrinking, one a few above, which the scroll it waits for does not bring into view.
-    const above = Number(reading.message.id.slice(1)) - (grows ? 1 : 3);
+    // A message a few above, which the scroll it waits for does not bring into view: on a loaded machine the scroll's first event
+    // comes a hundred pixels or more into it, and the message right above would be in view by then, holding the place itself (#1646).
+    const above = Number(reading.message.id.slice(1)) - 3;
+    // Whether the message was still above the view as it changed, as the test means it to be.
+    let aboveView: boolean | undefined;
     const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
     let now = 1_000_000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
@@ -454,6 +457,7 @@ describe("MessageList windowing", () => {
       // itself moves a scroll position past the new end. Still within a quarter of the view of it.
       if (scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <= (grows ? 2 : 30)) return scroller.addEventListener("scroll", grow, { once: true });
       now += 200;
+      aboveView = document.getElementById(`m${above}`)!.getBoundingClientRect().bottom <= scroller.getBoundingClientRect().top;
       // What the list measures as it holds the change (#1646): every box it reads of a message or the content over the next two
       // frames, as `r<ms> <id>:<top>` (the content as `c`), so a failure shows which message held the place and how far it moved.
       const box = Element.prototype.getBoundingClientRect;
@@ -494,6 +498,7 @@ describe("MessageList windowing", () => {
     await settle(scroller);
     delete (scroller as { scrollTop?: number }).scrollTop;
     log.push(`final top=${Math.round(reading.message.getBoundingClientRect().top)} want=${Math.round(reading.top + 300)} scrollTop=${Math.round(scroller.scrollTop)}`);
+    expect(aboveView, `m${above} was above the view as it changed`).toBe(true);
     // Where the reader's scroll took it, the growth above taken out.
     expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top + 300)), log.join(" | ")).toBeLessThanOrEqual(ROUNDING);
   });
