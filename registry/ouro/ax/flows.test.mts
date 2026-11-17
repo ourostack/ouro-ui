@@ -191,6 +191,8 @@ test("the command runs a suite module: exit 0, 1 on an unknown failure or a know
   assert.equal(await main(["help"], io().io), 0);
   const badXray = join(scratch, "bad-xray.json");
   writeFileSync(badXray, "{");
+  // The shared kit installs beside the app's lib, not in this folder, so it is found through the kit's imports entry.
+  const kitOutput = fileURLToPath(import.meta.resolve("#ouro-ax/output.ts"));
   for (const [argv, problem] of [
     [[], "no command given. Fix: ax-flows --help."],
     [["run"], "run: Name the suite module to run, such as flows/suite.ts. Fix: ax-flows run <suite>."],
@@ -201,7 +203,7 @@ test("the command runs a suite module: exit 0, 1 on an unknown failure or a know
     [["run", module, "--xray", join(scratch, "missing.json")], `run --xray: takes an ax-xray report (--json), and ${join(scratch, "missing.json")} does not exist. Fix: `],
     [["run", module, "--xray", badXray], `run --xray: takes an ax-xray report (--json), and ${badXray} is not JSON. Fix: `],
     [["run", join(here, "nope.mts")], `${join(here, "nope.mts")}: there is no suite module there. Fix: name the suite module's path, such as flows/suite.ts.`],
-    [["run", join(here, "output.ts")], `${join(here, "output.ts")}: does not default-export defineSuite({ tool, flows, cli, start, guard }). Fix: export default defineSuite({ tool, flows, cli, start, guard }).`],
+    [["run", kitOutput], `${kitOutput}: does not default-export defineSuite({ tool, flows, cli, start, guard }). Fix: export default defineSuite({ tool, flows, cli, start, guard }).`],
   ] as const) {
     const u = io();
     assert.equal(await main(argv, u.io), 2, argv.join(" "));
