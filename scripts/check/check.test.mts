@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { chromium } from "playwright";
-import { BUDGETS, check, merge, RULES, type Finding, type Gate, type Report } from "../../registry/ouro/check/run.ts";
+import { BUDGETS, check, knownKey, merge, RULES, type Finding, type Gate, type Report } from "../../registry/ouro/check/run.ts";
 
 
 import { axe, browser, dir, fixtures, page, quiet, site, spots, two } from "./kit.mts";
@@ -63,6 +63,22 @@ describe("Ouro check", () => {
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
     assert.ok(waived.gated.length > 0 && waived.gated.every((f) => !f.page.startsWith("/axe-") && !(f.page === "/overlap-fail.html" && f.rule === "overlap")));
     assert.ok(waived.findings.some((f) => !f.gated && f.rule === "overlap"));
+  });
+
+  test("passes a finding ouro-check.json knows, as an update seeds it for a rule it brings, and still fails another of that rule", async () => {
+    const folder = site("known", { "off-theme-fail.html": readFileSync(join(fixtures, "off-theme-fail.html"), "utf8") });
+    const options = { targets: [folder], sizes: [[1440, 900]] as [number, number][], themes: ["light"], chromium, log: quiet };
+    const first = await check({ ...options, out: dir("known") });
+    const [kept, ...rest] = first.findings.filter((f) => f.rule === "off-theme");
+    assert.ok(kept && rest.length > 0);
+    const again = await check({ ...options, out: dir("known"), config: { known: { "off-theme": [knownKey(kept.detail)] } } });
+    assert.deepEqual(again.findings.filter((f) => !f.gated).map((f) => f.detail), [kept.detail]);
+    assert.equal(again.gated.length, first.gated.length - 1);
+    // Every finding of a page is reported, past the 40 a page's other rules stop at, so a record of them is complete.
+    const rules = Array.from({ length: 45 }, (_, i) => `.k${i} { padding: ${17 + i * 4}px; }`).join("\n");
+    const many = site("known-many", { "index.html": `<!doctype html><html lang="en"><title>Many</title><style>:root { --spacing: 0.25rem; } ${rules}</style><main>${Array.from({ length: 45 }, (_, i) => `<p class="k${i}">Line ${i}</p>`).join("")}</main></html>` });
+    const all = await check({ ...options, targets: [many], out: dir("known") });
+    assert.equal(all.findings.filter((f) => f.rule === "off-scale").length, 45);
   });
 
   test("measures layout shift, first content and each press against their budgets, presses at one size and theme, and records each number", async () => {

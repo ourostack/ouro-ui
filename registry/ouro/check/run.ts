@@ -128,6 +128,9 @@ interface Budgets {
 
 interface Gate {
   waive?: Record<string, Record<string, string>>;
+  // Findings an update recorded when it brought in their rule, by rule: each as knownKey writes it. They are reported
+  // and don't fail; any other finding of that rule does, so the rule still stops new ones (Ouro Current seeds this).
+  known?: Record<string, string[]>;
   budgets?: Partial<Budgets>;
   // The controls inp may press, as CSS selectors, besides those marked data-ouro-check-press; and how often it presses
   // each.
@@ -363,9 +366,12 @@ const measuresFor = (config: Gate, page: string): Measure[] =>
 // Whether a finding fails the check: every one does unless the config waives its rule ("*" for every rule) on a page
 // glob it matches. blurry-image is never waived: a picture too small for where it is drawn always fails.
 const UNWAIVABLE = ["blurry-image"];
-const isGated = (config: Gate, page: string, rule: string) =>
+// A finding as "known" records it: what it says up to the token to use, which a change to the theme's values can move.
+export const knownKey = (detail: string) => detail.split("; use ")[0]!;
+const isGated = (config: Gate, page: string, rule: string, detail = "") =>
   UNWAIVABLE.includes(rule) ||
-  !Object.entries(config.waive ?? {}).some(([glob, rules]) => Boolean(rules[rule] ?? rules["*"]) && globToRegExp(glob.startsWith("/") ? glob : `/${glob}`).test(page));
+  (!(config.known?.[rule] ?? []).includes(knownKey(detail)) &&
+    !Object.entries(config.waive ?? {}).some(([glob, rules]) => Boolean(rules[rule] ?? rules["*"]) && globToRegExp(glob.startsWith("/") ? glob : `/${glob}`).test(page)));
 
 // The https rule, for a site on the web: http:// answers with a permanent redirect (301 or 308) to https://, and
 // https:// answers with Strict-Transport-Security of a year or more. A bare name's www. twin (or the bare name, for a
@@ -622,7 +628,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   const record = async (page: Page, target: Target, issue: PageIssue, width: number, height: number, theme: string) => {
     const { ref, rule, element, detail, value, budget, unit, samples, image } = issue;
     const measured = value === undefined ? {} : { value, budget: budget!, unit: unit!, ...(samples ? { samples } : {}) };
-    const f: Finding = { site: target.site, page: target.page, width, height, theme, rule, element, detail, ...measured, gated: isGated(config, target.page, rule), dpr: dprAt(width), ...(image ? { image: { ...image, ...placeOf(target, image.src) } } : {}) };
+    const f: Finding = { site: target.site, page: target.page, width, height, theme, rule, element, detail, ...measured, gated: isGated(config, target.page, rule, detail), dpr: dprAt(width), ...(image ? { image: { ...image, ...placeOf(target, image.src) } } : {}) };
     findings.push(f);
     const key = keyOf(f);
     if (pictured.has(key) || closeUps.get(target)! >= MAX_CLOSE_UPS) return;
@@ -833,8 +839,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findTextIssues)));
       shown.push(...(await page.evaluate(findLayoutIssues, {})));
       shown.push(...(await page.evaluate(findThemeIssues, {})));
-      // off-theme and off-scale read the page's style rules, the same at every size and theme: at one, inp's.
-      if (inpAt === `${width}x${height} ${theme}`) shown.push(...(await page.evaluate(findOffThemeIssues, {})));
+      // off-theme and off-scale read the page's style rules, the same at every size and theme: at one, inp's. Every one
+      // is reported, not the first 40 (close-ups have their own limit), so the findings an update records as known are
+      // all of them, and fixing one never brings an unrecorded one into view.
+      if (inpAt === `${width}x${height} ${theme}`) shown.push(...(await page.evaluate(findOffThemeIssues, { maxIssues: 100000 })));
       shown.push(...(await page.evaluate(findInteractionIssues)));
       shown.push(...(await page.evaluate(findWrapIssues, {})));
       const behind = new Set(await page.evaluate(behindModal, [...new Set(shown.map((issue) => issue.ref))]));
@@ -889,7 +897,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     if (k === 1) {
       for (const host of new Set(list.map((t) => new URL(t.url).host))) {
         for (const { element, detail } of await transportIssues(host, ask)) {
-          findings.push({ site: host, page: "/", width: sizes[0]![0], height: sizes[0]![1], theme: themes[0]!, rule: "https", element, detail, gated: isGated(config, "/", "https"), dpr: dprAt(sizes[0]![0]) });
+          findings.push({ site: host, page: "/", width: sizes[0]![0], height: sizes[0]![1], theme: themes[0]!, rule: "https", element, detail, gated: isGated(config, "/", "https", detail), dpr: dprAt(sizes[0]![0]) });
         }
       }
     }
@@ -1061,7 +1069,7 @@ async function merge({ dirs, out, config, chromium, executablePath }: MergeOptio
     const [x, y] = [rank(a), rank(b)];
     return x[0]! - y[0]! || x[1]! - y[1]! || x[2]! - y[2]!;
   };
-  const all = reports.flatMap((r) => r.findings.map((f) => ({ f: { ...f, gated: config ? isGated(config, f.page, f.rule) : f.gated }, dir: r.dir })));
+  const all = reports.flatMap((r) => r.findings.map((f) => ({ f: { ...f, gated: config ? isGated(config, f.page, f.rule, f.detail) : f.gated }, dir: r.dir })));
   all.sort((a, b) => byRank(a.f, b.f));
   const pictured = new Set<string>();
   const counts = new Map<string, number>();
@@ -1128,7 +1136,7 @@ function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: R
     const count = (rule: string) => mine.filter((r) => r.rule === rule).length || "";
     lines.push(`| ${!mine.length ? "✓" : mine.some((r) => r.gated) ? "✗" : "·"} | \`${pageOf(ref)}\` | ${RULES.map(count).join(" | ")} |`);
   }
-  lines.push("", "✗ fails; · is waived in ouro-check.json. Each finding has a captioned close-up in `findings/`, and each page a contact sheet in `sheets/`.", "");
+  lines.push("", "✗ fails; · is waived, or known, in ouro-check.json. Each finding has a captioned close-up in `findings/`, and each page a contact sheet in `sheets/`.", "");
   if (fixed.length) lines.push(`Fixed since the earlier report: ${fixed.length}, each with a before and after in \`pairs/\`.`, "");
   if (allowances.length) lines.push(`Opted out on purpose: ${allowances.length}, each with its reason in \`report.json\` (\`allowances\`).`, "");
   if (rows.length) {

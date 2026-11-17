@@ -1296,3 +1296,32 @@ test("auto-merge names the merge commit itself, so GitHub adds no Co-authored-by
   assert.equal(body, "Ouro Current: Package.swift 0.6.0 to v0.9.0.");
   assert.doesNotMatch(`${headline}\n${body}`, /co-authored-by|\[bot\]/i);
 });
+
+test("an Ouro check rule an update brings in has the findings the pull request's checks reported recorded as known, the run after, and kept while the next checks run", async () => {
+  const lockOf = (commit, text) => JSON.stringify({ schemaVersion: 1, sources: [{ id: "check", repository: "ourostack/ouro-ui", commit, files: [{ sourcePath: "registry/ouro/check/run.ts", generatedPath: "scripts/ouro/check/run.ts", sha256: sha256(text) }] }] }, null, 2);
+  const old = 'const RULES = ["overlap"];\n';
+  const repo = fakeRepo({ "upstream-sources.lock.json": lockOf("old", old), "scripts/ouro/check/run.ts": old, "ouro-check.json": '{\n  "waive": {}\n}\n' });
+  const tarball = async () => new Map([["registry/ouro/check/run.ts", Buffer.from('const RULES = ["overlap", "off-theme", "off-scale"];\n')]]);
+  let reports = [];
+  const sources = { tarball, ciReports: async (gh, name, sha) => (sha === repo.refs.get(BRANCH) ? reports : []) };
+  await keepRepo(repo.gh, "o/r", RELEASES, sources);
+  assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), '{\n  "waive": {}\n}\n', "the run that brings the rule has no report of it yet");
+  reports = [
+    { findings: [
+      { rule: "off-theme", detail: ".hero-sub sets color: var(--ink-soft), a fixed colour; use var(--muted-foreground) (text-muted-foreground)" },
+      { rule: "off-scale", detail: ".cta-row sets gap: 0.75rem, a fixed spacing; use calc(var(--spacing) * 3) (gap-3)" },
+      { rule: "overlap", detail: "a rule the repository already had" },
+    ] },
+    { findings: [{ rule: "off-theme", detail: ".hero-sub sets color: var(--ink-soft), a fixed colour; use var(--muted-foreground) (text-muted-foreground)" }] },
+  ];
+  await keepRepo(repo.gh, "o/r", RELEASES, sources);
+  const seeded = repo.fileAt(BRANCH, "ouro-check.json");
+  assert.deepEqual(JSON.parse(seeded), { waive: {}, known: { "off-scale": [".cta-row sets gap: 0.75rem, a fixed spacing"], "off-theme": [".hero-sub sets color: var(--ink-soft), a fixed colour"] } });
+  assert.match(repo.pulls[0].body, /- Records the `2` findings of `off-scale` and `off-theme`, which this update brings in, in `ouro-check\.json`'s `known`: they pass, and a new finding of those rules fails\. Move them onto the theme and its spacing scale in a pull request of its own\./);
+  // The seeded commit's checks have not reported yet: what the last run recorded stays, and nothing is pushed.
+  const head = repo.refs.get(BRANCH);
+  reports = [];
+  await keepRepo(repo.gh, "o/r", RELEASES, sources);
+  assert.equal(repo.refs.get(BRANCH), head);
+  assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), seeded);
+});
