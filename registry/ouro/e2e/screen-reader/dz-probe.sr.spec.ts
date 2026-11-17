@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
 import { test } from "@playwright/test";
 
 const sh = (cmd: string) => {
@@ -9,14 +8,14 @@ const sh = (cmd: string) => {
     return `ERR ${(error as Error).message.split("\n")[0]}`;
   }
 };
-test("probe: state after dialog", async () => {
+export async function sample(after: string) {
+  for (let second = 0; second <= 30; second += 2) {
+    const procs = sh("ps -axo pid,etime,comm | grep -i -E 'voiceover|speech|screenreader|accessib|VoiceOver|AXVisual|universalaccess|TTS|synth' | grep -v grep | awk '{print $1\":\"$2\":\"$NF}' | sed 's#.*/##' | tr '\\n' ' '");
+    console.log(`[probe] ${after} +${second}s: ${procs}`);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+}
+test("probe: processes after dialog", async () => {
   test.setTimeout(120_000);
-  const wait = Number(process.env["PROBE_WAIT"] ?? 0);
-  if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
-  writeFileSync("/tmp/vo-after.txt", sh("defaults read com.apple.VoiceOver4/default 2>&1"));
-  console.log(`[probe] after (waited ${wait} ms): front=${sh(`osascript -e 'tell application "System Events" to get name of first process whose frontmost is true'`)}`);
-  console.log(`[probe] after: procs=${sh("pgrep -fl 'Playwright|MiniBrowser|WebKit.WebContent' | wc -l")}`);
-  console.log(`[probe] after: plist ps=${sh("pgrep -fl 'Playwright|MiniBrowser|WebKit.WebContent' | cut -c1-120")}`);
-  console.log(`[probe] VoiceOver prefs diff:\n${sh("diff /tmp/vo-before.txt /tmp/vo-after.txt | head -60")}`);
-  console.log(`[probe] VoiceOver running: ${sh("pgrep -x VoiceOver || echo no")}`);
+  await sample("after dialog");
 });
