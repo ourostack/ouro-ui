@@ -17,7 +17,7 @@ export interface SectionHeaderOwnProps {
    */
   meta?: ReactNode;
   /**
-   * A text action at the end of the row, such as a `Link` to "See all". It stays on the title's row
+   * A text action at the end of the row, such as a `Link` to the whole list. It stays on the title's row
    * at every width.
    * @claim "It stays on the title's row" registry/ouro/components/ouro/section-header/section-header.test.tsx verify:testExists(registry/ouro/components/ouro/section-header/section-header.test.tsx::SectionHeader > keeps the action on the title's row on a phone, with the meta between them)
    */
@@ -48,7 +48,7 @@ export type SectionHeaderProps = Omit<HTMLAttributes<HTMLDivElement>, keyof Sect
 
 /**
  * The head of a section inside a page: its title in the theme's heading font, a short count in
- * small capitals at the end of the row (`meta`), an optional text action such as "See all", and a
+ * small capitals at the end of the row (`meta`), an optional text action such as a link to the whole list, and a
  * hairline under it. The action stays on the title's row on phones.
  *
  * Use `PageHeader` instead for the top of the page, with its eyebrow, description and buttons,

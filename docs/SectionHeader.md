@@ -2,7 +2,7 @@
 
 # SectionHeader
 
-The head of a section inside a page: its title in the theme's heading font, a short count in small capitals at the end of the row (`meta`), an optional text action such as "See all", and a hairline under it. The action stays on the title's row on phones.
+The head of a section inside a page: its title in the theme's heading font, a short count in small capitals at the end of the row (`meta`), an optional text action such as a link to the whole list, and a hairline under it. The action stays on the title's row on phones.
 
 ```tsx
 import { SectionHeader } from "@/registry/ouro/components/ouro/section-header/section-header";
@@ -28,7 +28,7 @@ Type: `SectionHeaderProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `actions` | `ReactNode` |  | A text action at the end of the row, such as a `Link` to "See all". It stays on the title's row at every width. |
+| `actions` | `ReactNode` |  | A text action at the end of the row, such as a `Link` to the whole list. It stays on the title's row at every width. |
 | `className` | `string` |  | Layout only: margins, width (`mt-8`). Appearance classes warn in development. |
 | `divider` | `boolean` | `true` | The hairline under the row, between the header and the section's content. |
 | `level` | `2 \| 3` | `2` | The title's heading level: `2` under the page's `<h1>`, `3` for a section inside one. |
