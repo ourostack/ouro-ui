@@ -724,7 +724,6 @@ export function Composer(props: ComposerProps): JSX.Element {
                   // A press keeps focus, and the caret, in the text.
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={toggleExpanded}
-                  className="px-2"
                 >
                   <ExpandIcon expanded={expanded} />
                 </Button>
@@ -741,7 +740,6 @@ export function Composer(props: ComposerProps): JSX.Element {
                 loading={sending}
                 loadingLabel={sendingLabel}
                 onClick={send}
-                className="px-2"
               >
                 <SendIcon />
               </Button>
