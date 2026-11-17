@@ -1,0 +1,1 @@
+- Changed: an Ouro check `first-paint-swap` finding [gives both controls' HTML, as first drawn and at rest](test/check-measure.test.ts "verify:testExists(test/check-measure.test.ts::findLoadingIssues: first-paint-swap > reports a control a later frame drew over the place of one the first frame drew, with no input, once)"), in `report.json`'s `swap`.
