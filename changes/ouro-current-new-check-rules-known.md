@@ -1,0 +1,1 @@
+- Changed: Ouro Current's list of new Ouro check rules gives a rule's count of the app's findings recorded as known, in place of a day the rule gates from, and names the recorded rules when the release lacks `new-rules.json`.
