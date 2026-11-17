@@ -41,7 +41,7 @@ export const budget = { targetMinutes: 10, margin: 0.2, baselineRuns: 5, regress
 
 /**
  * The steps that set a job up rather than do its work: the runner's own, the checkout, pnpm and
- * Node, the install, and the browsers and their system packages; a stalled checkout's clearing and its retry
+ * Node, the install, and the browsers and their system packages; a stalled checkout's clearings and its tries
  * too (ourostack/ouro-ui#1765), a failed pnpm setup's warning and its retry (#1911), and a failed pnpm i's warning
  * and its retry (#1914). Their time is the runner's and the network's more than the change's, so a regression is judged without them (`workSeconds`).
  */

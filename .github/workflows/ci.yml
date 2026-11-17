@@ -17,9 +17,10 @@ concurrency:
   group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 # A git transfer that stalls ends after a minute below 1 KB/s, rather than holding its job until the job's time limit,
-# and actions/checkout fetches again (ourostack/ouro-ui#1765: three checkouts stalled 20 to 26 minutes on 2026-11-16).
+# and actions/checkout fetches again: three tries, each a minute long, since a healthy checkout takes seconds
+# (ourostack/ouro-ui#1765: three checkouts stalled 20 to 26 minutes on 2026-11-16).
 # git fetches over HTTP/1.1, where the limit applies to each connection: a stalled HTTP/2 stream outlasted it
-# (#1765's trace), so the fetch and its retry each get a connection the limit can end.
+# (#1765's trace), so each try gets a connection the limit can end.
 env:
   GIT_HTTP_LOW_SPEED_LIMIT: 1000
   GIT_HTTP_LOW_SPEED_TIME: 60
@@ -102,11 +103,12 @@ jobs:
           fi
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
@@ -115,12 +117,38 @@ jobs:
         name: actions/checkout stalled; clear it for one more try (#1765)
         if: steps.checkout.outcome == 'failure'
         run: |
-          echo "::warning title=actions/checkout stalled::Its fetch ran past 3 minutes or failed; checking out once more (ourostack/ouro-ui#1765). The trace of its HTTP requests follows."
+          echo "::warning title=actions/checkout stalled::Its fetch ran past 1 minute or failed; checking out once more (ourostack/ouro-ui#1765). The traces of its HTTP requests and packets follow."
           tail -n 60 /tmp/ouro-checkout-trace.log || true
+          tail -n 60 /tmp/ouro-checkout-packets.log || true
           rm -rf "$GITHUB_WORKSPACE/.git"
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - &checkout-stalled-again
+        name: actions/checkout stalled again; clear it for a last try (#1765)
+        if: steps.checkout-again.outcome == 'failure'
+        run: |
+          echo "::warning title=actions/checkout stalled again::Its fetch ran past 1 minute or failed; checking out a last time (ourostack/ouro-ui#1765). The traces of its HTTP requests and packets follow."
+          tail -n 60 /tmp/ouro-checkout-trace.log || true
+          tail -n 60 /tmp/ouro-checkout-packets.log || true
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
@@ -233,17 +261,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -356,17 +401,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -442,17 +504,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -512,17 +591,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -598,17 +694,34 @@ jobs:
       - id: checkout
         if: env.BROWSER_RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - if: env.BROWSER_RUN == 'true'
@@ -692,17 +805,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -751,20 +881,40 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # Every commit of every branch, without their trees and files, so any range reads.
           fetch-depth: 0
           filter: tree:0
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+          # Every commit of every branch, without their trees and files, so any range reads.
+          fetch-depth: 0
+          filter: tree:0
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # Every commit of every branch, without their trees and files, so any range reads.
@@ -818,19 +968,38 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
           fetch-depth: 2
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
@@ -955,17 +1124,34 @@ jobs:
       - id: checkout
         if: env.FALLBACK == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - if: env.FALLBACK == 'true'
@@ -1023,17 +1209,34 @@ jobs:
       - id: checkout
         if: env.BROWSER_RUN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - if: env.BROWSER_RUN == 'true'
@@ -1096,17 +1299,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1179,17 +1399,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1282,19 +1519,38 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
           fetch-depth: 2
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
@@ -1391,19 +1647,38 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
           fetch-depth: 2
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+          # A pull request's merge commit and its first parent, the base it merges into.
+          fetch-depth: 2
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           # A pull request's merge commit and its first parent, the base it merges into.
@@ -1473,18 +1748,35 @@ jobs:
       - id: checkout
         if: env.KEY != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
         continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - if: env.KEY != ''
@@ -1526,17 +1818,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1581,17 +1890,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1657,17 +1983,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1744,17 +2087,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1832,17 +2192,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1896,17 +2273,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -1958,17 +2352,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2023,17 +2434,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2187,17 +2615,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2274,17 +2719,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2386,17 +2848,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2444,17 +2923,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2483,17 +2979,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2532,17 +3045,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2580,17 +3110,34 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
       - id: pnpm
@@ -2624,20 +3171,40 @@ jobs:
     steps:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           filter: blob:none
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          filter: blob:none
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha }}
@@ -2690,11 +3257,12 @@ jobs:
           exit 1
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
         continue-on-error: true
         env:
           GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
           GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           sparse-checkout: |
@@ -2704,9 +3272,31 @@ jobs:
             site/e2e/waivers.ts
           sparse-checkout-cone-mode: false
       - *checkout-stalled
-      - if: steps.checkout.outcome == 'failure'
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 3
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/workflows/ci.yml
+            scripts/ci-budget.mjs
+            scripts/waivers.mjs
+            site/e2e/waivers.ts
+          sparse-checkout-cone-mode: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
           sparse-checkout: |
