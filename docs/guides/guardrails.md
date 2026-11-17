@@ -328,7 +328,9 @@ node lib/ouro/check/check.ts dist
 
 ```json
 "exclude": ["src/lib/ouro/check"]
-``` It writes `ouro-check/report.json`, `summary.md`, a contact sheet of every size a page was checked at in `sheets/`, and a captioned close-up of each finding in `findings/`, at most 40 a page.[^check-many] Its exit code is the one every Ouro tool gives, from the Ouro AX kit's table, so it can gate CI:[^check-exit]
+```
+
+It writes `ouro-check/report.json`, `summary.md`, a contact sheet of every size a page was checked at in `sheets/`, and a captioned close-up of each finding in `findings/`, at most 40 a page.[^check-many] Its exit code is the one every Ouro tool gives, from the Ouro AX kit's table, so it can gate CI:[^check-exit]
 
 | Exit | Meaning |
 | --- | --- |
@@ -340,7 +342,7 @@ node lib/ouro/check/check.ts dist
 
 
 - `--pages "docs/**"` checks only the pages a glob matches; `--sizes 390x844,1440x900` and `--themes light` narrow the sweep.
-- `--shard 1/4` checks the first of four shares, and `node lib/ouro/check/check.ts merge <out folders>…` joins the shares' folders into one report, the same as one run's.[^check-shard]
+- `--shard 1/4` checks the first of four shares, and `node lib/ouro/check/check.ts merge <out folders>…` (`src/lib/ouro/check/check.ts` with `src/`) joins the shares' folders into one report, the same as one run's.[^check-shard]
 - `--before <earlier report.json>` adds a captioned before and after for each finding gone since.[^check-before]
 - A page that draws after it loads says when it is ready: it fires `ouro:ready` (or an event you name with `--ready-event`), or sets `data-app-ready`. The check waits up to 15 seconds, then checks the page as it is.[^check-ready]
 
@@ -416,7 +418,7 @@ jobs:
 End a picture on a hard edge, or put it on a solid band. Don't fade it into the page, or into nothing, at any edge, by a mask, an overlay or a pseudo-element's wash. Keep light painted into the picture itself, and gradients that are not over a picture, such as a painted sky band or a skeleton's shimmer. The screen check's `image-fade` rule finds a fade the browser draws. `fades.ts`, which `ouro-check` installs beside `check.ts`, finds one in the source before anything is built: every gradient used as a mask in a stylesheet, a style attribute, a Tailwind class (an arbitrary `mask-image` property or `mask` value, or one of Tailwind's gradient mask utilities) or a style object.[^fades] It finds a wash too: a gradient that reaches transparent on a layer over a picture, a `::before` or `::after` or an absolutely positioned or fixed box other than a hairline, in a file that draws an `<img>`, `<picture>`, `<video>` or `url()` picture (not a font's, a stylesheet's or a cursor's), or a gradient named a wash, scrim, fade, veil or haze. A sky band or a glow with no such role passes.[^fades-wash]
 
 ```sh
-node lib/ouro/check/fades.ts src
+node lib/ouro/check/fades.ts src       # node src/lib/ouro/check/fades.ts src in an app with src/
 ```
 
 It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.astro`, `.html`, `.svelte` and `.vue` files, skipping `node_modules`, build output (`dist`, `build`, `storybook-static`, `coverage`) and hidden folders.[^fades-files] Each finding gives the file, the line, the declaration and the fix, and it exits 3 when there is one, 0 when there is none and 2 on a usage problem, as `check.ts` does.[^fades-exit] A mask or a wash that fades text or controls rather than a picture, such as a row that scrolls sideways or a folded paragraph, stays when its line, or the comment just above it, says why, `fade-ok: <reason>`; a wash in a rule may say so at the rule's start too, and a marker without a reason does not count.[^fades-ok] Ouro HX's own such masks (Tabs' overflow, Collapsible's fold and the scroll fade) carry one, and this repository's CI runs `fades.ts` over `registry/` and `site/` in the required `ci` check.[^fades-ci]

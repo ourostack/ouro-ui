@@ -44,6 +44,8 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.235         # the kit and t
 npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.235   # with their node:test tests
 ```
 
+Parts of it run only in Node: in a Vite app, add "exclude": ["src/lib/ouro/ax"] to tsconfig.app.json (what your app imports from it is still checked), or tsc -b fails on their Node imports.
+
 The guide: https://ui.ouroboros.bot/docs/ax.md. A morning with an agent, with the kit's example tool running in your browser: https://ui.ouroboros.bot/ax/
 
 ## Ouro UI for Apple
