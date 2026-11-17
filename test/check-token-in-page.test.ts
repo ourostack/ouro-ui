@@ -49,14 +49,14 @@ describe("findOffThemeIssues: off-theme", () => {
     </style>
     <div class="t-card" id="card">Card words</div><div class="t-wash">Wash</div><p class="t-chip">Chip</p>`);
     expect(mine()).toEqual([
-      ["off-theme", 'div#card.t-card "Card words"', ".t-card sets background-color: rgb(255, 255, 255), a fixed colour; use var(--card) (bg-card)"],
+      ["off-theme", 'div#card.t-card "Card words"', ".t-card sets background: rgb(255, 255, 255), a fixed colour; use var(--card) (bg-card)"],
       ["off-theme", 'div#card.t-card "Card words"', ".t-card sets color: rgb(29, 29, 31), a fixed colour; use var(--foreground) (text-foreground)"],
       ["off-theme", 'div#card.t-card "Card words"', expect.stringMatching(/^\.t-card sets border-color: oklch\(0\.9 0\.02 300\), a fixed colour; use var\(--(border|input)\) \(border-(border|input)\)$/)],
       ["off-theme", 'div#card.t-card "Card words"', expect.stringMatching(/^\.t-card sets border-radius: 13px, a fixed radius; use (var|calc)\(--radius.*\) \(rounded-\w+\)$/)],
       ["off-theme", 'div#card.t-card "Card words"', expect.stringMatching(/^\.t-card sets box-shadow: rgba\(0, 0, 0, 0\.1\) 0px 4px 12px, a fixed shadow; use one of the theme's shadows, such as var\(--shadow-\w+\) \(shadow-\(--shadow-\w+\)\)$/)],
       ["off-theme", 'div#card.t-card "Card words"', ".t-card sets font-family: Georgia, serif, a fixed font; use var(--font-sans)"],
       ["off-theme", 'div#card.t-card "Card words"', expect.stringMatching(/^\.t-card sets outline-color: red, a fixed colour; use var\(--\w[\w-]*\) \(outline-[\w-]+\)$/)],
-      ["off-theme", 'div.t-wash "Wash"', expect.stringMatching(/^\.t-wash sets background-image: linear-gradient\(.*\), a fixed colour; use var\(--[\w-]+\) \(bg-[\w-]+\)$/)],
+      ["off-theme", 'div.t-wash "Wash"', expect.stringMatching(/^\.t-wash sets background: linear-gradient\(.*\), a fixed colour; use var\(--[\w-]+\) \(bg-[\w-]+\)$/)],
       ["off-theme", 'p.t-chip "Chip"', expect.stringMatching(/^\.t-chip sets color: var\(--color-rose-500\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
       ["off-theme", 'p.t-chip "Chip"', expect.stringMatching(/^\.t-chip sets fill: tomato, a fixed colour; use var\(--[\w-]+\)$/)],
     ]);
@@ -203,7 +203,7 @@ describe("findOffThemeIssues: the page and the opt-outs", () => {
     Object.defineProperty(other.sheet!, "cssRules", { get: () => { throw new DOMException("cross-origin", "SecurityError"); } });
     try {
       expect(sheet.cssRules.length).toBeGreaterThan(0);
-      expect(mine().map(([, element]) => element)).toEqual(['span.m-a "Hover"', 'span.m-b "Before"', 'div.m-c "Nested"', 'span.m-e "Media"', 'span.m-f "Supports"']);
+      expect(mine().map(([, element]) => element)).toEqual(['span.m-a "Hover"', 'span.m-b "Before"', 'span.m-d "Nested"', 'span.m-e "Media"', 'span.m-f "Supports"']);
     } finally {
       other.remove();
     }
@@ -218,3 +218,59 @@ describe("findOffThemeIssues: the page and the opt-outs", () => {
     expect(mine().map(([, element]) => element)).toEqual(['button.x.one.two "A label"', `p#long.y "${"Words ".repeat(12).trim().slice(0, 40)}…"`, "div#t-bare"]);
   });
 });
+
+describe("findOffThemeIssues: what an app writes past the theme in other ways", () => {
+  it("judges a value through the app's own variable by what it holds, but not through an alias of a token or a keyword", () => {
+    render(`<style>
+      .v { --t-brand: #6d28d9; --t-r: 14px; --t-gap: 18px; --t-alias: var(--primary); --t-none: none; --t-deep: var(--t-brand); }
+      .v-a { background: var(--t-brand); border-radius: var(--t-r); padding: var(--t-gap); }
+      .v-b { color: var(--t-alias); box-shadow: var(--t-none); }
+      .v-c { color: var(--t-deep); }
+    </style><div class="v"><div class="v-a">A</div><div class="v-b">B</div><div class="v-c">C</div></div>`);
+    expect(mine().map(([rule, , detail]) => [rule, detail])).toEqual([
+      ["off-theme", expect.stringMatching(/^\.v-a sets background: var\(--t-brand\), a fixed colour; use var\(--[\w-]+\) \(bg-[\w-]+\)$/)],
+      ["off-theme", expect.stringMatching(/^\.v-a sets border-radius: var\(--t-r\), a fixed radius; use .+ \(rounded-\w+\)$/)],
+      ["off-scale", ".v-a sets padding: var(--t-gap), a fixed spacing; use calc(var(--spacing) * 5) (p-5)"],
+      ["off-theme", expect.stringMatching(/^\.v-c sets color: var\(--t-deep\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
+    ]);
+  });
+
+  it("finds Tailwind's palette in a utility's own variables and in a gradient, and leaves a pill drawn with infinity alone", () => {
+    render(`<style>
+      @layer utilities {
+        .t-from { --tw-gradient-from: var(--color-indigo-500); }
+        .t-ring { --tw-ring-color: var(--color-blue-500); --tw-ring-offset-width: 2px; }
+        .t-pill { border-radius: calc(infinity * 1px); }
+      }
+      .t-own { --tw-shadow-color: var(--color-red-500); }
+      .t-grad { background-image: linear-gradient(var(--color-rose-500), transparent); }
+    </style><div class="t-from">From</div><div class="t-ring">Ring</div><div class="t-pill">Pill</div><div class="t-own">Own</div><div class="t-grad">Grad</div>`);
+    expect(mine().map(([, element, detail]) => [element, detail])).toEqual([
+      ['div.t-from "From"', expect.stringMatching(/^\.t-from sets --tw-gradient-from: var\(--color-indigo-500\), a fixed colour; use var\(--[\w-]+\)$/)],
+      ['div.t-ring "Ring"', expect.stringMatching(/^\.t-ring sets --tw-ring-color: var\(--color-blue-500\), a fixed colour; use var\(--[\w-]+\)$/)],
+      ['div.t-grad "Grad"', expect.stringMatching(/^\.t-grad sets background: linear-gradient\(var\(--color-rose-500\), transparent\), a fixed colour; use var\(--[\w-]+\) \(bg-[\w-]+\)$/)],
+    ]);
+  });
+
+  it("matches a nested rule by its resolved selector, and a rule scoped to a theme the run isn't in, named by the role's own token", () => {
+    render(`<style>
+      .n-card { & .n-title { color: #ff00aa; } .n-body { color: #00aaff; } }
+      .n-x, .n-list { & .n-item { color: #aa00ff; } }
+      .dark .n-dark { background-color: #111111; }
+      [data-theme="abyss"] .n-abyss { border-color: #222222; border-style: solid; }
+      .n-v:where(.dark, .dark *) { color: #eeeeee; }
+      .dark > .n-child { color: #dddddd; }
+    </style>
+    <div class="n-card"><span class="n-title" data-ouro-allow="off-theme" data-ouro-allow-why="A brand mark">Title</span><span class="n-body">Body</span></div>
+    <ul class="n-list"><li class="n-item">Item</li></ul><div class="n-dark">Dark</div><div class="n-abyss">Abyss</div><div class="n-v">Variant</div><div class="n-child">Child</div>`);
+    expect(mine().map(([, element, detail]) => [element, detail])).toEqual([
+      ['span.n-body "Body"', expect.stringMatching(/^\.n-card \.n-body sets color: rgb\(0, 170, 255\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
+      ['li.n-item "Item"', expect.stringMatching(/^:is\(\.n-x, \.n-list\) \.n-item sets color: rgb\(170, 0, 255\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
+      ['div.n-dark "Dark"', ".dark .n-dark sets background: rgb(17, 17, 17), a fixed colour; use var(--card) (bg-card)"],
+      ['div.n-abyss "Abyss"', '[data-theme="abyss"] .n-abyss sets border-color: rgb(34, 34, 34), a fixed colour; use var(--border) (border-border)'],
+      ['div.n-v "Variant"', ".n-v:where(.dark, .dark *) sets color: rgb(238, 238, 238), a fixed colour; use var(--foreground) (text-foreground)"],
+      ['div.n-child "Child"', ".dark > .n-child sets color: rgb(221, 221, 221), a fixed colour; use var(--foreground) (text-foreground)"],
+    ]);
+  });
+});
+

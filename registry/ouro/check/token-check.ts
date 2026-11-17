@@ -56,11 +56,12 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
   // them inline (shadcn's @theme inline), shadcn's own multiples of --radius.
   const rootStyle = getComputedStyle(document.documentElement);
   const defined = (name: string) => rootStyle.getPropertyValue(name).trim() !== "";
-  const colorTokens = [
+  const colorNames = [
     "background", "foreground", "card", "card-foreground", "popover", "popover-foreground", "primary", "primary-foreground",
     "secondary", "secondary-foreground", "muted", "muted-foreground", "accent", "accent-foreground", "destructive",
     "destructive-foreground", "success", "success-foreground", "warning", "warning-foreground", "border", "input", "ring",
-  ].filter((name) => defined(`--${name}`));
+  ];
+  const colorTokens = colorNames.filter((name) => defined(`--${name}`));
   const radiusFactors: Record<string, number> = { sm: 0.6, md: 0.8, lg: 1, xl: 1.4, "2xl": 1.8 };
   const radiusTokens = Object.keys(radiusFactors).filter((step) => defined(`--radius-${step}`) || defined("--radius"));
   const shadowTokens = ["xs", "sm", "md", "lg", "xl", "2xl"].filter((step) => defined(`--shadow-${step}`));
@@ -105,14 +106,16 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
     [/^border/, "border", ["border", "input", "ring", "primary", "destructive", "foreground", "muted-foreground"]],
     [/^outline/, "outline", ["ring", "border", "primary", "destructive", "foreground"]],
   ];
-  const colorUse = (property: string, value: string) => {
+  // A rule scoped to a theme the run isn't in (.dark) can't be measured against that theme's colours: it takes the
+  // role's own token.
+  const colorUse = (property: string, value: string, scoped: boolean) => {
     const [, prefix, fitting] = roles.find(([test]) => test.test(property)) ?? [null, "", colorTokens];
     const pool = fitting.flatMap((name) => tokenColors.filter((token) => token.name === name));
     const from = pool.length ? pool : tokenColors;
     const literal = value.match(/#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^)]*\)|var\(--color-[a-z]+(?:-\d+)?\)/i)?.[0] ?? value;
     const c = rgb(computed("color", literal));
     const distance = (t: (typeof tokenColors)[number]) => (t.color.r - c.r) ** 2 + (t.color.g - c.g) ** 2 + (t.color.b - c.b) ** 2;
-    const best = from.reduce((a, b) => (distance(b) < distance(a) ? b : a));
+    const best = scoped ? from[0]! : from.reduce((a, b) => (distance(b) < distance(a) ? b : a));
     return prefix ? `var(--${best.name}) (${prefix}-${best.name})` : `var(--${best.name})`;
   };
   const system = new Set(["canvas", "canvastext", "linktext", "visitedtext", "activetext", "buttonface", "buttontext", "buttonborder", "field", "fieldtext", "highlight", "highlighttext", "selecteditem", "selecteditemtext", "mark", "marktext", "graytext", "accentcolor", "accentcolortext"]);
@@ -132,7 +135,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
     test: (property: string) => boolean;
     on: boolean;
     fixed: (value: string, property: string) => boolean;
-    use: (value: string, property: string, el: Element) => string;
+    use: (value: string, property: string, el: Element, scoped: boolean) => string;
   }[] = [
     {
       kind: "colour",
@@ -140,16 +143,16 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
       test: (p) => /(^|-)color$/.test(p) || p === "fill" || p === "stroke" || p === "background-image",
       on: colorTokens.length > 0,
       // A background picture counts only as a gradient, by the colours it names outside the theme's.
-      fixed: (v, p) => (p === "background-image" ? /gradient\(/.test(v) && fixedColor(v.replace(/var\([^)]*\)/g, "")) : fixedColor(v)),
-      use: (v, p) => colorUse(p, v),
+      fixed: (v, p) => (p === "background-image" ? /gradient\(/.test(v) && (palette.test(v) || fixedColor(v.replace(/var\([^)]*\)/g, ""))) : fixedColor(v)),
+      use: (v, p, _el, scoped) => colorUse(p, v, scoped),
     },
     {
       kind: "radius",
       rule: "off-theme",
       test: (p) => /^border-.*radius$/.test(p),
       on: radiusTokens.length > 0,
-      // A pill's 9999px and a circle's 50% are shapes, not steps.
-      fixed: (v) => !v.includes("var(") && lengths(v).some(({ n, unit }) => n !== 0 && !(unit === "px" && n >= 999)),
+      // A pill's 9999px or calc(infinity * 1px), and a circle's 50%, are shapes, not steps.
+      fixed: (v) => !v.includes("var(") && !/infinity/i.test(v) && lengths(v).some(({ n, unit }) => n !== 0 && !(unit === "px" && n >= 999)),
       use: (v) => {
         const want = parseFloat(computed("border-top-left-radius", v.split(/\s+/)[0]!));
         const best = radiusSteps.reduce((a, b) => (Math.abs(b.px - want) < Math.abs(a.px - want) ? b : a));
@@ -206,20 +209,22 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
   const families: [RegExp, string][] = [
     [/^border-.*radius$/, "border-radius"],
     [/^border-.*color$/, "border-color"],
+    [/^background-(?:color|image)$/, "background"],
     [/^padding/, "padding"],
     [/^margin/, "margin"],
     [/gap$/, "gap"],
   ];
   const family = (property: string) => families.find(([test]) => test.test(property))?.[1] ?? property;
 
-  // The page's style rules, each with the layer it is in and the outermost style rule around it, whose selector picks
-  // the elements: a nested rule only narrows to a state.
+  // The page's style rules, each with the layer it is in and the selector that picks its elements.
   const found: { rule: CSSStyleRule; layer: string; selector: string }[] = [];
   const walk = (list: CSSRuleList, layer: string, outer: string) => {
     for (const rule of Array.from(list)) {
       if (rule instanceof CSSLayerBlockRule) walk(rule.cssRules, rule.name.split(".")[0] || layer, outer);
       else if (rule instanceof CSSStyleRule) {
-        const selector = outer || rule.selectorText;
+        // A nested rule's selector, resolved against the rule around it: browsers write a nested rule's & in.
+        const around = outer.includes(",") ? `:is(${outer})` : outer;
+        const selector = outer ? rule.selectorText.replaceAll("&", around) : rule.selectorText;
         found.push({ rule, layer, selector });
         walk(rule.cssRules, layer, selector);
       } else if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule || rule instanceof CSSContainerRule) walk(rule.cssRules, layer, outer);
@@ -232,11 +237,43 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
       // A stylesheet from another origin can't be read; it isn't the app's own.
     }
   }
-  // States and pseudo-elements a selector names but querySelectorAll can't match now.
-  const plain = (selector: string) =>
+  // States and pseudo-elements a selector names but querySelectorAll can't match now, and the theme it is scoped to
+  // (.dark, [data-theme], Tailwind's dark variant), which the run may not be in.
+  const unscoped = (selector: string) =>
     selector
+      .replace(/:(?:where|is)\(\s*\.dark\s*,\s*\.dark\s+\*\s*\)/g, "")
+      .replace(/\.dark(?![\w\\-])/g, "")
+      .replace(/\[data-theme(?:[~|^$*]?=(?:"[^"]*"|'[^']*'|[^\]]*))?\]/g, "");
+  const plain = (selector: string) =>
+    unscoped(selector)
       .replace(/::?(?:before|after|placeholder|selection|marker|backdrop|first-line|first-letter|file-selector-button|-webkit-[a-z-]+|-moz-[a-z-]+)(?![\w-])/g, "")
-      .replace(/:(?:hover|focus|focus-visible|focus-within|active|visited|target)(?![\w-])/g, "");
+      .replace(/:(?:hover|focus|focus-visible|focus-within|active|visited|target)(?![\w-])/g, "")
+      .replace(/^\s*[>+~]\s*/, "");
+
+  // Each custom property's definitions, so a value that goes through a variable of the app's own (--brand: #6d28d9) is
+  // judged by what that variable holds. The theme's, Tailwind's and Ouro's own variables are tokens.
+  const defs = new Map<string, string[]>();
+  for (const { rule } of found) {
+    for (let i = 0; i < rule.style.length; i++) {
+      const name = rule.style[i]!;
+      if (name.startsWith("--")) defs.set(name, [...(defs.get(name) ?? []), rule.style.getPropertyValue(name).trim()]);
+    }
+  }
+  const tokenVar = (name: string) => {
+    const bare = name.slice(2);
+    return colorNames.includes(bare.replace(/^color-/, "")) || /^(?:radius|shadow|font|spacing|ouro-|tw-|text-|leading-|tracking-|default-|animate-|ease-|blur-|container-|breakpoint-|chart-|sidebar|inset-shadow|drop-shadow|perspective|aspect)/.test(bare);
+  };
+  // The fixed value a variable of the app's own holds, through other variables of its own, or "".
+  const throughOwn = (value: string, test: (v: string) => boolean, depth = 0): string => {
+    for (const [, name] of value.matchAll(/var\(\s*(--[\w-]+)/g)) {
+      if (depth >= 4 || tokenVar(name!)) continue;
+      for (const d of defs.get(name!) ?? []) {
+        const held = test(d) ? d : throughOwn(d, test, depth + 1);
+        if (held) return held;
+      }
+    }
+    return "";
+  };
 
   const seen = new Set<string>();
   try {
@@ -244,10 +281,19 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
       if (layer === "theme" || layer === "base") continue;
       for (let i = 0; i < rule.style.length && issues.length < maxIssues; i++) {
         const property = rule.style[i]!;
-        // A custom property defines a token rather than using one.
-        const kind = property.startsWith("--") ? undefined : kinds.find((k) => k.on && k.test(property));
-        const value = rule.style.getPropertyValue(property).trim();
-        if (!kind || !value || keywords.has(value.toLowerCase()) || !kind.fixed(value, property)) continue;
+        // A longhand of a shorthand written with a variable reads empty until the variable is substituted: the
+        // shorthand holds the value.
+        const value = [property, family(property), property.split("-")[0]!].map((name) => rule.style.getPropertyValue(name).trim()).find(Boolean) ?? "";
+        // A custom property defines a token rather than using one, but a utility that puts Tailwind's palette in one
+        // (a gradient's stops, a ring's colour) sets that colour.
+        const kind = property.startsWith("--")
+          ? layer === "utilities" && property.startsWith("--tw-") && palette.test(value) ? kinds.find((k) => k.on && k.kind === "colour") : undefined
+          : kinds.find((k) => k.on && k.test(property));
+        if (!kind || !value || keywords.has(value.toLowerCase())) continue;
+        const ownFixed = (d: string) => !keywords.has(d.toLowerCase()) && (kind.kind === "colour" ? fixedColor(d) : kind.fixed(d, property));
+        // What is measured for the token to name: the value, or what the app's own variable holds.
+        const held = kind.fixed(value, property) ? value : throughOwn(value, ownFixed);
+        if (!held) continue;
         const key = `${selector}\u0000${family(property)}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -267,7 +313,7 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
           rule: kind.rule,
           element: describe(el),
           // The shorthand's value where the rule has one, as it was written.
-          detail: `${rule.selectorText} sets ${family(property)}: ${rule.style.getPropertyValue(family(property)).trim() || value}, a fixed ${kind.kind}; use ${kind.use(value, property, el)}`,
+          detail: `${selector} sets ${family(property)}: ${rule.style.getPropertyValue(family(property)).trim() || value}, a fixed ${kind.kind}; use ${kind.use(held, property, el, unscoped(selector) !== selector)}`,
         });
       }
     }

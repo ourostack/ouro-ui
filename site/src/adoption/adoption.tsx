@@ -117,7 +117,7 @@ export function AdoptionPage({ initial = SNAPSHOT, live = true, earlier = null }
           <h1 id="adoption-title" className="adoption-h1">
             {`${board.green} of ${board.total} products on Ouro\u00a0UI.`}
           </h1>
-          <div className="adoption-ring">
+          <div className="adoption-ring" data-ouro-allow="off-theme" data-ouro-allow-why="The night sky the ring is drawn on keeps its starlight in either theme.">
             <Sky stars={board.sky} active={active} fresh={fresh} closed={closed} />
             <div className="adoption-readout" aria-hidden="true" data-ouro-allow="overlap" data-ouro-allow-why="The count sits in the middle of the ring on purpose; no star or dust is drawn there.">
               {focus.length ? (

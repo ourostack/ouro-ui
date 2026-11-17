@@ -67,7 +67,12 @@ export function CommandLine({ command, fresh }: { command: string; fresh?: boole
 /** The agent's side: a night-dark terminal with a label, holding the commands and what the tool printed. */
 export function Terminal({ label, children, ...rest }: { label: string; children: ReactNode } & Omit<JSX.IntrinsicElements["div"], "children">): JSX.Element {
   return (
-    <div {...rest} className={`ax-term ${rest.className ?? ""}`.trim()}>
+    <div
+      {...rest}
+      className={`ax-term ${rest.className ?? ""}`.trim()}
+      data-ouro-allow="off-theme"
+      data-ouro-allow-why="A drawing of a terminal: its ink and dim lines are a terminal's in either theme."
+    >
       <div className="ax-term-bar" aria-hidden="true">
         {label}
       </div>
