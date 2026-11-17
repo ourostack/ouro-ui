@@ -70,9 +70,15 @@ const workflows = rawWorkflows.map(({ file, text }) => ({ file, text: unguarded(
 const actionsDir = join(root, ".github/actions");
 const actions = readdirSync(actionsDir).map((name) => ({ file: `actions/${name}/action.yml`, text: readFileSync(join(actionsDir, name, "action.yml"), "utf8") }));
 
-test("a CI git transfer that stalls ends after a minute below 1 KB/s, so actions/checkout fetches again (#1765)", () => {
+test("a CI git transfer over HTTP/1.1 that stalls ends after a minute below 1 KB/s, so actions/checkout fetches again (#1765)", () => {
   const ci = workflow("ci.yml");
-  assert.match(ci, /^env:\n {2}GIT_HTTP_LOW_SPEED_LIMIT: 1000\n {2}GIT_HTTP_LOW_SPEED_TIME: 60\n/m);
+  assert.match(ci, /^env:\n {2}GIT_HTTP_LOW_SPEED_LIMIT: 1000\n {2}GIT_HTTP_LOW_SPEED_TIME: 60\n {2}GIT_CONFIG_COUNT: "1"\n {2}GIT_CONFIG_KEY_0: http\.version\n {2}GIT_CONFIG_VALUE_0: HTTP\/1\.1\n/m);
+  // No step overrides them, so every checkout and its retry fetch over HTTP/1.1 (#1765).
+  assert.doesNotMatch(ci, /^ {3,}GIT_CONFIG_/m);
+  // git reads the workflow's HTTP/1.1 setting from its environment.
+  const workflowEnv = Object.fromEntries([...ci.match(/^env:\n((?: {2}\S.*\n)+)/m)[1].matchAll(/^ {2}(\w+): "?([^"\n]*)"?$/gm)].map(([, key, value]) => [key, value]));
+  const httpVersion = spawnSync("git", ["config", "--get", "http.version"], { cwd: root, encoding: "utf8", env: { ...process.env, ...workflowEnv } });
+  assert.equal(httpVersion.stdout.trim(), "HTTP/1.1", httpVersion.stderr);
   // git reads them: a fetch from a server that never answers ends at the limit.
   const scratch = scratchDir("ouro-git-stall-");
   const server = createServer(() => {});
