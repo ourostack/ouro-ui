@@ -7,7 +7,7 @@
 //   browser   CI's browser shards (`pnpm test`, .github/workflows/ci.yml), and so the coverage they
 //             measure and the browser-fallback shards that decide it
 //   screens   Screens (.github/workflows/screens.yml): Ouro check over the site as it builds
-//   installs  CI's install test (install-prep, install-shard, install, install-upgrade)
+//   installs  CI's install test (install-prep, install-shard, install, install-upgrade, install-current)
 //   heavy     CI's heavy tier (themes, visual, theme-install, latency, lighthouse)
 //
 // Each target lists the paths it never reads. A change runs the target unless every file it

@@ -5,12 +5,13 @@ import { test } from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { gzipSync } from "node:zlib";
 import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-check.mjs";
 import { BRANCH, body, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
 import { UPDATERS, findPins, isBehind, isCandidate } from "./pins.mjs";
+import { applyItem } from "./stylesheet.mjs";
 import { readTarball } from "./tar.mjs";
+import { fakeRepo, tarball } from "./fake-github.mjs";
 import { scratchDir } from "../scratch.mjs";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
@@ -20,32 +21,6 @@ const RELEASES = {
   apple: { repo: "ourostack/ouro-ui-apple", name: "Ouro UI for Apple", tag: "v0.9.0", sha: "e".repeat(40), url: "https://example.test/apple" },
 };
 
-/** A gzipped tar like GitHub's: one top folder, and a pax record for a long name. */
-function tarball(files) {
-  const blocks = [];
-  const header = (name, size, type) => {
-    const block = Buffer.alloc(512);
-    block.write(name.slice(0, 99), 0);
-    block.write(size.toString(8).padStart(11, "0"), 124);
-    block.write(type, 156);
-    return block;
-  };
-  const pad = (bytes) => Buffer.concat([bytes, Buffer.alloc((512 - (bytes.length % 512)) % 512)]);
-  for (const [path, content] of Object.entries(files)) {
-    const name = `ourostack-ouro-ui-abc123/${path}`;
-    const bytes = Buffer.from(content);
-    if (name.length > 99) {
-      const rest = ` path=${name}\n`;
-      let size = rest.length + 2;
-      while (String(size).length + rest.length !== size) size = String(size).length + rest.length;
-      const pax = Buffer.from(`${size}${rest}`);
-      blocks.push(header("pax", pax.length, "x"), pad(pax));
-    }
-    blocks.push(header(name, bytes.length, "0"), pad(bytes));
-  }
-  blocks.push(Buffer.alloc(1024));
-  return gzipSync(Buffer.concat(blocks));
-}
 
 test("the tarball reader drops the top folder and reads long names", () => {
   const long = `registry/ouro/components/ouro/${"x".repeat(80)}/file.tsx`;
@@ -120,6 +95,30 @@ test("Ouro HX takes the new tag's source as the CLI would write it, adds files i
   assert.equal(written.files["app/components/ouro/button/button.tsx"], sha256(button("v2")), "the record keeps the registry source's hash");
   assert.equal(written.files["app/components/ouro/alert/alert.tsx"], sha256("alert v1"));
   assert.ok(update.notes.some((note) => note.includes("alert.tsx") && /edited here/.test(note)));
+});
+
+test("Ouro HX reads a file that imports the shared Ouro AX files as the CLI wrote it, under the lib alias without an extension, and updates it", async () => {
+  const registry = { items: [
+    { name: "live-captions", files: [{ path: "registry/ouro/components/ouro/live-captions/live-captions-styles.ts", target: "@components/ouro/live-captions/live-captions-styles.ts" }], registryDependencies: ["ax-component"] },
+    { name: "ax-component", files: [{ path: "registry/ouro/ax/component.ts", target: "@lib/ouro/ax/component.ts" }, { path: "registry/ouro/ax/index.ts", target: "@lib/ouro/ax/index.ts" }] },
+  ] };
+  const styles = (v) => `import { defineComponentAx } from "@/registry/ouro/ax/component";\nimport { kit } from '@/registry/ouro/ax/index.ts';\nexport * from "@/registry/ouro/ax/component.ts";\nexport const ax = defineComponentAx({ rounded: "${v}" }); // @/registry/ouro/ax/ in prose stays\n`;
+  const at = (v) => new Map(Object.entries({ "registry.json": JSON.stringify(registry), "registry/ouro/components/ouro/live-captions/live-captions-styles.ts": styles(v), "registry/ouro/ax/component.ts": `export const component = "${v}";\n`, "registry/ouro/ax/index.ts": `export const kit = "${v}";\n` }).map(([k, value]) => [k, Buffer.from(value)]));
+  const written = (v) => `import { defineComponentAx } from "~/lib/ouro/ax/component";\nimport { kit } from '~/lib/ouro/ax';\nexport * from "~/lib/ouro/ax/component";\nexport const ax = defineComponentAx({ rounded: "${v}" }); // @/registry/ouro/ax/ in prose stays\n`;
+  const path = "app/components/ouro/live-captions/live-captions-styles.ts";
+  const record = { tag: "v1.3.244", tagCommit: "old", files: { [path]: sha256(styles("rounded-xl")), "app/lib/ouro/ax/component.ts": sha256('export const component = "rounded-xl";\n'), "app/lib/ouro/ax/index.ts": sha256('export const kit = "rounded-xl";\n') } };
+  const consumer = new Map([
+    ["components.json", Buffer.from(JSON.stringify({ aliases: { components: "~/components", lib: "~/lib" } }))],
+    [path, Buffer.from(written("rounded-xl"))],
+    ["app/lib/ouro/ax/component.ts", Buffer.from('export const component = "rounded-xl";\n')],
+    ["app/lib/ouro/ax/index.ts", Buffer.from('export const kit = "rounded-xl";\n')],
+  ]);
+  const ctx = { tarball: async (follows, tag) => at(tag === "v1.3.244" ? "rounded-xl" : "rounded-ouro-xl"), consumerFiles: async () => consumer };
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  assert.deepEqual(update.notes.filter((note) => /edited here/.test(note)), [], "the CLI's own rewrite is not an edit");
+  assert.equal(update.files[path]?.toString(), written("rounded-ouro-xl"));
+  assert.equal(JSON.parse(update.files[pin.file]).files[path], sha256(styles("rounded-ouro-xl")));
 });
 
 test("Ouro HX puts an added item where the app's own aliases resolve, and rewrites its imports, at the root or in a package", async () => {
@@ -244,6 +243,100 @@ test("Ouro HX keeps each file where the install record has it, as a site keeps O
   assert.equal(update.files["src/lib/ouro/check/check.ts"], undefined);
   assert.equal(update.files["src/components/ouro/button/button.tsx"].toString(), "button v2");
   assert.deepEqual(update.notes.filter((note) => /edited here/.test(note)), []);
+});
+
+/**
+ * An app that took ouro-base and button at v1.3.244, before #1843 rounded components with `rounded-ouro-*`: its
+ * stylesheet is what `shadcn init --preset nova` and `shadcn add ouro-base#v1.3.244` wrote (fixtures/), with values of
+ * its own: a raised `--ouro-layer`, its own `--radius-ouro-md`, and no `press` utility. The next tag's ouro-base is v1.3.248's.
+ */
+function themeFixture({ tag = "v1.3.244" } = {}) {
+  const fixture = (name) => readFileSync(join(import.meta.dirname, "fixtures", name), "utf8");
+  const base = { "v1.3.244": JSON.parse(fixture("ouro-base-v1.3.244.json")), "v1.3.248": JSON.parse(fixture("ouro-base-v1.3.248.json")) };
+  const button = (v) => `export const Button = "${v}";\n`;
+  const at = (version) => new Map(Object.entries({
+    "registry.json": JSON.stringify({ items: [base[version], { name: "button", files: [{ path: "registry/ouro/components/ouro/button/button.tsx", target: "@components/ouro/button/button.tsx" }] }] }),
+    "registry/ouro/components/ouro/button/button.tsx": button(version),
+  }).map(([k, v]) => [k, Buffer.from(v)]));
+  const css = fixture("shadcn-ouro-base-v1.3.244.css").replace("--ouro-layer: 50;", "--ouro-layer: 60;").replace("    --radius-sm: calc(var(--radius) * 0.6);", "    --radius-ouro-md: 0.5rem;\n    --radius-sm: calc(var(--radius) * 0.6);").replace(/\n@utility press \{[^}]*\}\n?/, "\n");
+  const files = {
+    "components.json": JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { components: "@/components", lib: "@/lib" } }),
+    "tsconfig.json": JSON.stringify({ compilerOptions: { paths: { "@/*": ["./src/*"] } } }),
+    "src/index.css": css,
+    "src/components/ouro/button/button.tsx": button(tag),
+    ".github/ouro-hx-installed.json": JSON.stringify({ tag, tagCommit: "old", files: { "src/components/ouro/button/button.tsx": sha256(button(tag)) } }),
+  };
+  return { files, css, at, tarball: async (follows, version) => at(version) };
+}
+
+/** The border radius `rounded-ouro-<size>` draws with, once Tailwind v4 compiles the stylesheet and the browser resolves its vars. */
+async function roundedOuro(css, size) {
+  const { compile } = await import("tailwindcss");
+  const tailwind = join(import.meta.dirname, "../../node_modules/tailwindcss/index.css");
+  // The other packages the stylesheet imports (tw-animate-css, the font) are not installed here, and draw no radius.
+  const own = css.replace(/^@import (?!"tailwindcss").*$/gm, "");
+  const compiler = await compile(own, { base: import.meta.dirname, loadStylesheet: async () => ({ path: tailwind, base: dirname(tailwind), content: readFileSync(tailwind, "utf8") }) });
+  const out = compiler.build([`rounded-ouro-${size}`]);
+  const rule = new RegExp(String.raw`\.rounded-ouro-${size}\s*\{\s*border-radius:\s*([^;]+);`).exec(out);
+  if (!rule) return null;
+  const root = Object.fromEntries([...(/(?:^|\n):root\s*\{([^}]*)\}/.exec(out)?.[1] ?? "").matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((match) => [match[1], match[2].trim()]));
+  let value = rule[1];
+  for (let pass = 0; pass < 8 && value.includes("var("); pass += 1) value = value.replace(/var\((--[\w-]+)(?:,\s*([^()]+))?\)/g, (all, name, fallback) => root[name] ?? fallback ?? all);
+  const calc = /^calc\((.*)\)$/.exec(value)?.[1] ?? value;
+  return calc.split("*").reduce((product, factor) => product * Number.parseFloat(factor), 1);
+}
+
+test("Ouro HX adds what an updated ouro-base puts in the app's stylesheet, as shadcn add does, and keeps the app's own values (#1843)", async () => {
+  const app = themeFixture();
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const release = { ...RELEASES.web, tag: "v1.3.248" };
+  const consumer = new Map(Object.entries(app.files).map(([k, v]) => [k, Buffer.from(v)]));
+  const update = await UPDATERS["hx-installed"](pin, app.files[pin.file], release, { tarball: app.tarball, consumerFiles: async () => consumer });
+  assert.equal(await roundedOuro(app.css, "lg"), null, "before: the app's stylesheet gives rounded-ouro-lg no radius");
+  const css = update.files["src/index.css"]?.toString();
+  assert.ok(css, "the stylesheet is written in the update");
+  for (const size of ["sm", "lg", "xl", "2xl", "3xl", "4xl"]) assert.match(css, new RegExp(String.raw`\n    --radius-ouro-${size}: calc\(var\(--radius\) \* var\(--ouro-radius-scale, 1\) \* var\(--ouro-corner-fallback, 1\)[^;\n]*\);\n`), `--radius-ouro-${size} lands in @theme inline, at its indent`);
+  assert.equal(css.match(/--radius-ouro-md:/g).length, 1, "a variable the app has is not added again");
+  assert.match(css, /--radius-ouro-md: 0\.5rem;/, "and keeps the app's value");
+  assert.match(css, /--ouro-layer: 60;/);
+  assert.doesNotMatch(css, /@utility press/, "a utility the old tag had and the app left out stays out");
+  const lines = css.split("\n");
+  let at = 0;
+  for (const line of app.css.split("\n")) {
+    at = lines.indexOf(line, at);
+    assert.notEqual(at, -1, `the app's line ${JSON.stringify(line)} stays, in its place`);
+    at += 1;
+  }
+  assert.ok(update.notes.some((note) => note.includes("`--radius-ouro-lg`") && note.includes("`src/index.css`") && note.includes("`ouro-base`")), "the pull request says what the stylesheet gained");
+  assert.ok((await roundedOuro(css, "lg")) > 0, "after: rounded-ouro-lg draws a radius");
+  assert.equal(await roundedOuro(css, "md"), 0.5, "rounded-ouro-md draws the app's own radius");
+
+  consumer.set("src/index.css", Buffer.from(css));
+  consumer.set(pin.file, Buffer.from(update.files[pin.file]));
+  consumer.set("src/components/ouro/button/button.tsx", update.files["src/components/ouro/button/button.tsx"]);
+  const again = await UPDATERS["hx-installed"](pin, update.files[pin.file], release, { tarball: app.tarball, consumerFiles: async () => consumer });
+  assert.equal(again.files["src/index.css"], undefined, "a second run changes nothing");
+});
+
+test("a theme item's entry Ouro Current cannot write is named and left out, never written as a guess", () => {
+  const css = ":root {\n  --ouro-layer: 50;\n}\n";
+  const result = applyItem(css, { name: "ouro-base", css: { "@font-face": { "font-family": "Ouro" }, ":root": { "--ouro-new": "1" } } });
+  assert.equal(result.text, ":root {\n  --ouro-layer: 50;\n  --ouro-new: 1;\n}\n");
+  assert.deepEqual(result.skipped, ["`@font-face`, which Ouro Current does not know how to write"]);
+});
+
+test("an install record already on the release whose stylesheet lacks what that release's ouro-base adds gets a pull request for the stylesheet", async () => {
+  const app = themeFixture({ tag: "v1.3.248" });
+  const releases = { ...RELEASES, web: { ...RELEASES.web, tag: "v1.3.248" } };
+  const repo = fakeRepo({ ...app.files, ".github/ouro-current.json": "{}" });
+  const kept = await keepRepo(repo.gh, "o/r", releases, { tarball: app.tarball });
+  assert.equal(kept.state, "pr");
+  assert.equal(kept.pr.title, "Update the stylesheet to Ouro UI v1.3.248");
+  assert.match(repo.fileAt(BRANCH, "src/index.css"), /--radius-ouro-lg: /);
+  assert.equal(repo.fileAt("main", "src/index.css"), app.css, "the default branch is never written");
+  repo.setMain({ "src/index.css": repo.fileAt(BRANCH, "src/index.css") });
+  const after = await keepRepo(repo.gh, "o/r", releases, { tarball: app.tarball });
+  assert.equal(after.state, "current", "once the stylesheet has it, the repository is current");
 });
 
 /**
@@ -857,125 +950,6 @@ test("the title names each release a pull request moves to", () => {
   assert.equal(title([{ follows: "web" }, { follows: "core" }, { follows: "web" }], RELEASES), "Update to Ouro UI core v0.15.0 and Ouro UI v1.3.187");
 });
 
-// ---- A GitHub in memory: one repository, its refs, commits, trees, blobs and pull requests ----------------
-
-function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r", queued = () => false } = {}) {
-  let next = 1;
-  const id = () => `${(next++).toString(16).padStart(40, "0")}`;
-  const blobs = new Map();
-  const trees = new Map();
-  const commits = new Map();
-  const refs = new Map();
-  const pulls = [];
-  const calls = [];
-  const blob = (content) => {
-    const sha = sha256(content).slice(0, 40);
-    blobs.set(sha, Buffer.from(content));
-    return sha;
-  };
-  const tree = (entries) => {
-    const sha = sha256(JSON.stringify([...entries].sort())).slice(0, 40);
-    trees.set(sha, new Map(entries));
-    return sha;
-  };
-  const root = tree(Object.entries(files).map(([path, text]) => [path, blob(text)]));
-  const main = id();
-  commits.set(main, { tree: root, parents: [] });
-  refs.set("main", main);
-  const ok = (data, status = 200) => ({ status, headers: new Map(), text: async () => JSON.stringify(data), arrayBuffer: async () => Buffer.from(JSON.stringify(data)) });
-  const missing = () => ({ status: 404, headers: new Map(), text: async () => "Not Found" });
-  const fetch = async (url, init) => {
-    const path = url.replace("https://api.github.com/", "").replace(`repos/${name}`, "repos/o/r");
-    const method = init.method;
-    const input = init.body ? JSON.parse(init.body) : null;
-    calls.push(`${method} ${path}`);
-    let match;
-    if (method === "GET" && path === "repos/o/r") return ok({ default_branch: "main", private: false, owner: { login: "o" } });
-    if ((match = /^repos\/o\/r\/git\/ref\/heads\/(.+)$/.exec(path)) && method === "GET") {
-      const name = decodeURIComponent(match[1]);
-      return refs.has(name) ? ok({ object: { sha: refs.get(name) } }) : missing();
-    }
-    if ((match = /^repos\/o\/r\/git\/trees\/([^?]+)\?recursive=1$/.exec(path))) {
-      const sha = commits.get(match[1])?.tree ?? match[1];
-      return ok({ sha, truncated: false, tree: [...trees.get(sha)].map(([p, s]) => ({ path: p, type: "blob", sha: s })) });
-    }
-    if ((match = /^repos\/o\/r\/git\/blobs\/(.+)$/.exec(path)) && method === "GET") return ok({ content: blobs.get(match[1]).toString("base64") });
-    if ((match = /^repos\/o\/r\/git\/commits\/(.+)$/.exec(path)) && method === "GET") {
-      const commit = commits.get(match[1]);
-      return ok({ sha: match[1], message: commit.message, tree: { sha: commit.tree }, parents: commit.parents.map((sha) => ({ sha })) });
-    }
-    if (path === "repos/o/r/git/blobs") return ok({ sha: blob(Buffer.from(input.content, "base64")) }, 201);
-    if (path === "repos/o/r/git/trees") {
-      const base = new Map(trees.get(input.base_tree));
-      for (const entry of input.tree) {
-        if (entry.sha === null) base.delete(entry.path);
-        else base.set(entry.path, entry.sha);
-      }
-      return ok({ sha: tree([...base]) }, 201);
-    }
-    if (path === "repos/o/r/git/commits") {
-      const sha = id();
-      commits.set(sha, { tree: input.tree, parents: input.parents, message: input.message });
-      return ok({ sha }, 201);
-    }
-    if (path === "repos/o/r/git/refs" && method === "POST") {
-      refs.set(input.ref.replace("refs/heads/", ""), input.sha);
-      return ok({}, 201);
-    }
-    if ((match = /^repos\/o\/r\/git\/refs\/heads\/(.+)$/.exec(path)) && method === "PATCH") {
-      // GitHub's answer for the branch of a pull request in a merge queue.
-      if (queued()) return { status: 422, headers: new Map(), text: async () => JSON.stringify({ message: "A pull request for this branch has been added to a merge queue. Branches that\nare queued for merging cannot be updated. To modify this branch, dequeue the\nassociated pull request.\n" }) };
-      refs.set(match[1], input.sha);
-      return ok({});
-    }
-    if ((match = /^repos\/o\/r\/contents\/([^?]+)\?ref=(.+)$/.exec(path)) && method === "GET") {
-      const sha = trees.get(commits.get(match[2]).tree).get(decodeURIComponent(match[1]));
-      return sha ? ok({ content: blobs.get(sha).toString("base64") }) : missing();
-    }
-    if ((match = /^repos\/o\/r\/tarball\/(.+)$/.exec(path)) && method === "GET") {
-      const at = [...trees.get(commits.get(match[1]).tree)].map(([p, s]) => [p, blobs.get(s).toString("utf8")]);
-      return { status: 200, headers: new Map(), arrayBuffer: async () => tarball(Object.fromEntries(at)) };
-    }
-    if (path === "repos/o/r/releases/latest") return latestRelease ? ok({ tag_name: latestRelease }) : missing();
-    if (path.startsWith("repos/o/r/pulls?state=open")) return ok(pulls.filter((pr) => pr.state === "open"));
-    if (path === "repos/o/r/pulls" && method === "POST") {
-      const pr = { number: pulls.length + 1, node_id: `PR${pulls.length + 1}`, html_url: `https://example.test/pull/${pulls.length + 1}`, state: "open", title: input.title, body: input.body, head: input.head, autoMerge: null };
-      pulls.push(pr);
-      return ok(pr, 201);
-    }
-    if ((match = /^repos\/o\/r\/pulls\/(\d+)$/.exec(path)) && method === "GET") return ok(pulls[Number(match[1]) - 1]);
-    if ((match = /^repos\/o\/r\/pulls\/(\d+)$/.exec(path)) && method === "PATCH") {
-      const pr = pulls[Number(match[1]) - 1];
-      Object.assign(pr, input);
-      return ok(pr);
-    }
-    if (/^repos\/o\/r\/issues\/\d+\/comments$/.test(path)) return ok({}, 201);
-    if (path === "graphql") {
-      const pr = pulls.find((item) => item.node_id === input.variables.id);
-      if (input.query.includes("disablePullRequestAutoMerge")) {
-        calls.push(`disarm ${pr.number} at ${refs.get(BRANCH)}`);
-        pr.autoMerge = null;
-        pr.auto_merge = null;
-        return ok({ data: { disablePullRequestAutoMerge: { clientMutationId: null } } });
-      }
-      calls.push(`arm ${pr.number} at ${refs.get(BRANCH)}`);
-      if (!mergeMethods.includes(input.variables.method)) return ok({ errors: [{ message: `Merge method ${input.variables.method.toLowerCase()} merging is not allowed on this repository` }] });
-      pr.autoMerge = input.variables.method;
-      pr.auto_merge = { merge_method: input.variables.method.toLowerCase() };
-      pr.mergeCommit = { headline: input.variables.headline, body: input.variables.body };
-      return ok({ data: { enablePullRequestAutoMerge: { clientMutationId: null } } });
-    }
-    throw new Error(`fake GitHub has no ${method} ${path}`);
-  };
-  const fileAt = (ref, path) => blobs.get(trees.get(commits.get(refs.get(ref)).tree).get(path))?.toString();
-  return { fetch, gh: createGitHub({ token: "t", fetch, sleep: async () => {} }), commitTree: (sha) => commits.get(sha).tree, refs, pulls, calls, fileAt, setMain: (changes) => {
-    const base = new Map(trees.get(commits.get(refs.get("main")).tree));
-    for (const [path, text] of Object.entries(changes)) base.set(path, blob(text));
-    const sha = id();
-    commits.set(sha, { tree: tree([...base]), parents: [refs.get("main")] });
-    refs.set("main", sha);
-  } };
-}
 
 const SWIFT = '.package(url: "https://github.com/ourostack/ouro-ui-apple.git", exact: "0.6.0")';
 

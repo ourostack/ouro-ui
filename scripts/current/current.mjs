@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
-import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, asBytes, findPins, isBehind, isCandidate } from "./pins.mjs";
+import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate } from "./pins.mjs";
 import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
@@ -232,22 +232,11 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   // A repository never follows itself (Ouro UI's own copy of core's generator follows core, not Ouro UI), and a pin
   // the repository's rules ignore stays where it is.
   const pins = found.pins.filter((pin) => REPOS[pin.follows] !== repo && !isIgnored(rules, pin.file));
-  const result = { repo, private: Boolean(info.private), pins: pins.map((pin) => ({ kind: pin.kind, file: pin.file, follows: pin.follows, current: pin.current, latest: releases[pin.follows].tag, behind: isBehind(pin, releases[pin.follows]) })) };
-  const behind = pins.filter((pin) => isBehind(pin, releases[pin.follows]));
-  const existingPr = dryRun ? null : await openPr(gh, repo, info.owner.login);
-  if (pins.length === 0 || behind.length === 0) {
-    if (existingPr) {
-      await gh.post(`repos/${repo}/issues/${existingPr.number}/comments`, { body: "This repository is already on the newest Ouro UI releases, so this pull request is no longer needed." });
-      await gh.patch(`repos/${repo}/pulls/${existingPr.number}`, { state: "closed" });
-    }
-    return { ...result, state: pins.length === 0 ? "no-pins" : "current", pr: null };
-  }
-  // Each file's pins apply in turn to its text, so two pins in one file (two vendored sources) both land.
-  const files = {};
-  const notes = [];
   let consumer = null;
   const ctx = {
     ...sources,
+    /** Every path in the repository, from its tree, without reading a file. */
+    consumerPaths: () => [...blobs.keys()],
     consumerFiles: async () => (consumer ??= readTarball(await gh.get(`repos/${repo}/tarball/${head}`, { raw: true }))),
     /** One file of the repository, or null when it has none at that path. */
     consumerFile: async (path) => (blobs.has(path) ? Buffer.from((await gh.get(`repos/${repo}/git/blobs/${blobs.get(path)}`)).content, "base64") : null),
@@ -262,6 +251,24 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
       return out;
     },
   };
+  // An install record already on the release whose stylesheet lacks what the release's theme items add (an update that
+  // moved the components alone, before Ouro Current wrote stylesheets: #1843) is behind too, for its stylesheet.
+  for (const pin of pins) {
+    if (pin.kind === "hx-installed" && !isBehind(pin, releases.web) && (await hxStylesheetBehind(pin, texts[pin.file], releases.web, ctx))) pin.stylesheet = true;
+  }
+  const behind = pins.filter((pin) => pin.stylesheet || isBehind(pin, releases[pin.follows]));
+  const result = { repo, private: Boolean(info.private), pins: pins.map((pin) => ({ kind: pin.kind, file: pin.file, follows: pin.follows, current: pin.current, latest: releases[pin.follows].tag, behind: behind.includes(pin) })) };
+  const existingPr = dryRun ? null : await openPr(gh, repo, info.owner.login);
+  if (pins.length === 0 || behind.length === 0) {
+    if (existingPr) {
+      await gh.post(`repos/${repo}/issues/${existingPr.number}/comments`, { body: "This repository is already on the newest Ouro UI releases, so this pull request is no longer needed." });
+      await gh.patch(`repos/${repo}/pulls/${existingPr.number}`, { state: "closed" });
+    }
+    return { ...result, state: pins.length === 0 ? "no-pins" : "current", pr: null };
+  }
+  // Each file's pins apply in turn to its text, so two pins in one file (two vendored sources) both land.
+  const files = {};
+  const notes = [];
   for (const pin of behind) {
     const text = typeof files[pin.file] === "string" ? files[pin.file] : texts[pin.file];
     const update = await UPDATERS[pin.kind](pin, text, releases[pin.follows], ctx);
@@ -275,7 +282,8 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   for (const path of held) delete files[path];
   if (held.length) notes.push(workflowNote(held));
   if (behind.every((pin) => inWorkflows(pin.file))) return { ...result, state: "skipped", reason: workflowNote(held), pr: null };
-  const name = title(behind.filter((pin) => !inWorkflows(pin.file)), releases);
+  const shown = behind.filter((pin) => !inWorkflows(pin.file));
+  const name = shown.every((pin) => pin.stylesheet) ? `Update the stylesheet to ${NAMES.web} ${releases.web.tag}` : title(shown, releases);
   const latestRelease = async () => {
     try {
       return (await gh.get(`repos/${repo}/releases/latest`)).tag_name ?? null;
