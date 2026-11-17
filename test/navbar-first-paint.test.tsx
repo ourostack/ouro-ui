@@ -66,9 +66,11 @@ const frames = (count = 2) =>
     step(count);
   });
 
-/** The page as the server sends it: the bar drawn, then hydrated a few frames later. */
-async function serve(width: number, node: ReactNode = bar) {
+/** The page as the server sends it: the bar drawn, then hydrated a few frames later. `atLoad` runs once the viewport has its
+ * size, in the task that puts the server HTML in, as a script at a page's load does. */
+async function serve(width: number, node: ReactNode = bar, atLoad?: () => void) {
   await page.viewport(width, 844);
+  atLoad?.();
   const host = document.createElement("div");
   document.body.append(host);
   nodes.push(host);
@@ -103,13 +105,18 @@ async function sameBar(width: number, node: ReactNode = bar) {
 }
 
 async function noSwap(width: number, node: ReactNode = bar) {
-  listenForMeasures();
-  const host = await serve(width, node);
+  // The recorder reads only the first frames, so it starts where ouro-check starts it, at the page's load, after the viewport has
+  // its size and with the server HTML put in before a frame can run: started before the viewport command, its frames could all
+  // pass while that command was on its way, on a loaded runner, before the bar was in the page (#1835).
+  const host = await serve(width, node, listenForMeasures);
   await hydrate(host, node);
   await frames(12);
   // The rule saw the bar: its first frames drew the phone's menu button or the desktop's links.
   const drawn = (window as unknown as { __ouroCheckMeasures: Measures }).__ouroCheckMeasures.painted;
-  expect([...drawn.keys()].some((element) => element.matches("[data-ouro-navbar-menu], [data-ouro-navbar-links] a"))).toBe(true);
+  // What the recorder saw, for a failure: each control, the frame that first showed it and its box, and the window's width.
+  const seen = () =>
+    `innerWidth=${window.innerWidth}; ${[...drawn].map(([element, at]) => `${element.tagName}${element.hasAttribute("data-ouro-navbar-menu") ? "[menu]" : ""}@${at.frame} ${Math.round(at.box.left)},${Math.round(at.box.top)}`).join(", ") || "nothing"}`;
+  expect([...drawn.keys()].some((element) => element.matches("[data-ouro-navbar-menu], [data-ouro-navbar-links] a")), seen()).toBe(true);
   const issues = await findLoadingIssues({ "layout-shift": 0.1, "first-content": 2500 });
   expect(issues.filter((issue) => issue.rule === "first-paint-swap")).toEqual([]);
 }
