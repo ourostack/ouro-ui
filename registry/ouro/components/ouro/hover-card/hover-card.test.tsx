@@ -5,8 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { HoverCard, type HoverCardProps } from "@/registry/ouro/components/ouro/hover-card/hover-card";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { drawn, expectFirstFramesInPlace, placeFarBelow, recordPopupFrames } from "@/registry/ouro/lib/ouro/testing/popup-frames";
+import { settled as settledBox } from "@/registry/ouro/lib/ouro/testing/settled";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
-
 // Runs in Chromium and WebKit, which can both hover.
 
 const roots: Root[] = [];
@@ -398,5 +399,18 @@ describe("HoverCard dev messages", () => {
     expect(warnings()).toEqual([
       '[ouro-ui] HoverCard: "bg-white" sets appearance, and className is for layout only. Fix: :root { --popover: …; } .dark { --popover: …; }.',
     ]);
+  });
+});
+
+describe("HoverCard first frame", () => {
+  const positioner = () => card()?.parentElement ?? null;
+
+  it("is in place from its first visible frame when its link opens it", async () => {
+    placeFarBelow();
+    await renderCard();
+    const recording = recordPopupFrames(positioner);
+    await userEvent.hover(link());
+    await settledBox(drawn(positioner));
+    expectFirstFramesInPlace(recording.stop());
   });
 });

@@ -10,7 +10,8 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
-
+import { drawn, expectFirstFramesInPlace, placeFarBelow, recordPopupFrames } from "@/registry/ouro/lib/ouro/testing/popup-frames";
+import { settled as settledBox } from "@/registry/ouro/lib/ouro/testing/settled";
 const roots: Root[] = [];
 let mounted: Element[] = [];
 
@@ -989,5 +990,22 @@ describe("Autocomplete server rendering", () => {
     roots.push(root);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe("Autocomplete first frame", () => {
+  const positioner = () => document.querySelector<HTMLElement>('[data-ouro="autocomplete-positioner"]');
+
+  it("is in place from its first visible frame when typing its trigger opens it", async () => {
+    placeFarBelow();
+    const { control } = await render(
+      <Autocomplete triggers={[peopleTrigger]}>
+        <TextArea label="Message" />
+      </Autocomplete>,
+    );
+    const recording = recordPopupFrames(positioner);
+    await type(control, "@");
+    await settledBox(drawn(positioner));
+    expectFirstFramesInPlace(recording.stop());
   });
 });

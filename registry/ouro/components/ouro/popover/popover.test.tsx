@@ -20,6 +20,7 @@ import {
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressDuringScroll } from "@/registry/ouro/lib/ouro/testing/press";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
+import { expectFirstFramesInPlace, placeFarBelow, recordPopupFrames } from "@/registry/ouro/lib/ouro/testing/popup-frames";
 
 // Runs in Chromium and WebKit.
 
@@ -979,5 +980,45 @@ describe("Popover and the page's scroll", () => {
     await frame();
     expect(window.scrollY).toBe(1500);
     expect(popoverPopup()).toBeNull();
+  });
+});
+
+describe("Popover first frame", () => {
+  const positioner = () => document.querySelector<HTMLElement>('[data-ouro="popover-positioner"]');
+
+  it("is in place from its first visible frame when its trigger opens it", async () => {
+    placeFarBelow();
+    await render(
+      <Popover title="Share recipe" trigger={<Button>Share</Button>}>
+        <input aria-label="Link" />
+      </Popover>,
+    );
+    const recording = recordPopupFrames(positioner);
+    await userEvent.click(trigger());
+    await settled();
+    expectFirstFramesInPlace(recording.stop());
+  });
+
+  it("is in place from its first visible frame when the app opens it with open and anchor", async () => {
+    placeFarBelow();
+    function Anchored() {
+      const anchor = useRef<HTMLButtonElement>(null);
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <Button ref={anchor} onClick={() => setOpen(true)}>
+            Share
+          </Button>
+          <Popover title="Share recipe" open={open} onOpenChange={setOpen} anchor={anchor}>
+            <input aria-label="Link" />
+          </Popover>
+        </>
+      );
+    }
+    await render(<Anchored />);
+    const recording = recordPopupFrames(positioner);
+    await userEvent.click(trigger());
+    await settled();
+    expectFirstFramesInPlace(recording.stop());
   });
 });
