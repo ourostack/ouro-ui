@@ -183,12 +183,14 @@ function findComponentsJson(consumer, installed) {
  */
 function declaredRoots(found, consumer) {
   if (!found) return {};
+  // `~/` is the folder the CLI runs in, which holds components.json: a package's own folder in a monorepo.
+  const home = { "~": found.dir };
   const tsconfig = consumer.get(`${found.dir}tsconfig.json`);
   let paths = {};
   try {
     paths = tsconfig ? (looseJson(tsconfig.toString("utf8")).compilerOptions?.paths ?? {}) : {};
   } catch {
-    return {};
+    return home;
   }
   const resolve = (alias) => {
     for (const [pattern, [target] = []] of Object.entries(paths)) {
@@ -198,7 +200,7 @@ function declaredRoots(found, consumer) {
     }
     return null;
   };
-  const roots = {};
+  const roots = { ...home };
   for (const [key, alias] of [["@components", found.json.aliases?.components], ["@lib", found.json.aliases?.lib]]) {
     const root = alias && resolve(alias);
     if (root) roots[key] = root.endsWith("/") ? root : `${root}/`;

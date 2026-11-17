@@ -255,13 +255,14 @@ function moveFixture(dir, { checkHere = 'export const check = "v1";\n' } = {}) {
   const XRAY = (v) => `import { command } from "#ouro-ax/command.ts";\nexport const xray = "${v}";\n`;
   const COMMAND = (v) => `export const command = "${v}";\n`;
   const registry = (checkTarget, xrayTarget) => ({ items: [
-    { name: "ouro-check", files: [{ path: "registry/ouro/check/check.ts", target: checkTarget }] },
+    // At the new tag Ouro check also gains a file, which goes beside its moved files.
+    { name: "ouro-check", files: [{ path: "registry/ouro/check/check.ts", target: checkTarget }, ...(checkTarget.startsWith("~/") ? [{ path: "registry/ouro/check/run.ts", target: "~/scripts/ouro/check/run.ts" }] : [])] },
     { name: "ax-xray", files: [{ path: "registry/ouro/ax/xray.ts", target: xrayTarget }] },
     { name: "ax-command", files: [{ path: "registry/ouro/ax/command.ts", target: "@lib/ouro/ax/command.ts" }] },
   ] });
   const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
   const previous = files({ "registry.json": JSON.stringify(registry("@lib/ouro/check/check.ts", "@lib/ouro/ax/xray.ts")), "registry/ouro/check/check.ts": CHECK("v1"), "registry/ouro/ax/xray.ts": XRAY("v1"), "registry/ouro/ax/command.ts": COMMAND("v1") });
-  const next = files({ "registry.json": JSON.stringify(registry("~/scripts/ouro/check/check.ts", "~/scripts/ouro/ax/xray.ts")), "registry/ouro/check/check.ts": CHECK("v2"), "registry/ouro/ax/xray.ts": XRAY("v2"), "registry/ouro/ax/command.ts": COMMAND("v2") });
+  const next = files({ "registry.json": JSON.stringify(registry("~/scripts/ouro/check/check.ts", "~/scripts/ouro/ax/xray.ts")), "registry/ouro/check/check.ts": CHECK("v2"), "registry/ouro/check/run.ts": "export const run = 2;\n", "registry/ouro/ax/xray.ts": XRAY("v2"), "registry/ouro/ax/command.ts": COMMAND("v2") });
   const installed = { [`${lib}ouro/check/check.ts`]: checkHere, [`${lib}ouro/ax/xray.ts`]: XRAY("v1"), [`${lib}ouro/ax/command.ts`]: COMMAND("v1") };
   const record = { tag: "v1.3.117", tagCommit: "old", files: { [`${lib}ouro/check/check.ts`]: sha256(CHECK("v1")), [`${lib}ouro/ax/xray.ts`]: sha256(XRAY("v1")), [`${lib}ouro/ax/command.ts`]: sha256(COMMAND("v1")) } };
   // The package's scripts name the files by their path from the package folder, as a package.json does.
@@ -335,6 +336,8 @@ test("Ouro HX moves a file in a monorepo package to that package's scripts folde
   const { record, ctx, pin } = moveFixture("packages/web/");
   const update = await UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
   assert.equal(update.files["packages/web/src/lib/ouro/check/check.ts"], null);
+  assert.equal(update.files["packages/web/scripts/ouro/check/run.ts"]?.toString(), "export const run = 2;\n", "a file the moved item gained goes in the package too");
+  assert.equal(update.files["scripts/ouro/check/run.ts"], undefined, "and not at the repository's root");
   assert.equal(update.files["packages/web/scripts/ouro/check/check.ts"].toString(), 'export const check = "v2";\n');
   assert.equal(update.files["packages/web/scripts/ouro/ax/xray.ts"].toString(), 'import { command } from "#ouro-ax/command.ts";\nexport const xray = "v2";\n');
   assert.equal(update.files["package.json"], undefined, "the repository's root package.json is not the package's");
