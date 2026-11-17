@@ -18,10 +18,6 @@ function buildManifest(): Record<string, BuildEntry> {
 }
 
 /**
- * The JavaScript a page needs before it is interactive: the client entry's static closure and its
- * page module's (site/src/app.tsx loads the module after the first paint, then hydrates).
- */
-/**
  * The files a lazily loaded module adds after a page's own closure: its chunk and the imports that
  * closure does not already hold. The docs sidebar loads this way (site/src/components/docs-shell.tsx).
  */
@@ -38,6 +34,10 @@ function lazyFiles(manifest: Record<string, BuildEntry>, key: string, initial: s
   return [...files];
 }
 
+/**
+ * The JavaScript a page needs before it is interactive: the client entry's static closure and its
+ * page module's (site/src/app.tsx loads the module after the first paint, then hydrates).
+ */
 function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "docs"): string[] {
   const entry = Object.entries(manifest).find(([key, value]) => key === "index.html" && value.isEntry);
   if (!entry) throw new Error("No production client entry in the build manifest");

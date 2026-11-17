@@ -549,7 +549,6 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
   );
 }
 
-/** Draws an emoji in a skin tone, and plays it (`true`), keeps it still (`false`) or lets it play for its button (`undefined`). */
 /**
  * How soon an emoji's image is fetched: `high` for what shows as the picker opens, `low` for the
  * rest, in order, and `saved` for the rest while the browser asks to save data, fetched only as it
@@ -559,6 +558,7 @@ type GlyphPriority = "high" | "low" | "saved";
 
 /** Whether the browser asks to save data (Save-Data). */
 const savingData = () => Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+/** Draws an emoji in a skin tone, and plays it (`true`), keeps it still (`false`) or lets it play for its button (`undefined`). */
 type GlyphRender = (item: EmojiPickerEmoji, skinTone: EmojiSkinTone, play?: boolean, priority?: GlyphPriority) => ReactNode;
 
 /** A catalogue's emoji as the panel holds it: its id as `emoji`, its tones' ids as its toned forms, and the item to draw. */

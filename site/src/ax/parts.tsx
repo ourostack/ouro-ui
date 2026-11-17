@@ -81,8 +81,10 @@ export function Terminal({ label, children, ...rest }: { label: string; children
   );
 }
 
-/** Commands and what the tool printed, as a transcript. */
-/** `waiting` is shown under a command that waits for someone; `after`, under the last line, is what the agent does next. */
+/**
+ * Commands and what the tool printed, as a transcript. `waiting` is shown under a command that waits
+ * for someone; `after`, under the last line, is what the agent does next.
+ */
 export function Transcript({ label, steps, waiting, after }: { label: string; steps: readonly Step[]; waiting?: string | undefined; after?: string | undefined }): JSX.Element {
   return (
     <Terminal label={label} role="group" aria-label={label}>

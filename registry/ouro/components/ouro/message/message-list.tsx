@@ -529,7 +529,6 @@ let loadedLayer: typeof MessageBarLayer | undefined;
 const loadLayer = () =>
   (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
 
-/** Where an element is laid out: its box, less the spring of the message it is in. */
 /** A child's key, from `Children.toArray`, or null for one that is not an element. */
 function keyOf(child: ReturnType<typeof Children.toArray>[number] | undefined): Key | null {
   return isValidElement(child) ? child.key : null;
@@ -547,6 +546,7 @@ function useIndexByKey(keys: readonly string[]): Map<string, number> {
   return useMemo(() => new Map(text.split("\0").map((key, index) => [key, index])), [text]);
 }
 
+/** Where an element is laid out: its box, less the spring of the message it is in. */
 function boxOf(element: Element): { top: number; bottom: number; height: number } {
   const box = element.getBoundingClientRect();
   if (shifted === 0) return box;

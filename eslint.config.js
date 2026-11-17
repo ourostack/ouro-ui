@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
+import comments from "./scripts/lint/comments.mjs";
 
 export default tseslint.config(
   { ignores: ["dist", "coverage", "storybook-static", "_site", "node_modules", ".tmp", "site/dist", "test/install-fixture", "test/install-fixture-tests", "test/install-fixture-upgrade", "test/install-fixture-next", "test/install-fixture-themes", "scripts/agent-usability/runs", "scripts/agent-benchmark/vendor", "scripts/ouro-actions", "scripts/agent-benchmark/fixture/generated", "scripts/agent-benchmark/results", "test-results", "playwright-report"] },
@@ -11,6 +12,10 @@ export default tseslint.config(
     // Destructuring a prop out of `rest` is how components drop it before spreading to the DOM.
     files: ["registry/**/*.{ts,tsx}"],
     rules: { "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }] },
+  },
+  {
+    plugins: { comments },
+    rules: { "comments/no-orphan-doc": "error" },
   },
   {
     files: ["**/*.{mjs,js}"],
