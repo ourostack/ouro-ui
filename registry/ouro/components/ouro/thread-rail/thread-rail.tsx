@@ -178,7 +178,6 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
             aria-label={closeLabel}
             aria-keyshortcuts="Escape"
             onClick={() => onClose()}
-            className="px-2"
           >
             <CloseIcon />
           </Button>

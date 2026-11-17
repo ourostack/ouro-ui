@@ -321,10 +321,10 @@ function Tools() {
         actions={
           <>
             <Toggle label="Formatting" icon={FormatIcon} hideLabel pressed={formatting} onPressedChange={setFormatting} />
-            <Button variant="plain" tone="secondary" aria-label="Emoji" className="px-2">
+            <Button variant="plain" tone="secondary" aria-label="Emoji">
               <EmojiIcon aria-hidden="true" />
             </Button>
-            <Button variant="plain" tone="secondary" aria-label="Attach a file" className="px-2" onClick={() => setFiles([...files, `notes-${files.length + 1}.txt`])}>
+            <Button variant="plain" tone="secondary" aria-label="Attach a file" onClick={() => setFiles([...files, `notes-${files.length + 1}.txt`])}>
               <AttachIcon aria-hidden="true" />
             </Button>
           </>
