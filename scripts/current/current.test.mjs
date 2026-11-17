@@ -278,6 +278,15 @@ test("a vendored source that follows core reads its dist files from the release'
   await assert.rejects(UPDATERS["vendor-lock"]({ kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "core", source: "core-actions" }, JSON.stringify(lock), RELEASES.core, distAsset({})), /not in ourostack\/ouro-ui-core v0\.15\.0 \(ouro-ui-core-v0\.15\.0-dist\.zip\)/);
 });
 
+test("a source that names its release as `tag` moves it with its commit, every other byte as it was", async () => {
+  // ouro-work-substrate's lock: the source names its release as `tag`, and it follows Ouro UI.
+  const text = `${JSON.stringify({ schemaVersion: 1, sources: [{ id: "ax", repository: "ourostack/ouro-ui", tag: "v1.3.100", commit: "old", license: "MIT", files: [{ sourcePath: "registry/ouro/ax/cli.ts", generatedPath: "lib/ax/cli.ts", sha256: "x" }] }] }, null, 2)}\n`;
+  const ctx = { tarball: async () => new Map([["registry/ouro/ax/cli.ts", Buffer.from("cli v2")]]) };
+  const update = await UPDATERS["vendor-lock"]({ kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "web", source: "ax" }, text, RELEASES.web, ctx);
+  const expected = text.replace('"tag": "v1.3.100"', `"tag": "${RELEASES.web.tag}"`).replace('"commit": "old"', `"commit": "${RELEASES.web.sha}"`).replace('"sha256": "x"', `"sha256": "${sha256("cli v2")}"`);
+  assert.equal(update.files["upstream-sources.lock.json"], expected);
+});
+
 test("a core manifest copied beside its files moves them to the release's, leaving an edited or unlisted file alone", async () => {
   const oldManifest = { coreTag: "v0.13.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v1"), "dist/ax/actions.claims.json": sha256("claims v1"), "dist/web/ouro-base.css": sha256("base v1") } };
   const newManifest = `${JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v2"), "dist/ax/actions.claims.json": sha256("claims v2"), "dist/web/ouro-base.css": sha256("base v2") } }, null, 2)}\n`;

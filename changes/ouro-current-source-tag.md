@@ -1,0 +1,1 @@
+- Fixed: a vendored source that names its release as `tag` (as ouro-work-substrate's lock does) has it moved with its commit, as `release` already was.

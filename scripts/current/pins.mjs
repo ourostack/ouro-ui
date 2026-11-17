@@ -285,7 +285,7 @@ function valueAt(text, key, from, to) {
  * repository's own layout (one file to a line, say) and its checks of it survive. Null when the text is laid out in a
  * way this cannot follow; the caller then writes the file whole.
  */
-export function editLock(text, sourceId, commit, shas, release = null) {
+export function editLock(text, sourceId, commit, shas, release = {}) {
   const id = new RegExp(String.raw`"id"\s*:\s*"${sourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).exec(text);
   if (!id) return null;
   const nextId = /"id"\s*:\s*"/g;
@@ -297,10 +297,11 @@ export function editLock(text, sourceId, commit, shas, release = null) {
   const commitAt = valueAt(text, "commit", id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
   if (!commitAt) return null;
   edits.push({ ...commitAt, next: commit });
-  if (release !== null) {
-    const releaseAt = valueAt(text, "release", id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
+  // The release a source names, under `release` or `tag`, moves with its commit.
+  for (const [key, value] of Object.entries(release ?? {})) {
+    const releaseAt = valueAt(text, key, id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
     if (!releaseAt) return null;
-    edits.push({ ...releaseAt, next: release });
+    edits.push({ ...releaseAt, next: value });
   }
   for (const [sourcePath, sha] of Object.entries(shas)) {
     let at = id.index;
@@ -323,7 +324,7 @@ export function editLock(text, sourceId, commit, shas, release = null) {
   return out;
 }
 
-/** A source's `release`, moved to the new tag the way it writes it: a tag (`v0.16.0`) or its release page. */
+/** A source's `release` or `tag`, moved to the new tag the way it writes it: a tag (`v0.16.0`) or its release page. */
 function nextRelease(value, release) {
   if (typeof value !== "string") return value;
   if (/^v?[0-9]/.test(value)) return like(value, release.tag);
@@ -350,8 +351,13 @@ async function updateVendorLock(pin, text, release, ctx) {
   const missing = [];
   const shas = {};
   source.commit = release.sha;
-  const hadRelease = typeof source.release === "string";
-  if (hadRelease) source.release = nextRelease(source.release, release);
+  // A source names its release as `release` (m365crawl) or `tag` (ouro-work-substrate); either moves with the commit.
+  const named = {};
+  for (const key of ["release", "tag"]) {
+    if (typeof source[key] !== "string") continue;
+    source[key] = nextRelease(source[key], release);
+    named[key] = source[key];
+  }
   for (const file of source.files) {
     const bytes = read(file.sourcePath);
     if (!bytes) {
@@ -364,7 +370,7 @@ async function updateVendorLock(pin, text, release, ctx) {
   }
   if (missing.length) throw new Error(`${pin.file}: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not in ${REPOS[pin.follows]} ${release.tag}${asset ? ` (${asset})` : ""}`);
   // Only this source's values change; the edit is kept when it reads back as the lock this run means to write.
-  const edited = editLock(text, pin.source, release.sha, shas, hadRelease ? source.release : null);
+  const edited = editLock(text, pin.source, release.sha, shas, named);
   const same = (value) => {
     try {
       return JSON.stringify(JSON.parse(value)) === JSON.stringify(lock);
