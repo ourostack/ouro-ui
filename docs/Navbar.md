@@ -2,7 +2,7 @@
 
 # Navbar
 
-The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"`, and the link of the section it is in `aria-current="true"`, both underlined in the primary colour as in `FamilyBar`, distinct from hover and press highlights. A group of links (`{ label, links }`) opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below 640px and on a narrow tablet, they collapse behind a menu button into a `Sheet` that slides in from the side, with each group under its name; the brand and `actions` stay in the bar. When, below 640px, even the brand and `actions` do not fit side by side (large text on a phone), the actions move to a second row rather than off the screen. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
+The bar across the top of an app: your brand, the main links and a few controls, with the current page marked `aria-current="page"`, and the link of the section it is in `aria-current="true"`, both underlined in the primary colour as in `FamilyBar`, distinct from hover and press highlights. A group of links (`{ label, links }`) opens a panel, as in `NavigationMenu`. Whenever the links do not fit, below the `collapseBelow` breakpoint and wherever they overflow the bar, they collapse behind a menu button into a `Sheet` that slides in from the side, with each group under its name; the brand and `actions` stay in the bar. When, below the collapse breakpoint, even the brand and `actions` do not fit side by side (large text on a phone), the actions move to a second row rather than off the screen. Links render through `OuroProvider`'s `linkComponent`, so your router navigates.
 
 ```tsx
 import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
@@ -25,7 +25,7 @@ import { Navbar } from "@/registry/ouro/components/ouro/navbar/navbar";
 
 ## Usage
 
-The phone menu opens once JavaScript has loaded (after hydration). Both the links and the menu button are in the server HTML, and CSS shows one of them at 640px, so the bar does not change when the page hydrates; only links that do not fit the bar, on a tablet, collapse once the page has measured them. A tap on the menu button before then does nothing unless your app keeps it: this site's head script keeps a tap on any control React has not yet hydrated, shows the control pressed, and presses it again once it has (`site/src/early-input.ts` in the repository). Once the menu button shows, the sheet is built while the page is idle and kept, hidden, between opens, so a press only shows it.
+The phone menu opens once JavaScript has loaded (after hydration). Both the links and the menu button are in the server HTML, and CSS shows one of them at the `collapseBelow` breakpoint, so the bar does not change when the page hydrates; only links that do not fit the bar, on a tablet, collapse once the page has measured them. A tap on the menu button before then does nothing unless your app keeps it: this site's head script keeps a tap on any control React has not yet hydrated, shows the control pressed, and presses it again once it has (`site/src/early-input.ts` in the repository). Once the menu button shows, the sheet is built while the page is idle and kept, hidden, between opens, so a press only shows it.
 
 Use `NavigationMenu` alone for a row of panels inside a page, and `Tabs` for views of one page. `StackedLayout` puts a Navbar above the page.
 
@@ -43,11 +43,12 @@ Type: `NavbarProps`.
 | `brand` | `ReactNode` |  | Your logo or product name, at the start of the bar. Link it to the home page. |
 | `className` | `string` |  | Layout only: margins, position (`sticky top-0`). Appearance classes warn in development. |
 | `closeLabel` | `string` | `"Close"` | The label of that sheet's close button. |
+| `collapseBelow` | `"sm" \| "md" \| "lg" \| "xl"` | `"sm"` | The Tailwind breakpoint below which the links collapse behind the menu button: `sm`, `md`, `lg` or `xl`. The server HTML and the first paint use it too, so the bar matches on hydration at every width. Use `lg` when the links need more room than a tablet's bar has. |
 | `currentPath` | `string` |  | The path of the page being shown, from your router (`useLocation().pathname`, or `usePathname()` in Next.js). The link to that path gets `aria-current="page"` and the current look. On a deeper page, the longest link above it, the section (`/recipes` for `/recipes/12`), gets the same look and `aria-current="true"`, so a screen reader hears one current page. |
 | `items` (required) | `readonly NavbarItem[]` |  | The links, in order, and groups of links (`{ label, links }`), which open a panel in the bar. When they do not fit, as on a phone, they move into a sheet. |
 | `label` (required) | `string` |  | Names the navigation for screen readers ("Main"). It is not shown. |
 | `menu` | `ReactNode` |  | What the sheet behind the menu button holds in place of the `items` links, when a phone needs more than the bar, such as a section's own pages under its name, or a filter over a long list. It replaces them, so list the links they held too. It sits in the sheet's `nav`; mark the current page yourself (`aria-current="page"`). Choosing a link in it closes the sheet. Once the page has been idle it mounts, hidden, ahead of the first press (a press before then mounts it as it opens), and it mounts afresh the same way after each close, so each open starts with the state it first had. |
-| `menuLabel` | `string` | `"Menu"` | The name of the button that opens the links below 640px, and the title of the sheet it opens. |
+| `menuLabel` | `string` | `"Menu"` | The name of the button that opens the links below `collapseBelow` (640px by default), and the title of the sheet it opens. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 
 ## Don't use
