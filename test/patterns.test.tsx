@@ -158,6 +158,26 @@ describe("SettingsPage", () => {
     await expect.element(field("Display name")).toHaveValue("");
   });
 
+  it("keeps a running save's answer when the delete fails, since the account is still there", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      let finish = () => {};
+      const onSave = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+      await render(<SettingsPage onSave={onSave} onDelete={() => Promise.reject(new Error("Offline"))} initial={{ name: "Ada", email: "ada@example.com", language: "en", notifications: true }} />);
+      await userEvent.click(page.getByRole("button", { name: "Save" }));
+      await expect.poll(() => onSave.mock.calls.length).toBe(1);
+      await userEvent.click(page.getByRole("button", { name: "Delete account" }));
+      await userEvent.click(page.getByRole("alertdialog").getByRole("button", { name: "Delete account" }));
+      await expect.poll(() => warn.mock.calls.length).toBe(1);
+      finish();
+      await expect.element(status()).toHaveTextContent("Settings saved.");
+      await userEvent.click(page.getByRole("alertdialog").getByRole("button", { name: "Cancel" }));
+      await expect.element(field("Display name")).toHaveValue("Ada");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("works with no handlers, as installed", async () => {
     await render(<SettingsPage />);
     await userEvent.fill(field("Display name"), "Ada");
