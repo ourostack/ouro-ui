@@ -75,7 +75,7 @@ export const SCENES: Record<SceneName, Scene> = {
   },
   "playwright-focus-proof": {
     alt: "Inside a sleek high-speed train in low golden morning sun, two small robots type at their laptops across a window table while a faceless glass person in a sage hoodie leans back across the aisle, hands in pocket, with Ouro the green snake curled on the seat beside them, under a station clock on the end wall.",
-    sky: ["#c2a379", "#d0a078", "#c29974", "#b7a492", "#e2dada"],
+    sky: ["#c2a379", "#cfa079", "#c29874", "#b8a593", "#e2dada"],
     height: 576,
     phoneHeight: 384,
     band: 100,
