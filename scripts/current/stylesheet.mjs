@@ -211,7 +211,8 @@ const ruleKey = (target, prop) => `${target.wrappers.map(collapse).join(" ")}|${
  * whole or not at all. A `@utility` the app has, like a plain rule, gains a declaration only when it is new since
  * `previous` (the item at the tag the app updates from), so a fix Ouro makes to `press` still reaches it: one the app
  * lacks that `previous` already had was left out or rewritten on purpose, as a site that keeps its own corner shapes
- * does. A stylesheet with no `.dark` rule switches dark mode another way, so the item's `.dark` values are left out.
+ * does. A rule under an at-rule the stylesheet has no block of comes whole, like a `@utility` it lacks, so an app
+ * whose install record is on the tag but whose stylesheet is older still gains a block that tag added. A stylesheet with no `.dark` rule switches dark mode another way, so the item's `.dark` values are left out.
  */
 export function applyItem(text, item, previous = null) {
   const tree = parseCss(text);
@@ -222,7 +223,13 @@ export function applyItem(text, item, previous = null) {
   const named = new Set([...walk(tree)].map(({ node }) => collapse(node.prelude)));
   // A utility the app lacks comes whole, whatever the previous tag had; one it has gains only what is new since then.
   const missingUtility = (target) => atName(target.prelude) === "@utility" && !named.has(collapse(target.prelude));
-  const rules = wanted.map((target) => (isVariables(target) || missingUtility(target) ? target : { ...target, decls: target.decls.filter(([prop]) => !had.has(ruleKey(target, prop))) })).filter((target) => target.decls.length);
+  // So does a rule under an at-rule (`@container …`, `@supports …`) the stylesheet has no block of: an app on the tag
+  // whose stylesheet is older has no previous tag to tell new rules from removed ones, and a whole block is never half kept.
+  const missingWrapper = (target) => {
+    const [outer] = matchWrappers(target.wrappers);
+    return Boolean(outer) && !named.has(outer);
+  };
+  const rules = wanted.map((target) => (isVariables(target) || missingUtility(target) || missingWrapper(target) ? target : { ...target, decls: target.decls.filter(([prop]) => !had.has(ruleKey(target, prop))) })).filter((target) => target.decls.length);
   const darkClass = [...walk(tree)].some(({ node }) => !node.prelude.startsWith("@") && selectors(node.prelude).includes(".dark"));
   const unit = indentUnit(text);
   // Insertions are collected by position and applied from the end, so earlier indexes stay right.

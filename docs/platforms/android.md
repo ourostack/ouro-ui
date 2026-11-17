@@ -8,7 +8,7 @@ Nobody here owns an Android phone or tablet. The kit is checked on emulators in 
 
 Release [v0.1.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0) meets core v0.15.0: its tokens, component specs and action generator are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
-The kit has four of core's components as composables, where web has [123 components](registry.json "verify:count(registry:ui)=123"): `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
+The kit has four of core's components as composables, where web has [124 components](registry.json "verify:count(registry:ui)=124"): `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
 
 `ouro-actions` is the runtime the actions run on, so a person's press and an agent's AppFunction call take one path. In the sample, place order is person-only: it has a person door and a typed refusal for agents, in place of an AppFunction. A consequential action is refused until the app's `confirm` asks the person, because Android has no system prompt for it.[^decision]
 
@@ -26,7 +26,7 @@ AppFunctions need compileSdk 37 and AGP 9.1 or later, and Google still calls the
 ## What is still missing
 
 - **A real device.** Only emulators so far, and the X-ray runs on Google's API 37 test image, because the full Google APIs image crashes its compositor under software rendering.[^ci]
-- **Components.** Web has [123 components](registry.json "verify:count(registry:ui)=123"), and this kit has the first four.[^decision]
+- **Components.** Web has [124 components](registry.json "verify:count(registry:ui)=124"), and this kit has the first four.[^decision]
 - **Asking the person.** A consequential action is refused for now; a PendingIntent confirmation, as Google's sample agent expects, is next.[^decision]
 - **Maven Central.** It needs a Sonatype account, so the kit uses GitHub Pages for now.[^releasing]
 

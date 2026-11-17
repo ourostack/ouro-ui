@@ -45,9 +45,10 @@ function hidingConditions(group: string): string[][] {
   const found: string[][] = [];
   const walk = (rules: CSSRuleList, chain: string[]) => {
     for (const rule of rules) {
-      if (rule instanceof CSSStyleRule && rule.selectorText.includes(`.${group}`) && rule.style.opacity === "0") found.push(chain);
+      // Tailwind 4.1 leaves the rule nested in the class's own rule and writes `opacity: 0%`; 4.3 flattens it.
+      if (rule instanceof CSSStyleRule && rule.selectorText.includes(`.${group}`) && Number.parseFloat(rule.style.opacity) === 0) found.push(chain);
       if (rule instanceof CSSMediaRule) walk(rule.cssRules, [...chain, rule.conditionText]);
-      else if (rule instanceof CSSGroupingRule) walk(rule.cssRules, chain);
+      else if (rule instanceof CSSGroupingRule || rule instanceof CSSStyleRule) walk(rule.cssRules, chain);
     }
   };
   for (const sheet of document.styleSheets) walk(sheet.cssRules, []);
@@ -177,6 +178,18 @@ describe("Item", () => {
     const conditions = hidingConditions(CSS.escape("group/item"));
     expect(conditions).not.toEqual([]);
     for (const chain of conditions) expect(chain).toContain("(hover: hover)");
+  });
+
+  it("finds the hiding rule where the app's Tailwind leaves it nested, as 4.1 does, so the check above holds there too", () => {
+    const style = document.createElement("style");
+    style.textContent =
+      ".probe-nested { @media (pointer: fine) { @media (hover: hover) { &:not(*:is(:where(.group\\/probe):hover *)) { opacity: 0%; } } } }";
+    document.head.append(style);
+    try {
+      expect(hidingConditions(CSS.escape("group/probe"))).toEqual([["(pointer: fine)", "(hover: hover)"]]);
+    } finally {
+      style.remove();
+    }
   });
 
   it("shows its actions from the start without revealActions", async () => {

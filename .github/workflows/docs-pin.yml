@@ -49,12 +49,25 @@ jobs:
         with:
           ref: main
           token: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - name: pnpm setup failed; trying it once more (#1911)
+        if: steps.pnpm.outcome == 'failure'
+        run: echo "::warning title=pnpm setup failed::pnpm/action-setup could not install pnpm (ourostack/ouro-ui#1911); setting it up once more."
+      - if: steps.pnpm.outcome == 'failure'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm
-      - name: Install dependencies
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - name: pnpm install failed; trying it once more (#1914)
+        if: steps.install.outcome == 'failure'
+        run: echo "::warning title=pnpm install failed::pnpm i failed, which the 1ES feed's HTTP 429s can cause (ourostack/ouro-ui#1914); installing once more."
+      - if: steps.install.outcome == 'failure'
         run: pnpm i --frozen-lockfile
       - id: pin
         name: Point the docs at the release
@@ -104,7 +117,10 @@ jobs:
             gh pr create --base main --head "$BRANCH" --title "$title" --body "$body"
             number=$(gh pr view "$BRANCH" --json number --jq .number)
           fi
-          if ! gh pr merge "$number" --auto --squash; then
+          # Merge with an explicit message: GitHub's default appends bot Co-authored-by lines, which the ruleset rejects.
+          subject=$(gh pr view "$number" --json title,number --jq '"\(.title) (#\(.number))"')
+          message=$(gh pr view "$number" --json body --jq .body | tr -d '\r' | grep -v -i -E '^[[:space:]]*[A-Za-z-]+-by[[:space:]]*:.*(\[bot\]|(^|[^A-Za-z0-9])(copilot|claude|anthropic|openai|chatgpt|gpt|codex|gemini|cursor|devin|aider)([^A-Za-z]|$))' || true)
+          if ! gh pr merge "$number" --auto --squash --subject "$subject" --body "$message"; then
             [ "$(gh pr view "$number" --json state --jq .state)" = MERGED ] || { echo "::error::Could not turn auto-merge on for #$number."; exit 1; }
           fi
           echo "Auto-merge is on for #$number: it merges once the checks main's ruleset requires pass." >> "$GITHUB_STEP_SUMMARY"

@@ -6,7 +6,7 @@ Ouro's look and manners in WinUI, for Windows apps, plus the agent doors Windows
 
 Release [v0.1.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1) meets core v0.13.1: its tokens and component specs are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
-The kit has four of core's components as WinUI 3 controls, where web has [123 components](registry.json "verify:count(registry:ui)=123"): `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`. The controls follow light and dark mode, a Windows contrast theme, the text size and the animation setting, and draw from core's tokens through one colour path. An `OuroButton` with an `Action` runs it through `Ouro.Actions`.[^readme]
+The kit has four of core's components as WinUI 3 controls, where web has [124 components](registry.json "verify:count(registry:ui)=124"): `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`. The controls follow light and dark mode, a Windows contrast theme, the text size and the animation setting, and draw from core's tokens through one colour path. An `OuroButton` with an `Action` runs it through `Ouro.Actions`.[^readme]
 
 `Ouro.Actions` is the runtime the agent doors share. It checks input against the action's schema, keeps idempotency keys, audits calls, asks the person before a consequential action an agent prepared (the default is to refuse), and answers core's typed refusal for a person-only action, naming the action the way a person knows it.[^release] It also reads App Action URIs and serves MCP.[^readme]
 
@@ -25,7 +25,7 @@ An unpackaged app also needs `<EnableMsixTooling>true</EnableMsixTooling>` in it
 
 ## What is still missing
 
-- **Components.** Web has [123 components](registry.json "verify:count(registry:ui)=123"), and this kit has the first four. Core's decision record plans v0.1.0 as the components Apple shipped first, and the rest have no Windows version yet.[^decision]
+- **Components.** Web has [124 components](registry.json "verify:count(registry:ui)=124"), and this kit has the first four. Core's decision record plans v0.1.0 as the components Apple shipped first, and the rest have no Windows version yet.[^decision]
 - **A client machine.** The free runner is Windows Server, and it lacks an App Actions runtime, an On-device Agent Registry and Mica. CI proves the package registers both agent doors and that they behave, but not that Windows lists them to agents.[^release]
 - **The person check.** Requiring Windows Hello before a person-only action is built and off by default. Whether to turn it on is Ari's decision, and [the person-check note](https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/docs/person-check.md) sets out the question.[^person]
 - **Contrast themes.** Under a contrast theme the controls draw the person's system colours, so status tones look alike, and their meaning must also be in words.[^readme]

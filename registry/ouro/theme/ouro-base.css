@@ -13,6 +13,12 @@
  * - --ouro-corner-shape: the shape of every corner, a squircle (CSS corner-shape, n=4), applied to each
  *   Ouro element; set it to round to go back to circular arcs. Switch, radios, slider thumbs,
  *   presence dots and spinners stay round.
+ * - --ouro-control-radius and --ouro-control-corner-shape: the shape of the controls a person presses
+ *   or types into (Button, Toggle, SegmentedControl, TextField, Select, Combobox, NumberField and
+ *   Field's inputs). Unset, they follow --radius and --ouro-corner-shape, as every other corner does; a
+ *   theme sets them to give its controls their own shape, such as capsules (9999px and round) on a
+ *   page of square cards. --ouro-check-radius and --ouro-check-corner-shape do the same for the
+ *   checkbox's box (Checkbox and Checklist), such as circles (9999px and round).
  * - --ouro-layer: the z-index of sheet and dialog portals.
  * - --input and --radius, with shadcn's stock values, for an app whose theme has neither:
  *   fields draw their border in --input and round their corners on the --radius-ouro-* steps.
@@ -213,6 +219,16 @@
   }
 }
 
+/* Where the surface shows (no corner-shape), a control whose corner shape is round, such as a capsule from --ouro-control-radius and --ouro-control-corner-shape or a theme that sets --ouro-corner-shape to round, is clipped and ringed by circular arcs, not the squircle's curve. Elsewhere the surface is hidden and this changes nothing. */
+@container style(--corner-shape: round) {
+  [data-ouro-squircle] > [data-ouro-surface] {
+    clip-path: inset(0 round var(--ouro-sq-r));
+  }
+  [data-ouro-squircle] > [data-ouro-surface]::after {
+    border-radius: var(--ouro-sq-r);
+  }
+}
+
 /*
  * Press feedback for controls: the scale arrives and releases in 160ms on the ease-out
  * token. Colors change at once: a pressed, selected or current control is drawn so on the
@@ -223,6 +239,33 @@
 @utility rounded-full {
   --corner-shape: round;
   corner-shape: round;
+}
+
+/* The controls a person presses or types into round with these, so a theme shapes them all at once with
+   --ouro-control-radius and --ouro-control-corner-shape (9999px and round make capsules), and its checks with
+   --ouro-check-radius and --ouro-check-corner-shape. Unset, they are Ouro's lg and md steps (rounded-ouro-lg,
+   rounded-ouro-md) and the sm step in the theme's corner shape. --ouro-control-r is the radius, for a part that
+   rounds to match (a stepper inside a field); --ouro-sq-r is the squircle surface's radius where corner-shape is missing. */
+@utility rounded-ouro-control {
+  --ouro-control-r: calc(var(--ouro-control-radius, var(--radius)) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));
+  --ouro-sq-r: calc(var(--ouro-control-radius, var(--radius)) * var(--ouro-radius-scale, 1));
+  --corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+  border-radius: var(--ouro-control-r);
+  corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+}
+
+@utility rounded-ouro-control-md {
+  --ouro-control-r: calc(var(--ouro-control-radius, var(--radius) * 0.8) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));
+  --ouro-sq-r: calc(var(--ouro-control-radius, var(--radius) * 0.8) * var(--ouro-radius-scale, 1));
+  --corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+  border-radius: var(--ouro-control-r);
+  corner-shape: var(--ouro-control-corner-shape, var(--ouro-corner-shape));
+}
+
+@utility rounded-ouro-check {
+  --corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
+  border-radius: var(--ouro-check-radius, calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6));
+  corner-shape: var(--ouro-check-corner-shape, var(--ouro-corner-shape));
 }
 
 @utility press {

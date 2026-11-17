@@ -54,9 +54,10 @@ function hidingConditions(group: string): string[][] {
   const found: string[][] = [];
   const walk = (rules: CSSRuleList, chain: string[]) => {
     for (const rule of rules) {
-      if (rule instanceof CSSStyleRule && rule.selectorText.includes(`.${group}`) && rule.style.opacity === "0") found.push(chain);
+      // Tailwind 4.1 leaves the rule nested in the class's own rule and writes `opacity: 0%`; 4.3 flattens it.
+      if (rule instanceof CSSStyleRule && rule.selectorText.includes(`.${group}`) && Number.parseFloat(rule.style.opacity) === 0) found.push(chain);
       if (rule instanceof CSSMediaRule) walk(rule.cssRules, [...chain, rule.conditionText]);
-      else if (rule instanceof CSSGroupingRule) walk(rule.cssRules, chain);
+      else if (rule instanceof CSSGroupingRule || rule instanceof CSSStyleRule) walk(rule.cssRules, chain);
     }
   };
   for (const sheet of document.styleSheets) walk(sheet.cssRules, []);

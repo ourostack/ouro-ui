@@ -85,8 +85,9 @@ describe("button branch", () => {
     expect(button.textContent).toBe("Go");
   });
 
-  // An app's theme may change the medium weight and the radius, on the root or on its buttons alone, so compare with
-  // a probe inside the button that wears the same steps.
+  // An app's theme may change the medium weight and the radius, on the root or on its buttons alone, and may give its
+  // controls their own radius (--ouro-control-radius, which falls back to Ouro's lg step), so compare with a probe
+  // inside the button that wears the same steps.
   function expectThemeLook(button: HTMLElement) {
     const style = getComputedStyle(button);
     expect(style.whiteSpace).toBe("nowrap");
@@ -94,7 +95,8 @@ describe("button branch", () => {
     expect(style.borderTopWidth).toBe("1px");
     const step = button.appendChild(document.createElement("div"));
     mounted.push(step);
-    step.className = "absolute rounded-ouro-lg font-medium";
+    step.className = "absolute font-medium";
+    step.style.borderRadius = "calc(var(--ouro-control-radius, var(--radius)) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1))";
     expect(style.fontWeight).toBe(getComputedStyle(step).fontWeight);
     expect(style.borderTopLeftRadius).toBe(getComputedStyle(step).borderTopLeftRadius);
   }
@@ -109,7 +111,7 @@ describe("button branch", () => {
     const root = getComputedStyle(button).borderTopLeftRadius;
     const scoped = document.head.appendChild(document.createElement("style"));
     mounted.push(scoped);
-    scoped.textContent = '[data-ouro="button"] { --font-weight-medium: 600; --radius: 0.125rem; }';
+    scoped.textContent = '[data-ouro="button"] { --font-weight-medium: 600; --radius: 0.125rem; --ouro-control-radius: 0.125rem; }';
     expect(getComputedStyle(button).fontWeight).toBe("600");
     expect(getComputedStyle(button).borderTopLeftRadius).not.toBe(root);
     expectThemeLook(button);
