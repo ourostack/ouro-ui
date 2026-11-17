@@ -2,7 +2,7 @@
 
 # Item
 
-One row of a list: leading media, a title with a description, and trailing actions. With `href` the whole row is one link, named by its title, with one tab stop, and the actions stay their own. Put rows in an `ItemGroup`, which makes them a list.
+One row of a list: leading media, a title with a description, and trailing actions. With `href` the whole row is one link, named by its title, with one tab stop, and the actions stay their own; with `onSelect` it is one button the same way, for a list beside its detail, and `selected` marks the row shown. Put rows in an `ItemGroup`, which makes them a list.
 
 ```tsx
 import { Item } from "@/registry/ouro/components/ouro/item/item";
@@ -19,6 +19,9 @@ import { Item } from "@/registry/ouro/components/ouro/item/item";
   description="Four hours, mostly hands-off"
 />
 <Item title="Passkey on iPhone" description="Added May 2" actions={<Button variant="plain">Remove</Button>} stackBelow="sm" />
+{recipes.map((recipe) => (
+  <Item key={recipe.id} title={recipe.title} selected={recipe.id === openId} onSelect={() => setOpenId(recipe.id)} />
+))}
 ```
 
 ## Use instead when
@@ -52,17 +55,40 @@ The props the modes share. Type: `ItemProps`.
 
 Not in this mode (a type error):
 
+- `buttonRef`: Only with `onSelect`.
 - `external`: Only with `href`.
 - `href`: Not without `href`. Add `href` to make the whole row a link.
 - `linkRef`: Only with `href`.
+- `onSelect`: A handler, which makes the whole row a button.
+- `selected`: Only with `href` or `onSelect`: a row a person can choose.
 
-### With `href` and `external` and `linkRef`
+### With `href` and `external` and `linkRef` and `selected`
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `external` | `boolean` | Opens the link in a new tab, safely, and tells screen readers so. |
 | `href` (required) | `string` | Makes the whole row one link, with one tab stop, named by its title. Internal paths go through `OuroProvider`'s `linkComponent`, as with `Link`. Controls anywhere in the row (a link in the description, a button in the media or the actions) stay their own tab stops and take their own clicks and taps. On a touch screen the row is at least 44px tall. |
 | `linkRef` | `Ref<HTMLAnchorElement>` | A ref to the link's `<a>`, to move focus to it. |
+| `selected` | `boolean` | Marks the row as the page shown, as in a list of sections beside their content: the link reads as the current page (`aria-current="page"`) and the row takes the selected colour. Pass it on every row, `false` on the others, so the rows line up. |
+
+Not in this mode (a type error):
+
+- `buttonRef`: Only without `href`.
+- `onSelect`: Only without `href`. A linked row opens its link.
+
+### With `onSelect` and `selected` and `buttonRef`
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `buttonRef` | `Ref<HTMLButtonElement>` | A ref to the row's `<button>`, to move focus to it. |
+| `onSelect` (required) | `(event: MouseEvent<HTMLButtonElement>) => void` | Makes the whole row one button, with one tab stop, named by its title: for a list beside its detail, where pressing a row shows it. Controls anywhere in the row stay their own tab stops and take their own presses. On a touch screen the row is at least 44px tall. Use `href` instead when the row opens a page of its own. |
+| `selected` | `boolean` | Marks the row as the one shown: the button reads as current (`aria-current="true"`) and the row takes the selected colour. Pass it on every row, `false` on the others. |
+
+Not in this mode (a type error):
+
+- `external`: Only with `href`.
+- `href`: Only with `href`.
+- `linkRef`: Only with `href`.
 
 ## Native attributes
 
@@ -73,10 +99,13 @@ Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event h
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `action`: Not a prop. Ouro UI uses `actions`, for one control or several: `<Item actions={<Button>…</Button>}>`.
+- `active`: Not a prop. The chosen row is `selected`: `<Item selected={row.id === openId} onSelect={() => open(row.id)}>`.
 - `asChild`: Not a prop. With `href` the whole row is a link: `<Item href="/recipes/1" title="…">`.
 - `avatar`: Not a prop. Ouro UI uses `media`: `<Item media={<Avatar … />}>`.
+- `current`: Not a prop. The chosen row is `selected`: `<Item selected={row.id === openId} onSelect={() => open(row.id)}>`.
 - `icon`: Not a prop. Ouro UI uses `media`: `<Item media={<Icon />} mediaSize="icon">`.
 - `image`: Not a prop. Ouro UI uses `media`: `<Item media={<img src="…" alt="" />}>`.
+- `isSelected`: Not a prop. The chosen row is `selected`: `<Item selected={row.id === openId} onSelect={() => open(row.id)}>`.
 - `label`: Not a prop. Ouro UI uses `title`: `<Item title="Braised short ribs">`.
 - `subtitle`: Not a prop. Ouro UI uses `description`: `<Item description="Four hours">`.
 - `thumbnail`: Not a prop. Ouro UI uses `media`: `<Item media={<img src="…" alt="" />}>`.

@@ -17,5 +17,15 @@ expectTypeOf<{ title: "x"; action: "y" }>().not.toExtend<ItemProps>();
 expectTypeOf<{ title: "x"; label: "y" }>().not.toExtend<ItemProps>();
 expectTypeOf<{ title: "x"; mediaSize: "xl" }>().not.toExtend<ItemProps>();
 
+// onSelect makes the row a button; selected marks the chosen row, with onSelect or href only.
+expectTypeOf<{ title: "x"; onSelect: () => void; selected: true }>().toExtend<ItemProps>();
+expectTypeOf<{ title: "x"; href: "/a"; selected: false }>().toExtend<ItemProps>();
+expectTypeOf<{ title: "x"; selected: true }>().not.toExtend<ItemProps>();
+expectTypeOf<{ title: "x"; href: "/a"; onSelect: () => void }>().not.toExtend<ItemProps>();
+expectTypeOf<{ title: "x"; onSelect: () => void; external: true }>().not.toExtend<ItemProps>();
+expectTypeOf<{ title: "x"; buttonRef: null }>().not.toExtend<ItemProps>();
+expectTypeOf<{ title: "x"; onSelect: () => void; active: true }>().not.toExtend<ItemProps>();
+expectTypeOf<{ title: "x"; onSelect: () => void; isSelected: true }>().not.toExtend<ItemProps>();
+
 // @ts-expect-error title is required.
 createElement(Item, { description: "Four hours" });

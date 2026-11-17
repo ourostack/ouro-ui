@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
+import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -405,6 +406,103 @@ describe("Item with href", () => {
   });
 });
 
+describe("Item with onSelect", () => {
+  // The theme's value of a colour variable, as the browser computes it.
+  const themeColor = (variable: string) => {
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = `var(${variable})`;
+    document.body.append(probe);
+    mounted.push(probe);
+    return getComputedStyle(probe).backgroundColor;
+  };
+
+  it("is one button named by its title, covering the row, that calls onSelect, with the actions above it", async () => {
+    const onSelect = vi.fn();
+    const onSave = vi.fn();
+    const { item } = await render(
+      <Item onSelect={onSelect} media={<img src={pixel} alt="" data-media="" />} title="Braised short ribs" description="Four hours" actions={<Button onClick={onSave}>Save</Button>} />,
+    );
+    const button = page.getByRole("button", { name: "Braised short ribs" });
+    await expect.element(button).toHaveAccessibleDescription("Four hours");
+    expect(button.element().getAttribute("type")).toBe("button");
+    for (const element of [item.querySelector("[data-media]")!, page.getByText("Four hours").element()]) {
+      const [x, y] = center(element);
+      expect(document.elementFromPoint(x, y)).toBe(button.element());
+    }
+    // A press on the description lands on the row's button, which covers it.
+    await userEvent.click(page.getByText("Four hours"), { force: true });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    await userEvent.click(page.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    const before = document.createElement("button");
+    item.parentElement!.prepend(before);
+    before.focus();
+    await pressTab();
+    expect(document.activeElement).toBe(button.element());
+    expect(getComputedStyle(item).outlineStyle).toBe("solid");
+    await userEvent.keyboard("{Enter}");
+    expect(onSelect).toHaveBeenCalledTimes(2);
+    await pressTab();
+    expect(document.activeElement).toBe(page.getByRole("button", { name: "Save" }).element());
+  });
+
+  it("marks the chosen row current, in the selected colour, and leaves the others plain", async () => {
+    const { host } = await render(
+      <ItemGroup aria-label="Recipes">
+        <Item onSelect={() => {}} selected title="Short ribs" description="Four hours" data-row="chosen" />
+        <Item onSelect={() => {}} selected={false} title="Lentil soup" data-row="other" />
+      </ItemGroup>,
+    );
+    await expect.element(page.getByRole("button", { name: "Short ribs" })).toHaveAttribute("aria-current", "true");
+    expect(page.getByRole("button", { name: "Lentil soup" }).element().hasAttribute("aria-current")).toBe(false);
+    const chosen = host.querySelector<HTMLElement>('[data-row="chosen"]')!;
+    const other = host.querySelector<HTMLElement>('[data-row="other"]')!;
+    expect(getComputedStyle(chosen).backgroundColor).toBe(themeColor("--accent"));
+    expect(getComputedStyle(other).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(chosen.querySelector("[data-ouro-text]")!).color).not.toBe(getComputedStyle(other.querySelector("button")!).color);
+  });
+
+  it("keeps its padding and corners in a divided or plain group, so the selected colour has room, and a plain row keeps none", async () => {
+    for (const variant of ["divided", "plain"] as const) {
+      const { host } = await render(
+        <ItemGroup aria-label="Recipes" variant={variant}>
+          <Item onSelect={() => {}} selected title="Short ribs" data-row="chosen" />
+          <Item title="Lentil soup" data-row="plain" />
+        </ItemGroup>,
+      );
+      const chosen = getComputedStyle(host.querySelector('[data-row="chosen"]')!);
+      expect(chosen.paddingInlineStart, variant).toBe("12px");
+      expect(parseFloat(chosen.borderTopLeftRadius), variant).toBeGreaterThan(0);
+      expect(getComputedStyle(host.querySelector('[data-row="plain"]')!).paddingInlineStart, variant).toBe("0px");
+    }
+  });
+
+  it("keeps an outlined row's corners and padding", async () => {
+    const { item } = await render(<Item onSelect={() => {}} selected variant="outline" title="Short ribs" />);
+    const outline = (await render(<Item variant="outline" title="Lentil soup" />)).item;
+    expect(getComputedStyle(item).borderTopLeftRadius).toBe(getComputedStyle(outline).borderTopLeftRadius);
+    expect(getComputedStyle(item).paddingInlineStart).toBe(getComputedStyle(outline).paddingInlineStart);
+  });
+
+  it("marks a linked row as the page shown with selected", async () => {
+    await render(
+      <ItemGroup aria-label="Sections">
+        <Item href="/profile" selected title="Profile" />
+        <Item href="/billing" selected={false} title="Billing" />
+      </ItemGroup>,
+    );
+    await expect.element(page.getByRole("link", { name: "Profile" })).toHaveAttribute("aria-current", "page");
+    expect(page.getByRole("link", { name: "Billing" }).element().hasAttribute("aria-current")).toBe(false);
+  });
+
+  it("forwards buttonRef to the row's button", async () => {
+    let button: HTMLButtonElement | null = null;
+    await render(<Item onSelect={() => {}} buttonRef={(node) => void (button = node)} title="Short ribs" />);
+    expect(button).toBe(page.getByRole("button", { name: "Short ribs" }).element());
+  });
+});
+
 describe("Item development messages", () => {
   it.each([
     ["subtitle", { subtitle: "Four hours" }, "subtitle is not a prop", '<Item description="Four hours">'],
@@ -426,10 +524,14 @@ describe("Item development messages", () => {
     ["mediaAbove with an icon", { mediaAbove: "sm", media: "x", mediaSize: "icon" }, "mediaAbove is for a photo, not an icon", '<Item media={<img src="…" alt="" />} mediaSize="lg" mediaAbove="sm">'],
     ["as", { as: "a" }, 'as="a" is not an element Item renders; use "div", "li", "article"', '<Item href="/path" title="…">'],
     ["as span", { as: "span" }, 'as="span" is not an element Item renders; use "div", "li", "article"', '<Item as="div">'],
+    ["selected without onSelect or href", { selected: true }, "selected marks a row a person chooses; give it onSelect, or href", '<Item selected={row.id === openId} onSelect={() => open(row.id)} title="…">'],
+    ["active", { active: true }, "active is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
+    ["isSelected", { isSelected: true }, "isSelected is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
+    ["current", { current: true }, "current is not a prop", "<Item selected={row.id === openId} onSelect={() => open(row.id)}>"],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const { item } = await render(<Item {...({ title: "Ribs", ...extra } as unknown as Parameters<typeof Item>[0])} />);
     expect(warn).toHaveBeenCalledWith(`[ouro-ui] Item: ${problem}. Fix: ${fix}.`);
-    for (const attribute of ["subtitle", "icon", "avatar", "image", "thumbnail", "action", "label", "to", "aschild"]) {
+    for (const attribute of ["subtitle", "icon", "avatar", "image", "thumbnail", "action", "label", "to", "aschild", "selected", "active", "isselected", "current"]) {
       expect(item.hasAttribute(attribute)).toBe(false);
     }
   });

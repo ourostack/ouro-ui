@@ -33,3 +33,18 @@ it("makes a linked row at least 44px tall at every size, so it is a full touch t
     expect(item.getBoundingClientRect().height, row).toBeGreaterThanOrEqual(44);
   }
 });
+
+it("makes a row with onSelect at least 44px tall too, so the whole row is a touch target", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <ItemGroup aria-label="Recipes">
+        <Item onSelect={() => {}} title="Small" size="sm" data-row="select" />
+      </ItemGroup>,
+    ),
+  );
+  expect(host.querySelector('[data-row="select"]')!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+});

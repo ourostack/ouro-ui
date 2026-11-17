@@ -49,12 +49,16 @@ export interface ItemGroupOwnProps {
 export type ItemGroupProps = Omit<HTMLAttributes<HTMLDivElement>, keyof ItemGroupOwnProps> & ItemGroupOwnProps;
 
 // The group sets its Items' frame: no outline of their own, and padding in an outlined group.
+// A row a person chooses keeps its padding and corners in a divided or plain group, so its selected colour has room.
+const choosable = "[&_[data-ouro=item][data-choosable]]:rounded-ouro-lg [&_[data-ouro=item][data-choosable]]:px-3";
 const variants = {
-  divided: "[&>li:not(:last-child)]:border-b [&>li]:border-border [&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-0",
+  divided:
+    "[&>li:not(:last-child)]:border-b [&>li]:border-border [&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-0 " +
+    choosable,
   outline:
     "rounded-ouro-xl border border-border bg-card text-card-foreground overflow-hidden [&>li:not(:last-child)]:border-b [&>li]:border-border " +
     "[&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-4",
-  plain: "[&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-0",
+  plain: `[&_[data-ouro=item]]:rounded-none [&_[data-ouro=item]]:border-0 [&_[data-ouro=item]]:px-0 ${choosable}`,
 } as const;
 
 /**

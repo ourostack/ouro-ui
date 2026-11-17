@@ -21,7 +21,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Item mediaSize="lg">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "item08",
+    habit: "an active flag for the chosen row",
+    tsc: [notAssignable("boolean", `{ "Use selected={row.id === openId}": never; }`)],
+    dev: "<Item selected={row.id === openId} onSelect={() => open(row.id)}>",
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid item snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["item06", "item07"];
+export const validSnippets: string[] = ["item06", "item07", "item09", "item10"];

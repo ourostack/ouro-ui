@@ -1,10 +1,34 @@
 {
   "order": 1310,
-  "components": ["item", "item-group"],
-  "modes": {"item": ["static", "link"]},
+  "components": [
+    "item",
+    "item-group"
+  ],
+  "modes": {
+    "item": [
+      "static",
+      "link",
+      "select"
+    ]
+  },
   "controls": {
     "item": [
-      {"part": "link", "role": "link", "portal": false, "modes": ["link"]}
+      {
+        "part": "link",
+        "role": "link",
+        "portal": false,
+        "modes": [
+          "link"
+        ]
+      },
+      {
+        "part": "select",
+        "role": "button",
+        "portal": false,
+        "modes": [
+          "select"
+        ]
+      }
     ]
   }
 }
