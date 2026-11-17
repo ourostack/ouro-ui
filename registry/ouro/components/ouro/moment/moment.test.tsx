@@ -555,7 +555,8 @@ describe("Moment arrival", () => {
     expect(arrivals(artOf(host)).filter((animation) => animation !== first)).toEqual([]);
     await expect.poll(() => first!.playState).toBe("finished");
     await act(async () => root.render(<Moment kind="loading" title="Nearly done" art={<Art id="later" />} />));
-    expect(arrivals(artOf(host))).toEqual([]);
+    // WebKit can still list the finished arrival for a frame; none may run again.
+    expect(arrivals(artOf(host)).filter((animation) => animation.playState !== "finished")).toEqual([]);
   });
 
   it("arrives again when its kind changes or it remounts, but a moment with a key arrives once a session", async () => {
