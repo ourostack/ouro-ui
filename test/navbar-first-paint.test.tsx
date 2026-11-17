@@ -132,7 +132,7 @@ describe("Navbar's collapse breakpoint", () => {
     expect(getComputedStyle(menu).display).not.toBe("none");
     expect(getComputedStyle(links).display).toBe("none");
     await page.viewport(1024, 844);
-    expect(getComputedStyle(menu).display).toBe("none");
+    await expect.poll(() => getComputedStyle(menu).display).toBe("none");
     expect(getComputedStyle(links).display).not.toBe("none");
   });
 
@@ -143,7 +143,7 @@ describe("Navbar's collapse breakpoint", () => {
     const menu = host.querySelector<HTMLElement>("[data-ouro-navbar-menu]")!;
     expect(getComputedStyle(menu).display).not.toBe("none");
     await page.viewport(800, 844);
-    expect(getComputedStyle(menu).display).toBe("none");
+    await expect.poll(() => getComputedStyle(menu).display).toBe("none");
   });
 
   it("with collapseBelow lg, is the same bar at 390, 768, 1024 and 1440, server HTML and hydrated, with nothing swapped", async () => {
