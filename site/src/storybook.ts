@@ -66,12 +66,12 @@ export const SCENES: Record<SceneName, Scene> = {
     night: { phoneHeight: 576, alt: "At night under a crescent moon, in a calm studio by a window onto a city park with a few lit windows across it, a small white robot in a blue apron checks the same settings card on a phone, a tablet and a laptop lined up on a long pale table, while Ouro, a smiling emerald snake curled into an O, watches from a folded cloth." },
   },
   "ouro-ui-core": {
-    alt: "In a bright colour library under a skylight, a small lilac robot lays a row of colour chips on a glowing white table while a faceless glass designer holds a green chip up to the light, and Ouro, a smiling emerald snake curled into an O, rests on a felt pad at the table's end.",
-    sky: ["#bbb2b1", "#bfb8b7", "#d7e4f0", "#b4ada2", "#d5dce6"],
+    alt: "In a skylit design studio, a small robot and Ouro, a smiling emerald snake curled into an O, rest on a towel at a long worktable with fabric swatches.",
+    sky: ["#bcb2b0", "#c1baba", "#d7e4f0", "#b4ada2", "#d5dce6"],
     height: 576,
     phoneHeight: 576,
     band: 60,
-    night: { phoneHeight: 576, alt: "At night in a colour library under a starry skylight, a small lilac robot lays a row of colour chips on a glowing white table while a faceless glass designer holds a green chip up to the lamplight, and Ouro, a smiling emerald snake curled into an O, rests on a felt pad at the table's end." },
+    night: { phoneHeight: 576, alt: "At night in a skylit design studio under warm pendant lamps and a crescent moon, a small robot and Ouro, a smiling emerald snake curled into an O, rest on a towel at a long worktable with fabric swatches." },
   },
   "playwright-focus-proof": {
     alt: "Inside a sleek high-speed train in low golden morning sun, two small robots type at their laptops across a window table while a faceless glass person in a sage hoodie leans back across the aisle, hands in pocket, with Ouro the green snake curled on the seat beside them, under a station clock on the end wall.",
