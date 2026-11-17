@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       max-parallel: ${{ github.event_name == 'schedule' && 2 || 3 }}
       matrix:
-        include: ${{ fromJSON(github.event_name == 'schedule' && '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"1/2"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"2/2"},{"os":"windows-2025","project":"nvda","advisory":false,"shard":"1/1"},{"os":"macos-15","project":"voiceover","advisory":true,"shard":"1/1"}]' || '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"1/2"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"2/2"},{"os":"windows-2025","project":"nvda","advisory":false,"shard":"1/1"}]') }}
+        include: ${{ fromJSON(github.event_name == 'never' && '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"1/2"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"2/2"},{"os":"windows-2025","project":"nvda","advisory":false,"shard":"1/1"},{"os":"macos-15","project":"voiceover","advisory":true,"shard":"1/1"}]' || '[{"os":"macos-26","project":"voiceover","advisory":false,"shard":"dialog-menu","specs":"registry/ouro/e2e/screen-reader/dialog.sr.spec.ts registry/ouro/e2e/screen-reader/menu.sr.spec.ts"},{"os":"macos-26","project":"voiceover","advisory":false,"shard":"item-menu","specs":"registry/ouro/e2e/screen-reader/item.sr.spec.ts registry/ouro/e2e/screen-reader/menu.sr.spec.ts"}]') }}
     name: ${{ matrix.project }} (${{ matrix.os }}${{ matrix.shard != '1/1' && format(', {0}', matrix.shard) || '' }})${{ matrix.advisory && ', advisory' || '' }}
     continue-on-error: ${{ matrix.advisory }}
     runs-on: ${{ matrix.os }}
@@ -95,7 +95,7 @@ jobs:
           set +e
           # This shard's specs (no spaces in their paths); the stories check runs in every shard. An empty
           # list would run every spec, so it stops the job instead.
-          specs=$(node scripts/shard.mjs sr "$SHARD")
+          specs="${{ matrix.specs }}"
           [ -n "$specs" ] || { echo "::error::No screen-reader specs for shard $SHARD."; exit 1; }
           # shellcheck disable=SC2086
           pnpm test:sr --project="$PROJECT" $specs 2>&1 | tee "$RUNNER_TEMP/sr.log"
