@@ -193,7 +193,7 @@ describe("Cover development messages", () => {
     ["aspect-video", ""],
   ])("checks the className %s", async (className, fix) => {
     await render(<Cover title="T" size="fill" className={className} />);
-    if (fix) expect(warn).toHaveBeenCalledWith(expect.stringContaining(`[ouro-ui] Cover: "${className}"`));
+    if (fix) expect(warn).toHaveBeenCalledWith(expect.stringMatching(new RegExp(`^\\[ouro-ui\\] Cover: "${className}".*${fix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`)));
     else expect(warn).not.toHaveBeenCalled();
   });
 
