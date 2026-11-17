@@ -1220,9 +1220,13 @@ async function shoot(root: Element, items: Measured[], last: boolean, regions = 
   // The boxes within the root, not on the screen: taking the screenshot can scroll the page.
   const start = root.getBoundingClientRect();
   // A held page (its viewport's overflow hidden, as a popup's scroll lock holds it) can put back a
-  // scroll the screenshot makes, so the picture would not be where the root then is. There the
-  // picture is the screen as it shows, of a box over the viewport that the screenshot never scrolls to.
-  const frame = viewportHeld() ? document.body.appendChild(viewportFrame()) : null;
+  // scroll the screenshot makes, so the picture would not be where the root then is. A root that reaches
+  // past the screen is pictured beyond it differently by each engine: blank in Chromium, and in WebKit
+  // on Linux out of line with its text. In both, the picture is the screen as it shows, of a box over the
+  // viewport that the screenshot never scrolls to, and the parts past the screen are measured scrolled on.
+  const held = viewportHeld();
+  const pastScreen = start.top < 0 || start.left < 0 || start.bottom > window.innerHeight || start.right > window.innerWidth;
+  const frame = held || pastScreen ? document.body.appendChild(viewportFrame()) : null;
   // The frame's own box: a gutter the scroll lock keeps for the scrollbar, or a transformed page, can
   // leave it short of the window or away from its corner.
   const base = frame ? frame.getBoundingClientRect() : start;
@@ -1350,7 +1354,7 @@ async function shoot(root: Element, items: Measured[], last: boolean, regions = 
     if (measured === 0 && covered > 0) return { pass: true };
     // Text a held page shows none of is left out, as text it cannot scroll to is; on a page that can
     // scroll it fails here, and audit measures it again on its own, scrolled onto the screen.
-    if (measured === 0 && offScreen > 0 && frame) return { pass: true };
+    if (measured === 0 && offScreen > 0 && held) return { pass: true };
     if (worst === Number.POSITIVE_INFINITY) return { pass: false, reason: "axe left its contrast undecided, and its text is off the screen" };
     if (worst >= required) return { pass: true };
     if (placeholder) return { pass: false, reason: `its placeholder measured ${worst.toFixed(2)}:1 against the worst pixel behind it, needs ${required}:1` };
