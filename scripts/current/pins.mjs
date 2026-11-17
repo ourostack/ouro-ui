@@ -795,6 +795,8 @@ async function updateVendorLock(pin, text, release, ctx) {
   // A vendored file that now imports a file beside it (`xray.ts` importing `./xray.kit.mts`) needs that file too: it is
   // vendored beside it, and so is what it imports in turn.
   const added = asset ? [] : followImports(source.files, files, read);
+  const axFix = asset || !ctx.consumerFile ? { files: {}, notes: [] } : await axImportFix(async (path) => (await ctx.consumerFile(path)) ?? undefined, source.files, files);
+  Object.assign(files, axFix.files);
   // Only this source's values change; the edit is kept when it reads back as the lock this run means to write.
   const edited = editLock(text, pin.source, release.sha, shas, named, added);
   const same = (value) => {
@@ -808,7 +810,9 @@ async function updateVendorLock(pin, text, release, ctx) {
   const actions = pin.follows === "core" && source.files.some((file) => /(^|\/)actions\//.test(file.sourcePath));
   const notes = actions ? projectionsNote(release) : [];
   if (added.length) notes.push(`Vendors what the updated files now import: ${list(added.map((file) => file.generatedPath))}.`);
-  notes.push(...(await unresolvedAxImports(source.files, files, ctx)));
+  notes.push(...axFix.notes);
+  // The entry added above resolves the vendored files' `#ouro-ax/*`; otherwise the pull request says what is missing.
+  if (Object.keys(axFix.files).length === 0) notes.push(...(await unresolvedAxImports(source.files, files, ctx)));
   return { files, notes };
 }
 
@@ -843,8 +847,46 @@ async function unresolvedAxImports(entries, files, ctx) {
   return [`${list(unresolved)} ${one("imports", "import")} the shared Ouro AX files as \`#ouro-ax/*\`, which needs an \`imports\` entry in a package.json above ${one("it", "them")}. Add one${where} to the package.json that should hold it; the vendored folder may take one of its own.`];
 }
 
-/** The relative imports a module names: `from "./x.ts"`, `import "./x.ts"`, `import("./x.ts")`. */
-const relativeImports = (text) => [...text.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["'](\.{1,2}\/[^"']+)["']/g)].map((match) => match[1]);
+/** The relative and `#ouro-ax/` imports a module names: `from "./x.ts"`, `import "#ouro-ax/x.ts"`, `import("./x.ts")`. */
+const relativeImports = (text) => [...text.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["']((?:\.{1,2}\/|#ouro-ax\/)[^"']+)["']/g)].map((match) => match[1]);
+
+/** Ouro AX's package import, and the registry folder it names. */
+const AX_IMPORT = "#ouro-ax/";
+const AX_SOURCE = "registry/ouro/ax/";
+
+/** Where a lock source vendors Ouro AX's shared files (`lib/ouro-ui/registry/ouro/ax/`), or null. */
+const axFolderOf = (entries) => {
+  const one = entries.find((entry) => entry.sourcePath.startsWith(AX_SOURCE) && !entry.sourcePath.slice(AX_SOURCE.length).includes("/"));
+  return one ? `${posix.dirname(one.generatedPath)}/` : null;
+};
+
+/**
+ * The package.json a vendored Ouro AX file resolves `#ouro-ax/*` through: the nearest one above the vendored folder.
+ * It gets the entry, pointed at that folder, when it has none; one that points elsewhere is named, not changed.
+ */
+async function axImportFix(readFile, entries, files) {
+  const ax = axFolderOf(entries);
+  if (!ax || !Object.values(files).some((bytes) => Buffer.isBuffer(bytes) && bytes.includes(AX_IMPORT))) return { files: {}, notes: [] };
+  let dir = posix.dirname(ax.slice(0, -1));
+  for (;;) {
+    const path = dir === "." ? "package.json" : `${dir}/package.json`;
+    const text = (await readFile(path))?.toString("utf8");
+    if (text !== undefined) {
+      const base = dir === "." ? "" : `${dir}/`;
+      const want = `./${ax.slice(base.length)}*`;
+      const declared = axImportOf(text);
+      if (declared === null) {
+        const edit = editPackage(text, { axImport: want, moves: [] });
+        return { files: { [path]: Buffer.from(edit.text, "utf8") }, notes: [`Adds \`#ouro-ax/*\` to \`imports\` in \`${path}\`, pointed at \`${ax}\`, which the vendored Ouro AX files now import one another through.`] };
+      }
+      if (`${base}${declared}` !== ax) return { files: {}, notes: [`\`${path}\` points \`#ouro-ax/*\` at \`${base}${declared}\`, but the Ouro AX files are vendored in \`${ax}\`: point it at \`${want}\`.`] };
+      return { files: {}, notes: [] };
+    }
+    if (dir === "." || dir === "") break;
+    dir = posix.dirname(dir);
+  }
+  return { files: {}, notes: [] };
+}
 
 /** The file before which a new lock entry goes: the entries are kept in the order of their source paths. */
 const insertAt = (entries, sourcePath) => {
@@ -865,12 +907,15 @@ function followImports(entries, files, read) {
     const bytes = files[entry.generatedPath];
     if (!bytes || !/\.[cm]?[jt]sx?$/.test(entry.sourcePath)) continue;
     for (const spec of relativeImports(bytes.toString("utf8"))) {
-      const sourcePath = posix.normalize(posix.join(posix.dirname(entry.sourcePath), spec));
+      // `#ouro-ax/x.ts` is Ouro AX's own `registry/ouro/ax/x.ts`, vendored beside the source's other Ouro AX files.
+      const ax = spec.startsWith(AX_IMPORT) ? axFolderOf(entries) : null;
+      if (spec.startsWith(AX_IMPORT) && !ax) continue;
+      const sourcePath = ax ? `${AX_SOURCE}${spec.slice(AX_IMPORT.length)}` : posix.normalize(posix.join(posix.dirname(entry.sourcePath), spec));
       if (listed.has(sourcePath)) continue;
       const found = read(sourcePath);
       if (!found) continue;
       listed.add(sourcePath);
-      const generatedPath = posix.normalize(posix.join(posix.dirname(entry.generatedPath), spec));
+      const generatedPath = ax ? `${ax}${spec.slice(AX_IMPORT.length)}` : posix.normalize(posix.join(posix.dirname(entry.generatedPath), spec));
       const next = { sourcePath, generatedPath, sha256: sha256(found) };
       entries.splice(insertAt(entries, sourcePath), 0, next);
       files[generatedPath] = found;
