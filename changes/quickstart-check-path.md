@@ -1,0 +1,1 @@
+- Fixed: the agent quickstart runs Ouro check from scripts/ouro/check, where the ouro-check item now installs it, with the package.json import line it needs.

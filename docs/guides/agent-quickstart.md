@@ -52,7 +52,7 @@ export default defineConfig({
 }
 ```
 
-`tsconfig.app.json`, the template's with the alias, and Ouro check left out of the app's build (it runs in Node):
+`tsconfig.app.json`, the template's with the alias:
 
 ```json
 {
@@ -76,8 +76,7 @@ export default defineConfig({
     "noFallthroughCasesInSwitch": true,
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src"],
-  "exclude": ["src/lib/ouro/check", "src/lib/ouro/ax"]
+  "include": ["src"]
 }
 ```
 
@@ -90,6 +89,7 @@ npx shadcn@latest init --base base --preset nova --yes --no-monorepo
 node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('components.json','utf8'));c.registries={'@ouro':'https://ui.ouroboros.bot/r/{name}.json'};fs.writeFileSync('components.json',JSON.stringify(c,null,2))"
 npx shadcn@latest add @ouro/ouro-theme --yes
 npx shadcn@latest add @ouro/ouro-base @ouro/page-header @ouro/stack @ouro/form @ouro/text-field @ouro/select @ouro/switch @ouro/button @ouro/confirm-dialog @ouro/color-scheme-toggle @ouro/ouro-check --yes
+npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"
 ```
 
 Use these `@ouro` commands: the GitHub addresses install the same release but fetch each file from GitHub, which is much slower. Add other components the same way, `@ouro/<item>`; [llms.txt](https://ui.ouroboros.bot/llms.txt) lists them all.
@@ -190,7 +190,7 @@ rm -rf src/App.css src/assets public/icons.svg
 
 ```sh
 npm run build
-node src/lib/ouro/check/check.ts dist --sizes 390x844,1440x900
+node scripts/ouro/check/check.ts dist --sizes 390x844,1440x900
 ```
 
 Ouro check opens the build at a phone's and a laptop's size, light and dark, and lists what to fix; leave out `--sizes` to check it at the full set of sizes. It needs Chromium: `npx playwright install chromium` if it asks.
