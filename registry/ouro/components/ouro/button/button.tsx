@@ -82,7 +82,7 @@ export interface ButtonBaseProps {
    * whose `width` and `height` differ, such as a logo, keeps the label's padding. Any other
    * string is a type error whose message names the fix. @default "md"
    * @claim "as wide as it is tall" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > is as wide as it is tall at size %s, with only an icon and a name)
-   * @claim "A picture whose `width` and `height` differ" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps a label's padding around a wide picture such as a logo, and squares a square one)
+   * @claim "A picture whose `width` and `height` differ" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps a label's padding around a wide picture such as a logo, and squares a square one or an icon)
    * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::appearance > orders sizes sm < md < lg)
    * @claim "are taller on phones" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::className > lets the app's height and padding win at desktop widths too)
    * @claim "it takes the text's size" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::inline size > sits in a line of text at the text's size without moving the line, and keeps a 24px target)
