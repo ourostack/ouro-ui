@@ -23,7 +23,7 @@ toast("Recipe saved", { tone: "success" });
 
 Put it at the top with layout classes (`className="top-4 bottom-auto"`) and the stack hangs from the top: the newest toast is at the top, older ones peek out below it, it fans out downward, toasts slide in from above, and a swipe up dismisses one.
 
-At the bottom edge, keyboard focus stays clear of the stack. The page scrolls a control into view above it. If focus from the keyboard still lands under the stack, the stack moves to the top edge unless the top edge would cover the control too, and it moves back once focus has left and the stack has rested. A pointer's focus does not move it to the top.
+At the bottom edge, keyboard focus stays clear of the stack. The page scrolls a control into view above it. If focus from the keyboard still lands under the stack, the stack moves to the top edge unless the top edge would cover the control too, and it stays there until the toasts are gone. A pointer's focus does not move it to the top.
 
 Render one Toaster. A second one warns in development and shows nothing until the first unmounts, then takes over.
 

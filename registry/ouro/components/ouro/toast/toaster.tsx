@@ -105,8 +105,7 @@ export interface ToasterProps {
  *
  * At the bottom edge, keyboard focus stays clear of the stack. The page scrolls a control into view
  * above it. If focus from the keyboard still lands under the stack, the stack moves to the top edge
- * unless the top edge would cover the control too, and it moves back once focus has left and the
- * stack has rested. A pointer's focus does not move it to the top.
+ * unless the top edge would cover the control too, and it stays there until the toasts are gone. A pointer's focus does not move it to the top.
  *
  * Render one Toaster. A second one warns in development and shows nothing until the
  * first unmounts, then takes over.
@@ -126,8 +125,8 @@ export interface ToasterProps {
  * @claim "Put it at the top with layout" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > hangs from the top and unfurls downward when its layout classes put it at the top)
  * @claim "At the bottom edge, keyboard focus stays clear" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard focus under the stack > lets the browser scroll a control above a stack in the middle of the page, and leaves the stack at the bottom)
  * @claim "The page scrolls a control into view" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard focus under the stack > lets the browser scroll a control above a stack in the middle of the page, and leaves the stack at the bottom)
- * @claim "the stack moves to the top edge" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard focus under the stack > moves the stack to the top when focus lands under it at the page's end, and back once focus has left and it has rested)
- * @claim "and it moves back once focus has left" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard focus under the stack > moves the stack to the top when focus lands under it at the page's end, and back once focus has left and it has rested)
+ * @claim "the stack moves to the top edge" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard focus under the stack > moves the stack to the top when focus lands under it at the page's end, and keeps it there once focus has left)
+ * @claim "and it stays there until the toasts are gone" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard focus under the stack > keeps the stack at the top once it has moved, wherever focus goes, until the toasts are gone)
  * @claim "A pointer's focus does not move it" registry/ouro/components/ouro/toast/toaster.test.tsx verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::keyboard focus under the stack > does not move the stack for a pointer click on a control it covers)
  * @group Feedback
  * @see https://ui.ouroboros.bot/docs/toaster

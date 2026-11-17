@@ -1951,7 +1951,7 @@ describe("keyboard focus under the stack", () => {
     expect(parseFloat(document.documentElement.style.scrollPaddingBottom)).toBeGreaterThan(0);
   });
 
-  it("moves the stack to the top when focus lands under it at the page's end, and back once focus has left and it has rested", async () => {
+  it("moves the stack to the top when focus lands under it at the page's end, and keeps it there once focus has left", async () => {
     fakeClock();
     await longPage(
       <>
@@ -1979,13 +1979,12 @@ describe("keyboard focus under the stack", () => {
     viewport()!.style.removeProperty("bottom");
     await pressTab({ shift: true });
     await until(focused, "middle");
+    await advance(600);
     await frames();
     expect(moved()).toBe("top");
-    await advance(600);
-    await until(moved, null);
   });
 
-  it("moves the stack once for a form tabbed through at the foot of the page, and back only after focus leaves and it rests", async () => {
+  it("moves the stack once for a form tabbed through at the foot of the page, and keeps it at the top after focus leaves", async () => {
     fakeClock();
     await longPage(
       <>
@@ -2013,7 +2012,9 @@ describe("keyboard focus under the stack", () => {
     await pressTab({ shift: true });
     await pressTab({ shift: true });
     await until(focused, "middle");
-    await until(moved, null);
+    await advance(600);
+    await frames();
+    expect(moved()).toBe("top");
     watcher.disconnect();
     expect(moves.filter((value) => value === "top")).toHaveLength(1);
   });
@@ -2131,7 +2132,7 @@ describe("keyboard focus under the stack", () => {
     expect(expected()).toBeGreaterThan(before);
   });
 
-  it("moves the stack back to the bottom when focus lands under the top stack, and up again for a control the bottom covers", async () => {
+  it("keeps the stack at the top once it has moved, wherever focus goes, until the toasts are gone", async () => {
     fakeClock();
     await longPage(
       <button type="button" data-case="foot-one">
@@ -2143,46 +2144,22 @@ describe("keyboard focus under the stack", () => {
     await pressTab();
     await pressTab();
     await until(moved, "top");
+    // Focus under the stack at the top, then on nothing, then a long rest: the stack stays where it moved.
     await pressTab({ shift: true });
     await pressTab({ shift: true });
     await until(focused, "before");
-    // The top edge covers the page's first control, and the bottom does not: the stack goes back down at once.
-    // It stayed up once in an app's WebKit run (ourostack/ouro-ui#1764), so a failure says what the keeper decides from.
-    await until(moved, null).catch(async (error: Error) => {
-      const box = caseOf("before").getBoundingClientRect();
-      const bar = viewport()!;
-      const marks = bar.getAttributeNames().filter((name) => name.startsWith("data-")).map((name) => `${name}=${bar.getAttribute(name)}`);
-      const boxes = stack();
-      const animations = bar.getAnimations({ subtree: true }).map((animation) => `${(animation as CSSTransition).transitionProperty ?? (animation as CSSAnimation).animationName} ${animation.playState}`);
-      const state = `Focus on ${focused()} (focus-visible ${document.activeElement?.matches(":focus-visible")}), Before at ${Math.round(box.top)} to ${Math.round(box.bottom)}, the stack at ${Math.round(Math.min(...boxes.map((item) => item.top)))} to ${Math.round(Math.max(...boxes.map((item) => item.bottom)))}, scrolled ${Math.round(scrollY)}, the viewport ${marks.join(" ")}, opacity ${getComputedStyle(bar).opacity}, animations ${animations.join("; ") || "none"}`;
-      // Whether the keeper missed the focus or saw it and kept the stack (#1764): told the focus came again, does it move?
-      caseOf("before").dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      throw new Error(`${error.message}. ${state}. Told the focus again, the stack is ${moved() ?? "back at the bottom"}`, { cause: error });
-    });
-    await pressTab();
-    await pressTab();
-    await until(focused, "foot-one");
-    await until(moved, "top");
-  });
-
-  it("moves the stack back at once when focus falls to nothing after it has rested", async () => {
-    fakeClock();
-    await longPage(
-      <button type="button" data-case="foot-one">
-        One
-      </button>,
-    );
-    await show("Recording saved", { duration: Infinity });
-    caseOf("before").focus();
-    await pressTab();
-    await pressTab();
-    await until(moved, "top");
+    (document.activeElement as HTMLElement).blur();
     await advance(600);
     await frames();
     expect(moved()).toBe("top");
-    (document.activeElement as HTMLElement).blur();
+    // With the toasts gone, the next toast shows at the bottom.
+    await act(async () => toast.dismiss());
+    await advance(1000);
+    await until(() => document.querySelector('[data-ouro="toast"]') === null, true);
     await until(moved, null);
+    await show("Next", { duration: Infinity });
+    expect(moved()).toBeNull();
+    expect(viewport()!.getAttribute("data-edge")).toBe("bottom");
   });
 
   it("keeps the stack at the top while focus moves between two controls under the bottom stack, once it has rested", async () => {
@@ -2297,27 +2274,6 @@ describe("keyboard focus under the stack", () => {
     expect(moved()).toBeNull();
     expect(viewport()!.getAttribute("data-edge")).toBe("top");
     expect(document.documentElement.style.scrollPaddingBottom).toBe("");
-  });
-
-  it("moves the stack back when focus leaves the page altogether, once it has rested", async () => {
-    fakeClock();
-    await longPage(
-      <>
-        <button type="button" data-case="foot-one">
-          One
-        </button>
-      </>,
-    );
-    await show("Recording saved", { duration: Infinity });
-    caseOf("before").focus();
-    await pressTab();
-    await pressTab();
-    await until(moved, "top");
-    (document.activeElement as HTMLElement).blur();
-    await frames();
-    expect(moved()).toBe("top");
-    await advance(600);
-    await until(moved, null);
   });
 
   it("sets the page's scroll padding to the stack's height while toasts show, and gives back the app's own value after", async () => {

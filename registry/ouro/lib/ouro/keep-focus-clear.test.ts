@@ -10,6 +10,7 @@ import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 // the two delays the helper waits on, both on fake timers, so a test decides when they end.
 
 const FADE_MS = 300;
+/** The rest the stack once took before it could move back (#1818): long past it, it still stays. */
 const SETTLE_MS = 600;
 
 interface Box {
@@ -377,195 +378,50 @@ describe("keepFocusClear", () => {
     });
   });
 
-  describe("a toast still sliding in", () => {
-    it("moves the stack back to the bottom for a control the top stack covers, though a toast hung below the window as it moved up", async () => {
+  describe("staying at the top", () => {
+    it("keeps the stack at the top once it has moved, wherever focus goes and however long it rests", async () => {
       const bar = setup();
       control("covered", COVERED);
       control("top", TOP);
-      // The front toast still sliding in from below the window, as a loaded machine draws it, when the stack moves up.
-      const front = bar.querySelector<HTMLElement>('[data-ouro="toast"]')!;
-      front.style.transform = "translateY(40px)";
+      control("middle", MIDDLE);
       await tab("covered");
       advance(FADE_MS);
       await frames();
       expect(stateOf(bar).moved).toBe("top");
-      // At rest, and focus lands under the top stack: the bottom fits again, and the stack goes back.
-      front.style.transform = "";
-      await tab("top");
-      advance(FADE_MS);
+      // Under the stack at the top, clear of it, then on nothing: nothing brings it back while the toasts show.
+      for (const name of ["top", "middle"]) {
+        await tab(name);
+        advance(FADE_MS);
+        await frames();
+        expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+      }
+      (document.activeElement as HTMLElement).blur();
       await frames();
-      expect(stateOf(bar).moved).toBeNull();
-    });
-  });
-
-  describe("settling", () => {
-    it("moves back to the bottom only once the stack has rested for the settle time from its last move", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("middle", MIDDLE);
-      await tab("covered");
-      advance(FADE_MS);
-      await tab("middle");
-      advance(SETTLE_MS - 1);
-      expect(stateOf(bar).moved).toBe("top");
-      advance(1);
-      expect(stateOf(bar).fading).toBe(true);
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
-      expect(movedTop(bar)).toBe("");
-    });
-
-    it("measures the settle time from each landing, so an earlier move's timer does not end a later rest", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("top", TOP);
-      control("covered-again", COVERED);
-      control("middle", MIDDLE);
-      await tab("covered");
-      advance(FADE_MS);
-      advance(200);
-      await tab("top");
-      advance(FADE_MS);
-      expect(stateOf(bar).moved).toBeNull();
-      await tab("covered-again");
-      advance(FADE_MS);
-      expect(stateOf(bar).moved).toBe("top");
-      await tab("middle");
-      advance(SETTLE_MS - FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
-      advance(FADE_MS);
-      expect(stateOf(bar).fading).toBe(true);
-    });
-
-    it("forgets it has rested on each landing, so a rest that began before a move does not carry over", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("top", TOP);
-      control("covered-again", COVERED);
-      control("middle", MIDDLE);
-      await tab("covered");
-      advance(FADE_MS);
-      advance(SETTLE_MS);
-      await tab("top");
-      advance(FADE_MS);
-      await tab("covered-again");
-      advance(FADE_MS);
-      await tab("middle");
+      advance(SETTLE_MS * 10);
+      await frames();
       expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     });
 
-    it("keeps a stack at the top for a pointer's focus on a control it covers, once it has rested", async () => {
+    it("keeps a stack at the top for a pointer's focus on a control it covers", async () => {
       const bar = setup();
       control("covered", COVERED);
       await tab("covered");
       advance(FADE_MS);
-      advance(SETTLE_MS);
       const field = pointerControl("pointer", { left: 100, top: 30, width: 100, height: 30 });
       await userEvent.click(field);
       await frames(3);
-      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
-    });
-
-    it("looks again once the stack lands, for focus that moved under its new place during the fade", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("top", TOP);
-      await tab("covered");
-      expect(stateOf(bar).fading).toBe(true);
-      await tab("top");
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: true, edge: "top" });
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
-    });
-
-    it("does not move a stack that has moved back to the bottom again once it has rested", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("top", TOP);
-      await tab("covered");
-      advance(FADE_MS);
-      await tab("top");
-      advance(FADE_MS);
-      expect(stateOf(bar).moved).toBeNull();
-      advance(SETTLE_MS);
-      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
-    });
-
-    it("moves back on the frame after focus falls to nothing, once the stack has rested", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      await tab("covered");
-      advance(FADE_MS);
-      advance(SETTLE_MS);
-      (document.activeElement as HTMLElement).blur();
-      await frames();
-      expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
-    });
-
-    it("stays at the top when focus moves to another control the bottom stack covers, once it has rested", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("covered-too", { left: 100, top: 800, width: 100, height: 20 });
-      await tab("covered");
-      advance(FADE_MS);
-      advance(SETTLE_MS);
-      await tab("covered-too");
-      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
-    });
-
-    it("stays at the top when focus moves to a control only the full stack at the bottom covers, once it has rested", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("peek", { left: 100, top: 752, width: 100, height: 17 });
-      await tab("covered");
-      advance(FADE_MS);
-      advance(SETTLE_MS);
-      await tab("peek");
-      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
-    });
-
-    it("moves the stack again for a control it covers once it has come back to the bottom", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("middle", MIDDLE);
-      control("covered-again", { left: 100, top: 800, width: 100, height: 20 });
-      await tab("covered");
-      advance(FADE_MS);
-      await tab("middle");
-      advance(SETTLE_MS);
-      advance(FADE_MS);
-      expect(stateOf(bar).moved).toBeNull();
-      await tab("covered-again");
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
-    });
-
-    it("does not move the stack for focus that changes while no toast is laid out", async () => {
-      const bar = setup();
-      control("covered", COVERED);
-      control("middle", MIDDLE);
-      await tab("covered");
-      advance(FADE_MS);
-      advance(SETTLE_MS);
-      for (const toast of bar.querySelectorAll('[data-ouro="toast"]')) toast.remove();
-      await tab("middle");
       expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
     });
   });
 
   it("does not decide at focusout when focus moves to another control, but once focus has landed on it", async () => {
     const bar = setup();
-    control("covered", COVERED);
     control("middle", MIDDLE);
-    await tab("covered");
-    advance(FADE_MS);
-    advance(SETTLE_MS);
-    expect(stateOf(bar).moved).toBe("top");
-    caseOf("middle").focus();
-    expect(stateOf(bar)).toEqual({ moved: "top", collapsed: false, fading: false, edge: "top" });
+    control("covered", COVERED);
+    await tab("middle");
+    expect(stateOf(bar).moved).toBeNull();
+    caseOf("covered").focus();
+    expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
     await frames();
     expect(bar.hasAttribute("data-ouro-toaster-fading")).toBe(true);
   });
@@ -693,7 +549,7 @@ describe("keepFocusClear", () => {
       expect(padding()).toBe("86px");
     });
 
-    it("gives the page's own padding back while the stack is at the top, and its own again at the bottom", async () => {
+    it("gives the page's own padding back while the stack is at the top, and keeps it there", async () => {
       document.documentElement.style.scrollPaddingBottom = "7px";
       const bar = setup();
       expect(padding()).toBe("86px");
@@ -701,11 +557,11 @@ describe("keepFocusClear", () => {
       control("top", TOP);
       await tab("covered");
       advance(FADE_MS);
+      expect(stateOf(bar).moved).toBe("top");
       expect(padding()).toBe("7px");
       await tab("top");
       advance(FADE_MS);
-      expect(stateOf(bar).moved).toBeNull();
-      expect(padding()).toBe("86px");
+      expect(padding()).toBe("7px");
     });
 
     it("measures the stack again when refreshed, so the padding follows the front toast's height", () => {
@@ -774,22 +630,6 @@ describe("keepFocusClear", () => {
       control("covered", COVERED);
       await tab("covered");
       handle!.release();
-      advance(FADE_MS);
-      expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
-    });
-
-    it("stops its settle timer when it is released, so a later rest moves nothing", async () => {
-      const bar = setup();
-      control("top", TOP);
-      control("covered", COVERED);
-      await tab("covered");
-      advance(FADE_MS);
-      handle!.release();
-      await pressTab({ shift: true });
-      await pressTab();
-      await frames();
-      advance(SETTLE_MS);
-      await frames();
       advance(FADE_MS);
       expect(stateOf(bar)).toEqual({ moved: null, collapsed: false, fading: false, edge: "bottom" });
     });
