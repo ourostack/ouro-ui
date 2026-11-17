@@ -287,31 +287,56 @@ test("a source that names its release as `tag` moves it with its commit, every o
   assert.equal(update.files["upstream-sources.lock.json"], expected);
 });
 
-test("a core manifest copied beside its files moves them to the release's, leaving an edited or unlisted file alone", async () => {
+test("a core manifest copied beside its files moves with them, or, when one was edited here or is no longer shipped, none of them moves", async () => {
   const oldManifest = { coreTag: "v0.13.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v1"), "dist/ax/actions.claims.json": sha256("claims v1"), "dist/web/ouro-base.css": sha256("base v1") } };
-  const newManifest = `${JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v2"), "dist/ax/actions.claims.json": sha256("claims v2"), "dist/web/ouro-base.css": sha256("base v2") } }, null, 2)}\n`;
-  const ctx = {
-    ...distAsset({ "dist-manifest.json": newManifest, "actions/ouro-actions.mts": "gen v2", "ax/actions.claims.json": "claims v2", "web/ouro-base.css": "base v2" }),
-    consumerFolder: async (dir) => {
-      assert.equal(dir, "tools/ouro-actions");
-      return new Map(Object.entries({
-        "tools/ouro-actions/dist-manifest.json": JSON.stringify(oldManifest),
-        "tools/ouro-actions/ouro-actions.mts": "gen v1",
-        "tools/ouro-actions/actions.claims.json": "claims edited here",
-        "tools/ouro-actions/README.md": "ours",
-      }).map(([path, text]) => [path, Buffer.from(text)]));
-    },
+  const newManifest = `${JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v2"), "dist/ax/actions.claims.json": sha256("claims v1"), "dist/web/ouro-base.css": sha256("base v2") } }, null, 2)}\n`;
+  const folder = (claims) => async (dir) => {
+    assert.equal(dir, "tools/ouro-actions");
+    return new Map(Object.entries({
+      "tools/ouro-actions/dist-manifest.json": JSON.stringify(oldManifest),
+      "tools/ouro-actions/ouro-actions.mts": "gen v1",
+      "tools/ouro-actions/actions.claims.json": claims,
+      "tools/ouro-actions/README.md": "ours",
+    }).map(([path, text]) => [path, Buffer.from(text)]));
   };
+  const asset = distAsset({ "dist-manifest.json": newManifest, "actions/ouro-actions.mts": "gen v2", "ax/actions.claims.json": "claims v1", "web/ouro-base.css": "base v2" });
   const pin = { kind: "core-manifest", file: "tools/ouro-actions/dist-manifest.json", follows: "core", current: "v0.13.0" };
-  const update = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), RELEASES.core, ctx);
+
+  // As housesitter and m365crawl vendor the generator: it moves with the manifest; an unchanged file and one the
+  // manifest does not list stay as they are.
+  const update = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), RELEASES.core, { ...asset, consumerFolder: folder("claims v1") });
   assert.deepEqual(Object.keys(update.files).sort(), ["tools/ouro-actions/dist-manifest.json", "tools/ouro-actions/ouro-actions.mts"]);
   assert.equal(update.files["tools/ouro-actions/ouro-actions.mts"].toString(), "gen v2");
   assert.equal(update.files["tools/ouro-actions/dist-manifest.json"].toString(), newManifest, "the release's manifest, byte for byte");
-  assert.ok(update.notes.some((note) => note.includes("`tools/ouro-actions/actions.claims.json`") && /edited here/.test(note)));
-  const stampFree = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), { ...RELEASES.core, tag: "v0.17.6" }, ctx);
+
+  // One listed file edited here: the manifest stays with it, so the repository's hash check still holds.
+  const edited = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), RELEASES.core, { ...asset, consumerFolder: folder("claims edited here") });
+  assert.deepEqual(edited.files, {});
+  assert.ok(edited.notes.some((note) => note.includes("`tools/ouro-actions/actions.claims.json` is not the file `v0.13.0` shipped") && /moves only with its files/.test(note)));
+
+  // A listed file the release no longer ships: none of them moves either.
+  const dropped = `${JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v2") } }, null, 2)}\n`;
+  const gone = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), RELEASES.core, { ...distAsset({ "dist-manifest.json": dropped, "actions/ouro-actions.mts": "gen v2" }), consumerFolder: folder("claims v1") });
+  assert.deepEqual(gone.files, {});
+  assert.ok(gone.notes.some((note) => /no longer ships `tools\/ouro-actions\/actions\.claims\.json`/.test(note)));
+  assert.deepEqual([...edited.notes, ...gone.notes].flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+
+  const stampFree = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), { ...RELEASES.core, tag: "v0.17.6" }, { ...asset, consumerFolder: folder("claims v1") });
   assert.ok(stampFree.notes.some((note) => /version stamp/.test(note)), "from core v0.17.6 on, projections need nothing generated again");
   assert.ok(!update.notes.some((note) => /version stamp/.test(note)));
   assert.deepEqual(stampFree.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+});
+
+test("a repository whose whole update is held back gets no pull request, and the reason", async () => {
+  const oldManifest = { coreTag: "v0.13.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v1") } };
+  const newManifest = JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v2") } });
+  const repo = fakeRepo({ "tools/ouro-actions/dist-manifest.json": JSON.stringify(oldManifest), "tools/ouro-actions/ouro-actions.mts": "gen edited here" });
+  const kept = await keepRepo(repo.gh, "o/r", RELEASES, distAsset({ "dist-manifest.json": newManifest, "actions/ouro-actions.mts": "gen v2" }));
+  assert.equal(kept.state, "skipped");
+  assert.equal(kept.pr, null);
+  assert.match(kept.reason, /`tools\/ouro-actions\/ouro-actions\.mts` is not the file `v0\.13\.0` shipped/);
+  assert.equal(repo.pulls.length, 0);
+  assert.equal(repo.calls.filter((call) => call.startsWith("POST repos/o/r/git/")).length, 0, "nothing is written");
 });
 
 test("a core manifest a lock vendors is the lock's, a repository never follows itself, and its rules can leave a pin alone", async () => {

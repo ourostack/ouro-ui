@@ -384,9 +384,10 @@ async function updateVendorLock(pin, text, release, ctx) {
 }
 
 /**
- * Files vendored from a core release with its `dist-manifest.json` copied beside them (`tools/ouro-actions/`). A file
- * in the manifest's folder is updated only when it is the old release's file, by name and by the old manifest's hash:
- * then the new release's file takes its place. A file that differs was edited here, so it is left alone and named. A
+ * Files vendored from a core release with its `dist-manifest.json` copied beside them (`tools/ouro-actions/`). The
+ * manifest and the files it lists move together or not at all, since a repository checks each file against the
+ * manifest's hash: every listed file must be the old release's, by name and by the old manifest's hash, and still
+ * shipped. When one was edited here, or the release no longer ships it, the whole set stays and the file is named. A
  * file the manifest does not list is not core's, and is left alone.
  */
 async function updateCoreManifest(pin, text, release, ctx) {
@@ -409,6 +410,14 @@ async function updateCoreManifest(pin, text, release, ctx) {
     else if (!(source in next.files)) gone.push(path);
     else if (next.files[source] !== hash) moves.push({ path, source });
   }
+  const one = (paths, single, several) => (paths.length === 1 ? single : several);
+  if (edited.length || gone.length) {
+    const why = [
+      edited.length ? `${list(edited)} ${one(edited, "is", "are")} not the file \`${old.coreTag}\` shipped (edited here)` : null,
+      gone.length ? `the release no longer ships ${list(gone)}` : null,
+    ].filter(Boolean).join(", and ");
+    return { files: {}, notes: [`Leaves \`${pin.file}\` and the files it lists at \`${old.coreTag}\`, because ${why}, and the manifest moves only with its files. Copy the release's files again, or move the change into Ouro UI core.`] };
+  }
   const got = await ctx.assetFiles("core", release.tag, asset, moves.map((move) => inDistAsset(move.source)));
   const files = {};
   for (const { path, source } of moves) {
@@ -417,10 +426,7 @@ async function updateCoreManifest(pin, text, release, ctx) {
     files[path] = bytes;
   }
   files[pin.file] = manifestBytes;
-  const one = (paths, single, several) => (paths.length === 1 ? single : several);
   const notes = [];
-  if (edited.length) notes.push(`Leaves ${list(edited)} at \`${old.coreTag}\`, because ${one(edited, "it is", "they are")} not the file \`${old.coreTag}\` shipped (edited here). Copy ${one(edited, "it", "them")} from the release again, or move the change into Ouro UI core.`);
-  if (gone.length) notes.push(`Keeps what the release no longer ships: ${list(gone)}.`);
   if (moves.some(({ source }) => /(^|\/)actions\//.test(source))) notes.push(...projectionsNote(release));
   return { files, notes };
 }

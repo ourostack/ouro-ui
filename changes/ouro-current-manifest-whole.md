@@ -1,0 +1,1 @@
+- Fixed: Ouro Current moves a copied core `dist-manifest.json` only with the files it lists. When one was edited here or is no longer shipped, the set stays as it is and the update says why; an update held back whole is logged as skipped instead of opening a pull request.
