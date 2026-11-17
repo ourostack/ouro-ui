@@ -121,6 +121,58 @@ test("Ouro HX takes the new tag's source as the CLI would write it, adds files i
   assert.ok(update.notes.some((note) => note.includes("alert.tsx") && /edited here/.test(note)));
 });
 
+test("Ouro HX puts an added item where the app's own aliases resolve, and rewrites its imports, at the root or in a package", async () => {
+  const kbd = (v, imports) => `${imports}export const Kbd = "${v}";\n`;
+  const lib = (name, deps = []) => ({ name: `lib-${name}`, registryDependencies: deps, files: [{ path: `registry/ouro/lib/ouro/${name}.ts`, target: `@lib/ouro/${name}.ts` }] });
+  const checks = Array.from({ length: 4 }, (_, i) => `c${i}`);
+  const items = (kbdDeps) => [
+    { name: "kbd", registryDependencies: kbdDeps, files: [{ path: "registry/ouro/components/ouro/kbd/kbd.tsx", target: "@components/ouro/kbd/kbd.tsx" }] },
+    lib("cn"),
+    lib("use-platform", ["ourostack/ouro-ui/lib-platform#v1.3.235"]),
+    lib("platform"),
+    { name: "check", files: checks.map((c) => ({ path: `registry/ouro/lib/ouro/check/${c}.ts`, target: `@lib/ouro/check/${c}.ts` })) },
+  ];
+  const files = (entries) => new Map(Object.entries(entries).map(([k, v]) => [k, Buffer.from(v)]));
+  const checkSources = Object.fromEntries(checks.map((c) => [`registry/ouro/lib/ouro/check/${c}.ts`, c]));
+  const previous = files({ "registry.json": JSON.stringify({ items: items([]) }), "registry/ouro/components/ouro/kbd/kbd.tsx": kbd("v1", ""), "registry/ouro/lib/ouro/cn.ts": "cn", ...checkSources });
+  const next = files({
+    "registry.json": JSON.stringify({ items: items(["ourostack/ouro-ui/lib-use-platform#v1.3.235"]) }),
+    "registry/ouro/components/ouro/kbd/kbd.tsx": kbd("v2", 'import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";\n'),
+    "registry/ouro/lib/ouro/use-platform.ts": 'import type { Platform } from "@/registry/ouro/lib/ouro/platform";\n',
+    "registry/ouro/lib/ouro/platform.ts": "export type Platform = string;\n",
+    "registry/ouro/lib/ouro/cn.ts": "cn",
+    ...checkSources,
+  });
+  const components = JSON.stringify({ aliases: { components: "@/components", lib: "@/lib" } });
+  // The tsconfig a Vite or Astro app writes: comments, and a trailing comma.
+  const tsconfig = '{\n  // paths\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["./src/*"] }, },\n}\n';
+  const pin = { kind: "hx-installed", file: ".github/ouro-hx-installed.json", follows: "web" };
+  const run = async (dir, checkDir) => {
+    const installed = {
+      [`${dir}src/components/ouro/kbd/kbd.tsx`]: kbd("v1", ""),
+      [`${dir}src/lib/ouro/cn.ts`]: "cn",
+      ...Object.fromEntries(checks.map((c) => [`${checkDir}lib/ouro/check/${c}.ts`, c])),
+    };
+    const record = { tag: "v1.3.232", tagCommit: "old", files: Object.fromEntries(Object.entries(installed).map(([path, text]) => [path, sha256(text)])) };
+    const consumer = files({ [`${dir}components.json`]: components, [`${dir}tsconfig.json`]: tsconfig, ...installed });
+    const ctx = { tarball: async (follows, tag) => (tag === "v1.3.232" ? previous : next), consumerFiles: async () => consumer };
+    return UPDATERS["hx-installed"](pin, JSON.stringify(record), RELEASES.web, ctx);
+  };
+
+  // As ouroboros.bot keeps it: `@/lib` is `src/lib/`, though more installed files sit in a `lib/` kept apart.
+  const root = await run("", "");
+  assert.equal(root.files["src/lib/ouro/use-platform.ts"]?.toString(), 'import type { Platform } from "@/lib/ouro/platform";\n');
+  assert.equal(root.files["src/lib/ouro/platform.ts"]?.toString(), "export type Platform = string;\n");
+  assert.equal(root.files["lib/ouro/platform.ts"], undefined, "not beside the files kept apart, where `@/lib` does not resolve");
+  assert.match(root.files["src/components/ouro/kbd/kbd.tsx"].toString(), /from "@\/lib\/ouro\/use-platform"/);
+
+  // As a monorepo keeps it: components.json and the tsconfig are in the package, not at the root.
+  const pkg = await run("packages/mail/", "packages/mail/src/");
+  assert.equal(pkg.files["packages/mail/src/lib/ouro/use-platform.ts"]?.toString(), 'import type { Platform } from "@/lib/ouro/platform";\n', "imports rewritten with the package's aliases");
+  assert.equal(pkg.files["packages/mail/src/lib/ouro/platform.ts"]?.toString(), "export type Platform = string;\n");
+  assert.match(pkg.files["packages/mail/src/components/ouro/kbd/kbd.tsx"].toString(), /from "@\/lib\/ouro\/use-platform"/);
+});
+
 test("Ouro HX adds the items an updated item now depends on, as the CLI follows registryDependencies, and leaves the app's own files alone", async () => {
   const kbd = (v, imports) => `${imports}import { cn } from "@/registry/ouro/lib/ouro/cn";\nexport const Kbd = "${v}";\n`;
   const lib = (name) => ({ name: `lib-${name}`, files: [{ path: `registry/ouro/lib/ouro/${name}.ts`, target: `@lib/ouro/${name}.ts` }] });

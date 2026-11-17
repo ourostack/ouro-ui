@@ -1,0 +1,1 @@
+- Fixed: Ouro Current puts a file an update adds where the app's own `components.json` and `tsconfig.json` resolve its alias, and rewrites its imports with them, also when they sit in a package of a monorepo.

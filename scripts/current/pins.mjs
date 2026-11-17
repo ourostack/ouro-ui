@@ -156,6 +156,56 @@ export function installRewrite(componentsJson) {
   };
 }
 
+/** JSON with the comments and trailing commas a tsconfig may hold. */
+function looseJson(text) {
+  const bare = text.replace(/("(?:[^"\\]|\\.)*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (match, string) => string ?? "");
+  return JSON.parse(bare.replace(/,(\s*[}\]])/g, "$1"));
+}
+
+/**
+ * The app's `components.json`, as the CLI finds it: in the folder it runs in, which holds the installed files (a
+ * package in a monorepo, `packages/web/`, or the repository's root). The folder that holds the most of them wins.
+ */
+function findComponentsJson(consumer, installed) {
+  let best = null;
+  for (const path of consumer.keys()) {
+    if (posix.basename(path) !== "components.json") continue;
+    const dir = posix.dirname(path) === "." ? "" : `${posix.dirname(path)}/`;
+    const holds = installed.filter((file) => file.startsWith(dir)).length;
+    if (holds > 0 && (!best || holds > best.holds || (holds === best.holds && dir.length > best.dir.length))) best = { dir, holds, json: JSON.parse(consumer.get(path).toString("utf8")) };
+  }
+  return best;
+}
+
+/**
+ * Where the app's own aliases put a registry alias (`@lib` at `src/lib/` when components.json says `@/lib` and the
+ * tsconfig maps `@/*` to `./src/*`), as the CLI resolves them. A new file goes there, so its imports resolve.
+ */
+function declaredRoots(found, consumer) {
+  if (!found) return {};
+  const tsconfig = consumer.get(`${found.dir}tsconfig.json`);
+  let paths = {};
+  try {
+    paths = tsconfig ? (looseJson(tsconfig.toString("utf8")).compilerOptions?.paths ?? {}) : {};
+  } catch {
+    return {};
+  }
+  const resolve = (alias) => {
+    for (const [pattern, [target] = []] of Object.entries(paths)) {
+      if (!pattern.endsWith("/*") || !target?.endsWith("/*")) continue;
+      const prefix = pattern.slice(0, -1);
+      if (`${alias}/`.startsWith(prefix)) return posix.normalize(`${found.dir}${target.slice(0, -1)}${`${alias}/`.slice(prefix.length)}`).replace(/^\.\//, "");
+    }
+    return null;
+  };
+  const roots = {};
+  for (const [key, alias] of [["@components", found.json.aliases?.components], ["@lib", found.json.aliases?.lib]]) {
+    const root = alias && resolve(alias);
+    if (root) roots[key] = root.endsWith("/") ? root : `${root}/`;
+  }
+  return roots;
+}
+
 /** The part of a target after its alias (`ouro/check/check.ts` for `@lib/ouro/check/check.ts`). */
 const afterAlias = (target) => target.replace(/^(@[a-z]+|~)\//, "");
 
@@ -164,9 +214,9 @@ const afterAlias = (target) => target.replace(/^(@[a-z]+|~)\//, "");
  * where the record says, even when the app keeps it apart from the rest of its alias (Ouro check in `lib/ouro/check/`
  * beside components in `src/`); a file the record lacks goes beside its item's other files, else under its alias.
  */
-function installedPaths(tarball, installed) {
+function installedPaths(tarball, installed, declared = {}) {
   const targets = registryTargets(tarball).filter((entry) => tarball.has(entry.path));
-  const roots = aliasRoots(targets, installed);
+  const roots = { ...aliasRoots(targets, installed), ...declared };
   const byPath = new Map();
   const itemRoots = new Map();
   for (const entry of targets) {
@@ -197,10 +247,11 @@ async function updateHxInstalled(pin, text, release, ctx) {
   const record = JSON.parse(text);
   const installed = Object.keys(record.files);
   const [previous, next, consumer] = await Promise.all([ctx.tarball("web", record.tag), ctx.tarball("web", release.tag), ctx.consumerFiles()]);
-  const before = installedPaths(previous, installed);
-  const after = installedPaths(next, installed);
-  const componentsJson = consumer.get(posix.join(dirname(dirname(pin.file)), "components.json")) ?? consumer.get("components.json");
-  const rewrite = installRewrite(componentsJson ? JSON.parse(componentsJson.toString("utf8")) : null);
+  const found = findComponentsJson(consumer, installed);
+  const declared = declaredRoots(found, consumer);
+  const before = installedPaths(previous, installed, declared);
+  const after = installedPaths(next, installed, declared);
+  const rewrite = installRewrite(found?.json ?? null);
   const out = {};
   const hashes = {};
   const edited = [];
