@@ -581,6 +581,16 @@ test("llms.txt names the items for common needs before an agent's first fetch en
   const named = [...llms.slice(start, end).matchAll(/`([a-z][a-z0-9-]*)`/g)].map((match) => match[1]);
   const items = new Set(registry.items.map((entry) => entry.name));
   for (const name of named) assert.ok(items.has(name), `Common needs names ${name}, which is no registry item`);
+  // The section tells an agent to read an item's page at docs/<item>.md, so each item it names, and each docs address it
+  // gives, must be a page: a guessed address that 404s costs the agent a fetch and sends it to read the source.
+  const pages = new Set([
+    ...JSON.parse(readFileSync(join(root, "site/src/docs/catalog.json"), "utf8")).map((page) => page.name),
+    ...JSON.parse(readFileSync(join(root, "site/src/docs/pages.json"), "utf8")).map((page) => page.name),
+  ]);
+  for (const name of named) assert.ok(pages.has(name), `Common needs names ${name}, which has no page at docs/${name}.md`);
+  const addresses = [...llms.slice(start, end).matchAll(/https:\/\/ui\.ouroboros\.bot\/docs\/([a-z0-9-]+)\.md/g)].map((match) => match[1]);
+  for (const slug of addresses) assert.ok(pages.has(slug), `Common needs links docs/${slug}.md, which is no page`);
+  assert.ok(addresses.includes("color-scheme-provider"), "Common needs links ColorSchemeProvider's page");
   for (const need of ["color-scheme-toggle", "confirm-dialog", "form", "toaster"]) assert.ok(named.includes(need), `Common needs names ${need}`);
 });
 
