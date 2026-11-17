@@ -1,5 +1,6 @@
 import { composeStories, setProjectAnnotations } from "@storybook/react";
 import type { ComponentType } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { inject, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
@@ -207,6 +208,21 @@ export async function renderStory(Story: ComponentType): Promise<HTMLElement> {
   await act(async () => root.render(inPage(Story)));
   // A play function brings the story to the state it shows, as Storybook runs it after rendering.
   await (Story as ComposedStory).play?.({ canvasElement: host });
+  return host;
+}
+
+/**
+ * Renders a story as its first commit, synchronously and before any effect or frame has run, so a test reads what the
+ * first frame draws. Its play function does not run: a first frame is what the story mounts with.
+ */
+export function renderStoryFirstCommit(Story: ComponentType): HTMLElement {
+  const host = document.createElement("div");
+  host.dataset["storyHost"] = "";
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  flushSync(() => root.render(inPage(Story)));
   return host;
 }
 
