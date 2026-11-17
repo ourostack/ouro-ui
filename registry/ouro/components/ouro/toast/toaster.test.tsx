@@ -2251,15 +2251,17 @@ describe("keyboard focus under the stack", () => {
     await until(focused, "before");
     // The top edge covers the page's first control, and the bottom does not: the stack goes back down at once.
     // It stayed up once in an app's WebKit run (ourostack/ouro-ui#1764), so a failure says what the keeper decides from.
-    await until(moved, null).catch((error: Error) => {
+    await until(moved, null).catch(async (error: Error) => {
       const box = caseOf("before").getBoundingClientRect();
       const bar = viewport()!;
       const marks = bar.getAttributeNames().filter((name) => name.startsWith("data-")).map((name) => `${name}=${bar.getAttribute(name)}`);
       const boxes = stack();
-      throw new Error(
-        `${error.message}. Focus on ${focused()} (focus-visible ${document.activeElement?.matches(":focus-visible")}), Before at ${Math.round(box.top)} to ${Math.round(box.bottom)}, the stack at ${Math.round(Math.min(...boxes.map((item) => item.top)))} to ${Math.round(Math.max(...boxes.map((item) => item.bottom)))}, scrolled ${Math.round(scrollY)}, the viewport ${marks.join(" ")}`,
-        { cause: error },
-      );
+      const animations = bar.getAnimations({ subtree: true }).map((animation) => `${(animation as CSSTransition).transitionProperty ?? (animation as CSSAnimation).animationName} ${animation.playState}`);
+      const state = `Focus on ${focused()} (focus-visible ${document.activeElement?.matches(":focus-visible")}), Before at ${Math.round(box.top)} to ${Math.round(box.bottom)}, the stack at ${Math.round(Math.min(...boxes.map((item) => item.top)))} to ${Math.round(Math.max(...boxes.map((item) => item.bottom)))}, scrolled ${Math.round(scrollY)}, the viewport ${marks.join(" ")}, opacity ${getComputedStyle(bar).opacity}, animations ${animations.join("; ") || "none"}`;
+      // Whether the keeper missed the focus or saw it and kept the stack (#1764): told the focus came again, does it move?
+      caseOf("before").dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      throw new Error(`${error.message}. ${state}. Told the focus again, the stack is ${moved() ?? "back at the bottom"}`, { cause: error });
     });
     await pressTab();
     await pressTab();
