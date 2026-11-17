@@ -1,0 +1,1 @@
+- Changed: llms.txt's Install section leads with the @ouro namespace, which installs much faster than the GitHub addresses, and the agent quickstart says when its app is done.

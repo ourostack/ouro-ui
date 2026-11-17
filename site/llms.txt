@@ -12,13 +12,21 @@ Check what you build first: build your app, run node lib/ouro/check/check.ts <bu
 
 ## Install
 
-In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, then add items:
+In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, register the @ouro namespace, then add items. The namespace serves the newest release (the same code as #v1.3.241)[^namespace] and installs much faster than the GitHub addresses, which fetch each file from GitHub:
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
+# Register @ouro in components.json:
+node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('components.json','utf8'));c.registries={'@ouro':'https://ui.ouroboros.bot/r/{name}.json'};fs.writeFileSync('components.json',JSON.stringify(c,null,2))"
+# ouro-base first, once per app: the tokens every component needs. Then the components.
+npx shadcn@latest add @ouro/ouro-base @ouro/dialog @ouro/form --yes
+```
+
+To pin a release instead, use the GitHub addresses:
+
+```sh
 npx shadcn@latest search 'ourostack/ouro-ui#v1.3.241'      # list the items
 npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.241'  # read one item
-# Once per app, before the first component: the tokens every component needs.
 npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.241
 npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.241     # install a component
 ```
@@ -32,7 +40,6 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.241     # install a componen
 - A release tag (#v1.3.241) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
 - Components land in components/ouro/<component>/ and the helpers they import in lib/ouro/, one file each.[^lands] Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.[^not-ui]
 - Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.241 ourostack/ouro-ui/dialog-tests#v1.3.241), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
-- The @ouro namespace serves the newest release (the same code as #v1.3.241)[^namespace]: add "registries": { "@ouro": "https://ui.ouroboros.bot/r/{name}.json" } to components.json, then npx shadcn@latest add @ouro/ouro-base @ouro/dialog (ouro-base once per app).
 
 ## Common needs
 

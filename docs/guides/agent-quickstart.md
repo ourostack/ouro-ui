@@ -83,16 +83,16 @@ export default defineConfig({
 
 ## 3. Install Ouro UI
 
-This sets up shadcn/ui, registers the `@ouro` namespace, which serves the newest release,[^namespace] then adds the base tokens once and the components the page uses:
+This sets up shadcn/ui, registers the `@ouro` namespace, which serves the newest release,[^namespace] then adds the Ouro theme, and the base tokens, once, with the components the page uses:
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
 node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('components.json','utf8'));c.registries={'@ouro':'https://ui.ouroboros.bot/r/{name}.json'};fs.writeFileSync('components.json',JSON.stringify(c,null,2))"
-npx shadcn@latest add @ouro/ouro-base --yes
-npx shadcn@latest add @ouro/ouro-theme @ouro/page-header @ouro/stack @ouro/form @ouro/text-field @ouro/select @ouro/switch @ouro/button @ouro/confirm-dialog @ouro/color-scheme-toggle @ouro/ouro-check --yes
+npx shadcn@latest add @ouro/ouro-theme --yes
+npx shadcn@latest add @ouro/ouro-base @ouro/page-header @ouro/stack @ouro/form @ouro/text-field @ouro/select @ouro/switch @ouro/button @ouro/confirm-dialog @ouro/color-scheme-toggle @ouro/ouro-check --yes
 ```
 
-Add other components the same way, `@ouro/<item>`; [llms.txt](https://ui.ouroboros.bot/llms.txt) lists them all.
+Use these `@ouro` commands: the GitHub addresses install the same release but fetch each file from GitHub, which is much slower. Add other components the same way, `@ouro/<item>`; [llms.txt](https://ui.ouroboros.bot/llms.txt) lists them all.
 
 ## 4. Write the app
 
@@ -114,7 +114,7 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-`src/App.tsx`:
+`src/App.tsx` is the whole page, laid out by Ouro's Stack and PageHeader rather than CSS of its own: start from it and change its fields to what you are building, rather than writing the page from scratch. A component's props are on its page, `https://ui.ouroboros.bot/docs/<item>.md`, and in the JSDoc of the installed source, `src/components/ouro/<item>/<item>.tsx`.
 
 ```tsx
 import { useState } from "react";
@@ -178,7 +178,11 @@ export default function App() {
 }
 ```
 
-Delete `src/App.css` and `src/assets/`, which the template's page used.
+Remove what only the template's page used:
+
+```sh
+rm -rf src/App.css src/assets public/icons.svg
+```
 
 ## 5. Build and check
 
@@ -188,6 +192,8 @@ node src/lib/ouro/check/check.ts dist --sizes 390x844,1440x900
 ```
 
 Ouro check opens the build at a phone's and a laptop's size, light and dark, and lists what to fix; leave out `--sizes` to check it at the full set of sizes. It needs Chromium: `npx playwright install chromium` if it asks.
+
+The app is done when the build passes and Ouro check reports `0 finding(s)`. The components come with their own tests (add `@ouro/<item>-tests` to run them), so tests you write cover your own logic.
 
 ## Next
 
