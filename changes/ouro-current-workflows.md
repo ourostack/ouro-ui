@@ -1,0 +1,1 @@
+- Changed: Ouro Current leaves `.github/workflows/` alone and says so, since an app changes a workflow only with the `workflows` permission, which Ouro Current does not ask for.

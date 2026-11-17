@@ -187,6 +187,11 @@ async function autoMerge(gh, pr) {
   return { on: false, note: failures.at(-1) };
 }
 
+/** Whether a path is a workflow, which an app writes only with the `workflows` permission. */
+export const inWorkflows = (path) => /^\.github\/workflows\//.test(path);
+const workflowNote = (paths) =>
+  `Leaves ${paths.map((path) => `\`${path}\``).join(", ")} alone: GitHub lets an app change \`.github/workflows/\` only with the \`workflows\` permission, which Ouro Current does not ask for. Keep the Ouro UI version in a file the workflow reads at run time, such as \`.github/ouro-hx-installed.json\`.`;
+
 /** One repository: current, or updated through the bot's one pull request. */
 export async function keepRepo(gh, repo, releases, sources, { dryRun = false } = {}) {
   const info = await gh.get(`repos/${repo}`);
@@ -243,7 +248,14 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
     Object.assign(files, update.files);
     notes.push(...update.notes);
   }
-  const name = title(behind, releases);
+  // GitHub lets an app write under .github/workflows/ only with the `workflows` permission, which Ouro Current does not
+  // ask for: it would need every installation approved again, and give the app write access to every repository's CI.
+  // A pin there is left alone and said so; the repository keeps the version in a file its workflow reads instead.
+  const held = [...new Set([...Object.keys(files), ...behind.map((pin) => pin.file)].filter(inWorkflows))].sort();
+  for (const path of held) delete files[path];
+  if (held.length) notes.push(workflowNote(held));
+  if (behind.every((pin) => inWorkflows(pin.file))) return { ...result, state: "skipped", reason: workflowNote(held), pr: null };
+  const name = title(behind.filter((pin) => !inWorkflows(pin.file)), releases);
   const latestRelease = async () => {
     try {
       return (await gh.get(`repos/${repo}/releases/latest`)).tag_name ?? null;
