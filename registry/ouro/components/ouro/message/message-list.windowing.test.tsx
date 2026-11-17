@@ -454,6 +454,22 @@ describe("MessageList windowing", () => {
       // itself moves a scroll position past the new end. Still within a quarter of the view of it.
       if (scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <= (grows ? 2 : 30)) return scroller.addEventListener("scroll", grow, { once: true });
       now += 200;
+      // What the list measures as it holds the change (#1646): every box it reads of a message or the content over the next two
+      // frames, as `r<ms> <id>:<top>` (the content as `c`), so a failure shows which message held the place and how far it moved.
+      const box = Element.prototype.getBoundingClientRect;
+      const reads: string[] = [];
+      Element.prototype.getBoundingClientRect = function (this: Element) {
+        const rect = box.call(this);
+        const name = this === content ? "c" : /^m\d+$/.test(this.id) ? this.id : "";
+        if (name && reads.length < 80) reads.push(`${name}:${Math.round(rect.top)}`);
+        return rect;
+      };
+      const restore = () => {
+        Element.prototype.getBoundingClientRect = box;
+        log.push(`r${real()} grew ${above} reads ${reads.join(" ") || "none"}`);
+      };
+      onTestFinished(() => void (Element.prototype.getBoundingClientRect = box));
+      requestAnimationFrame(() => requestAnimationFrame(restore));
       flushSync(() => root.render(<Chat items={items.map((item) => (item.id === above ? (grows ? { ...item, text: item.text + " more words".repeat(40) } : { ...item, tall: 39 }) : item))} />));
     };
     scroller.addEventListener("scroll", grow, { once: true });
