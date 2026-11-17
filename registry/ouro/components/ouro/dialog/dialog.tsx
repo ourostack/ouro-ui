@@ -230,6 +230,11 @@ function firstFocus(popup: HTMLElement): HTMLElement {
  * control it. Use `ConfirmDialog` instead to confirm an action, and `Sheet`
  * instead when the panel should slide in from an edge at every width.
  *
+ * Use the page itself (`AuthLayout`) instead for a step the person must take, such as
+ * signing in or a first run's setup: a person can always put a Dialog away, and what
+ * they find behind it must hold the way forward. Ouro check's `dismissable-step` fails
+ * a modal dialog over a blank page, or over a signed-out page with no way to sign in.
+ *
  * It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from
  * ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule
  * of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`.
@@ -241,6 +246,7 @@ function firstFocus(popup: HTMLElement): HTMLElement {
  * without a name so VoiceOver's cursor stays trapped. Exclude them:
  * `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
  *
+ * @claim "Ouro check's `dismissable-step` fails" test/check-first-run-in-page.test.ts verify:testExists(test/check-first-run-in-page.test.ts::findFirstRunIssues: dismissable-step > finds a modal dialog that Escape or its close button puts away onto a blank page) verify:testExists(test/check-first-run-in-page.test.ts::findFirstRunIssues: dismissable-step > finds one that puts a signed-out person onto a page with no way to sign in, and passes one with a way in or progress)
  * @group Overlays
  * @see https://ui.ouroboros.bot/docs/dialog
  *

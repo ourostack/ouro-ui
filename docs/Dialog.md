@@ -28,6 +28,8 @@ import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 
 Use `trigger` for a dialog a button opens, or `open` with `onOpenChange` to control it.
 
+Ouro check's `dismissable-step` fails a modal dialog over a blank page, or over a signed-out page with no way to sign in.
+
 It stacks above the page at `--ouro-layer`, a z-index of 50 by default (from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the `--ouro-layer: 50` line shadcn wrote; `shadcn add` resets it. Opened from inside a Sheet, it shows above it. An app that draws its own bar across the window's top sets `--ouro-inset-top` to that bar's height, and a centered dialog, its backdrop and a full-screen Lightbox open below it.
 
 Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` without a name so VoiceOver's cursor stays trapped. Exclude them: `new AxeBuilder({ page }).exclude("[data-base-ui-focus-guard]")`.
@@ -35,6 +37,7 @@ Testing accessibility: in WebKit, Base UI's focus guards take `role="button"` wi
 ## Use instead when
 
 - Use `ConfirmDialog` instead to confirm an action, and `Sheet` instead when the panel should slide in from an edge at every width.
+- Use the page itself (`AuthLayout`) instead for a step the person must take, such as signing in or a first run's setup: a person can always put a Dialog away, and what they find behind it must hold the way forward.
 
 ## Props
 

@@ -50,6 +50,9 @@ const repeatedControl = "The story lays the same control out in each variant or 
 const layoutWeights =
   "The story's own page chrome uses four font weights (400 to 700); the rule keeps a page to three. The weights are the layout's, not a component's.";
 
+const aloneReason =
+  "The story shows the component alone on an empty page, so the page draws nothing else to read, press or wait for; its in-context story passes.";
+
 export const knownFindings: KnownFinding[] = [
   { story: "Accordion/Multiple", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "AgentPresence/Unread", rule: "duplicate-control", issue: 1954, reason: repeatedControl },
@@ -229,5 +232,14 @@ export const knownFindings: KnownFinding[] = [
     rule: "lone-word",
     issue: 1955,
     reason: "The description's last line is one word, 'follow.', at this width in a narrow pane; the copy is the story's.",
+  },
+  { story: "Skeleton/Playground", rule: "blank-pane", issue: 1998, reason: `${aloneReason} Skeleton/RecipeCard names its progress with a labelled busy region.` },
+  { story: "RouteProgress/Playground", rule: "blank-pane", issue: 1998, reason: `${aloneReason} The idle bar draws nothing until a navigation starts.` },
+  { story: "UnreadDot/Playground", rule: "blank-pane", issue: 1998, reason: `${aloneReason} The dot's word is for screen readers only.` },
+  {
+    story: "Lightbox/Zoomed",
+    rule: "dismissable-step",
+    issue: 1998,
+    reason: "The lightbox opens over a story page with nothing behind it, so putting it away leaves a blank page; in an app the gallery is behind it.",
   },
 ];

@@ -239,6 +239,11 @@ module.exports = { chromium: { launch: async (options) => {
       [{ states: { "/": { open: [] } } }, /"states" takes pages/],
       [{ states: { "/": { open: [" "] } } }, /"states" takes pages/],
       [{ states: { "/": null } }, /"states" takes pages/],
+      [{ firstRun: "sign in" }, /"firstRun" takes signIn, empty and progress, each a regular expression's source/],
+      [{ firstRun: { signIn: "(" } }, /"firstRun" takes signIn, empty and progress/],
+      [{ firstRun: { empty: 3 } }, /"firstRun" takes signIn/],
+      [{ firstRun: { progress: " " } }, /"firstRun" takes signIn/],
+      [{ firstRun: { signedOut: "true" } }, /"firstRun" takes signIn/],
       [{ waive: { "/art/**": { "blurry-image": "soft on purpose" } } }, /"waive" > "\/art\/\*\*" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source/],
     ] as [object, RegExp][]) {
       writeFileSync(join(scratch, "press.json"), JSON.stringify(config));

@@ -19,6 +19,10 @@ import { Empty } from "@/registry/ouro/components/ouro/empty/empty";
 />
 ```
 
+## Usage
+
+Signed out, show the way in (a "You're signed out" title and a Sign in action) instead of the empty state a signed-in person would see, which tells a signed-out person nothing is wrong. Mark the app's shell `data-ouro-session="signed-out"` and Ouro check's `signed-out-empty` fails an Empty, or words that say there is nothing, under it, unless the Empty holds the way in: `<Empty title="You're signed out" action={<Button>Sign in</Button>} />` passes.
+
 ## Use instead when
 
 - Use `Alert` instead for an error or a warning, `Skeleton` while the content is still loading, and `Moment` for a state with art of its own, a first run, a success that celebrates, or one the person can dismiss.
