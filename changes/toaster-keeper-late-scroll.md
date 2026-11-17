@@ -1,0 +1,1 @@
+- Toaster: when Safari scrolls a newly focused control into view after the stack has checked it, the stack now checks again once the scroll stops, so it no longer stays over that control.
