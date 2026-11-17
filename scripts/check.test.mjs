@@ -30,6 +30,7 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "scripts/check/check-command.test.mts",
       "scripts/check/check-rules.test.mts",
       "scripts/check/fades.test.mts",
+      "scripts/check/ax-hooks.test.mts",
     ],
     {
       cwd: root,
