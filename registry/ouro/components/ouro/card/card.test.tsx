@@ -672,6 +672,18 @@ describe("Card with href, zoomMedia and revealDescription", () => {
     expect(getComputedStyle(surface).color).toBe(getComputedStyle(probe).color);
   });
 
+  it("insets a plain rising card's title from the edges of its band, as an outlined card's", async () => {
+    for (const [size, inset] of [["md", 24], ["sm", 16]] as const) {
+      const { card } = await render(
+        <Card variant="plain" size={size} href="#braising" title="Braising" description="Low heat, a lid, and time" media={<AspectRatio ratio={4 / 3}><img src={pixel} alt="" /></AspectRatio>} revealDescription="rise" />,
+      );
+      const band = card.querySelector('[data-card-reveal="rise"]')!.parentElement!.parentElement!.getBoundingClientRect();
+      const title = card.querySelector("h3")!.getBoundingClientRect();
+      expect(title.left - band.left, size).toBe(inset);
+      expect(band.right - title.right, size).toBeGreaterThanOrEqual(inset);
+    }
+  });
+
   it("grows a rising card to fit a title and description taller than its media, rather than cutting the title off", async () => {
     const long = "Low heat, a lid, and time: brown the meat well, add the liquid halfway up, and leave it in a slow oven for hours.";
     const { card } = await render(

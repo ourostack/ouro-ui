@@ -302,6 +302,8 @@ export function Card(props: CardProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const pad = inset[variant][size];
+  // A rising title lies on a surface of its own over the media, so it keeps an outlined card's inset whatever the variant.
+  const titlePad = rise ? inset.outline[size] : pad;
   const heading = title ? (
     <Heading level={level} size={size === "sm" ? "sm" : "md"}>
       {linked ? (
@@ -328,7 +330,7 @@ export function Card(props: CardProps): JSX.Element {
   // The title, description and action; for a rising description, laid over the media's bottom.
   const titleBlock = (place?: string) =>
     (heading || description || action) && (
-      <div className={cn("flex items-start gap-4", stackBelow && headerStacked[stackBelow], pad, place)}>
+      <div className={cn("flex items-start gap-4", stackBelow && headerStacked[stackBelow], titlePad, place)}>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {heading}
           {description &&
