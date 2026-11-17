@@ -3,13 +3,15 @@
 //
 //   {
 //     "version": [{ "path": "Sources/App/Release.swift", "pattern": "static let version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"" }],
-//     "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" }
+//     "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" },
+//     "ignore": ["scripts/agent-benchmark/vendor/"]
 //   }
 //
 // version: files that carry the app's version, each with a pattern whose first group is the version. When the
 //   repository has a published release at or past that version, the update moves every one of them to the next patch.
 // changelog: a fragment the update adds. {releases} is the releases it moves to ("Ouro UI v1.3.204"), {version} the
 //   newest release's tag without the `v`.
+// ignore: pin files to leave alone, each a path or a folder ending in `/`.
 
 export const RULES_PATH = ".github/ouro-current.json";
 
@@ -67,4 +69,13 @@ export async function applyRules(rules, { read, latestRelease, releases, newest 
     notes.push(`It adds the changelog fragment \`${path}\` this repository asks for.`);
   }
   return { files, notes };
+}
+
+/**
+ * Whether the repository's rules leave a pin file alone (`"ignore": ["scripts/agent-benchmark/vendor/"]`): a path, or
+ * a folder ending in `/` and everything under it. A copy pinned on purpose, such as a benchmark's, stays where it is.
+ */
+export function isIgnored(rules, path) {
+  if (!Array.isArray(rules?.ignore)) return false;
+  return rules.ignore.some((entry) => typeof entry === "string" && (entry === path || (entry.endsWith("/") && path.startsWith(entry))));
 }

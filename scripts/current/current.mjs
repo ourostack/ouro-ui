@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
 import { NAMES, REPOS, UPDATERS, asBytes, findPins, isBehind, isCandidate } from "./pins.mjs";
-import { RULES_PATH, applyRules } from "./rules.mjs";
+import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
 export const BRANCH = "ouro-current/update";
@@ -61,6 +61,19 @@ export function body(behind, releases, notes) {
 /** Downloads and caches what the updaters read: release tarballs, release assets, and the consumer's own files. */
 export function createSources(publicGh, { unzip = defaultUnzip } = {}) {
   const tarballs = new Map();
+  const zips = new Map();
+  const assetZip = (follows, tag, assetName) => {
+    const key = `${follows}@${tag}/${assetName}`;
+    if (!zips.has(key)) {
+      zips.set(key, (async () => {
+        const release = await publicGh.get(`repos/${REPOS[follows]}/releases/tags/${encodeURIComponent(tag)}`);
+        const asset = release.assets.find((item) => item.name === assetName);
+        if (!asset) throw new Error(`${REPOS[follows]} ${tag} has no asset ${assetName}`);
+        return publicGh.get(asset.browser_download_url, { raw: true, accept: "application/octet-stream" });
+      })());
+    }
+    return zips.get(key);
+  };
   return {
     tarball(follows, tag) {
       const key = `${follows}@${tag}`;
@@ -68,11 +81,20 @@ export function createSources(publicGh, { unzip = defaultUnzip } = {}) {
       return tarballs.get(key);
     },
     async assetFile(follows, tag, assetName, path) {
-      const release = await publicGh.get(`repos/${REPOS[follows]}/releases/tags/${encodeURIComponent(tag)}`);
-      const asset = release.assets.find((item) => item.name === assetName);
-      if (!asset) throw new Error(`${REPOS[follows]} ${tag} has no asset ${assetName}`);
-      const zip = await publicGh.get(asset.browser_download_url, { raw: true, accept: "application/octet-stream" });
-      return unzip(zip, path);
+      return unzip(await assetZip(follows, tag, assetName), path);
+    },
+    /** Several files from one release asset, downloaded once: a Map of path to bytes, without the paths it lacks. */
+    async assetFiles(follows, tag, assetName, paths) {
+      const zip = await assetZip(follows, tag, assetName);
+      const out = new Map();
+      for (const path of paths) {
+        try {
+          out.set(path, unzip(zip, path));
+        } catch {
+          // not in the asset: the caller names what is missing
+        }
+      }
+      return out;
     },
   };
 }
@@ -93,7 +115,9 @@ export async function readPins(gh, repo, sha) {
   const tree = await gh.get(`repos/${repo}/git/trees/${sha}?recursive=1`);
   const pins = [];
   const texts = {};
+  const blobs = new Map();
   for (const node of tree.tree) {
+    if (node.type === "blob") blobs.set(node.path, node.sha);
     if (node.type !== "blob" || !isCandidate(node.path)) continue;
     const blob = await gh.get(`repos/${repo}/git/blobs/${node.sha}`);
     const text = Buffer.from(blob.content, "base64").toString("utf8");
@@ -106,7 +130,9 @@ export async function readPins(gh, repo, sha) {
     if (found.length) texts[node.path] = text;
     pins.push(...found);
   }
-  return { pins, texts, treeSha: tree.sha, truncated: Boolean(tree.truncated) };
+  // A core manifest a lock file vendors is the lock's to update.
+  const locked = new Set(pins.filter((pin) => pin.kind === "vendor-lock").flatMap((pin) => JSON.parse(texts[pin.file]).sources.flatMap((source) => (source.files ?? []).map((file) => file.generatedPath))));
+  return { pins: pins.filter((pin) => !(pin.kind === "core-manifest" && locked.has(pin.file))), texts, blobs, treeSha: tree.sha, truncated: Boolean(tree.truncated) };
 }
 
 /** Writes the files as one commit on top of `parent`, and returns its sha (or the branch's, when nothing differs). */
@@ -163,7 +189,23 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   const info = await gh.get(`repos/${repo}`);
   const base = info.default_branch;
   const head = (await gh.get(`repos/${repo}/git/ref/heads/${encodeURIComponent(base)}`)).object.sha;
-  const { pins, texts, treeSha } = await readPins(gh, repo, head);
+  const found = await readPins(gh, repo, head);
+  const { texts, blobs, treeSha } = found;
+  // What the repository asks of every change (.github/ouro-current.json): a new version, a changelog fragment.
+  const read = async (path) => {
+    try {
+      const file = await gh.get(`repos/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${head}`);
+      return Buffer.from(file.content, "base64").toString("utf8");
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+  };
+  const rulesText = found.pins.length ? await read(RULES_PATH) : null;
+  const rules = rulesText === null ? null : JSON.parse(rulesText);
+  // A repository never follows itself (Ouro UI's own copy of core's generator follows core, not Ouro UI), and a pin
+  // the repository's rules ignore stays where it is.
+  const pins = found.pins.filter((pin) => REPOS[pin.follows] !== repo && !isIgnored(rules, pin.file));
   const result = { repo, private: Boolean(info.private), pins: pins.map((pin) => ({ kind: pin.kind, file: pin.file, follows: pin.follows, current: pin.current, latest: releases[pin.follows].tag, behind: isBehind(pin, releases[pin.follows]) })) };
   const behind = pins.filter((pin) => isBehind(pin, releases[pin.follows]));
   const existingPr = dryRun ? null : await openPr(gh, repo, info.owner.login);
@@ -181,6 +223,16 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   const ctx = {
     ...sources,
     consumerFiles: async () => (consumer ??= readTarball(await gh.get(`repos/${repo}/tarball/${head}`, { raw: true }))),
+    /** The files directly in one folder of the repository, read one blob at a time rather than as a tarball. */
+    consumerFolder: async (dir) => {
+      const out = new Map();
+      for (const [path, sha] of blobs) {
+        if (dirname(path) !== dir) continue;
+        const blob = await gh.get(`repos/${repo}/git/blobs/${sha}`);
+        out.set(path, Buffer.from(blob.content, "base64"));
+      }
+      return out;
+    },
   };
   for (const pin of behind) {
     const text = typeof files[pin.file] === "string" ? files[pin.file] : texts[pin.file];
@@ -189,18 +241,6 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
     notes.push(...update.notes);
   }
   const name = title(behind, releases);
-  // What the repository asks of every change (.github/ouro-current.json): a new version, a changelog fragment.
-  const read = async (path) => {
-    try {
-      const file = await gh.get(`repos/${repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${head}`);
-      return Buffer.from(file.content, "base64").toString("utf8");
-    } catch (error) {
-      if (error.status === 404) return null;
-      throw error;
-    }
-  };
-  const rulesText = await read(RULES_PATH);
-  const rules = rulesText === null ? null : JSON.parse(rulesText);
   const latestRelease = async () => {
     try {
       return (await gh.get(`repos/${repo}/releases/latest`)).tag_name ?? null;
@@ -213,6 +253,8 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   const asked = await applyRules(rules, { read, latestRelease, releases: newest.join(" and "), newest: releases[behind[0].follows].tag });
   Object.assign(files, asked.files);
   notes.push(...asked.notes);
+  // Two pins that vendor the same generator say the same thing once.
+  notes.splice(0, notes.length, ...new Set(notes));
   if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes } };
   const existing = await branchState(gh, repo);
   const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\nOuro Current: ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`, existing);
@@ -285,7 +327,7 @@ export function publicView(report) {
   };
 }
 
-export async function main(argv = process.argv.slice(2), env = process.env) {
+export async function main(argv = process.argv.slice(2), env = process.env, { makeGitHub = createGitHub, log = console.log } = {}) {
   const args = { out: null, only: null, dryRun: false };
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === "--out") args.out = resolve(argv[++index]);
@@ -300,17 +342,17 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     if (!args.only || args.dryRun) throw new Error("--with-token needs --only <owner/repo>[,<owner/repo>], and is not --dry-run");
     const token = env.GH_TOKEN ?? env.GITHUB_TOKEN;
     if (!token) throw new Error("--with-token needs GH_TOKEN: a token that can push a branch and open a pull request in each repository");
-    const gh = createGitHub({ token });
+    const gh = makeGitHub({ token });
     const releases = await latestReleases(gh);
     const sources = createSources(gh);
     let failed = 0;
     for (const repo of args.only) {
       try {
         const kept = await keepRepo(gh, repo, releases, sources);
-        console.log(`${repo}: ${kept.state}${kept.pr ? ` ${kept.pr.url}${kept.pr.autoMerge ? " (auto-merge on)" : ` (auto-merge off: ${kept.pr.note})`}` : ""}`);
+        log(`${repo}: ${kept.state}${kept.pr ? ` ${kept.pr.url}${kept.pr.autoMerge ? " (auto-merge on)" : ` (auto-merge off: ${kept.pr.note})`}` : ""}`);
       } catch (error) {
         failed += 1;
-        console.log(`${repo}: failed: ${error.message}`);
+        log(`${repo}: failed: ${error.message}`);
       }
     }
     return failed ? 1 : 0;
@@ -318,11 +360,26 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (args.dryRun) {
     // Reads only, with GH_TOKEN, for the repositories named: what the bot would change, without the app or a write.
     if (!args.only) throw new Error("--dry-run needs --only <owner/repo>[,<owner/repo>]");
-    const gh = createGitHub({ token: env.GH_TOKEN ?? env.GITHUB_TOKEN ?? null });
+    // A repository that fails is reported, and the others still run.
+    const gh = makeGitHub({ token: env.GH_TOKEN ?? env.GITHUB_TOKEN ?? null });
     const releases = await latestReleases(gh);
     const sources = createSources(gh);
-    for (const repo of args.only) console.log(JSON.stringify(await keepRepo(gh, repo, releases, sources, { dryRun: true }), null, 2));
-    return 0;
+    const repos = [];
+    for (const repo of args.only) {
+      let kept;
+      try {
+        kept = await keepRepo(gh, repo, releases, sources, { dryRun: true });
+      } catch (error) {
+        kept = { repo, state: "failed", error: error.message, pins: [] };
+      }
+      repos.push(kept);
+      log(JSON.stringify(kept, null, 2));
+    }
+    if (args.out) {
+      mkdirSync(dirname(args.out), { recursive: true });
+      writeFileSync(args.out, `${JSON.stringify({ schema: 1, dryRun: true, repos }, null, 2)}\n`);
+    }
+    return repos.some((repo) => repo.state === "failed") ? 1 : 0;
   }
   if (!env.OURO_CURRENT_APP_ID || !env.OURO_CURRENT_PRIVATE_KEY) throw new Error("set OURO_CURRENT_APP_ID and OURO_CURRENT_PRIVATE_KEY (the app's ID and private key)");
   const report = await keepCurrent({ appId: env.OURO_CURRENT_APP_ID, privateKey: env.OURO_CURRENT_PRIVATE_KEY, publicToken: env.GH_TOKEN ?? env.GITHUB_TOKEN ?? null, only: args.only });

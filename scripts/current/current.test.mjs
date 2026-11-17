@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { createHash, createVerify, generateKeyPairSync } from "node:crypto";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-check.mjs";
 import { BRANCH, body, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
 import { UPDATERS, findPins, isBehind, isCandidate } from "./pins.mjs";
 import { readTarball } from "./tar.mjs";
+import { scratchDir } from "../scratch.mjs";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const RELEASES = {
@@ -61,6 +64,9 @@ test("pins are found by file name in every format Ouro UI is taken in", () => {
   assert.deepEqual(found("App.xcodeproj/project.pbxproj", 'repositoryURL = "https://github.com/ourostack/ouro-ui-apple";\n\t\t\trequirement = {\n\t\t\t\tkind = upToNextMinorVersion;\n\t\t\t\tminimumVersion = 0.5.1;\n\t\t\t};'), [["xcodeproj", "apple", "0.5.1"]]);
   assert.deepEqual(found(".github/workflows/site-checks.yml", "env:\n  OURO_UI_TAG: v1.3.99\n"), [["workflow-tag", "web", "v1.3.99"]]);
   assert.deepEqual(found("upstream-sources.lock.json", JSON.stringify({ sources: [{ id: "ax", repository: "ourostack/ouro-ui", commit: "4e44b67613dc", files: [] }, { id: "other", repository: "someone/else", commit: "f", files: [] }] })), [["vendor-lock", "web", "commit 4e44b67"]]);
+  assert.deepEqual(found("tools/ouro-actions/dist-manifest.json", JSON.stringify({ coreTag: "v0.16.0", files: { "dist/actions/ouro-actions.mts": "x" } })), [["core-manifest", "core", "v0.16.0"]]);
+  assert.deepEqual(found("site/dist-manifest.json", JSON.stringify({ version: 1, files: {} })), []);
+  assert.equal(isCandidate("tools/ouro-actions/dist-manifest.json"), true);
   assert.deepEqual(found("Package.swift", '.package(url: "https://github.com/apple/swift-argument-parser", from: "1.0.0")'), []);
   assert.equal(isCandidate("node_modules/x/Package.swift"), false);
   assert.equal(isCandidate("Sources/App/Package.swift"), true);
@@ -194,6 +200,96 @@ test("a vendored core file comes from the new release's asset", async () => {
   assert.deepEqual(JSON.parse(update.files["vendor/ouro-ui-core/pin.json"]), { ...pin, tag: "v0.15.0", release: "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.15.0", asset: "ouro-ui-core-v0.15.0-dist.zip", sha256: sha256("css v2") });
 });
 
+/** A ctx whose core dist asset holds `files` (dist-relative paths, as the zip has them), recording what was asked. */
+const distAsset = (files, asked = []) => ({
+  assetFiles: async (follows, tag, asset, paths) => {
+    asked.push([follows, tag, asset, ...paths]);
+    return new Map(paths.filter((path) => path in files).map((path) => [path, Buffer.from(files[path])]));
+  },
+  tarball: async () => {
+    throw new Error("core commits no dist/: its files come from the release's dist asset");
+  },
+});
+
+test("a vendored source that follows core reads its dist files from the release's dist asset, and moves its release", async () => {
+  const lock = { schemaVersion: 1, sources: [{ id: "core-actions", repository: "ourostack/ouro-ui-core", commit: "old", release: "v0.13.0", license: "MIT", files: [
+    { sourcePath: "dist/actions/ouro-actions.mts", generatedPath: "tools/ouro-actions/ouro-actions.mts", sha256: "x" },
+    { sourcePath: "dist-manifest.json", generatedPath: "tools/ouro-actions/dist-manifest.json", sha256: "y" },
+  ] }] };
+  const asked = [];
+  const ctx = distAsset({ "actions/ouro-actions.mts": "gen v2", "dist-manifest.json": "manifest v2" }, asked);
+  const update = await UPDATERS["vendor-lock"]({ kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "core", source: "core-actions" }, JSON.stringify(lock, null, 2), RELEASES.core, ctx);
+  assert.deepEqual(asked[0].slice(0, 3), ["core", "v0.15.0", "ouro-ui-core-v0.15.0-dist.zip"]);
+  assert.equal(update.files["tools/ouro-actions/ouro-actions.mts"].toString(), "gen v2");
+  assert.equal(update.files["tools/ouro-actions/dist-manifest.json"].toString(), "manifest v2");
+  const written = JSON.parse(update.files["upstream-sources.lock.json"]);
+  assert.equal(written.sources[0].commit, RELEASES.core.sha);
+  assert.equal(written.sources[0].release, "v0.15.0");
+  assert.deepEqual(written.sources[0].files.map((file) => file.sha256), [sha256("gen v2"), sha256("manifest v2")]);
+  await assert.rejects(UPDATERS["vendor-lock"]({ kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "core", source: "core-actions" }, JSON.stringify(lock), RELEASES.core, distAsset({})), /not in ourostack\/ouro-ui-core v0\.15\.0 \(ouro-ui-core-v0\.15\.0-dist\.zip\)/);
+});
+
+test("a core manifest copied beside its files moves them to the release's, leaving an edited or unlisted file alone", async () => {
+  const oldManifest = { coreTag: "v0.13.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v1"), "dist/ax/actions.claims.json": sha256("claims v1"), "dist/web/ouro-base.css": sha256("base v1") } };
+  const newManifest = `${JSON.stringify({ coreTag: "v0.15.0", files: { "dist/actions/ouro-actions.mts": sha256("gen v2"), "dist/ax/actions.claims.json": sha256("claims v2"), "dist/web/ouro-base.css": sha256("base v2") } }, null, 2)}\n`;
+  const ctx = {
+    ...distAsset({ "dist-manifest.json": newManifest, "actions/ouro-actions.mts": "gen v2", "ax/actions.claims.json": "claims v2", "web/ouro-base.css": "base v2" }),
+    consumerFolder: async (dir) => {
+      assert.equal(dir, "tools/ouro-actions");
+      return new Map(Object.entries({
+        "tools/ouro-actions/dist-manifest.json": JSON.stringify(oldManifest),
+        "tools/ouro-actions/ouro-actions.mts": "gen v1",
+        "tools/ouro-actions/actions.claims.json": "claims edited here",
+        "tools/ouro-actions/README.md": "ours",
+      }).map(([path, text]) => [path, Buffer.from(text)]));
+    },
+  };
+  const pin = { kind: "core-manifest", file: "tools/ouro-actions/dist-manifest.json", follows: "core", current: "v0.13.0" };
+  const update = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), RELEASES.core, ctx);
+  assert.deepEqual(Object.keys(update.files).sort(), ["tools/ouro-actions/dist-manifest.json", "tools/ouro-actions/ouro-actions.mts"]);
+  assert.equal(update.files["tools/ouro-actions/ouro-actions.mts"].toString(), "gen v2");
+  assert.equal(update.files["tools/ouro-actions/dist-manifest.json"].toString(), newManifest, "the release's manifest, byte for byte");
+  assert.ok(update.notes.some((note) => note.includes("`tools/ouro-actions/actions.claims.json`") && /edited here/.test(note)));
+  const stampFree = await UPDATERS["core-manifest"](pin, JSON.stringify(oldManifest), { ...RELEASES.core, tag: "v0.17.6" }, ctx);
+  assert.ok(stampFree.notes.some((note) => /version stamp/.test(note)), "from core v0.17.6 on, projections need nothing generated again");
+  assert.ok(!update.notes.some((note) => /version stamp/.test(note)));
+  assert.deepEqual(stampFree.notes.flatMap((note) => lintMarkdown(`- ${note}`, { file: "pull request body" })), []);
+});
+
+test("a core manifest a lock vendors is the lock's, a repository never follows itself, and its rules can leave a pin alone", async () => {
+  const manifest = JSON.stringify({ coreTag: "v0.13.0", files: {} });
+  const lock = JSON.stringify({ sources: [{ id: "core", repository: "ourostack/ouro-ui-core", commit: "old", files: [{ sourcePath: "dist-manifest.json", generatedPath: "tools/ouro-actions/dist-manifest.json", sha256: "x" }] }] });
+  const locked = fakeRepo({ "upstream-sources.lock.json": lock, "tools/ouro-actions/dist-manifest.json": manifest });
+  const sources = distAsset({ "dist-manifest.json": manifest });
+  const fromLock = await keepRepo(locked.gh, "o/r", RELEASES, sources, { dryRun: true });
+  assert.deepEqual(fromLock.pins.map((pin) => pin.kind), ["vendor-lock"]);
+
+  const self = fakeRepo({ "scripts/ouro-actions/dist-manifest.json": manifest, "scripts/agent-benchmark/vendor/ouro-actions/dist-manifest.json": manifest, ".github/workflows/site.yml": "env:\n  OURO_UI_TAG: v1.3.99\n", ".github/ouro-current.json": JSON.stringify({ ignore: ["scripts/agent-benchmark/vendor/"] }) }, { name: "ourostack/ouro-ui" });
+  const own = await keepRepo(self.gh, "ourostack/ouro-ui", RELEASES, sources, { dryRun: true });
+  assert.deepEqual(own.pins.map((pin) => pin.file), ["scripts/ouro-actions/dist-manifest.json"]);
+  assert.deepEqual(own.plan.files, ["scripts/ouro-actions/dist-manifest.json"]);
+});
+
+test("a dry run reports a repository that fails and goes on to the next, then exits nonzero", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  const ok = (data) => ({ status: 200, headers: new Map(), text: async () => JSON.stringify(data) });
+  const fetch = async (url, init) => {
+    const path = url.replace("https://api.github.com/", "");
+    if (path.endsWith("releases/latest") && !path.startsWith("repos/o/")) return ok({ tag_name: "v9.9.9", html_url: "https://example.test/r" });
+    if (/^repos\/ourostack\/[^/]+\/commits\//.test(path)) return ok({ sha: "a".repeat(40) });
+    if (path === "repos/o/broken") return { status: 422, headers: new Map(), text: async () => "upstream-sources.lock.json: not in the release" };
+    return repo.fetch(url, init);
+  };
+  const lines = [];
+  const dir = scratchDir("current-dry-run-");
+  const code = await main(["--dry-run", "--only", "o/broken,o/r", "--out", join(dir, "current.json")], {}, { makeGitHub: (options) => createGitHub({ ...options, fetch, sleep: async () => {} }), log: (line) => lines.push(line) });
+  assert.equal(code, 1);
+  const out = JSON.parse(readFileSync(join(dir, "current.json"), "utf8"));
+  assert.deepEqual(out.repos.map((item) => [item.repo, item.state]), [["o/broken", "failed"], ["o/r", "would-update"]]);
+  assert.match(out.repos[0].error, /not in the release/);
+  assert.match(lines[0], /"state": "failed"/);
+});
+
 test("the title names each release a pull request moves to", () => {
   assert.equal(title([{ follows: "apple" }], RELEASES), "Update to Ouro UI for Apple v0.9.0");
   assert.equal(title([{ follows: "web" }, { follows: "core" }, { follows: "web" }], RELEASES), "Update to Ouro UI core v0.15.0 and Ouro UI v1.3.187");
@@ -201,7 +297,7 @@ test("the title names each release a pull request moves to", () => {
 
 // ---- A GitHub in memory: one repository, its refs, commits, trees, blobs and pull requests ----------------
 
-function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null } = {}) {
+function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r" } = {}) {
   let next = 1;
   const id = () => `${(next++).toString(16).padStart(40, "0")}`;
   const blobs = new Map();
@@ -227,7 +323,7 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null } = {
   const ok = (data, status = 200) => ({ status, headers: new Map(), text: async () => JSON.stringify(data), arrayBuffer: async () => Buffer.from(JSON.stringify(data)) });
   const missing = () => ({ status: 404, headers: new Map(), text: async () => "Not Found" });
   const fetch = async (url, init) => {
-    const path = url.replace("https://api.github.com/", "");
+    const path = url.replace("https://api.github.com/", "").replace(`repos/${name}`, "repos/o/r");
     const method = init.method;
     const input = init.body ? JSON.parse(init.body) : null;
     calls.push(`${method} ${path}`);
@@ -294,7 +390,7 @@ function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null } = {
     throw new Error(`fake GitHub has no ${method} ${path}`);
   };
   const fileAt = (ref, path) => blobs.get(trees.get(commits.get(refs.get(ref)).tree).get(path))?.toString();
-  return { gh: createGitHub({ token: "t", fetch, sleep: async () => {} }), refs, pulls, calls, fileAt, setMain: (changes) => {
+  return { fetch, gh: createGitHub({ token: "t", fetch, sleep: async () => {} }), refs, pulls, calls, fileAt, setMain: (changes) => {
     const base = new Map(trees.get(commits.get(refs.get("main")).tree));
     for (const [path, text] of Object.entries(changes)) base.set(path, blob(text));
     const sha = id();

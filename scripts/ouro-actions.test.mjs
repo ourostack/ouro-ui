@@ -17,7 +17,7 @@ const generator = join(vendored, "ouro-actions.mts");
 
 test("the vendored generator and claim set are the release's, by hash", () => {
   const manifest = JSON.parse(readFileSync(join(vendored, "dist-manifest.json"), "utf8"));
-  assert.equal(manifest.coreTag, "v0.16.0");
+  assert.match(manifest.coreTag, /^v\d+\.\d+\.\d+$/);
   assert.equal(sha256(generator), manifest.files["dist/actions/ouro-actions.mts"]);
   assert.equal(sha256(join(vendored, "actions.claims.json")), manifest.files["dist/ax/actions.claims.json"]);
 });

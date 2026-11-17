@@ -6,6 +6,7 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { dirname, posix } from "node:path";
+import { isAfter } from "./rules.mjs";
 
 export const REPOS = { web: "ourostack/ouro-ui", core: "ourostack/ouro-ui-core", apple: "ourostack/ouro-ui-apple" };
 export const NAMES = { web: "Ouro UI", core: "Ouro UI core", apple: "Ouro UI for Apple" };
@@ -32,6 +33,10 @@ export function findPins(path, text) {
   } else if (base === "pin.json" && /(^|\/)ouro-ui-core\/pin\.json$/.test(path)) {
     const data = JSON.parse(text);
     if (data.tag && data.asset && data.path) pins.push({ kind: "core-pin", file: path, follows: "core", current: data.tag });
+  } else if (base === "dist-manifest.json") {
+    // ouro-ui-core's own manifest, copied beside the files vendored from its release (ouro-actions, its claims).
+    const data = JSON.parse(text);
+    if (typeof data.coreTag === "string" && data.files && typeof data.files === "object") pins.push({ kind: "core-manifest", file: path, follows: "core", current: data.coreTag });
   } else if (base === "upstream-sources.lock.json") {
     for (const source of JSON.parse(text).sources ?? []) {
       const follows = Object.keys(REPOS).find((key) => REPOS[key] === source.repository);
@@ -56,7 +61,7 @@ export function findPins(path, text) {
 /** The file names worth reading, so a repository's whole tree is never downloaded to find its pins. */
 export const isCandidate = (path) =>
   !/(^|\/)(node_modules|\.build|DerivedData|Pods|vendor\/bundle)\//.test(path) &&
-  (/(^|\/)(ouro-hx-installed\.json|upstream-sources\.lock\.json|Package\.swift|Package\.resolved|project\.yml|project\.pbxproj)$/.test(path) ||
+  (/(^|\/)(ouro-hx-installed\.json|upstream-sources\.lock\.json|dist-manifest\.json|Package\.swift|Package\.resolved|project\.yml|project\.pbxproj)$/.test(path) ||
     /(^|\/)ouro-ui-core\/pin\.json$/.test(path) ||
     /^\.github\/workflows\/[^/]+\.ya?ml$/.test(path));
 
@@ -223,6 +228,17 @@ async function updateHxInstalled(pin, text, release, ctx) {
   return { files: out, notes };
 }
 
+/** The release asset that holds ouro-ui-core's built `dist/`, which the repository does not commit. */
+export const coreDistAsset = (tag) => `ouro-ui-core-${tag}-dist.zip`;
+/** Where a core `dist/` path sits in that asset: its paths are relative to `dist/`, and `dist-manifest.json` is at its root. */
+const inDistAsset = (path) => path.replace(/^dist\//, "");
+/**
+ * Said of an update that vendors core's action generator: projections a repository generated with the old one still
+ * pass `check`, which ignores the generator's version stamp from this release on, so they need not be generated again.
+ */
+const STAMP_FREE = "v0.17.6";
+const projectionsNote = (release) => (isAfter(STAMP_FREE, release.tag) ? [] : [`Generated projections stay valid: \`check\` ignores the generator's version stamp from Ouro UI core \`${STAMP_FREE}\` on, so a version-only update needs nothing generated again.`]);
+
 /** One file vendored from ouro-ui-core's release asset (`vendor/ouro-ui-core/pin.json`), taken from the new release's asset. */
 async function updateCorePin(pin, text, release, ctx) {
   const data = JSON.parse(text);
@@ -249,7 +265,7 @@ function valueAt(text, key, from, to) {
  * repository's own layout (one file to a line, say) and its checks of it survive. Null when the text is laid out in a
  * way this cannot follow; the caller then writes the file whole.
  */
-export function editLock(text, sourceId, commit, shas) {
+export function editLock(text, sourceId, commit, shas, release = null) {
   const id = new RegExp(String.raw`"id"\s*:\s*"${sourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).exec(text);
   if (!id) return null;
   const nextId = /"id"\s*:\s*"/g;
@@ -261,6 +277,11 @@ export function editLock(text, sourceId, commit, shas) {
   const commitAt = valueAt(text, "commit", id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
   if (!commitAt) return null;
   edits.push({ ...commitAt, next: commit });
+  if (release !== null) {
+    const releaseAt = valueAt(text, "release", id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
+    if (!releaseAt) return null;
+    edits.push({ ...releaseAt, next: release });
+  }
   for (const [sourcePath, sha] of Object.entries(shas)) {
     let at = id.index;
     let found = null;
@@ -282,30 +303,48 @@ export function editLock(text, sourceId, commit, shas) {
   return out;
 }
 
-/** Files vendored from a commit (`upstream-sources.lock.json`: each source path, where it is written, and its sha256). */
+/** A source's `release`, moved to the new tag the way it writes it: a tag (`v0.16.0`) or its release page. */
+function nextRelease(value, release) {
+  if (typeof value !== "string") return value;
+  if (/^v?[0-9]/.test(value)) return like(value, release.tag);
+  return value.replace(/(\/releases\/tag\/)[^/?#]+/, `$1${release.tag}`);
+}
+
+/**
+ * Files vendored from a commit (`upstream-sources.lock.json`: each source path, where it is written, and its sha256).
+ * A source that follows core reads its `dist/` files from the release's dist asset, since core commits no `dist/`.
+ */
 async function updateVendorLock(pin, text, release, ctx) {
   const lock = JSON.parse(text);
-  const next = await ctx.tarball(pin.follows, release.tag);
+  const source = lock.sources.find((item) => item.id === pin.source);
+  const asset = pin.follows === "core" ? coreDistAsset(release.tag) : null;
+  let read;
+  if (asset) {
+    const got = await ctx.assetFiles("core", release.tag, asset, source.files.map((file) => inDistAsset(file.sourcePath)));
+    read = (path) => got.get(inDistAsset(path));
+  } else {
+    const next = await ctx.tarball(pin.follows, release.tag);
+    read = (path) => next.get(path);
+  }
   const files = {};
   const missing = [];
   const shas = {};
-  for (const source of lock.sources) {
-    if (source.id !== pin.source) continue;
-    source.commit = release.sha;
-    for (const file of source.files) {
-      const bytes = next.get(file.sourcePath);
-      if (!bytes) {
-        missing.push(file.sourcePath);
-        continue;
-      }
-      file.sha256 = sha256(bytes);
-      shas[file.sourcePath] = file.sha256;
-      files[file.generatedPath] = bytes;
+  source.commit = release.sha;
+  const hadRelease = typeof source.release === "string";
+  if (hadRelease) source.release = nextRelease(source.release, release);
+  for (const file of source.files) {
+    const bytes = read(file.sourcePath);
+    if (!bytes) {
+      missing.push(file.sourcePath);
+      continue;
     }
+    file.sha256 = sha256(bytes);
+    shas[file.sourcePath] = file.sha256;
+    files[file.generatedPath] = bytes;
   }
-  if (missing.length) throw new Error(`${pin.file}: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not in ${REPOS[pin.follows]} ${release.tag}`);
+  if (missing.length) throw new Error(`${pin.file}: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not in ${REPOS[pin.follows]} ${release.tag}${asset ? ` (${asset})` : ""}`);
   // Only this source's values change; the edit is kept when it reads back as the lock this run means to write.
-  const edited = editLock(text, pin.source, release.sha, shas);
+  const edited = editLock(text, pin.source, release.sha, shas, hadRelease ? source.release : null);
   const same = (value) => {
     try {
       return JSON.stringify(JSON.parse(value)) === JSON.stringify(lock);
@@ -314,13 +353,57 @@ async function updateVendorLock(pin, text, release, ctx) {
     }
   };
   files[pin.file] = edited !== null && same(edited) ? edited : `${JSON.stringify(lock, null, 2)}\n`;
-  return { files, notes: [] };
+  const actions = pin.follows === "core" && source.files.some((file) => /(^|\/)actions\//.test(file.sourcePath));
+  return { files, notes: actions ? projectionsNote(release) : [] };
+}
+
+/**
+ * Files vendored from a core release with its `dist-manifest.json` copied beside them (`tools/ouro-actions/`). A file
+ * in the manifest's folder is updated only when it is the old release's file, by name and by the old manifest's hash:
+ * then the new release's file takes its place. A file that differs was edited here, so it is left alone and named. A
+ * file the manifest does not list is not core's, and is left alone.
+ */
+async function updateCoreManifest(pin, text, release, ctx) {
+  const old = JSON.parse(text);
+  const asset = coreDistAsset(release.tag);
+  const manifestBytes = (await ctx.assetFiles("core", release.tag, asset, ["dist-manifest.json"])).get("dist-manifest.json");
+  if (!manifestBytes) throw new Error(`${pin.file}: ${REPOS.core} ${release.tag} has no dist-manifest.json in ${asset}`);
+  const next = JSON.parse(manifestBytes.toString("utf8"));
+  const folder = await ctx.consumerFolder(dirname(pin.file));
+  const edited = [];
+  const gone = [];
+  const moves = [];
+  for (const [path, bytes] of [...folder].sort(([a], [b]) => a.localeCompare(b))) {
+    if (path === pin.file) continue;
+    const named = Object.entries(old.files).filter(([source]) => posix.basename(source) === posix.basename(path));
+    if (named.length === 0) continue;
+    const hash = sha256(bytes);
+    const source = named.find(([, sha]) => sha === hash)?.[0];
+    if (!source) edited.push(path);
+    else if (!(source in next.files)) gone.push(path);
+    else if (next.files[source] !== hash) moves.push({ path, source });
+  }
+  const got = await ctx.assetFiles("core", release.tag, asset, moves.map((move) => inDistAsset(move.source)));
+  const files = {};
+  for (const { path, source } of moves) {
+    const bytes = got.get(inDistAsset(source));
+    if (!bytes || sha256(bytes) !== next.files[source]) throw new Error(`${pin.file}: ${source} in ${asset} is not the file its dist-manifest.json lists`);
+    files[path] = bytes;
+  }
+  files[pin.file] = manifestBytes;
+  const one = (paths, single, several) => (paths.length === 1 ? single : several);
+  const notes = [];
+  if (edited.length) notes.push(`Leaves ${list(edited)} at \`${old.coreTag}\`, because ${one(edited, "it is", "they are")} not the file \`${old.coreTag}\` shipped (edited here). Copy ${one(edited, "it", "them")} from the release again, or move the change into Ouro UI core.`);
+  if (gone.length) notes.push(`Keeps what the release no longer ships: ${list(gone)}.`);
+  if (moves.some(({ source }) => /(^|\/)actions\//.test(source))) notes.push(...projectionsNote(release));
+  return { files, notes };
 }
 
 export const UPDATERS = {
   "hx-installed": updateHxInstalled,
   "core-pin": updateCorePin,
   "vendor-lock": updateVendorLock,
+  "core-manifest": updateCoreManifest,
   swiftpm: replaceVersion(SWIFT_MANIFEST),
   "swiftpm-resolved": updateResolved,
   xcodegen: replaceVersion(XCODEGEN),

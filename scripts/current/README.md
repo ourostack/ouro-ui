@@ -4,8 +4,9 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
 
 ## What it does
 
-- **Finds the pins by name** in the repository's default branch:[^find] an Ouro HX install record (`.github/ouro-hx-installed.json`), a file vendored from an ouro-ui-core release (`ouro-ui-core/pin.json`), files vendored from a commit (`upstream-sources.lock.json`), SwiftPM (`Package.swift`, `Package.resolved`), XcodeGen (`project.yml`), an Xcode project (`project.pbxproj`), and a workflow's `OURO_UI_TAG`.
+- **Finds the pins by name** in the repository's default branch:[^find] an Ouro HX install record (`.github/ouro-hx-installed.json`), a file vendored from an ouro-ui-core release (`ouro-ui-core/pin.json`), files vendored from a commit (`upstream-sources.lock.json`), core's `dist-manifest.json` copied beside the files vendored from its release (`tools/ouro-actions/`), SwiftPM (`Package.swift`, `Package.resolved`), XcodeGen (`project.yml`), an Xcode project (`project.pbxproj`), and a workflow's `OURO_UI_TAG`.
 - **Moves each pin to the newest release** and writes what that release would install.[^versions] An Ouro HX file takes the new tag's source, rewritten to the app's aliases as the shadcn CLI rewrites it, and the install record keeps the source's hash.[^hx] Each file stays where the install record has it, so an app that keeps Ouro check in `lib/ouro/check/` apart from its components in `src/` is updated in place, and a file an item gains goes beside that item's other files.[^placement]
+- **Takes core's files from its release**: core commits no `dist/`, so a lock source or a copied `dist-manifest.json` that follows core reads its files from the release's dist asset.[^core-dist] Beside a copied manifest, a file is replaced only when it is the old release's file by its name and the old manifest's hash; a file edited here is left alone and named in the pull request, and a file the manifest does not list is not touched.[^core-manifest]
 - **Keeps one pull request per repository** on the branch `ouro-current/update`, and updates it in place when a newer release comes.[^one-pr] It pushes nothing when the update is already there, and closes its pull request when the repository caught up on its own.[^caught-up]
 - **Writes a pull request a claims check accepts**: versions and file names in code spans, no counts, so a repository that runs Ouro UI's claims check on pull requests does not fail the update.[^claims]
 - **Keeps a lock file's layout**: in `upstream-sources.lock.json` it changes only the followed source's commit and its files' hashes, and every other byte stays as the repository wrote it.[^lock]
@@ -14,9 +15,12 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
   ```json
   {
     "version": [{ "path": "Sources/App/Release.swift", "pattern": "static let version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"" }],
-    "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" }
+    "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" },
+    "ignore": ["scripts/agent-benchmark/vendor/"]
   }
   ```
+
+  `ignore` lists pin files to leave alone, as a path or a folder ending in `/`, such as a copy a benchmark pins on purpose.[^ignore] A repository never follows itself, so Ouro UI's own copy of core's generator follows core alone.[^ignore]
 
 - **Turns on auto-merge**, squash where the repository allows it, else a merge commit.[^auto-merge] The repository's own checks decide whether it merges.
 
@@ -28,7 +32,7 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
 
 ## How it runs
 
-[`.github/workflows/ouro-current.yml`](../../.github/workflows/ouro-current.yml) runs on a release here, and twice an hour for core and Apple releases. It signs in as the app (a JWT from the private key in `OURO_CURRENT_PRIVATE_KEY`, the app ID in `OURO_CURRENT_APP_ID`), takes a short-lived token for each installation, and keeps every repository that installation can see.[^jwt] A failed GitHub request is tried again.[^retry] A repository that still fails is reported while the others go on, and the run opens or comments on one issue, "Ouro Current could not update a repository", which it closes after a clean run.[^failure]
+[`.github/workflows/ouro-current.yml`](../../.github/workflows/ouro-current.yml) runs on a release here, and twice an hour for core and Apple releases. It signs in as the app (a JWT from the private key in `OURO_CURRENT_PRIVATE_KEY`, the app ID in `OURO_CURRENT_APP_ID`), takes a short-lived token for each installation, and keeps every repository that installation can see.[^jwt] A failed GitHub request is tried again.[^retry] A repository that still fails is reported while the others go on, in a dry run too,[^dry-run] and the run opens or comments on one issue, "Ouro Current could not update a repository", which it closes after a clean run.[^failure]
 
 The list of who it keeps current is `current.json` on the `adoption-data` branch. For a repository the app is not installed on yet, `--with-token` opens the same pull request with your own token.[^with-token]
 
@@ -51,5 +55,9 @@ GH_TOKEN=$(gh auth token) node scripts/current/current.mjs --with-token --only o
 [^retry]: test:scripts/current/current.test.mjs::requests are retried on a server error or rate limit, and not on a refusal verify:testExists(scripts/current/current.test.mjs::requests are retried on a server error or rate limit, and not on a refusal)
 [^failure]: .github/workflows/ouro-current.yml verify:fileLine(.github/workflows/ouro-current.yml, /Ouro Current could not update a repository/)
 [^claims]: test:scripts/current/current.test.mjs::the pull request's title and body pass Ouro UI's claims check, which a repository may run on pull requests verify:testExists(scripts/current/current.test.mjs::the pull request's title and body pass Ouro UI's claims check, which a repository may run on pull requests)
+[^core-dist]: test:scripts/current/current.test.mjs::a vendored source that follows core reads its dist files from the release's dist asset, and moves its release verify:testExists(scripts/current/current.test.mjs::a vendored source that follows core reads its dist files from the release's dist asset, and moves its release)
+[^core-manifest]: test:scripts/current/current.test.mjs::a core manifest copied beside its files moves them to the release's, leaving an edited or unlisted file alone verify:testExists(scripts/current/current.test.mjs::a core manifest copied beside its files moves them to the release's, leaving an edited or unlisted file alone)
+[^ignore]: test:scripts/current/current.test.mjs::a core manifest a lock vendors is the lock's, a repository never follows itself, and its rules can leave a pin alone verify:testExists(scripts/current/current.test.mjs::a core manifest a lock vendors is the lock's, a repository never follows itself, and its rules can leave a pin alone)
+[^dry-run]: test:scripts/current/current.test.mjs::a dry run reports a repository that fails and goes on to the next, then exits nonzero verify:testExists(scripts/current/current.test.mjs::a dry run reports a repository that fails and goes on to the next, then exits nonzero)
 [^lock]: test:scripts/current/current.test.mjs::a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out verify:testExists(scripts/current/current.test.mjs::a vendored source changes only its own values in the lock, every other byte kept as the repository lays it out)
 [^rules]: test:scripts/current/current.test.mjs::a repository's own rules ride along: its version moves past its latest release, and its changelog fragment is added verify:testExists(scripts/current/current.test.mjs::a repository's own rules ride along: its version moves past its latest release, and its changelog fragment is added)
