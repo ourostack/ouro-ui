@@ -26,6 +26,8 @@ export default defineConfig({
         ["html", { open: "never" }],
         // CI's e2e shards: how long each spec file took, for `node scripts/shard.mjs refresh`.
         ...(process.env["OURO_E2E_TIMINGS"] ? [["./scripts/timings-playwright-reporter.mjs", { outputFile: process.env["OURO_E2E_TIMINGS"] }] as const] : []),
+        // A page load that timed out: whether the server still answers, and the machine's load, for the job's report (#1845).
+        ["./scripts/goto-timeout-reporter.mjs", { outputFile: ".tmp/e2e-stalls/goto-timeouts.txt" }] as const,
       ]
     : "list",
   projects: [
