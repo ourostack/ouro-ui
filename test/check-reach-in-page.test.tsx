@@ -102,6 +102,68 @@ describe("findDeadZones: linked-card-dead-zone", () => {
   });
 });
 
+describe("findDeadZones: which cards it judges, and how it names them", () => {
+  it("names a card by its id, first classes and link text, cut at 40 letters", () => {
+    const title = "Braising short ribs low and slow with a lid on";
+    render(`${stretched}<article id="ribs" class="card a b c" ><div class="media"></div><div style="position: relative"><h3><a class="s" href="#x">${title}</a></h3></div></article>`);
+    expect(issues()[0]![1]).toBe(`article#ribs.card.a.b "${title.slice(0, 40)}…"`);
+    host.remove();
+    render(`${stretched}<article style="position: relative"><div class="media"></div><div style="position: relative"><h3><a class="s" href="#x">Searing</a></h3></div></article>`);
+    expect(issues()[0]![1]).toBe('article "Searing"');
+  });
+
+  it("skips a card allowed for every rule with a reason, and judges one whose allow gives no reason", () => {
+    render(card('style="position: relative"', 'data-ouro-allow="all" data-ouro-allow-why="a gallery whose pictures open their own viewer"'));
+    expect(issues()).toEqual([]);
+    host.remove();
+    render(card('style="position: relative"', 'data-ouro-allow="linked-card-dead-zone"'));
+    expect(issues()).toHaveLength(1);
+  });
+
+  it("judges no root without a stretched link, no stretched link outside a card, and a card's second link not again", () => {
+    render(
+      `${stretched}<div data-linked=""><a href="#x">Plain</a></div>` +
+        `<div class="card"><div class="media"></div><div style="position: relative"><a class="s" href="#x">Loose</a></div></div>` +
+        `<article class="card"><div class="media"></div><div style="position: relative"><h3><a class="s" href="#x">First</a></h3><a class="s" href="#y">Second</a></div></article>`,
+    );
+    expect(issues().map(([, element]) => element)).toEqual(['article.card "First"']);
+  });
+
+  it("skips a card too small to click and a hidden one, and leaves out spots off the screen or under a fixed bar", () => {
+    render(
+      `${stretched}<article class="card" style="height: 12px; overflow: hidden"><div style="position: relative"><a class="s" href="#x">Tiny</a></div></article>` +
+        `<div hidden>${card('style="position: relative"')}</div>`,
+    );
+    expect(issues()).toEqual([]);
+    host.remove();
+    // Wider than the screen, under a bar fixed over its top: the spots past the screen's edge and under the bar are not the card's.
+    render(
+      `${stretched}<div style="position: fixed; inset: 0 0 auto 0; height: 120px; z-index: 5; background: #fff"></div>` +
+        `<article class="card" style="width: ${innerWidth * 2}px"><div class="media"></div><h3><a class="s" href="#x">Wide</a></h3></article>`,
+    );
+    expect(issues()).toEqual([]);
+  });
+});
+
+describe("markReveals: which reveals reveal-reflow walks", () => {
+  it("marks up to its limit, leaves out an Item's actions without revealActions, an allowed reveal and a hidden one, and names one with no heading", () => {
+    render(
+      `<div data-ouro="item"><span data-item-actions="">Edit</span></div>` +
+        `<div data-ouro-allow="reveal-reflow" data-ouro-allow-why="the row grows on purpose"><div data-ouro-reveal=""><h3>Allowed</h3></div></div>` +
+        `<div data-ouro-allow="reveal-reflow"><div data-ouro-reveal=""><h3>No reason</h3></div></div>` +
+        `<div style="display: none"><div data-ouro-reveal=""><h3>Hidden</h3></div></div>` +
+        `<div><div data-ouro-reveal=""><p>No heading</p></div></div>`,
+    );
+    expect(markReveals(5).map(({ element }) => element)).toEqual(['div "No reason"', 'div ""']);
+    delete state.__ouroCheckRef;
+    expect(markReveals(1).map(({ element }) => element)).toEqual(['div "No reason"']);
+  });
+
+  it("lays out nothing for a ref no element carries", () => {
+    expect(revealLayout({ ref: "v-none" })).toEqual([]);
+  });
+});
+
 describe("revealLayout and movedSince: reveal-reflow", () => {
   it("sees a reveal that makes room move the card, on hover and on keyboard focus", async () => {
     render(

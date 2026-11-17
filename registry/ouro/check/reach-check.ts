@@ -35,7 +35,8 @@ function findDeadZones(): PageIssue[] {
     return false;
   };
   const describe = (el: Element, link: Element) => {
-    const words = (link.textContent ?? "").trim().replace(/\s+/g, " ");
+    // An element's text is never null.
+    const words = link.textContent!.trim().replace(/\s+/g, " ");
     return `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].slice(0, 3).join(".")}` : ""} "${words.slice(0, 40)}${words.length > 40 ? "…" : ""}"`;
   };
   // What takes its own click inside a card: its link, and any control or nested linked row.
@@ -104,15 +105,16 @@ function markReveals(limit: number): { ref: string; element: string }[] {
   const found: { ref: string; element: string }[] = [];
   const roots = new Set<Element>();
   for (const part of document.body.querySelectorAll("[data-card-reveal], [data-ouro-reveal], [data-item-actions]")) {
-    const root = part.closest('[data-ouro="card"], [data-ouro="item"], [data-linked]') ?? part.parentElement;
+    // A part in the body always has a parent.
+    const root = part.closest('[data-ouro="card"], [data-ouro="item"], [data-linked]') ?? part.parentElement!;
     // An Item's actions are revealed only with revealActions, which makes the row a hover group.
-    if (part.hasAttribute("data-item-actions") && !root?.classList.contains("group/item")) continue;
-    if (root) roots.add(root);
+    if (part.hasAttribute("data-item-actions") && !root.classList.contains("group/item")) continue;
+    roots.add(root);
   }
   for (const root of roots) {
     if (found.length >= limit) break;
     const allow = root.closest("[data-ouro-allow]");
-    if (allow && /\b(reveal-reflow|all)\b/.test(allow.getAttribute("data-ouro-allow") ?? "") && (allow.getAttribute("data-ouro-allow-why") ?? "").trim()) continue;
+    if (allow && /\b(reveal-reflow|all)\b/.test(allow.getAttribute("data-ouro-allow")!) && (allow.getAttribute("data-ouro-allow-why") ?? "").trim()) continue;
     const r = root.getBoundingClientRect();
     if (r.width < 1 || r.height < 1 || root.closest('[hidden], [inert], [aria-hidden="true"]')) continue;
     counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
