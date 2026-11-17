@@ -226,7 +226,9 @@ test("a failed plan is tolerated, no job's own failure is allowed by the run, an
     }
   };
   walk(LAST);
-  assert.deepEqual([...waited].sort(), Object.keys(jobs).filter((id) => id !== LAST).sort());
+  // But tree-proof, which runs beside it on what it waits on, and only echoes the tree a full run passed.
+  assert.deepEqual([...waited].sort(), Object.keys(jobs).filter((id) => id !== LAST && id !== "tree-proof").sort());
+  assert.doesNotMatch(jobs["tree-proof"], /^ {6}- (?:uses|name):/m);
   assert.match(jobs[LAST], /^ {4}if: \$\{\{ !cancelled\(\) && /m);
   // A job whose own failure the run allows (continue-on-error on the job) would be a false cancel.
   assert.deepEqual(Object.keys(jobs).filter((id) => /^ {4}continue-on-error:/m.test(jobs[id])), []);

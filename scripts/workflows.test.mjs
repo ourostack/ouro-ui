@@ -856,7 +856,7 @@ test("CI cancels only a pull request's superseded run: never a merge-queue, main
   assert.doesNotMatch(text.split("\njobs:\n")[1], /^\s+concurrency:/m, "no job has a group of its own that could cancel it");
 });
 
-test("Release takes main's CI from main's runs on its commit: a push, a dispatch on main, and the merge queue's run", () => {
+test("Release takes main's CI from main's runs on its commit: a push, a dispatch on main, the merge queue's run, and the pull request run that proved its tree", () => {
   const release = workflow("release.yml");
   const filter = release.match(/ci=\$\(gh run list --workflow "\$workflow" --commit "\$sha" --json databaseId,event,headBranch --jq '([^']+)'\)/)?.[1];
   assert.ok(filter, "release.yml reads the runs on main's commit, on any branch");
@@ -881,6 +881,10 @@ test("Release takes main's CI from main's runs on its commit: a push, a dispatch
   assert.equal(conclusion([run("workflow_dispatch", "main", 1)]), "1");
   // A pull request's run, or a dispatch on another branch, is not main's CI.
   assert.equal(conclusion([run("pull_request", "fix", 1), run("workflow_dispatch", "release/v1.0.0", 2)]), "");
+  // Except the pull request run whose tree-proof job passed on the commit's tree, which scripts/ci-proof.mjs finds
+  // again, when main's push run skipped what that run had passed.
+  assert.match(release, /\n +GITHUB_OUTPUT="\$proof_out" node scripts\/ci-proof\.mjs "\$sha"\n +proof=\$\(sed -n 's\/\^proof-run=\/\/p' "\$proof_out"\)\n +if \[ -n "\$proof" \]; then runs="\$runs \$proof"; fi\n/);
+  assert.ok(release.indexOf("node scripts/ci-proof.mjs") < release.indexOf("scripts/required-ci.sh $runs"));
 });
 
 
@@ -1224,40 +1228,24 @@ test("the plan's merge commit has its base: the checkout fetches the merge commi
   assert.match(ciJobs().plan, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
 });
 
-test("a push to main whose commit the merge queue already tested runs only install-github", () => {
+test("a push to main whose tree already passed runs only install-github", () => {
   const jobs = ciJobs();
-  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Did the merge queue test this commit\?\n {8}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n/m);
+  assert.match(jobs.plan, /^ {6}- id: tested\n {8}name: Has this tree already passed\?\n {8}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n {8}timeout-minutes: 7\n {8}continue-on-error: true\n/m);
+  // It waits up to 5 minutes for the merged pull request's run to finish, within the step's 7 and the plan's 10 on a push.
+  assert.match(jobs.plan, /^ {8}run: node scripts\/ci-proof\.mjs "\$GITHUB_SHA" --wait 300$/m);
+  assert.match(jobs.plan, /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'pull_request' && 20 \|\| 10 \}\}$/m);
   assert.match(jobs.plan, /^ {6}tested: \$\{\{ steps\.tested\.outputs\.tested \}\}$/m);
-  assert.match(jobs.plan, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n/m);
-  // The step's own script and jq filter, over the runs the API lists on the commit.
-  const script = stepScript(jobs.plan, "Did the merge queue test this commit?");
-  const dir = scratchDir("ouro-queue-tested-");
-  const check = (runs, ghStatus = 0) => {
-    const output = join(dir, `output-${Math.random()}.txt`);
-    writeFileSync(output, "");
-    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `gh() { [ "$GH_STATUS" = 0 ] || return "$GH_STATUS"; printf '%s' "$RUNS" | jq "\${@: -1}"; }\n${script}`], {
-      encoding: "utf8",
-      env: sandboxEnv({ RUNS: JSON.stringify({ workflow_runs: runs }), GH_STATUS: String(ghStatus), GITHUB_OUTPUT: output, REPO: "o/r", SHA: "abc" }),
-    });
-    assert.equal(result.status, 0, result.stderr);
-    return readFileSync(output, "utf8").trim();
-  };
-  const run = (event, head_branch) => ({ event, head_branch, head_sha: "abc", conclusion: "success" });
-  assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")]), "tested=true");
-  assert.equal(check([run("workflow_dispatch", "gh-readonly-queue/main/pr-9-abc")]), "tested=true");
-  // Only the merge queue's runs count: a pull request's run tested its merge with an older main.
-  assert.equal(check([run("pull_request", "fix"), run("workflow_dispatch", "release/v1.0.0")]), "");
-  assert.equal(check([]), "");
-  // When the API cannot answer, everything runs.
-  assert.equal(check([run("merge_group", "gh-readonly-queue/main/pr-9-abc")], 1), "");
-  // Every job but the plan, the GitHub install, the release-only install and fail-fast (pull
-  // requests only) skips on it, gates included; motion-coverage waits on ci and browser-fallback on
+  assert.match(jobs.plan, /^ {6}tree: \$\{\{ steps\.tree\.outputs\.tree \}\}$/m);
+  assert.match(jobs.plan, /^ {8}run: echo "tree=\$\(git rev-parse 'HEAD\^\{tree\}'\)" >> "\$GITHUB_OUTPUT"$/m);
+  assert.match(jobs.plan, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n {6}pull-requests: read/m);
+  // A proven push installs nothing for the plan either.
+  assert.match(readFileSync(join(dir, "ci.yml"), "utf8").split("\n  checks:\n")[0], /^ {6}- if: steps\.tested\.outputs\.tested != 'true'\n {8}id: install\n/m);
+  // Every job but the plan, the GitHub install, the release-only install, fail-fast and fresh-main (pull
+  // requests only) and tree-proof skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
-  // heavy-queued, the heavy tier's notices, runs only on a pull request whose plan said heavy=queue,
-  // which a push to main never does.
-  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main"].includes(id)).sort());
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns].includes(condition(jobs[id])));
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1265,6 +1253,36 @@ test("a push to main whose commit the merge queue already tested runs only insta
   const runs = (tested) => runInNewContext(untested.slice(4, -3).replace("!cancelled()", "true").replace("needs.plan.outputs.tested", "value"), { value: tested });
   // A plan that failed or never ran leaves the output empty: everything runs.
   assert.deepEqual(["", "true"].map(runs), [true, false]);
+});
+
+test("a pull request's run reports tree-proof, named for its tree, only when its plan left nothing out and every job passed", async () => {
+  const jobs = ciJobs();
+  const block = jobs["tree-proof"];
+  const { PREFIX } = await import("./ci-proof.mjs");
+  assert.equal(block.match(/^ {4}name: (.+)$/m)?.[1], `${PREFIX}\${{ needs.plan.outputs.tree }}`);
+  // It waits on what ci-budget waits on but the jobs that run only off a pull request and fresh-main, which tests a newer main.
+  const needsOf = (id) => jobs[id].match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
+  assert.deepEqual(needsOf("tree-proof").sort(), needsOf("ci-budget").filter((id) => !["fresh-main", "install-github", "install-latest"].includes(id)).sort());
+  const expression = block.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1];
+  const reports = ({ event = "pull_request", results = ["success", "success"], plan = {}, fallback = "false" } = {}) =>
+    runInNewContext(
+      expression
+        .replace("!cancelled()", "true")
+        .replace("github.event_name", "event")
+        .replace(/contains\(needs\.\*\.result, ('\w+')\)/g, "results.includes($1)")
+        .replace(/needs\.plan\.outputs\.(\w+)/g, "plan.$1")
+        .replace("needs.ci.outputs.fallback", "fallback"),
+      { event, results, plan: { tree: "t", full: "true", browser: "true", design: "true", installs: "here", heavy: "here", ...plan }, fallback },
+    );
+  assert.equal(reports(), true);
+  // A plan that failed leaves its outputs empty: no tree, no proof.
+  assert.equal(reports({ plan: { tree: "" } }), false);
+  for (const plan of [{ full: "false" }, { browser: "false" }, { design: "false" }, { installs: "skip" }, { heavy: "skip" }, { installs: "" }, { heavy: "" }]) assert.equal(reports({ plan }), false, JSON.stringify(plan));
+  for (const result of ["failure", "cancelled", "skipped"]) assert.equal(reports({ results: ["success", result] }), false, result);
+  assert.equal(reports({ fallback: "true" }), false);
+  for (const event of ["push", "merge_group", "workflow_dispatch"]) assert.equal(reports({ event }), false, event);
+  // It reads nothing and runs nothing but its notice.
+  assert.doesNotMatch(block, /checkout|permissions/);
 });
 
 test("every job that reads the plan runs whatever happened to it, and runs everything unless it says full=false", () => {
@@ -1300,7 +1318,7 @@ function checkNames(block, id) {
   return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name));
 }
 
-/** The condition of every job a push the merge queue already tested skips (the plan's `tested`). */
+/** The condition of every job a push whose tree already passed skips (the plan's `tested`, scripts/ci-proof.mjs). */
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
 /** The install test's jobs (not its gates): they also skip on a pull request that changes nothing the install test reads (the plan's `installs`). */
@@ -1312,6 +1330,9 @@ const browserRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && 
 /** The heavy tier's jobs: on a pull request that changes nothing they read (the plan's heavy=skip) they skip, and a job without a matrix reports skipped, which a required check accepts; they run everywhere else. */
 const heavyJobs = ["themes", "visual", "theme-install", "latency", "lighthouse"];
 const heavyRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.heavy != 'skip' }}";
+
+/** The design shards': they also skip on a pull request that changes nothing the site build or Ouro check reads (the plan's `design`). */
+const designRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.design != 'false' }}";
 
 /** The mutation shards': they also skip when the plan counts none (no changed path is runtime source). */
 const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
@@ -1330,13 +1351,13 @@ test("every required check is still a job that reports, under the name the rules
       names.set(name, id);
     }
     // A job a required check names never skips itself on a pull request or in the merge queue: at
-    // most it runs whatever its needs did, and skips only on a push the merge queue already tested.
+    // most it runs whatever its needs did, and skips only on a push whose tree already passed.
     const condition = block.match(/^ {4}if: (.+)$/m)?.[1];
     // browser-fallback is no required check: it runs only when the coverage job asks, and the ci check fails when it then did not pass.
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1491,9 +1512,26 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   assert.doesNotMatch(block, /continue-on-error/);
   // The first shard also checks the converted components' pages with the corner-shape fallback forced on.
   assert.match(block, /targets: site\/dist-fallback\n {10}sizes: 390x844,1440x900\n {10}themes: dark,light\n/);
-  assert.match(block, /^ {6}- if: steps\.relevance\.outputs\.run != 'false'\n {8}run: pnpm site:build$/m);
-  // Off a pull request (the merge queue, main, a dispatch) it always runs.
-  for (const event of ["merge_group", "push", "workflow_dispatch"]) assert.deepEqual(runStep(stepScript(block, "Can the change reach the site?"), { EVENT: event }).output, { run: "true" }, event);
+  assert.match(block, /^ {6}- run: pnpm site:build$/m);
+  // The plan decides whether its runners start at all (scripts/ci-relevance.mjs screens): off a pull request (the
+  // merge queue, main, a dispatch) and on a change to ci.yml it always runs.
+  assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], designRuns);
+  assert.doesNotMatch(block, /steps\.relevance|id: relevance/);
+  assert.match(jobs.plan, /^ {6}design: \$\{\{ steps\.design\.outputs\.run \}\}$/m);
+  const decide = stepScript(jobs.plan, "Can the change reach the site?");
+  for (const event of ["merge_group", "push", "workflow_dispatch"]) assert.deepEqual(runStep(decide, { EVENT: event }).output, { run: "true" }, event);
+  assert.deepEqual(runStep(decide, { EVENT: "pull_request", BASE_REF: "main", HEAD_REF: "release/v1.0.0" }).output, { run: "true" });
+  // On a pull request into main, ci.yml's own change runs it, and so does a relevance check that fails.
+  assert.match(decide, /git diff --name-only HEAD\^1 HEAD \| grep -qx "\.github\/workflows\/ci\.yml"/);
+  assert.match(decide, /^ +node scripts\/ci-relevance\.mjs screens HEAD\^1 HEAD \|\| echo "run=true" >> "\$GITHUB_OUTPUT"$/m);
+  const runs = (design) => runInNewContext(designRuns.slice(4, -3).replace("!cancelled()", "true").replace("needs.plan.outputs.tested", "''").replace("needs.plan.outputs.design", "value"), { value: design });
+  assert.deepEqual(["", "true", "false"].map(runs), [true, true, false]);
+  // The ci check counts their skip as a pass only when the plan asked for it.
+  assert.match(jobs.ci, /^ {6}DESIGN_RUN: \$\{\{ needs\.plan\.outputs\.design != 'false' \}\}$/m);
+  const parts = stepScript(jobs.ci, "Every part passed");
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "skipped", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
+  assert.equal(runStep(parts, { ...ok, DESIGN_RUN: "false" }).status, 0);
+  for (const [run, result] of [["true", "skipped"], ["false", "failure"], ["false", "cancelled"]]) assert.equal(runStep(parts, { ...ok, DESIGN_RUN: run, DESIGN: result }).status, 1, `${run} ${result}`);
   // Each waiver gives its reason.
   const { waive } = JSON.parse(readFileSync(join(root, ".github/ouro-check.json"), "utf8"));
   for (const [glob, rules] of Object.entries(waive)) for (const [rule, why] of Object.entries(rules)) assert.ok(why.trim().length > 20, `${glob} ${rule}`);
@@ -1953,7 +1991,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   const jobs = ciJobs();
   const block = jobs["ci-budget"];
   // It runs whatever the other jobs did, but not on a cancelled run, which would hold a runner for
-  // nothing, nor on a push the merge queue already tested, which runs nothing to measure.
+  // nothing, nor on a push whose tree already passed, which runs nothing to measure.
   assert.equal(block.match(/^ {4}if: (.+)$/m)?.[1], untested);
   // Whether the run was full, which its ci-timings record says.
   assert.match(block, /^ {10}FULL: \$\{\{ needs\.plan\.outputs\.full != 'false' \}\}$/m);
@@ -1964,8 +2002,9 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   const needs = block.match(/^ {4}needs: \[([^\]]*)\]$/m)[1].split(",").map((need) => need.trim());
   // Every job no other job needs: the ends of the run's chains, but fail-fast, which watches this
   // job too and stops once it has finished (scripts/ci-fail-fast.mjs).
-  const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
-  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && !needed.has(id));
+  const needed = new Set(Object.entries(jobs).filter(([id]) => id !== "ci-budget" && id !== "tree-proof").flatMap(([, other]) => other.match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1].split(",").map((need) => need.trim()) ?? []));
+  // tree-proof, the proof a push to main reads, runs beside it on what it waits on.
+  const ends = Object.keys(jobs).filter((id) => id !== "ci-budget" && id !== "fail-fast" && id !== "tree-proof" && !needed.has(id));
   assert.deepEqual([...needs].sort(), [...ends, "plan", "ci"].sort());
   const { jobGraph } = await import("./ci-budget.mjs");
   const graph = jobGraph(workflow("ci.yml"));
