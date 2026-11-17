@@ -30,7 +30,7 @@ Type: `CoverProps`.
 | `shape` | `"square" \| "rounded"` | `"rounded"` | `rounded` (the theme's lg corner) or `square`, for a cover that runs to the edges of its slot, such as a page's hero on a phone. |
 | `size` | `"sm" \| "md" \| "lg" \| "fill"` | `"md"` | How big the cover is: `sm` (40px) for a dense row, `md` (56px) for a list row, `lg` (96px) for a card, and `fill`, as wide as its container, for a page's hero (set its aspect with `className`, such as `aspect-video`). |
 | `src` | `string` |  | The picture's address. Without it, or when it fails to load, the cover is the title's initial on a tinted tile. |
-| `title` (required) | `string` |  | What the cover belongs to: "Lemon rice". Without a picture, its first letter is the tile's mark. Required, so every cover has one. |
+| `title` (required) | `string` |  | What the cover belongs to: "Lemon rice". Without a picture, its first letter is the tile's mark. Required, so a tile without a picture still has a letter. |
 
 ## Native attributes
 
