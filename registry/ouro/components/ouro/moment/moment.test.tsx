@@ -606,6 +606,16 @@ describe("Moment arrival", () => {
     await expect.poll(() => flourishing.every((animation) => animation.playState === "finished")).toBe(true);
     await expect(arrival!.finished, "the arrival finishes, not cancelled").resolves.toBeDefined();
   });
+  it("keeps a keyed arrival running through a re-render of the same kind", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const { host, root } = await render(<Moment id="keeps-running" kind="loading" title="Working" art={<Art />} />);
+    await act(async () => root.render(<Moment id="keeps-running" kind="error" title="Failed" art={<Art />} />));
+    const [arrival] = arrivals(artOf(host));
+    expect(arrival, "the new kind arrives").toBeDefined();
+    await act(async () => root.render(<Moment id="keeps-running" kind="error" title="Failed again" art={<Art id="again" />} />));
+    // A re-render of the same moment must not finish its arrival: a finished one has run its whole duration.
+    expect(arrival!.currentTime, "the arrival is still running").toBeLessThan(token("--ouro-duration-sheet") / 2);
+  });
 });
 
 describe("Moment motion budget", () => {
