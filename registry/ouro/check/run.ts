@@ -797,8 +797,6 @@ async function check(options: CheckOptions): Promise<CheckResult> {
   };
   // Each page's hero art in its light run, by page and size, for dark-art in its dark run.
   const lightArt = new Map<string, HeroArt | null>();
-  // off-theme reads the page's style rules, which are the same at every size and theme: once a page.
-  const offThemeRead = new Set<string>();
   const checkPage = async (page: Page, target: Target, width: number, height: number, theme: string) => {
     const runtime = listenForRuntime(page, target.url);
     const { failed, ready } = await reach(page, target);
@@ -835,11 +833,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findTextIssues)));
       shown.push(...(await page.evaluate(findLayoutIssues, {})));
       shown.push(...(await page.evaluate(findThemeIssues, {})));
-      const offThemeKey = `${target.site}\u0000${target.page}`;
-      if (!offThemeRead.has(offThemeKey)) {
-        offThemeRead.add(offThemeKey);
-        shown.push(...(await page.evaluate(findOffThemeIssues, {})));
-      }
+      // off-theme and off-scale read the page's style rules, the same at every size and theme: at one, inp's.
+      if (inpAt === `${width}x${height} ${theme}`) shown.push(...(await page.evaluate(findOffThemeIssues, {})));
       shown.push(...(await page.evaluate(findInteractionIssues)));
       shown.push(...(await page.evaluate(findWrapIssues, {})));
       const behind = new Set(await page.evaluate(behindModal, [...new Set(shown.map((issue) => issue.ref))]));

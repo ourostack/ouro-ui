@@ -203,14 +203,14 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
   ];
   const keywords = new Set(["transparent", "currentcolor", "inherit", "initial", "unset", "revert", "revert-layer", "none", "auto"]);
   // A property by the family its longhands share, so border-radius or padding is one finding, not four.
-  const family = (property: string) =>
-    [
-      [/^border-.*radius$/, "border-radius"],
-      [/^border-.*color$/, "border-color"],
-      [/^padding/, "padding"],
-      [/^margin/, "margin"],
-      [/gap$/, "gap"],
-    ].find(([test]) => (test as RegExp).test(property))?.[1] ?? property;
+  const families: [RegExp, string][] = [
+    [/^border-.*radius$/, "border-radius"],
+    [/^border-.*color$/, "border-color"],
+    [/^padding/, "padding"],
+    [/^margin/, "margin"],
+    [/gap$/, "gap"],
+  ];
+  const family = (property: string) => families.find(([test]) => test.test(property))?.[1] ?? property;
 
   // The page's style rules, each with the layer it is in and the outermost style rule around it, whose selector picks
   // the elements: a nested rule only narrows to a state.
