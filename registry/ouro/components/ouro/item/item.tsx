@@ -421,8 +421,8 @@ export function Item(props: ItemProps): JSX.Element {
     {
       ...rest,
       // A click anywhere on a linked row opens its link, wherever the app's layout leaves the link's layer.
-      onClick: linked || pressable ? (event: MouseEvent<HTMLElement>) => (rest.onClick?.(event), followStretchedLink(event)) : rest.onClick,
-      onAuxClick: linked ? (event: MouseEvent<HTMLElement>) => (rest.onAuxClick?.(event), followStretchedLink(event)) : rest.onAuxClick,
+      onClick: (event: MouseEvent<HTMLElement>) => (rest.onClick?.(event), followStretchedLink(event)),
+      onAuxClick: (event: MouseEvent<HTMLElement>) => (rest.onAuxClick?.(event), followStretchedLink(event)),
       "data-ouro": "item",
       "data-linked": linked || pressable ? "" : undefined,
       "data-follows-link": linked || pressable ? "" : undefined,

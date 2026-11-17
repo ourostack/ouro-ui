@@ -74,17 +74,19 @@ function followStretchedLink(event: StretchedClick): void {
   // A main click, or a middle click, which browsers send as auxclick.
   if (event.defaultPrevented || event.button !== (event.type === "auxclick" ? 1 : 0)) return;
   const root = event.currentTarget;
-  const link = [...root.querySelectorAll<HTMLElement>("[data-stretched-link]")].find((candidate) => candidate.parentElement?.closest("[data-linked]") === root);
-  const target = event.target instanceof Element ? event.target : null;
-  const control = target?.closest(ownClick);
-  if (!link || !target || (control && control !== root && root.contains(control))) return;
+  // The root's own link: one a linked row inside it (an Item in a Card) has is that row's.
+  const link = root.querySelector<HTMLElement>(":scope [data-stretched-link]:not(:scope [data-linked] [data-stretched-link])");
+  // A mouse event's target is an element.
+  const control = (event.target as Element).closest(ownClick);
+  if (!link || (control && control !== root && root.contains(control))) return;
   // Text selected elsewhere on the page stays selected through a press on a picture, so only a selection in the root counts.
   const selection = root.ownerDocument.getSelection();
   if (selection && !selection.isCollapsed && selection.containsNode(root, true)) return;
   const view = root.ownerDocument.defaultView;
-  const href = link.getAttribute("href");
-  if (event.button === 1 || event.ctrlKey || event.metaKey || event.shiftKey) {
-    if (href) view?.open((link as HTMLAnchorElement).href, "_blank", "noopener");
+  // A link's middle or modified click opens a new tab; a row's button takes any click as a plain one.
+  if (link instanceof HTMLAnchorElement && (event.button === 1 || event.ctrlKey || event.metaKey || event.shiftKey)) {
+    // Stryker disable next-line OptionalChaining: a page's document always has a window
+    view?.open(link.href, "_blank", "noopener");
     return;
   }
   link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view, altKey: event.altKey }));

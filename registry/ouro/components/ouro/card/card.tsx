@@ -326,7 +326,7 @@ export function Card(props: CardProps): JSX.Element {
     </Heading>
   ) : null;
   // The title, description and action; for a rising description, laid over the media's bottom.
-  const titleBlock = (place: string) =>
+  const titleBlock = (place?: string) =>
     (heading || description || action) && (
       <div className={cn("flex items-start gap-4", stackBelow && headerStacked[stackBelow], pad, place)}>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -352,8 +352,8 @@ export function Card(props: CardProps): JSX.Element {
     {
       ...rest,
       // A click anywhere on a linked card opens its link, wherever the app's layout leaves the link's layer.
-      onClick: linked ? (event: MouseEvent<HTMLElement>) => (rest.onClick?.(event), followStretchedLink(event)) : rest.onClick,
-      onAuxClick: linked ? (event: MouseEvent<HTMLElement>) => (rest.onAuxClick?.(event), followStretchedLink(event)) : rest.onAuxClick,
+      onClick: (event: MouseEvent<HTMLElement>) => (rest.onClick?.(event), followStretchedLink(event)),
+      onAuxClick: (event: MouseEvent<HTMLElement>) => (rest.onAuxClick?.(event), followStretchedLink(event)),
       "data-ouro": "card",
       "data-ouro-squircle": variant === "outline" ? "" : undefined,
       "data-linked": linked ? "" : undefined,
@@ -378,7 +378,7 @@ export function Card(props: CardProps): JSX.Element {
         {titleBlock("z-1 self-end [grid-area:1/1] bg-card py-3 text-card-foreground")}
       </div>
     ),
-    !rise && titleBlock(""),
+    !rise && titleBlock(),
     children && <div className={cn("min-w-0", pad)}>{children}</div>,
     footer && <div className={cn("flex flex-wrap items-center gap-2", pad)}>{footer}</div>,
   );

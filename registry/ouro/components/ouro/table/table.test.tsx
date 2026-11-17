@@ -291,6 +291,12 @@ describe("Table with rowHref", () => {
     link.addEventListener("click", opened);
     await userEvent.click(time);
     expect(opened).toHaveBeenCalledTimes(1);
+    expect(ribs!.getAttribute("data-follows-link")).toBe("");
+    // A middle click on a cell opens the row's address in a new tab.
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    await userEvent.click(time, { button: "middle" } as never);
+    expect(open).toHaveBeenCalledWith((link as HTMLAnchorElement).href, "_blank", "noopener");
+    expect(table.querySelectorAll("tbody tr")[2]!.hasAttribute("data-follows-link")).toBe(false);
   });
 
   it("makes each linked row one link named by its row header, with one tab stop, covering the row", async () => {

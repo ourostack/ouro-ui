@@ -361,8 +361,8 @@ export function TableRow(props: TableRowProps): JSX.Element {
         {...rest}
         ref={merged}
         // A click anywhere on a linked row opens its link, though a sticky cell keeps the link's layer to itself.
-        onClick={linked ? (event) => (rest.onClick?.(event), followStretchedLink(event)) : rest.onClick}
-        onAuxClick={linked ? (event) => (rest.onAuxClick?.(event), followStretchedLink(event)) : rest.onAuxClick}
+        onClick={(event) => (rest.onClick?.(event), followStretchedLink(event))}
+        onAuxClick={(event) => (rest.onAuxClick?.(event), followStretchedLink(event))}
         data-linked={linked ? "" : undefined}
         data-follows-link={linked ? "" : undefined}
         className={cn(
