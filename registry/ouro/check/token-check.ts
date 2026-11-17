@@ -261,7 +261,13 @@ function findOffThemeIssues({ maxIssues = 40 }: OffThemeOptions = {}): PageIssue
   }
   const tokenVar = (name: string) => {
     const bare = name.slice(2);
-    return colorNames.includes(bare.replace(/^color-/, "")) || /^(?:radius|shadow|font|spacing|ouro-|tw-|text-|leading-|tracking-|default-|animate-|ease-|blur-|container-|breakpoint-|chart-|sidebar|inset-shadow|drop-shadow|perspective|aspect)/.test(bare);
+    // The theme's own names and steps, and Ouro's, Tailwind's and shadcn's own variables; any other name in those
+    // namespaces (--shadow-glow, --radius-card, --text-muted) is the app's.
+    return (
+      colorNames.includes(bare.replace(/^color-/, "")) ||
+      /^(?:radius(?:-(?:xs|sm|md|lg|xl|[2-4]xl))?|shadow-(?:2xs|xs|sm|md|lg|xl|2xl)|font-(?:sans|serif|mono|heading)|spacing|text-(?:xs|sm|base|lg|xl|[2-9]xl)(?:--.*)?)$/.test(bare) ||
+      /^(?:ouro-|tw-|chart-|sidebar|avatar-|leading-|tracking-|default-|animate-|ease-|blur-|container-|breakpoint-|inset-shadow-|drop-shadow-|perspective-|aspect-)/.test(bare)
+    );
   };
   // The fixed value a variable of the app's own holds, through other variables of its own, or "".
   const throughOwn = (value: string, test: (v: string) => boolean, depth = 0): string => {

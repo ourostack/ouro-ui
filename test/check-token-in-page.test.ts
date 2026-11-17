@@ -220,18 +220,24 @@ describe("findOffThemeIssues: the page and the opt-outs", () => {
 });
 
 describe("findOffThemeIssues: what an app writes past the theme in other ways", () => {
-  it("judges a value through the app's own variable by what it holds, but not through an alias of a token or a keyword", () => {
+  it("judges a value through the app's own variable by what it holds, in the theme's namespaces too, but not an alias of a token, a keyword or Ouro's avatar tokens", () => {
     render(`<style>
       .v { --t-brand: #6d28d9; --t-r: 14px; --t-gap: 18px; --t-alias: var(--primary); --t-none: none; --t-deep: var(--t-brand); }
       .v-a { background: var(--t-brand); border-radius: var(--t-r); padding: var(--t-gap); }
       .v-b { color: var(--t-alias); box-shadow: var(--t-none); }
       .v-c { color: var(--t-deep); }
-    </style><div class="v"><div class="v-a">A</div><div class="v-b">B</div><div class="v-c">C</div></div>`);
+      .v-d { --shadow-glow: 0 0 40px #a855f7; --text-muted: #666666; --avatar-3: #986f0b; }
+      .v-e { box-shadow: var(--shadow-glow); color: var(--text-muted); }
+      .v-f { color: var(--avatar-3); }
+    </style><div class="v"><div class="v-a">A</div><div class="v-b">B</div><div class="v-c">C</div></div>
+    <div class="v-d"><div class="v-e">E</div><div class="v-f">F</div></div>`);
     expect(mine().map(([rule, , detail]) => [rule, detail])).toEqual([
       ["off-theme", expect.stringMatching(/^\.v-a sets background: var\(--t-brand\), a fixed colour; use var\(--[\w-]+\) \(bg-[\w-]+\)$/)],
       ["off-theme", expect.stringMatching(/^\.v-a sets border-radius: var\(--t-r\), a fixed radius; use .+ \(rounded-\w+\)$/)],
       ["off-scale", ".v-a sets padding: var(--t-gap), a fixed spacing; use calc(var(--spacing) * 5) (p-5)"],
       ["off-theme", expect.stringMatching(/^\.v-c sets color: var\(--t-deep\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
+      ["off-theme", expect.stringMatching(/^\.v-e sets box-shadow: var\(--shadow-glow\), a fixed shadow; use one of the theme's shadows/)],
+      ["off-theme", expect.stringMatching(/^\.v-e sets color: var\(--text-muted\), a fixed colour; use var\(--[\w-]+\) \(text-[\w-]+\)$/)],
     ]);
   });
 
