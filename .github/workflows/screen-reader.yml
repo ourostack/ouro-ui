@@ -98,7 +98,7 @@ jobs:
           specs=$(node scripts/shard.mjs sr "$SHARD")
           [ -n "$specs" ] || { echo "::error::No screen-reader specs for shard $SHARD."; exit 1; }
           # shellcheck disable=SC2086
-          pnpm test:sr --project "$PROJECT" $specs 2>&1 | tee "$RUNNER_TEMP/sr.log"
+          pnpm test:sr --project="$PROJECT" $specs 2>&1 | tee "$RUNNER_TEMP/sr.log"
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       # Runs whatever failed before it (but not a failed guard): no log means the tests never ran.
       - id: classify

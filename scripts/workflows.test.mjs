@@ -1872,7 +1872,8 @@ test("the screen-reader lane gates on VoiceOver on macos-26, in two shards, and 
   // Each job runs its shard of the specs, never all of them by default, and keeps its own artifact.
   assert.match(lane, /^ {6}SHARD: \$\{\{ matrix\.shard \}\}$/m);
   assert.match(lane, /specs=\$\(node scripts\/shard\.mjs sr "\$SHARD"\)\n\s+\[ -n "\$specs" \] \|\| \{ echo "::error::No screen-reader specs for shard \$SHARD\."; exit 1; \}/);
-  assert.match(lane, /pnpm test:sr --project "\$PROJECT" \$specs 2>&1/);
+  // `--project=`: Playwright's --project takes several names, and would read the specs after it as projects.
+  assert.match(lane, /pnpm test:sr --project="\$PROJECT" \$specs 2>&1/);
   assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}-\$\{\{ strategy\.job-index \}\}\n/);
   // An advisory job's failure does not fail the run, whose conclusion release.yml reads.
   assert.match(lane, /^ {4}continue-on-error: \$\{\{ matrix\.advisory \}\}$/m);
@@ -1901,7 +1902,7 @@ for (const [name, env, ok] of [
 
 test("the screen-reader lane sets up Guidepup in two phases, setup --ci then install, through the bin its package declares", () => {
   const lane = srJobs().lane;
-  const order = ["- run: pnpm i --frozen-lockfile", "- run: pnpm exec playwright install --with-deps webkit chromium", "name: Find Guidepup's setup command", 'run: pnpm exec "$GUIDEPUP" setup --ci', 'run: pnpm exec "$GUIDEPUP" install', 'pnpm test:sr --project "$PROJECT"', "node scripts/sr-classify.mjs"];
+  const order = ["- run: pnpm i --frozen-lockfile", "- run: pnpm exec playwright install --with-deps webkit chromium", "name: Find Guidepup's setup command", 'run: pnpm exec "$GUIDEPUP" setup --ci', 'run: pnpm exec "$GUIDEPUP" install', 'pnpm test:sr --project="$PROJECT"', "node scripts/sr-classify.mjs"];
   const at = order.map((line) => lane.indexOf(line));
   assert.ok(at.every((index) => index > 0), order.filter((_, index) => at[index] <= 0).join(", "));
   assert.deepEqual([...at].sort((a, b) => a - b), at, "in this order");
