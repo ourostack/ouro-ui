@@ -167,6 +167,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://github.com/nvaccess/nvda/issues/8971": {
+    "status": 200,
+    "checked": "2026-11-16"
+  },
   "https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-15"
@@ -408,6 +412,10 @@
     "checked": "2026-11-16"
   },
   "https://github.com/ourostack/ouro-ui/issues/1721": {
+    "status": 200,
+    "checked": "2026-11-16"
+  },
+  "https://github.com/ourostack/ouro-ui/issues/1778": {
     "status": 200,
     "checked": "2026-11-16"
   },
