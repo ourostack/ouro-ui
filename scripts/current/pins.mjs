@@ -245,11 +245,11 @@ function valueAt(text, key, from, to) {
 }
 
 /**
- * The lock file with only the source's commit and its files' sha256 values changed, every other byte as it was, so a
- * repository's own layout (one file to a line, say) and its checks of it survive. Null when the text is laid out in a
- * way this cannot follow; the caller then writes the file whole.
+ * The lock file with only the source's commit, the tag it names (if any) and its files' sha256 values changed, every
+ * other byte as it was, so a repository's own layout (one file to a line, say) and its checks of it survive. Null when
+ * the text is laid out in a way this cannot follow; the caller then writes the file whole.
  */
-export function editLock(text, sourceId, commit, shas) {
+export function editLock(text, sourceId, commit, shas, version) {
   const id = new RegExp(String.raw`"id"\s*:\s*"${sourceId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).exec(text);
   if (!id) return null;
   const nextId = /"id"\s*:\s*"/g;
@@ -261,6 +261,10 @@ export function editLock(text, sourceId, commit, shas) {
   const commitAt = valueAt(text, "commit", id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
   if (!commitAt) return null;
   edits.push({ ...commitAt, next: commit });
+  for (const key of VERSION_KEYS) {
+    const named = version && valueAt(text, key, id.index, firstFile >= 0 && firstFile < end ? firstFile : end);
+    if (named && isTag(named.value)) edits.push({ ...named, next: version });
+  }
   for (const [sourcePath, sha] of Object.entries(shas)) {
     let at = id.index;
     let found = null;
@@ -282,6 +286,23 @@ export function editLock(text, sourceId, commit, shas) {
   return out;
 }
 
+/** The keys a lock's source may name its release by, as a tag (`"tag": "v0.16.0"` or `"release": "v0.16.0"`). */
+const VERSION_KEYS = ["tag", "release"];
+const isTag = (value) => typeof value === "string" && /^v\d+\.\d+\.\d+$/.test(value);
+
+/**
+ * A file of ouro-ui-core's built `dist/`, which its git tree never holds: core ships it in each release's
+ * `ouro-ui-core-<tag>-dist.zip` asset, at its path without `dist/` (`dist-manifest.json` at the zip's root).
+ */
+async function distFile(pin, sourcePath, release, ctx) {
+  if (pin.follows !== "core" || !/^dist(\/|-manifest\.json$)/.test(sourcePath)) return undefined;
+  try {
+    return await ctx.assetFile("core", release.tag, `ouro-ui-core-${release.tag}-dist.zip`, sourcePath.replace(/^dist\//, ""));
+  } catch {
+    return undefined;
+  }
+}
+
 /** Files vendored from a commit (`upstream-sources.lock.json`: each source path, where it is written, and its sha256). */
 async function updateVendorLock(pin, text, release, ctx) {
   const lock = JSON.parse(text);
@@ -292,8 +313,9 @@ async function updateVendorLock(pin, text, release, ctx) {
   for (const source of lock.sources) {
     if (source.id !== pin.source) continue;
     source.commit = release.sha;
+    for (const key of VERSION_KEYS) if (isTag(source[key])) source[key] = release.tag;
     for (const file of source.files) {
-      const bytes = next.get(file.sourcePath);
+      const bytes = next.get(file.sourcePath) ?? (await distFile(pin, file.sourcePath, release, ctx));
       if (!bytes) {
         missing.push(file.sourcePath);
         continue;
@@ -305,7 +327,7 @@ async function updateVendorLock(pin, text, release, ctx) {
   }
   if (missing.length) throw new Error(`${pin.file}: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not in ${REPOS[pin.follows]} ${release.tag}`);
   // Only this source's values change; the edit is kept when it reads back as the lock this run means to write.
-  const edited = editLock(text, pin.source, release.sha, shas);
+  const edited = editLock(text, pin.source, release.sha, shas, release.tag);
   const same = (value) => {
     try {
       return JSON.stringify(JSON.parse(value)) === JSON.stringify(lock);

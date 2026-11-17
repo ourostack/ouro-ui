@@ -184,6 +184,54 @@ test("a vendored source changes only its own values in the lock, every other byt
   assert.equal(update.files["upstream-sources.lock.json"], expected, "the other source's LICENSE hash, equal to this one's old hash, is left alone");
 });
 
+test("a core source's built files come from the release's dist zip, and the tag the source names moves with its commit (#1782)", async () => {
+  // As ourostack/m365crawl vendors core's action model: dist/ files, which core's git tree never holds.
+  const text = [
+    "{",
+    '  "sources": [',
+    "    {",
+    '      "id": "core-actions",',
+    '      "repository": "ourostack/ouro-ui-core",',
+    '      "commit": "old",',
+    '      "release": "v0.14.0",',
+    '      "files": [',
+    '        {"sourcePath": "dist/actions/ouro-actions.mts", "generatedPath": "tools/ouro-actions.mts", "sha256": "x"},',
+    '        {"sourcePath": "dist-manifest.json", "generatedPath": "tools/dist-manifest.json", "sha256": "y"}',
+    "      ]",
+    "    }",
+    "  ]",
+    "}",
+    "",
+  ].join("\n");
+  const asked = [];
+  const zip = new Map([["actions/ouro-actions.mts", "actions v2"], ["dist-manifest.json", "manifest v2"]]);
+  const ctx = {
+    tarball: async () => new Map([["tokens/color.json", Buffer.from("{}")]]),
+    assetFile: async (...args) => {
+      asked.push(args);
+      if (!zip.has(args[3])) throw new Error("not in the zip");
+      return Buffer.from(zip.get(args[3]));
+    },
+  };
+  const pin = { kind: "vendor-lock", file: "upstream-sources.lock.json", follows: "core", source: "core-actions" };
+  const update = await UPDATERS["vendor-lock"](pin, text, RELEASES.core, ctx);
+  assert.deepEqual(asked, [
+    ["core", "v0.15.0", "ouro-ui-core-v0.15.0-dist.zip", "actions/ouro-actions.mts"],
+    ["core", "v0.15.0", "ouro-ui-core-v0.15.0-dist.zip", "dist-manifest.json"],
+  ]);
+  assert.equal(update.files["tools/ouro-actions.mts"].toString(), "actions v2");
+  assert.equal(update.files["tools/dist-manifest.json"].toString(), "manifest v2");
+  const expected = text
+    .replace('"commit": "old"', `"commit": "${RELEASES.core.sha}"`)
+    .replace('"release": "v0.14.0"', '"release": "v0.15.0"')
+    .replace('"sha256": "x"', `"sha256": "${sha256("actions v2")}"`)
+    .replace('"sha256": "y"', `"sha256": "${sha256("manifest v2")}"`);
+  assert.equal(update.files["upstream-sources.lock.json"], expected);
+  // A file in neither the tree nor the zip still fails, naming it.
+  zip.delete("dist-manifest.json");
+  await assert.rejects(UPDATERS["vendor-lock"](pin, text, RELEASES.core, ctx), /dist-manifest\.json is not in ourostack\/ouro-ui-core v0\.15\.0/);
+});
+
 test("a vendored core file comes from the new release's asset", async () => {
   const pin = { tag: "v0.13.1", release: "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.13.1", asset: "ouro-ui-core-v0.13.1-dist.zip", path: "web/themes/cookbook.css", sha256: "x" };
   const asked = [];
