@@ -11,6 +11,7 @@ interface BuildEntry {
   src?: string;
   isEntry?: boolean;
   imports?: string[];
+  dynamicImports?: string[];
 }
 
 function buildManifest(): Record<string, BuildEntry> {
@@ -336,7 +337,7 @@ const rechartsIn = (modules: readonly string[]) => modules.some((module) => modu
 /**
  * The chapters, each its own island. Chapter II draws an HX Chart, so
  * its closure, and only its, holds
- * Recharts; the budget counts what the island adds without that chunk and without shared HX chunks
+ * Recharts, which Chart loads by a dynamic import once the page has painted; the budget counts what the island adds without that chunk and without shared HX chunks
  * (site-design.md, Budgets: "Each chapter island ≤ 60 KB gzip excluding shared HX chunks; Chart's
  * Recharts chunk only in Chapter II's closure, never in the initial closure (asserted by module
  * name)"). A shared HX chunk holds only HX's own modules and the Base UI they are built on
@@ -381,7 +382,18 @@ for (const island of ISLANDS) {
     expect([...voyage].flatMap((file) => moduleMap[file] ?? []).filter((module) => module.startsWith(island.source))).toEqual([]);
     expect(rechartsIn([...voyage].flatMap((file) => moduleMap[file] ?? [])), "Recharts is never in the voyage's first load").toBe(false);
     const added = [...closure].filter((file) => !voyage.has(file));
-    const withRecharts = added.filter((file) => rechartsIn(moduleMap[file] ?? []));
+    // What the island's own chunks load later, by a dynamic import (Chart's Recharts), with what that imports: no part of
+    // its first load, so not counted against its budget, but the island's, so it is where Recharts may be. Only the
+    // chunks the island adds: the voyage's own chunks import every page and island lazily.
+    const later = new Set<string>();
+    const visitLater = (key: string) => {
+      const item = manifest[key];
+      if (!item || closure.has(item.file) || voyage.has(item.file) || later.has(item.file)) return;
+      later.add(item.file);
+      for (const dependency of item.imports ?? []) visitLater(dependency);
+    };
+    for (const key of keys) if (!voyage.has(manifest[key]!.file)) for (const dependency of manifest[key]!.dynamicImports ?? []) visitLater(dependency);
+    const withRecharts = [...added, ...later].filter((file) => rechartsIn(moduleMap[file] ?? []));
     expect(withRecharts.length > 0, `${island.chapter} ${island.recharts ? "loads" : "never loads"} Recharts`).toBe(island.recharts);
     const sharedHx = added.filter((file) => !withRecharts.includes(file) && hxOnly(file) && importedFromOutside(file));
     const counted = added.filter((file) => !withRecharts.includes(file) && !sharedHx.includes(file));
