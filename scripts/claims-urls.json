@@ -205,7 +205,7 @@
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/PROTOCOL.md": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/178bce5d5854d0e896fba34c4a241cabc8416dbb/docs/ouro-reins/README.md": {
     "status": 200,
@@ -255,10 +255,6 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/b5ea94d96a429754743888b8ea162d4f1e1a9d65/README.md#whats-in-the-box": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
   "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9": {
     "status": 200,
     "checked": "2026-11-13"
@@ -289,7 +285,7 @@
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#siri-ai": {
     "status": 200,
@@ -297,7 +293,7 @@
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#x-ray-your-apps-app-intents": {
     "status": 200,
@@ -309,7 +305,7 @@
   },
   "https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.0.0": {
     "status": 200,
@@ -317,15 +313,15 @@
   },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5/docs/decisions/2026-11-17-composed-fields.md": {
     "status": 200,
@@ -345,7 +341,7 @@
   },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md": {
     "status": 200,
@@ -465,11 +461,11 @@
   },
   "https://github.com/ourostack/ouro-ui/blob/51df0c45569fa44d95c41ecea6122fb3ffd43b48/scripts/registry.mts#L437": {
     "status": 200,
-    "checked": "2026-11-17"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/blob/5a09987c3646c43ecee291b3c285752fea737377/scripts/registry.mts#L439": {
     "status": 200,
-    "checked": "2026-11-17"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md": {
     "status": 200,
@@ -509,75 +505,75 @@
   },
   "https://github.com/ourostack/ouro-ui/releases": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.1.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.2.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.3.1": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.7.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v0.8.3": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.0.2": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.1.0": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.2.2": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.10": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.111": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.12": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.13": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.15": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.17": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.24": {
     "status": 200,
@@ -585,27 +581,27 @@
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.6": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.7": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.85": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.88": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/transformers/transform-rsc.ts#L4-L15": {
     "status": 200,
@@ -613,7 +609,7 @@
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-css-vars.ts#L91-L124": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/packages/registry/src/utils/updaters/update-dependencies.ts#L177-L206": {
     "status": 200,
@@ -669,7 +665,7 @@
   },
   "https://ui.shadcn.com/docs/cli": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://ui.shadcn.com/docs/components": {
     "status": 200,
