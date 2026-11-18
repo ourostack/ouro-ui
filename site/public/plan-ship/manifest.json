@@ -1,0 +1,84 @@
+{
+  "box": {
+    "left": 0,
+    "top": 32,
+    "width": 2880,
+    "height": 960
+  },
+  "sources": {
+    "day": {
+      "file": "site/public/brand/storybook/scenes/nautilus-3072.webp",
+      "sha256": "50d064dfc4390349b0642fc903d14e2b3aeef27403e9d4034ea5172f178d75bf"
+    },
+    "night": {
+      "file": "site/public/brand/storybook/scenes/nautilus-dark-3072.webp",
+      "sha256": "06be9c2149a0df5769e928f2a8221fe3b7420856ecf48405f76923cb25011a3c"
+    }
+  },
+  "files": [
+    {
+      "file": "nautilus-afloat-720.avif",
+      "scheme": "day",
+      "width": 720,
+      "height": 240,
+      "format": "avif",
+      "sha256": "6cd7a75a801b31cd10195aa01e040e188f2c447c2092735b65e2e3af5bb46367"
+    },
+    {
+      "file": "nautilus-afloat-720.webp",
+      "scheme": "day",
+      "width": 720,
+      "height": 240,
+      "format": "webp",
+      "sha256": "533ea6de39560b04c89d88f162c550e7d8adf9b2591c1b849f764faf5a024f4f"
+    },
+    {
+      "file": "nautilus-afloat-1440.avif",
+      "scheme": "day",
+      "width": 1440,
+      "height": 480,
+      "format": "avif",
+      "sha256": "60f477670ffd915e248fcc34de0060523a7cf44d42714a02f912d019f1600944"
+    },
+    {
+      "file": "nautilus-afloat-1440.webp",
+      "scheme": "day",
+      "width": 1440,
+      "height": 480,
+      "format": "webp",
+      "sha256": "5f26ad81105ce459780889ed82c7ea48ede2d5b3794a866cb53f526da15f89c9"
+    },
+    {
+      "file": "nautilus-afloat-dark-720.avif",
+      "scheme": "night",
+      "width": 720,
+      "height": 240,
+      "format": "avif",
+      "sha256": "817e39948dc1428f102d65dd9e6957b99654482728474b8963e06950b0634c2a"
+    },
+    {
+      "file": "nautilus-afloat-dark-720.webp",
+      "scheme": "night",
+      "width": 720,
+      "height": 240,
+      "format": "webp",
+      "sha256": "f005ea13bf44217566a3d840dfdeeaeccb34d9a6b8f6db0a785bf09e096e5a8c"
+    },
+    {
+      "file": "nautilus-afloat-dark-1440.avif",
+      "scheme": "night",
+      "width": 1440,
+      "height": 480,
+      "format": "avif",
+      "sha256": "81089294d0f841e73cfcf042bc792ff768aa4886e832fcc7ed0a2944185e2ff0"
+    },
+    {
+      "file": "nautilus-afloat-dark-1440.webp",
+      "scheme": "night",
+      "width": 1440,
+      "height": 480,
+      "format": "webp",
+      "sha256": "19ad9fcbd500fe780409133fc5750c2f05f1138b899d8c0251484e3dc6b840f8"
+    }
+  ]
+}

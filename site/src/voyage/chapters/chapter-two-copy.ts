@@ -343,6 +343,8 @@ export const RADIO = {
     Conseil: { presence: "available", label: "Here, sir" },
     "Ned Land": { presence: "away", label: "Napping" },
   },
+  /** The captain's first line on the radio, once you have signed on in Chapter I: it replaces RADIO_START's welcome. */
+  welcome: (name: string) => `Welcome aboard, ${name}. This is the ship's radio. Say hello to the crew.`,
   /** Once the harpooner has said something, he is awake. */
   awake: "Awake now",
   /** When someone new calls: a note in the crew's conversation. */
@@ -406,6 +408,7 @@ export function allRadioText(): string[] {
   return [
     ...Object.values(RADIO).flatMap((value) => (typeof value === "string" ? [value] : [])),
     RADIO.list(RADIO.crew),
+    RADIO.welcome("Ana"),
     ...Object.values(RADIO.presence).map((each) => each.label),
     ...REACTIONS.map((reaction) => reaction.label),
     ...Object.values(RADIO_START).flatMap((lines) => lines.map((line) => line.text)),

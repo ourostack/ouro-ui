@@ -105,6 +105,15 @@ if (typeof document !== "undefined") {
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: capture marks WebKit's pointermove for a pointer that has not moved before the list sees it, which Chromium, where the mutants run, never sends (the WebKit runs of the tests hold it); passive only says the listener never cancels the event.
     { capture: true, passive: true },
   );
+  // A pointer that left the page rests on nothing: a list drawn later must not show its layer under where it left.
+  document.addEventListener(
+    "pointerout",
+    (event) => {
+      if (event.relatedTarget === null) pointerAt = null;
+    },
+    // Stryker disable next-line ObjectLiteral,BooleanLiteral: capture and passive only order the listener and say it never cancels the event; a pointerout reaches the document in either phase.
+    { capture: true, passive: true },
+  );
 }
 
 // Where a right-click stays the browser's: a field's own menu (spelling, paste).

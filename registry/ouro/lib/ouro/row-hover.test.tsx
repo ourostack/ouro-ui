@@ -1160,6 +1160,49 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("forgets where the pointer was once it leaves the page, and only then: a layer arriving later shows on no row under that spot", async () => {
+    const layer = createRowLayer<string>();
+    function Left({ ready }: { ready: boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        layer.set(ref.current!, "r0");
+      }, []);
+      return (
+        <div>
+          <div ref={ref} id="r0" style={{ height: 40 }}>
+            Row
+          </div>
+          {ready ? <Layer /> : null}
+        </div>
+      );
+    }
+    function Layer() {
+      const ref = useRef<HTMLElement | null>(null);
+      useLayoutEffect(() => {
+        ref.current = document.getElementById("r0")!.parentElement;
+      });
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      return null;
+    }
+    // A pointerout to another element in the page is no leaving: the layer still arrives under the pointer.
+    const stayed = await render(<Left ready={false} />);
+    await userEvent.hover(row("r0"));
+    row("r0").dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse", relatedTarget: row("r0").parentElement }));
+    await stayed.rerender(<Left ready />);
+    expect(probe.hover.row).toBe(row("r0"));
+    await act(async () => roots.pop()!.unmount());
+    const left = await render(<Left ready={false} />);
+    await userEvent.hover(row("r0"));
+    // The mouse leaves the page: nothing is under it there any more, though its last move was over the row.
+    await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
+    await left.rerender(<Left ready />);
+    expect(probe.hover.row).toBeNull();
+    expect(probe.hover.via).toBeNull();
+  });
+
   it("shows on a row focused from the keyboard, or the pointer rests on, in the commit a layer arriving after its list mounts in", async () => {
     const layer = createRowLayer<string>();
     // What the layer's first commit leaves committed before anything else can run: nothing paints between a task and

@@ -10,11 +10,12 @@ import { SCENES, STORYBOOK, sceneSources, type SceneName } from "../../storybook
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import type { CrewLine } from "./copy";
-import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
+import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, voyageLog, type Order } from "./chapter-three-copy";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { HandOff } from "../handoff";
 import { setXray, useXray } from "../xray-store";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { firstName, useLogbook } from "./logbook";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
@@ -379,6 +380,9 @@ function Encounter(): JSX.Element {
   const store = useFightStore();
   const box = useRef<HTMLDivElement>(null);
   const { surfaced, lights, feathers, won, line } = useFight();
+  // Once you have signed on in Chapter I, the crew know you: Ned's line at the win names you, and you cheer with them.
+  const you = useLogbook((log) => log.you);
+  const said = line === FIGHT.win && you ? FIGHT.winWith(firstName(you.name)) : line;
   const [alarm, setAlarm] = useState(false);
   // The order changes the fight at once (the store renders in the press's frame, so its badges
   // and the crew's line answer with it); the porthole and the organ redraw after that frame has
@@ -474,7 +478,7 @@ function Encounter(): JSX.Element {
             </Badge>
           </p>
         </div>
-        <Crew line={line} cheer={won} />
+        <Crew line={said} cheer={won} you={you?.name} />
       </div>
       <Dialog
         title={ENCOUNTER.dialog}
@@ -503,7 +507,8 @@ function Encounter(): JSX.Element {
 /**
  * The saloon: once the squid has gone, Play sets Nemo at the organ, the notes rise, and the log gets
  * its last line; then the hand-off to a coding agent, the components, or round again. The log holds
- * only what has happened, so a reader who jumps straight here never reads that a ship was built.
+ * only what has happened: it opens with what the reader did in the chapters before (logbook.ts), so
+ * a reader who jumps straight here never reads that a ship was built.
  * Play stays where it is and keeps focus (a second press plays the tune again), so nothing scrolls.
  */
 function Saloon(): JSX.Element {
@@ -525,7 +530,8 @@ function Saloon(): JSX.Element {
     store.set({ ...START, line: FIGHT.again });
     setRounds((count) => count + 1);
   };
-  const log = [SALOON.logHeld, ...(won ? [SALOON.logFree] : []), ...(shown ? [SALOON.logPlayed] : [])];
+  const voyage = useLogbook((log) => log);
+  const log = [...voyageLog(voyage), SALOON.logHeld, ...(won ? [SALOON.logFree] : []), ...(shown ? [SALOON.logPlayed] : [])];
   return (
     <div className="grid gap-6 py-4 sm:py-6">
       <div className="site-split grid gap-6 sm:items-center">

@@ -50,41 +50,37 @@
 .site-blueprint[data-launched] .bp-launch {
   opacity: 1;
 }
-/* Under the plan once she floats: what is done and the way on, on a plate of its own so it reads on any sea. */
-.site-afloat {
-  position: absolute;
+/* Afloat, the plan becomes a painting of her (Plan's PlanShip): opacity only, so under reduced motion it fades and
+   nothing moves. With motion it waits for the plan's ship to slide off the ways and settle first; built again, the
+   plan comes back at once. */
+.site-plan-ship {
+  transition: opacity var(--ouro-duration-slow) ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-plan-ship {
+    transition: opacity 0.9s var(--ouro-ease-in-out);
+  }
+  .site-plan-ship[data-shown] {
+    transition-delay: 1.2s;
+  }
+}
+/* Under the plan once she floats: what is done and the way on. */
+[data-chapter-afloat] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   column-gap: calc(var(--spacing) * 2);
-  inset-inline-start: 1rem;
-  bottom: 0.75rem;
-  max-width: calc(100% - 2rem);
-  padding: 0.25rem 0.625rem;
-  border-radius: calc(var(--radius) - 2px);
-  background: color-mix(in oklab, var(--background) 92%, transparent);
   color: var(--foreground);
   font-size: 0.875rem;
   font-weight: 500;
   animation: site-afloat-in 0.6s 1.2s ease-out both;
 }
-/* The plate comes in once she has settled, and its link can't be pressed or focused until it shows. Visibility only
+/* The line comes in once she has settled, and its link can't be pressed or focused until it shows. Visibility only
    switches, at the fade's start, so nothing moves under reduced motion either. */
 @keyframes site-afloat-in {
   from {
     opacity: 0;
     visibility: hidden;
-  }
-}
-/* On a phone the plan is too short for a plate with a full touch target under the hull: the line sits under the
-   plan instead. */
-@media (max-width: 40rem) {
-  .site-afloat {
-    position: static;
-    max-width: none;
-    padding: calc(var(--spacing) * 1) calc(var(--spacing) * 4);
-    border-radius: 0;
-    background: none;
   }
 }
 .bp-flash {
