@@ -689,13 +689,12 @@ async function updateHxInstalled(pin, text, release, ctx) {
   if (kitApart.length) notes.push(`${list(kitApart)} ${one(kitApart, "stays", "stay")} where ${one(kitApart, "it is", "they are")} because ${one(kitApart, "it was", "they were")} edited here, but \`#ouro-ax/*\` resolves to \`${axDir}\`: move ${one(kitApart, "it", "them")} there, or point the import at ${one(kitApart, "it", "them")}.`);
   for (const { from, to } of blocked) notes.push(`Leaves \`${from}\` where it is, because \`${to}\` already exists in the app and is not replaced.`);
   if (gone.length) notes.push(`Keeps what the registry no longer has: ${list(gone)}.`);
-  let checkRules = [];
-  if (installed.some((path) => CHECK_INSTALLED.test(path))) {
-    const rules = newCheckRules(previous, next, record.tag, release);
-    checkRules = rules.rules;
-    notes.push(...rules.notes);
-  }
-  return { files: out, notes, checkRules };
+  // The rules this release adds, whether or not the app vendors Ouro check: a live-checked app gates on them (live.mjs).
+  const brought = newCheckRules(previous, next, record.tag, release);
+  // A repository that vendors Ouro check lists them in its pull request, and is told when it cannot read them.
+  const vendored = installed.some((path) => CHECK_INSTALLED.test(path));
+  if (vendored) notes.push(...brought.notes);
+  return { files: out, notes, checkRules: vendored ? brought.rules : [], newRules: brought };
 }
 
 /** Where the ouro-check item's files sit in an app: `scripts/ouro/check/` now, `lib/ouro/check/` before it moved. */

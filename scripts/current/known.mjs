@@ -29,6 +29,38 @@ const parse = (text) => {
 };
 
 /**
+ * ouro-check.json (base) with `found`, the keys to record by rule, added to its "known", and the keys the update's
+ * branch recorded for a rule `brings` names kept too. A rule with no key still gets its list (empty), which records
+ * that its check ran and found none. `file` is the new text, or null when nothing changes; `counts` is how many each
+ * rule has afterwards. null when base is not a readable config.
+ */
+export function recordKnown({ base, branch, found, brings }) {
+  const config = parse(base);
+  if (config === null) return null;
+  const all = new Map(found);
+  for (const [rule, keys] of Object.entries(parse(branch)?.known ?? {})) {
+    if (!brings(rule) || !Array.isArray(keys)) continue;
+    for (const key of keys) all.set(rule, (all.get(rule) ?? new Set()).add(key));
+  }
+  const known = { ...(config.known ?? {}) };
+  let changed = false;
+  for (const [rule, keys] of [...all].sort(([a], [b]) => a.localeCompare(b))) {
+    const had = new Set(known[rule] ?? []);
+    const both = [...new Set([...had, ...keys])].sort();
+    if (!(rule in known) || both.length !== had.size) changed = true;
+    known[rule] = both;
+  }
+  return { file: changed ? `${JSON.stringify({ ...config, known }, null, 2)}\n` : null, counts: Object.fromEntries([...all.keys()].map((rule) => [rule, known[rule].length])) };
+}
+
+/** Whether a branch's ouro-check.json already lists known findings for every rule given, empty lists included. */
+export function recordsEvery(branch, rules) {
+  const known = parse(branch)?.known ?? {};
+  return rules.every((rule) => Array.isArray(known[rule]));
+}
+
+
+/**
  * ouro-check.json with the findings of the rules this update brings in recorded as known, and how many each rule has;
  * null when the update brings no rule with findings to record.
  *
@@ -54,20 +86,8 @@ export async function seedKnown({ files, oldCheck, reports, base, branch }) {
     if (!finding?.rule || !brings(finding.rule)) continue;
     found.set(finding.rule, (found.get(finding.rule) ?? new Set()).add(knownKey(finding.detail)));
   }
-  for (const [rule, keys] of Object.entries(parse(branch)?.known ?? {})) {
-    if (!brings(rule) || !Array.isArray(keys)) continue;
-    for (const key of keys) found.set(rule, (found.get(rule) ?? new Set()).add(key));
-  }
-  const known = { ...(config.known ?? {}) };
-  let added = 0;
-  for (const [rule, keys] of [...found].sort(([a], [b]) => a.localeCompare(b))) {
-    const had = new Set(known[rule] ?? []);
-    const all = [...new Set([...had, ...keys])].sort();
-    added += all.length - had.size;
-    known[rule] = all;
-  }
-  if (!added) return null;
-  return { file: `${JSON.stringify({ ...config, known }, null, 2)}\n`, counts: Object.fromEntries([...found.keys()].map((rule) => [rule, known[rule].length])) };
+  const seed = recordKnown({ base, branch, found, brings });
+  return seed?.file ? seed : null;
 }
 
 /**
@@ -81,10 +101,12 @@ export function checkRulesSection(listed, seed) {
   for (const rule of Object.keys(seed?.counts ?? {}).sort()) if (!rules.has(rule)) rules.set(rule, { rule });
   if (!rules.size) return null;
   const id = (rule) => `ouro-check-${rule.replace(/[^\w-]/g, "-")}`;
-  const recorded = (rule) =>
-    seed?.counts?.[rule]
-      ? `\`${seed.counts[rule]}\` findings this app already has are recorded in \`${CONFIG}\`'s \`known\`: they pass, and a new one fails.`
-      : `The findings this app already has are recorded in \`${CONFIG}\`'s \`known\` once this pull request's checks report them: they pass, and a new one fails.`;
+  const recorded = (rule) => {
+    const count = seed?.counts?.[rule];
+    if (count === undefined) return `The findings this app already has are recorded in \`${CONFIG}\`'s \`known\` once this pull request's checks report them: they pass, and a new one fails.`;
+    if (count === 0) return "This app's live site has no finding of it, so none is recorded: a new one fails.";
+    return `\`${count}\` findings this app already has are recorded in \`${CONFIG}\`'s \`known\`: they pass, and a new one fails.`;
+  };
   const cited = [...rules.values()].filter((rule) => rule.summary);
   return [
     "### New Ouro check rules",
