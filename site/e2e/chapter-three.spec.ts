@@ -136,7 +136,7 @@ test.describe("each control in Chapter III", () => {
     await expect(scene(page)).toHaveAttribute("data-squid", "gone");
   });
 
-  test("control: orders lists every order: the floodlights tick on and off, and the squid will not let us dive", async ({ page }) => {
+  test("control: orders lists every order: the floodlights tick on and off, and Dive and the organ stay off while the squid holds on", async ({ page }) => {
     await open(page);
     await order(page, ORDERS.lights);
     await expect(scene(page)).toHaveAttribute("data-lights", "");
@@ -144,11 +144,17 @@ test.describe("each control in Chapter III", () => {
     await expect(crew(page)).toContainText(FIGHT.lightsOnHeld.text);
     await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: ORDERS.lights })).toBeChecked();
+    for (const name of [ORDERS.dive, ORDERS.organ]) {
+      const item = page.getByRole("menuitem", { name, exact: true });
+      await expect(item).toBeDisabled();
+      await item.click({ force: true });
+      await expect(page.getByRole("menu")).toBeVisible();
+    }
     await page.keyboard.press("Escape");
-    await order(page, ORDERS.dive);
-    await expect(crew(page)).toContainText(FIGHT.diveHeld.text);
-    await order(page, ORDERS.organ);
-    await expect(crew(page)).toContainText(FIGHT.organHeld.text);
+    await expect(page.getByRole("menu")).toBeHidden();
+    await expect(encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true })).toBeFocused();
+    await expect(crew(page)).toContainText(FIGHT.lightsOnHeld.text);
+    await expect(scene(page)).not.toHaveAttribute("data-surfaced", "");
     await order(page, ORDERS.lights);
     await expect(scene(page)).not.toHaveAttribute("data-lights", "");
   });
@@ -159,6 +165,12 @@ test.describe("each control in Chapter III", () => {
     await trigger.click();
     const search = page.getByRole("combobox", { name: ENCOUNTER.paletteSearch });
     await expect(search).toBeFocused();
+    await expect(search).toHaveAttribute("placeholder", ENCOUNTER.palettePlaceholder);
+    // Dive and the organ wait for the squid to let go, and say so.
+    for (const name of [ORDERS.dive, ORDERS.organ]) {
+      await expect(page.getByRole("option", { name })).toBeDisabled();
+      await expect(page.getByRole("option", { name })).toContainText(ENCOUNTER.heldOrder);
+    }
     await page.keyboard.type("flood");
     await expect(page.getByRole("option", { name: ORDERS.lights })).toBeVisible();
     await expect(page.getByRole("option", { name: ORDERS.dive })).toHaveCount(0);
