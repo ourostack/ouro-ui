@@ -2078,7 +2078,7 @@ test("screen-reader-lane.yml is only a workflow_call, with the three inputs ever
 
 test("ci.yml calls the lane for a pull request from this repository only, with its head commit and the specs its change reaches, after yielding to main's lane", () => {
   const ci = ciJobs();
-  const same = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}";
+  const same = "${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}";
   assert.equal(ci["sr-yield"].match(/^ {4}if: (.+)$/m)[1], same);
   assert.equal(ci["screen-reader"].match(/^ {4}if: (.+)$/m)[1], same);
   assert.match(ci["sr-yield"], /^ {4}needs: \[plan\]$/m);

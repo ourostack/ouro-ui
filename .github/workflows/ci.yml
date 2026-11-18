@@ -305,7 +305,7 @@ jobs:
     # lane takes the runners after it. It fails open and never fails: at worst the lane starts after 10 minutes.
     name: Screen-reader yield
     needs: [plan]
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
@@ -357,7 +357,7 @@ jobs:
     # jobs report under this job's name, and ci waits on them, so a failed spec fails the required ci check. Its own
     # permissions are contents: read, and it holds no secret. A fork's pull request never runs it.
     needs: [plan, sr-yield]
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}
     uses: ./.github/workflows/screen-reader-lane.yml
     with:
       source_sha: ${{ github.event.pull_request.head.sha }}
