@@ -115,7 +115,7 @@ describe("the ship's log of leagues", () => {
     expect([0, 0.5, 0.123, 0.99, 1, 2, -1].map(leaguesAt)).toEqual([0, 10_000, 2460, LEAGUES, LEAGUES, LEAGUES, 0]);
   });
 
-  it("grows as the Nautilus's story scrolls, never runs back, and stops at twenty thousand with a toast that says why", async () => {
+  it("grows as the Nautilus's story scrolls, never runs back, and stops at twenty thousand with a wink, and raises no toast over the voyage's end", async () => {
     await page.viewport(1280, 800);
     await renderPage("/nautilus/");
     expect(leagues()).toBeNull();
@@ -138,7 +138,8 @@ describe("the ship's log of leagues", () => {
     await expect.poll(count).toBe(LEAGUES);
     expect(leagues()!.hasAttribute("data-done")).toBe(true);
     expect(leagues()!.textContent).toContain("a distance, not a depth");
-    await toasted("Twenty thousand leagues!");
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(document.querySelector('[data-ouro="toaster"]')?.textContent ?? "").not.toContain("Twenty thousand leagues");
   });
 
   it("steps aside while X-ray is on, and comes back when it is off", async () => {

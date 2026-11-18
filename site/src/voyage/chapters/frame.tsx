@@ -156,13 +156,13 @@ export function Composition({ id, title, intro, file, sheet, children }: { id: s
         <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-4 py-3 sm:px-6" data-composition-uses="">
           <span className="me-1 text-xs text-muted-foreground">{CODE_SHEETS.builtWith}</span>
           {sheet.uses.map((name) => (
-            <Badge key={name} tone="secondary" variant="soft">
+            <Badge key={name} tone="secondary" variant="outline">
               {name}
             </Badge>
           ))}
         </div>
       </div>
-      <Sheet title={sheet.title} description={sheet.description} side="right" open={open} onOpenChange={setOpen}>
+      <Sheet title={sheet.title} description={sheet.description} side="right" open={open} onOpenChange={setOpen} className="w-[min(36rem,calc(100vw-3rem))]">
         <div className="grid gap-6 text-sm">
           <section aria-labelledby={`${id}-hx`}>
             <h4 id={`${id}-hx`} className="site-eyebrow mb-2">

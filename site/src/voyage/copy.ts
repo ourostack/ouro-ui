@@ -1,4 +1,3 @@
-import { claim } from "@/registry/ouro/lib/ouro/claims";
 /**
  * The words the voyage pages add around the hero, the stage and the chapters (which have copy files
  * of their own): the home page's two ships and the Nautilus's opening. Here, not in site/src/copy.ts,
@@ -69,6 +68,3 @@ export const ISLAND_FALLBACK = {
   text: "This part of the page did not load.",
   reload: "Reload the page",
 } as const;
-
-/** The leagues egg's toast title at the end of the Nautilus's page, once a visit (eggs/leagues.ts). */
-export const LEAGUES_TITLE = claim("Twenty thousand leagues!", { source: { spec: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" } });
