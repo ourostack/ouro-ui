@@ -2083,11 +2083,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         // holds the reader's place, and lays out none of them. Those the view shows draw at once, and those drawn stay.
         const drawn = new Set([...content.children].map((node) => node.getAttribute(SLOT)));
         const off = (index: number) => Math.max(viewTop - starts[index]! - extent(index), starts[index]! - viewBottom);
+        // Under a pixel in view is none of a row: the reader's place, held in WebKit's whole pixels, leaves the row beside it that much in.
+        // Stryker disable next-line EqualityOperator,UnaryOperator: a row exactly a pixel in view shows a pixel of its gap, drawn now or a frame later.
+        const outOfView = (offset: number) => offset > -1;
         const later = inBand
           .map((key, at) => ({ key, off: off(from + at) }))
-          // Under a pixel in view is none of a row: the reader's place, held in WebKit's whole pixels, leaves the row beside it that much in.
-          // Stryker disable next-line EqualityOperator,UnaryOperator: a row exactly a pixel in view shows a pixel of its gap, drawn now or a frame later.
-          .filter(({ key, off }) => arriving.current.has(key) && !drawn.has(key) && off > -1)
+          .filter(({ key, off }) => arriving.current.has(key) && !drawn.has(key) && outOfView(off))
           .sort((a, b) => a.off - b.off)
           .slice(budget.current)
           .map(({ key }) => key);
