@@ -4,16 +4,21 @@ import { useCallback, useSyncExternalStore } from "react";
 
 /**
  * The list for each query, kept by the `matchMedia` that made it: a list's `matches` is live, so one per query serves every
- * reader and every render, and a `matchMedia` swapped in (a test's stub) makes lists of its own.
+ * reader and every render. Only a browser's own `MediaQueryList` is kept: a test's stub that answers with plain objects is
+ * asked again on every read, as one that changes its answer between renders needs, and a `matchMedia` swapped in makes lists
+ * of its own.
  * @claim "The list for each query, kept by" registry/ouro/lib/ouro/use-media-query.test.tsx verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > calls matchMedia once for a query, however many components read it and however often they render) verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > reads a matchMedia swapped in after the real one made a list for the same query, as a test's stub is)
+ * @claim "Only a browser's own `MediaQueryList` is kept" registry/ouro/lib/ouro/use-media-query.test.tsx verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > asks a stub that answers with plain objects again on each read, so a mock that changes its answer is followed)
  */
 const lists = new WeakMap<typeof matchMedia, Map<string, MediaQueryList>>();
 
 function listFor(query: string): MediaQueryList {
   let byQuery = lists.get(matchMedia);
   if (byQuery === undefined) lists.set(matchMedia, (byQuery = new Map()));
-  let list = byQuery.get(query);
-  if (list === undefined) byQuery.set(query, (list = matchMedia(query)));
+  const kept = byQuery.get(query);
+  if (kept !== undefined) return kept;
+  const list = matchMedia(query);
+  if (typeof MediaQueryList === "function" && list instanceof MediaQueryList) byQuery.set(query, list);
   return list;
 }
 

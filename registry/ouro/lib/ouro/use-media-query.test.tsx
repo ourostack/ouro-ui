@@ -102,4 +102,21 @@ describe("useMediaQuery", () => {
     expect(container.textContent).toBe("false");
     await act(async () => again.unmount());
   });
+
+  it("asks a stub that answers with plain objects again on each read, so a mock that changes its answer is followed", async () => {
+    const query = "(min-width: 643px)";
+    const answer = (matches: boolean) => ({ matches, media: query, addEventListener() {}, removeEventListener() {} }) as unknown as MediaQueryList;
+    const stub = vi.fn((_asked: string) => answer(false));
+    vi.stubGlobal("matchMedia", stub);
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe query={query} serverDefault />));
+    expect(container.textContent).toBe("false");
+    await act(async () => root.unmount());
+    stub.mockImplementation(() => answer(true));
+    const again = createRoot(container);
+    await act(async () => again.render(<Probe query={query} serverDefault={false} />));
+    expect(container.textContent).toBe("true");
+    await act(async () => again.unmount());
+  });
 });
