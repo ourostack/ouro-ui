@@ -24,6 +24,37 @@ const XCODEGEN = new RegExp(String.raw`(url:\s*${APPLE_URL}\s*\n\s*(?:exactVersi
 const PBXPROJ = new RegExp(String.raw`(repositoryURL = "${APPLE_URL}";\s*requirement = \{[^}]*?(?:minimumVersion|version) = "?)([0-9][0-9.]*)`, "g");
 const WORKFLOW_TAG = /(OURO_UI_TAG:\s*["']?)(v[0-9][0-9.]*)/g;
 
+const APPLE_REQUIREMENT = new RegExp(String.raw`\.package\(\s*url:\s*"${APPLE_URL}"\s*,\s*(exact:|from:|\.exact\(|\.upToNextMinor\(from:|\.upToNextMajor\(from:)\s*"([0-9][0-9.]*)"`);
+const OUROSTACK_PACKAGE = /^https:\/\/github\.com\/(ourostack\/[^/]+?)(?:\.git)?$/;
+
+/** The versions of ouro-ui-apple a Swift manifest takes, or null when it names none in a form read here. */
+export function appleRequirement(manifest) {
+  const match = APPLE_REQUIREMENT.exec(manifest);
+  if (!match) return null;
+  const rule = match[1].startsWith("exact") || match[1] === ".exact(" ? "exact" : match[1] === ".upToNextMinor(from:" ? "minor" : "major";
+  return { rule, version: match[2] };
+}
+
+const parts = (version) => bare(version).split(".").map(Number);
+/** Whether a requirement from appleRequirement takes a version, as SwiftPM reads it. */
+export function takes(requirement, version) {
+  const [want, have] = [parts(requirement.version), parts(version)];
+  const cmp = [0, 1, 2].map((i) => (have[i] ?? 0) - (want[i] ?? 0)).find((d) => d !== 0) ?? 0;
+  if (requirement.rule === "exact") return cmp === 0;
+  if (cmp < 0 || have[0] !== want[0]) return false;
+  return requirement.rule === "major" || have[1] === want[1];
+}
+
+/** The ourostack packages other than ouro-ui-apple a Package.resolved pins, each with its repository and revision. */
+export function ourostackPackages(resolved) {
+  const out = [];
+  for (const pin of JSON.parse(resolved).pins ?? []) {
+    const repo = OUROSTACK_PACKAGE.exec(pin.location ?? "")?.[1];
+    if (repo && repo !== REPOS.apple && pin.state?.revision) out.push({ repo, revision: pin.state.revision });
+  }
+  return out;
+}
+
 /** Every pin in one file of a repository, by its name and text. */
 export function findPins(path, text) {
   const base = posix.basename(path);
