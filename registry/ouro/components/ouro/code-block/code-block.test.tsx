@@ -512,6 +512,21 @@ describe("CodeBlock terminal output", () => {
     expect(error).not.toHaveBeenCalled();
   });
 
+  it("reads colon sub-parameters as tmux writes them, and draws underline and strikethrough together", async () => {
+    const code =
+      `${esc}[4:3mcurly${esc}[4:0m after ${esc}[38:5:1mtable${esc}[0m ${esc}[38:2::10:20:1mtrue${esc}[0m ${esc}[38;5mbare${esc}[0m ` +
+      `${esc}[58;2;0;1;2mline${esc}[0m ${esc}[48:5:4;5:3mskip${esc}[0m ${esc}[4;9mboth${esc}[0m ${esc}[31mred${esc}[0m`;
+    const { host, pre } = await render(<CodeBlock language="ansi" code={code} />);
+    expect(pre.querySelector("code")!.textContent).toBe("curly after table true bare line skip both red");
+    const style = (name: string) => getComputedStyle(span(host, name));
+    expect(style("curly").textDecorationLine).toBe("underline");
+    expect(style("curly").fontStyle).toBe("normal");
+    expect(style("table").color).toBe(style("red").color);
+    // Only the styled runs are spans: 4:0, 38:2, 58 and the colon background leave the rest plain.
+    expect([...host.querySelectorAll("[data-ouro-ansi]")].map((element) => element.textContent)).toEqual(["curly", "table", "both", "red"]);
+    expect(style("both").textDecorationLine).toBe("underline line-through");
+  });
+
   it("draws a catalogue's emoji inside styled output", async () => {
     const catalogue: EmojiCatalogue = {
       categories: [{ id: "symbols", label: "Symbols", items: [{ id: "rocket", name: "Rocket", text: "🚀", src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" }] }],

@@ -43,11 +43,24 @@ function isPlain(style: AnsiStyle): boolean {
   return !style.bold && !style.dim && !style.italic && !style.underline && !style.strike && style.color === null;
 }
 
+/** A basic color from an extended one: the 256-color table's first 16, and nothing else. */
+function extendedColor(mode: number | undefined, value: number | undefined): number | null {
+  return mode === 5 && value !== undefined && value < 16 ? value : null;
+}
+
 function applySgr(style: AnsiStyle, parameters: string): AnsiStyle {
-  const codes = parameters === "" ? [0] : parameters.split(/[;:]/).map((code) => (code === "" ? 0 : Number(code)));
+  // Parameters are split by ";"; one with ":" carries its own sub-parameters (ITU T.416), as tmux
+  // writes a curly underline (4:3) or a true color (38:2::r:g:b).
+  const parts = parameters === "" ? ["0"] : parameters.split(";");
   let next = { ...style };
-  for (let index = 0; index < codes.length; index += 1) {
-    const code = codes[index]!;
+  for (let index = 0; index < parts.length; index += 1) {
+    const [head, ...subs] = parts[index]!.split(":").map((part) => (part === "" ? 0 : Number(part)));
+    const code = head!;
+    if (subs.length > 0) {
+      if (code === 4) next.underline = subs[0] !== 0;
+      else if (code === 38) next.color = extendedColor(subs[0], subs[1]);
+      continue;
+    }
     if (code === 0) next = { ...plain };
     else if (code === 1) next.bold = true;
     else if (code === 2) next.dim = true;
@@ -61,19 +74,13 @@ function applySgr(style: AnsiStyle, parameters: string): AnsiStyle {
     else if (code >= 30 && code <= 37) next.color = code - 30;
     else if (code >= 90 && code <= 97) next.color = code - 90 + 8;
     else if (code === 39) next.color = null;
-    else if (code === 38 || code === 48) {
-      // An extended color: 5;n from the 256-color table, or 2;r;g;b. A foreground from the table's
-      // first 16 is a basic color; any other, and every background, keeps the theme's own, so the
-      // text keeps its contrast on the block.
-      const mode = codes[index + 1];
-      if (mode === 5) {
-        const value = codes[index + 2];
-        if (code === 38) next.color = value !== undefined && value < 16 ? value : null;
-        index += 2;
-      } else if (mode === 2) {
-        if (code === 38) next.color = null;
-        index += 4;
-      } else index += 1;
+    else if (code === 38 || code === 48 || code === 58) {
+      // An extended foreground, background or underline color: 5;n or 2;r;g;b. A foreground from the
+      // 256-color table's first 16 is a basic color; any other, and every background and underline
+      // color, keeps the theme's own, so the text keeps its contrast on the block.
+      const mode = Number(parts[index + 1]);
+      if (code === 38) next.color = extendedColor(mode, Number(parts[index + 2]));
+      index += mode === 5 ? 2 : mode === 2 ? 4 : 1;
     }
   }
   return next;
@@ -145,7 +152,6 @@ function ansiClassName(style: AnsiStyle): string {
     !color && style.dim && "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]",
     style.bold && "font-bold",
     style.italic && "italic",
-    style.underline && "underline",
-    style.strike && "line-through",
+    style.underline && style.strike ? "[text-decoration-line:underline_line-through]" : style.underline ? "underline" : style.strike && "line-through",
   );
 }
