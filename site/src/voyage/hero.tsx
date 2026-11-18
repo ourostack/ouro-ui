@@ -29,8 +29,8 @@ function keepHyphenatedWordsWhole(text: string): (string | JSX.Element)[] {
 }
 
 /**
- * The headline's phrases ("Delightful interfaces,", "by agents,", "for everyone.") each stay on one line, so it breaks
- * only between them, never after "by".
+ * The second half's phrases ("by agents,", "for everyone.") each stay on one line, so the headline never breaks after
+ * "by". The first half may still wrap, so it fits the narrowest column.
  */
 function keepPhrasesWhole(text: string): (string | JSX.Element)[] {
   return text.split(/(?<=,) /).flatMap((phrase, index) => [
@@ -178,7 +178,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         }
         title={VOYAGE_HERO.title.map((part, index) => (
           <span key={part} className={index === 0 ? undefined : "site-hero-line-second"}>
-            {keepPhrasesWhole(part)}
+            {index === 0 ? part : keepPhrasesWhole(part)}
             {index < VOYAGE_HERO.title.length - 1 ? " " : null}
           </span>
         ))}
