@@ -258,8 +258,69 @@ export function missedPhrase(message: string): boolean {
   return /^\[sr\] no utterance matched /.test(message);
 }
 
+/** The separator `withTimeline` puts before a timeline, after a miss's `heard:` list. */
+const TIMELINE_SEPARATOR = " timeline: ";
+
 /** The phrases a missed phrase's error lists as heard (`heard: "…" | "…"`), none for `heard: nothing`. */
 export function saidInMiss(message: string): string[] {
-  const heard = message.slice(message.indexOf("; heard: ") + "; heard: ".length);
+  const from = message.indexOf("; heard: ") + "; heard: ".length;
+  const to = message.indexOf(TIMELINE_SEPARATOR, from);
+  const heard = message.slice(from, to === -1 ? undefined : to);
   return heard === "nothing" ? [] : heard.slice(1, -1).split('" | "');
+}
+
+/** A check's failure message with its timeline after it, one line: the message's own prefix and `heard:` list are unchanged. */
+export function withTimeline(message: string, timeline: string): string {
+  return `${message}${TIMELINE_SEPARATOR}${timeline}`;
+}
+
+/** A focus move the page recorded (screen-reader.ts, `recordFocus`). */
+export interface FocusMove {
+  /** `Date.now()` in the page: the same clock as the watcher's stamps, both on this machine. */
+  at: number;
+  /** The element's tag name, lower case. */
+  tag: string;
+  /** The element's label, or its text. */
+  name: string;
+}
+
+/** The longest phrase a timeline shows, and the longest focused element's name; the rest is cut. */
+const TIMELINE_PHRASE = 60;
+const TIMELINE_NAME = 40;
+
+/** `text` on one line, cut to `max` characters with "..." at the end when it was longer. */
+const cut = (text: string, max: number): string => {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 3)}...` : flat;
+};
+
+/** A time as the timeline writes it: "+120 ms" after the action's start, "-340 ms" before it. */
+const offset = (ms: number): string => `${ms < 0 ? "-" : "+"}${Math.abs(Math.round(ms))} ms`;
+
+/**
+ * What happened around a VoiceOver check, on one line, for a failed check's message (`withTimeline`)
+ * and for `SR_TRACE` probes: MARK's time, every phrase after it (`spokenAfter`'s rule: a phrase said
+ * again right after itself counts once), the action's duration and each focus move, all at their
+ * offsets from the action's start, in time order. A phrase starts 60 characters; a focused element's
+ * name 40.
+ */
+export function speechTimeline({ records, stamps, actionStart, actionEnd, focusMoves }: { records: readonly string[]; stamps: readonly number[]; actionStart: number; actionEnd: number; focusMoves: readonly FocusMove[] }): string {
+  const events: { at: number; text: string }[] = [];
+  const marked = records.findLastIndex((record) => clean(record) === MARK);
+  let previous = MARK;
+  if (marked !== -1) events.push({ at: stamps[marked] ?? actionStart, text: `MARK at ${offset((stamps[marked] ?? actionStart) - actionStart)}` });
+  else previous = "";
+  events.push({ at: actionStart, text: `action ${Math.round(actionEnd - actionStart)} ms, from ${offset(0)} to ${offset(actionEnd - actionStart)}` });
+  records.forEach((record, index) => {
+    if (index <= marked) return;
+    const phrase = clean(record);
+    if (!phrase || phrase === previous) return;
+    previous = phrase;
+    events.push({ at: stamps[index] ?? actionStart, text: `"${cut(phrase, TIMELINE_PHRASE)}" at ${offset((stamps[index] ?? actionStart) - actionStart)}` });
+  });
+  for (const move of focusMoves) events.push({ at: move.at, text: `focus→${move.tag}[${cut(move.name, TIMELINE_NAME)}] at ${offset(move.at - actionStart)}` });
+  return events
+    .sort((a, b) => a.at - b.at)
+    .map((event) => event.text)
+    .join("; ");
 }
