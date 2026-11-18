@@ -7,8 +7,8 @@ export type { RedactOptions, RedactRule };
 /**
  * Redaction for a diagnostics bundle: what leaves the computer for an agent to read or attach keeps categories, counts,
  * times, versions and the tool's own words, and drops tokens, cookies, ids, email addresses, paths in a person's home
- * and what anyone wrote. `redactText` replaces each shape, and `leaks` checks that none is left, which a bundle runs over
- * its whole text before it writes a byte (ax-bundle).
+ * and what anyone wrote. `redactText` replaces each shape, and `leaks` checks that none is left, which ax-bundle checks
+ * before it writes.
  *
  * @claim "`redactText` replaces each shape, and `leaks` checks that none is left" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::leaks names each shape left in a text, an app's own included, and nothing in what redaction leaves)
  * @claim "drops tokens, cookies, ids, email addresses, paths in a person's home and what anyone wrote" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::a log full of real-looking secrets comes out with none of them, and leaks finds nothing left)

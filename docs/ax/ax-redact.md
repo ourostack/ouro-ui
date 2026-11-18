@@ -2,7 +2,7 @@
 
 # ax-redact
 
-Redaction for a diagnostics bundle: what leaves the computer for an agent to read or attach keeps categories, counts, times, versions and the tool's own words, and drops tokens, cookies, ids, email addresses, paths in a person's home and what anyone wrote. `redactText` replaces each shape, and `leaks` checks that none is left, which a bundle runs over its whole text before it writes a byte (ax-bundle).
+Redaction for a diagnostics bundle: what leaves the computer for an agent to read or attach keeps categories, counts, times, versions and the tool's own words, and drops tokens, cookies, ids, email addresses, paths in a person's home and what anyone wrote. `redactText` replaces each shape, and `leaks` checks that none is left, which ax-bundle checks before it writes.
 
 ```sh
 npx shadcn@latest add ourostack/ouro-ui/ax-redact#v1.3.285
@@ -107,7 +107,7 @@ interface RedactOptions {
 
 ### `RedactRule`
 
-Redaction for a diagnostics bundle: what leaves the computer for an agent to read or attach keeps categories, counts, times, versions and the tool's own words, and drops tokens, cookies, ids, email addresses, paths in a person's home and what anyone wrote. `redactText` replaces each shape, and `leaks` checks that none is left, which a bundle runs over its whole text before it writes a byte (ax-bundle).
+Redaction for a diagnostics bundle: what leaves the computer for an agent to read or attach keeps categories, counts, times, versions and the tool's own words, and drops tokens, cookies, ids, email addresses, paths in a person's home and what anyone wrote. `redactText` replaces each shape, and `leaks` checks that none is left, which ax-bundle checks before it writes.
 
 ```ts
 interface RedactRule {
