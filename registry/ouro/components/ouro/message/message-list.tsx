@@ -1528,6 +1528,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       taken = scroller.scrollTop;
     };
     const farthest = () => scroller.scrollHeight - scroller.clientHeight;
+    // Where the content ends in the scroller: below the space kept above the first message, when there is any.
+    const bottom = () => content.offsetTop + content.offsetHeight;
     // At the bottom as the list was before this change, or as it is now: growth at the end, or the
     // view getting shorter, leaves a list that was at the bottom still there, and a scroll anywhere
     // else (the reader's, a key's, or code going to a message) leaves it.
@@ -1554,14 +1556,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       floorMark.style.top = `${Math.max(0, px - 1)}px`;
     };
     const followEnd = () => {
-      const height = content.offsetHeight;
+      const height = bottom();
       setFloor(height > scroller.clientHeight ? height : 0);
       toBottom();
       // Content that settles at another height in a later render of the same task (long messages folding behind "See more"
       // as a conversation opens) moves no node the mutation observer hears of, and the resize observer runs only after the
       // frame's animation callbacks: until then the mark would hold the view past the messages. Once the task's work is
       // done, the end is followed to where it settled.
-      if (floor !== 0) queueMicrotask(() => content.offsetHeight !== floor && hold());
+      if (floor !== 0) queueMicrotask(() => bottom() !== floor && hold());
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
@@ -1668,9 +1670,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
       if (slack === 0 || turning() || scroller.scrollTop < slack) return;
       // Scrolled while the space still holds the scroll range, then the space goes.
-      scrollOwn(-slack);
+      const range = farthest();
+      const applied = scrollOwn(-slack);
       setSlack(0);
-      keepAnchor();
+      // The anchors sit in the content, which the space going does not move: only the list's own scroll and the range it took
+      // away are left out, so a change waiting for the resize observer is still held.
+      taken += applied;
+      end += farthest() - range;
     };
     const pay = () => {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
@@ -1678,7 +1684,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const by = carriedRef.current;
       // Once the wheel rests, the end the list is not following is held no more: what was carried goes first, so nothing is pulled.
       const letGo = () => {
-        if (!pinned.current && !turning()) setFloor(0);
+        if (!pinned.current && !turning()) {
+          // The range the mark held goes with it, which no message changed: the anchors' range moves with it, so the reader's
+          // own scrolling takes them again.
+          const range = farthest();
+          setFloor(0);
+          end += farthest() - range;
+        }
         release();
       };
       // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
@@ -1715,8 +1727,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       wheelAt = now;
       wheelFrame = document.timeline.currentTime;
       wheelStarts = true;
-      // The scroll range the wheel turns in holds until it rests (see setFloor): at least the content's height now.
-      const height = content.offsetHeight;
+      // The scroll range the wheel turns in holds until it rests (see setFloor): at least to the content's end now.
+      const height = bottom();
       // Stryker disable next-line EqualityOperator: a floor set to the height it already holds writes nothing.
       if (height > Math.max(floor, scroller.clientHeight)) setFloor(height);
       rest();
@@ -1794,7 +1806,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (!opened) return open();
       // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
       // Stryker disable next-line ConditionalExpression,ArrowFunction: not equivalent; "drops the room at once when hasOlder ends" (message-list.test.tsx) fails on both mutants, but per-test coverage attributes this observer callback to another test, so the shard never runs it.
-      const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
+      const floorMoved = () => floor !== 0 && bottom() !== floor;
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
       if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
     });

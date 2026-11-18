@@ -935,21 +935,28 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top - space - 100))).toBeLessThanOrEqual(1);
   });
 
-  it("holds the reader's place as a message above them grows, after the space above the first message went and they scrolled on, in a conversation drawn whole", async () => {
-    // Twenty messages, drawn whole: nothing goes in or out of the page as the reader scrolls.
-    const items = (first: number, grown?: number) => conversation(20).map((item) => ({ ...item, tall: item.id === 0 ? first : item.id === grown ? 400 : 150 }));
+  /**
+   * Twenty messages, drawn whole, the reader 60px down: the first, partly above the view, shrinks while the wheel turns, more than
+   * the scroll position can take, so what the top stops is space above the first message. The wheel has not rested.
+   */
+  async function spaceAboveWhole() {
+    const items = (first: number, changed?: number, tall = 150) => conversation(20).map((item) => ({ ...item, tall: item.id === 0 ? first : item.id === changed ? tall : 150 }));
     const { scroller, rerender } = await render(<Chat items={items(150)} springy={false} />);
     await scrollTo(scroller, 60);
     const clock = { now: 1_000_000 };
     vi.spyOn(performance, "now").mockImplementation(() => clock.now);
     const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
-    // The first message, partly above the view, shrinks while the wheel turns: more than the scroll position can take.
     const reading = firstVisible(scroller);
     scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
     await rerender(<Chat items={items(20)} springy={false} />);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     const space = content.offsetTop;
     expect(space).toBeGreaterThan(1);
+    return { scroller, content, clock, space, change: (changed: number, tall: number) => rerender(<Chat items={items(20, changed, tall)} springy={false} />) };
+  }
+
+  it("holds the reader's place as a message above them grows, after the space above the first message went and they scrolled on, in a conversation drawn whole", async () => {
+    const { scroller, content, clock, space, change } = await spaceAboveWhole();
     await restWheel(scroller, clock);
     await scrollTo(scroller, space + 100);
     expect(content.offsetTop).toBe(0);
@@ -957,9 +964,33 @@ describe("MessageList windowing", () => {
     await scrollTo(scroller, scroller.scrollTop + 500);
     await scrollTo(scroller, scroller.scrollTop + 500);
     const now = firstVisible(scroller);
-    const above = Number(now.message.id.slice(1)) - 1;
-    await rerender(<Chat items={items(20, above)} springy={false} />);
+    await change(Number(now.message.id.slice(1)) - 1, 400);
     expect(Math.abs(now.message.getBoundingClientRect().top - now.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the scroll range to the content's end, below the space above the first message, while the wheel turns, so a row above that comes in shorter never pulls the scroll position", async () => {
+    const { scroller, content, clock, space, change } = await spaceAboveWhole();
+    // The wheel rests at the top, so the hold on the range goes, and turns again.
+    await restWheel(scroller, clock);
+    expect(content.offsetTop).toBe(space);
+    // Down to the end and 20px back up, without resting: the space stays.
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 }));
+    scroller.scrollTop = scroller.scrollHeight;
+    await frame();
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    scroller.scrollTop -= 20;
+    await frame();
+    const at = scroller.scrollTop;
+    const reading = firstVisible(scroller);
+    let pulled = 0;
+    scroller.addEventListener("scroll", () => pulled++);
+    // A row above comes in shorter by less than the space: without the space, the hold on the range would not reach the end.
+    const shrink = Math.min(39, space - 1);
+    await change(Number(reading.message.id.slice(1)) - 2, 150 - shrink);
+    await frame();
+    expect(pulled).toBe(0);
+    expect(scroller.scrollTop).toBe(at);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
   });
 
   it("keeps a conversation of 20 messages whole, and windows it once it grows past 20, leaving the view where it is", async () => {
