@@ -606,8 +606,9 @@ describe("Chart development messages", () => {
   it.each([
     ["ChartTooltip", "content is not a prop; ChartTooltip draws its content from config", "<ChartTooltip />"],
     ["ChartLegend", "content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"],
-  ])("warns when %s gets shadcn's content prop", async (part, problem, fix) => {
+  ])("warns when %s gets shadcn's content prop, with the page and before the plot draws, once", async (part, problem, fix) => {
     const Part = (part === "ChartTooltip" ? ChartTooltip : ChartLegend) as (props: { content: unknown }) => ReactNode;
+    const message = `[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`;
     const { chart } = await render(
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
@@ -616,9 +617,31 @@ describe("Chart development messages", () => {
         </LineChart>
       </Chart>,
     );
-    // The parts render with the plot, once the page has painted.
+    // Chart checks the parts it can see while the plot waits for the first paint, so the message comes with the page.
+    expect(chart.querySelector(".recharts-surface")).toBeNull();
+    expect(warn.mock.calls.filter((call: unknown[]) => call[0] === message)).toHaveLength(1);
+    // The part, rendered with the plot, knows Chart checked it and says nothing more.
     await drawn(chart);
-    expect(warn).toHaveBeenCalledWith(`[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`);
+    expect(warn.mock.calls.filter((call: unknown[]) => call[0] === message)).toHaveLength(1);
+  });
+
+  it.each([
+    ["ChartTooltip", "content is not a prop; ChartTooltip draws its content from config", "<ChartTooltip />"],
+    ["ChartLegend", "content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"],
+  ])("still warns, once, when %s gets content inside a wrapper Chart cannot see into", async (part, problem, fix) => {
+    const Part = (part === "ChartTooltip" ? ChartTooltip : ChartLegend) as (props: { content: unknown }) => ReactNode;
+    const Wrapped = () => <Part content={<div />} />;
+    const message = `[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`;
+    const { chart } = await render(
+      <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <Line dataKey="cooked" />
+          <Wrapped />
+        </LineChart>
+      </Chart>,
+    );
+    await drawn(chart);
+    await expect.poll(() => warn.mock.calls.filter((call: unknown[]) => call[0] === message).length).toBe(1);
   });
 
   it("draws an unknown tone and an unknown type with the defaults", async () => {

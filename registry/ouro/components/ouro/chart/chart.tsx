@@ -5,7 +5,7 @@ import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref }
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { scrollFadeClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
@@ -151,6 +151,15 @@ const toneNames = Object.keys(chartTones);
 /** The JSX a part belongs in, for the dev message when it is not inside a Chart. */
 const partShape = (part: string) => `<Chart title="Cooking" data={rows} categoryKey="month" config={config}><BarChart><${part} /></BarChart></Chart>`;
 
+/**
+ * In development, says once that a ChartTooltip or ChartLegend was given `content`, which it draws from config instead.
+ * Keyed by the part's props, so Chart's early check and the part's own say it once between them.
+ */
+function checkPartContent(type: unknown, props: { content?: unknown }): void {
+  const part = type === ChartTooltip ? "ChartTooltip" : type === ChartLegend ? "ChartLegend" : undefined;
+  if (part && props.content !== undefined) devWarn(part, `content is not a prop; ${part} draws its content from config`, `<${part} />`, props);
+}
+
 function useChartPart(part: string): ChartState {
   const state = useContext(ChartContext);
   if (!state) {
@@ -283,6 +292,14 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       ? () => chartWarnings(props as unknown as ChartProps<Record<string, unknown>>, series)
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // The plot draws after the first paint, and its parts with it, so Chart checks the parts it can see now: their messages
+  // come with the page, not a frame later. Each is keyed by the part's own props, as the part keys its own check, so the
+  // part says nothing more once it renders.
+  const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") for (const part of child ? partsOf(child) : []) checkPartContent(part.type, part.props as { content?: unknown });
+  });
   const id = useId();
   const summaryId = `${id}-summary`;
   const tableRef = useRef<HTMLDivElement>(null);
@@ -315,7 +332,6 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const colors = useMemo(() => Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties, [series]);
   // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
   const plotProps = { "aria-label": title, "aria-describedby": summaryId, "data-ouro-control": "chart", "data-ouro-part": "plot" };
-  const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;
   const plot = child ? (
     cloneElement(child, { data: child.props.data ?? data, ...plotProps })
   ) : (
@@ -597,14 +613,12 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  * @claim "The tooltip for a recharts chart" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
  */
 export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
-  const { content } = props;
   useChartPart("ChartTooltip");
-  useDevWarnings(
-    "ChartTooltip",
-    process.env.NODE_ENV !== "production"
-      ? () => [content !== undefined && ["content is not a prop; ChartTooltip draws its content from config", "<ChartTooltip />"]]
-      : /* istanbul ignore next @preserve -- production only */ undefined,
-  );
+  useDevWarnings("ChartTooltip", process.env.NODE_ENV !== "production" ? () => [] : /* istanbul ignore next @preserve -- production only */ undefined);
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props);
+  });
   return <Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
 }
 
@@ -633,14 +647,12 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws lines with a different point shape per series)
  */
 export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
-  const { content } = props;
   const { legendTarget } = useChartPart("ChartLegend");
-  useDevWarnings(
-    "ChartLegend",
-    process.env.NODE_ENV !== "production"
-      ? () => [content !== undefined && ["content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"]]
-      : /* istanbul ignore next @preserve -- production only */ undefined,
-  );
+  useDevWarnings("ChartLegend", process.env.NODE_ENV !== "production" ? () => [] : /* istanbul ignore next @preserve -- production only */ undefined);
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props);
+  });
   // Recharts measures the plot before it renders its children, by which time the slot is mounted. A null
   // target would make Legend fall back to the list inside the chart's own wrapper, so render nothing then.
   /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */
