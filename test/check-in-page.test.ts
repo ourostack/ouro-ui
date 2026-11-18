@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ALIASES, behindModal, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
+import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
@@ -1143,5 +1143,67 @@ describe("runAxe", () => {
     expect(await runAxe()).toEqual([]);
     host.innerHTML = `<span aria-hidden="true" tabindex="0">Hidden but focusable</span>`;
     expect((await runAxe()).map((issue) => issue.element)).toEqual([expect.stringMatching(/^aria-hidden-focus: /)]);
+  });
+});
+
+describe("findFragmentFocusIssues", () => {
+  const added: Element[] = [];
+  afterEach(() => {
+    for (const element of added.splice(0)) element.remove();
+    document.body.removeAttribute("data-ouro-check-ref");
+    document.documentElement.removeAttribute("data-ouro-allow");
+    document.documentElement.removeAttribute("data-ouro-allow-why");
+  });
+  /** Adds a stylesheet link to <head>, or a script that holds fragmentFocusScript's flag, at the start of <body> or the end of <head>. */
+  const sheet = (href = "data:text/css,i{}") => {
+    const link = Object.assign(document.createElement("link"), { rel: "stylesheet", href });
+    document.head.append(link);
+    added.push(link);
+  };
+  const script = (where: "body" | "head", type = "") => {
+    const element = Object.assign(document.createElement("script"), { text: "/* window.__ouroFragmentFocus */", type });
+    if (where === "body") document.body.prepend(element);
+    else document.head.append(element);
+    added.push(element);
+  };
+
+  it("finds a page with a stylesheet and no fragmentFocusScript, marked on the page", () => {
+    sheet();
+    const [issue, ...rest] = findFragmentFocusIssues();
+    expect(rest).toEqual([]);
+    expect(issue).toMatchObject({ rule: "fragment-focus", element: "the page" });
+    expect(issue!.detail).toMatch(/without fragmentFocusScript$/);
+    expect(document.body.getAttribute("data-ouro-check-ref")).toBe(issue!.ref);
+  });
+
+  it("finds fragmentFocusScript before a stylesheet in <head>, and a copy that is a module", () => {
+    script("head");
+    sheet("data:text/css,b{}");
+    expect(findFragmentFocusIssues().map((issue) => issue.detail)).toEqual(["fragmentFocusScript comes before the stylesheet data:text/css,b{}, so Safari can still take focus as stylesheets load"]);
+    for (const element of added.splice(0)) element.remove();
+    sheet();
+    script("body", "module");
+    expect(findFragmentFocusIssues().map((issue) => issue.rule)).toEqual(["fragment-focus"]);
+  });
+
+  it("passes fragmentFocusScript after every stylesheet, a stylesheet link with no address, and a page allowed fragment-focus with a reason", () => {
+    sheet();
+    script("body");
+    expect(findFragmentFocusIssues()).toEqual([]);
+    for (const element of added.splice(0)) element.remove();
+    // A link with no address loads nothing, so the script before it in <head> is still after every stylesheet.
+    sheet();
+    script("head");
+    const empty = Object.assign(document.createElement("link"), { rel: "stylesheet" });
+    document.head.append(empty);
+    added.push(empty);
+    expect(findFragmentFocusIssues()).toEqual([]);
+    for (const element of added.splice(0)) element.remove();
+    sheet();
+    document.documentElement.setAttribute("data-ouro-allow", "fragment-focus");
+    document.documentElement.setAttribute("data-ouro-allow-why", "   ");
+    expect(findFragmentFocusIssues()).toHaveLength(1);
+    document.documentElement.setAttribute("data-ouro-allow-why", "a page no link points into");
+    expect(findFragmentFocusIssues()).toEqual([]);
   });
 });
