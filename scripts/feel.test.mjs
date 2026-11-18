@@ -238,7 +238,7 @@ test("Ouro Feel's probe waits before polling again when its bridge answers at on
   }
 });
 
-test("Ouro Feel's probe, watching a scroll, adds no layout and under half a millisecond of script a frame", async () => {
+test("Ouro Feel's probe, watching a scroll, adds no layout a frame and under half a millisecond of script", async () => {
   const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
   // A page that does what a chat list does each frame it scrolls: it reads where its rows are and writes their styles.
   const rows = Array.from({ length: 200 }, (_, i) => `<div class="row" id="r${i}" style="height:48px">Row ${i}</div>`).join("");
