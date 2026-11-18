@@ -229,7 +229,7 @@ const TUNE: ReadonlyArray<[midi: number, beats: number]> = [
 ];
 export function playTune(): void {
   const Context = typeof window === "undefined" ? undefined : window.AudioContext;
-  if (!Context) return;
+  if (!Context || navigator.webdriver) return;
   const audio = new Context();
   afterPaint(() => play(audio));
 }
