@@ -8,7 +8,17 @@
 import { claim } from "../../registry/ouro/lib/ouro/claims.ts";
 
 /** The scenes this site shows. */
-export type SceneName = "ouro-hx" | "ouro-ui-apple" | "ouro-ui-core" | "playwright-focus-proof" | "ouroboros-skills" | "ourostack";
+export type SceneName =
+  | "ouro-hx"
+  | "ouro-ui-apple"
+  | "ouro-ui-core"
+  | "playwright-focus-proof"
+  | "ouroboros-skills"
+  | "ourostack"
+  | "nautilus"
+  | "nautilus-shipyard"
+  | "nautilus-library"
+  | "nautilus-squid";
 
 export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
@@ -18,8 +28,8 @@ export interface Scene {
    * pill on a link-preview card (site/scripts/og-cards.mts).
    */
   sky: readonly [string, string, string, string, string];
-  /** The 1536px header's height: 576, or 512 for the whole-world panorama. */
-  height: 576 | 512;
+  /** The 1536px header's height: 576, 512 for the whole-world panorama, or 1024 for a 3:2 picture shown whole (the Nautilus chapters). */
+  height: 576 | 512 | 1024;
   /**
    * The phone crop's height at 768px wide: each crop is cut to hold the whole of its scene's friends,
    * so its shape is its own (ourostack/.github brand/AGENTS.md), and the picture follows it.
@@ -107,6 +117,50 @@ export const SCENES: Record<SceneName, Scene> = {
       alt: "On a meadow hillside at night, two faceless glass friends wrapped in plaid throws share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
     },
   },
+  nautilus: {
+    alt: "At sunrise, seen half above and half below a calm sea, Captain Nemo's long iron submarine lies surfaced: a faceless glass person in a navy pea coat stands in its open hatch, a small sea-blue robot in a striped jersey and red cap looks through a brass spyglass beside the lens-windowed wheelhouse, Ouro, a smiling emerald snake curled into an O, rests on the deck, and under the water a small coral robot in a brass diving helmet swims beside the hull with a lamp.",
+    sky: ["#75a8e7", "#83b0ea", "#97baea", "#adc2e8", "#b5c0e1"],
+    height: 512,
+    phoneHeight: 384,
+    band: 40,
+    night: {
+      phoneHeight: 384,
+      alt: "At night under a full moon, seen half above and half below a calm sea, Captain Nemo's long iron submarine lies surfaced: a faceless glass person in a navy pea coat stands in its open hatch, a small sea-blue robot in a striped jersey and red cap looks through a brass spyglass beside the wheelhouse, whose lens windows glow amber, Ouro, a smiling emerald snake curled into an O, rests on the deck, and under the water a small coral robot in a brass diving helmet swims beside the hull, its lamp lit.",
+    },
+  },
+  "nautilus-shipyard": {
+    alt: "In a hidden volcanic cove at dawn, the iron submarine Nautilus sits nearly finished on its timber slipway: a small amber robot in goggles and a leather apron hammers a rivet from the scaffold, a small teal robot in a cap pumps the bellows at a glowing brazier, a faceless glass person in a long charcoal coat looks up at the hull, and Ouro, a smiling emerald snake curled into an O, dozes on a coil of rope.",
+    sky: ["#a5744d", "#55463b", "#524a49", "#bec4df", "#4b4c50"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "In a hidden volcanic cove at night, with the full moon in the sea arch, the iron submarine Nautilus sits nearly finished on its timber slipway: a small amber robot in goggles hammers a rivet from the scaffold, a small teal robot pumps the bellows at the glowing brazier, a faceless glass person in a long charcoal coat looks up at the hull, and Ouro, a smiling emerald snake curled into an O, dozes on a coil of rope.",
+    },
+  },
+  "nautilus-library": {
+    alt: "Down a long aisle of the Nautilus's walnut library, between shelves of books that run to a small porthole at the far end, a faceless glass person in a green velvet jacket sits in a leather wingback chair under a reading lamp with a big closed atlas on their lap, deciding the route, while a small sea-blue robot turns the globe toward them, a small lilac robot on the library ladder carries down a rolled sea chart, and Ouro, a smiling emerald snake curled into an O, watches from the chair's arm.",
+    sky: ["#421a0b", "#301004", "#290a01", "#2c0e05", "#3d190a"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "The Nautilus's library aisle at night, lit by a single reading lamp: a faceless glass person in a green velvet jacket sits in a leather wingback chair with a big closed atlas on their lap, a small sea-blue robot turns the globe, a small lilac robot on the ladder carries a rolled sea chart, Ouro, a smiling emerald snake curled into an O, watches from the chair's arm, and the small porthole at the aisle's end shows the dark night sea.",
+    },
+  },
+  "nautilus-squid": {
+    alt: "In the Nautilus's great saloon, a giant squid rests one huge, gentle eye against the oval window, curious, while a small coral robot in a yellow raincoat stands on the sofa's back with its mitten on the glass to meet it, a faceless glass person in a navy coat watches calmly from behind the sofa, and Ouro, a smiling emerald snake curled into an O, looks on from the sofa's arm.",
+    sky: ["#1e0c09", "#230c06", "#260f0a", "#291009", "#26110c"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "In the Nautilus's great saloon at night, lit by two brass wall lamps, a softly glowing giant squid rests one huge, gentle eye against the oval window, while a small coral robot in a yellow raincoat stands on the sofa's back with its mitten on the glass, a faceless glass person in a navy coat watches calmly from behind the sofa, and Ouro, a smiling emerald snake curled into an O, looks on from the sofa's arm.",
+    },
+  },
 };
 
 /** Where the copies live under the site's base. */
@@ -134,7 +188,7 @@ const APPLE = "Ouro UI for Apple";
 /** Every card, by the page that shows it. A docs page shows the docs card. */
 export const CARDS: Record<string, Card> = {
   "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro UI", title: claim("Delightful interfaces, by agents, for everyone.", { source: [{ test: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" }, { test: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" }], verify: [{ testExists: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" }, { testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" }] }) },
-  "/nautilus/": { file: "nautilus.jpg", scene: "ouroboros-skills", kicker: "A story in chapters", title: "The Nautilus" },
+  "/nautilus/": { file: "nautilus.jpg", scene: "nautilus", kicker: "A story in chapters", title: "The Nautilus" },
   "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", size: 46 },
   "/apple/": { file: "apple.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Same manners, now in Swift.", size: 44 },
   "/apple/hx/": { file: "apple-hx.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro HX for Apple" },
