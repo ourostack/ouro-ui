@@ -213,3 +213,43 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
     if (chart) judge(`${name} chart drawn`, plots, baselines.plot ? ceilingFor(baselines.plot, bare) : null, baselines.plot ? against(baselines.plot) : `the bare app ${bare} ms now`);
   });
 }
+
+test("dashboard-page paints its frame, the chart's title and the room for its plot before Recharts has loaded", async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  // Every script but the page's entry waits until the page has painted: Chart loads Recharts in a chunk of its own after
+  // the first paint, so the page paints without it.
+  const held: string[] = [];
+  let release!: () => void;
+  const released = new Promise<void>((done) => (release = done));
+  await page.route(/\/dashboard-page\/dist\/assets\/(?!index\.js$)[^/]+\.js$/, async (route) => {
+    held.push(new URL(route.request().url()).pathname);
+    await released;
+    await route.continue();
+  });
+  try {
+    await page.goto("dashboard-page/dist/");
+    const paint = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          new PerformanceObserver((list) => {
+            const entry = list.getEntriesByName("first-contentful-paint")[0];
+            if (entry) resolve(entry.startTime);
+          }).observe({ type: "paint", buffered: true });
+        }),
+    );
+    expect(paint).toBeGreaterThan(0);
+    const chart = page.locator('[data-ouro="chart"]');
+    await expect(chart.locator("figcaption")).toBeVisible();
+    await expect.poll(() => held.length, "Recharts is asked for in a chunk of its own, once the page has painted").toBeGreaterThan(0);
+    expect(await chart.locator("svg.recharts-surface").count(), "nothing drew the plot without Recharts").toBe(0);
+    // What is under the plot stays where it is when the plot arrives.
+    const before = await chart.locator("[data-ouro-chart-plot]").boundingBox();
+    const tableTop = (await page.locator('[data-ouro="table"]').first().boundingBox())?.y;
+    release();
+    await expect(chart.locator("[data-ouro-chart-plot] svg.recharts-surface")).toBeVisible();
+    expect(await chart.locator("[data-ouro-chart-plot]").boundingBox()).toEqual(before);
+    expect((await page.locator('[data-ouro="table"]').first().boundingBox())?.y).toBe(tableTop);
+  } finally {
+    release();
+  }
+});

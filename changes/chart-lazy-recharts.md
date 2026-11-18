@@ -1,0 +1,1 @@
+- Chart loads recharts itself with a dynamic import once the page has painted, so recharts is a chunk of its own and a page's first paint no longer waits to load or run it; a chart passed as recharts children still comes with the app's own import.

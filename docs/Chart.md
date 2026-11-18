@@ -23,7 +23,7 @@ import { Chart } from "@/registry/ouro/components/ouro/chart/chart";
 
 Pass `type` for bars, lines or areas, one per series in `config`. For anything else, pass a recharts chart as children with `<ChartTooltip />` and `<ChartLegend />` inside it, as in shadcn's charts; it draws with `var(--color-<key>)`. The marks Chart draws itself appear at once; your own `<Line>` or `<Bar>` keeps recharts' draw-in unless you pass `isAnimationActive={false}`.
 
-Built on recharts, which Bundlephobia measures at about 150 KB gzip (566 KB minified) for the whole package; a bundler that drops what Chart does not import adds less to the page that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the fold.
+Built on recharts, which Bundlephobia measures at about 150 KB gzip (566 KB minified) for the whole package; a bundler that drops what Chart does not import adds less to the page that renders it. Chart loads recharts itself, in a chunk of its own, once the page has painted, so a page's first paint never waits to load or run it; an app that passes its own recharts chart as children imports recharts with its page.
 
 The plot draws in the task after the page's first paint, in the room its box keeps, so the rest of a page shows without waiting for recharts to lay the chart out.
 

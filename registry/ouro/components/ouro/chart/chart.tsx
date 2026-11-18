@@ -2,7 +2,7 @@
 
 import { Children, cloneElement, createContext, isValidElement, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type * as Recharts from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
@@ -23,6 +23,23 @@ import {
 } from "@/registry/ouro/components/ouro/chart/chart-styles";
 
 export type { ChartMarkerShape, ChartSummaryInfo, ChartTone, ChartType } from "@/registry/ouro/components/ouro/chart/chart-styles";
+
+/** The parts of Recharts Chart draws with. */
+type Loaded = Pick<typeof Recharts, "Area" | "AreaChart" | "Bar" | "BarChart" | "CartesianGrid" | "Legend" | "Line" | "LineChart" | "ResponsiveContainer" | "Tooltip" | "XAxis" | "YAxis">;
+
+/** Recharts' parts, once loadRecharts has loaded them: Chart draws its plot, which holds its parts, only after that. */
+let loaded = undefined as unknown as Loaded;
+let loading: Promise<unknown> | undefined;
+
+/**
+ * Loads Recharts once, by a dynamic import, so it is a chunk of its own that a page's first paint does not wait for. The
+ * parts are named where the import resolves, so a bundler keeps only those, as it would for a static import.
+ */
+function loadRecharts(): Promise<unknown> {
+  return (loading ??= import("recharts").then(({ Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis }) => {
+    loaded = { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis };
+  }));
+}
 
 /** One series in a chart's `config`: its label and the theme tone it is drawn in. */
 export interface ChartSeries {
@@ -231,8 +248,9 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  *
  * Built on recharts, which Bundlephobia measures at about 150 KB gzip (566 KB minified) for
  * the whole package; a bundler that drops what Chart does not import adds less to the page
- * that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the
- * fold.
+ * that renders it. Chart loads recharts itself, in a chunk of its own, once the page has
+ * painted, so a page's first paint never waits to load or run it; an app that passes its own
+ * recharts chart as children imports recharts with its page.
  *
  * The plot draws in the task after the page's first paint, in the room its box keeps, so the
  * rest of a page shows without waiting for recharts to lay the chart out.
@@ -262,6 +280,7 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  * @claim "Each series is labeled in a" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > labels each series in a legend with a marker shape, so color is not the only cue)
  * @claim "Each series is labeled in a" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > gives five series five marker shapes)
  * @claim "Built on recharts, which Bundlephobia measures" https://bundlephobia.com/package/recharts@3.10.1 verify:urlOk(https://bundlephobia.com/package/recharts@3.10.1)
+ * @claim "Chart loads recharts itself, in" site/e2e/patterns.latency.spec.ts verify:testExists(site/e2e/patterns.latency.spec.ts::dashboard-page paints its frame, the chart's title and the room for its plot before Recharts has loaded)
  * @claim "The plot draws in the task" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > shows the page before it draws its plot, in the room the plot box keeps, and draws it after the first paint)
  */
 export function Chart<Row extends object = Record<string, unknown>>(props: ChartProps<Row>): JSX.Element {
@@ -313,11 +332,12 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const [legendTarget, setLegendTarget] = useState<HTMLElement | null>(null);
   // Recharts lays a chart out in script, a long task on its first use, so the plot draws in the task after the
   // page's first paint, in the room the plot box keeps for it: the rest of the page shows without waiting for it.
+  // Recharts itself loads then too, in a chunk of its own (loadRecharts), so the first paint never waits to run it.
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const frame = requestAnimationFrame(() => {
-      timer = setTimeout(() => setDrawn(true));
+      timer = setTimeout(() => void loadRecharts().then(() => setDrawn(true)));
     });
     // Stryker disable next-line BlockStatement: an unmounted chart ignores the late update, so the cleanup changes nothing anyone sees
     return () => {
@@ -357,9 +377,9 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
         <ChartContext value={state}>
           {drawn && (
             // A first size of its own draws the chart, and its legend, in the commit that takes the placeholder legend away.
-            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+            <loaded.ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
               {plot}
-            </ResponsiveContainer>
+            </loaded.ResponsiveContainer>
           )}
         </ChartContext>
       </div>
@@ -450,6 +470,7 @@ interface SeriesChartProps {
  * @claim "The chart `type` draws: a grid" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > leaves out the legend for a single series, which the title already names)
  */
 function SeriesChart({ type, data, categoryKey, series, formatValue, plotProps }: SeriesChartProps): JSX.Element {
+  const { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } = loaded;
   const Plot = type === "line" ? LineChart : type === "area" ? AreaChart : BarChart;
   const marks = series.map((item) => {
     const shared = {
@@ -624,7 +645,7 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props, warnKey);
   });
-  return <Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
+  return <loaded.Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
 }
 
 /**
@@ -662,5 +683,5 @@ export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
   /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */
   // Stryker disable next-line ConditionalExpression: the slot mounts before Recharts measures the plot, so this never runs with a null target and forcing it false changes nothing.
   if (legendTarget === null) return null;
-  return <Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
+  return <loaded.Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
 }
