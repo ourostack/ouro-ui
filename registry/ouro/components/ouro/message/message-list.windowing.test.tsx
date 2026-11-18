@@ -1500,8 +1500,8 @@ describe("MessageList windowing", () => {
 
   it("draws the rows past the view's edges of another conversation it opens all at once after its first frame, not a chunk a frame", async () => {
     const { root, scroller } = await render(<ShortRows ids={span(0, 300)} conversation="ana" keyOf={(id) => `ana-${id}`} />);
-    await act(async () => root.render(<ShortRows ids={span(0, 300)} conversation="theo" keyOf={(id) => `theo-${id}`} />));
-    // The messages added in each frame after the commit that opened it.
+    // The messages added in each frame after the commit that opens the other conversation. The watch starts before
+    // that commit, which lands in one task, so a frame that follows it on a slow runner is never missed (#2203).
     let added = 0;
     const observer = new MutationObserver((records) => {
       for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) added += node.querySelectorAll('[data-ouro="message"]').length + Number(node.matches('[data-ouro="message"]'));
@@ -1514,7 +1514,14 @@ describe("MessageList windowing", () => {
       added = 0;
       if (watching) requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+    await landInATask(
+      () => flushSync(() => root.render(<ShortRows ids={span(0, 300)} conversation="theo" keyOf={(id) => `theo-${id}`} />)),
+      () => {
+        // The commit's own rows, the ones in view, are not a frame's.
+        added = 0;
+        requestAnimationFrame(tick);
+      },
+    );
     await settle(scroller);
     watching = false;
     observer.disconnect();
