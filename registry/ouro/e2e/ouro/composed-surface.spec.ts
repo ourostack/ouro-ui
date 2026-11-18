@@ -14,3 +14,18 @@ test("a composed tree renders with HX, and a consequential button asks before it
   await confirm.getByRole("button", { name: "Cancel" }).click();
   await expect(confirm).toBeHidden();
 });
+
+test("a composed field starts from the data, and a bound button's confirm sheet shows what the person typed", async ({ page }) => {
+  await openStory(page, "display-composedsurface--fields");
+  const surface = page.locator('[data-ouro="composed-surface"]');
+  await expect(surface.getByRole("textbox", { name: "Servings" })).toHaveValue("4");
+  await expect(surface.getByRole("checkbox", { name: "Make it vegetarian" })).not.toBeChecked();
+  const sendTo = surface.getByRole("textbox", { name: "Send to" });
+  await expect(sendTo).toHaveValue("sam@example.com");
+  await sendTo.fill("kim@example.com");
+  await surface.getByRole("button", { name: "Share recipe" }).click();
+  const confirm = page.getByRole("alertdialog", { name: "Share recipe?" });
+  await expect(confirm).toContainText("Send to: kim@example.com");
+  await confirm.getByRole("button", { name: "Cancel" }).click();
+  await expect(confirm).toBeHidden();
+});

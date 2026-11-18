@@ -327,6 +327,18 @@
     "status": 200,
     "checked": "2026-11-15"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5/docs/decisions/2026-11-17-composed-fields.md": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5/src/composed.mts#L120-L150": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5/src/composed.mts#L443-L470": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md": {
     "status": 200,
     "checked": "2026-11-18"
@@ -416,6 +428,10 @@
     "checked": "2026-11-15"
   },
   "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.17.7": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.18.0": {
     "status": 200,
     "checked": "2026-11-18"
   },

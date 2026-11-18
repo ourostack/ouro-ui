@@ -16,13 +16,20 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 const field = (label: string, kind = "string", optional = false) => ({ label, kind, optional });
 const catalog = loadCatalog({
   catalogId: "https://example.com/a2ui/catalog.json",
-  components: Object.fromEntries(["Card", "Stack", "Heading", "Text", "Image", "Badge", "List", "DescriptionList", "Separator", "Alert", "ActionButton"].map((n) => [n, {}])),
+  components: Object.fromEntries(["Card", "Stack", "Heading", "Text", "Image", "Badge", "List", "DescriptionList", "Separator", "Alert", "TextField", "Checkbox", "Select", "ActionButton"].map((n) => [n, {}])),
   metadata: {
     extensions: {
       bot_ouroboros_hx: {
         actions: {
           add_recipe_to_shopping_list: { consent: "write", press: "run", label: "Add ingredients to list", description: "Add this recipe's ingredients to your shopping list.", input: { recipe: field("Recipe"), servings: field("Servings", "integer", true) } },
           share_recipe: { consent: "consequential", press: "confirm", label: "Share recipe", description: "Send this recipe to someone.", input: { recipe: field("Recipe"), with: field("With") } },
+          plan_dinner: {
+            consent: "write",
+            press: "run",
+            label: "Plan dinner",
+            description: "Put this recipe on the week's plan.",
+            input: { recipe: field("Recipe"), servings: field("Servings", "integer", true), vegetarian: field("Vegetarian", "boolean", true), oven: field("Oven", "string", true), note: field("Note", "string", true), title: field("Title", "string", true) },
+          },
           order_ingredients: { consent: "person-only", press: "handoff", label: "Order ingredients", description: "Order this recipe's ingredients for delivery.", input: { recipe: field("Recipe") }, personOnly: { how: "with Order ingredients on the recipe in the app", refusal: {} } },
         },
       },
@@ -236,5 +243,116 @@ describe("ComposedSurface", () => {
   it("warns when a guessed onAction takes the place of onPress", async () => {
     await render(<ComposedSurface {...props()} {...({ onAction: () => {} } as object)} />);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("ComposedSurface: onAction is not a prop; a pressed button calls onPress, or onHandoff for a person-only one. Fix: <ComposedSurface onPress={run} onHandoff={openApp} />."));
+  });
+});
+
+describe("ComposedSurface fields", () => {
+  const bound = (path: string) => ({ "@path": path });
+  const data = { recipe: { id: "rcp_1" }, servings: 4, vegetarian: true, oven: "Fan", note: "No peas", title: "Orzo", share: { with: "" } };
+  const fields = node("root", "Stack", { direction: "vertical", gap: "medium" }, [
+    node("servings", "TextField", { label: "Servings", value: "/servings", hint: "How many people you're cooking for.", type: "number", multiline: false }),
+    node("vegetarian", "Checkbox", { label: "Make it vegetarian", value: "/vegetarian", hint: "Swaps the stock." }),
+    node("oven", "Select", { label: "Oven", value: "/oven", options: ["Fan", "Conventional", "Grill"], hint: "Changes the temperature." }),
+    node("note", "TextField", { label: "Note", value: "/note", type: "text", multiline: true }),
+    node("title", "TextField", { label: "Title", value: "/title", type: "text", multiline: false }),
+    node("with", "TextField", { label: "Send to", value: "/share/with", type: "text", multiline: false }),
+    node("plan", "ActionButton", {
+      ...actionButtonProps(catalog, "plan_dinner", { recipe: bound("/recipe/id"), servings: bound("/servings"), vegetarian: bound("/vegetarian"), oven: bound("/oven"), note: bound("/note"), title: bound("/title") }),
+      emphasis: "primary",
+    }),
+    node("share", "ActionButton", { ...actionButtonProps(catalog, "share_recipe", { recipe: "rcp_1", with: bound("/share/with") }, { label: ({ value }) => named(value) }), emphasis: "secondary" }),
+  ]);
+
+  it("draws each field with HX, its label and hint, starting from what the data holds", async () => {
+    expect(validateTree(catalog, fields)).toEqual([]);
+    const host = await render(<ComposedSurface {...props({ tree: fields, data })} />);
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("4");
+    expect(page.getByRole("textbox", { name: "Servings" }).element().closest('[data-ouro="number-field"]')).not.toBeNull();
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveAccessibleDescription("How many people you're cooking for.");
+    expect(page.getByRole("checkbox", { name: "Make it vegetarian" }).element()).toBeChecked();
+    expect(page.getByRole("checkbox", { name: "Make it vegetarian" }).element()).toHaveAccessibleDescription("Swaps the stock.");
+    expect(page.getByRole("combobox", { name: "Oven" }).element().textContent).toContain("Fan");
+    expect(page.getByRole("textbox", { name: "Note" }).element().tagName).toBe("TEXTAREA");
+    expect(page.getByRole("textbox", { name: "Note" }).element()).toHaveValue("No peas");
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Orzo");
+    expect(host.querySelectorAll('[data-ouro="text-field"]')).toHaveLength(2);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("presses a bound button with what the person typed, ticked and chose", async () => {
+    const onPress = vi.fn();
+    await render(<ComposedSurface {...props({ tree: fields, data, onPress })} />);
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
+    await userEvent.click(page.getByRole("checkbox", { name: "Make it vegetarian" }));
+    await userEvent.click(page.getByRole("combobox", { name: "Oven" }));
+    await userEvent.click(page.getByRole("option", { name: "Grill" }));
+    await expect.element(page.getByRole("listbox")).not.toBeInTheDocument();
+    await userEvent.fill(page.getByRole("textbox", { name: "Note" }), "Extra lemon");
+    await userEvent.fill(page.getByRole("textbox", { name: "Title" }), "Weeknight orzo");
+    await userEvent.click(page.getByRole("button", { name: "Plan dinner" }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    const [press, button] = onPress.mock.calls[0]! as [PersonPress, ComposedNode];
+    expect(press.input).toEqual({ recipe: "rcp_1", servings: 6, vegetarian: false, oven: "Grill", note: "Extra lemon", title: "Weeknight orzo" });
+    expect(button.id).toBe("plan");
+    expect(button.props.input).toEqual(press.input);
+  });
+
+  it("writes a number from a number field, and null when the person empties it", async () => {
+    const onPress = vi.fn();
+    await render(<ComposedSurface {...props({ tree: fields, data, onPress })} />);
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "");
+    await userEvent.click(page.getByRole("button", { name: "Plan dinner" }));
+    expect((onPress.mock.calls[0]![0] as PersonPress).input.servings).toBeNull();
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "8");
+    await userEvent.click(page.getByRole("button", { name: "Plan dinner" }));
+    expect((onPress.mock.calls[1]![0] as PersonPress).input.servings).toBe(8);
+  });
+
+  it("shows what the person typed on a consequential button's confirm sheet, and sends it on confirm", async () => {
+    const onPress = vi.fn();
+    await render(<ComposedSurface {...props({ tree: fields, data, onPress })} />);
+    await userEvent.fill(page.getByRole("textbox", { name: "Send to" }), "kim@example.com");
+    await userEvent.click(page.getByRole("button", { name: "Share recipe" }));
+    const dialog = page.getByRole("alertdialog", { name: "Share recipe?" });
+    await expect.element(dialog).toBeVisible();
+    expect([...dialog.element().querySelectorAll("p span.block")].map((l) => l.textContent)).toEqual(["Recipe: Charred Lemon Orzo rcp_1", "With: kim@example.com"]);
+    await userEvent.click(dialog.getByRole("button", { name: "Share recipe" }));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(onPress.mock.calls[0]![0]).toEqual({ action: "share_recipe", input: { recipe: "rcp_1", with: "kim@example.com" }, consent: "consequential", label: "Share recipe", by: "person", confirmed: true });
+  });
+
+  it("starts the fields over from new data, and sends null for a bound value the data lacks", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const onPress = vi.fn();
+    await act(async () => root.render(<ComposedSurface {...props({ tree: fields, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("");
+    await userEvent.click(page.getByRole("button", { name: "Plan dinner" }));
+    expect((onPress.mock.calls[0]![0] as PersonPress).input).toEqual({ recipe: null, servings: null, vegetarian: null, oven: null, note: null, title: null });
+    await userEvent.fill(page.getByRole("textbox", { name: "Title" }), "Typed");
+    await act(async () => root.render(<ComposedSurface {...props({ tree: fields, data, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Orzo");
+    await userEvent.fill(page.getByRole("textbox", { name: "Title" }), "Typed again");
+    await act(async () => root.render(<ComposedSurface {...props({ tree: fields, data, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Typed again");
+    await act(async () => root.render(<ComposedSurface {...props({ tree: { ...fields }, data, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Orzo");
+  });
+
+  it("shows a value the data holds as text in a text field, and none in a field that can't hold it", async () => {
+    await render(<ComposedSurface {...props({ tree: fields, data: { servings: "four", vegetarian: "yes", oven: "Steam", note: null, title: 12 } })} />);
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("");
+    expect(page.getByRole("checkbox", { name: "Make it vegetarian" }).element()).not.toBeChecked();
+    expect(page.getByRole("combobox", { name: "Oven" }).element().textContent).not.toMatch(/Fan|Conventional|Grill|Steam/);
+    expect(page.getByRole("textbox", { name: "Note" }).element()).toHaveValue("");
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("12");
+  });
+
+  it("warns when a guessed dataModel takes the place of data", async () => {
+    await render(<ComposedSurface {...props()} {...({ dataModel: {} } as object)} />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("ComposedSurface: dataModel is not a prop; the fields' data model is data. Fix: <ComposedSurface data={structuredContent.ouro.data} />."));
   });
 });

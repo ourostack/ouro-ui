@@ -3,7 +3,7 @@
 import { type JSX, useEffect, useMemo } from "react";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { ComposedTree, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
-import { actionMessage, resolveMessages, type LabelContext, type Problem } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { actionMessage, applyMessages, resolveMessages, type LabelContext, type Problem } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -79,7 +79,8 @@ const now = () => new Date().toISOString();
 
 /**
  * Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it
- * as ComposedSurface does, and sends a press as A2UI's action message. Every button is one of your app's declared
+ * as ComposedSurface does, its fields starting from the surface's data model, and sends a press as A2UI's action
+ * message, with what the person entered in a field a button's input is bound to. Every button is one of your app's declared
  * actions: read and write run, a consequential one asks the person to confirm what the agent prepared, and a
  * person-only one takes them to your app's own screen. Messages that fail core's validator show a short alert, and
  * `onProblems` gets the details for the agent.
@@ -111,6 +112,10 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
   const id = surfaceId ?? ids[0];
   // Stryker disable next-line ConditionalExpression: surfaces[undefined] is undefined too; the check is for the index type.
   const tree = id === undefined ? undefined : surfaces[id];
+  // The surface's data model, as createSurface and updateDataModel leave it: what its fields start from. It depends on
+  // the messages alone, so a new label function keeps what the person entered.
+  const valid = problems === null;
+  const data = useMemo(() => (valid ? applyMessages(messages).get(id!)?.data : undefined), [valid, messages, id]);
   // A press, as the A2UI action message it names: the button is its source component.
   const onComposedPress: ComposedSurfaceProps["onPress"] = (press, button) =>
     onAction(actionMessage({ surfaceId: id!, sourceComponentId: button.id, button, timestamp: now(), confirmed: press.confirmed === true }) as unknown as A2UIActionMessage);
@@ -131,7 +136,7 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
       {problems ? (
         <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
       ) : tree ? (
-        <ComposedTree tree={tree} onPress={onComposedPress} onHandoff={onHandoff} />
+        <ComposedTree tree={tree} data={data} origin={messages} onPress={onComposedPress} onHandoff={onHandoff} />
       ) : null}
     </div>
   );
