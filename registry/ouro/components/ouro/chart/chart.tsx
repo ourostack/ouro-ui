@@ -1,11 +1,11 @@
 "use client";
 
-import { Children, cloneElement, createContext, isValidElement, useContext, useId, useMemo, useRef, useState } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, ReactElement, ReactNode, Ref } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { devThrow } from "@/registry/ouro/lib/ouro/dev";
+import { devThrow, devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { scrollFadeClass, useScrollFade } from "@/registry/ouro/lib/ouro/scroll-fade";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
@@ -141,6 +141,12 @@ interface ChartState {
   formatValue: (value: number, series: string) => string;
   /** The element a `ChartLegend` portals its list into, below the plot; `null` until it mounts. */
   legendTarget: HTMLElement | null;
+  /**
+   * The key Chart and its parts give their development messages, one per Chart.
+   *
+   * @claim "Chart and its parts give their development messages" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart development messages > warns when %s gets shadcn's content prop, with the page and before the plot draws, once)
+   */
+  warnKey: object;
 }
 
 const ChartContext = createContext<ChartState | null>(null);
@@ -150,6 +156,15 @@ const toneNames = Object.keys(chartTones);
 
 /** The JSX a part belongs in, for the dev message when it is not inside a Chart. */
 const partShape = (part: string) => `<Chart title="Cooking" data={rows} categoryKey="month" config={config}><BarChart><${part} /></BarChart></Chart>`;
+
+/**
+ * In development, says once per Chart that a ChartTooltip or ChartLegend was given `content`, which it draws from config
+ * instead. Chart's early check and the part's own share the Chart's key, so they say it once between them.
+ */
+function checkPartContent(type: unknown, props: { content?: unknown }, key: object): void {
+  const part = type === ChartTooltip ? "ChartTooltip" : type === ChartLegend ? "ChartLegend" : undefined;
+  if (part && props.content !== undefined) devWarn(part, `content is not a prop; ${part} draws its content from config`, `<${part} />`, key);
+}
 
 function useChartPart(part: string): ChartState {
   const state = useContext(ChartContext);
@@ -219,6 +234,9 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  * that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the
  * fold.
  *
+ * The plot draws in the task after the page's first paint, in the room its box keeps, so the
+ * rest of a page shows without waiting for recharts to lay the chart out.
+ *
  * Colors come from the theme's `--chart-1` to `--chart-5`, which must reach 3:1 against the
  * background for the marks to be seen (WCAG's non-text contrast).
  *
@@ -244,6 +262,7 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  * @claim "Each series is labeled in a" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > labels each series in a legend with a marker shape, so color is not the only cue)
  * @claim "Each series is labeled in a" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > gives five series five marker shapes)
  * @claim "Built on recharts, which Bundlephobia measures" https://bundlephobia.com/package/recharts@3.10.1 verify:urlOk(https://bundlephobia.com/package/recharts@3.10.1)
+ * @claim "The plot draws in the task" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > shows the page before it draws its plot, in the room the plot box keeps, and draws it after the first paint)
  */
 export function Chart<Row extends object = Record<string, unknown>>(props: ChartProps<Row>): JSX.Element {
   const {
@@ -279,20 +298,46 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       ? () => chartWarnings(props as unknown as ChartProps<Record<string, unknown>>, series)
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
+  // The plot draws after the first paint, and its parts with it, so Chart checks the parts it can see now: their messages
+  // come with the page, not a frame later. Chart and its parts share one key, so a part says nothing more once it renders.
+  const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;
+  const [warnKey] = useState(() => ({}));
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production" && child) for (const part of partsOf(child)) checkPartContent(part.type, part.props as { content?: unknown }, warnKey);
+  });
   const id = useId();
   const summaryId = `${id}-summary`;
   const tableRef = useRef<HTMLDivElement>(null);
   useScrollFade(tableRef);
   const [legendTarget, setLegendTarget] = useState<HTMLElement | null>(null);
+  // Recharts lays a chart out in script, a long task on its first use, so the plot draws in the task after the
+  // page's first paint, in the room the plot box keeps for it: the rest of the page shows without waiting for it.
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => {
+      timer = setTimeout(() => setDrawn(true));
+    });
+    // Stryker disable next-line BlockStatement: an unmounted chart ignores the late update, so the cleanup changes nothing anyone sees
+    return () => {
+      // Stryker disable next-line CallExpression: an unmounted chart ignores the late update
+      cancelAnimationFrame(frame);
+      // Stryker disable next-line CallExpression: an unmounted chart ignores the late update
+      clearTimeout(timer);
+    };
+  },
+    // Stryker disable next-line ArrayDeclaration: any list that never changes runs the effect once, as the empty one does
+    [],
+  );
   // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
   const state = useMemo<ChartState>(
-    () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget }),
-    [series, formatValue, legendTarget],
+    () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget, warnKey }),
+    [series, formatValue, legendTarget, warnKey],
   );
   const colors = useMemo(() => Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties, [series]);
   // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
   const plotProps = { "aria-label": title, "aria-describedby": summaryId, "data-ouro-control": "chart", "data-ouro-part": "plot" };
-  const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;
   const plot = child ? (
     cloneElement(child, { data: child.props.data ?? data, ...plotProps })
   ) : (
@@ -310,13 +355,23 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       {description !== undefined && <p className="-mt-2 mb-0 text-sm text-muted-foreground">{description}</p>}
       <div data-ouro-chart-plot="" className={plotClass}>
         <ChartContext value={state}>
-          <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
-            {plot}
-          </ResponsiveContainer>
+          {drawn && (
+            // A first size of its own draws the chart, and its legend, in the commit that takes the placeholder legend away.
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+              {plot}
+            </ResponsiveContainer>
+          )}
         </ChartContext>
       </div>
-      {/* Empty until a ChartLegend portals its list here, so it takes no gap. */}
-      <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden" />
+      {/* Empty until a ChartLegend portals its list here, so it takes no gap. Until the plot draws, the legend of the
+          series in config holds its place, so nothing under the chart moves when the plot's own arrives. */}
+      <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden">
+        {!drawn && (child ? hasLegend(child) : series.length > 1) && (
+          <ChartContext value={state}>
+            <LegendContent payload={child ? drawnKeys(child) : series.map((item) => ({ dataKey: item.key }))} />
+          </ChartContext>
+        )}
+      </div>
       <p id={summaryId} data-ouro-chart-summary="" className="sr-only">
         {summary({ title, type: child ? undefined : type, series: series.map((item) => item.label), category, count: rows.length })}
       </p>
@@ -508,6 +563,19 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
   );
 }
 
+/** The parts of a recharts chart passed as children. */
+const partsOf = (chart: ReactElement) => Children.toArray((chart.props as { children?: ReactNode }).children).filter(isValidElement);
+
+/** Whether a recharts chart passed as children holds a `ChartLegend`. */
+function hasLegend(chart: ReactElement): boolean {
+  return partsOf(chart).some((part) => part.type === ChartLegend);
+}
+
+/** The series a recharts chart passed as children draws, as its legend lists them, by their `dataKey`s. */
+function drawnKeys(chart: ReactElement): { dataKey?: unknown }[] {
+  return partsOf(chart).map((part) => ({ dataKey: (part.props as { dataKey?: unknown }).dataKey }));
+}
+
 /**
  * The legend: each drawn series' marker and label from config, in a row under the plot.
  *
@@ -551,14 +619,11 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  * @claim "The tooltip for a recharts chart" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
  */
 export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
-  const { content } = props;
-  useChartPart("ChartTooltip");
-  useDevWarnings(
-    "ChartTooltip",
-    process.env.NODE_ENV !== "production"
-      ? () => [content !== undefined && ["content is not a prop; ChartTooltip draws its content from config", "<ChartTooltip />"]]
-      : /* istanbul ignore next @preserve -- production only */ undefined,
-  );
+  const { warnKey } = useChartPart("ChartTooltip");
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props, warnKey);
+  });
   return <Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
 }
 
@@ -587,14 +652,11 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws lines with a different point shape per series)
  */
 export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
-  const { content } = props;
-  const { legendTarget } = useChartPart("ChartLegend");
-  useDevWarnings(
-    "ChartLegend",
-    process.env.NODE_ENV !== "production"
-      ? () => [content !== undefined && ["content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"]]
-      : /* istanbul ignore next @preserve -- production only */ undefined,
-  );
+  const { legendTarget, warnKey } = useChartPart("ChartLegend");
+  useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+    if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props, warnKey);
+  });
   // Recharts measures the plot before it renders its children, by which time the slot is mounted. A null
   // target would make Legend fall back to the list inside the chart's own wrapper, so render nothing then.
   /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */

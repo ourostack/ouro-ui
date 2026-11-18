@@ -25,6 +25,8 @@ Pass `type` for bars, lines or areas, one per series in `config`. For anything e
 
 Built on recharts, which Bundlephobia measures at about 150 KB gzip (566 KB minified) for the whole package; a bundler that drops what Chart does not import adds less to the page that renders it. Load it with `next/dynamic` or `React.lazy` when the chart is below the fold.
 
+The plot draws in the task after the page's first paint, in the room its box keeps, so the rest of a page shows without waiting for recharts to lay the chart out.
+
 Colors come from the theme's `--chart-1` to `--chart-5`, which must reach 3:1 against the background for the marks to be seen (WCAG's non-text contrast).
 
 ## Use instead when

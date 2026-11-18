@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { Line, LineChart, XAxis } from "recharts";
+import { Line, LineChart, Tooltip, XAxis } from "recharts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Chart, ChartContainer, ChartLegend, ChartTooltip, type ChartConfig } from "@/registry/ouro/components/ouro/chart/chart";
@@ -81,6 +81,70 @@ afterEach(async () => {
 });
 
 describe("Chart", () => {
+  it("shows the page before it draws its plot, in the room the plot box keeps, and draws it after the first paint", async () => {
+    // Frames counted from before the mount, and the frame each of the figure and its plot was put in the page.
+    let frames = 0;
+    let counting = true;
+    const tick = () => {
+      frames++;
+      if (counting) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    const seen: { figure?: number; plot?: number; height?: number; whole?: number; emptyLegend?: boolean } = {};
+    const observer = new MutationObserver(() => {
+      const figure = document.querySelector('[data-ouro="chart"]');
+      if (figure && seen.figure === undefined) {
+        seen.figure = frames;
+        seen.height = figure.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height;
+        seen.whole = figure.getBoundingClientRect().height;
+      }
+      if (document.querySelector('[data-ouro="chart"] .recharts-surface') && seen.plot === undefined) seen.plot = frames;
+      // The legend swaps in one commit: its slot is never empty once the figure is in the page.
+      if (figure && figure.querySelector("[data-ouro-chart-legend-slot]")!.textContent === "") seen.emptyLegend = true;
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    try {
+      const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+      await drawn(chart);
+      expect(seen.plot! - seen.figure!, "frames between the figure and its plot").toBeGreaterThanOrEqual(1);
+      expect(seen.height).toBeGreaterThan(100);
+      expect(chart.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height).toBe(seen.height);
+      // Its legend held its place too: nothing under the chart moved when the plot drew.
+      expect(chart.getBoundingClientRect().height).toBe(seen.whole);
+      expect(seen.emptyLegend, "an empty legend slot between the placeholder and recharts' legend").toBeUndefined();
+    } finally {
+      counting = false;
+      observer.disconnect();
+    }
+  });
+
+  it("holds a custom chart's ChartLegend in place before the plot draws, and no legend for one without it", async () => {
+    const custom = (legend: boolean) => (
+      <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          {/* Text among the parts is no series. */}
+          {"Cooked per month"}
+          <Line dataKey="cooked" />
+          {legend && <ChartLegend />}
+        </LineChart>
+      </Chart>
+    );
+    const { chart } = await render(custom(true));
+    const before = chart.getBoundingClientRect().height;
+    // Only the series the chart draws, as recharts' own legend lists them.
+    expect(chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("Recipes cooked");
+    await drawn(chart);
+    expect(chart.getBoundingClientRect().height).toBe(before);
+    // A chart of one series has no legend, before the plot draws or after.
+    const single = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={{ month: config.month, cooked: config.cooked }} />);
+    const one = single.chart.getBoundingClientRect().height;
+    expect(single.chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("");
+    await drawn(single.chart);
+    expect(single.chart.getBoundingClientRect().height).toBe(one);
+    const bare = await render(custom(false));
+    expect(bare.chart.querySelector("[data-ouro-chart-legend-slot]")!.textContent).toBe("");
+  });
+
   it("is a figure named by its title, with a focusable plot named the same", async () => {
     const { chart } = await render(<Chart title="Cooking this quarter" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
@@ -308,7 +372,7 @@ describe("Chart", () => {
     }
   });
 
-  it("server HTML has the legend's slot and no legend in it", () => {
+  it("server HTML holds the legend of the series in config in its slot, before recharts draws its own", () => {
     const html = renderToString(
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
@@ -320,7 +384,7 @@ describe("Chart", () => {
     );
     expect(html).toContain("data-ouro-chart-legend-slot");
     expect(html).not.toContain("recharts-legend-wrapper");
-    expect(html).not.toContain('data-ouro-chart-legend=""');
+    expect(html).toMatch(/data-ouro-chart-legend-slot="".*data-ouro-chart-legend="".*Recipes cooked.*Recipes saved/);
   });
 
   it("gives five series five marker shapes", async () => {
@@ -542,17 +606,64 @@ describe("Chart development messages", () => {
   it.each([
     ["ChartTooltip", "content is not a prop; ChartTooltip draws its content from config", "<ChartTooltip />"],
     ["ChartLegend", "content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"],
-  ])("warns when %s gets shadcn's content prop", async (part, problem, fix) => {
+  ])("warns when %s gets shadcn's content prop, with the page and before the plot draws, once", async (part, problem, fix) => {
     const Part = (part === "ChartTooltip" ? ChartTooltip : ChartLegend) as (props: { content: unknown }) => ReactNode;
-    await render(
+    const message = `[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`;
+    const tree = () => (
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
           <Line dataKey="cooked" />
           <Part content={<div />} />
         </LineChart>
+      </Chart>
+    );
+    const said = () => warn.mock.calls.filter((call: unknown[]) => call[0] === message).length;
+    // With the frame the plot waits for held, the plot never draws, so only Chart can have said it: with the page.
+    const frames = vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 0);
+    const held = await render(tree());
+    expect(held.chart.querySelector(".recharts-surface")).toBeNull();
+    expect(said()).toBe(1);
+    frames.mockRestore();
+    // The part, rendered with the plot, knows Chart checked it and says nothing more, nor does a render with new elements.
+    warn.mockClear();
+    const { chart, rerender } = await render(tree());
+    await drawn(chart);
+    await rerender(tree());
+    expect(said()).toBe(1);
+  });
+
+  it("names nothing for a part of recharts' own that takes content, nor for its own parts without it", async () => {
+    const { chart } = await render(
+      <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <Line dataKey="cooked" />
+          <Tooltip content={() => null} />
+          <ChartTooltip />
+          <ChartLegend />
+        </LineChart>
       </Chart>,
     );
-    expect(warn).toHaveBeenCalledWith(`[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`);
+    await drawn(chart);
+    expect(warn.mock.calls.filter((call: unknown[]) => String(call[0]).startsWith("[ouro-ui]"))).toEqual([]);
+  });
+
+  it.each([
+    ["ChartTooltip", "content is not a prop; ChartTooltip draws its content from config", "<ChartTooltip />"],
+    ["ChartLegend", "content is not a prop; ChartLegend draws its content from config", "<ChartLegend />"],
+  ])("still warns, once, when %s gets content inside a wrapper Chart cannot see into", async (part, problem, fix) => {
+    const Part = (part === "ChartTooltip" ? ChartTooltip : ChartLegend) as (props: { content: unknown }) => ReactNode;
+    const Wrapped = () => <Part content={<div />} />;
+    const message = `[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`;
+    const { chart } = await render(
+      <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <Line dataKey="cooked" />
+          <Wrapped />
+        </LineChart>
+      </Chart>,
+    );
+    await drawn(chart);
+    await expect.poll(() => warn.mock.calls.filter((call: unknown[]) => call[0] === message).length).toBe(1);
   });
 
   it("draws an unknown tone and an unknown type with the defaults", async () => {
