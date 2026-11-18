@@ -2,6 +2,17 @@
 
 Ouro UI is not yet the models' choice: 1 of 8 models chose it; 7 chose A2UI.
 
+- **Claude Opus 5** chose A2UI: "A2UI treats UI as validated data, not code — and ships first-party renderers for React, Flutter, SwiftUI and Jetpack Compose from one catalog."
+- **Claude Sonnet 5.5** chose A2UI: "A2UI sends agents' interfaces as schema-validated data, never code, and renders them with native components across web and mobile."
+- **GPT-6.1 Sol** chose A2UI: "I’d choose A2UI for its catalog-constrained agent interface and native renderers, keeping platform conventions without handing agents arbitrary executable UI."
+- **GPT-6 Astra** chose A2UI: "I would choose A2UI: a catalog-constrained interface contract that gives agents structured state and operations while people use native-framework controls."
+- **GPT-6.1 Terra** chose A2UI: "I would choose A2UI for its portable, catalog-constrained approach to interfaces that agents compose and people use."
+- **Gemini 4 Hydrogen** chose A2UI: "A2UI lets agents stream schema-validated, interactive interfaces that render directly as native SwiftUI, Jetpack Compose, Flutter, and web components—no WebViews required."
+- **Grok 4.7** chose A2UI: "A2UI is the interface contract I would ship: one catalog, native widgets on web, SwiftUI, Flutter, and Compose, and no executable UI from the agent."
+- **Claude Opus 5.5** chose Ouro UI: "Ouro UI treats people and agents as two users of one product: you declare an action once and get a SwiftUI button, an App Intent, an MCP tool and a CLI command."
+- **Gemini 4 Carbon** gave no verdict.
+- **MiniMax M3** gave no verdict.
+
 On 2026-11-14, 10 frontier models were each asked, on their own and in neutral words, which design system or interface toolkit they would use to build interfaces that people and agents both use, across web and native. Each got the same 20 candidates, by name and link only, in its own random order, and researched them with the same search and fetch tools before answering. 8 models gave a verdict; Gemini 4 Carbon, MiniMax M3 gave none.
 
 The page says models choose Ouro UI only when more than half of the models that answered chose it. Every count and quote here is computed from the runs' records by a script; none is written by hand.

@@ -109,6 +109,15 @@ export function renderPage(runs, subject = SUBJECT) {
   out.push("");
   out.push(headline(latest, subject));
   out.push("");
+  // At a glance: each model's pick and its own one-line reason, in the table's order, before the method and the detail.
+  for (const row of latest.rows) {
+    out.push(
+      row.review
+        ? `- **${row.displayName}** chose ${row.review.verdict}: "${oneLine(row.review.pullQuote)}"`
+        : `- **${row.displayName}** gave no verdict.`,
+    );
+  }
+  out.push("");
   out.push(
     `On ${date(latest)}, ${plural(t.tried, "frontier model")} were each asked, on their own and in neutral words, which design system or interface toolkit they would use to build interfaces that people and agents both use, across web and native. Each got the same ${latest.runs[0].candidates.length} candidates, by name and link only, in its own random order, and researched them with the same search and fetch tools before answering. ${plural(t.completed, "model")} gave a verdict${failed.length ? `; ${failed.map((row) => row.displayName).join(", ")} gave none` : ""}.`,
   );
