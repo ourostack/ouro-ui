@@ -5,7 +5,7 @@ import { VoyageHeader } from "../voyage/header";
 import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { comparisons, componentGroups, guides, rankedComponents, helpers, isAxPart, platforms, startPages, type DocsLink } from "./docs-sections";
+import { comparisons, componentGroups, filterHint, guides, rankedComponents, helpers, isAxPart, platforms, startPages, type DocsLink } from "./docs-sections";
 import { setXray, useXray } from "../voyage/xray-store";
 
 // The docs pages' header: the same one the home page and the Nautilus have. docs-shell.tsx loads
@@ -120,6 +120,7 @@ function walk(event: KeyboardEvent, results: HTMLElement | null, field: HTMLElem
 function DocsMenu({ current }: { current: string }): JSX.Element {
   const [query, setQuery] = useState("");
   const found = findDocs(query);
+  const hint = filterHint(query);
   const results = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const input = () => field.current?.querySelector("input") ?? null;
@@ -162,8 +163,13 @@ function DocsMenu({ current }: { current: string }): JSX.Element {
         />
       </div>
       {/* Always in the page, so a screen reader hears it change. */}
-      <p role="status" className={found?.length === 0 ? "m-0 px-3 py-2 text-sm text-muted-foreground" : "sr-only"}>
-        {found === undefined ? "" : found.length === 0 ? "Nothing aboard by that name. Try another?" : `${found.reduce((sum, group) => sum + group.links.length, 0)} found`}
+      {/* When another kit's name found a component ("modal"), it says what it is called here, as the sidebar does. */}
+      <p role="status" className={found?.length === 0 || hint !== undefined ? "m-0 px-3 py-2 text-sm text-muted-foreground" : "sr-only"}>
+        {found === undefined
+          ? ""
+          : found.length === 0
+            ? "Nothing aboard by that name. Try another?"
+            : (hint ?? `${found.reduce((sum, group) => sum + group.links.length, 0)} found`)}
       </p>
       {found ? (
         found.length > 0 && (
