@@ -4,7 +4,7 @@ import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/
 import { fleschKincaid, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, FINDS, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
+import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, FINDS, PLANNING, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
 import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 
 await loadPageCode("/nautilus/");
@@ -110,6 +110,17 @@ describe("Chapter II", () => {
     await expect.element(field).toHaveValue("1867-11-06");
     const first = document.querySelector("[data-composition='chart-room'] [data-chapter-control='ports'] [data-chapter-day]")!;
     expect(first.textContent).toBe(CHART_ROOM.sail((field.element() as HTMLInputElement).value));
+  });
+
+  it("names the field's own day in the plan's rail at load, not \"not chosen\", and still leaves the day to choose", async () => {
+    await renderPage("/nautilus/");
+    const field = page.getByRole("textbox", { name: CHART_ROOM.departure });
+    await expect.element(field).toHaveValue(START_DAY);
+    const step = () => [...document.querySelectorAll(`#chapter-two ol[aria-label='${PLANNING.label}'] li`)].find((item) => item.textContent!.startsWith(PLANNING.sail));
+    await expect.poll(() => step()?.textContent).toBe(`${PLANNING.sail}${PLANNING.sailFor(sayDay(START_DAY))}`);
+    expect(step()!.textContent).not.toMatch(/not chosen/i);
+    // Still a thing to do: the step ticks once the reader picks a day of their own.
+    expect(step()!.hasAttribute("data-done")).toBe(false);
   });
 
   it("classes a find: Conseil says so once, and it joins the catalogue", async () => {

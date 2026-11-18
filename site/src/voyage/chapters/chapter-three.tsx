@@ -16,7 +16,7 @@ import { HandOff } from "../handoff";
 import { setXray, useXray } from "../xray-store";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 import { firstName, useLogbook } from "./logbook";
-// What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
+// What only changes once the chapter answers (the squid letting go, the organ's glow): it comes
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
 
@@ -505,7 +505,7 @@ function Encounter(): JSX.Element {
 }
 
 /**
- * The saloon: once the squid has gone, Play sets Nemo at the organ, the notes rise, and the log gets
+ * The saloon: once the squid has gone, Play sets Nemo at the organ, its pipes glow, and the log gets
  * its last line; then the hand-off to a coding agent, the components, or round again. The log holds
  * only what has happened: it opens with what the reader did in the chapters before (logbook.ts), so
  * a reader who jumps straight here never reads that a ship was built.

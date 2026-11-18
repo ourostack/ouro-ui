@@ -29,7 +29,7 @@ export function VoyageFooter(): JSX.Element {
                 source: [{ spec: "https://www.gutenberg.org/ebooks/164" }, { spec: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }],
                 verify: [{ urlOk: "https://www.gutenberg.org/ebooks/164" }, { urlOk: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }],
               })}{" "}
-              Our drawings are our own.
+              Our pictures are our own.
             </p>
           </div>
           <nav aria-label="Ouro UI">
