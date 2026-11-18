@@ -11,7 +11,7 @@ On the home page, choose a preset under "Repaint the whole ship", then press "Co
 The default look, Pearl, is what `ouro-theme` installs:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-theme#v1.3.309
+npx shadcn@latest add ourostack/ouro-ui/ouro-theme#v1.3.311
 ```
 
 ## Mix your own paint
