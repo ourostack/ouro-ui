@@ -84,8 +84,7 @@ function giveOrder(store: FightStore, order: Order): void {
       else say(fight.won ? FIGHT.surfaceFree : FIGHT.surface, { surfaced: true });
       break;
     case "dive":
-      if (!fight.won) say(FIGHT.diveHeld);
-      else say(FIGHT.dive, { surfaced: false });
+      if (fight.won) say(FIGHT.dive, { surfaced: false });
       break;
     case "feathers":
       if (fight.feathers || fight.won) say(FIGHT.feathersAgain, { feathers: true });
@@ -97,10 +96,7 @@ function giveOrder(store: FightStore, order: Order): void {
       else say(fight.won ? FIGHT.lightsOn : FIGHT.lightsOnHeld, { lights: true });
       break;
     case "organ":
-      if (!fight.won) say(FIGHT.organHeld);
-      else if (!fight.played) {
-        say(FIGHT.organ, { played: true });
-      }
+      if (fight.won && !fight.played) say(FIGHT.organ, { played: true });
       break;
   }
 }
@@ -373,12 +369,14 @@ function Encounter(): JSX.Element {
     setAlarm(false);
     order(which);
   };
+  // Dive and the organ wait for the squid to let go: listed, but off, in the menu and the palette alike.
+  const held = { disabled: !won, ...(won ? {} : { description: ENCOUNTER.heldOrder }) };
   const orders = [
     { label: ORDERS.surface, onSelect: () => order("surface"), keywords: ["up", "rise"] },
-    { label: ORDERS.dive, onSelect: () => order("dive"), keywords: ["down", "sink"] },
+    { label: ORDERS.dive, onSelect: () => order("dive"), keywords: ["down", "sink"], ...held },
     { label: ORDERS.lights, onSelect: () => order("lights"), keywords: ["lamp", "light"] },
     { label: ORDERS.feathers, onSelect: () => order("feathers"), keywords: ["coax", "squid", "lantern"] },
-    { label: ORDERS.organ, onSelect: () => order("organ"), keywords: ["music"] },
+    { label: ORDERS.organ, onSelect: () => order("organ"), keywords: ["music"], ...held },
   ];
   return (
     <div ref={box} className="site-split grid gap-6 py-4 sm:items-center sm:py-6">
@@ -410,19 +408,24 @@ function Encounter(): JSX.Element {
               }
             >
               <MenuItem onClick={() => order("surface")}>{ORDERS.surface}</MenuItem>
-              <MenuItem onClick={() => order("dive")}>{ORDERS.dive}</MenuItem>
+              <MenuItem disabled={!won} onClick={() => order("dive")}>
+                {ORDERS.dive}
+              </MenuItem>
               <MenuCheckboxItem checked={lights} onCheckedChange={() => order("lights")}>
                 {ORDERS.lights}
               </MenuCheckboxItem>
               <MenuItem onClick={() => order("feathers")}>{ORDERS.feathers}</MenuItem>
               <MenuSeparator />
-              <MenuItem onClick={() => order("organ")}>{ORDERS.organ}</MenuItem>
+              <MenuItem disabled={!won} onClick={() => order("organ")}>
+                {ORDERS.organ}
+              </MenuItem>
             </Menu>
           </span>
           <span data-chapter-control="palette">
             <Command
               title={ENCOUNTER.paletteTitle}
               searchLabel={ENCOUNTER.paletteSearch}
+              placeholder={ENCOUNTER.palettePlaceholder}
               trigger={
                 <Button variant="outline" tone="secondary">
                   {ENCOUNTER.palette}

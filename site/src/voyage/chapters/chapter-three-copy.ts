@@ -47,6 +47,9 @@ export const ENCOUNTER = {
   palette: "Give an order",
   paletteTitle: "Orders for the crew",
   paletteSearch: "Search orders",
+  palettePlaceholder: "Search orders…",
+  /** Under Dive and the organ in the palette while they can't be given. */
+  heldOrder: "Once the ship is free",
   dialog: "A giant squid has the propeller",
   dialogText: "One long arm is wrapped round the screw, so we cannot move. What are your orders?",
   dialogBody: "Squid are drawn to light. A lamp held out on deck might coax it off, but first we must surface.",
@@ -74,7 +77,6 @@ export function describeEncounter(state: { surfaced: boolean; lights: boolean; w
 export const FIGHT = {
   opening: { name: "Ned Land", text: "Something out there is looking in at us. Something big." },
   alarm: { name: "Captain Nemo", text: "Crew to stations. We have company on the hull." },
-  diveHeld: { name: "Captain Nemo", text: "We cannot dive with a squid on the propeller." },
   dive: { name: "Captain Nemo", text: "Take her down. Gently." },
   surface: { name: "Captain Nemo", text: "Up we come. It is still holding on. Bring a lamp up on deck." },
   surfaceFree: { name: "Captain Nemo", text: "Up we come. Clear water all round." },
@@ -85,7 +87,6 @@ export const FIGHT = {
   lightsOn: { name: "Professor Aronnax", text: "Floodlights on. The whole sea turns green and gold." },
   lightsOff: { name: "Conseil", text: "Floodlights off." },
   win: { name: "Ned Land", text: "It follows the lamp, lets go, and slips off into the dark. Good night, friend." },
-  organHeld: { name: "Captain Nemo", text: "Music can wait. We have a squid on the propeller." },
   organ: { name: "Captain Nemo", text: "And now, a little music." },
   again: { name: "Conseil", text: "It is back at the glass. I think it liked the organ." },
 } as const satisfies Record<string, CrewLine>;
@@ -142,8 +143,8 @@ export const CODE_SHEETS_THREE = {
         }),
         code: `<Dialog title="A giant squid has the propeller" open={open} onOpenChange={setOpen} footer={<Button onClick={lightLamp}>Light the deck lamp</Button>}>`,
       },
-      { text: "Menu: the list of orders, the arrow keys, and the tick by the floodlights.", code: `<Menu trigger={<Button>Orders</Button>}>\n  <MenuItem onClick={surface}>Surface</MenuItem>\n  <MenuCheckboxItem checked={lights} onCheckedChange={setLights}>Floodlights</MenuCheckboxItem>\n</Menu>` },
-      { text: "Command: the palette, its search, and the order you pick.", code: `<Command title="Orders for the crew" trigger={<Button>Give an order</Button>} items={orders} />` },
+      { text: "Menu: the list of orders, the arrow keys, the tick by the floodlights, and Dive kept off until the ship is free.", code: `<Menu trigger={<Button>Orders</Button>}>\n  <MenuItem onClick={surface}>Surface</MenuItem>\n  <MenuItem disabled={!free} onClick={dive}>Dive</MenuItem>\n  <MenuCheckboxItem checked={lights} onCheckedChange={setLights}>Floodlights</MenuCheckboxItem>\n</Menu>` },
+      { text: "Command: the palette, its search, and the order you pick.", code: `<Command title="Orders for the crew" placeholder="Search orders…" trigger={<Button>Give an order</Button>} items={orders} />` },
       { text: "Badge and Toast: how the ship stands, and the news when the squid lets go.", code: `<Badge tone="success">Ship is free</Badge>\ntoast("The propeller is free", { tone: "success" })` },
     ],
     site: ["The porthole, the squid, and the sea.", "What an order does, and when the ship is free.", "What the crew says."],

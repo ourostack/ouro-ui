@@ -81,10 +81,6 @@ describe("Chapter III", () => {
     // The log holds only what has happened: a reader who jumps here reads no ship built and no course set.
     const log = () => [...document.querySelectorAll("#chapter-three [data-chapter-log] li")].map((line) => line.textContent);
     expect(log()).toEqual([`01${SALOON.logHeld}`]);
-    await order(ORDERS.dive);
-    await expect.poll(crew).toContain(FIGHT.diveHeld.text);
-    await order(ORDERS.organ);
-    await expect.poll(crew).toContain(FIGHT.organHeld.text);
     await expect.element(page.getByRole("button", { name: SALOON.play })).toBeDisabled();
     await order(ORDERS.surface);
     await expect.poll(() => scene().dataset.surfaced).toBe("");
@@ -102,6 +98,55 @@ describe("Chapter III", () => {
     expect(scene().getAttribute("aria-label")).toContain(describeEncounter({ surfaced: true, lights: false, won: true, played: true }));
     await expect.element(page.elementLocator(document.querySelector("#chapter-three")!).getByText(SALOON.logPlayed, { exact: true })).toBeInTheDocument();
     await expect.element(page.getByRole("button", { name: SALOON.playAgain })).toHaveFocus();
+  });
+
+  it("keeps Dive and the organ off in the menu and the palette until the squid lets go, and a press on them changes nothing", async () => {
+    await renderPage("/nautilus/");
+    const held = [ORDERS.dive, ORDERS.organ];
+    const menuItem = (name: string) => page.getByRole("menuitem", { name, exact: true });
+    // A held order's name takes in its description too, so the label is part of the name.
+    const option = (name: string) => page.getByRole("option", { name, exact: false });
+    const openMenu = () => userEvent.click(page.getByRole("button", { name: ENCOUNTER.orders, exact: true }));
+    const openPalette = () => userEvent.click(page.getByRole("button", { name: ENCOUNTER.palette, exact: true }));
+    const close = async () => {
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => document.querySelector("[role='menu'], [role='dialog']")).toBeNull();
+    };
+
+    await openMenu();
+    for (const name of held) {
+      await expect.element(menuItem(name)).toHaveAttribute("aria-disabled", "true");
+      (menuItem(name).element() as HTMLElement).click();
+    }
+    await close();
+    await openPalette();
+    const search = page.getByRole("combobox", { name: ENCOUNTER.paletteSearch });
+    await expect.element(search).toHaveAttribute("placeholder", ENCOUNTER.palettePlaceholder);
+    for (const name of held) {
+      await expect.element(option(name)).toHaveAttribute("aria-disabled", "true");
+      expect(option(name).element().textContent).toContain(ENCOUNTER.heldOrder);
+      (option(name).element() as HTMLElement).click();
+      // A command that ran would close the palette.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      expect(search.query()).not.toBeNull();
+    }
+    await close();
+    // Nothing happened: the crew has not spoken, and the ship is where it was.
+    expect(crew()).toContain(FIGHT.opening.text);
+    expect(scene().dataset.squid).toBe("holding");
+
+    await order(ORDERS.surface);
+    await order(ORDERS.feathers);
+    await expect.poll(() => scene().dataset.squid).toBe("gone");
+    await openMenu();
+    for (const name of held) await expect.element(menuItem(name)).not.toHaveAttribute("aria-disabled");
+    await close();
+    await openPalette();
+    for (const name of held) {
+      await expect.element(option(name)).not.toHaveAttribute("aria-disabled");
+      expect(option(name).element().textContent).not.toContain(ENCOUNTER.heldOrder);
+    }
+    await close();
   });
 
   it("says the water is clear, not that the floodlights are on, when the free ship surfaces again", async () => {
