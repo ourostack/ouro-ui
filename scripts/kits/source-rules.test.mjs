@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { each, expect, vi } from "./expect.mjs";
-import { BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, STATE_CLASSES_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_PLAIN_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
+import { APP_MARKERS, BASELINE_PATH, CATEGORIES, CONFIG_PATH, CONTENT_SPINNER_FIX, CSP_PROVIDER_FIX, DISCLOSURE_FIX, FOCUS_RING_FIX, GATED_LOAD_FIX, STATE_CLASSES_FIX, HAND_DRAWN_PRESENCE_DOT_FIX, HAND_DRAWN_UNREAD_DOT_FIX, loadConfig, OURO_PLAIN_CLASSES, compareWithBaseline, countFingerprints, defaultCliErrorHandler, defaultDeps, defaultExit, findOffenders, findOffendersInSource, findRegressions, formatComparison, isCliEntry, isControlStateClass, isScannedFile, isThirdPartyControlModule, LAYOUT_ANIMATION_FIX, layoutAnimationClass, layoutTransitionProperty, listSourceFiles, loadPaths, main, RENDER_INDEX_FIX, runCliIfEntry, serializeBaseline, THIRD_PARTY_CONTROL_PACKAGES, BARE_FAILURE, VAGUE_FAILURE_COPY_FIX, VAGUE_FAILURE_PHRASES, narrowedSettings, vagueFailurePhrase, } from "../../registry/ouro/source-rules/source-rules.mjs";
 const scan = (source, file = "app/routes/fixture.tsx") => findOffendersInSource(file, source);
 const PATHS = { "~/*": ["./app/*"], "#dialog": ["./app/components/dialog"] };
 const scanFiles = (files) => findOffenders(Object.keys(files), { root: "/repo", readFile: (file) => files[path.relative("/repo", file)], paths: PATHS });
@@ -191,6 +191,18 @@ describe("findOffendersInSource: each category", () => {
             "app/routes/fixture.tsx::Marks::data-ouro-attr::div[data-ouro-control]::",
             "app/routes/fixture.tsx::Marks::data-ouro-attr::Button[data-ouro]::",
         ]);
+    });
+    it("leaves the markers Ouro check asks an app to write, such as data-ouro-session, in JSX, props objects, createElement and setAttribute", () => {
+        expect(APP_MARKERS).toContain("data-ouro-session");
+        const markers = APP_MARKERS.map((name) => `<div ${name}="x" />`).join("");
+        const source = `function Shell({ el }) {
+      el.setAttribute("data-ouro-session", "signed-out");
+      el.toggleAttribute("data-ouro-check-press");
+      const props = { "data-ouro-allow": "leaked-value", "data-ouro-allow-why": "people's words" };
+      createElement("main", { "data-ouro-session": "signed-in" });
+      return <>${markers}<main data-ouro-session="signed-out" /><div data-ouro-sessions="x" /></>;
+    }`;
+        expect(fingerprints(source)).toEqual(["app/routes/fixture.tsx::Shell::data-ouro-attr::div[data-ouro-sessions]::"]);
     });
     describe("control-state-style in className", () => {
         it("finds focus, press, aria and data state utilities in a className literal", () => {
