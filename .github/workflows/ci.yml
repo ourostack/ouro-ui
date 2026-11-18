@@ -3337,11 +3337,8 @@ jobs:
           cache: pnpm
       - *node-stalled
       - *node-retry
-      - id: install
-        run: pnpm i --frozen-lockfile
-        continue-on-error: true
-      - *pnpm-install-stalled
-      - *pnpm-install-retry
+      # No install at the root: the harness installs the release tag's own dependencies from its lockfile, and reads
+      # the tag's registry.json, not this commit's generated one.
       - run: scripts/install-test.sh github "$RUNNER_TEMP/app"
   fresh-main:
     # Starts with the run, in parallel with everything else, on a pull request only (on a push it would merge main into main): with no merge queue, two pull requests that

@@ -534,6 +534,14 @@ for (const [event, ref, expected] of [
   });
 }
 
+test("install-github runs no install at the root: the harness installs the release tag's dependencies, and reads its registry.json (#2194)", () => {
+  const job = ciJobs()["install-github"];
+  assert.doesNotMatch(job, /^ {8}run: pnpm i\b/m);
+  assert.match(job, /^ {6}- run: scripts\/install-test\.sh github /m);
+  // The harness reads this commit's generated registry.json for every variant but github.
+  assert.match(readFileSync(join(root, "scripts/install-test.sh"), "utf8"), /^if \[ "\$variant" != github \]; then\n(?: {2}#.*\n)* {2}items=\(/m);
+});
+
 const latestRelease = () => JSON.parse(readFileSync(join(root, "package.json"), "utf8")).ouro.latestRelease;
 
 // The install-github harness: a stand-in release tree served by git's `archive`, and stand-ins for
