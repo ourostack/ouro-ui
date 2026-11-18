@@ -1,0 +1,4 @@
+# Changes in this release
+
+- New: Ouro check's first-run harness runs a Windows app's first run through scripts/ouro/check/first-run-windows.ts: [`windowsSystem` answers the harness's macOS commands as Windows does](scripts/check/first-run-windows.test.mts "verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > answers screencapture, pgrep, pkill, curl, dscacheutil and defaults as Windows does)"), Windows Firewall holding the network and the Run keys and Startup folder read as login items, and `buildWindowsEyes` builds its eyes from first-run-uia-tree.cs, which read the app through UI Automation.
+- Ouro check skips a page that only refreshes to another (`<meta http-equiv="refresh">`), as a static site's redirect is: the browser leaves it at once, and the page it goes to is checked as itself.
