@@ -295,13 +295,46 @@ test.describe("each control in Chapter I", () => {
     await signButton(page).click();
     await expect(oath(page)).toHaveAttribute("aria-invalid", "true");
     const before = (await signButton(page).boundingBox())!;
-    // Ticking the oath starts its message leaving; the press on Sign begins straight after.
+    // On a loaded machine the message's fade can end before the press below begins, and then nothing is leaving under
+    // it. The page holds the fade from its first frame until the press has begun, so the press lands while it leaves.
+    // It also notes what the press reached, so a failure says whether the form took it with the message still there (#2038).
+    await articles(page).locator("form").evaluate((form) => {
+      const held: Animation[] = [];
+      const pressed: string[] = [];
+      Object.assign(globalThis, { releaseLeave: () => held.forEach((animation) => animation.play()), pressed });
+      new MutationObserver((records, observer) => {
+        for (const record of records) {
+          const element = record.target as Element;
+          if (!element.matches("[id$='-error'][data-ending-style]")) continue;
+          for (const animation of element.getAnimations()) {
+            animation.pause();
+            held.push(animation);
+          }
+          observer.disconnect();
+        }
+      }).observe(form, { attributes: true, attributeFilter: ["data-ending-style"], subtree: true });
+      form.ownerDocument.addEventListener(
+        "pointerdown",
+        (event) => {
+          const target = event.target as Element;
+          const field = form.querySelector<HTMLElement>("[id$='-error']")?.closest<HTMLElement>("[data-ouro]");
+          const where = `${target.tagName.toLowerCase()}${target.id ? `#${target.id}` : ""} "${(target.textContent ?? "").trim().slice(0, 30)}"`;
+          pressed.push(`pressed ${where}, in the form: ${form.contains(target)}, message there: ${Boolean(field)}`);
+          setTimeout(() => pressed.push(`its field's min-height: ${field?.style.minHeight || "none"}`));
+        },
+        { capture: true, once: true },
+      );
+    });
+    // Ticking the oath starts its message leaving; the press on Sign begins while it does.
     await oath(page).click();
+    await expect(articles(page).locator("form [id$='-error'][data-ending-style]")).toHaveCount(1);
     await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
     await page.mouse.down();
     try {
+      await page.evaluate(() => (globalThis as unknown as { releaseLeave: () => void }).releaseLeave());
       await expect(articles(page).locator("form [id$='-error']")).toHaveCount(0);
-      expect(Math.abs((await signButton(page).boundingBox())!.y - before.y)).toBeLessThan(2);
+      const pressed = await page.evaluate(() => (globalThis as unknown as { pressed: string[] }).pressed.join("; "));
+      expect(Math.abs((await signButton(page).boundingBox())!.y - before.y), pressed).toBeLessThan(2);
     } finally {
       await page.mouse.up();
     }
