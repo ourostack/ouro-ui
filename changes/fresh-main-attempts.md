@@ -1,0 +1,1 @@
+- CI: `fresh-main` keeps testing a newer main for longer before a burst of merges fails a pull request.

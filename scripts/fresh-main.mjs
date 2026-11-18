@@ -6,7 +6,7 @@
 // moved while it ran it merges the new main and runs the checks again, so a result for a main
 // that is no longer main never passes.
 //
-//   node scripts/fresh-main.mjs [--branch main] [--attempts 3] -- <command> [-- <command>...]
+//   node scripts/fresh-main.mjs [--branch main] [--attempts 6] -- <command> [-- <command>...]
 import { execFileSync, spawnSync } from "node:child_process";
 
 const git = (cwd, ...args) => execFileSync("git", ["-c", "user.name=fresh-main", "-c", "user.email=fresh-main@users.noreply.github.com", ...args], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }).trim();
@@ -16,7 +16,7 @@ const git = (cwd, ...args) => execFileSync("git", ["-c", "user.name=fresh-main",
  * for a newer main when it moved meanwhile. Returns `{ ok, tested, attempts }`, `tested` being the
  * commit of main it last merged.
  */
-export function freshMain({ cwd = process.cwd(), remote = "origin", branch = "main", commands, attempts = 3, log = console.log }) {
+export function freshMain({ cwd = process.cwd(), remote = "origin", branch = "main", commands, attempts = 6, log = console.log }) {
   const head = git(cwd, "rev-parse", "HEAD");
   let tested = "";
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -48,7 +48,7 @@ export function freshMain({ cwd = process.cwd(), remote = "origin", branch = "ma
 
 /** Splits the arguments after `--` into commands at each further `--`. */
 export function parseArgs(argv) {
-  const options = { branch: "main", attempts: 3 };
+  const options = { branch: "main", attempts: 6 };
   const at = argv.indexOf("--");
   const flags = at === -1 ? argv : argv.slice(0, at);
   for (let i = 0; i < flags.length; i += 2) {
