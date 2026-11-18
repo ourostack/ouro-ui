@@ -1,5 +1,5 @@
 // Which screen-reader specs (registry/ouro/e2e/screen-reader/*.sr.spec.ts) a pull request's change
-// can affect, for ci.yml's screen-reader job, which calls .github/workflows/screen-reader.yml with
+// can affect, for ci.yml's screen-reader job, which calls .github/workflows/screen-reader-lane.yml with
 // them. A spec is selected when the change reaches the component code it renders: the story it
 // opens (through `storyIds` in stories.ts) and every file that story loads at run time, directly or
 // through another. A change to anything shared, or to something the mapping cannot place, selects
@@ -30,7 +30,7 @@ export const everything = [
   [/^registry\/ouro\/theme\//, "the theme and tokens every story renders with"],
   [/^registry\/ouro\/e2e\/screen-reader\/(?![\w-]+\.sr\.spec\.ts$)/, "the lane's harness, phrases or story ids"],
   [/^playwright\.screen-reader\.config\.ts$/, "the lane's Playwright configuration"],
-  [/^\.github\/workflows\/(screen-reader|ci)\.yml$/, "the lane's workflow, or the ci.yml that calls it"],
+  [/^\.github\/workflows\/(screen-reader|screen-reader-lane|ci)\.yml$/, "the lane's workflows, or the ci.yml that calls it"],
   [/^scripts\/sr-/, "the lane's own scripts, which decide what runs"],
   [/^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.npmrc|\.node-version)$/, "the dependencies or Node the lane installs"],
   [/^(\.storybook\/|app\.css$)/, "Storybook's build and the stylesheet it compiles"],
@@ -41,7 +41,7 @@ export const everything = [
 export const nothing = [
   [/^[^/]+\.md$/, "prose"],
   [/^(docs|contributing|changes|plugins|feel|site|test)\//, "prose, the site or the test suites the lane does not run"],
-  [/^\.github\/workflows\/(?!(screen-reader|ci)\.yml$)/, "another workflow"],
+  [/^\.github\/workflows\/(?!(screen-reader|screen-reader-lane|ci)\.yml$)/, "another workflow"],
   [/^\.github\/(?!workflows\/)/, "repository settings"],
   [/^scripts\/(?!sr-)/, "a script the lane does not run"],
   [/^registry\/ouro\/e2e\/ouro\//, "an end-to-end spec the lane never runs"],

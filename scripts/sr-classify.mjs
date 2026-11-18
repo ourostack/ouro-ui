@@ -1,4 +1,4 @@
-// Classifies a screen-reader lane run (.github/workflows/screen-reader.yml) from its log and the
+// Classifies a screen-reader lane run (.github/workflows/screen-reader-lane.yml) from its log and the
 // exit code of `pnpm test:sr`, so the lane and the release gate can tell a real accessibility
 // failure from a runner that could not drive its screen reader.
 //

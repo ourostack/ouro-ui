@@ -1,5 +1,5 @@
 // What the screen-reader lane costs a pull request (ci.yml's screen-reader job, which calls
-// screen-reader.yml): for each pull request given, the lane's wall time, the wall time it adds to the
+// screen-reader-lane.yml): for each pull request given, the lane's wall time, the wall time it adds to the
 // run, and the runner minutes its jobs held, macOS apart. The run's other jobs end before the lane
 // unless the required ci check waits for it, and the jobs that wait for it (ci, and ci-budget and
 // tree-proof after it) are not counted as the run's own time, so the added wall time is how much

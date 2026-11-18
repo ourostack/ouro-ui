@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// The screen-reader lane (`pnpm test:sr --project <voiceover|nvda>`, .github/workflows/screen-reader.yml,
+// The screen-reader lane (`pnpm test:sr --project <voiceover|nvda>`, .github/workflows/screen-reader-lane.yml,
 // docs/guides/screen-reader-lane.md): registry/ouro/e2e/screen-reader/*.sr.spec.ts with real
 // VoiceOver on macOS (WebKit) and NVDA on Windows (Chromium), through Guidepup, one test at a time
 // and headed, because a screen reader reads the screen. The specs open named stories from a static

@@ -65,7 +65,7 @@ const self = "ci-budget";
 /** tree-proof (scripts/ci-proof.mjs), which only names the tree a full run passed, beside this job. */
 const proof = "tree-proof";
 /**
- * The screen-reader lane (ci.yml's screen-reader job, which calls screen-reader.yml) and the wait
+ * The screen-reader lane (ci.yml's screen-reader job, which calls screen-reader-lane.yml) and the wait
  * before it (sr-yield). The lane runs only on a pull request whose change reaches a spec, and on
  * macOS runners that its own cap queues, so its time is not judged as the critical path: the wall
  * time and the runner time still count it, and scripts/sr-lane-timings.mjs reports what it adds.

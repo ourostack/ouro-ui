@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
   screen-reader:
     needs: [plan, sr-yield]
-    uses: ./.github/workflows/screen-reader.yml
+    uses: ./.github/workflows/screen-reader-lane.yml
   browser:
     needs: [plan]
     name: browser (\${{ matrix.shard }}/2)

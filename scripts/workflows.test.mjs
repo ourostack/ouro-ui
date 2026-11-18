@@ -40,7 +40,7 @@ const checkoutGuard = new RegExp(
  * A pnpm setup's first try, its warning and its one retry, as GitHub reads them (anchors expanded), with the
  * comment lines between them left as written. The helpers are above `unguarded`, which folds them back (#1911).
  */
-const pnpmRetryFiles = ["ci.yml", "claims.yml", "conformance-exemptions.yml", "docs-pin.yml", "pages.yml", "release.yml", "screen-reader.yml"];
+const pnpmRetryFiles = ["ci.yml", "claims.yml", "conformance-exemptions.yml", "docs-pin.yml", "pages.yml", "release.yml", "screen-reader-lane.yml"];
 const pnpmSetup = /uses: pnpm\/action-setup@[0-9a-f]{40} # v[\d.]+/;
 const expandPnpmAliases = (text) => {
   const anchors = new Map([...text.matchAll(/^ {6}- &(pnpm-[\w-]+)\n((?: {8}.*\n)+)/gm)].map((match) => [match[1], match[2]]));
@@ -2035,28 +2035,44 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
   }
 });
 
-// The screen-reader lane (screen-reader.yml): real VoiceOver and NVDA through Guidepup, nightly and
-// before every release. Guidepup's setup rewrites VoiceOver and TCC settings, so the lane runs only
-// what it is asked to, on throwaway hosted runners, with nothing to leak.
+// The screen-reader lane (screen-reader-lane.yml, which screen-reader.yml and ci.yml call): real VoiceOver and
+// NVDA through Guidepup, nightly, before every release, and for a pull request whose change reaches a spec.
+// Guidepup's setup rewrites VoiceOver and TCC settings, so the lane runs only what it is asked to, on throwaway
+// hosted runners, with nothing to leak. Only screen-reader.yml writes issues, on a schedule or a push: a pull
+// request's call never meets that job.
 
 const screenReader = () => workflow("screen-reader.yml");
-const srJobs = () =>
+const jobsOf = (text) =>
   Object.fromEntries(
-    screenReader()
+    text
       .split("\njobs:\n")[1]
       .split(/\n(?= {2}[\w-]+:\n)/)
       .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
   );
+/** The lane's jobs, in screen-reader-lane.yml. */
+const srJobs = () => jobsOf(workflow("screen-reader-lane.yml"));
+/** screen-reader.yml's jobs: the call to the lane, and the report that files the infrastructure issue. */
+const callerJobs = () => jobsOf(screenReader());
 
-test("the screen-reader lane runs on every push to main, nightly, on dispatch with a required source_sha, and when ci.yml calls it, and never for a fork's pull request", () => {
+test("screen-reader.yml runs the lane on every push to main, nightly, and on dispatch with a required source_sha, and never for a pull request", () => {
   const text = screenReader();
   const on = text.split("\non:\n")[1].split(/\n(?=\S)/)[0];
-  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["push", "schedule", "workflow_dispatch", "workflow_call"]);
+  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["push", "schedule", "workflow_dispatch"]);
   assert.match(on, /^ {4}- cron: "[^"]+"$/m);
   assert.match(on, /^ {6}source_sha:\n {8}description: .+\n {8}required: true$/m);
-  // ci.yml passes the pull request's head commit and the specs its change reaches; both are required.
+  assert.doesNotMatch(on, /pull_request|workflow_call/);
+  // The lane it calls is the read-only file, given this run's commit, every spec and this repository.
+  assert.match(callerJobs().lane, /^ {4}uses: \.\/\.github\/workflows\/screen-reader-lane\.yml$/m);
+  assert.match(callerJobs().lane, /^ {6}source_sha: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}$/m);
+  assert.match(callerJobs().lane, /^ {6}head_repo: \$\{\{ github\.repository \}\}$/m);
+  assert.match(callerJobs().lane, /^ {6}specs: all$/m);
+});
+
+test("screen-reader-lane.yml is only a workflow_call, with the three inputs every caller passes and no trigger of its own", () => {
+  const on = workflow("screen-reader-lane.yml").split("\non:\n")[1].split(/\n(?=\S)/)[0];
+  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["workflow_call"]);
+  // Every input is required and typed: ci.yml passes the pull request's head commit and its specs; screen-reader.yml passes this run's commit.
   assert.match(on, /^ {2}workflow_call:\n {4}inputs:\n {6}source_sha:\n {8}description: .+\n {8}required: true\n {8}type: string\n {6}specs:\n {8}description: .+\n {8}required: true\n {8}type: string\n {6}head_repo:\n {8}description: .+\n {8}required: true\n {8}type: string$/m);
-  // A pull request reaches the lane only through ci.yml's call, whose condition refuses a fork.
   assert.doesNotMatch(on, /pull_request/);
 });
 
@@ -2068,7 +2084,7 @@ test("ci.yml calls the lane for a pull request from this repository only, with i
   assert.match(ci["sr-yield"], /^ {4}needs: \[plan\]$/m);
   assert.match(ci["sr-yield"], /^ {8}run: node scripts\/sr-yield\.mjs$/m);
   assert.match(ci["screen-reader"], /^ {4}needs: \[plan, sr-yield\]$/m);
-  assert.match(ci["screen-reader"], /^ {4}uses: \.\/\.github\/workflows\/screen-reader\.yml$/m);
+  assert.match(ci["screen-reader"], /^ {4}uses: \.\/\.github\/workflows\/screen-reader-lane\.yml$/m);
   assert.match(ci["screen-reader"], /^ {6}source_sha: \$\{\{ github\.event\.pull_request\.head\.sha \}\}$/m);
   assert.match(ci["screen-reader"], /^ {6}head_repo: \$\{\{ github\.event\.pull_request\.head\.repo\.full_name \}\}$/m);
   // The lane's guard reads that input, not the event payload a called workflow may not see, and refuses any other head repository.
@@ -2103,14 +2119,33 @@ test("the screen-reader lane reads the repository and nothing more, and holds no
   const text = screenReader();
   assert.match(text, /^permissions:\n {2}contents: read\nconcurrency:/m);
   assert.doesNotMatch(text, /secrets\./);
+  const lane = workflow("screen-reader-lane.yml");
+  assert.match(lane, /^permissions:\n {2}contents: read\njobs:/m);
+  assert.doesNotMatch(lane, /secrets\.|: write$/m);
   const jobs = srJobs();
   assert.doesNotMatch(jobs.lane, /permissions:/);
   // Only the job that files the infrastructure issue may write issues, and it runs no Guidepup.
-  assert.match(jobs.report, /^ {4}permissions:\n {6}contents: read\n {6}issues: write$/m);
-  assert.match(jobs.report, /^ {4}if: failure\(\) && \(github\.event_name == 'schedule' \|\| github\.event_name == 'push'\)$/m);
-  assert.doesNotMatch(jobs.report, /guidepup|test:sr/i);
-  assert.match(jobs.report, /^ {10}CONTEXT: \$\{\{ github\.event_name == 'push' && 'push to main' \|\| 'nightly' \}\}$/m);
-  assert.match(jobs.report, /scripts\/sr-infra-issue\.sh "\$RUN_URL" "\$CONTEXT"/);
+  const callers = callerJobs();
+  assert.match(callers.lane, /^ {4}permissions:\n {6}contents: read$/m);
+  assert.match(callers.report, /^ {4}permissions:\n {6}contents: read\n {6}issues: write$/m);
+  assert.match(callers.report, /^ {4}if: failure\(\) && \(github\.event_name == 'schedule' \|\| github\.event_name == 'push'\)$/m);
+  assert.doesNotMatch(callers.report, /guidepup|test:sr/i);
+  assert.match(callers.report, /^ {10}CONTEXT: \$\{\{ github\.event_name == 'push' && 'push to main' \|\| 'nightly' \}\}$/m);
+  assert.match(callers.report, /scripts\/sr-infra-issue\.sh "\$RUN_URL" "\$CONTEXT"/);
+});
+
+test("a pull request calls only the read-only lane: ci.yml's job grants contents: read, and nothing the lane's file or its jobs request is more", () => {
+  const ci = ciJobs();
+  assert.match(ci["screen-reader"], /^ {4}permissions:\n {6}contents: read\n?$/m);
+  const lane = workflow("screen-reader-lane.yml");
+  assert.match(lane, /^permissions:\n {2}contents: read\n/m);
+  for (const [id, block] of Object.entries(srJobs())) assert.deepEqual(permissionsOf(block), {}, `${id} requests no permission of its own`);
+  assert.doesNotMatch(lane, /^\s*[\w-]+: write$/m);
+  // Every workflow ci.yml calls is one of these, and none may ask for more than the caller grants.
+  for (const [, called] of workflow("ci.yml").matchAll(/uses: \.\/\.github\/workflows\/([\w.-]+)$/gm)) {
+    assert.doesNotMatch(workflow(called), /^\s*[\w-]+: write$/m, `${called} asks for write access`);
+  }
+  assert.doesNotMatch(workflow("ci.yml"), /issues: write/);
 });
 
 test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory on main's pushes and nightly, at the commit it was given", () => {

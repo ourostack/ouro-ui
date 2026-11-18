@@ -353,12 +353,12 @@ jobs:
         run: node scripts/sr-yield.mjs
   screen-reader:
     # The screen-reader lane for a pull request from this repository whose change reaches a spec (the plan's screen_reader):
-    # screen-reader.yml on hosted macOS and Windows runners, with the selected specs and the pull request's head commit. Its
+    # screen-reader-lane.yml on hosted macOS and Windows runners, with the selected specs and the pull request's head commit. Its
     # jobs report under this job's name, and ci waits on them, so a failed spec fails the required ci check. Its own
     # permissions are contents: read, and it holds no secret. A fork's pull request never runs it.
     needs: [plan, sr-yield]
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}
-    uses: ./.github/workflows/screen-reader.yml
+    uses: ./.github/workflows/screen-reader-lane.yml
     with:
       source_sha: ${{ github.event.pull_request.head.sha }}
       head_repo: ${{ github.event.pull_request.head.repo.full_name }}
