@@ -27,6 +27,8 @@ export interface MeasureEntry {
   limit?: number;
   /** Whether it is within its limit; left out with no limit, or with no run that reported it (no verdict). */
   pass?: boolean;
+  /** Why no run measured it, when a run's probe found its source blind (`RunResult.unmeasured`): it reads as unmeasured, never 0. */
+  unmeasured?: string;
 }
 
 /** One case in one engine: the shape of each entry in feel-report.json. */
@@ -67,13 +69,15 @@ export function median(values: number[]): number {
 export function judge(spec: FeelCaseSpec, engine: Engine, runs: Run[]): ReportEntry {
   if (runs.length === 0) throw new Error(`${spec.name} has no runs to judge.`);
   const reported = [...new Set(runs.flatMap((run) => Object.keys(run.measures)))];
-  const missing = Object.keys(spec.limits).filter((name) => !reported.includes(name) && !OCCASIONAL.has(name));
+  const blind = new Map(runs.flatMap((run) => Object.entries(run.unmeasured ?? {})).reverse());
+  const missing = Object.keys(spec.limits).filter((name) => !reported.includes(name) && !OCCASIONAL.has(name) && !blind.has(name));
   if (missing.length > 0) throw new Error(`${spec.name} has a limit on ${missing.join(", ")}, which the probe did not measure.`);
-  const names = [...new Set([...reported, ...Object.keys(spec.limits)])];
+  const names = [...new Set([...reported, ...Object.keys(spec.limits), ...blind.keys()])];
   const measures: Record<string, MeasureEntry> = {};
   for (const name of names) {
     const values = runs.flatMap((run) => (run.measures[name] === undefined ? [] : [run.measures[name]]));
     const entry: MeasureEntry = values.length === 0 ? { unit: unitOf(name), runs: values } : { unit: unitOf(name), runs: values, median: median(values), spread: [Math.min(...values), Math.max(...values)] };
+    if (values.length === 0 && blind.has(name)) entry.unmeasured = blind.get(name)!;
     const limit = spec.limits[name];
     if (limit !== undefined) {
       entry.limit = limit;
@@ -142,7 +146,9 @@ export function passLine(entry: ReportEntry): string {
   const runs = Object.values(entry.measures)[0]?.runs.length ?? 0;
   const where = `${entry.case} in ${engineLine(entry)}, ${runs} run${runs === 1 ? "" : "s"}`;
   const unjudged = Object.entries(entry.measures).filter(([, measure]) => measure.limit !== undefined && measure.pass === undefined).map(([name]) => name);
-  if (entry.pass && unjudged.length > 0) return `✓ Pass: ${where}. Every measure a run reported is within its limit; no run measured ${unjudged.join(", ")}, so ${unjudged.length === 1 ? "it has" : "they have"} no verdict.`;
+  const blind = unjudged.filter((name) => entry.measures[name]!.unmeasured !== undefined).map((name) => `${name} (${entry.measures[name]!.unmeasured})`);
+  const why = blind.length > 0 ? ` Unmeasured, as its source saw nothing: ${blind.join("; ")}.` : "";
+  if (entry.pass && unjudged.length > 0) return `✓ Pass: ${where}. Every measure a run reported is within its limit; no run measured ${unjudged.join(", ")}, so ${unjudged.length === 1 ? "it has" : "they have"} no verdict.${why}`;
   if (entry.pass) return `✓ Pass: ${where}. Every judged measure is within its limit.`;
   const over = Object.entries(entry.measures)
     .filter(([, measure]) => measure.pass === false)
@@ -160,7 +166,7 @@ function result(entry: MeasureEntry): string {
 }
 
 function shown(entry: MeasureEntry): string {
-  if (entry.runs.length === 0) return "not measured";
+  if (entry.runs.length === 0) return entry.unmeasured === undefined ? "not measured" : `unmeasured: ${entry.unmeasured}`;
   const [min, max] = entry.spread!;
   return entry.runs.length > 1 ? `${value(entry)} [${min}–${max}]` : value(entry);
 }
