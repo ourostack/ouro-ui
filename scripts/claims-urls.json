@@ -175,11 +175,11 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml#L37-L48": {
+  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml": {
+  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -359,10 +359,6 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/621ee8243f962c44a7bb2a86414f00289888aac3/parity.json": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/9620eb4d6e99f276f1146b3e0e5cdbc2a71152cf/AGENTS.md#L31": {
     "status": 200,
     "checked": "2026-11-03"
@@ -395,11 +391,11 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -424,6 +420,10 @@
     "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/docs/decisions/2026-11-18-composed-tree-updates.md": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/parity.json": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -455,19 +455,19 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.18.2": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
   "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.18.3": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-windows/blob/b94b09d7572b994775da52fafd5e7cc578b5878b/.github/workflows/ci.yml#L37-L48": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.19.0": {
     "status": 200,
     "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-windows/blob/b94b09d7572b994775da52fafd5e7cc578b5878b/.github/workflows/ci.yml": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/b94b09d7572b994775da52fafd5e7cc578b5878b/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
   },
