@@ -2975,3 +2975,12 @@ test("fresh-main starts with the run, waits on nothing but the plan, and runs on
   assert.match(block, /^ {4}needs: \[plan\]$/m);
   assert.match(block, /^ {4}if: \$\{\{ !cancelled\(\) && github\.event_name == 'pull_request' \}\}$/m);
 });
+
+test("the factory check runs the Ouro check of the release factory has installed, never main's", () => {
+  const workflow = readFileSync(join(dir, "factory-ouro-check.yml"), "utf8");
+  const check = workflow.split("\n  report:\n")[0];
+  assert.match(check, /gh api "repos\/ourostack\/factory\/contents\/\.github\/ouro-hx-installed\.json\?ref=main" --jq \.content \| base64 -d \| jq -r \.tag/);
+  assert.match(check, /\[\[ "\$tag" =~ \^v\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$ \]\]/);
+  assert.match(check, /^ {10}ref: \$\{\{ steps\.installed\.outputs\.tag \}\}$/m);
+  assert.doesNotMatch(check, /^ {10}ref: main$/m);
+});

@@ -7,6 +7,10 @@ name: Factory Ouro check
 # The waivers' reasons are in factory's ouro-check.json. Their page keys name the site's own paths,
 # so this job prefixes each with /factory before the check reads them.
 #
+# It runs the Ouro check of the release factory has installed (its .github/ouro-hx-installed.json), not
+# this repository's main: a rule reaches factory with the update that installs it, whose pull request
+# records the rule's findings as known (ourostack/ouro-ui#1675), never the day it merges here.
+#
 # A finding that is not waived, or a check that cannot run, fails the run. The report job then opens,
 # or comments on, one "Factory Ouro check failed" issue (scripts/scheduled-failure.sh).
 on:
@@ -27,9 +31,17 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       FACTORY_URL: https://ourostack.github.io/factory
     steps:
+      - name: Read the Ouro release factory has installed
+        id: installed
+        run: |
+          set -euo pipefail
+          tag=$(gh api "repos/ourostack/factory/contents/.github/ouro-hx-installed.json?ref=main" --jq .content | base64 -d | jq -r .tag)
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::factory's installed Ouro release is not a release tag: '$tag'."; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Checking factory with the Ouro check of $tag, the release it has installed." | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ steps.installed.outputs.tag }}
           persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
