@@ -107,6 +107,8 @@ A tool can also define `command` beside `commands`. That default [runs when no c
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
 | [`ax-checks`](../ax/ax-checks.md) | A doctor or self-check declared once: progress while it runs, the verdict first, the fix beside a problem, the same facts in `--json`, and the findings exit code. |
+| [`ax-doctor`](../ax/ax-doctor.md) | A doctor: the checks' report with what the tool saw (each process and since when, the versions, the last attempts), printed under the verdict and carried in `--json`.[^doctor-text] |
+| [`ax-probe`](../ax/ax-probe.md) | Tells a local process's state from outside it: an endpoint that answers is up, one that never answers is stuck, one that refuses is down; and whether a pid runs.[^doctor-probe] |
 | [`ax-terminal`](../ax/ax-terminal.md) | Colour, status marks, times, next steps and a progress line for a person at a terminal, with plain words in a pipe, in CI or under `NO_COLOR`. |
 | [`ax-voice`](../ax/ax-voice.md) | An optional line of character for a person at a terminal, after the facts, kept out of what an agent parses. |
 | [`ax-flows`](../ax/ax-flows.md) | Your agent flows as data, run in CI without a model: the calls a good agent makes for a task, checked. |
@@ -161,6 +163,15 @@ A read, such as a snapshot, follows nothing: it reports the launch and the optio
 A repository that has not adopted the kit can still hold its agent-facing words to Ouro AX. `ax-surfaces` reads a manifest of them, `{ "ax": "surfaces/1", "tool": "notes", "errors": [...], "tools": [...], "replies": [...], "texts": [...] }`, and finds an error that does not open with what to do, an error with no stable `code`, a tool description that does not say when to use the tool or runs past 600 characters, an action reply with no field that says what happened, and any message that sends the agent to run a script.[^surfaces-checks] `node scripts/ouro/ax/surfaces.ts extract src --tool notes --out surfaces.json` writes a first manifest from JavaScript or TypeScript source, as a start to edit.
 
 Record today's findings once, then let CI hold the line: `node scripts/ouro/ax/surfaces.ts check surfaces.json --baseline surfaces-baseline.json --init` writes the baseline, and every later `check` with `--baseline` exits 3 on a finding the baseline does not list, and on a listed finding that is fixed, so the pull request that fixes one lowers its count (`--update`) and the count only goes down. The baseline counts findings per check and file, so rewording an error does not change it.[^surfaces-ratchet]
+
+## A doctor
+
+When an app misbehaves, the person's agent should ask the app what's wrong instead of the person relaying screenshots. A doctor answers that: one command says what runs, what's wrong and the next step. Build it from these items:
+
+- `ax-doctor`: declare the checks with `defineChecks` (ax-checks), run them, and pass the report with what the tool saw to `doctorReport(checks, state, Date.now())`. `state` is sections of facts (`Processes`, `Versions`, `Sign-in`), each line a label, a value in words, and optionally since when and a part's state: `up`, `starting`, `stuck`, `down` or `absent`.[^doctor-report] A command that returns the report prints the verdict, then the state, then the problems and their fixes, and `--json` carries the same facts.[^doctor-text]
+- `ax-probe`: `probeHttp(url, { timeoutMs })` tells up, stuck and down apart, so the doctor answers when the app is down or hangs, and `pidAlive(pid)` says whether a process runs.[^doctor-probe]
+
+A doctor keeps to these rules. Every problem names its next step as a command that runs or an action by hand, never the doctor itself (`defineChecks` refuses that).[^doctor-fix] It works whatever state the app is in, so it reads files and probes from outside before it asks the app. A tool that already uses the findings code for something else passes its own exit table to `defineChecks`, as [Outcomes and waits](#outcomes-and-waits) says.
 
 ## A voice
 
@@ -306,6 +317,10 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^dry-run]: test:registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted verify:testExists(registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted)
 [^outcome-exit]: test:registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table verify:testExists(registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table)
 [^data-exit]: test:registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged verify:testExists(registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged)
+[^doctor-text]: test:registry/ouro/ax/cli.test.mts::a command that returns a doctor report prints the doctor's text, with the state under the verdict, and the report as --json verify:testExists(registry/ouro/ax/cli.test.mts::a command that returns a doctor report prints the doctor's text, with the state under the verdict, and the report as --json)
+[^doctor-probe]: test:registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets verify:testExists(registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets)
+[^doctor-report]: test:registry/ouro/ax/doctor.test.mts::a doctor report is the checks report with the state it judged, and still a checks report verify:testExists(registry/ouro/ax/doctor.test.mts::a doctor report is the checks report with the state it judged, and still a checks report)
+[^doctor-fix]: test:registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run verify:testExists(registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run)
 [^checks-exits]: test:registry/ouro/ax/checks.test.mts::a tool's own exit table gives a finding its findings code, wherever the table puts it verify:testExists(registry/ouro/ax/checks.test.mts::a tool's own exit table gives a finding its findings code, wherever the table puts it)
 [^checks-exits-refused]: test:registry/ouro/ax/checks.test.mts::a tool's exit table without a findings code is refused, naming the code that took 3 verify:testExists(registry/ouro/ax/checks.test.mts::a tool's exit table without a findings code is refused, naming the code that took 3)
 [^voice]: test:registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
