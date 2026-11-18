@@ -337,7 +337,8 @@ describe("ListDetailPage", () => {
     await userEvent.click(back);
     await expect.element(row("Lemon olive oil cake")).toBeVisible();
     await expect.poll(() => document.activeElement).toBe(row("Lemon olive oil cake").element());
-    expect(shownNow(section())).toBe(false);
+    // Focus reaches the row a render before the unseen detail it came from leaves the page.
+    await expect.poll(() => shownNow(section())).toBe(false);
   });
 
   it("on a phone marks a row shown only while its entry shows in the list's place", async () => {
