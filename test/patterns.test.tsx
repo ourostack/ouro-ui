@@ -7,6 +7,7 @@ import { ListDetailPage } from "@/registry/ouro/patterns/list-detail-page/list-d
 import { SettingsPage } from "@/registry/ouro/patterns/settings-page/settings-page";
 import dashboardSource from "@/registry/ouro/patterns/dashboard-page/dashboard-page.tsx?raw";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { audit, axeExclude, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
 import { settle } from "./stories.tsx";
 
@@ -263,19 +264,56 @@ describe("ListDetailPage", () => {
 
   it("narrows the list as you search, says how many match to a screen reader, and says when nothing matches", async () => {
     await render(<ListDetailPage />);
-    const found = () => host.querySelector('p[role="status"]')!.textContent;
-    expect(found()).toBe("");
-    await userEvent.fill(page.getByRole("searchbox", { name: "Search recipes" }), "lemon");
-    await expect.element(row("Lemon olive oil cake")).toBeVisible();
-    expect(host.querySelectorAll("[data-ouro=item]")).toHaveLength(1);
-    expect(found()).toBe("1 match");
-    await userEvent.fill(page.getByRole("searchbox", { name: "Search recipes" }), "o");
-    expect(found()).toBe("3 matches");
-    await userEvent.fill(page.getByRole("searchbox", { name: "Search recipes" }), "pizza");
-    await expect.element(page.getByText("Nothing matches")).toBeVisible();
-    expect(host.querySelectorAll("[data-ouro=item]")).toHaveLength(0);
-    expect(found()).toBe("0 matches");
+    const search = page.getByRole("searchbox", { name: "Search recipes" });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const announced = watchAnnouncements();
+    try {
+      const searchFor = async (words: string) => {
+        await userEvent.fill(search, words);
+        await act(() => vi.advanceTimersByTimeAsync(1500));
+      };
+      await searchFor("lemon");
+      expect(row("Lemon olive oil cake").element()).toBeVisible();
+      expect(host.querySelectorAll("[data-ouro=item]")).toHaveLength(1);
+      expect(announced.count("1 match")).toBe(1);
+      await searchFor("o");
+      expect(announced.count("3 matches")).toBe(1);
+      await searchFor("pizza");
+      expect(page.getByText("Nothing matches").element()).toBeVisible();
+      expect(host.querySelectorAll("[data-ouro=item]")).toHaveLength(0);
+      expect(announced.count("0 matches")).toBe(1);
+    } finally {
+      announced.stop();
+      vi.useRealTimers();
+    }
     await passesAxe();
+  });
+
+  it("says how many match once the person stops typing, not while each key is still being said", async () => {
+    await render(<ListDetailPage />);
+    const search = page.getByRole("searchbox", { name: "Search recipes" });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const announced = watchAnnouncements();
+    try {
+      // A key every 100 ms, as a person types: the count is ready at the first key, and waits until they pause.
+      for (const typed of ["z", "zz", "zzz", "zzzz"]) {
+        await userEvent.fill(search, typed);
+        await act(() => vi.advanceTimersByTimeAsync(100));
+        expect(announced.count("0 matches")).toBe(0);
+      }
+      await act(() => vi.advanceTimersByTimeAsync(1300));
+      expect(announced.count("0 matches")).toBe(0);
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      expect(announced.count("0 matches")).toBe(1);
+      // Cleared before the count is said: nothing more.
+      await userEvent.fill(search, "lemon");
+      await userEvent.fill(search, "");
+      await act(() => vi.advanceTimersByTimeAsync(3000));
+      expect(announced.changes).toHaveLength(1);
+    } finally {
+      announced.stop();
+      vi.useRealTimers();
+    }
   });
 
   it("on a phone moves focus to the heading in the same task as a row's press, so the page never holds it between", async () => {
