@@ -78,7 +78,12 @@ const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Step; befo
     press: (page) => saloon(page).getByRole("button", { name: SALOON.play }).click(),
     after: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click(),
   },
-  install: { before: async (page) => (await finish(page), holdLinks(page)), press: (page) => saloon(page).getByRole("link", { name: SALOON.install }).click() },
+  // Copy raises a toast: it is closed before the next press, so none arrives or leaves in a measured frame (#1484).
+  handoff: {
+    before: async (page) => (await page.context().grantPermissions(["clipboard-read", "clipboard-write"]), finish(page)),
+    press: (page) => saloon(page).locator("[data-chapter-control='handoff']").getByRole("button", { name: "Copy" }).click(),
+    after: closeToasts,
+  },
   components: { before: async (page) => (await finish(page), holdLinks(page)), press: (page) => saloon(page).getByRole("link", { name: SALOON.components }).click() },
   again: { before: finish, press: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click() },
 };
@@ -96,7 +101,9 @@ const BASELINE_MEDIAN: Record<(typeof CHAPTER_THREE_CONTROLS)[number], number> =
   surface: 40,
   "saloon-code": 48,
   organ: 64,
-  install: 24,
+  // Not yet measured on CI: the Copy press of the hand-off that replaced Install (24), set to the saloon-code press it
+  // most resembles (a press that opens a layer) until this spec's first CI run prints its samples.
+  handoff: 48,
   components: 24,
   again: 56,
 };

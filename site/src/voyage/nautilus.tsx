@@ -2,14 +2,16 @@ import type { JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { NAUTILUS_PAGE } from "./copy";
-import { StoryOpener } from "../components/story-world";
 import { Container } from "./layout";
 
-/** The story's opening on /nautilus/: what it is, who Nemo is and where he comes from, and its chapters, with the ones still being built marked so. */
+/**
+ * The story's opening on /nautilus/: what it is, who Nemo is and where he comes from, and its chapters, with the ones
+ * still being built marked so. The page opens on its title: the storybook kitchen it opened on had nothing to do with
+ * the Nautilus (Ari, 2026-11-17), and its own picture comes with the Nautilus's scenes.
+ */
 export function StoryOpening(): JSX.Element {
   return (
     <>
-    <StoryOpener scene="ouroboros-skills" line="Every voyage starts with someone opening the book. The robots have found a good one." />
     <section aria-labelledby="story-title" className="site-story pt-10 pb-6 lg:pt-14 lg:pb-10">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-7">

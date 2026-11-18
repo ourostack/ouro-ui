@@ -213,6 +213,7 @@ export const CODE_SHEETS_TWO = {
       { text: "Sheet: this panel.", code: `<Sheet title="How the chart room is built" side="right" open={open} onOpenChange={setOpen}>` },
     ],
     site: ["The map, and the route drawn on it.", "The leagues from port to port, and the days.", "The shortest way, and what the crew says."],
+    uses: ["Reorderable", "DatePicker", "Chart", "Sheet"],
   },
   catalogue: {
     title: "How the specimen book is built",
@@ -225,6 +226,7 @@ export const CODE_SHEETS_TWO = {
       { text: "Toast and Sheet: the news when a find is sorted, and the museum.", code: `toast("Sorted: Mollusc", { tone: "success" })\n<Sheet title="Captain Nemo's museum" trigger={<Button>Visit the museum</Button>}>` },
     ],
     site: ["The order of the rows, and which ones show.", "The right group for a find.", "The museum's treasures."],
+    uses: ["Table", "SegmentedControl", "Select", "HoverCard", "Combobox", "Toast", "Sheet"],
   },
   radio: {
     title: "How the radio is built",
@@ -237,6 +239,7 @@ export const CODE_SHEETS_TWO = {
       { text: "Avatar: who is on the radio, and a dot that shows if they are free, busy or away.", code: `<Avatar name="Ned Land" presence="away" presenceLabel="Napping" />` },
     ],
     site: ["What the crew says back, and who says it.", "When someone new calls."],
+    uses: ["ConversationList", "MessageList", "Message", "Composer", "ReactionBar", "Avatar"],
   },
 } as const;
 

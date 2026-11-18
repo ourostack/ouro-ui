@@ -152,18 +152,6 @@
       ]
     },
     {
-      "file": "dividers.svg",
-      "title": "Dividers on a rolled plan",
-      "creator": "Ouro HX contributors",
-      "source": "original-svg",
-      "published": "2026-10-20",
-      "licence": "repository",
-      "sha256": "cb925cabd5738e1c5de49da128d8b03eda6fc1709f64202d95141d2551be4001",
-      "chapter": "I",
-      "modifications": "None: drawn for this site as Chapter I's vignette, a shipwright's dividers on a half-rolled plan. Colour comes from the theme.",
-      "subject": "instrument"
-    },
-    {
       "file": "island-yard.svg",
       "title": "The yard on the island",
       "creator": "Ouro HX contributors",
@@ -403,18 +391,6 @@
           "chapter": "Part One, Chapter XXI, “Captain Nemo’s Thunderbolt” (Project Gutenberg #164)"
         }
       ]
-    },
-    {
-      "file": "tentacle.svg",
-      "title": "A tentacle curls round a porthole",
-      "creator": "Ouro HX contributors",
-      "source": "original-svg",
-      "published": "2026-10-21",
-      "licence": "repository",
-      "sha256": "913d3773e05a9f89b20ecd9b54f420e2887af75e00aca3f6394e49d4b6a3fe7e",
-      "modifications": "None: drawn for this site as Chapter III's vignette, over its course line. Colour comes from the theme.",
-      "subject": "creature",
-      "chapter": "III"
     }
   ]
 }

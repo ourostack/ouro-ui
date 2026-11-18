@@ -17,7 +17,7 @@ export function VoyageFooter(): JSX.Element {
   return (
     <footer>
       <FamilyFooter links={FAMILY} current={FAMILY_CURRENT} className={`pt-6 pb-12 ${GUTTERS.voyage}`}>
-        <div className="grid basis-full gap-6 pt-4 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div className="grid basis-full gap-6 pt-4 text-sm lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="grid gap-2">
             <p className="m-0">
               Ouro UI: Ouro HX for people, Ouro AX for agents. Part of Ouro. MIT license.
@@ -33,7 +33,7 @@ export function VoyageFooter(): JSX.Element {
             </p>
           </div>
           <nav aria-label="Ouro UI">
-            <ul className="m-0 -ms-2 flex list-none flex-wrap gap-x-1 p-0 sm:-me-2">
+            <ul className="m-0 -ms-2 flex list-none flex-wrap gap-x-1 p-0 lg:-me-2">
               {links.map((link) => (
                 <li key={link.label}>
                   <a

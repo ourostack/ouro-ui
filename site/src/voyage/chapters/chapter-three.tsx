@@ -7,7 +7,6 @@ import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator } from "@/registry/ouro
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import organSource from "../../nautilus/art/organ.svg?raw";
 import squidSource from "../../nautilus/art/squid.svg?raw";
-import tentacleSource from "../../nautilus/art/tentacle.svg?raw";
 import { href } from "../../paths";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
@@ -15,6 +14,7 @@ import { parseArt, type Art } from "../stage/art";
 import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
 import { afterPaint, useAfterPaint } from "../after-paint";
+import { HandOff } from "../handoff";
 import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
@@ -24,8 +24,6 @@ import chapterStyles from "./chapter-three.css?inline";
 // drawings' own markup, so the server HTML has them without a rule in the first load's CSS.
 const organ = hide(parseArt(organSource), "or-note");
 const squid = hide(parseArt(squidSource), "sq-ink");
-const arm = parseArt(tentacleSource);
-const tentacle: Art = { ...arm, inner: arm.inner.replaceAll('class="tn-core"', 'class="tn-core" style="stroke:var(--background)"') };
 
 /** A drawing whose parts of a class start hidden (`opacity="0"`); island CSS shows them. */
 function hide(art: Art, name: string): Art {
@@ -110,7 +108,7 @@ function giveOrder(store: FightStore, order: Order): void {
 /**
  * Chapter III, "Face the squid" (site-design.md): the encounter, where a giant squid holds the glass
  * and Ouro HX's Dialog, Menu and Command carry your orders, and the saloon, where Nemo plays the
- * organ once it has gone and the log is stamped. Each is one framed application with a Code sheet
+ * organ once it has gone and the log gets its last line. Each is one framed application with a Code sheet
  * saying which part is HX's and which the site's. The page hydrates it only as it nears the screen.
  */
 export default function ChapterThree(): JSX.Element {
@@ -119,7 +117,7 @@ export default function ChapterThree(): JSX.Element {
   useChapterReady(root, "chapter-three-styles", chapterStyles);
   return (
     <section ref={root} id="chapter-three" aria-labelledby="chapter-three-title" className="pb-20 lg:pb-32" data-chapter="three">
-      <Handoff art={tentacle} line={CHAPTER_THREE.handoff} />
+      <Handoff line={CHAPTER_THREE.handoff} />
       <FightContext value={fight}>
         <BattleMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
@@ -131,7 +129,7 @@ export default function ChapterThree(): JSX.Element {
             <p className="site-lede mt-4">{CHAPTER_THREE.intro}</p>
             <Battle />
           </header>
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-20 lg:col-span-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-16 lg:col-span-8">
             <Composition id="encounter" title={ENCOUNTER.title} intro={ENCOUNTER.intro} file={ENCOUNTER.file} sheet={CODE_SHEETS_THREE.encounter}>
               <Encounter />
             </Composition>
@@ -440,25 +438,19 @@ function Encounter(): JSX.Element {
 }
 
 /**
- * The saloon: once the squid has gone, Play sets Nemo at the organ, the notes rise, and the log is
- * stamped; then the way into the library, or round again.
+ * The saloon: once the squid has gone, Play sets Nemo at the organ, the notes rise, and the log gets
+ * its last line; then the hand-off to a coding agent, the components, or round again. The log holds
+ * only what has happened, so a reader who jumps straight here never reads that a ship was built.
+ * Play stays where it is and keeps focus (a second press plays the tune again), so nothing scrolls.
  */
 function Saloon(): JSX.Element {
   const store = useFightStore();
   const { won, played } = useFight();
   // The hint beside Play says why it is off, and Play is described by it, so a screen reader says why too.
   const hint = useId();
-  // Play answers at once (the button and its hint); the organ, the stamp, the way on and the toast
-  // follow in a render of their own.
+  // Play answers at once (the button and its hint); the organ, the log's line and the way on follow in a render of their own.
   const shown = useAfterPaint(played);
-  const next = useRef<HTMLDivElement>(null);
   const [rounds, setRounds] = useState(0);
-  // Played: the toast, and focus goes to the way into the library. Round again: back to the alarm.
-  useEffect(() => {
-    if (!shown) return;
-    toast(TOASTS.organ, { tone: "success", description: TOASTS.organNote });
-    next.current?.querySelector<HTMLElement>("a")?.focus();
-  }, [shown]);
   // Focus goes back once the press has painted: React runs this effect in the press's own frame, and the focus
   // scrolls the page up to the alarm, so the press waited on a layout and on painting the whole new view (#1393).
   useEffect(() => {
@@ -469,67 +461,68 @@ function Saloon(): JSX.Element {
     store.set({ ...START, line: FIGHT.again });
     setRounds((count) => count + 1);
   };
+  const log = [SALOON.logHeld, ...(won ? [SALOON.logFree] : []), ...(shown ? [SALOON.logPlayed] : [])];
   return (
-    <div className="site-split grid gap-6 py-4 sm:items-center sm:py-6">
-      <figure className="m-0">
-        <OrganArt played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
-      </figure>
-      <div className="grid content-start gap-5">
-        <div className="site-log grid gap-2" data-chapter-log={shown ? "done" : "waiting"}>
-          <p className="site-eyebrow">{SALOON.log}</p>
-          {shown ? (
-            <>
-              <p className="site-stamp m-0" data-chapter-stamp="">
-                {SALOON.stamp}
-              </p>
-              <p className="m-0 text-sm">{SALOON.logDone}</p>
-            </>
-          ) : (
-            <p className="m-0 text-sm text-muted-foreground">{SALOON.logWaiting}</p>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span data-chapter-control="organ">
-            <Button
-              disabled={!won || played}
-              aria-describedby={hint}
-              variant={won && !played ? "solid" : "outline"}
-              tone={won && !played ? "primary" : "secondary"}
-              onClick={() => {
-                giveOrder(store, "organ");
-                playTune();
-              }}
-            >
-              {SALOON.play}
-            </Button>
-          </span>
-          <span id={hint} className="text-sm text-muted-foreground" data-chapter-organ-hint="">
-            {played ? SALOON.playing : won ? null : SALOON.playHint}
-          </span>
-        </div>
-        {shown ? (
-          <div ref={next} className="grid gap-3 border-t border-border/70 pt-5" data-chapter-next="">
-            <p className="m-0 font-medium">
-              {SALOON.next} {SALOON.build}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <span data-chapter-control="install">
-                <Button href={href("/docs/installing/")}>{SALOON.install}</Button>
-              </span>
-              <span data-chapter-control="components">
-                <Button href={href("/docs/")} variant="outline" tone="secondary">
-                  {SALOON.components}
-                </Button>
-              </span>
-              <span data-chapter-control="again">
-                <Button variant="plain" tone="secondary" onClick={again}>
-                  {SALOON.again}
-                </Button>
-              </span>
-            </div>
+    <div className="grid gap-6 py-4 sm:py-6">
+      <div className="site-split grid gap-6 sm:items-center">
+        <figure className="m-0">
+          <OrganArt played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
+        </figure>
+        <div className="grid content-start gap-5">
+          <div className="grid gap-2" data-chapter-log={shown ? "done" : won ? "free" : "held"}>
+            <p className="site-eyebrow">{SALOON.log}</p>
+            <ol className="m-0 grid list-none gap-2 p-0 text-sm">
+              {log.map((line, index) => (
+                <li key={line} className="flex items-baseline gap-3">
+                  <span className="site-mono w-6 shrink-0 text-xs text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ol>
           </div>
-        ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <span data-chapter-control="organ">
+              <Button
+                disabled={!won}
+                aria-describedby={hint}
+                variant={won && !played ? "solid" : "outline"}
+                tone={won && !played ? "primary" : "secondary"}
+                onClick={() => {
+                  giveOrder(store, "organ");
+                  playTune();
+                }}
+              >
+                {played ? SALOON.playAgain : SALOON.play}
+              </Button>
+            </span>
+            <span id={hint} className="text-sm text-muted-foreground" data-chapter-organ-hint="">
+              {played ? SALOON.playing : won ? null : SALOON.playHint}
+            </span>
+          </div>
+        </div>
       </div>
+      {shown ? (
+        <div className="grid gap-4 border-t border-border pt-5" data-chapter-next="">
+          <p className="m-0 font-medium">
+            {SALOON.next} {SALOON.build}
+          </p>
+          <span className="grid" data-chapter-control="handoff">
+            <HandOff id="saloon-handoff-label" full={false} />
+          </span>
+          <div className="flex flex-wrap gap-3">
+            <span data-chapter-control="components">
+              <Button href={href("/docs/")} variant="outline" tone="secondary">
+                {SALOON.components}
+              </Button>
+            </span>
+            <span data-chapter-control="again">
+              <Button variant="plain" tone="secondary" onClick={again}>
+                {SALOON.again}
+              </Button>
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

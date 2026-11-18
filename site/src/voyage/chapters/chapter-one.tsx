@@ -14,7 +14,6 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
-import dividersSource from "../../nautilus/art/dividers.svg?raw";
 import islandSource from "../../nautilus/art/island-yard.svg?raw";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { keepClearOfToasts } from "../clear-of-toasts";
@@ -30,7 +29,6 @@ import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type S
 import chapterStyles from "./chapter-one.css?inline";
 
 const blueprint = parseArt(blueprintSource);
-const dividers = parseArt(dividersSource);
 const island = parseArt(islandSource);
 
 /** How the voyage stands: the shipyard and the articles write it, the rail beside them reads it. */
@@ -74,7 +72,7 @@ export default function ChapterOne(): JSX.Element {
   useChapterReady(root, "chapter-one-styles", chapterStyles);
   return (
     <section ref={root} id="chapter-one" aria-labelledby="chapter-one-title" className="pb-20 lg:pb-32" data-chapter="one">
-      <Handoff art={dividers} line={CHAPTER_ONE.handoff} />
+      <Handoff line={CHAPTER_ONE.handoff} />
       <VoyageContext value={voyage}>
         <ExpeditionMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
@@ -86,7 +84,7 @@ export default function ChapterOne(): JSX.Element {
             <p className="site-lede mt-4">{CHAPTER_ONE.intro}</p>
             <Expedition />
           </header>
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-20 lg:col-span-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-16 lg:col-span-8">
             <Composition id="shipyard" title={SHIPYARD.title} intro={SHIPYARD.intro} file={SHIPYARD.file} sheet={CODE_SHEETS.shipyard}>
               <Shipyard />
             </Composition>
@@ -152,7 +150,7 @@ function ExpeditionMarker(): JSX.Element {
 /** The engraved plan: each built part drawn in, and the finished ship in the sea once launched. */
 const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
   return (
-    <figure ref={ref} className="relative m-0 border-b border-border/70" style={{ scrollMarginTop: "5rem" }}>
+    <figure ref={ref} className="relative m-0 -mx-4 border-b border-border sm:-mx-6" style={{ scrollMarginTop: "5rem" }}>
       <svg
         className="site-blueprint"
         viewBox={blueprint.viewBox}
