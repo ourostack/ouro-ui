@@ -780,6 +780,9 @@ describe("MessageList windowing", () => {
     vi.spyOn(performance, "now").mockImplementation(() => now);
     const grown = conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(120) } : item));
     const before = scroller.scrollTop;
+    // The clock holds the rest timer, so the read below cannot race it: installed after the setup above, which needs real timers.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    onTestFinished(() => void vi.useRealTimers());
     // A frame far longer than the rest, in which the wheel turned: its next events would wait behind it, so the wheel still turns.
     await act(async () => {
       scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
@@ -788,8 +791,13 @@ describe("MessageList windowing", () => {
     });
     expect(content.style.translate).not.toBe("");
     expect(scroller.scrollTop).toBe(before);
-    // A later frame begins with no wheel: it has rested, and the scroll position takes what was held.
-    await expect.poll(() => content.style.translate).toBe("");
+    // A later frame begins with no wheel: it has rested, and the scroll position takes what was held. The rest is a real 80 ms
+    // timer the read above would otherwise race on a loaded runner, so the clock holds it until the test lets it run.
+    await expect.poll(() => {
+      vi.runOnlyPendingTimers();
+      return content.style.translate;
+    }).toBe("");
+    vi.useRealTimers();
     expect(scroller.scrollTop).toBeGreaterThan(before);
     await settle(scroller);
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
