@@ -12,7 +12,7 @@ import { sandboxEnv } from "./sandbox.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tracked = (...globs) =>
-  execFileSync("git", ["ls-files", "--", ...globs], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
+  execFileSync("git", ["ls-files", "--", ...globs], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).split("\n").filter(Boolean);
 
 test("latestRelease reads ouro.latestRelease from package.json and refuses anything but a tag", () => {
   assert.match(latestRelease(), /^v\d+\.\d+\.\d+$/);
