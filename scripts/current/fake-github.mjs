@@ -128,8 +128,8 @@ export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = nul
       Object.assign(pr, input);
       return ok(pr);
     }
-    if ((match = /^repos\/o\/r\/actions\/workflows\/([^/]+)\/dispatches$/.exec(path)) && method === "POST") {
-      calls.push(`dispatch ${match[1]} on ${input.ref}${dispatch < 400 ? "" : ` refused ${dispatch}`}`);
+    if (path === "repos/o/r/dispatches" && method === "POST") {
+      calls.push(`repository_dispatch ${input.event_type} ${input.client_payload.sha}${dispatch < 400 ? "" : ` refused ${dispatch}`}`);
       return dispatch < 400 ? ok({}, dispatch) : ok({ message: "Resource not accessible by integration" }, dispatch);
     }
     if (/^repos\/o\/r\/issues\/\d+\/comments$/.test(path)) return ok({}, 201);

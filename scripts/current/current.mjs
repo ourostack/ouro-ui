@@ -60,6 +60,12 @@ export function body(behind, releases, notes, sections = []) {
   ].join("\n");
 }
 
+/**
+ * The repository_dispatch event that asks an app's sharded Ouro check to run every shard on client_payload.sha, and to
+ * name its report artifacts `ouro-check…-full-<sha>`: a workflow that listens for it checks that commit out.
+ */
+export const FULL_RUN = "ouro-current-full-run";
+
 /** Downloads and caches what the updaters read: release tarballs, release assets, and the consumer's own files. */
 export function createSources(publicGh, { unzip = defaultUnzip } = {}) {
   const tarballs = new Map();
@@ -94,9 +100,13 @@ export function createSources(publicGh, { unzip = defaultUnzip } = {}) {
         try {
           const reports = [];
           const { workflow_runs: runs = [] } = await client.get(`repos/${repo}/actions/runs?head_sha=${sha}&per_page=100`);
-          for (const run of runs) {
+          // A full run (FULL_RUN) runs on the default branch's workflow, so its run is not on this commit: its
+          // artifacts name the commit they checked instead.
+          const { workflow_runs: full = [] } = await client.get(`repos/${repo}/actions/runs?event=repository_dispatch&per_page=20`);
+          for (const run of [...runs, ...full]) {
             const { artifacts = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`);
-            for (const artifact of artifacts.filter((item) => /^ouro-check/.test(item.name) && !item.expired)) {
+            const ours = (item) => (run.event === "repository_dispatch" ? item.name.endsWith(`-full-${sha}`) : true);
+            for (const artifact of artifacts.filter((item) => /^ouro-check/.test(item.name) && ours(item) && !item.expired)) {
               const zip = await client.get(artifact.archive_download_url, { raw: true });
               try {
                 reports.push(JSON.parse(String(unzip(zip, "report.json"))));
@@ -113,25 +123,28 @@ export function createSources(publicGh, { unzip = defaultUnzip } = {}) {
       return [];
     },
     /**
-     * The workflows whose run on a commit uploaded an Ouro check report but had a job cancelled, with no run of the
-     * same workflow dispatched on that commit yet: a sharded check that fails fast cancels the other shards, so their
-     * findings were never reported (ourostack/ouroboros-website#293: 8 findings of a new rule, all from shards a
-     * failing one cancelled). Read like ciReports; none when neither token can.
+     * The workflows whose run on a commit uploaded an Ouro check report but had a job cancelled, as { id, path }, with
+     * no full run of that workflow since: a sharded check that fails fast cancels the other shards, so their findings
+     * were never reported (ourostack/ouroboros-website#293: 8 findings of a new rule, all from shards a failing one
+     * cancelled). A full run is one dispatched on the commit, or a FULL_RUN event's run of the workflow that started
+     * after the cut-short one. Read like ciReports; none when neither token can.
      */
     async ciCutShort(gh, repo, sha) {
       for (const client of [gh, publicGh]) {
         try {
           const { workflow_runs: runs = [] } = await client.get(`repos/${repo}/actions/runs?head_sha=${sha}&per_page=100`);
+          const { workflow_runs: sent = [] } = await client.get(`repos/${repo}/actions/runs?event=repository_dispatch&per_page=20`);
           const full = new Set(runs.filter((run) => run.event === "workflow_dispatch").map((run) => run.workflow_id));
-          const cut = new Set();
+          const cut = new Map();
           for (const run of runs) {
             if (run.status !== "completed" || full.has(run.workflow_id) || cut.has(run.workflow_id)) continue;
+            if (sent.some((later) => later.workflow_id === run.workflow_id && later.created_at > run.created_at)) continue;
             const { jobs = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`);
             if (!jobs.some((job) => job.conclusion === "cancelled")) continue;
             const { artifacts = [] } = await client.get(`repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`);
-            if (artifacts.some((item) => /^ouro-check/.test(item.name))) cut.add(run.workflow_id);
+            if (artifacts.some((item) => /^ouro-check/.test(item.name))) cut.set(run.workflow_id, { id: run.workflow_id, path: run.path });
           }
-          return [...cut];
+          return [...cut.values()];
         } catch {
           // this token may not read the repository's Actions: the next one tries
         }
@@ -414,17 +427,22 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
     }
   }
   // The reports seeding read came from a run that a failing shard cut short, and nothing new was pushed, so no run on
-  // the branch will ever report the cancelled shards: a run of the same workflow dispatched on the branch runs every
-  // shard, and the next round records what it reports. It needs the app's Actions write permission; without it the
-  // result says so and the round goes on.
+  // the branch will ever report the cancelled shards. A FULL_RUN repository_dispatch event, which needs only the
+  // Contents write the app has, asks the check's workflow to run every shard on the commit; the next round records
+  // what that run reports. A workflow without that trigger is left alone, and the result says so.
   let fullRun = null;
   if (seeding && !commit.changed && sources.ciCutShort) {
     for (const workflow of await sources.ciCutShort(gh, repo, existing.sha)) {
+      const text = workflow.path ? await read(workflow.path) : null;
+      if (!text?.includes(FULL_RUN)) {
+        fullRun = `${workflow.path ?? `workflow ${workflow.id}`} has no \`repository_dispatch\` trigger for \`${FULL_RUN}\`, so the cancelled shards' findings wait for a run that reports them`;
+        continue;
+      }
       try {
-        await gh.post(`repos/${repo}/actions/workflows/${workflow}/dispatches`, { ref: BRANCH });
-        fullRun = `dispatched workflow ${workflow} on ${BRANCH}, since a failing shard cancelled the others`;
+        await gh.post(`repos/${repo}/dispatches`, { event_type: FULL_RUN, client_payload: { sha: existing.sha } });
+        fullRun = `sent \`${FULL_RUN}\` for ${existing.sha}, since a failing shard cancelled the others in ${workflow.path}`;
       } catch (error) {
-        fullRun = `could not dispatch workflow ${workflow} on ${BRANCH} (${error.status ?? error.message}), so the cancelled shards' findings wait for a run that reports them`;
+        fullRun = `could not send \`${FULL_RUN}\` (${error.status ?? error.message}), so the cancelled shards' findings wait for a run that reports them`;
       }
     }
   }

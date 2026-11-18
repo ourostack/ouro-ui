@@ -1419,46 +1419,71 @@ test("an Ouro check rule an update brings in has the findings the pull request's
   assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), seeded);
 });
 
-test("when a failing shard cancelled the others and the round pushes nothing, the check's workflow is dispatched on the branch for a full run", async () => {
+test("when a failing shard cancelled the others and the round pushes nothing, a full run is asked for with a repository_dispatch event, and a workflow without its trigger is named", async () => {
   const lockOf = (commit, text) => JSON.stringify({ schemaVersion: 1, sources: [{ id: "check", repository: "ourostack/ouro-ui", commit, files: [{ sourcePath: "registry/ouro/check/run.ts", generatedPath: "scripts/ouro/check/run.ts", sha256: sha256(text) }] }] }, null, 2);
   const old = 'const RULES = ["overlap"];\n';
-  const start = { "upstream-sources.lock.json": lockOf("old", old), "scripts/ouro/check/run.ts": old, "ouro-check.json": '{\n  "waive": {}\n}\n' };
+  const listening = "on:\n  pull_request:\n  repository_dispatch:\n    types: [ouro-current-full-run]\n";
+  const start = (workflow) => ({ "upstream-sources.lock.json": lockOf("old", old), "scripts/ouro/check/run.ts": old, "ouro-check.json": '{\n  "waive": {}\n}\n', ".github/workflows/checks.yml": workflow });
   const tarball = async () => new Map([["registry/ouro/check/run.ts", Buffer.from('const RULES = ["overlap", "linked-card-dead-zone"];\n')]]);
-  for (const [dispatch, said] of [[204, /^dispatched workflow 7 on ouro-current\/update/], [403, /^could not dispatch workflow 7 on ouro-current\/update \(403\)/]]) {
-    const repo = fakeRepo(start, { dispatch });
+  const cases = [
+    [listening, 204, /^sent `ouro-current-full-run` for \w+, since a failing shard cancelled the others in \.github\/workflows\/checks\.yml$/, (sha) => [`repository_dispatch ouro-current-full-run ${sha}`]],
+    [listening, 403, /^could not send `ouro-current-full-run` \(403\)/, (sha) => [`repository_dispatch ouro-current-full-run ${sha} refused 403`]],
+    ["on:\n  pull_request:\n", 204, /^\.github\/workflows\/checks\.yml has no `repository_dispatch` trigger for `ouro-current-full-run`/, () => []],
+  ];
+  for (const [workflow, dispatch, said, sent] of cases) {
+    const repo = fakeRepo(start(workflow), { dispatch });
     const reports = [{ findings: [{ rule: "linked-card-dead-zone", detail: "a click on 17 of 19 spots on it opens nothing" }] }];
     let cut = [];
     const sources = { tarball, ciReports: async () => reports, ciCutShort: async (gh, name, sha) => (sha === repo.refs.get(BRANCH) ? cut : []) };
     await keepRepo(repo.gh, "o/r", RELEASES, sources);
-    cut = [7];
+    cut = [{ id: 7, path: ".github/workflows/checks.yml" }];
     const seeded = await keepRepo(repo.gh, "o/r", RELEASES, sources);
     assert.equal(seeded.pr.pushed, true);
-    assert.equal(seeded.pr.fullRun, undefined, "a round that pushes starts new checks of its own, so it dispatches nothing");
-    assert.ok(!repo.calls.some((call) => call.startsWith("dispatch")));
+    assert.equal(seeded.pr.fullRun, undefined, "a round that pushes starts new checks of its own, so it asks for nothing");
+    assert.ok(!repo.calls.some((call) => call.startsWith("repository_dispatch")));
     const settled = await keepRepo(repo.gh, "o/r", RELEASES, sources);
     assert.equal(settled.pr.pushed, false);
     assert.match(settled.pr.fullRun, said);
-    assert.deepEqual(repo.calls.filter((call) => call.startsWith("dispatch")), [`dispatch 7 on ${BRANCH}${dispatch < 400 ? "" : ` refused ${dispatch}`}`]);
+    assert.deepEqual(repo.calls.filter((call) => call.startsWith("repository_dispatch")), sent(repo.refs.get(BRANCH)));
   }
 });
 
-test("ciCutShort names a check workflow whose run had a cancelled job, until a run of it is dispatched on the commit", async () => {
+test("ciCutShort names a check workflow whose run had a cancelled job, until a full run of it is dispatched on the commit or sent after it", async () => {
   const runs = [
-    { id: 1, workflow_id: 7, event: "pull_request", status: "completed" },
-    { id: 2, workflow_id: 8, event: "pull_request", status: "completed" },
-    { id: 3, workflow_id: 9, event: "pull_request", status: "completed" },
+    { id: 1, workflow_id: 7, path: ".github/workflows/checks.yml", event: "pull_request", status: "completed", created_at: "2026-11-17T22:00:00Z" },
+    { id: 2, workflow_id: 8, path: ".github/workflows/other.yml", event: "pull_request", status: "completed", created_at: "2026-11-17T22:00:00Z" },
+    { id: 3, workflow_id: 9, path: ".github/workflows/logs.yml", event: "pull_request", status: "completed", created_at: "2026-11-17T22:00:00Z" },
   ];
+  let sent = [{ id: 5, workflow_id: 7, event: "repository_dispatch", status: "completed", created_at: "2026-11-17T21:00:00Z" }];
   const jobs = { 1: ["failure", "cancelled", "success"], 2: ["success"], 3: ["cancelled"] };
   const artifacts = { 1: ["ouro-check-5-of-6"], 2: ["ouro-check-1-of-1"], 3: ["site-checks-logs"] };
   const client = { get: async (path) => {
     if (/actions\/runs\?head_sha=/.test(path)) return { workflow_runs: runs };
+    if (/actions\/runs\?event=repository_dispatch/.test(path)) return { workflow_runs: sent };
     const [, id, kind] = /runs\/(\d+)\/(jobs|artifacts)/.exec(path);
     return kind === "jobs" ? { jobs: jobs[id].map((conclusion) => ({ conclusion })) } : { artifacts: artifacts[id].map((name) => ({ name })) };
   } };
   const sources = createSources(client);
-  assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [7], "only the check's workflow, and only when a job was cancelled");
-  runs.push({ id: 4, workflow_id: 7, event: "workflow_dispatch", status: "in_progress" });
-  assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [], "a full run already started on the commit");
+  assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [{ id: 7, path: ".github/workflows/checks.yml" }], "only the check's workflow, only when a job was cancelled, and a full run from before it does not count");
+  sent = [...sent, { id: 6, workflow_id: 7, event: "repository_dispatch", status: "queued", created_at: "2026-11-17T22:10:00Z" }];
+  assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [], "a full run was sent after it");
+  sent = [];
+  runs.push({ id: 4, workflow_id: 7, event: "workflow_dispatch", status: "in_progress", created_at: "2026-11-17T22:05:00Z" });
+  assert.deepEqual(await sources.ciCutShort(client, "o/r", "abc"), [], "a full run was dispatched on the commit");
   const failing = { get: async () => { throw Object.assign(new Error("no"), { status: 403 }); } };
   assert.deepEqual(await createSources(failing).ciCutShort(failing, "o/r", "abc"), []);
+});
+
+test("ciReports reads a full run's reports by the commit its artifacts name, and no other commit's", async () => {
+  const zipOf = (name) => Buffer.from(name);
+  const client = { get: async (path) => {
+    if (/actions\/runs\?head_sha=/.test(path)) return { workflow_runs: [{ id: 1, event: "pull_request" }] };
+    if (/actions\/runs\?event=repository_dispatch/.test(path)) return { workflow_runs: [{ id: 2, event: "repository_dispatch" }] };
+    if (/runs\/1\/artifacts/.test(path)) return { artifacts: [{ name: "ouro-check-1-of-6", archive_download_url: "u/ouro-check-1-of-6" }] };
+    if (/runs\/2\/artifacts/.test(path)) return { artifacts: [{ name: "ouro-check-5-of-6-full-abc", archive_download_url: "u/ouro-check-5-of-6-full-abc" }, { name: "ouro-check-5-of-6-full-other", archive_download_url: "u/ouro-check-5-of-6-full-other" }] };
+    return zipOf(path.slice(2));
+  } };
+  const unzip = (zip) => JSON.stringify({ findings: [{ from: String(zip) }] });
+  const reports = await createSources(client, { unzip }).ciReports(client, "o/r", "abc");
+  assert.deepEqual(reports.map((report) => report.findings[0].from), ["ouro-check-1-of-6", "ouro-check-5-of-6-full-abc"]);
 });
