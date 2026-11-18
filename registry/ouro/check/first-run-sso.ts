@@ -337,7 +337,10 @@ export async function ssoExtension(o: SsoExtension, dir: string, at: () => numbe
     // (remove-trusted-cert -d, or delete-certificate -t) waits for an authorization no one can give on a runner; the
     // setting left names a certificate no keychain holds.
     const kept = () => sh("security", ["find-certificate", "-a", "-Z", "-c", name, KEYCHAIN]).stdout.includes(sha1);
-    for (let i = 0; i < 5 && kept(); i++) sudo(["security", "delete-certificate", "-Z", sha1, KEYCHAIN]);
+    for (let i = 0; i < 5 && kept(); i++) {
+      if (i) sh("sleep", ["1"]);
+      sudo(["security", "delete-certificate", "-Z", sha1, KEYCHAIN]);
+    }
     child.kill();
     for (const k of ["ca.key", "leaf.key"]) fs.rmSync(f(k), { force: true });
   };
