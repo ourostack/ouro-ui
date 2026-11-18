@@ -2,7 +2,7 @@
 
 # OuroMcpApp
 
-The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. Read and write buttons call their action's own tool through the host, a consequential one only after the person confirms, and a person-only one takes the person to your app's screen. It follows the host's light or dark theme and tells the host its size.
+The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, its fields starting from `structuredContent.ouro.data`, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. Read and write buttons call their action's own tool through the host, a consequential one only after the person confirms, and a person-only one takes the person to your app's screen. It follows the host's light or dark theme and tells the host its size.
 
 ```tsx
 import { OuroMcpApp } from "@/registry/ouro/components/ouro/mcp-app/ouro-mcp-app";

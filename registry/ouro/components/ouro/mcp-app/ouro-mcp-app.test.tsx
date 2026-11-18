@@ -17,7 +17,7 @@ const field = (label: string, kind = "string", optional = false) => ({ label, ki
 const refusal = { ax: "outcome/1", action: "recipe order", state: "refused", summary: "recipe order: only the person can order.", error: { code: "person-only" } };
 const catalog = {
   catalogId: "https://example.com/a2ui/catalog.json",
-  components: Object.fromEntries(["Card", "Stack", "Heading", "Text", "ActionButton"].map((n) => [n, {}])),
+  components: Object.fromEntries(["Card", "Stack", "Heading", "Text", "TextField", "ActionButton"].map((n) => [n, {}])),
   metadata: {
     extensions: {
       bot_ouroboros_hx: {
@@ -466,5 +466,17 @@ describe("OuroMcpApp", () => {
     const [, other] = host.requests("ui/update-model-context") as { structuredContent: { ouroProblems: { path: string }[] } }[];
     expect(other!.structuredContent.ouroProblems).toEqual([{ path: "/catalogId", message: `The tree is for catalog "https://example.com/other.json"; this view draws ${catalog.catalogId}.` }]);
     expect(container.querySelector("button")).toBeNull();
+  });
+
+  it("starts a tree's fields from structuredContent.ouro.data, and calls the tool with what the person typed", async () => {
+    const host = testHost({ replies: { "tools/call": () => ({ result: { content: [{ type: "text", text: "Added." }] } }) } });
+    await open(host);
+    const fields = node("root", "Card", {}, [node("servings", "TextField", { label: "Servings", value: "/servings", type: "number", multiline: false }), button("shop", "add_recipe_to_shopping_list", { recipe: "rcp_1", servings: { "@path": "/servings" } })]);
+    await host.deliver({ method: "ui/notifications/tool-result", params: mcpAppTreeResult({ text: "Here is the recipe.", catalog: loadCatalog(catalog), tree: fields, data: { servings: 4 } }) });
+    await expect.element(page.getByRole("textbox", { name: "Servings" })).toHaveValue("4");
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
+    await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
+    await expect.element(page.getByText("Added.")).toBeInTheDocument();
+    expect(host.requests("tools/call")).toEqual([{ name: "add_recipe_to_shopping_list", arguments: { recipe: "rcp_1", servings: 6 } }]);
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
-import { fleschKincaid } from "../../../test/readability";
+import { fleschKincaid, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import frameStyles from "./frame.css?inline";
@@ -11,7 +11,7 @@ import { allChapterThreeText, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, describeEnc
 await loadPageCode("/nautilus/");
 
 // Chapter III (site-design.md, slice S3): its words read at grade 6 or under, it renders in the
-// page with each control marked, and the fight goes as the crew says: up, feathers, and the squid lets
+// page with each control marked, and the fight goes as the crew says: up, the deck lamp, and the squid lets
 // go; then the organ. The end-to-end spec (site/e2e/chapter-three.spec.ts) drives each control
 // against the production build.
 
@@ -43,6 +43,20 @@ describe("Chapter III's words", () => {
     const reading = fleschKincaid(allChapterThreeText());
     expect(reading.words).toBeGreaterThan(300);
     expect(reading.grade).toBeLessThanOrEqual(6);
+  });
+
+  it("sound like a crew, not a nursery: no toy words or emoji, and at most one line shouts", () => {
+    const heard = voice(allChapterThreeText());
+    expect(heard.nursery).toEqual([]);
+    expect(heard.emoji).toEqual([]);
+    expect(heard.shouts.length).toBeLessThanOrEqual(1);
+  });
+
+  it("tell the squid's story by light: a lamp on deck coaxes it off, and it comes back for the organ", () => {
+    expect(ORDERS.feathers).toMatch(/lamp/i);
+    expect(FIGHT.lightsOnHeld.text).toMatch(/lamp/i);
+    expect(FIGHT.win.text).toMatch(/dark/i);
+    expect(describeEncounter({ surfaced: true, lights: false, won: true, played: true })).toMatch(/listen/i);
   });
 });
 
@@ -83,6 +97,18 @@ describe("Chapter III", () => {
     expect(scene().getAttribute("aria-label")).toContain(describeEncounter({ surfaced: true, lights: false, won: true, played: true }));
     await expect.element(page.elementLocator(document.querySelector("#chapter-three")!).getByText(SALOON.stamp, { exact: true })).toBeInTheDocument();
     await expect.element(page.getByRole("link", { name: SALOON.install })).toHaveFocus();
+  });
+
+  it("says the water is clear, not that the floodlights are on, when the free ship surfaces again", async () => {
+    await renderPage("/nautilus/");
+    await order(ORDERS.surface);
+    await order(ORDERS.feathers);
+    await expect.poll(() => scene().dataset.squid).toBe("gone");
+    await order(ORDERS.dive);
+    await expect.poll(crew).toContain(FIGHT.dive.text);
+    await order(ORDERS.surface);
+    await expect.poll(crew).toContain(FIGHT.surfaceFree.text);
+    expect(scene().dataset.lights).toBeUndefined();
   });
 });
 

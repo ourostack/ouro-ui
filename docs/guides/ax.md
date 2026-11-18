@@ -9,8 +9,8 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 ## Install
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.283         # the kit and the X-ray
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.283   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.285         # the kit and the X-ray
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.285   # with their node:test tests
 ```
 
 The shadcn CLI copies the shared files into `lib/ouro/ax/` under your lib alias. The X-ray, the flow runner, the surfaces check and their tests go to `scripts/ouro/ax/`, outside your TypeScript project, so `tsc -b` never reads their Node imports.[^ax-outside] Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and the shared files as `#ouro-ax/<file>`, which package.json names once: `npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"`, with `src/lib` as your lib folder. Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
@@ -122,6 +122,8 @@ A wait takes a reference the agent already holds, such as a conversation id from
 
 A command that returns data, such as a list or a report, prints it as it is under `--json`. Its `exit` names the exit code by its name in the tool's table, such as `unavailable`, and a name the table does not have is refused.[^data-exit] Without `exit`, the exit code is 0.[^data-exit]
 
+A check command (`defineChecks`, a doctor or a self-check) exits 0 when nothing failed, with `findings` (3) when a check found a problem, and with `error` (1) when a check threw.[^checks-exits] A tool whose table already gives 3 another meaning, such as "not running", passes its own table as `exits` with a `findings` code after its own codes (`{ ...FINDINGS_EXIT_CODE, code: 4 }`), and a finding exits with that code.[^checks-exits] `defineChecks` refuses a table without a `findings` code and names the code that took 3, so a finding never exits with a code that means something else.[^checks-exits-refused]
+
 ## Say precisely why it failed
 
 When something fails, your message says what happened and precisely why (the system and its answer), who or what caused it where you know, and the next step as a command or an action. When you don't know the cause, say what you tried and what came back. "Couldn't show this picture" leaves you guessing: should the person retry, ask someone or change something?
@@ -169,7 +171,7 @@ When an app misbehaves, the person's agent should ask the app what's wrong inste
 - `ax-doctor`: declare the checks with `defineChecks` (ax-checks), run them, and pass the report with what the tool saw to `doctorReport(checks, state, Date.now())`. `state` is sections of facts (`Processes`, `Versions`, `Sign-in`), each line a label, a value in words, and optionally since when and a part's state: `up`, `starting`, `stuck`, `down` or `absent`.[^doctor-report] A command that returns the report prints the verdict, then the state, then the problems and their fixes, and `--json` carries the same facts.[^doctor-text]
 - `ax-probe`: `probeHttp(url, { timeoutMs })` tells up, stuck and down apart, so the doctor answers when the app is down or hangs, and `pidAlive(pid)` says whether a process runs.[^doctor-probe]
 
-A doctor keeps to these rules. Every problem names its next step as a command that runs or an action by hand, never the doctor itself (`defineChecks` refuses that).[^doctor-fix] It works whatever state the app is in, so it reads files and probes from outside before it asks the app.
+A doctor keeps to these rules. Every problem names its next step as a command that runs or an action by hand, never the doctor itself (`defineChecks` refuses that).[^doctor-fix] It works whatever state the app is in, so it reads files and probes from outside before it asks the app. A tool that already uses the findings code for something else passes its own exit table to `defineChecks`, as [Outcomes and waits](#outcomes-and-waits) says.
 
 ## A voice
 
@@ -319,6 +321,8 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^doctor-probe]: test:registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets verify:testExists(registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets)
 [^doctor-report]: test:registry/ouro/ax/doctor.test.mts::a doctor report is the checks report with the state it judged, and still a checks report verify:testExists(registry/ouro/ax/doctor.test.mts::a doctor report is the checks report with the state it judged, and still a checks report)
 [^doctor-fix]: test:registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run verify:testExists(registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run)
+[^checks-exits]: test:registry/ouro/ax/checks.test.mts::a tool's own exit table gives a finding its findings code, wherever the table puts it verify:testExists(registry/ouro/ax/checks.test.mts::a tool's own exit table gives a finding its findings code, wherever the table puts it)
+[^checks-exits-refused]: test:registry/ouro/ax/checks.test.mts::a tool's exit table without a findings code is refused, naming the code that took 3 verify:testExists(registry/ouro/ax/checks.test.mts::a tool's exit table without a findings code is refused, naming the code that took 3)
 [^voice]: test:registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
 [^voice-line]: test:registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built verify:testExists(registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built)
 [^voice-order]: test:registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most; test:registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs verify:testExists(registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most) verify:testExists(registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs)

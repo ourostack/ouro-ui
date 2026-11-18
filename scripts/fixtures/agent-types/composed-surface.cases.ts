@@ -10,7 +10,14 @@ export const agentCases: AgentCase[] = [
     dev: "<ComposedSurface onPress={run} onHandoff={openApp} />",
     names: ["tsc", "dev"],
   },
+  {
+    id: "composedSurface02",
+    habit: "A2UI's name for the data model",
+    tsc: [`error TS2353: Object literal may only specify known properties, and 'servings' does not exist in type '{ "Use data={structuredContent.ouro.data}": never; }'.`],
+    dev: "<ComposedSurface data={structuredContent.ouro.data} />",
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid composed-surface snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composedSurfaceOk01"];
+export const validSnippets: string[] = ["composedSurfaceOk01", "composedSurfaceOk02"];

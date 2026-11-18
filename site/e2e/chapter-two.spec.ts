@@ -74,7 +74,7 @@ test.describe("each control in Chapter II", () => {
     await expect(box).toHaveValue("");
     const yours = radio(page).locator("[data-ouro='message']", { hasText: "Hello there" });
     await expect(yours).toBeVisible();
-    await expect(radio(page).locator("[data-ouro-message-content]", { hasText: "Ahoy there! Glad to have you aboard." })).toBeVisible();
+    await expect(radio(page).locator("[data-ouro-message-content]", { hasText: "Good day, and welcome aboard." })).toBeVisible();
     await expect(yours.locator("[data-ouro='reaction-bar']")).toContainText("Wave, 1");
   });
 

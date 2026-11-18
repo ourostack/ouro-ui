@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CHECKS_VERSION, checksText, defineChecks, isChecksReport, printChecks, type CheckDef, type ChecksReport } from "#ouro-ax/checks.ts";
-import { BASE_EXIT_CODES, FINDINGS_EXIT_CODE } from "#ouro-ax/exit-codes.ts";
+import { BASE_EXIT_CODES, defineExitCodes, FINDINGS_EXIT_CODE, type ExitTable } from "#ouro-ax/exit-codes.ts";
 import { hasAnsi, stripAnsi, terminalStyle, type Timers } from "#ouro-ax/terminal.ts";
 import { vagueFailureIn } from "#ouro-ax/precise-copy.ts";
 
@@ -228,3 +228,31 @@ test("findings exit with the declared findings code and a check that couldn't ru
   const both = await run([selfcheck[3]!, { id: "boom", label: "Window", run: () => { throw new Error("x"); } }]);
   assert.equal(both.summary, "1 of 2 checks threw before finishing: Window. 0 passed, 1 warned, in under 0.1s.");
 });
+
+/** A tool whose exit 3 already means "not running", as a chat app's might. */
+const notRunning = { code: 3, name: "unavailable", short: "not running", meaning: "not running: open the app first" };
+
+async function exitsUnder(exits: ExitTable) {
+  const window = (run: CheckDef<null>["run"]) => defineChecks<null>({ command: "chat doctor", exits, checks: [{ id: "a", label: "Window", run }] }).run(null);
+  const found = await window(() => ({ state: "failed", detail: "the window is closed", fix: { byHand: "Open the app's window." } }));
+  const crashed = await window(() => {
+    throw new Error("no window");
+  });
+  const warned = await window(() => ({ state: "warned", detail: "the window is slow to answer", fix: { byHand: "Wait a minute." } }));
+  return [found.exitCode, crashed.exitCode, warned.exitCode];
+}
+
+test("a tool's own exit table gives a finding its findings code, wherever the table puts it", async () => {
+  assert.deepEqual(await exitsUnder(defineExitCodes([...BASE_EXIT_CODES, notRunning, { ...FINDINGS_EXIT_CODE, code: 4 }])), [4, 1, 0], "the table's findings code, the base error code, and 0 for a warning");
+  assert.deepEqual(await exitsUnder(defineExitCodes([...BASE_EXIT_CODES, FINDINGS_EXIT_CODE])), [3, 1, 0], "Ouro AX's own table gives Ouro AX's defaults");
+});
+
+test("a tool's exit table without a findings code is refused, naming the code that took 3", () => {
+  const ok = [{ id: "a", label: "A", run: () => ({ state: "passed" as const }) }];
+  const declare = (exits: ExitTable) => () => defineChecks<null>({ command: "chat doctor", exits, checks: ok });
+  assert.throws(declare(defineExitCodes([...BASE_EXIT_CODES, notRunning])), {
+    message: 'defineChecks: chat doctor\'s exit table has no "findings" code for a check that finds a problem. Its code 3 is "unavailable", so Ouro AX\'s findings code can\'t be used. Fix: add { ...FINDINGS_EXIT_CODE, code: 4 } to the table.',
+  });
+  assert.throws(declare(defineExitCodes()), { message: 'defineChecks: chat doctor\'s exit table has no "findings" code for a check that finds a problem. Fix: add { ...FINDINGS_EXIT_CODE, code: 3 } to the table.' });
+});
+

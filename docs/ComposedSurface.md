@@ -2,7 +2,7 @@
 
 # ComposedSurface
 
-Draws Ouro's composed tree with Ouro HX, whatever format it came in: core's `ComposedNode`, from A2UI messages, an MCP tool result's `structuredContent.ouro`, or your own code. Every button is one of your app's declared actions: read and write run, a consequential one asks the person to confirm what the agent prepared, and a person-only one takes them to your app's own screen.
+Draws Ouro's composed tree with Ouro HX, whatever format it came in: core's `ComposedNode`, from A2UI messages, an MCP tool result's `structuredContent.ouro`, or your own code. Every button is one of your app's declared actions: read and write run, a consequential one asks the person to confirm what the agent prepared, and a person-only one takes them to your app's own screen. Its fields (TextField, Checkbox, Select) fill in `data`, and a button bound to a field sends what the person entered.
 
 ```tsx
 import { ComposedSurface } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
@@ -13,6 +13,7 @@ import { ComposedSurface } from "@/registry/ouro/components/ouro/composed-surfac
 ```tsx
 <ComposedSurface
   tree={result.structuredContent.ouro.tree}
+  data={result.structuredContent.ouro.data}
   onPress={(press) => callTool(press.action, press.input)}
   onHandoff={({ action }) => navigate(`/recipes/${id}?do=${action}`)}
 />
@@ -26,17 +27,19 @@ import { ComposedSurface } from "@/registry/ouro/components/ouro/composed-surfac
 
 Type: `ComposedSurfaceProps`.
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `className` | `string` | Layout only: margins, width (`max-w-md`). |
-| `onHandoff` (required) | `(handoff: ComposedHandoff) => void` | A person-only button never runs from composed UI: take the person to your app's own screen for it. |
-| `onPress` (required) | `(press: PersonPress, button: ComposedNode) => void \| Promise<void>` | Runs a pressed read or write button, and a consequential one once the person confirms. `press` is core's `PersonPress` (the action, the prepared input, its consent, and that the person pressed it); `button` is the node, for a format that names its source. Return a promise to show the button loading until it settles. |
-| `tree` (required) | `ComposedNode` | The composed tree to draw: core's `ComposedNode`, its values resolved. Check one you didn't resolve yourself with core's `validateTree` against the app's catalog first; A2UI's resolver already has. |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
+| `data` | `Obj` | {} | The data model the tree's fields start from, such as an MCP tool result's `structuredContent.ouro.data`. A TextField, Checkbox or Select shows what it holds at the field's `value` pointer and writes the person's answer there. A button input bound to that pointer (`{"@path": "/servings"}`) sends the answer when the person presses, and a consequential button's confirm sheet shows it. A new `data` or `tree` starts the fields over from `data`. |
+| `onHandoff` (required) | `(handoff: ComposedHandoff) => void` |  | A person-only button never runs from composed UI: take the person to your app's own screen for it. |
+| `onPress` (required) | `(press: PersonPress, button: ComposedNode) => void \| Promise<void>` |  | Runs a pressed read or write button, and a consequential one once the person confirms. `press` is core's `PersonPress` (the action, the prepared input, its consent, and that the person pressed it); `button` is the node, for a format that names its source. Return a promise to show the button loading until it settles. |
+| `tree` (required) | `ComposedNode` |  | The composed tree to draw: core's `ComposedNode`, its values resolved. Check one you didn't resolve yourself with core's `validateTree` against the app's catalog first; A2UI's resolver already has. |
 
 ## Don't use
 
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
+- `dataModel`: Not a prop. The fields' data model is `data`: `<ComposedSurface data={structuredContent.ouro.data}>`.
 - `onAction`: Not a prop. A pressed button calls `onPress`, or `onHandoff` for a person-only one: `<ComposedSurface onPress={run} onHandoff={openApp}>`.
 
 ## `className` is for layout only
