@@ -80,6 +80,8 @@ jobs:
       installs: ${{ steps.tiers.outputs.installs }}
       heavy: ${{ steps.tiers.outputs.heavy }}
       browser: ${{ steps.browser.outputs.run }}
+      screen_reader: ${{ steps.lane.outputs.screen_reader }}
+      screen_reader_specs: ${{ steps.lane.outputs.screen_reader_specs }}
     steps:
       # How many of the repository's runs wait for a runner as this one starts, in the run's
       # summary: every run's jobs share the organization's runners.
@@ -280,6 +282,89 @@ jobs:
             echo "Design check run: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
+      # Which screen-reader specs the change can reach (scripts/sr-impact.mjs), for the screen-reader job below. Only a
+      # pull request from this repository gets any: a fork's code is not this repository's branch. A change the mapping
+      # cannot place selects every spec; every other event selects none, since main's own lane runs are screen-reader.yml's
+      # push and schedule runs.
+      - id: lane
+        name: Which screen-reader specs can the change reach?
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$REPO" ]; then
+            node scripts/sr-impact.mjs plan HEAD^1 HEAD
+          else
+            echo "No screen-reader lane for $EVENT${HEAD_REPO:+ from $HEAD_REPO}."
+            echo "screen_reader=none" >> "$GITHUB_OUTPUT"
+            echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
+          fi
+  sr-yield:
+    # Waits while main's screen-reader lane holds or waits for a macOS runner (scripts/sr-yield.mjs), so a pull request's
+    # lane takes the runners after it. It fails open and never fails: at worst the lane starts after 10 minutes.
+    name: Screen-reader yield
+    needs: [plan]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Yield to main's screen-reader lane
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/sr-yield.mjs
+  screen-reader:
+    # The screen-reader lane for a pull request from this repository whose change reaches a spec (the plan's screen_reader):
+    # screen-reader-lane.yml on hosted macOS and Windows runners, with the selected specs and the pull request's head commit. Its
+    # jobs report under this job's name, and ci waits on them, so a failed spec fails the required ci check. Its own
+    # permissions are contents: read, and it holds no secret. A fork's pull request never runs it.
+    needs: [plan, sr-yield]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}
+    uses: ./.github/workflows/screen-reader-lane.yml
+    with:
+      source_sha: ${{ github.event.pull_request.head.sha }}
+      head_repo: ${{ github.event.pull_request.head.repo.full_name }}
+      specs: ${{ needs.plan.outputs.screen_reader_specs }}
+    permissions:
+      contents: read
   checks:
     # The checks that need no browser: the generated docs, the types, the lint, the site as Pages
     # builds it with every internal link in it, in exact letter case (scripts/links.mjs; the
@@ -1087,13 +1172,14 @@ jobs:
           install-browser: "false"
   ci:
     # Passes when every part of it passed (checks, attribution, every design shard, every browser shard, the coverage
-    # job and every script test job) and the browser shards' merged coverage reached 100%; or, on a
+    # job, every script test job and the screen-reader lane, when the plan selected specs for the change) and the browser
+    # shards' merged coverage reached 100%; or, on a
     # reduced pull request whose merged coverage fell short, when every browser-fallback shard passed
     # too and their merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs); or,
-    # when the plan skipped the browser shards or the design shards because nothing they read changed,
+    # when the plan skipped the browser shards, the design shards or the screen-reader lane because nothing they read changed,
     # without them. Its
     # outputs tell motion-coverage which shards' motion evidence to read, if any.
-    needs: [plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback]
+    needs: [plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback, screen-reader]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1107,6 +1193,7 @@ jobs:
       FALLBACK_SHARDS: 16
       BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' }}
       DESIGN_RUN: ${{ needs.plan.outputs.design != 'false' }}
+      SCREEN_READER_RUN: ${{ needs.plan.outputs.screen_reader != 'none' }}
     steps:
       - name: Every part passed
         env:
@@ -1118,13 +1205,16 @@ jobs:
           SCRIPTS_BROWSER: ${{ needs.scripts-browser.result }}
           COVERAGE: ${{ needs.coverage.result }}
           BROWSER_FALLBACK: ${{ needs.browser-fallback.result }}
+          SCREEN_READER: ${{ needs.screen-reader.result }}
         run: |
           failed=0
           # Skipped by the plan, the browser shards count as passed; skipped for any other reason, they do not.
           if [ "$BROWSER_RUN" = false ] && [ "$BROWSER" = skipped ]; then BROWSER=success; fi
           # So do the design shards, skipped by the plan when nothing the site build or Ouro check reads changed.
           if [ "$DESIGN_RUN" = false ] && [ "$DESIGN" = skipped ]; then DESIGN=success; fi
-          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE"; do
+          # And the screen-reader lane, which the plan skipped when no screen-reader spec can see the change, or for a fork.
+          if [ "$SCREEN_READER_RUN" = false ] && [ "$SCREEN_READER" = skipped ]; then SCREEN_READER=success; fi
+          for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
               failed=1
