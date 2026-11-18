@@ -1,7 +1,7 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 
 /**
- * Every word the porthole stage says: the rail's labels, the crew's log lines and the bell's toasts.
+ * Every word the porthole stage says: the rail's labels and the crew's log lines, the bell's answers among them.
  * In one place so the readability check (stage.test.tsx) reads exactly what a visitor reads: the
  * stage is for a nine-year-old too, so each line stays at or under grade 6.
  */
@@ -123,17 +123,15 @@ export const LOG = {
     half: { name: "Captain Nemo", text: "Half speed ahead." },
     full: { name: "Ned Land", text: "Full speed. Now she is really moving." },
   },
-  bell: { name: "Conseil", text: "The bell rang. I counted it. One." },
+  /** What the crew says when the bell rings, in turn. */
+  bell: [
+    { name: "Conseil", text: "The bell rang. I counted it. One." },
+    { name: "Ned Land", text: "Is it lunch?" },
+    { name: "Professor Aronnax", text: "I hope that means dinner." },
+    { name: "Captain Nemo", text: "The bell is for the crew, not for the fish." },
+  ],
   stillWater: { name: "Captain Nemo", text: "Slow screen, so the fish rest. Press Half to sail on." },
 } as const satisfies Record<string, unknown>;
-
-/** What the crew says when the bell rings, in turn. */
-export const BELL_TOASTS: readonly LogLine[] = [
-  { name: "Ned Land", text: "Is it lunch?" },
-  { name: "Conseil", text: "Classified: one bell." },
-  { name: "Professor Aronnax", text: "I hope that means dinner." },
-  { name: "Captain Nemo", text: "The bell is for the crew, not for the fish." },
-];
 
 /** Every line the crew can say, each tank's by name: for the readability check, and the crew's strip, which fits them all. */
 export function allCrewLines(): LogLine[] {
@@ -148,7 +146,7 @@ export function allCrewLines(): LogLine[] {
     LOG.lightsOn,
     LOG.lightsOff,
     ...Object.values(LOG.speed),
-    LOG.bell,
+    ...LOG.bell,
     LOG.stillWater,
   ];
 }
@@ -166,7 +164,6 @@ export function allStageText(): string[] {
     ...TANKS.map((tank) => tank.label),
     ...SPEEDS.map((speed) => speed.label),
     ...allCrewLines().map((line) => line.text),
-    ...BELL_TOASTS.map((line) => line.text),
   ];
   for (const band of ["sunlit", "twilight", "midnight"] as const) {
     for (const dived of [false, true]) {

@@ -8,12 +8,10 @@ import { MessageList } from "@/registry/ouro/components/ouro/message/message-lis
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
-import { toast } from "@/registry/ouro/lib/ouro/toast";
-import { keepClearOfToasts } from "../clear-of-toasts";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { useStable } from "../use-stable";
 import { GITHUB } from "../../paths";
-import { bandAt, BANDS, BELL_TOASTS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEAKER, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
+import { bandAt, BANDS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEAKER, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
 import { flushSync } from "react-dom";
 import "./stage.css";
@@ -52,12 +50,6 @@ function ChimeIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
 
 type TankId = (typeof TANKS)[number]["id"];
 
-/**
- * The bell's toast id: each ring's answer replaces the last one in place while it shows, rather than
- * stacking another toast that pushes the others up and out, which the page re-lays out frame after
- * frame and the next ring waited on.
- */
-const BELL_TOAST = "stage-bell";
 const EMPTY: Record<TankId, boolean> = { fore: false, middle: false, aft: false };
 
 /**
@@ -241,16 +233,12 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     write(LOG.speed[value]);
   });
   const onBell = useStable(() => {
-    const line = BELL_TOASTS[rings % BELL_TOASTS.length]!;
+    const line = LOG.bell[rings % LOG.bell.length]!;
     setRings((count) => count + 1);
-    // The crew answers once the bell has swung: the log's line and the toast both wait for the
-    // press's own paint (the log renders as a transition, which React would otherwise start before
-    // that frame, and the toast stack measures and re-lays itself out).
-    afterPaint(() => {
-      write(LOG.bell);
-      toast(`${SPEAKER[line.name]}: ${line.text}`, { id: BELL_TOAST });
-      keepClearOfToasts(root.current?.querySelector("[data-stage-control='bell']"));
-    });
+    // The crew answers in turn, in its own line under the porthole, once the bell has swung: the
+    // log renders as a transition, which React would otherwise start before the press's own paint.
+    // No toast: the line is the answer, said once, and nothing covers the bell or moves the page.
+    afterPaint(() => write(line));
   });
 
   // The picture follows the controls once the press has painted (useAfterPaint), so no press waits

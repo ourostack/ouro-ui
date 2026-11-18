@@ -13,11 +13,9 @@ import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorder
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
-import { toast } from "@/registry/ouro/lib/ouro/toast";
 import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
 import { href } from "../../paths";
 import { afterPaint, useAfterPaint } from "../after-paint";
-import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import { useStable } from "../use-stable";
 import { parseArt } from "../stage/art";
@@ -393,12 +391,6 @@ const JobList = memo(function JobList({ order, rule, built, onTick }: { order: r
 
 const tradeLabel = (value: string) => TRADES.find((trade) => trade.value === value)?.label ?? value;
 
-/**
- * One id for every signing's note: a new one replaces the note showing, or waiting, instead of queuing
- * behind it. Without it the queue grows by a note per signing, faster than notes leave (five seconds each).
- */
-const SIGNED_NOTE = "chapter-one-signed";
-
 /** Whether a name is someone aboard already: their whole name, or the last word of it ("Nemo"). */
 function aboard(name: string): CrewName | undefined {
   const asked = name.trim().toLowerCase();
@@ -483,16 +475,11 @@ function Articles(): JSX.Element {
     setPending(null);
     setYou({ name, trade });
     setLine(knownLine(name) ?? SIGN.welcome(name, trade));
-    // The new, empty form and the toast follow once the press has painted, as the bell's toast
-    // does: making the form's fields again is most of a signing's work, and the toast stack measures
-    // and re-lays itself out, so both wait for the press's own paint (your row on the list) rather
-    // than holding it up. Your row and Conseil's welcome under it are kept clear of the toast.
+    // The new, empty form follows once the press has painted: making the form's fields again is most
+    // of a signing's work, so it waits for the press's own paint (your row on the list) rather than
+    // holding it up. No toast: your row and Conseil's welcome already say you signed on.
     const key = signings + 1;
     emptyForm.current = { key, cancel: afterPaint(() => startTransition(() => setSignings(key))) };
-    afterPaint(() => {
-      toast(ARTICLES.signed(name), { id: SIGNED_NOTE, tone: "success", description: ARTICLES.onList });
-      keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
-    });
   };
   // Off the list, and back to the articles' first field to sign again. Leaving before the new, empty
   // form has rendered brings it in this commit (the same key, so a transition still on its way makes

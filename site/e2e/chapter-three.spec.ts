@@ -1,8 +1,9 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { BATTLE, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "../src/voyage/chapters/chapter-three-copy";
+import { BATTLE, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, ENCOUNTER, FIGHT, ORDERS, SALOON } from "../src/voyage/chapters/chapter-three-copy";
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, railStaysInView, watchMotion } from "./chapters";
 import { watchToasts } from "./toasts";
+import { holdClock } from "../../registry/ouro/e2e/ouro/story";
 import { HANDOFF } from "../src/copy";
 import { ARTICLES, CHAPTER_ONE, CREW, PARTS } from "../src/voyage/chapters/copy";
 import { CATALOGUE, FINDS } from "../src/voyage/chapters/chapter-two-copy";
@@ -138,7 +139,7 @@ test.describe("each control in Chapter III", () => {
     await expect(alarm(page)).toBeFocused();
   });
 
-  test("control: feathers, from the dialog, readies the crew; then up, and the squid lets go", async ({ page }) => {
+  test("control: feathers, from the dialog, readies the crew; then up, and the squid lets go, said once by the crew with no toast", async ({ page }) => {
     await open(page);
     await alarm(page).click();
     await dialog(page).getByRole("button", { name: ORDERS.feathers }).click();
@@ -149,9 +150,10 @@ test.describe("each control in Chapter III", () => {
     const toasts = await watchToasts(page);
     await order(page, ORDERS.surface);
     await expect(scene(page)).toHaveAttribute("data-squid", "gone");
-    await expect.poll(toasts.titles).toContain(TOASTS.win);
     await expect(status(page)).toContainText(ENCOUNTER.free);
     await expect(crew(page)).toContainText(FIGHT.win.text);
+    // The crew's line, the badge and the porthole say it: no toast says it again.
+    expect(await toasts.titles()).toEqual([]);
   });
 
   test("control: surface, from the dialog, takes the ship up; then the deck lamp, and the squid lets go", async ({ page }) => {
@@ -235,8 +237,8 @@ test.describe("each control in Chapter III", () => {
     // Play keeps focus and the page stays put: the way on shows below without taking either.
     await expect(saloon(page).getByRole("button", { name: SALOON.playAgain })).toBeFocused();
     expect(await page.evaluate(() => scrollY)).toBe(top);
-    // The end raises no toast: the log and the porthole say it. (The win's toast came before.)
-    expect((await toasts.titles()).filter((title) => title !== TOASTS.win)).toEqual([]);
+    // The end raises no toast: the log and the porthole say it.
+    expect(await toasts.titles()).toEqual([]);
   });
 
   test("control: reveal turns X-ray on where the reader stands, so the organ's Play wears its HX name, and a second press turns it off", async ({ page }) => {
@@ -263,16 +265,22 @@ test.describe("each control in Chapter III", () => {
     await expect(reveal).toBeFocused();
   });
 
-  test("control: handoff copies the line for a coding agent, and says so", async ({ page, browserName }) => {
+  test("control: handoff copies the line for a coding agent, and says Copied on its own button, with no toast", async ({ page, browserName }) => {
     test.skip(browserName !== "chromium", "Only Chromium lets a test grant the clipboard");
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.clock.install();
     await open(page);
     await win(page);
     await playButton(page).click();
-    const toasts = await watchToasts(page);
-    await saloon(page).locator("[data-chapter-control='handoff']").getByRole("button", { name: "Copy" }).click();
-    await expect.poll(toasts.titles).toContain(HANDOFF.copied);
+    const copy = saloon(page).locator("[data-chapter-control='handoff'] [data-ouro='copy-button'] button");
+    await expect(copy).toHaveText("Copy");
+    // "Copied" lasts two seconds, which a loaded runner can outlast between two steps: the clock is held from the press.
+    await holdClock(page);
+    await copy.click();
+    await expect(copy).toHaveText("Copied");
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(HANDOFF.prompt);
+    // A toast would come with the confirmation; with the clock held it would stay, so none is in the page.
+    expect(await page.locator('[data-ouro="toast"]').count()).toBe(0);
   });
 
   test("control: components leads to the catalogue of components", async ({ page }) => {

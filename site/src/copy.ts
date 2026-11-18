@@ -67,7 +67,7 @@ export const HANDOFF = {
   prompt: "Build this app's interface with Ouro UI. Read https://ui.ouroboros.bot/llms.txt first and follow it.",
   caption: "Paste it into your coding agent's chat.",
   commands: { text: "The commands are below.", href: "#install" },
-  copied: "Copied. Paste it to your agent.",
+  blocked: "The browser blocked copying. Select the line and copy it yourself.",
 } as const;
 
 /**

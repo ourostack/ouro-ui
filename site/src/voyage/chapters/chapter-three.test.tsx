@@ -6,9 +6,10 @@ import { renderedLines, splitWords } from "../../../test/lines";
 import { HANDOFF } from "../../copy";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import frameStyles from "./frame.css?inline";
 import chapterOneStyles from "./chapter-one.css?inline";
-import { allChapterThreeText, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "./chapter-three-copy";
+import { allChapterThreeText, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON } from "./chapter-three-copy";
 import { tuneFor } from "./organ";
 
 await loadPageCode("/nautilus/");
@@ -76,7 +77,7 @@ describe("Chapter III", () => {
     expect(marked).toEqual(CHAPTER_THREE_CONTROLS.filter((id) => !["feathers", "surface", "reveal", "handoff", "components", "again"].includes(id)));
   });
 
-  it("keeps the squid on until the crew is up and armed, then lets the organ play", async () => {
+  it("keeps the squid on until the crew is up and armed, says the win once, then lets the organ play", async () => {
     await renderPage("/nautilus/");
     expect(scene().dataset.squid).toBe("holding");
     // The log holds only what has happened: a reader who jumps here reads no ship built and no course set.
@@ -89,8 +90,11 @@ describe("Chapter III", () => {
     const announced = watchAnnouncements();
     await order(ORDERS.feathers);
     await expect.poll(() => scene().dataset.squid).toBe("gone");
-    await expect.poll(() => announced.count(TOASTS.win)).toBe(1);
+    // The win is said once, in the crew's line: no toast says it again over the porthole that shows it.
     await expect.poll(() => announced.count(FIGHT.win.text)).toBe(1);
+    await act(() => undefined);
+    expect(document.querySelectorAll('[data-ouro="toast"]')).toHaveLength(0);
+    expect(announced.changes.filter((change) => change.region.closest('[data-ouro="toaster"]'))).toEqual([]);
     expect(log()).toEqual([`01${SALOON.logHeld}`, `02${SALOON.logFree}`]);
     await userEvent.click(page.getByRole("button", { name: SALOON.play }));
     announced.stop();

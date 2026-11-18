@@ -4,13 +4,11 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator } from "@/registry/ouro/components/ouro/menu/menu";
-import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { href } from "../../paths";
 import { SCENES, STORYBOOK, sceneSources, type SceneName } from "../../storybook";
-import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import type { CrewLine } from "./copy";
-import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, voyageLog, type EncounterLive, type Order, type SaloonLive } from "./chapter-three-copy";
+import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, voyageLog, type EncounterLive, type Order, type SaloonLive } from "./chapter-three-copy";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { HandOff } from "../handoff";
 import { setXray, useXray } from "../xray-store";
@@ -95,18 +93,18 @@ const useFight = () => {
 };
 
 /**
- * Runs an order on the fight: what changes, what the crew says, and the toast when the squid lets
- * go. (The organ's toast comes with the saloon's deferred render, so Play answers at once.) The
- * organ's tune starts here too, in the press that gave the order, so the saloon's Play, the menu
- * and the palette all play it, the next tune each time; on the lullaby the squid falls asleep, and
- * Conseil says so. The site's rules; HX only carries the order here (dialog, menu, palette).
+ * Runs an order on the fight: what changes and what the crew says. When the squid lets go, the
+ * crew's line says so once, beside the porthole and the badge that show it, with no toast to say
+ * it again. The organ's tune starts here too, in the press that gave the order, so the saloon's
+ * Play, the menu and the palette all play it, the next tune each time; on the lullaby the squid
+ * falls asleep, and Conseil says so. The site's rules; HX only carries the order here (dialog,
+ * menu, palette).
  */
 function giveOrder(store: FightStore, order: Order): void {
   const fight = store.get();
   const say = (line: CrewLine, next: Partial<Fight> = {}) => store.set({ ...next, line });
   const win = (next: Partial<Fight>) => {
     say(FIGHT.win, { ...next, won: true });
-    toast(TOASTS.win, { tone: "success", description: TOASTS.winNote });
   };
   switch (order) {
     case "surface":
@@ -354,7 +352,6 @@ function Porthole(): JSX.Element {
  */
 function Encounter(): JSX.Element {
   const store = useFightStore();
-  const box = useRef<HTMLDivElement>(null);
   const { surfaced, lights, feathers, won, line } = useFight();
   useLiveCode<EncounterLive>({ free: won, lights });
   // Once you have signed on in Chapter I, the crew know you: Ned's line at the win names you, and you cheer with them.
@@ -364,10 +361,7 @@ function Encounter(): JSX.Element {
   // The order changes the fight at once (the store renders in the press's frame, so its badges
   // and the crew's line answer with it); the porthole and the organ redraw after that frame has
   // painted (useAfterPaint), so no press waits on a drawing.
-  const order = (which: Order) => {
-    giveOrder(store, which);
-    if (store.get().won) keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
-  };
+  const order = (which: Order) => giveOrder(store, which);
   const choose = (which: Order) => {
     setAlarm(false);
     order(which);
@@ -382,7 +376,7 @@ function Encounter(): JSX.Element {
     { label: ORDERS.organ, onSelect: () => order("organ"), keywords: ["music"], ...held },
   ];
   return (
-    <div ref={box} className="site-split grid gap-6 py-4 sm:items-center sm:py-6">
+    <div className="site-split grid gap-6 py-4 sm:items-center sm:py-6">
       <figure className="m-0">
         <Porthole />
       </figure>

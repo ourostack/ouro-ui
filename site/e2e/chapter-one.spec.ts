@@ -261,10 +261,10 @@ test.describe("each control in Chapter I", () => {
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
   });
 
-  test("control: sign puts you on the crew list with your trade, and the crew says welcome", async ({ page }) => {
+  test("control: sign puts you on the crew list with your trade, and the crew says welcome, with no toast to repeat it", async ({ page }) => {
     await open(page);
     await expect(signCrew(page)).toContainText(SIGN.opening.text);
-    const toasts = await watchToasts(page, { selector: "[data-composition='articles'] [data-chapter-control='leave'] button", kind: "row" });
+    const toasts = await watchToasts(page);
     await signOn(page, "Ana Lind");
     const roster = page.getByRole("list", { name: ARTICLES.roster });
     await expect(roster.getByText("Ana Lind")).toBeVisible();
@@ -272,7 +272,6 @@ test.describe("each control in Chapter I", () => {
     await expect(roster.getByText("Engineer", { exact: true })).toBeVisible();
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
     await expect(signCrew(page)).toContainText(SIGN.welcome("Ana Lind", "Engineer").text);
-    await expect.poll(toasts.titles).toContain(ARTICLES.signed("Ana Lind"));
     // The articles step aside: you are aboard, with the way on, and no empty form waits to be signed again.
     await expect(articles(page).locator("[data-chapter-signed]")).toContainText(ARTICLES.welcomeAboard("Ana Lind"));
     await expect(articles(page).getByText(ARTICLES.signAgain)).toBeVisible();
@@ -280,12 +279,13 @@ test.describe("each control in Chapter I", () => {
     await expect(articles(page).locator("form")).toBeHidden();
     await expect(nameField(page)).toHaveCount(0);
     await expect(signButton(page)).toHaveCount(0);
-    // Focus is on your row, clear of the toast.
+    // Focus is on your row.
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
     await expect(leave).toBeFocused();
-    // Judged only once the toast has settled: it slides in from below its place.
-    await expect.poll(toasts.settled).toBeGreaterThan(5);
-    expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
+    // Your row and Conseil's welcome say you signed on; no toast says it again over them. What the
+    // press left for after its paint (a frame, then a task) has run, and the watcher has seen a frame since.
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(done))))));
+    expect(await toasts.titles()).toEqual([]);
   });
 
   test("Sign hands focus straight to your row's Leave, with nothing unfocused in between", async ({ page }) => {
@@ -624,16 +624,10 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await tradeField(page).tap();
   await page.getByRole("option", { name: "Cook" }).tap();
   await oath(page).tap();
-  const toasts = await watchToasts(page, { selector: "[data-composition='articles'] [data-chapter-crew]", kind: "below" });
   await signButton(page).tap();
   await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
   const signedNext = (await onward(page, "signed-next").boundingBox())!;
   expect(Math.min(signedNext.width, signedNext.height)).toBeGreaterThanOrEqual(44);
-  // The toast never covers your row or Conseil's welcome under it.
-  await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
-  // Judged only once the toast has settled: it slides in from below its place.
-  await expect.poll(toasts.settled).toBeGreaterThan(5);
-  expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await context.close();

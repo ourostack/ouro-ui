@@ -4,6 +4,7 @@ import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/
 import { fleschKincaid, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "./copy";
 
 await loadPageCode("/nautilus/");
@@ -176,33 +177,23 @@ describe("Chapter I", () => {
     expect(crew()).toContain(speaker);
   });
 
-  it("says the signing aloud once: the toast, and Conseil's welcome", async () => {
+  it("says the signing aloud once, in Conseil's welcome, with no toast over the row that already shows it", async () => {
     await renderPage("/nautilus/");
     await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ana");
     await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
     await userEvent.click(page.getByRole("option", { name: "Cook" }));
     await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
+    const form = () => document.querySelector("[data-composition='articles'] form");
+    const signed = form();
     const announced = watchAnnouncements();
     await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
-    await expect.poll(() => announced.count(ARTICLES.signed("Ana"))).toBe(1);
     await expect.poll(() => announced.count(SIGN.welcome("Ana", "Cook").text)).toBe(1);
+    // What follows the press's paint (the new, empty form) has come, and React has rendered it all.
+    await expect.poll(form).not.toBe(signed);
+    await act(() => undefined);
     announced.stop();
-  });
-
-  it("keeps one note for repeated signings, each replacing the one still showing", async () => {
-    await renderPage("/nautilus/");
-    const notes = () => document.querySelectorAll('[data-ouro="toast"]');
-    for (const name of ["Ana", "Ben", "Cy"]) {
-      await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), name);
-      await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
-      await userEvent.click(page.getByRole("option", { name: "Cook" }));
-      await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
-      await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
-      await expect.element(page.getByRole("button", { name: ARTICLES.leave })).toBeVisible();
-      await userEvent.click(page.getByRole("button", { name: ARTICLES.leave }));
-    }
-    await expect.poll(() => notes()[0]?.querySelector("[data-ouro-toast-title]")?.textContent).toBe(ARTICLES.signed("Cy"));
-    expect(notes()).toHaveLength(1);
+    expect(document.querySelectorAll('[data-ouro="toast"]')).toHaveLength(0);
+    expect(announced.changes.filter((change) => change.region.closest('[data-ouro="toaster"]'))).toEqual([]);
   });
 
   it("has Conseil refuse aloud, politely, while the articles want a trade and the oath", async () => {

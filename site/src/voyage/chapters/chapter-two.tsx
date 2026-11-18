@@ -13,9 +13,7 @@ import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-cont
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
-import { toast } from "@/registry/ouro/lib/ouro/toast";
 import chartSource from "../../nautilus/art/voyage-chart.svg?raw";
-import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import { labelBox, labelStyle, parseArt, type Art } from "../stage/art";
 import type { CrewLine } from "./copy";
@@ -442,7 +440,6 @@ function arrange(rows: readonly Specimen[], sort: Sort, show: string): Specimen[
  */
 function Catalogue(): JSX.Element {
   const store = usePlanStore();
-  const box = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<Sort>("name");
   const [show, setShow] = useState("all");
   useLiveCode<CatalogueLive>({ sort, show });
@@ -467,12 +464,10 @@ function Catalogue(): JSX.Element {
     setFound([...found, find.id]);
     setGuess(null);
     say(found.length + 1 === FINDS.length ? CLASSING.finished : CLASSING.right(find.name, kind));
-    toast(CLASSING.toast(kind), { tone: "success", description: CLASSING.toastNote(find.name) });
-    keepClearOfToasts(box.current?.querySelector("[data-chapter-crew]"));
   };
 
   return (
-    <div ref={box}>
+    <div>
       <div className="flex flex-wrap items-end gap-4 border-b border-border/70 py-4 sm:py-6">
         <div data-chapter-control="sort">
           <SegmentedControl label={CATALOGUE.sort} items={CATALOGUE.sorts} value={sort} onValueChange={(value) => setSort(value as Sort)} />

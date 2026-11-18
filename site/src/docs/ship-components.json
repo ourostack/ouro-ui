@@ -35,6 +35,9 @@
     "conversation-list": [
       "/nautilus/"
     ],
+    "copy-button": [
+      "/"
+    ],
     "date-picker": [
       "/nautilus/"
     ],

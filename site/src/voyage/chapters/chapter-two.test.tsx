@@ -4,6 +4,7 @@ import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/
 import { fleschKincaid, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, FINDS, PLANNING, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
 import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 
@@ -123,15 +124,17 @@ describe("Chapter II", () => {
     expect(step()!.hasAttribute("data-done")).toBe(false);
   });
 
-  it("classes a find: Conseil says so once, and it joins the catalogue", async () => {
+  it("classes a find: Conseil says so once, it joins the catalogue, and no toast repeats it", async () => {
     await renderPage("/nautilus/");
     const announced = watchAnnouncements();
     await userEvent.click(page.getByRole("combobox", { name: CATALOGUE.classify }));
     await userEvent.click(page.getByRole("option", { name: "Crustacean" }));
-    await expect.poll(() => announced.count(CLASSING.toast("Crustacean"))).toBe(1);
     await expect.poll(() => announced.count(CLASSING.right(FINDS[0].name, "Crustacean").text)).toBe(1);
-    announced.stop();
     await expect.element(page.getByRole("link", { name: new RegExp(FINDS[0].name) })).toBeInTheDocument();
+    await act(() => undefined);
+    announced.stop();
+    expect(document.querySelectorAll('[data-ouro="toast"]')).toHaveLength(0);
+    expect(announced.changes.filter((change) => change.region.closest('[data-ouro="toaster"]'))).toEqual([]);
   });
 });
 

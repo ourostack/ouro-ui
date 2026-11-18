@@ -188,8 +188,6 @@ export const CLASSING = {
   opening: { name: "Conseil", text: "A new find. Which group does it go in?" },
   wrong: (kind: string, hint: string): CrewLine => ({ name: "Conseil", text: `Hmm, not a ${kind.toLowerCase()}. ${hint}` }),
   right: (name: string, kind: string): CrewLine => ({ name: "Conseil", text: `${name}: ${kind.toLowerCase()}. Quite right. Into the book it goes.` }),
-  toast: (kind: string) => `Sorted: ${kind}`,
-  toastNote: (name: string) => `The ${name.toLowerCase()} is in the book.`,
   finished: { name: "Conseil", text: "That was the last one. The book is up to date." },
 } as const satisfies Record<string, unknown>;
 
@@ -242,10 +240,10 @@ export const CODE_SHEETS_TWO = {
       { text: "SegmentedControl and Select: the sort and the filter.", code: ({ sort, show }: CatalogueLive) => `<SegmentedControl label="${CATALOGUE.sort}" items={sorts} value="${sort}" onValueChange={setSort} />\n<Select label="${CATALOGUE.filter}" options={groups} value="${show}" onValueChange={setShow} />` },
       { text: "HoverCard and Link: a note when you point at a name, and the link when you tap it.", code: `<HoverCard trigger={<Link href={href} external>{name}</Link>}>{note}</HoverCard>` },
       { text: "Combobox: the list of groups, filtered as you type.", code: `<Combobox label="Which group?" items={groups} value={guess} onValueChange={check} />` },
-      { text: "Toast and Sheet: the news when a find is sorted, and the museum.", code: `toast("Sorted: Mollusc", { tone: "success" })\n<Sheet title="Captain Nemo's museum" trigger={<Button>Visit the museum</Button>}>` },
+      { text: "Sheet: the museum.", code: `<Sheet title="Captain Nemo's museum" trigger={<Button>Visit the museum</Button>}>` },
     ],
     site: ["The order of the rows, and which ones show.", "The right group for a find.", "The museum's treasures."],
-    uses: ["Table", "SegmentedControl", "Select", "HoverCard", "Combobox", "Toast", "Sheet"],
+    uses: ["Table", "SegmentedControl", "Select", "HoverCard", "Combobox", "Sheet"],
     start: { sort: "name", show: "all" } as CatalogueLive,
   },
   radio: {
@@ -296,8 +294,6 @@ export function allChapterTwoText(example: { day: string; leagues: string; more:
     CLASSING.opening.text,
     CLASSING.wrong("Fish", FINDS[1].hint).text,
     CLASSING.right("Octopus", "Mollusc").text,
-    CLASSING.toast("Mollusc"),
-    CLASSING.toastNote("Octopus"),
     CLASSING.finished.text,
     ...Object.values(PLANNING).flatMap((value) => (typeof value === "string" ? [value] : [])),
     PLANNING.routeLeft(example.leagues),
