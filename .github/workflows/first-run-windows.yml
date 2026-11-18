@@ -8,19 +8,14 @@ on:
       - registry/ouro/check/first-run*
       - scripts/check/first-run-windows/**
       - .github/workflows/first-run-windows.yml
-  push:
-    branches: [main]
-    paths:
-      - registry/ouro/check/first-run*
-      - scripts/check/first-run-windows/**
-      - .github/workflows/first-run-windows.yml
   workflow_dispatch:
 permissions:
   contents: read
 defaults:
   run:
     shell: bash
-# A push to a pull request cancels that pull request's run in progress; a push to main or a dispatch is never cancelled.
+# A push to a pull request cancels that pull request's run in progress; a dispatched run is never cancelled. It runs on no
+# push to main, where it isn't a required check: the pull request's run gated the change.
 concurrency:
   group: first-run-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
