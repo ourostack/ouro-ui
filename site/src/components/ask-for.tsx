@@ -1,6 +1,5 @@
 import type { JSX } from "react";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
-import { SITE } from "../head";
 import { GITHUB } from "../paths";
 
 /** What a search asked for, trimmed to a name that reads in a sentence. */
@@ -14,7 +13,7 @@ export function askForUrl(query: string): string {
   const name = query.trim().replace(/\s+/g, " ");
   const params = new URLSearchParams({
     title: `Component request: ${name}`,
-    body: `I searched ${SITE}/docs/ for "${name}" and found nothing.\n\nWhat I want it to do:\n\n`,
+    body: `I searched the Ouro UI docs for "${name}" and found nothing.\n\nWhat I want it to do:\n\n`,
   });
   return `${GITHUB}/issues/new?${params}`;
 }
