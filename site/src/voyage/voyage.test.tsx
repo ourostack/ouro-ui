@@ -375,6 +375,13 @@ describe("the Nautilus's page", () => {
     expect(opening.querySelector("[lang='la']")).toBeNull();
   });
 
+  it("credits its pictures to us as pictures in the footer, now that they are paintings, not drawings", async () => {
+    await renderPage("/nautilus/");
+    const footer = page.getByRole("contentinfo").element();
+    expect(footer.textContent).toContain("Our pictures are our own.");
+    expect(footer.textContent).not.toMatch(/drawings/i);
+  });
+
   it.each(["/", "/nautilus/"])("turns X-ray on at load on %s when the address asks with ?xray", async (path) => {
     await page.viewport(1280, 800);
     const before = location.href;

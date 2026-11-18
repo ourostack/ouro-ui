@@ -60,7 +60,7 @@ let audio: AudioContext | undefined;
 /** Plays taps as soft clicks: a short, quickly fading tone per tap, brighter for a crisper tap. */
 export function playClicks(taps: Tap[]): void {
   const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Context) return;
+  if (!Context || navigator.webdriver) return;
   audio ??= new Context();
   void audio.resume();
   const start = audio.currentTime + 0.01;

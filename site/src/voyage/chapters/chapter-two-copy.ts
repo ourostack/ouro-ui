@@ -184,7 +184,8 @@ export const PLANNING = {
   routeLeft: (leagues: string) => `${leagues} leagues so far.`,
   sail: "Choose the day",
   sailOn: (day: string) => `Sail on ${day}.`,
-  sailNot: "Not chosen yet.",
+  /** Before the reader picks a day: the day the field starts on, and the step is to pick one of their own. */
+  sailFor: (day: string) => `We sail ${day} for now. Pick your own day.`,
   classes: "Sort the finds",
   classed: (count: number, total: number) => `${count} of ${total} sorted.`,
 } as const;
@@ -281,6 +282,7 @@ export function allChapterTwoText(example: { day: string; leagues: string; more:
     ...Object.values(PLANNING).flatMap((value) => (typeof value === "string" ? [value] : [])),
     PLANNING.routeLeft(example.leagues),
     PLANNING.sailOn(example.day),
+    PLANNING.sailFor(example.day),
     PLANNING.classed(2, 4),
     MUSEUM.title,
     MUSEUM.description,

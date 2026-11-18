@@ -61,6 +61,23 @@ const useVoyageStore = () => use(VoyageContext)!;
 
 const partNamed = (id: PartId) => PARTS.find((part) => part.id === id)!;
 
+/** The rule the jobs are held to: the order of work you set, with the hull before the rest, since every part needs it. */
+const ruleOf = (order: readonly PartId[]): readonly PartId[] => ["hull", ...order.filter((id) => id !== "hull")];
+
+/**
+ * The jobs ticked out of order, as HX's Checklist reads them with `ordered`: each ticked job with an
+ * unticked job before it in the rule (their ids, sorted, in one string), and that first unticked job.
+ */
+function heldBack(rule: readonly PartId[], built: ReadonlySet<PartId>): { heldKey: string; first: PartId | undefined } {
+  const held = new Set<PartId>();
+  let first: PartId | undefined;
+  for (const id of rule) {
+    if (!built.has(id)) first ??= id;
+    else if (first) held.add(id);
+  }
+  return { heldKey: [...held].sort().join(" "), first: held.size ? first : undefined };
+}
+
 /**
  * Chapter I, "Build the ship" (site-design.md): the shipyard, where Ouro HX's Reorderable and
  * Checklist build the Nautilus on an engraved plan, and the ship's articles, where an HX Form signs
@@ -151,8 +168,12 @@ function Onward({ control }: { control: "next" | "signed-next" }): JSX.Element {
   );
 }
 
-/** The engraved plan: each built part drawn in, and once launched the finished ship slides into the sea and the plan becomes a painting of her afloat, with the way on. */
-const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
+/**
+ * The engraved plan: each built part drawn in, a part ticked out of order as a faint, dashed ghost
+ * that settles in once the jobs before it are done, and once launched the finished ship slides into
+ * the sea and the plan becomes a painting of her afloat, with the way on.
+ */
+const Plan = memo(function Plan({ built, ghosts, launched, ref }: { built: ReadonlySet<PartId>; ghosts: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
   return (
     // Brought into view at the launch, it clears the header and a phone's chapter marker under it, so the crew on
     // deck show whole.
@@ -161,12 +182,13 @@ const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<P
         className="site-blueprint"
         viewBox={blueprint.viewBox}
         role="img"
-        aria-label={describePlan(built, launched)}
+        aria-label={describePlan(built, ghosts, launched)}
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
         data-built={[...built].join(" ")}
+        data-ghost={[...ghosts].join(" ")}
         data-launched={launched ? "" : undefined}
         dangerouslySetInnerHTML={{ __html: blueprint.inner }}
       />
@@ -211,16 +233,22 @@ function PlanShip({ night }: { night: boolean }): JSX.Element {
 }
 
 /** What the plan shows, in words, for screen readers. */
-function describePlan(built: ReadonlySet<PartId>, launched: boolean): string {
+function describePlan(built: ReadonlySet<PartId>, ghosts: ReadonlySet<PartId>, launched: boolean): string {
   if (launched) return "The Nautilus, built and afloat.";
-  const drawn = PARTS.filter((part) => built.has(part.id)).map((part) => part.name.toLowerCase());
-  return drawn.length ? `${SHIPYARD.blueprint}. Drawn so far: ${drawn.join(", ")}.` : `${SHIPYARD.blueprint}. Only the keel lines so far.`;
+  const named = (keep: (id: PartId) => boolean) => PARTS.filter((part) => keep(part.id)).map((part) => part.name.toLowerCase());
+  const drawn = named((id) => built.has(id) && !ghosts.has(id));
+  const faint = named((id) => ghosts.has(id));
+  const said = drawn.length ? `${SHIPYARD.blueprint}. Drawn so far: ${drawn.join(", ")}.` : `${SHIPYARD.blueprint}. Only the keel lines so far.`;
+  return faint.length ? `${said} ${SHIPYARD.ghosts(faint.join(", "))}` : said;
 }
 
 /**
  * The shipyard: put the jobs in order (Reorderable), tick them off (Checklist, in that order, a
- * day each), watch the plan gain each part and the bar fill (Progress), then Launch. The site owns
- * the order, the ticks and the plan; HX owns how each control behaves and what it announces.
+ * day each), watch the plan gain each part and the bar fill (Progress), then Launch. The order you
+ * set is the rule, with the hull first: a job ticked before its turn is out of order (the
+ * Checklist's `ordered`), a ghost on the plan, and not yet counted, until the jobs before it are
+ * done. The site owns the order, the ticks and the plan; HX owns how each control behaves and what
+ * it announces.
  */
 function Shipyard(): JSX.Element {
   const voyage = useVoyageStore();
@@ -233,17 +261,23 @@ function Shipyard(): JSX.Element {
   const hint = useId();
   const [line, setLine] = useState<CrewLine>(YARD.opening);
   const [emptying, startEmptying] = useTransition();
-  const left = PARTS.length - built.size;
-  const ready = left === 0 && !launched && !emptying;
-  // The plan follows the controls a frame later: a press repaints its own control first, then the
-  // drawing (a deferred render), so no press waits on the plan's repaint.
-  const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
-  // The rail follows the plan, and the ship's log (Chapter III) the launch: a job a day.
-  useEffect(() => voyage.set(plan), [voyage, plan]);
-  useEffect(() => writeLog({ launched: plan.launched ? PARTS.length : null }), [plan.launched]);
   // The jobs follow a reorder once it has painted: the handles' list and its menu are the press's
   // own, and the checklist renders again for the new order.
   const jobOrder = useAfterPaint(order);
+  const rule = useMemo(() => ruleOf(jobOrder), [jobOrder]);
+  const { heldKey, first } = useMemo(() => heldBack(rule, built), [rule, built]);
+  // The same jobs held back keep the same set, so a reorder that changes none redraws neither the plan nor the rail.
+  const held = useMemo(() => new Set(heldKey ? heldKey.split(" ") : []) as ReadonlySet<PartId>, [heldKey]);
+  const left = PARTS.length - built.size;
+  const placed = built.size - held.size;
+  const ready = left === 0 && !launched && !emptying;
+  // The plan follows the controls a frame later: a press repaints its own control first, then the
+  // drawing (a deferred render), so no press waits on the plan's repaint.
+  const plan = useDeferredValue(useMemo(() => ({ built, ghosts: held, launched }), [built, held, launched]));
+  // The rail follows the plan, counting only the parts in place, and the ship's log (Chapter III)
+  // the launch: a job a day.
+  useEffect(() => voyage.set({ built: new Set([...plan.built].filter((id) => !plan.ghosts.has(id))), launched: plan.launched }), [voyage, plan]);
+  useEffect(() => writeLog({ launched: plan.launched ? PARTS.length : null }), [plan.launched]);
 
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
@@ -297,7 +331,7 @@ function Shipyard(): JSX.Element {
 
   return (
     <div>
-      <Plan ref={drawing} built={plan.built} launched={plan.launched} />
+      <Plan ref={drawing} built={plan.built} ghosts={plan.ghosts} launched={plan.launched} />
       <div className="grid gap-6 py-4 sm:grid-cols-2 sm:py-6">
         <div data-chapter-control="order">
           <p className="site-eyebrow mb-2" aria-hidden="true">
@@ -309,19 +343,19 @@ function Shipyard(): JSX.Element {
           <p className="site-eyebrow mb-2" aria-hidden="true">
             {SHIPYARD.jobs}
           </p>
-          <JobList order={jobOrder} built={built} onTick={tick} />
+          <JobList order={jobOrder} rule={rule} built={built} onTick={tick} />
         </div>
       </div>
       <div className="grid gap-4 border-t border-border/70 py-4 sm:py-6">
-        <Progress label={SHIPYARD.progress} value={(built.size / PARTS.length) * 100} showValue />
+        <Progress label={SHIPYARD.progress} value={(placed / PARTS.length) * 100} showValue />
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* The crew turns out with the plan, a frame after the press: the press paints Launch's own change first (#2067). */}
           <Crew line={line} cheer={plan.launched} />
           <div className="flex shrink-0 items-center gap-3" data-chapter-control="launch">
             <span id={hint} className="text-sm text-muted-foreground" data-chapter-launch-hint="">
-              {launched ? SHIPYARD.launched : SHIPYARD.launchHint(emptying ? PARTS.length : left)}
+              {launched ? SHIPYARD.launched : first && !emptying ? SHIPYARD.outOfOrder(partNamed(first).job) : SHIPYARD.launchHint(emptying ? PARTS.length : left)}
             </span>
-            <Button size="md" disabled={emptying || (!launched && left > 0)} aria-describedby={hint} variant={ready ? "solid" : "outline"} tone={ready ? "primary" : "secondary"} onClick={launch}>
+            <Button size="md" disabled={emptying || (!launched && (left > 0 || held.size > 0))} aria-describedby={hint} variant={ready ? "solid" : "outline"} tone={ready ? "primary" : "secondary"} onClick={launch}>
               {launched || emptying ? SHIPYARD.again : SHIPYARD.launch}
             </Button>
           </div>
@@ -340,8 +374,17 @@ const OrderList = memo(function OrderList({ order, onReorder }: { order: readonl
   return <Reorderable label={SHIPYARD.order} items={order.map((id) => ({ id, label: partNamed(id).name }))} onReorder={onReorder} />;
 });
 
-const JobList = memo(function JobList({ order, built, onTick }: { order: readonly PartId[]; built: ReadonlySet<PartId>; onTick: (id: string, checked: boolean) => void }): JSX.Element {
-  return <Checklist label={SHIPYARD.jobs} hideLabel items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id) }))} onCheckedChange={onTick} />;
+const JobList = memo(function JobList({ order, rule, built, onTick }: { order: readonly PartId[]; rule: readonly PartId[]; built: ReadonlySet<PartId>; onTick: (id: string, checked: boolean) => void }): JSX.Element {
+  return (
+    <Checklist
+      label={SHIPYARD.jobs}
+      hideLabel
+      items={order.map((id, index) => ({ id, label: partNamed(id).job, value: SHIPYARD.day(index + 1), checked: built.has(id) }))}
+      ordered={rule}
+      outOfOrderLabel={SHIPYARD.first}
+      onCheckedChange={onTick}
+    />
+  );
 });
 
 const tradeLabel = (value: string) => TRADES.find((trade) => trade.value === value)?.label ?? value;

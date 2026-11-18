@@ -79,6 +79,12 @@ export const SHIPYARD = {
   launch: "Launch",
   again: "Build her again",
   launchHint: (left: number) => (left === 0 ? "All done. She is ready." : left === 1 ? "One job left." : `${left} jobs left.`),
+  /** Under a job ticked out of order (HX's Checklist note): the job that comes first. */
+  first: (job: string) => `First: ${job.toLowerCase()}`,
+  /** Beside Launch while a job is out of order: why she waits. */
+  outOfOrder: (job: string) => `Out of order. ${job} first.`,
+  /** The plan, for screen readers: the parts drawn as ghosts, out of order. */
+  ghosts: (parts: string) => `Out of order, drawn faint: ${parts}.`,
   launched: "She is afloat.",
   /** Under the plan once she floats: what is done, before the way on (ONWARD). */
   afloat: "Built and afloat.",
@@ -187,13 +193,13 @@ export const CODE_SHEETS = {
     description: "Ouro HX does the controls. The site does the ship.",
     hx: [
       { text: "Reorderable: the drag, the moves by key and by menu, and what screen readers hear.", code: `<Reorderable label="Order of work" items={plan} onReorder={reorder} />` },
-      { text: claim("Checklist: the ticks, the line through each done job, and the day on each row.", { source: { test: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, verify: [{ testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, { testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > describes a row by its description and value" }] }), code: `<Checklist label="Jobs" items={jobs} onCheckedChange={tick} />` },
+      { text: claim("Checklist: the ticks, the line through each done job, the day on each row, and a job ticked out of turn in the warning tone.", { source: { test: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, verify: [{ testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, { testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > describes a row by its description and value" }, { testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist ordered > marks a step ticked before the one that comes first, names that step, and announces it" }] }), code: `<Checklist label="Jobs" items={jobs} ordered={rule} onCheckedChange={tick} />` },
       { text: "Progress: the bar, and the number screen readers read.", code: `<Progress label="Ship built" value={built * 20} showValue />` },
       { text: "Button: the press, and Launch kept off until the work is done.", code: `<Button disabled={left > 0} onClick={launch}>Launch</Button>` },
       { text: "Link: the way on to the next chapter once she floats, big enough for a thumb on a phone.", code: `<Link href="#chapter-two">Plan the voyage</Link>` },
       { text: "Sheet: this panel.", code: `<Sheet title="How the shipyard is built" side="right" open={open} onOpenChange={setOpen}>` },
     ],
-    site: ["The plan of the ship, and the parts it draws.", "The rule for a good order, and what the crew says.", "The launch."],
+    site: ["The plan of the ship, the parts it draws, and the ghost of a part out of turn.", "The rule for a good order, and what the crew says.", "The launch."],
     uses: ["Reorderable", "Checklist", "Progress", "Button", "Link", "Sheet"],
   },
   articles: {
@@ -224,6 +230,9 @@ export function allChapterOneText(): string[] {
     SHIPYARD.launchHint(0),
     SHIPYARD.launchHint(1),
     SHIPYARD.launchHint(3),
+    SHIPYARD.first(PARTS[0].job),
+    SHIPYARD.outOfOrder(PARTS[0].job),
+    SHIPYARD.ghosts("lantern"),
     YARD.opening.text,
     YARD.hull.text,
     YARD.noHull("Lantern").text,
