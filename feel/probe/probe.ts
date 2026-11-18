@@ -441,7 +441,8 @@ function install(): OuroFeel {
     const delta = scrollTop - (sampled?.[0] ?? scrollTop);
     for (let index = motions.length - 1; index >= 0; index--) {
       const motion = motions[index]!;
-      if (Math.sign(delta) !== motion.direction || Math.abs(delta) < MOVE_PX) continue;
+      // As the meter does, a wheel waits for a frame that began after it.
+      if (motion.at > lastFrameAt || Math.sign(delta) !== motion.direction || Math.abs(delta) < MOVE_PX) continue;
       const ms = Math.max(0, lastFrameAt - motion.at);
       toMotionMs.push(ms);
       toMotionFrames.push(frames - motion.frame);
@@ -492,15 +493,21 @@ function install(): OuroFeel {
     return measures;
   }
 
+  /** The wheel events that never moved the list: those a frame began after, as the meter leaves out one that none did. */
+  function neverMoved(): Motion[] {
+    return motions.filter((motion) => motion.at <= lastFrameAt);
+  }
+
   /**
    * How long wheel events took to move the list, at the 95th percentile and at most, as the frame meter takes them: one that never
    * moved it counts until the last frame, in ms, and as never in frames, which leaves the frames out once it reaches them.
    */
   function inputToMotion(): Measures {
-    const measures: Measures = { inputNeverMoved: motions.length, inputAtEdge };
-    const ms = [...toMotionMs, ...motions.map((motion) => Math.max(0, lastFrameAt - motion.at))];
+    const never = neverMoved();
+    const measures: Measures = { inputNeverMoved: never.length, inputAtEdge };
+    const ms = [...toMotionMs, ...never.map((motion) => lastFrameAt - motion.at)];
     if (ms.length === 0) return measures;
-    const counted = [...toMotionFrames, ...motions.map(() => Infinity)];
+    const counted = [...toMotionFrames, ...never.map(() => Infinity)];
     measures.inputToMotionP95Ms = Math.round(p95(ms));
     measures.inputToMotionMaxMs = Math.round(Math.max(...ms));
     if (p95(counted) !== Infinity) measures.inputToMotionP95Frames = p95(counted);
@@ -566,7 +573,7 @@ function install(): OuroFeel {
           anchorShiftPx: Math.round(anchorShiftPx),
           anchorMovePx: Math.round(anchorMovePx * 10) / 10,
           // Those that moved the list 100 ms or more after they came, and those that never moved it.
-          deadInput: deadInput + motions.length,
+          deadInput: deadInput + neverMoved().length,
           wheelInputs,
           forcedLayouts,
           layoutReads,

@@ -506,3 +506,27 @@ test("Ouro Feel's probe follows the reader's row by its id, or the attribute wat
     await browser.close();
   }
 });
+
+test("Ouro Feel's probe leaves out a wheel event no frame began after, as a chat app's frame meter does", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto">${Array.from({ length: 60 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, WheelEvent } = globalThis;
+      ouroFeel.watch({ case: "late wheel", scroller: "#list", rows: ".row" });
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      // A wheel down the list, then the case stops in the same task, before any frame begins after it.
+      document.getElementById("list").dispatchEvent(new WheelEvent("wheel", { deltaY: 100, bubbles: true }));
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.wheelInputs, 1);
+    assert.equal(measures.inputNeverMoved, 0);
+    assert.equal(measures.deadInput, 0);
+    assert.equal(measures.inputToMotionMaxMs, undefined);
+  } finally {
+    await browser.close();
+  }
+});
