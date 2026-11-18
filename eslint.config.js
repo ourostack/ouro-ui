@@ -4,7 +4,8 @@ import tseslint from "typescript-eslint";
 import comments from "./scripts/lint/comments.mjs";
 
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "storybook-static", "_site", "node_modules", ".tmp", "site/dist", "test/install-fixture", "test/install-fixture-tests", "test/install-fixture-upgrade", "test/install-fixture-next", "test/install-fixture-themes", "scripts/agent-usability/runs", "scripts/agent-benchmark/vendor", "scripts/ouro-actions", "scripts/agent-benchmark/fixture/generated", "scripts/agent-benchmark/results", "test-results", "playwright-report"] },
+  // ouro-feel-probe.js is built from feel/probe/probe.ts, which is linted (scripts/registry.mts feelProbeScript).
+  { ignores: ["dist", "coverage", "storybook-static", "_site", "node_modules", ".tmp", "site/dist", "test/install-fixture", "test/install-fixture-tests", "test/install-fixture-upgrade", "test/install-fixture-next", "test/install-fixture-themes", "scripts/agent-usability/runs", "scripts/agent-benchmark/vendor", "scripts/ouro-actions", "scripts/agent-benchmark/fixture/generated", "scripts/agent-benchmark/results", "test-results", "playwright-report", "registry/ouro/feel/ouro-feel-probe.js"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   reactHooks.configs.flat.recommended,

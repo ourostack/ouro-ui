@@ -478,6 +478,16 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 
 `ouro-images` installs `scripts/ouro/images/images.ts`, outside your TypeScript project, with the [Ouro AX](ax.md) files it runs on in `lib/ouro/ax/`, imported as `#ouro-ax/<file>` (the imports line in [the screen check](#the-screen-check) names that folder), and names `sharp` as a devDependency.
 
+## How a list feels
+
+[Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.292
+```
+
+It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
+
 ## The first-run harness
 
 Ouro check reads pages. A first run also needs a scripted session against the installed app, from a fresh machine, where the person dismisses the dialogs, presses controls early, quits, goes offline and signs out, and the app must still end signed in and synced, or offer one obvious way forward.[^first-run-detours] Ouro check ships that harness for a Mac app beside the check, in `scripts/ouro/check/first-run.ts`.[^first-run-session] It reads what a person reads, so the shipped build needs no test hooks: the system's accessibility tree, through `first-run-ax-tree.swift` (built with `swiftc` on the run's Mac), and the screen's pixels.[^first-run-eyes]
@@ -692,3 +702,4 @@ A control's shortcut reads the same on both, since the eyes send Ctrl where a Ma
 [^first-run-windows-firewall]: test:scripts/check/first-run-windows.test.mts::first-run harness on Windows > holds the network with Windows Firewall's outbound rules, turns the firewall on for the hold, and puts it back verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > holds the network with Windows Firewall's outbound rules, turns the firewall on for the hold, and puts it back)
 [^first-run-windows-login]: test:scripts/check/first-run-windows.test.mts::first-run harness on Windows > lists the Run keys and the Startup folder as login items, which leftovers reads verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > lists the Run keys and the Startup folder as login items, which leftovers reads)
 [^first-run-windows-proof]: .github/workflows/first-run-windows.yml; scripts/check/first-run-windows/proof.mts verify:fileLine(.github/workflows/first-run-windows.yml, /^    runs-on: windows-latest$/) verify:fileLine(scripts/check/first-run-windows/proof.mts, /expect\("blank after dismiss", !blank\.ok && caught\?\.ok === false/)
+[^feel-probe]: test:scripts/registry.test.mjs::ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is verify:testExists(scripts/registry.test.mjs::ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is)

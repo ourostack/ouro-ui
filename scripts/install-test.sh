@@ -20,7 +20,7 @@
 #         versions in package.json), add two more items, a component again with --overwrite and
 #         a tests item, and check that the stylesheet and package.json are byte for byte what
 #         they were: a later add never undoes an app's setup.
-# shadcn, in the check job (OURO_CHECK_ONLY), then adds ouro-check, ouro-images and the Ouro AX kit
+# shadcn, in the check job (OURO_CHECK_ONLY), then adds ouro-check, ouro-images, the Ouro AX kit and Ouro Feel's probe
 #         with its tests as the CLI installs them, and checks that a strict tsconfig with no Node
 #         types passes, that each Ouro AX file installed once, and that the kit's tests and the check's help run.
 # ouro:   the app installs the ouro-theme item first, from GitHub at <ref> (default HEAD,
@@ -771,19 +771,23 @@ fi
 
 # The Node-only tools, added by the CLI where it puts them. A strict app tsconfig with no Node types must
 # pass with them installed beside the app's own files, each Ouro AX file must install once, the kit's
-# tests must run in Node through the imports entry alone, and the check's help must run. Only the check
+# tests must run in Node through the imports entry alone, the check's help must run, and Ouro Feel's probe
+# must arrive unchanged. Only the check
 # job runs this (OURO_CHECK_ONLY, on an app it restored and may change: it saves nothing).
 if [ -n "${OURO_CHECK_ONLY:-}" ] && [ "$variant" = shadcn ]; then
 echo "::group::The Node-only tools where the CLI puts them: a strict type check, the kit's tests, the check's help"
 # The check job restores the app without building a registry, so this builds this commit's, as the delta path does.
 node "$root/scripts/registry.mts" --out "$registry/registry.json" --deps "$registry/r/{name}.json"
 "${shadcn[@]}" build "$registry/registry.json" --output "$registry/r" --cwd "$root"
-"${shadcn[@]}" add --yes "$registry/r/ouro-check.json" "$registry/r/ouro-images.json" "$registry/r/ouro-ax.json" "$registry/r/ouro-ax-tests.json"
+"${shadcn[@]}" add --yes "$registry/r/ouro-check.json" "$registry/r/ouro-images.json" "$registry/r/ouro-ax.json" "$registry/r/ouro-ax-tests.json" "$registry/r/ouro-feel-probe.json"
 npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"
 node "$root/scripts/install-check.mjs" --node-tools "$app"
 npx tsc -b
 node --test scripts/ouro/ax/*.test.mts
 node scripts/ouro/check/check.ts --help
+# Ouro Feel's probe arrives as the registry built it, a plain script the CLI leaves unchanged.
+cmp scripts/ouro/feel/ouro-feel-probe.js "$root/registry/ouro/feel/ouro-feel-probe.js"
+node --check scripts/ouro/feel/ouro-feel-probe.js
 echo "::endgroup::"
 fi
 
