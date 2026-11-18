@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-18T13:56:14.784Z",
+  "generatedAt": "2026-11-18T14:28:27.265Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -58,7 +58,7 @@
     },
     {
       "repo": "ourostack/desk",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "plugins/desk/mcp/src/lib/ouro-actions/dist-manifest.json",
@@ -70,15 +70,12 @@
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 86c8719",
+          "current": "commit 3394ac5",
           "latest": "v1.3.298",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1231,
-        "url": "https://github.com/ourostack/desk/pull/1231"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/factory",
@@ -385,14 +382,14 @@
     },
     {
       "repo": "spoonjoy/spoonjoy-v2",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.296",
+          "current": "v1.3.298",
           "latest": "v1.3.298",
-          "behind": true
+          "behind": false
         },
         {
           "file": "vendor/ouro-ui-core/pin.json",
@@ -402,10 +399,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 768,
-        "url": "https://github.com/spoonjoy/spoonjoy-v2/pull/768"
-      }
+      "pr": null
     }
   ]
 }
