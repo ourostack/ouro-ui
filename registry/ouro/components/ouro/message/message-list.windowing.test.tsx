@@ -1482,6 +1482,22 @@ describe("MessageList windowing", () => {
     expect(drawn).toBe(true);
   });
 
+  it("draws, in the task messages in view are deleted, the rows already in the list that the overscan then reaches, holding none for later frames", async () => {
+    const { root, scroller } = await render(<ShortRows ids={span(0, 300)} />);
+    await scrollTo(scroller, scroller.scrollHeight / 2);
+    const reading = firstVisible(scroller);
+    // Twenty messages from the one at the view's top: the rows below move up, and the band reaches rows it had not drawn.
+    const gone = new Set(span(Number(reading.message.id.slice(1)), 20));
+    let atEnd: number[] = [];
+    await landInATask(
+      () => flushSync(() => root.render(<ShortRows ids={span(0, 300).filter((id) => !gone.has(id))} />)),
+      () => (atEnd = ids(scroller)),
+    );
+    await settle(scroller);
+    // No message that was in the list waits for a later frame: the rows after the task are the rows at its end.
+    expect(ids(scroller).filter((id) => !atEnd.includes(id))).toEqual([]);
+  });
+
   it("draws the rows past the view's edges of another conversation it opens all at once after its first frame, not a chunk a frame", async () => {
     const { root, scroller } = await render(<ShortRows ids={span(0, 300)} conversation="ana" keyOf={(id) => `ana-${id}`} />);
     await act(async () => root.render(<ShortRows ids={span(0, 300)} conversation="theo" keyOf={(id) => `theo-${id}`} />));
