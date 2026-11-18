@@ -129,6 +129,17 @@ describe("findDeadZones: which cards it judges, and how it names them", () => {
     expect(issues().map(([, element]) => element)).toEqual(['article.card "First"']);
   });
 
+  it("judges no box around a link the page positions: its ::after only widens the link's tap target (ourostack/ouroboros-website's .hit)", () => {
+    // As the website's article on /lab/model-reviews/: a section with a link to its transcript, not a card that is one link.
+    const hit = "<style>.hit { position: relative; } .hit::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 2.75rem); height: max(100%, 2.75rem); transform: translate(-50%, -50%); }</style>";
+    render(`${hit}<article><h2>Anthropic</h2><p>Verdict</p><a class="hit" href="#x">Read the 3-round transcript</a><blockquote>A quote long enough to fill the box.</blockquote></article>`);
+    expect(issues()).toEqual([]);
+    host.remove();
+    // The same box with a stretched link the page leaves static is still judged.
+    render(`${stretched}<article class="card"><div class="media"></div><div style="position: relative"><a class="s" href="#x">Static</a></div></article>`);
+    expect(issues().map(([, element]) => element)).toEqual(['article.card "Static"']);
+  });
+
   it("skips a card too small to click and a hidden one, and leaves out spots off the screen or under a fixed bar", () => {
     render(
       `${stretched}<article class="card" style="height: 12px; overflow: hidden"><div style="position: relative"><a class="s" href="#x">Tiny</a></div></article>` +
