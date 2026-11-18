@@ -268,7 +268,8 @@ function Shipyard(): JSX.Element {
       <div className="grid gap-4 border-t border-border/70 py-4 sm:py-6">
         <Progress label={SHIPYARD.progress} value={(built.size / PARTS.length) * 100} showValue />
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Crew line={line} cheer={launched} />
+          {/* The crew turns out with the plan, a frame after the press: the press paints Launch's own change first (#2067). */}
+          <Crew line={line} cheer={plan.launched} />
           <div className="flex shrink-0 items-center gap-3" data-chapter-control="launch">
             <span id={hint} className="text-sm text-muted-foreground" data-chapter-launch-hint="">
               {launched ? SHIPYARD.launched : SHIPYARD.launchHint(emptying ? PARTS.length : left)}
