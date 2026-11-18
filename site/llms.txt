@@ -85,7 +85,7 @@ Ouro HX and Ouro AX in Swift, for iPhone, iPad and Mac (ourostack/ouro-ui-apple)
 - OuroA2UI (agent-composed UI, new in 0.5.0): draws Ouro HX's A2UI catalog in SwiftUI, where every button is one of the app's declared actions and follows its consent class.[^a2ui] Since 1.1.0 the catalog also takes fields (`TextField`, `Checkbox` and `Select`), and `ComposedTree` draws a tree that didn't come as A2UI.[^a2ui-1-1] https://github.com/ourostack/ouro-ui-apple/blob/bf029bd61a076fdcdd0c014bb333cd654f08129e/README.md#agent-composed-ui-a2ui
 
 ```swift
-.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "1.1.0")   // the foundations, the X-ray, Feel, Reins and OuroA2UI
+.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "1.2.0")   // the foundations, the X-ray, Feel, Reins and OuroA2UI
 ```
 
 Ouro Feel and Ouro Reins shipped in ouro-ui-apple 0.4.1 as the OuroFeel and OuroReins products.[^feel-reins] Their guides are docs/ouro-feel/README.md and docs/ouro-reins/README.md in that repository.
@@ -129,7 +129,7 @@ Ouro Feel and Ouro Reins shipped in ouro-ui-apple 0.4.1 as the OuroFeel and Ouro
 [^reins-timing]: site/src/apple/evidence/reins-headless-timing.json verify:fileLine(site/src/apple/evidence/reins-headless-timing.json, /"medianMs": 18\.7,/) verify:fileLine(site/src/apple/evidence/reins-headless-timing.json, /"medianJourneyMs": 16677,/)
 [^feel-genres]: site/src/apple/feel-genres.json verify:count(site/src/apple/feel-genres.json#genres)=10
 [^feel-reins]: site/src/apple/kit.json verify:equals(site/src/apple/kit.json#feelReinsRelease)=0.4.1
-[^a2ui-1-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0) verify:equals(site/src/apple/kit.json#release)=1.1.0
+[^a2ui-1-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0)
 [^a2ui]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui)
 [^a2ui-render]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json; test:registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/standard/hx/a2ui/catalog.json) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui)
 [^one-action]: https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5)
