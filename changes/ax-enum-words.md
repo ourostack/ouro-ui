@@ -1,0 +1,1 @@
+- Ouro AX: a positional word outside its arg's values is refused with the usage exit code and a fix that names the closest value, as an enum flag is.
