@@ -1487,3 +1487,63 @@ test("ciReports reads a full run's reports by the commit its artifacts name, and
   const reports = await createSources(client, { unzip }).ciReports(client, "o/r", "abc");
   assert.deepEqual(reports.map((report) => report.findings[0].from), ["ouro-check-1-of-6", "ouro-check-5-of-6-full-abc"]);
 });
+
+test("a prerelease version carried twice in one file moves to the next number, and a JSON changelog gets an entry for it (ourostack/ouroboros)", async () => {
+  const rules = {
+    version: [
+      { path: "package.json", pattern: '^  "version": "([^"]+)"' },
+      { path: "package-lock.json", pattern: '^  "version": "([^"]+)"' },
+      { path: "package-lock.json", pattern: '^      "version": "([^"]+)"' },
+    ],
+    changelog: { path: "changelog.json", json: "versions", text: "Uses {releases}." },
+  };
+  const pkg = '{\n  "name": "@ouro.bot/cli",\n  "version": "0.1.0-alpha.1183"\n}\n';
+  const lock = '{\n  "name": "@ouro.bot/cli",\n  "version": "0.1.0-alpha.1183",\n  "packages": {\n    "": {\n      "version": "0.1.0-alpha.1183"\n    },\n    "node_modules/x": {\n      "version": "1.0.0"\n    }\n  }\n}\n';
+  const changelog = `${JSON.stringify({ _note: "kept", versions: [{ version: "0.1.0-alpha.1183", changes: ["Shipped."] }] }, null, 2)}\n`;
+  const start = { "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify(rules), "package.json": pkg, "package-lock.json": lock, "changelog.json": changelog };
+  const repo = fakeRepo(start, { latestRelease: "v0.1.0-alpha.1183" });
+  await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(repo.fileAt(BRANCH, "package.json"), pkg.replace("1183", "1184"));
+  assert.equal(repo.fileAt(BRANCH, "package-lock.json"), lock.replaceAll("0.1.0-alpha.1183", "0.1.0-alpha.1184"), "both places in the lock move, and another package's version does not");
+  assert.deepEqual(JSON.parse(repo.fileAt(BRANCH, "changelog.json")), { _note: "kept", versions: [{ version: "0.1.0-alpha.1184", changes: ["Uses Ouro UI for Apple v0.9.0."] }, { version: "0.1.0-alpha.1183", changes: ["Shipped."] }] });
+  assert.match(repo.pulls[0].body, /moves to `0\.1\.0-alpha\.1184`, after its latest release `v0\.1\.0-alpha\.1183`/);
+
+  // A bump already waiting to ship keeps its version, and its entry gets the line.
+  const waiting = `${JSON.stringify({ versions: [{ version: "0.1.0-alpha.1184", changes: ["Waiting."] }, { version: "0.1.0-alpha.1183", changes: ["Shipped."] }] }, null, 2)}\n`;
+  const ahead = fakeRepo({ ...start, "package.json": pkg.replace("1183", "1184"), "package-lock.json": lock.replaceAll("1183", "1184"), "changelog.json": waiting }, { latestRelease: "v0.1.0-alpha.1183" });
+  await keepRepo(ahead.gh, "o/r", RELEASES, {});
+  assert.equal(ahead.fileAt(BRANCH, "package.json"), pkg.replace("1183", "1184"));
+  assert.deepEqual(JSON.parse(ahead.fileAt(BRANCH, "changelog.json")).versions[0], { version: "0.1.0-alpha.1184", changes: ["Waiting.", "Uses Ouro UI for Apple v0.9.0."] });
+});
+
+test("an update pull request with only merges of main on top of Ouro Current's commit is still Ouro Current's, and moves to the newest release (ourostack/ouroboros#1389)", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT, "README.md": "# App\n" });
+  const first = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  const merge = async (message) => {
+    repo.setMain({ "README.md": `# App\n${message}\n` });
+    const head = repo.refs.get(BRANCH);
+    const commit = await repo.gh.post("repos/o/r/git/commits", { message, tree: repo.commitTree(repo.refs.get("main")), parents: [head, repo.refs.get("main")] });
+    await repo.gh.patch(`repos/o/r/git/refs/heads/${BRANCH}`, { sha: commit.sha, force: true });
+    return commit.sha;
+  };
+  await merge("Merge branch 'main' into ouro-current/update");
+  await merge("Merge branch 'main' into ouro-current/update");
+  const newer = { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } };
+  const again = await keepRepo(repo.gh, "o/r", newer, {});
+  assert.equal(again.pr.number, first.pr.number);
+  assert.equal(again.pr.edited, undefined);
+  assert.equal(again.pr.pushed, true);
+  assert.match(repo.fileAt(BRANCH, "Package.swift"), /0\.10\.0/);
+  assert.equal(repo.fileAt(BRANCH, "README.md"), repo.fileAt("main", "README.md"), "built on the newest main");
+
+  // A merge named like one, whose second parent is not on main, is someone's work, and is left to them.
+  const other = fakeRepo({ "Package.swift": SWIFT });
+  await keepRepo(other.gh, "o/r", RELEASES, {});
+  const ours = other.refs.get(BRANCH);
+  const side = await other.gh.post("repos/o/r/git/commits", { message: "A fix", tree: other.commitTree(ours), parents: [ours] });
+  const fake = await other.gh.post("repos/o/r/git/commits", { message: "Merge branch 'main' into ouro-current/update", tree: other.commitTree(ours), parents: [ours, side.sha] });
+  await other.gh.patch(`repos/o/r/git/refs/heads/${BRANCH}`, { sha: fake.sha, force: true });
+  const left = await keepRepo(other.gh, "o/r", newer, {});
+  assert.equal(left.pr.edited, true);
+  assert.equal(other.refs.get(BRANCH), fake.sha);
+});
