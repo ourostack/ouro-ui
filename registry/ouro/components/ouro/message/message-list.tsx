@@ -1893,6 +1893,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     dripping.current = requestAnimationFrame(() => {
       dripping.current = 0;
       budget.current = OLDER_CHUNK;
+      // Stryker disable next-line BooleanLiteral: measuring here finds the heights the commit before it measured, and changes nothing.
       windowSync.current!(true);
       budget.current = 0;
     });
@@ -2103,6 +2104,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const id = inBand.join("\n");
       // The same band as drawn asks for no render: a state set to what it holds still renders the list again, in the same task
       // when set from a layout effect.
+      // Stryker disable next-line ConditionalExpression: the check before it already leaves the band drawn alone; this one only spares a render that draws the same rows, when two syncs in a task land on one band.
       if (band?.id !== id) setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
     };
     const now = viewRef.current;
