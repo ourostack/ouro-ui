@@ -757,6 +757,22 @@ describe("Checklist outline", () => {
     await expect.element(page.getByRole("checkbox", { name: "Boil the water", exact: true })).toBeVisible();
   });
 
+  it("renders no tile, description, value or action wrapper for a row without them, in both looks", async () => {
+    for (const variant of ["plain", "outline"] as const) {
+      const { row } = await render(<Host items={[{ id: "boil", label: "Boil the water", checked: false }]} extra={{ label: "Steps", variant }} />);
+      const boil = row("Boil the water");
+      const label = boil.querySelector("label")!;
+      expect(boil.querySelector("[data-ouro-checklist-media]"), variant).toBeNull();
+      expect(boil.querySelector("[data-ouro-checklist-description]"), variant).toBeNull();
+      expect(boil.querySelector('[data-ouro-part="value"]'), variant).toBeNull();
+      // The label is alone in its row (or its card): no empty action beside it.
+      expect(label.parentElement!.children, variant).toHaveLength(1);
+      // The label holds the box and the text, and nothing else but Base UI's hidden input.
+      expect([...label.children].filter((child) => child.tagName !== "INPUT"), variant).toHaveLength(2);
+      await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    }
+  });
+
   it("puts the media after the box in a plain row", async () => {
     const { row } = await render(<Host items={steps} extra={{ label: "Steps" }} />);
     const boil = row("Boil the water");
