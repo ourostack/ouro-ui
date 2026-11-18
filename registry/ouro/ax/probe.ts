@@ -74,6 +74,11 @@ function timedOut(error: unknown): boolean {
   return name === "TimeoutError" || name === "AbortError";
 }
 
+/** Node's `process.kill`, typed here so the file typechecks in an app without Node's types. */
+function nodeKill(pid: number, signal: 0): unknown {
+  return (globalThis as unknown as { process: { kill(pid: number, signal: 0): boolean } }).process.kill(pid, signal);
+}
+
 /**
  * Whether a process with this pid runs, including one that runs as another user (the system answers `EPERM`). Anything
  * but a positive whole number is no process.
@@ -83,7 +88,7 @@ function timedOut(error: unknown): boolean {
  * @example
  * pidAlive(Number(readFileSync(pidFile, "utf8"))); // true while it runs
  */
-function pidAlive(pid: unknown, kill: (pid: number, signal: 0) => unknown = (p, s) => process.kill(p, s)): boolean {
+function pidAlive(pid: unknown, kill: (pid: number, signal: 0) => unknown = nodeKill): boolean {
   if (!Number.isSafeInteger(pid) || (pid as number) <= 0) return false;
   try {
     kill(pid as number, 0);

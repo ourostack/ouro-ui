@@ -61,7 +61,7 @@ test("pidAlive is true for a running process, one of another user's, and false f
   );
   const asked: number[] = [];
   for (const pid of [0, -1, 1.5, Number.NaN, 2 ** 60, "4200", null, undefined]) assert.equal(pidAlive(pid, (p) => void asked.push(p)), false, String(pid));
-  assert.deepEqual(asked, [], "the system is never asked about a pid that can't be one");
+  assert.equal(asked.length, 0, "the system is never asked about a pid that can't be one");
   assert.equal(pidAlive(1, (p) => void asked.push(p)), true);
   assert.deepEqual(asked, [1], "1 is a pid");
   const ended = spawnSync(process.execPath, ["-e", ""]).pid;
