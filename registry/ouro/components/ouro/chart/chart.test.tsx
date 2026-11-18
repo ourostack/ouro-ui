@@ -632,7 +632,7 @@ describe("Chart development messages", () => {
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
           <Line dataKey="cooked" />
-          <Tooltip content={<div />} />
+          <Tooltip content={() => null} />
         </LineChart>
       </Chart>,
     );
