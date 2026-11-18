@@ -1,0 +1,36 @@
+name: Cache prune
+# Keeps the Actions cache under GitHub's 10 GB limit (scripts/cache-prune.mjs). Only main saves
+# caches, so a pull request's entries are leftovers and go; on main, each family of keys keeps its
+# newest entry, the one the workflows restore. Runs after main's CI, hourly, and by hand.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "37 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cache-prune
+  cancel-in-progress: false
+jobs:
+  prune:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - name: Delete the caches no run will restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/cache-prune.mjs

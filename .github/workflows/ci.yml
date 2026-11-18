@@ -1927,6 +1927,9 @@ jobs:
         continue-on-error: true
         name: One result file from the shards
         run: node scripts/mutation/cache.mjs merge .tmp/stryker-incremental.json .tmp/shards/*/stryker-incremental.json
+      # The one save a pull request makes: its results are keyed by the pull request on purpose, so
+      # its next push starts from them (incremental mutation). It is tiny, and cache-prune.yml keeps
+      # one per pull request and dependency hash.
       - if: ${{ env.KEY != '' && hashFiles('.tmp/stryker-incremental.json') != '' }}
         continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -2612,6 +2615,8 @@ jobs:
       # passed), and the prepare steps are skipped. A commit that changes some restores the newest
       # earlier app built from the same install scripts and fixture (the restore key), and the add
       # below installs again only the items whose built content changed (scripts/install-delta.mjs).
+      # Only main saves these caches (every save in this job checks for main): a pull request
+      # restores them, and a cache a pull request saves is readable by that pull request alone.
       - id: prepared
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -2623,7 +2628,7 @@ jobs:
       # download every package again.
       - id: npmcache
         if: steps.prepared.outputs.cache-hit != 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/npm-cache
           key: install-npm-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('package.json', 'pnpm-lock.yaml', 'test/install-fixture*/package.json') }}
@@ -2663,7 +2668,7 @@ jobs:
       - name: Pack the base
         if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key == '' && steps.base.outputs.cache-hit != 'true'
         run: tar -I zstd -cf "$RUNNER_TEMP/base.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/base.tar.zst"
-      - if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key == '' && steps.base.outputs.cache-hit != 'true'
+      - if: steps.prepared.outputs.cache-hit != 'true' && steps.prepared.outputs.cache-matched-key == '' && steps.base.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/base.tar.zst
@@ -2694,10 +2699,16 @@ jobs:
           elif [ "$status" -ne 0 ]; then
             exit "$status"
           fi
+      # npm's cache holds what the steps above downloaded, so it is saved after them.
+      - if: steps.prepared.outputs.cache-hit != 'true' && steps.npmcache.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/npm-cache
+          key: ${{ steps.npmcache.outputs.cache-primary-key }}
       - name: Pack the app
         if: steps.prepared.outputs.cache-hit != 'true'
         run: tar -I zstd -cf "$RUNNER_TEMP/app.tar.zst" -C "$(dirname "$OURO_APP")" "$(basename "$OURO_APP")" && ls -l "$RUNNER_TEMP/app.tar.zst"
-      - if: steps.prepared.outputs.cache-hit != 'true'
+      - if: steps.prepared.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/app.tar.zst
