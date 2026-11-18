@@ -60,13 +60,13 @@ if (standIn.ok) {
   standIn.lift();
   const judged = judgeHeld(standIn.events(), hold, 20_000);
   expect("judged", judged.ok, judged.evidence);
-  for (const c of commands) console.log(`  ${c}`);
-  const trusted = spawnSync("security", ["find-certificate", "-a", "-Z", "-c", "Ouro first-run SSO stand-in", "/Library/Keychains/System.keychain"], { encoding: "utf8" });
-  const made = spawnSync("openssl", ["x509", "-noout", "-fingerprint", "-sha1", "-in", path.join(dir, "ca.pem")], { encoding: "utf8" }).stdout.trim();
-  if (trusted.status === 0) console.log(`the stand-in's authority: ${made}\nwhat the System keychain holds by its name:\n${trusted.stdout}`);
+  // find-certificate -a answers 0 with nothing found, so the authority is still there only when its SHA-1 is listed.
+  const sha1 = spawnSync("openssl", ["x509", "-noout", "-fingerprint", "-sha1", "-in", path.join(dir, "ca.pem")], { encoding: "utf8" }).stdout.replace(/^[^=]*=|[:\s]/g, "");
+  const kept = spawnSync("security", ["find-certificate", "-a", "-Z", "-c", "Ouro first-run SSO stand-in", "/Library/Keychains/System.keychain"], { encoding: "utf8" }).stdout.includes(sha1);
   // The leaf no longer verifies: the system trusts the stand-in's authority no more.
   const stillTrusted = spawnSync("security", ["verify-cert", "-c", path.join(dir, "leaf.pem"), "-p", "ssl", "-s", HOST], { encoding: "utf8" }).status === 0;
-  expect("put back", fs.readFileSync("/etc/hosts", "utf8") === hostsBefore && trusted.status !== 0 && !stillTrusted && !fs.existsSync(path.join(dir, "ca.key")) && !fs.existsSync(path.join(dir, "leaf.key")), `/etc/hosts as before: ${fs.readFileSync("/etc/hosts", "utf8") === hostsBefore}; its authority still in the System keychain: ${trusted.status === 0}; its leaf still trusted: ${stillTrusted}; keys left: ${["ca.key", "leaf.key"].filter((k) => fs.existsSync(path.join(dir, k))).join(", ") || "none"}`);
+  if (kept || stillTrusted) for (const c of commands) console.log(`  ${c}`);
+  expect("put back", fs.readFileSync("/etc/hosts", "utf8") === hostsBefore && !kept && !stillTrusted && !fs.existsSync(path.join(dir, "ca.key")) && !fs.existsSync(path.join(dir, "leaf.key")), `/etc/hosts as before: ${fs.readFileSync("/etc/hosts", "utf8") === hostsBefore}; its authority still in the System keychain: ${kept}; its leaf still trusted: ${stillTrusted}; keys left: ${["ca.key", "leaf.key"].filter((k) => fs.existsSync(path.join(dir, k))).join(", ") || "none"}`);
 }
 
 const summary = ["## First run on a managed Mac", "", `${problems.length ? `These checks failed: ${problems.join(", ")}` : "Every check passed"}, in ${Math.round(at() / 1000)} s.`, "", "```", ...lines, "```", ""].join("\n");
