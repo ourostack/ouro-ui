@@ -144,3 +144,36 @@ test("Ouro Feel's probe counts a blank frame by the rows' boxes, so a list that 
     await browser.close();
   }
 });
+
+test("Ouro Feel's probe takes the list as a selector and finds it again each frame, so a list put in another's place is measured", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    const list = (rows) => `<div id="list" style="height:400px;overflow:auto">${Array.from({ length: rows }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}<div style="height:2000px"></div></div>`;
+    await page.setContent(`<main>${list(10)}</main>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(
+      async ([next]) => {
+        const { document, ouroFeel } = globalThis;
+        ouroFeel.watch({ case: "switch", scroller: "#list", rows: ".row" });
+        await ouroFeel.painted();
+        // Another conversation opens: the list is a new element in the old one's place.
+        document.querySelector("main").innerHTML = next;
+        await ouroFeel.painted();
+        const list = document.getElementById("list");
+        for (let y = 0; y < 2400; y += 40) {
+          list.scrollTop = y;
+          await ouroFeel.painted();
+        }
+        await ouroFeel.rest(5);
+        return ouroFeel.stop(true).measures;
+      },
+      [list(40)],
+    );
+    assert.ok(measures.blankFrames > 0, `${measures.blankFrames} blank frames scrolled into the new list's gap`);
+    assert.equal(measures.rowsMounted, 40, "the new list's rows");
+  } finally {
+    await browser.close();
+  }
+});
