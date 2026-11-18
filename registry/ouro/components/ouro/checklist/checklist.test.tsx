@@ -645,6 +645,18 @@ describe("Checklist ordered", () => {
     announcements.stop();
   });
 
+  it("lets a row leave as it was, out of order, without reading as done on its way out", async () => {
+    const { host, row } = await render(<Host items={tea.map((step) => ({ ...step, checked: step.id === "leaves" }))} extra={{ label: "Steps", ordered: true }} />);
+    const leaves = row("Add the leaves");
+    await act(() => setList((list) => list.filter((item) => item.id !== "leaves")));
+    expect(leaves).toHaveAttribute("data-ending-style");
+    expect(leaves).toHaveAttribute("data-out-of-order");
+    expect(leaves).not.toHaveAttribute("data-checked");
+    expect(partOf(leaves, "note").textContent).toBe("Boil the water comes first");
+    expect(Number.parseFloat(getComputedStyle(partOf(leaves, "strike")).scale)).toBe(0);
+    await expect.poll(() => labels(host)).toEqual(["Boil the water", "Warm the pot"]);
+  });
+
   it("keeps 4.5:1 for the out-of-order note in light and dark", async () => {
     for (const scheme of ["light", "dark"]) {
       document.documentElement.classList.toggle("dark", scheme === "dark");

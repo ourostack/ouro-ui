@@ -127,6 +127,20 @@ function outOfOrder(items: readonly ChecklistItemData[], ordered: boolean | read
   return held;
 }
 
+/**
+ * The current notes, plus the last note of each row that is leaving, so it leaves as it was.
+ *
+ * @claim "The current notes, plus the last" registry/ouro/components/ouro/checklist/checklist.test.tsx verify:testExists(registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist ordered > lets a row leave as it was, out of order, without reading as done on its way out)
+ */
+function keepLeaving(notes: Map<string, string>, before: Map<string, string>, entries: ReadonlyArray<{ key: string; phase: string }>): Map<string, string> {
+  const next = new Map(notes);
+  for (const entry of entries) {
+    const kept = before.get(entry.key);
+    if (entry.phase === "leaving" && kept !== undefined) next.set(entry.key, kept);
+  }
+  return next;
+}
+
 /** A row and where it is in its life. */
 interface Presence<T> {
   item: T;
@@ -300,6 +314,13 @@ export function Checklist(props: ChecklistProps): JSX.Element {
   const anyChecked = items.some((item) => item.checked);
   const clearing = useRef(false);
   const notes = useMemo(() => new Map([...outOfOrder(items, ordered)].map(([id, first]) => [id, outOfOrderLabel(first)])), [items, ordered, outOfOrderLabel]);
+  // A row leaves as it was: one that was out of order keeps its note, and never reads as done on its way out.
+  const [shown, setShown] = useState(() => ({ notes, all: notes }));
+  let shownNotes = shown.all;
+  if (shown.notes !== notes) {
+    shownNotes = keepLeaving(notes, shown.all, entries);
+    setShown({ notes, all: shownNotes });
+  }
 
   // A row that has just gone out of order says which step comes first, once; one that is
   // already out of order on the first render, or stays so, says nothing more.
@@ -378,7 +399,7 @@ export function Checklist(props: ChecklistProps): JSX.Element {
           description={item.description}
           value={item.value}
           checked={item.checked}
-          outOfOrder={notes.get(item.id)}
+          outOfOrder={shownNotes.get(item.id)}
           disabled={item.disabled}
           action={item.action}
           onCheckedChange={(checked) => onCheckedChange(item.id, checked)}
