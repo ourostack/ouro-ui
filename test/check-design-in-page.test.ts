@@ -184,7 +184,10 @@ describe("findDesignIssues: cramped-heading", () => {
 
   it("counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits", () => {
     render(`
-      <section><div style="height:100px;background:#3a7"></div><div class="row" style="display:flex;padding-top:14px"><h2 style="margin:0;font-size:24px">Calendar</h2></div></section>
+      <section><div style="height:100px;background:#3a7"></div><div class="row" style="display:flex;padding-top:14px">
+        <!-- markup between a row's children draws nothing -->
+        <h2 style="margin:0;font-size:24px">Calendar</h2>
+      </div></section>
       <section style="margin-top:40px"><div style="height:100px;background:#3a7"></div><div style="display:flex;padding-top:0"><h2 style="margin:0;font-size:24px">Flush</h2></div></section>
       <section style="margin-top:40px"><div style="height:100px;background:#3a7"></div><div style="display:flex;padding-top:4px"><h2 style="margin:0;font-size:24px">Four</h2></div></section>`);
     expect(of("cramped-heading").map(({ element, detail }) => [element, detail])).toEqual([
