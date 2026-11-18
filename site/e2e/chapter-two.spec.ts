@@ -136,10 +136,12 @@ test.describe("each control in Chapter II", () => {
   test("control: departure sets the day we sail, and every port's day follows", async ({ page }) => {
     await open(page);
     const days = room(page).locator("[data-chapter-control='ports'] [data-chapter-day]");
-    await expect(days.first()).toHaveText(CHART_ROOM.sail("6 Nov 1867"));
-    await dayField(page).fill("01/03/1868");
+    await expect(days.first()).toHaveText(CHART_ROOM.sail("1867-11-06"));
+    await dayField(page).fill("1868-03-01");
     await dayField(page).press("Tab");
-    await expect(days.first()).toHaveText(CHART_ROOM.sail("1 Mar 1868"));
+    // The field and the list write the day the same way, year first.
+    await expect(dayField(page)).toHaveValue("1868-03-01");
+    await expect(days.first()).toHaveText(CHART_ROOM.sail("1868-03-01"));
     await expect(days.last()).toHaveText(CHART_ROOM.arrive(writeDay(arrivals(START_ROUTE, "1868-03-01").at(-1)!)));
     await expect(roomCrew(page)).toContainText(ROUTE.day("1 Mar 1868").text);
     await expect(page.getByRole("list", { name: PLANNING.label })).toContainText(PLANNING.sailOn("1 Mar 1868"));
@@ -350,9 +352,9 @@ test.describe("by keyboard alone", () => {
     await expect(chart(page)).toHaveAttribute("data-route", "crespo pole vigo tunnel atlantis");
     await dayField(page).focus();
     await page.keyboard.press("ControlOrMeta+a");
-    await page.keyboard.type("24/12/1867");
+    await page.keyboard.type("1867-12-24");
     await page.keyboard.press("Enter");
-    await expect(room(page).locator("[data-chapter-day]").first()).toHaveText(CHART_ROOM.sail("24 Dec 1867"));
+    await expect(room(page).locator("[data-chapter-day]").first()).toHaveText(CHART_ROOM.sail("1867-12-24"));
   });
 
   test("the catalogue: sort with the arrow keys, and class a find by typing", async ({ page }) => {

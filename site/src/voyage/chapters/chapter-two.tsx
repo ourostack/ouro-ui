@@ -40,7 +40,7 @@ import {
 } from "./chapter-two-copy";
 import { Radio } from "./chapter-two-radio";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
-import { arrivals, chartPoint, isBook, isShortest, legs, portNamed, routeLeagues, routePath, SHORTEST, writeDay, writeLeagues } from "./route";
+import { arrivals, chartPoint, DAY_LOCALE, isBook, isShortest, legs, portNamed, routeLeagues, routePath, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 // What only changes once the chapter answers (the route drawing in, a port's number): it comes
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-two.css?inline";
@@ -149,7 +149,7 @@ function usePlanning(): Step[] {
   const { route, day, classed } = useSyncExternalStore(store.subscribe, store.get, store.get);
   return [
     { label: PLANNING.route, done: isShortest(route), status: isShortest(route) ? PLANNING.routeDone : PLANNING.routeLeft(writeLeagues(routeLeagues(route))) },
-    { label: PLANNING.sail, done: day !== null, status: day ? PLANNING.sailOn(writeDay(day)) : PLANNING.sailNot },
+    { label: PLANNING.sail, done: day !== null, status: day ? PLANNING.sailOn(sayDay(day)) : PLANNING.sailNot },
     { label: PLANNING.classes, done: classed === FINDS.length, status: PLANNING.classed(classed, FINDS.length) },
   ];
 }
@@ -279,7 +279,7 @@ function ChartRoom(): JSX.Element {
       if (!value) return;
       setDay(value);
       store.set({ day: value });
-      say(ROUTE.day(writeDay(value)));
+      say(ROUTE.day(sayDay(value)));
     },
     [say, store],
   );
@@ -315,7 +315,7 @@ function ChartRoom(): JSX.Element {
 const Departure = memo(function Departure({ onPick }: { onPick: (value: string) => void }): JSX.Element {
   return (
     <div data-chapter-control="departure">
-      <DatePicker label={CHART_ROOM.departure} defaultValue={START_DAY} min="1867-01-01" max="1869-12-31" locale="en-GB" onValueChange={onPick} />
+      <DatePicker label={CHART_ROOM.departure} defaultValue={START_DAY} min="1867-01-01" max="1869-12-31" locale={DAY_LOCALE} onValueChange={onPick} />
     </div>
   );
 });
