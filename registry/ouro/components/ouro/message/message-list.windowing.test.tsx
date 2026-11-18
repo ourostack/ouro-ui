@@ -49,6 +49,7 @@ function Chat({
   first?: ReactNode;
   onQuote?: (id: number) => void;
   initialAnchor?: string;
+  conversation?: string;
   windowing?: boolean;
   springy?: boolean;
   /** What to put before the message with this id, such as a day's heading. */
@@ -952,8 +953,37 @@ describe("MessageList windowing", () => {
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
     const space = content.offsetTop;
     expect(space).toBeGreaterThan(1);
-    return { scroller, content, clock, space, change: (changed: number, tall: number) => rerender(<Chat items={items(20, changed, tall)} springy={false} />) };
+    return { scroller, content, clock, space, rerender, change: (changed: number, tall: number) => rerender(<Chat items={items(20, changed, tall)} springy={false} />) };
   }
+
+  it("lets the space above the first message go at the end, following it, once the wheel that took the reader there rests", async () => {
+    const { scroller, content, clock, rerender } = await spaceAboveWhole();
+    // The wheel rests at the top, so the hold on the range goes, and turns again, down to the end.
+    await restWheel(scroller, clock);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 }));
+    scroller.scrollTop = scroller.scrollHeight;
+    await frame();
+    // The wheel's scroll ends at the end, and the wheel rests.
+    scroller.dispatchEvent(new Event("scrollend"));
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 100 }));
+    clock.now += 10_000;
+    await expect.poll(() => content.offsetTop).toBe(0);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    // The next message is followed.
+    await rerender(<Chat items={[...conversation(20).map((item) => ({ ...item, tall: item.id === 0 ? 20 : 150 })), { id: 20, text: "Message 20" }]} springy={false} />);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(document.getElementById("m20")!.getBoundingClientRect().bottom).toBeLessThanOrEqual(scroller.getBoundingClientRect().bottom);
+  });
+
+  it("drops the space above the first message as another conversation opens, which opens at its end, following it", async () => {
+    const { scroller, content, rerender } = await spaceAboveWhole();
+    await rerender(<Chat conversation="b" items={conversation(20, 100).map((item) => ({ ...item, tall: 150 }))} springy={false} />);
+    expect(content.offsetTop).toBe(0);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+  });
 
   it("holds the reader's place as a message above them grows, after the space above the first message went and they scrolled on, in a conversation drawn whole", async () => {
     const { scroller, content, clock, space, change } = await spaceAboveWhole();

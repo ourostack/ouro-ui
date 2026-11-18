@@ -1609,6 +1609,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     reopen.current = () => {
       // Stryker disable next-line BooleanLiteral: a switch adds messages, so the observer holds in the microtask after the commit, before any frame or event, and a hold with the list at its end pins it again.
       pinned.current = true;
+      // Another conversation opens at its end: space the one before kept above its first message goes with it.
+      setSlack(0);
       followEnd();
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
       keepAnchor();
@@ -1678,8 +1680,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (slack === 0 || turning() || scroller.scrollTop < slack) return;
       // Scrolled while the space still holds the scroll range, then the space goes.
       const range = farthest();
-      const applied = scrollOwn(-slack);
+      const gone = slack;
+      const applied = scrollOwn(-gone);
       setSlack(0);
+      // The hold on the range, kept while the list follows its end, comes up with the content, so the end is where it was.
+      if (floor !== 0) setFloor(floor - gone);
       // The anchors sit in the content, which the space going does not move: only the list's own scroll and the range it took
       // away are left out, so a change waiting for the resize observer is still held.
       taken += applied;
