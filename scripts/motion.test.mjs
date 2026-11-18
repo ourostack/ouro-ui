@@ -91,6 +91,7 @@ test("the state attributes are a closed list, and no other data-* attribute is a
     "data-dragging",
     "data-starting-style",
     "data-ending-style",
+    "data-out-of-order",
   ]);
 });
 
@@ -178,6 +179,9 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "checklist data-unchecked strike",
       "checklist data-unchecked label",
       "checklist data-unchecked value",
+      "checklist data-out-of-order box",
+      "checklist data-out-of-order tick",
+      "checklist data-out-of-order note",
       "checklist data-disabled box",
       "checklist data-starting-style row",
       "checklist data-ending-style row",

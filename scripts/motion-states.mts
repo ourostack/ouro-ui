@@ -22,6 +22,7 @@ export const STATE_ATTRIBUTES: readonly string[] = [
   "data-dragging",
   "data-starting-style",
   "data-ending-style",
+  "data-out-of-order",
 ];
 
 /** The kinds of state a `motion` map declares. */

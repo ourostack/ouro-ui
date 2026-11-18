@@ -2,7 +2,7 @@
 
 # Checklist
 
-A list of things to tick off, such as a recipe's ingredients or a shopping list: each row a checkbox the whole row toggles, with an optional value and action. Checking a row fills its box, draws its tick and then a strike through its label, and softens its text; rows enter and leave as `items` changes, and "Clear checked" shows while something is checked.
+A list of things to tick off, such as a recipe's ingredients or a shopping list: each row a checkbox the whole row toggles, with an optional value and action. Checking a row fills its box, draws its tick and then a strike through its label, and softens its text; rows enter and leave as `items` changes, and "Clear checked" shows while something is checked. With `ordered`, the rows are steps: one ticked before an earlier step reads as not yet done and names the step that comes first, until that step is ticked.
 
 ```tsx
 import { Checklist } from "@/registry/ouro/components/ouro/checklist/checklist";
@@ -38,6 +38,8 @@ Type: `ChecklistProps`.
 | `label` (required) | `string` |  | What the list is ("Ingredients"), shown above the rows and read as the group's name. Required: a group needs a name. To hide it visually, keep it and add `hideLabel`. |
 | `onCheckedChange` (required) | `(id: string, checked: boolean) => void` |  | Called with a row's id and its new state when it is checked or unchecked. Required: a checklist without it never changes. |
 | `onClearChecked` | `(() => void)` |  | Shows a "Clear checked" button while something is checked, and is called when it is pressed. |
+| `ordered` | `boolean \| readonly string[]` |  | Says the rows are steps to do in order. `true`: the rows' own order. An array of ids: that order, for steps shown in another (shuffled, sorted). A row ticked while a step before it is still unticked is out of order: its box turns the warning tone instead of the primary, it is not struck through, a note under it names the step that comes first, and that note is announced. Once the steps before it are ticked it reads as done on its own. Disabled rows and ids left out of the array never hold a row back. |
+| `outOfOrderLabel` | `((first: string) => string)` | `` (first) => `${first} comes first` `` | The note an out-of-order row shows and announces, from the label of the step that comes first. Translate it here. |
 | `ref` | `Ref<HTMLDivElement>` |  | The group element, a `<div role="group">`. |
 
 ## Don't use
@@ -49,6 +51,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `onChange`: Not a prop. Ouro UI uses `onCheckedChange`, which gets the row's id and its new state.
 - `onCheck`: Not a prop. Ouro UI uses `onCheckedChange`, which gets the row's id and its new state.
 - `onToggle`: Not a prop. Ouro UI uses `onCheckedChange`, which gets the row's id and its new state.
+- `sequential`: Not a prop. Steps to do in order are `ordered`: `<Checklist ordered>`, or `ordered={["boil", "pour"]}`.
 
 ## `className` is for layout only
 
