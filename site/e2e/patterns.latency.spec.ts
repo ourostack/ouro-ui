@@ -9,7 +9,8 @@ import { LATENCY } from "./latency";
 // playwright.latency.config.ts, and loaded LOADS.warmUps times to warm the cache and then LOADS.samples times, each in a
 // new page. A bare app with the same stylesheet, which renders one paragraph, is loaded in turn with the pattern: it is
 // the same work on the same runner at the same moment, so its median scales the pattern's baseline to this runner
-// (ceilingFor). This runs alone, one worker, in CI's latency job, so no neighbour shares the CPU.
+// (ceilingFor), and it is held itself against the runner's speed (bareCeiling). This runs alone, one worker, in CI's
+// latency job, so no neighbour shares the CPU.
 
 const PHONE = { width: 390, height: 844 };
 const LOADS = { warmUps: 2, samples: 12 };
@@ -23,21 +24,39 @@ interface Baseline {
 
 /**
  * Each pattern's baselines, from CI's latency job: its first paint, and for a pattern with a chart, the time its plot is
- * drawn (null until a run has measured it). Re-measure and update a line when a change makes a pattern faster or
- * knowingly slower.
+ * drawn. Re-measure and update a line when a change makes a pattern faster or knowingly slower.
+ *
+ * Set 2026-11-18 from run 44286124531 (pull request #2103), whose runner was slow: its bare app's median was 148 to 152
+ * ms. Run 44283863397, a fast runner with a bare app at 88 ms, measured 288, 192 and 232 ms for the first paints and
+ * 428.5 for the chart: against the bare app, within 1% of these for the first paints and 7% for the chart, whose ratio
+ * was lower there, so these, the higher ratios, are the baselines.
  */
 const BASELINES: Record<string, { paint: Baseline | null; plot?: Baseline | null }> = {
-  "dashboard-page": { paint: null, plot: null },
-  "list-detail-page": { paint: null },
-  "settings-page": { paint: null },
+  "dashboard-page": { paint: { median: 502, bare: 152 }, plot: { median: 793, bare: 152 } },
+  "list-detail-page": { paint: { median: 326, bare: 148 } },
+  "settings-page": { paint: { median: 402, bare: 152 } },
 };
 
 /**
- * The most a median may be, in ms: its baseline scaled by the bare app's median now over its median then, and a quarter
- * more, so a pattern that paints a quarter later than the runner explains fails.
+ * The most a pattern's median may be, in ms: its baseline scaled by the bare app's median now over its median then, and a
+ * quarter more, so a pattern that paints a quarter later than the runner explains fails.
  */
 function ceilingFor(baseline: Baseline, bare: number): number {
   return Math.round(baseline.median * (bare / baseline.bare) * 1.25);
+}
+
+/**
+ * The bare app's own baseline: its median first paint and the runner's full-speed loop time (loop) in the same run, so
+ * what every pattern shares (React, Ouro's stylesheet) is held too, which the patterns' ceilings, scaled by the bare app,
+ * cannot see. From run 44286124531: 148 to 152 ms beside a loop of 2.4 to 2.5 ms. Run 44283863397 measured 88 ms beside
+ * a loop of 1.7 ms, about a fifth faster than the loop alone explains, so its ceiling is half again over the scaled
+ * baseline, not a quarter.
+ */
+const BARE_BASELINE = { median: 152, loop: 2.5 };
+
+/** The most the bare app's median may be, in ms: its baseline scaled by the runner's loop now over its loop then, and half again. */
+function bareCeiling(loop: number): number {
+  return Math.round(BARE_BASELINE.median * (loop / BARE_BASELINE.loop) * 1.5);
 }
 
 /** The median of a list of numbers. */
@@ -95,11 +114,10 @@ async function load(page: Page, name: string, chart: boolean): Promise<{ paint: 
   return { paint: Math.round(paint), plot: plot === null ? null : Math.round(plot), throttled };
 }
 
-/** Holds one median to its baseline, reporting it either way. */
-function judge(label: string, samples: number[], baseline: Baseline | null | undefined, bare: number): void {
+/** Holds one median to its ceiling, reporting it either way. */
+function judge(label: string, samples: number[], ceiling: number | null, basis: string): void {
   const middle = median(samples);
-  const ceiling = baseline ? ceilingFor(baseline, bare) : null;
-  const report = `${label}: median ${middle} ms (${ceiling === null ? "no baseline yet" : `≤ ${ceiling}, baseline ${baseline!.median} beside a bare app's ${baseline!.bare}`}), the bare app ${bare} ms now; samples in order: ${samples.join(", ")}`;
+  const report = `${label}: median ${middle} ms (${ceiling === null ? "no baseline yet" : `≤ ${ceiling}`}), ${basis}; samples in order: ${samples.join(", ")}`;
   test.info().annotations.push({ type: "latency", description: report });
   console.log(`latency ${report}`);
   // Soft, so a pattern's every number is measured and reported before the test fails on any of them.
@@ -156,8 +174,10 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
     console.log(`latency ${name} throttle: each load's loop ran ${slowdowns.join(", ")}× slower than full speed (${Math.round(full * 10) / 10} ms)`);
     expect(Math.min(...slowdowns), `${name}: a load ran ${Math.min(...slowdowns)}× slower than full speed, so the ${LATENCY.throttle}× throttle missed it (${slowdowns.join(", ")})`).toBeGreaterThanOrEqual(2);
     const bare = median(bares);
-    console.log(`latency ${name} beside ${BARE}: median ${bare} ms; samples in order: ${bares.join(", ")}`);
-    judge(`${name} first paint`, paints, baselines.paint, bare);
-    if (chart) judge(`${name} chart drawn`, plots, baselines.plot, bare);
+    const runner = Math.round(full * 100) / 100;
+    judge(`${name}'s ${BARE} first paint`, bares, bareCeiling(runner), `baseline ${BARE_BASELINE.median} beside a loop of ${BARE_BASELINE.loop} ms, the loop ${runner} ms now`);
+    const against = (baseline: Baseline) => `baseline ${baseline.median} beside a bare app's ${baseline.bare}, the bare app ${bare} ms now`;
+    judge(`${name} first paint`, paints, baselines.paint ? ceilingFor(baselines.paint, bare) : null, baselines.paint ? against(baselines.paint) : `the bare app ${bare} ms now`);
+    if (chart) judge(`${name} chart drawn`, plots, baselines.plot ? ceilingFor(baselines.plot, bare) : null, baselines.plot ? against(baselines.plot) : `the bare app ${bare} ms now`);
   });
 }
