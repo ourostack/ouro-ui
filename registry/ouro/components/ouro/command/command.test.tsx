@@ -436,6 +436,11 @@ describe("Command", () => {
     expect(close.className).toContain("sr-only");
   });
 
+  it("prompts with its search label when no placeholder is given, so what the field says and what it is named agree", async () => {
+    await openPalette({ searchLabel: "Search orders" });
+    await expect.element(page.getByRole("combobox", { name: "Search orders" })).toHaveAttribute("placeholder", "Search orders…");
+  });
+
   it("keeps the trigger's own onClick, which can stop the palette opening", async () => {
     const onClick = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
     await render(<Command title="Command palette" trigger={<Button onClick={onClick}>Search</Button>} items={entries()} />);

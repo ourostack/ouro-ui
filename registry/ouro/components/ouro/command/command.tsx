@@ -168,7 +168,7 @@ export interface CommandBaseProps {
   title: string;
   /** The commands: groups (`{ label: "Recipes", items: [...] }`), single commands, or both. */
   items: readonly CommandEntry[];
-  /** The search input's placeholder. @default "Type a command or search…" */
+  /** The search input's placeholder. @default `${searchLabel}…` when `searchLabel` is given, else "Type a command or search…" */
   placeholder?: string | undefined;
   /** The search input's label for screen readers. @default "Search commands" */
   searchLabel?: string | undefined;
@@ -448,8 +448,8 @@ export function Command(props: CommandProps): JSX.Element {
   const {
     title,
     items,
-    placeholder = "Type a command or search…",
-    searchLabel = "Search commands",
+    searchLabel: givenSearchLabel,
+    placeholder = givenSearchLabel === undefined ? "Type a command or search…" : `${givenSearchLabel}…`,
     emptyLabel = "No results",
     empty,
     highlightMatches = false,
@@ -470,6 +470,7 @@ export function Command(props: CommandProps): JSX.Element {
     children,
     commands,
   } = props as CommandBaseProps & { trigger?: ReactElement; open?: boolean; onOpenChange?: (open: boolean) => void };
+  const searchLabel = givenSearchLabel ?? "Search commands";
 
   checkOpenMode("Command", "command palette", trigger !== undefined, open, onOpenChange);
   if (items === undefined) {
