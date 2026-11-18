@@ -673,7 +673,7 @@ function valueOf(cli: Cli, thing: string, name: string, spec: FlagSpec, raw: str
     const values = spec.values ?? [];
     if (!values.includes(raw)) {
       const near = didYouMean(raw, values);
-      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} takes ${inWords(values)}, not ${said}`, fix: fixWith(near ?? values[0]!) });
+      throw new AxError({ code: "bad-value", exit: usage(cli), thing, problem: `--${name} is one of ${values.join(", ")}, not ${said}`, fix: fixWith(near ?? values[0]!) });
     }
     return raw;
   }

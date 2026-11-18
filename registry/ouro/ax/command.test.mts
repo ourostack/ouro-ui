@@ -637,7 +637,8 @@ test("a refused word's Fix is a command an agent can run as it stands, and the p
   assert.deepEqual(refused(["sidebar", "sweep"]), { code: "bad-value", exit: 2, thing: "sidebar", problem: 'it takes plan or apply, not "sweep"', fix: "shepherd sidebar plan" });
   assert.deepEqual(refused(["quota", "sweep"]), { code: "bad-value", exit: 2, thing: "quota", problem: 'it takes read, plan or status, not "sweep"', fix: "shepherd quota read" });
   const flag = refused(["quota", "read", "--every", "zzzzzz"]);
-  assert.equal(flag?.problem, '--every takes hour or day, not "zzzzzz"');
+  // A flag is named by itself, so its problem keeps saying `--every is one of`: adopters' tests match it (shepherd's --delivery).
+  assert.equal(flag?.problem, '--every is one of hour, day, not "zzzzzz"');
   assert.equal(flag?.fix, "shepherd quota read --every hour");
   for (const shape of [refused(["sidebar", "sweep"]), refused(["quota", "sweep"]), flag]) {
     assert.doesNotMatch(`${shape?.problem} ${shape?.fix}`, /[<>|]/, "no placeholder or choice list an agent cannot run");
