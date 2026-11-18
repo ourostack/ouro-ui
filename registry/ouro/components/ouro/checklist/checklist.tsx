@@ -330,7 +330,7 @@ export function Checklist(props: ChecklistProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  const variant: ChecklistVariant = variantProp !== undefined && variants.includes(variantProp) ? (variantProp as ChecklistVariant) : "plain";
+  const variant = (variants.includes(variantProp as string) ? variantProp : "plain") as ChecklistVariant;
   const root = useRef<HTMLDivElement>(null);
   const rootRef = useMergedRef(ref, root);
   const { entries, rows } = useExitRetention(items, (item) => item.id);

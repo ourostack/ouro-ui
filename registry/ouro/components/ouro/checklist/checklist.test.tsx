@@ -856,7 +856,7 @@ describe("Checklist development messages", () => {
   });
 
   it("has no messages for valid props", async () => {
-    await render(<Host extra={{ description: "For four bowls.", empty: "Nothing yet." }} />);
+    await render(<Host extra={{ description: "For four bowls.", empty: "Nothing yet.", variant: "plain" }} />);
     await act(async () => {});
     expect(messages()).toEqual([]);
   });
