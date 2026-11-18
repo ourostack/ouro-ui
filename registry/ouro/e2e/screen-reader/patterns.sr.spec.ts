@@ -23,7 +23,18 @@ test.describe("the list-and-detail pattern on a phone", () => {
     await startReading(sr, page);
     const search = page.getByRole("searchbox", { name: "Search recipes" });
     await search.focus();
-    await heard(sr, () => search.pressSequentially("zzzz"), (phrase) => inOneSentence(phrase, /\b0 matches\b/i), '"0 matches", the search\'s status');
+    // The status takes the count once typing pauses (ListDetailPage, #2086), so the step waits for it: a screen reader's
+    // capture listens through the whole step, and NVDA's next capture would start by stopping its speech.
+    const status = page.getByRole("status").filter({ hasText: /match/ });
+    await heard(
+      sr,
+      async () => {
+        await search.pressSequentially("zzzz");
+        await expect(status).toHaveText("0 matches");
+      },
+      (phrase) => inOneSentence(phrase, /\b0 matches\b/i),
+      '"0 matches", the search\'s status',
+    );
   });
 });
 
