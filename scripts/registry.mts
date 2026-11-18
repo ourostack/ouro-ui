@@ -333,7 +333,7 @@ const kits = [
       source: { test: "scripts/registry.test.mjs::ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is" },
       verify: { testExists: "scripts/registry.test.mjs::ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is" },
     })} It installs scripts/ouro/feel/ouro-feel-probe.js.`,
-    docs: `Ouro Feel's probe is scripts/ouro/feel/ouro-feel-probe.js. Put it first in the page you measure, before the page's own scripts (inject it into your web view, or serve it with data-ouro-feel-bridge), and call window.ouroFeel.watch from your cases. Docs: https://github.com/ourostack/ouro-ui/blob/main/feel/README.md`,
+    docs: `Ouro Feel's probe is scripts/ouro/feel/ouro-feel-probe.js. Put it first in the page you measure, before the page's own scripts (inject it into your web view, or serve it with data-ouro-feel-bridge), and call window.ouroFeel.watch from your cases. Docs: ${DOCS_URL}/guardrails.md`,
   },
 ];
 
