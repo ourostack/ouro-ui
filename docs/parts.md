@@ -183,6 +183,7 @@ import {
   SheetPopup,
   SheetPortal,
   SheetRoot,
+  SheetScrim,
   SheetTitle,
   SheetTrigger,
   SheetViewport,
@@ -219,6 +220,7 @@ Each part checks that it sits inside `<SheetRoot>`: outside it, a part throws in
 | `SheetPopup` | The sheet panel. It stretches past its edge when pulled and springs back on release. |
 | `SheetPortal` | Moves the sheet to the end of `<body>` and makes it aware of the software keyboard (`Drawer.VirtualKeyboardProvider`), so focused inputs stay visible. The portal is its own stacking context at the `--ouro-layer` z-index (50 by default, from ouro-base.css). If your app has fixed bars above z-50, raise it in a `:root` rule of your own after the Ouro tokens, outside any `@layer`: `:root { --ouro-layer: 60; }`. Don't edit the line shadcn wrote; `shadcn add` resets it. |
 | `SheetRoot` | The state owner of a sheet built from parts. Use the `Sheet` component instead unless its props cannot express your layout. |
+| `SheetScrim` | A light dimming layer for a `modal={false}` sheet, which has no backdrop. It tints the page behind the sheet with `--ouro-scrim-color` at `--ouro-scrim-max` (a few percent), so the page stays easy to read, and it takes no presses: a press on the page reaches the page, and closes the sheet when it closes on an outside press. A `ref` reaches its element. |
 | `SheetTitle` | The sheet's title, which names the dialog. Every sheet needs one. |
 | `SheetTrigger` | The button that opens the sheet. Pass your button as `render={<Button>Open</Button>}`. |
 | `SheetViewport` | The full-screen layer that positions the popup against its edge. A `ref` reaches the viewport element. |
