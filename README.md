@@ -568,6 +568,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-floating`,
 `lib-focus-handoff`,
 `lib-form-answer`,
+`lib-fragment-focus-script`,
 `lib-halve`,
 `lib-hero-preload-script`,
 `lib-insert-text`,
@@ -845,6 +846,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 ### App setup
 
 - **ColorSchemeProvider** — Keeps the page's color scheme: it applies the person's choice (`light`, `dark` or `system`) as the `.dark` class on `<html>`, which is how shadcn themes switch, keeps it in `localStorage`, and follows the system's setting live while the choice is `system`. [Docs](docs/ColorSchemeProvider.md)
+- **fragmentFocusScript** — The inline script that keeps a person's focus where it is on a page whose address names a place on it (`#reviews`). [Docs](docs/fragmentFocusScript.md)
 - **Inspector** — X-ray for a page built with Ouro HX: outlines every Ouro component on the page with its name, linked to its docs, and lists them all for keyboard and screen reader users. [Docs](docs/Inspector.md)
 - **measureInteraction** — Runs `fn` in an event handler and names the interaction it belongs to, so the reports `onInteraction` sends carry `name`. [Docs](docs/measureInteraction.md)
 - **onInteraction** — Sends the page's interactions to `sink`, measured from the input to the next paint, so an app can hold them to a budget. [Docs](docs/onInteraction.md)

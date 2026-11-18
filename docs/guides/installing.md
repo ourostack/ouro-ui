@@ -88,6 +88,27 @@ This one add also reformats the file, as shadcn@4.21.1 does for any item that ca
 
 To change a token afterwards, edit it where the CLI wrote it, or set it in a `:root` rule of your own. Add `ouro-base` again only when a release's notes say it has new tokens.
 
+### Focus on a page opened at a place
+
+Add [fragmentFocusScript](../fragmentFocusScript.md) once, too, first in `<body>`, so that Safari keeps a person's focus on a page whose address names a place on it (`/guide#install`).[^fragment-focus] Without it, Safari jumps back to that place and takes focus each time a stylesheet loads, when the page finished parsing, or a link to the place was followed, while a stylesheet was still loading (ourostack/ouro-ui#2224): an open menu closes, and a field loses the person mid-word.
+
+```sh
+npx shadcn@latest add ourostack/ouro-ui/lib-fragment-focus-script#v1.3.310
+```
+
+In Vite, from `vite.config.ts`'s plugins, as an inline script after the stylesheets:
+
+```ts
+import { fragmentFocusScript } from "./src/lib/ouro/fragment-focus-script.ts";
+
+const fragmentFocus = {
+  name: "fragment-focus",
+  transformIndexHtml: () => [{ tag: "script", children: fragmentFocusScript(), injectTo: "body-prepend" as const }],
+};
+```
+
+In Next.js, in the root layout: `<body><script dangerouslySetInnerHTML={{ __html: fragmentFocusScript() }} />{children}</body>`.
+
 ### Markup that is not an Ouro component
 
 A page that builds rows and controls as strings, or prerenders them to read without a script, can't render Ouro's components there. For that markup, add `ouro-plain` once, after `ouro-base`: it gives the markup Ouro's states as classes, each drawn as its component draws it. No component installs it, so an app built only from components doesn't carry its CSS.[^plain-item] A page without Tailwind loads the plain stylesheet `ouro-plain.css` from [the static CSS](static-css.md) instead.
@@ -210,3 +231,4 @@ build: {
 [^plain-state-classes-rule]: test:scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > names ouro-nav-link, ouro-toggle and ouro-segment as the fix for a current, pressed or checked state written by hand verify:testExists(scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > names ouro-nav-link, ouro-toggle and ouro-segment as the fix for a current, pressed or checked state written by hand) verify:testExists(scripts/kits/source-rules.test.mjs::Ouro's focus and row classes for plain markup > exempts exactly the classes ouro-plain defines, and counts an app's own .ouro- class like any other)
 [^plain-item]: test:scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them)
 [^vite-fixture]: test:scripts/new-app-steps.test.mjs::the guide's new Vite app steps write the install test's Vite app, with @ for its ~ verify:testExists(scripts/new-app-steps.test.mjs::the guide's new Vite app steps write the install test's Vite app, with @ for its ~) verify:fileLine(scripts/install-test.sh, /npx tsc -b/)
+[^fragment-focus]: test:site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, on a page opened at a place while its stylesheet loads verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, on a page opened at a place while its stylesheet loads) verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, after a link to a place on the page is followed while a stylesheet loads, and still goes there)
