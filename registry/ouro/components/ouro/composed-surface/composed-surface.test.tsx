@@ -248,7 +248,7 @@ describe("ComposedSurface", () => {
 
 describe("ComposedSurface fields", () => {
   const bound = (path: string) => ({ "@path": path });
-  const data = { recipe: { id: "rcp_1" }, servings: 4, vegetarian: false, oven: "Fan", note: "No peas", title: "Orzo", share: { with: "" } };
+  const data = { recipe: { id: "rcp_1" }, servings: 4, vegetarian: true, oven: "Fan", note: "No peas", title: "Orzo", share: { with: "" } };
   const fields = node("root", "Stack", { direction: "vertical", gap: "medium" }, [
     node("servings", "TextField", { label: "Servings", value: "/servings", hint: "How many people you're cooking for.", type: "number", multiline: false }),
     node("vegetarian", "Checkbox", { label: "Make it vegetarian", value: "/vegetarian", hint: "Swaps the stock." }),
@@ -269,7 +269,7 @@ describe("ComposedSurface fields", () => {
     expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("4");
     expect(page.getByRole("textbox", { name: "Servings" }).element().closest('[data-ouro="number-field"]')).not.toBeNull();
     expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveAccessibleDescription("How many people you're cooking for.");
-    expect(page.getByRole("checkbox", { name: "Make it vegetarian" }).element()).not.toBeChecked();
+    expect(page.getByRole("checkbox", { name: "Make it vegetarian" }).element()).toBeChecked();
     expect(page.getByRole("checkbox", { name: "Make it vegetarian" }).element()).toHaveAccessibleDescription("Swaps the stock.");
     expect(page.getByRole("combobox", { name: "Oven" }).element().textContent).toContain("Fan");
     expect(page.getByRole("textbox", { name: "Note" }).element().tagName).toBe("TEXTAREA");
@@ -292,7 +292,7 @@ describe("ComposedSurface fields", () => {
     await userEvent.click(page.getByRole("button", { name: "Plan dinner" }));
     expect(onPress).toHaveBeenCalledTimes(1);
     const [press, button] = onPress.mock.calls[0]! as [PersonPress, ComposedNode];
-    expect(press.input).toEqual({ recipe: "rcp_1", servings: 6, vegetarian: true, oven: "Grill", note: "Extra lemon", title: "Weeknight orzo" });
+    expect(press.input).toEqual({ recipe: "rcp_1", servings: 6, vegetarian: false, oven: "Grill", note: "Extra lemon", title: "Weeknight orzo" });
     expect(button.id).toBe("plan");
     expect(button.props.input).toEqual(press.input);
   });

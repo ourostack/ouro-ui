@@ -243,7 +243,7 @@ function field(node: ComposedNode, ctx: Context, key: string): JSX.Element {
         label={p.label}
         description={p.hint}
         options={options.map((option) => ({ value: option, label: option }))}
-        value={typeof held === "string" && options.includes(held) ? held : null}
+        value={options.find((option) => option === held) ?? null}
         onValueChange={write}
       />
     );
