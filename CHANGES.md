@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `defineChecks` (`ax-checks`) takes the tool's own exit table as `exits`, so a tool whose exit 3 already means something else gives findings a code of its own; it [refuses a table without a `findings` code](registry/ouro/ax/checks.test.mts "verify:testExists(registry/ouro/ax/checks.test.mts::a tool's exit table without a findings code is refused, naming the code that took 3)"). Give-back from a chat app's doctor.
