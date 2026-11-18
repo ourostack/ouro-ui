@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `ax-redact` and `ax-bundle`, for a doctor's diagnostics file that an agent can read or attach. Tokens, cookies, ids, email addresses, user folders and quoted text [become their category](registry/ouro/ax/redact.test.mts "verify:testExists(registry/ouro/ax/redact.test.mts::a log full of real-looking secrets comes out with none of them, and leaks finds nothing left)"), and a bundle that still holds anything shaped like a secret [is refused, with nothing written](registry/ouro/ax/bundle.test.mts "verify:testExists(registry/ouro/ax/bundle.test.mts::a bundle that still holds a secret's shape after redaction is refused, and nothing is written)"). Give-back from a chat app's doctor.
