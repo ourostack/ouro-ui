@@ -176,7 +176,7 @@ describe("Ouro check", () => {
   });
 
   test("leaves the page behind an open modal to the page's own run, and checks the modal", async () => {
-    // Tandem's two cases (teams-microsoft/tandem#3259, #3260): a conversation's preview cut off by its box behind an open
+    // An app's two cases: a conversation's preview cut off by its box behind an open
     // sheet, and a heading close under a picture behind an open dialog. A line cut off inside the modal is still found.
     const behind =
       '<h1>Behind</h1><p style="width:60px;overflow:hidden;white-space:nowrap">A preview cut off by its box, behind the sheet</p>' +

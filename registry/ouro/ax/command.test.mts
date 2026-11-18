@@ -367,7 +367,7 @@ test("a word outside a required argument's values is refused with the usage exit
     }
     return null;
   };
-  assert.deepEqual(shape(["gate", "nope"]), { code: "bad-value", exit: 2, thing: "gate", problem: '<action> is one of check, wait, init, pre, post, show, not "nope"', fix: 't gate "check|wait|init|pre|post|show"' });
+  assert.deepEqual(shape(["gate", "nope"]), { code: "bad-value", exit: 2, thing: "gate", problem: 'it takes check, wait, init, pre, post or show, not "nope"', fix: "t gate check" });
   assert.equal(shape(["gate", "chek"])?.fix, "t gate check");
   assert.equal(shape(["gate", "chek", "--json"])?.fix, "t gate check --json");
   assert.equal(parse(gate, ["gate", "wait"]).kind, "run");
@@ -383,7 +383,7 @@ test("an optional argument's word outside its values is refused too; a valid wor
     }
     return null;
   };
-  assert.deepEqual(refused(["gate", "nope"]), { code: "bad-value", exit: 2, thing: "gate", problem: '<action> is one of check, wait, not "nope"', fix: 't gate "check|wait"' });
+  assert.deepEqual(refused(["gate", "nope"]), { code: "bad-value", exit: 2, thing: "gate", problem: 'it takes check or wait, not "nope"', fix: "t gate check" });
   assert.equal(refused(["gate", "waot"])?.fix, "t gate wait");
   assert.deepEqual(run2(tool, ["gate", "wait"]).input, { action: "wait" });
   assert.deepEqual(run2(tool, ["gate"]).input, {});
@@ -615,4 +615,35 @@ test("defineCli refuses repeat on a flag that is not a string, or repeat: false,
   assert.throws(() => flagged({ n: { type: "boolean", description: "N.", repeat: true } }), /^Error: t w: --n takes repeat only as true on a string flag\. Fix: type: "string" with repeat: true, or leave repeat out\.$/);
   assert.throws(() => flagged({ n: { type: "string", description: "N.", repeat: false } }), /^Error: t w: --n takes repeat only as true on a string flag\./);
   assert.doesNotThrow(() => flagged({ n: { type: "string", description: "N." } }));
+});
+
+test("a refused word's Fix is a command an agent can run as it stands, and the problem names the choices in plain words", () => {
+  const tool = defineCli({
+    name: "shepherd",
+    about: [],
+    commands: [
+      defineCommand({ name: "sidebar", summary: "S.", effect: "private", readOnly: true, args: [{ name: "action", description: "A.", required: true, values: ["plan", "apply"] }], run: () => [] }),
+      defineCommand({ name: "quota", summary: "Q.", effect: "private", readOnly: true, args: [{ name: "action", description: "A.", required: true, values: ["read", "plan", "status"] }], flags: { every: { type: "enum", values: ["hour", "day"], description: "E." } }, run: () => [] }),
+    ],
+  });
+  const refused = (argv: string[]) => {
+    try {
+      parse(tool, argv);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    return null;
+  };
+  assert.deepEqual(refused(["sidebar", "sweep"]), { code: "bad-value", exit: 2, thing: "sidebar", problem: 'it takes plan or apply, not "sweep"', fix: "shepherd sidebar plan" });
+  assert.deepEqual(refused(["quota", "sweep"]), { code: "bad-value", exit: 2, thing: "quota", problem: 'it takes read, plan or status, not "sweep"', fix: "shepherd quota read" });
+  const flag = refused(["quota", "read", "--every", "zzzzzz"]);
+  // A flag is named by itself, so its problem keeps saying `--every is one of`: adopters' tests match it (shepherd's --delivery).
+  assert.equal(flag?.problem, '--every is one of hour, day, not "zzzzzz"');
+  assert.equal(flag?.fix, "shepherd quota read --every hour");
+  for (const shape of [refused(["sidebar", "sweep"]), refused(["quota", "sweep"]), flag]) {
+    assert.doesNotMatch(`${shape?.problem} ${shape?.fix}`, /[<>|]/, "no placeholder or choice list an agent cannot run");
+    assert.equal(parse(tool, (shape?.fix ?? "").split(" ").slice(1)).kind, "run", "the Fix parses");
+  }
+  const one = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "go", summary: "G.", effect: "private", readOnly: true, args: [{ name: "where", description: "W.", values: ["home"] }], run: () => [] })] });
+  assert.throws(() => parse(one, ["go", "zzzzzz"]), /it takes home, not "zzzzzz"\. Fix: t go home\./);
 });

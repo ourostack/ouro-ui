@@ -181,6 +181,46 @@ describe("findDesignIssues: cramped-heading", () => {
       ['h2 "In a fixed layer"', "2px below div; a 24px heading needs 8px"],
     ]);
   });
+
+  it("counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits", () => {
+    render(`
+      <section><div style="height:100px;background:#3a7"></div><div class="row" style="display:flex;padding-top:14px">
+        <!-- markup between a row's children draws nothing -->
+        <h2 style="margin:0;font-size:24px">Calendar</h2>
+      </div></section>
+      <section style="margin-top:40px"><div style="height:100px;background:#3a7"></div><div style="display:flex;padding-top:0"><h2 style="margin:0;font-size:24px">Flush</h2></div></section>
+      <section style="margin-top:40px"><div style="height:100px;background:#3a7"></div><div style="display:flex;padding-top:4px"><h2 style="margin:0;font-size:24px">Four</h2></div></section>`);
+    expect(of("cramped-heading").map(({ element, detail }) => [element, detail])).toEqual([
+      ['h2 "Flush"', "0px below div; a 24px heading needs 8px"],
+      ['h2 "Four"', "4px below div; a 24px heading needs 8px"],
+    ]);
+  });
+
+  it("counts the padding of a filled row as room too, as it does for a heading in a filled box", () => {
+    render(`<section><div style="height:100px;background:#3a7"></div><div style="display:flex;background:#eef;padding:14px 8px"><h2 style="margin:0;font-size:24px">Filled row</h2></div></section>`);
+    expect(of("cramped-heading")).toEqual([]);
+  });
+
+  it("takes a row's top from the topmost thing it draws, so an icon pulled up over the row's padding counts", () => {
+    render(`<section><div style="height:100px;background:#3a7"></div><div style="display:flex;align-items:flex-start;gap:8px;padding-top:14px"><span style="width:20px;height:20px;margin-top:-10px;background:#222"></span><h2 style="margin:0;font-size:24px">With a pulled icon</h2></div></section>`);
+    expect(of("cramped-heading").map(({ element, detail }) => [element, detail])).toEqual([['h2 "With a pulled icon"', "4px below div; a 24px heading needs 8px"]]);
+  });
+
+  it("takes a row's text, drawn beside its heading, as part of what the row draws", () => {
+    render(`<section><div style="height:100px;background:#3a7"></div><div class="count-row" style="display:flex;align-items:flex-start;gap:8px">Count<h2 style="margin:12px 0 0;font-size:24px">Beside the count</h2></div></section>`);
+    // The text's drawn box, not the heading's 12px margin, sets the room: its glyphs sit a little below its line's top.
+    const row = host.querySelector(".count-row")!;
+    const drawn = document.createRange();
+    drawn.selectNodeContents(row.firstChild!);
+    const gap = Math.round(drawn.getBoundingClientRect().top - row.previousElementSibling!.getBoundingClientRect().bottom);
+    expect(gap).toBeLessThan(12);
+    expect(of("cramped-heading").map(({ element, detail }) => [element, detail])).toEqual([['h2 "Beside the count"', `${gap}px below div; a 24px heading needs 8px`]]);
+  });
+
+  it("leaves a row's hidden child out of the room the row draws", () => {
+    render(`<section><div style="height:100px;background:#3a7"></div><div style="display:flex;padding-top:14px"><span style="display:none;height:20px"></span><h2 style="margin:0;font-size:24px">Hidden child</h2></div></section>`);
+    expect(of("cramped-heading")).toEqual([]);
+  });
 });
 
 describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a frame, drawn by a border, an outline or a ring, once each", () => {

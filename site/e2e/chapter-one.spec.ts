@@ -143,9 +143,13 @@ test.describe("each control in Chapter I", () => {
     await expect(plan(page).locator("[data-part='hull']")).toHaveCSS("opacity", "1");
     await expect(plan(page)).toHaveAttribute("aria-label", /Drawn so far: double hull, lantern\./);
     await expect(progress).toHaveAttribute("aria-valuenow", "40");
-    await expect(yardCrew(page)).toContainText(YARD.built.hull.text);
+    await expect(yardCrew(page)).toContainText(YARD.hull.text);
+    // A job ticked in order adds nothing the box and the plan don't show, so the line stays.
+    await job(page, "windows").click();
+    await expect(plan(page)).toHaveAttribute("data-built", "lantern hull windows");
+    await expect(yardCrew(page)).toContainText(YARD.hull.text);
     await job(page, "hull").click();
-    await expect(plan(page)).toHaveAttribute("data-built", "lantern");
+    await expect(plan(page)).toHaveAttribute("data-built", "lantern windows");
     await expect(yardCrew(page)).toContainText(YARD.undone("Double hull").text);
   });
 
