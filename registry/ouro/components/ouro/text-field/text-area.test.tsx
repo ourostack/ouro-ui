@@ -436,6 +436,12 @@ describe("TextArea autoGrow", () => {
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 5), 0);
   });
 
+  it("keeps an app's own inline height when it does not grow", async () => {
+    const { textarea } = await render(<TextArea label="Notes" style={{ height: "120px" }} />);
+    expect(textarea.style.height).toBe("120px");
+    expect(height(textarea)).toBe(120);
+  });
+
   it("keeps a height the user dragged as a controlled value changes, after autoGrow turned off and when it never grew", async () => {
     const field = (value: string, autoGrow: boolean) => <TextArea label="Notes" autoGrow={autoGrow} value={value} onChange={() => {}} />;
     const never = await render(field("one", false));
