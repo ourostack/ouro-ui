@@ -188,6 +188,13 @@ describe("component roots leave their margin to the app", () => {
 // the story is known to show is listed in check-known.ts with its reason and issue; any other finding fails, and so does a
 // listed finding that no longer shows, so the list only shrinks. The text-wrap rules are judged on Linux only (judgedOn).
 // A failure prints every finding it names as JSON, so the log is the whole record.
+// What the page held as hovered and focused when a finding showed, for a finding that comes and goes with where the
+// pointer or focus was left (#1957): each element by its tag, id and data-ouro attributes.
+function pageState(): { hovered: string; focused: string } {
+  const name = (el: Element) => `${el.tagName.toLowerCase()}${[...el.attributes].filter((a) => a.name === "id" || a.name.startsWith("data-ouro")).map((a) => `[${a.name}=${a.value}]`).join("")}`;
+  return { hovered: [...document.querySelectorAll(":hover")].map(name).join(" > "), focused: document.activeElement ? name(document.activeElement) : "" };
+}
+
 describe("stories pass Ouro check's rules", () => {
   it("names only stories that exist", () => {
     const ids = stories.map((entry) => entry.id);
@@ -198,7 +205,7 @@ describe("stories pass Ouro check's rules", () => {
     // Chromium only, the browser Ouro check runs in: the other projects have no page to check here.
     if (server.browser !== "chromium") return;
     const platform = inject("hostPlatform");
-    const found: { story: string; rule: string; size: string; scheme: string; element: string; detail: string }[] = [];
+    const found: { story: string; rule: string; size: string; scheme: string; element: string; detail: string; hovered: string; focused: string }[] = [];
     try {
       for (const [width, height] of [[390, 844], [1280, 800]] as const) {
         await page.viewport(width, height);
@@ -206,7 +213,7 @@ describe("stories pass Ouro check's rules", () => {
           setScheme(scheme);
           const layout = (Story as ComposedStory).parameters?.layout;
           for (const { rule, element, detail } of await checkStory(Story, layout)) {
-            if (judgedOn(rule, platform)) found.push({ story: id, rule, size: `${width}x${height}`, scheme, element, detail });
+            if (judgedOn(rule, platform)) found.push({ story: id, rule, size: `${width}x${height}`, scheme, element, detail, ...pageState() });
           }
           await cleanupStories();
           await parkPointer();

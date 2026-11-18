@@ -1,0 +1,1 @@
+- Fixed: a list with a shared row bar (MessageList, for one) no longer shows the bar on mount under a spot the mouse has left the page from.
