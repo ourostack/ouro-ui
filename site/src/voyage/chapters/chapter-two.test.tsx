@@ -4,8 +4,8 @@ import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/
 import { fleschKincaid, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CLASSING, FINDS, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
-import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, SHORTEST, writeDay, writeLeagues } from "./route";
+import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, FINDS, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
+import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 
 await loadPageCode("/nautilus/");
 
@@ -77,7 +77,8 @@ describe("Chapter II's route", () => {
     const days = arrivals(["vigo", "atlantis"], "1867-11-06");
     expect(days[0]).toBe("1867-11-06");
     expect(days[1]).toBe("1867-11-10");
-    expect(writeDay("1867-11-06")).toBe("6 Nov 1867");
+    expect(writeDay("1867-11-06")).toBe("1867-11-06");
+    expect(sayDay("1867-11-06")).toBe("6 Nov 1867");
   });
 });
 
@@ -101,6 +102,14 @@ describe("Chapter II", () => {
     await userEvent.click(page.getByRole("menuitem", { name: "Move to top" }));
     await expect.poll(() => chart().dataset.route).toBe("crespo pole vigo tunnel atlantis");
     await expect.poll(crew).toContain(ROUTE.longer(writeLeagues(routeLeagues(["crespo", "pole", "vigo", "tunnel", "atlantis"]) - SHORTEST)).text);
+  });
+
+  it("writes the day we sail as the ports list does, year first, so nobody reads the month as the day", async () => {
+    await renderPage("/nautilus/");
+    const field = page.getByRole("textbox", { name: CHART_ROOM.departure });
+    await expect.element(field).toHaveValue("1867-11-06");
+    const first = document.querySelector("[data-composition='chart-room'] [data-chapter-control='ports'] [data-chapter-day]")!;
+    expect(first.textContent).toBe(CHART_ROOM.sail((field.element() as HTMLInputElement).value));
   });
 
   it("classes a find: Conseil says so once, and it joins the catalogue", async () => {

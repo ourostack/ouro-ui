@@ -1,3 +1,4 @@
+import { formatDateInput } from "@/registry/ouro/components/ouro/calendar/date-picker-styles";
 import { BOOK_ROUTE, PORTS, type Port, type PortId } from "./chapter-two-copy";
 
 /**
@@ -69,12 +70,24 @@ export function routePath(route: readonly PortId[]): string {
     .join(" ");
 }
 
-const dayFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+/**
+ * The departure field's locale: English words in its calendar, weeks from Monday, and a date the
+ * field writes year first (1867-11-06), not day/month or month/day.
+ */
+export const DAY_LOCALE = "en-SE";
 
-/** An ISO day as the chart room writes it: "6 Nov 1867". */
+const isDay = (iso: string) => !Number.isNaN(new Date(`${iso}T00:00:00Z`).getTime());
+
+/** An ISO day as the departure field writes it, so the ports list matches it: "1867-11-06". */
 export function writeDay(iso: string): string {
-  const date = new Date(`${iso}T00:00:00Z`);
-  return Number.isNaN(date.getTime()) ? iso : dayFormat.format(date);
+  return isDay(iso) ? formatDateInput(iso, DAY_LOCALE) : iso;
+}
+
+const spoken = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+
+/** An ISO day as the crew says it, in words: "6 Nov 1867". */
+export function sayDay(iso: string): string {
+  return isDay(iso) ? spoken.format(new Date(`${iso}T00:00:00Z`)) : iso;
 }
 
 /** The ISO day the Nautilus reaches each port, sailing on `departure` from the first. */
