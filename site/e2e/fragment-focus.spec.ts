@@ -23,7 +23,7 @@ const page = (slow: boolean, deferred: string | null) =>
   `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/${slow ? "late" : "now"}.css?head">` +
   // As a module script does when it adds a route's CSS as the page starts.
   (deferred === null ? "" : `<script defer src="/route.js?${deferred}"></script>`) +
-  (deferred === "import" ? `<script defer src="/wait.js"></script>` : "") +
+  (deferred === "import" || deferred === "nested" ? `<script defer src="/wait.js"></script>` : "") +
   `</head><body>` +
   `<script>${fragmentFocusScript()}</script>` +
   `<p><a id="jump" href="#target">Jump</a></p><div style="height:3000px"></div>` +
@@ -46,9 +46,10 @@ test.beforeAll(async () => {
       }
       return void (released ? css() : held.push(css));
     }
+    // A route stylesheet whose @import (or, nested, its import's @import) is still loading.
     if (url.pathname === "/import.css") {
       response.writeHead(200, { "content-type": "text/css", "cache-control": "no-store" });
-      return void response.end(`@import url("/held.css?imported"); html { --route: 1 }`);
+      return void response.end(`@import url("${url.search === "?nested" ? "/import.css?inner" : "/held.css?imported"}"); html { --route: 1 }`);
     }
     if (url.pathname === "/wait.js") {
       const answer = () => {
@@ -61,11 +62,14 @@ test.beforeAll(async () => {
     // once parsing has ended, and holds the script's moment-later callback until it has: so it arrives while set aside.
     if (url.pathname === "/route.js") {
       const kind = url.search.slice(1);
-      const href = { late: "/late.css?route", after: "/held.css?route", import: "/import.css?route" }[kind];
+      const href = { late: "/late.css?route", after: "/held.css?route", import: "/import.css?route", nested: "/import.css?nested", window: "/late.css?route" }[kind];
       response.writeHead(200, { "content-type": "text/javascript" });
+      const add = `document.head.append(link);`;
       return void response.end(
         `window.routeLoads = 0; const link = (window.routeLink = document.createElement("link")); link.rel = "stylesheet"; link.href = "${href}";` +
-          `link.addEventListener("load", () => window.routeLoads++); document.head.append(link);` +
+          `link.addEventListener("load", () => window.routeLoads++);` +
+          // `window`: added by the app's own listener for the end of parsing, on the window.
+          (kind === "window" ? `window.addEventListener("DOMContentLoaded", () => { ${add} });` : add) +
           (kind === "after"
             ? `document.addEventListener("DOMContentLoaded", () => { const real = window.setTimeout; window.setTimeout = (callback) => { window.setTimeout = real; link.addEventListener("load", () => real(callback), { once: true }); return 0; }; fetch("/release"); });`
             : ""),
@@ -127,8 +131,19 @@ const lazyStylesheet = (tab: Page, href: string) =>
 async function routeStyled(tab: Page): Promise<void> {
   await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--route").trim())).toBe("1");
   await tab.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-  expect(await tab.locator('link[href$="?route"]').count()).toBe(1);
+  expect(await tab.evaluate(() => document.querySelectorAll(`link[href="${(window as unknown as { routeLink: Element }).routeLink.getAttribute("href")}"]`).length)).toBe(1);
   expect(await tab.evaluate(() => (window as unknown as { routeLoads: number }).routeLoads)).toBe(1);
+}
+
+/** Opens a page whose route stylesheet's @import (`import`), or its import's @import (`nested`), is loading as parsing ends; lets it arrive; focus stays as later styles load. */
+async function keepsFocusThroughImport(tab: Page, kind: "import" | "nested"): Promise<void> {
+  await tab.goto(`${origin}/?deferred=${kind}#target`, { waitUntil: "domcontentloaded" });
+  for (const answer of held.splice(0)) answer();
+  await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--imported").trim())).toBe("1");
+  await routeStyled(tab);
+  await tab.locator("#kept").focus();
+  await laterStyles(tab);
+  await expect(tab.locator("#kept")).toBeFocused();
 }
 
 test.describe("fragmentFocusScript", () => {
@@ -173,14 +188,20 @@ test.describe("fragmentFocusScript", () => {
     expect(await tab.evaluate(() => document.querySelector('link[href$="?route"]') !== (window as unknown as { routeLink: Element }).routeLink)).toBe(true);
   });
 
-  test("keeps focus as later styles load, after a stylesheet the page's script added had an @import still loading as parsing ended", async ({ page: tab }) => {
-    await tab.goto(`${origin}/?deferred=import#target`, { waitUntil: "domcontentloaded" });
-    for (const answer of held.splice(0)) answer();
-    await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--imported").trim())).toBe("1");
+  test("keeps focus as later styles load, after a stylesheet the app's own listener added as parsing ended", async ({ page: tab }) => {
+    await tab.goto(`${origin}/?deferred=window#target`, { waitUntil: "load" });
     await routeStyled(tab);
     await tab.locator("#kept").focus();
     await laterStyles(tab);
     await expect(tab.locator("#kept")).toBeFocused();
+  });
+
+  test("keeps focus as later styles load, after a stylesheet the page's script added had an @import still loading as parsing ended", async ({ page: tab }) => {
+    await keepsFocusThroughImport(tab, "import");
+  });
+
+  test("keeps focus as later styles load, after a stylesheet the page's script added had an @import inside an @import still loading as parsing ended", async ({ page: tab }) => {
+    await keepsFocusThroughImport(tab, "nested");
   });
 
   test("follows a link to a place on the page after two seconds when a stylesheet is still loading", async ({ page: tab, browserName }) => {

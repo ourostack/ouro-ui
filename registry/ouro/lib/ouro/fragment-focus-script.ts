@@ -16,13 +16,14 @@ const script =
   // A stylesheet a deferred or module script added is still loading as the page finishes parsing, when Safari decides:
   // with no sheet yet, or with an @import still loading. Disabled for that moment it doesn't count, and it keeps loading;
   // enabled again a moment later, it applies when it arrives. One that arrived while disabled comes back empty in
-  // Safari, so a fresh copy (from the cache, when the sheet allows it) takes its place. On the window, after every
-  // listener on the document, so a stylesheet one of those adds is caught too.
-  `function importing(s){try{for(var r=s.cssRules,i=0;i<r.length;i++)if(r[i] instanceof CSSImportRule&&!r[i].styleSheet)return true}catch(e){}return false}` +
+  // Safari, so a fresh copy (from the cache, when the sheet allows it) takes its place. Added to the window as the event
+  // reaches the document, it runs after every other listener on either, so a stylesheet one of those adds is caught too.
+  `function importing(s){try{for(var r=s.cssRules,i=0;i<r.length;i++)if(r[i] instanceof CSSImportRule&&(!r[i].styleSheet||importing(r[i].styleSheet)))return true}catch(e){}return false}` +
   `function renew(x){if(!x.sheet&&!failed.has(x))x.replaceWith(x.cloneNode(true))}` +
-  `w.addEventListener("DOMContentLoaded",function(){var a=sheets(),held=[],j;for(j=0;j<a.length;j++)if(pending(a[j])&&(!a[j].sheet||importing(a[j].sheet))){a[j].disabled=true;held.push(a[j])}` +
+  `d.addEventListener("DOMContentLoaded",function(){w.addEventListener("DOMContentLoaded",setAside,{once:true})});` +
+  `function setAside(){var a=sheets(),held=[],j;for(j=0;j<a.length;j++)if(pending(a[j])&&(!a[j].sheet||importing(a[j].sheet))){a[j].disabled=true;held.push(a[j])}` +
   `if(held.length)setTimeout(function(){for(var k=0;k<held.length;k++){var x=held[k];x.disabled=false;` +
-  `if(!x.sheet){if(done.has(x))renew(x);else x.addEventListener("load",renew.bind(null,x),{once:true})}}})});` +
+  `if(!x.sheet){if(done.has(x))renew(x);else x.addEventListener("load",renew.bind(null,x),{once:true})}}})}` +
   `function here(){return location.href.split("#")[0]}` +
   // A held link goes only while the page is still the one it was clicked on: a router may have moved on meanwhile.
   `function follow(){if(jump&&(!loading()||Date.now()>=until)){var h=jump;jump=null;if(h.split("#")[0]===here())location.assign(h)}}` +
@@ -67,6 +68,8 @@ const script =
  * @claim "The script stops it" site/e2e/fragment-focus.spec.ts verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, after a stylesheet the page's script added was still loading as parsing ended)
  * @claim "is set aside for that moment, then carries on" site/e2e/fragment-focus.spec.ts verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, after a stylesheet the page's script added had an @import still loading as parsing ended)
  * @claim "is set aside for that moment, then carries on" site/e2e/fragment-focus.spec.ts verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > a stylesheet the page's script added that arrives while set aside still applies, from one link, with one load event)
+ * @claim "is set aside for that moment, then carries on" site/e2e/fragment-focus.spec.ts verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, after a stylesheet the page's script added had an @import inside an @import still loading as parsing ended)
+ * @claim "is set aside for that moment, then carries on" site/e2e/fragment-focus.spec.ts verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, after a stylesheet the app's own listener added as parsing ended)
  * @claim "unless the page has moved on" registry/ouro/lib/ouro/fragment-focus-script.test.ts verify:testExists(registry/ouro/lib/ouro/fragment-focus-script.test.ts::fragmentFocusScript in WebKit > drops a held link once the page moves on, or another link is clicked)
  * @claim "Other browsers don't jump back, so it leaves them alone" registry/ouro/lib/ouro/fragment-focus-script.test.ts verify:testExists(registry/ouro/lib/ouro/fragment-focus-script.test.ts::fragmentFocusScript outside WebKit > holds no link)
  * @claim "two seconds at most" site/e2e/fragment-focus.spec.ts verify:testExists(site/e2e/fragment-focus.spec.ts::fragmentFocusScript > follows a link to a place on the page after two seconds when a stylesheet is still loading)
