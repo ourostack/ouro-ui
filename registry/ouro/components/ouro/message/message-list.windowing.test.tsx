@@ -879,7 +879,7 @@ describe("MessageList windowing", () => {
     return { scroller, content, clock, worst, items, root, style, rerender };
   }
 
-  it("holds the reader's place for a message that goes in above them in the frame the space above the first message goes, before the list's own scroll is reported", async () => {
+  it("holds the reader's place for a message deleted above them in the frame the space above the first message goes, before the list's own scroll is reported", async () => {
     // A short view, so the space is more than half of it.
     const { scroller, content, clock, items, root, style } = await wheelToTheTop({ height: 120 });
     await frame();
@@ -887,22 +887,24 @@ describe("MessageList windowing", () => {
     expect(space).toBeGreaterThan(60);
     // The wheel turns on, down past the space.
     scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 }));
-    scroller.scrollTop = space + 40;
+    scroller.scrollTop = space + 100;
     await frame();
     await settle(scroller);
     const reading = firstVisible(scroller);
-    // As the space goes, once the wheel rests, a message goes in at the start of the conversation, in the same task.
+    const gone = Number(reading.message.id.slice(1)) - 1;
+    // As the space goes, once the wheel rests, the message just above the reader is deleted, in the same task.
     let went = false;
-    const added = new MutationObserver(() => {
+    const deleted = new MutationObserver(() => {
       if (content.offsetTop !== 0) return;
       went = true;
-      added.disconnect();
-      flushSync(() => root.render(<Chat items={[{ id: -1, text: "Message -1", tall: 20 }, ...items]} springy={false} style={style} />));
+      deleted.disconnect();
+      flushSync(() => root.render(<Chat items={items.filter((item) => item.id !== gone)} springy={false} style={style} />));
     });
-    added.observe(content, { attributes: true, attributeFilter: ["style"] });
+    deleted.observe(content, { attributes: true, attributeFilter: ["style"] });
     clock.now += 10_000;
     await expect.poll(() => went).toBe(true);
     await settle(scroller);
+    expect(document.getElementById(`m${gone}`)).toBeNull();
     expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
   });
 

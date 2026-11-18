@@ -1562,6 +1562,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       floorMark.style.display = px > 0 ? "block" : "";
       floorMark.style.top = `${Math.max(0, px - 1)}px`;
     };
+    // Sets the mark between the anchors being taken and held: the range it holds changes with no change of the messages, so the
+    // anchors' range moves with it, and the reader's own scrolling, which takes the anchors again only while the range is the
+    // one they were taken with, still does.
+    const moveFloor = (px: number) => {
+      const range = farthest();
+      setFloor(px);
+      end += farthest() - range;
+    };
     const followEnd = () => {
       const height = bottom();
       setFloor(height > scroller.clientHeight ? height : 0);
@@ -1683,13 +1691,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const gone = slack;
       const applied = scrollOwn(-gone);
       setSlack(0);
-      // The hold on the range, kept while the list follows its end, comes up with the content, so the end is where it was; none
-      // stays none.
-      setFloor(Math.max(0, floor - gone));
       // The anchors sit in the content, which the space going does not move: only the list's own scroll and the range it took
       // away are left out, so a change waiting for the resize observer is still held.
       taken += applied;
       end += farthest() - range;
+      // The hold on the range, kept while the list follows its end, comes up with the content, so the end is where it was; none
+      // stays none.
+      moveFloor(Math.max(0, floor - gone));
     };
     const pay = () => {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
@@ -1697,13 +1705,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const by = carriedRef.current;
       // Once the wheel rests, the end the list is not following is held no more: what was carried goes first, so nothing is pulled.
       const letGo = () => {
-        if (!pinned.current && !turning()) {
-          // The range the mark held goes with it, which no message changed: the anchors' range moves with it, so the reader's
-          // own scrolling takes them again.
-          const range = farthest();
-          setFloor(0);
-          end += farthest() - range;
-        }
+        if (!pinned.current && !turning()) moveFloor(0);
         release();
       };
       // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
