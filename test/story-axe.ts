@@ -63,7 +63,7 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
   for (const opener of overlayOpeners(id, host)) {
     const popup = await openOverlay(opener);
     void popup;
-    record(`with "${opener.name}" open`, await scan());
+    record(`with "${opener.name}" open`, [...(await scan()), ...tintsOverLivePage()]);
     await closeOverlay();
   }
   // Found afresh after each one closes: a trigger that mounts only while its row is hovered or focused
@@ -83,6 +83,35 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
     await settle();
   }
   return { violations, text: found.join("\n\n"), phases };
+}
+
+/**
+ * A layer an open overlay lays over a page that stays in use (fixed, covering the window, passing
+ * presses through) that paints anything. Its tint lowers the contrast of every text on the page
+ * under it, and the scan measures that only in the themes it runs: Ouro's own and the shadcn
+ * fixtures held about 5.5:1 under a non-modal sheet's 10% scrim, while spoonjoy-v2's "Change
+ * look" button fell from 4.57:1 to 4.21:1 (spoonjoy-v2#770). So any such layer fails, whatever the theme.
+ */
+export function tintsOverLivePage(): GateFinding[] {
+  const findings: GateFinding[] = [];
+  for (const element of document.body.querySelectorAll<HTMLElement>("*")) {
+    const style = getComputedStyle(element);
+    if (style.position !== "fixed" || style.pointerEvents !== "none" || style.visibility === "hidden" || Number(style.opacity) === 0) continue;
+    const box = element.getBoundingClientRect();
+    if (box.left > 0 || box.top > 0 || box.right < innerWidth || box.bottom < innerHeight) continue;
+    const clear = style.backgroundColor === "transparent" || /(?:,|\/)\s*0(?:\.0+)?\)$/.test(style.backgroundColor);
+    const paints = !clear || style.backgroundImage !== "none" || (style.backdropFilter || "none") !== "none" || style.filter !== "none";
+    if (!paints) continue;
+    findings.push({
+      rule: "tint-over-live-page",
+      impact: "serious",
+      help: "A layer over a page that stays in use must paint nothing, so the page keeps its contrast",
+      target: element.dataset["ouro"] ? `[data-ouro="${element.dataset["ouro"]}"]` : element.tagName.toLowerCase(),
+      summary: `it covers the window, passes presses through, and paints (background ${style.backgroundColor}, opacity ${style.opacity})`,
+      undecided: false,
+    });
+  }
+  return findings;
 }
 
 /**

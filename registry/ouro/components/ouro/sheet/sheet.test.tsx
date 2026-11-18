@@ -916,7 +916,7 @@ describe("non-modal sheet", () => {
     await expect.poll(() => popup()).toBeNull();
   });
 
-  it("with scrim, tints the page lightly, takes no presses, and a press on the page still closes it", async () => {
+  it("with scrim, the page keeps its colours and contrast, the layer takes no presses, and a press on the page still closes it", async () => {
     await page.viewport(1280, 800);
     const onPage = vi.fn();
     const onOpenChange = vi.fn();
@@ -928,8 +928,11 @@ describe("non-modal sheet", () => {
     const style = getComputedStyle(scrim);
     expect(style.pointerEvents).toBe("none");
     expect(scrim.getAttribute("aria-hidden")).toBe("true");
-    await expect.poll(() => Number(getComputedStyle(scrim).opacity)).toBeCloseTo(Number(style.getPropertyValue("--ouro-scrim-max")), 2);
-    expect(Number(getComputedStyle(scrim).opacity)).toBeLessThan(0.25);
+    // The page beside a non-modal sheet is in use: a tint over it lowers its text's contrast, and an app's text near
+    // 4.5:1 falls under it (spoonjoy-v2#770's "Change look" button, 4.56:1 to about 4.2:1 under a 10% tint).
+    expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(style.backgroundImage).toBe("none");
+    expect(style.backdropFilter === "none" || style.backdropFilter === "").toBe(true);
     expect(getComputedStyle(popup()!).boxShadow).not.toBe("none");
     await userEvent.click(page.getByRole("button", { name: "Page action" }));
     expect(onPage).toHaveBeenCalledOnce();
