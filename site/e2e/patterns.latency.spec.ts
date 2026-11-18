@@ -242,7 +242,7 @@ test("dashboard-page paints its frame, the chart's title and the room for its pl
     expect(paint).toBeGreaterThan(0);
     const chart = page.locator('[data-ouro="chart"]');
     await expect(chart.locator("figcaption")).toBeVisible();
-    await expect.poll(() => held.length, "Recharts is asked for in a chunk of its own, once the page has painted").toBeGreaterThan(0);
+    await expect.poll(() => held.length, { message: "Recharts is asked for in a chunk of its own, once the page has painted" }).toBeGreaterThan(0);
     expect(await chart.locator("svg.recharts-surface").count(), "nothing drew the plot without Recharts").toBe(0);
     // What is under the plot stays where it is when the plot arrives.
     const before = await chart.locator("[data-ouro-chart-plot]").boundingBox();
