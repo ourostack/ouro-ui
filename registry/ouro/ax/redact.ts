@@ -1,4 +1,4 @@
-export { isSecretKey, leaks, REDACT_RULES, redactLine, redactText, redactValue };
+export { isPersonKey, isSecretKey, leaks, redactEntries, REDACT_RULES, redactLine, redactText, redactValue };
 export type { RedactOptions, RedactRule };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -38,11 +38,15 @@ interface RedactOptions {
 const SAFE_VALUE = /^[a-z0-9._:/+=-]{0,40}$/;
 /** ISO times are kept: they say when, not who. */
 const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/;
-/** Keys whose values are what someone wrote or who they are, whatever they hold. */
-const CONTENT_KEYS = /^(title|name|displayname|givenname|surname|text|body|content|preview|subject|summary|message|msg|email|mail|upn|userprincipalname|topic|login_?hint|loginhint|account|user(name)?|owner|author|phone|address|from|to|who)$/i;
+/** Keys whose values are what someone wrote, whatever they hold. */
+const CONTENT_KEYS = /^(title|text|body|content|preview|subject|summary|message|msg|topic|from|to|who)$/i;
+/** Keys whose values say who someone is: a name, an address, a sign-in, an account, by the key's last word. */
+const PERSON_KEY = /(name|e_?mail|mail|upn|userprincipalname|login|login_?hint|handle|phone|address|account|user|user_?id|owner|author)$/i;
 /** Keys whose values are secrets, whatever they hold. */
-const SECRET_WORDS = "token|secret|passw(?:or)?d|pwd|cookie|session|credential|api_?key|private_?key|signature|assertion|authorization|bearer";
-const SECRET_KEY = new RegExp(`^(sid|[A-Za-z_-]*(${SECRET_WORDS})[A-Za-z_-]*)$`, "i");
+const SECRET_WORDS = "token|secret|passw(?:or)?d|pwd|cookie|session|credential|api_?key|private_?key|access_?key|account_?key|signature|assertion|authorization|bearer";
+const SECRET_KEY = new RegExp(`^(sid|pass|pw|[A-Za-z_-]*(${SECRET_WORDS})[A-Za-z_-]*)$`, "i");
+/** Words that name a secret in `key: value` text, where the weaker words of the `key=value` rule would take too much. */
+const STRONG_SECRET = "token|secret|passw(?:or)?d|pwd|api[_-]?key|private[_-]?key|access[_-]?key|account[_-]?key|credential";
 
 /**
  * Whether a JSON key holds a secret whatever its value: `token`, `refreshToken`, `cookie`, `sessionId`, `password`,
@@ -58,6 +62,19 @@ function isSecretKey(key: string): boolean {
 }
 
 /**
+ * Whether a JSON key holds who someone is, whatever its value: `name`, `displayName`, `email`, `login`, `handle`,
+ * `userId`, `account`, `owner` and the like, by the key's last word.
+ *
+ * @claim "Whether a JSON key holds who someone is" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::redactValue keeps keys, numbers, times and codes, and drops secrets and what anyone wrote)
+ * @example
+ * isPersonKey("displayName"); // true
+ * isPersonKey("version"); // false
+ */
+function isPersonKey(key: string): boolean {
+  return PERSON_KEY.test(key);
+}
+
+/**
  * Each shape that must never leave in a bundle, with what it becomes. Order matters: whole tokens before their parts,
  * and a URL before the email address its sign-in part would look like.
  *
@@ -66,8 +83,10 @@ function isSecretKey(key: string): boolean {
 const REDACT_RULES: readonly RedactRule[] = Object.freeze([
   { name: "private-key", re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g, to: "[private key]" },
   { name: "jwt", re: /\beyJ[\w-]{6,}\.[\w-]{6,}\.[\w-]*/g, to: "[token]" },
-  { name: "header", re: /\b(authorization|proxy-authorization|cookie|set-cookie|x-api-key|x-[a-z-]*token)(\s*[:=]\s*)(?!\[redacted\])[^\n]*/gi, to: (_m, key, sep) => `${key}${sep}[redacted]` },
+  { name: "header", re: /\b(authorization|proxy-authorization|cookie|set-cookie|api-key|x-[a-z-]*(?:token|key|secret))(\s*[:=]\s*)(?!\[redacted\])[^\n]*/gi, to: (_m, key, sep) => `${key}${sep}[redacted]` },
   { name: "secret-field", re: new RegExp(`"(sid|[A-Za-z_-]*(?:${SECRET_WORDS})[A-Za-z_-]*)"(\\s*:\\s*)"(?!\\[redacted\\]")(?:[^"\\\\\\n]|\\\\.)+"`, "gi"), to: (_m, key, sep) => `"${key}"${sep}"[redacted]"` },
+  { name: "secret-colon", re: new RegExp(`\\b([A-Za-z_-]*(?:${STRONG_SECRET})[A-Za-z_-]*)(["']?\\s*:\\s*|\\s+(?=["']))(?!["']?\\[redacted\\])(?:"[^"\\n]*"|'[^'\\n]*'|[^\\s,;}"']+)`, "gi"), to: (_m, key, sep) => `${key}${sep}[redacted]` },
+  { name: "userinfo", re: /\b([a-z][a-z0-9+.-]*):\/\/(?!\[redacted\]@)[^/\s@"'<>]*@/gi, to: (_m, scheme) => `${scheme}://[redacted]@` },
   { name: "bearer", re: /\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi, to: (_m, kind) => `${kind} [token]` },
   // Tokens a service marks with its own prefix: GitHub, GitLab, Slack, Stripe, npm, AWS, Google, SendGrid, OpenAI.
   { name: "service-token", re: /\b(?:gh[pousr]_|github_pat_|glpat-|xox[abposr]-|sk-(?:proj-)?|[spr]k_(?:live|test)_|npm_|AKIA|ASIA|AIza|SG\.)[A-Za-z0-9_.-]{10,}/g, to: "[token]" },
@@ -77,7 +96,9 @@ const REDACT_RULES: readonly RedactRule[] = Object.freeze([
   { name: "guid", re: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, to: "[id]" },
   // 32 characters or more with a digit and a letter: a key, a hash or an encoded secret, not a word or a folder path.
   { name: "opaque", re: /[A-Za-z0-9+/_-]{32,}={0,2}/g, to: (m) => (isOpaque(m) ? "[opaque]" : m) },
-  { name: "user-path", re: /(\/Users\/|\/home\/|[A-Za-z]:[\\/]Users[\\/])[^/\\\s"']+/g, to: (_m, root) => `${root}[user]` },
+  // A Windows profile folder's name may hold a space, and a logger may double its backslashes.
+  { name: "user-path", re: /([A-Za-z]:(?:\\{1,2}|\/)(?:Users|Documents and Settings)(?:\\{1,2}|\/))(?!\[user\])[^\\/\n"']+/gi, to: (_m, root) => `${root}[user]` },
+  { name: "user-path", re: /(\/Users\/|\/home\/)[^/\\\s"']+/g, to: (_m, root) => `${root}[user]` },
 ]);
 
 /** A long run of key characters is opaque when it mixes digits and letters. */
@@ -100,13 +121,24 @@ function cutLine(line: string): string {
   return space > 0 ? `${line.slice(0, space)} …` : `[${line.length} characters]`;
 }
 
-/** Quoted words: kept when they are a safe code, else "[text]", since quotes in a log hold what someone wrote or a name. */
+/**
+ * Quoted words: kept when they are a safe code, else "[text]", since quotes in a log hold what someone wrote or a name.
+ * A double quote with no close in 400 characters, cut short or too long, takes the rest of its line with it.
+ *
+ * @claim "takes the rest of its line with it" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::redactText replaces each shape with its category and keeps the words around it)
+ */
 function redactQuotes(s: string): string {
   return s
-    .replace(/"((?:[^"\\\n]|\\.){0,400})"/g, (m, inner: string) => (SAFE_VALUE.test(inner) || inner === "[redacted]" ? m : `"[text]"`))
+    .replace(/"((?:[^"\\\n]|\\.){0,400})"|"[^\n]*/g, (m, inner: string | undefined) => (inner === undefined ? `"[text]` : SAFE_VALUE.test(inner) || inner === "[redacted]" ? m : `"[text]"`))
     .replace(/“[^”\n]{0,400}”/g, "“[text]”")
     .replace(/‘[^’\n]{0,400}’/g, "‘[text]’")
     .replace(/(^|[\s=(:[])'([^'\n]{1,400})'/g, (m, lead: string, inner: string) => (SAFE_VALUE.test(inner) ? m : `${lead}'[text]'`));
+}
+
+/** The home folder in any letter case, with either slash, single or doubled, between its parts. */
+function homePattern(home: string): RegExp {
+  const parts = home.split(/[\\/]+/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(parts.join("(?:\\\\{1,2}|/)"), "gi");
 }
 
 /**
@@ -123,7 +155,7 @@ function redactQuotes(s: string): string {
  */
 function redactText(s: string, { home, rules = [] }: RedactOptions = {}): string {
   let out = s.split("\n").map(cutLine).join("\n");
-  if (home && home.length > 1) out = out.split(home).join("~");
+  if (home && home.length > 1) out = out.replace(homePattern(home), "~");
   for (const r of [...rules, ...REDACT_RULES]) out = out.replace(r.re, r.to as string);
   return redactQuotes(out);
 }
@@ -140,14 +172,33 @@ function redactText(s: string, { home, rules = [] }: RedactOptions = {}): string
  */
 function redactValue(v: unknown, opts: RedactOptions = {}, key = ""): unknown {
   if (typeof v === "string") {
-    if (CONTENT_KEYS.test(key)) return "[text]";
+    if (CONTENT_KEYS.test(key) || isPersonKey(key)) return "[text]";
     if (isSecretKey(key)) return "[redacted]";
     if (ISO_TIME.test(v)) return v;
     return /\s/.test(v) ? "[text]" : redactText(v, opts);
   }
   if (Array.isArray(v)) return v.map((x) => redactValue(x, opts, key));
-  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, redactValue(x, opts, k)]));
+  if (v && typeof v === "object") return redactEntries(v, (x, k) => redactValue(x, opts, k), opts);
   return v;
+}
+
+/**
+ * An object's entries with each value mapped and each key redacted as text, since a key can be an id or an address; two
+ * keys that come out the same get a number.
+ *
+ * @claim "two keys that come out the same get a number" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::redactValue keeps keys, numbers, times and codes, and drops secrets and what anyone wrote)
+ * @example
+ * redactEntries({ "jordan@contoso.com": 3, "sam@contoso.com": 1 }, (n) => n); // { "[email]": 3, "[email] 2": 1 }
+ */
+function redactEntries(v: object, value: (x: unknown, key: string) => unknown, opts: RedactOptions = {}): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(v)) {
+    const key = redactText(k, opts);
+    let unique = key;
+    for (let n = 2; unique in out; n++) unique = `${key} ${n}`;
+    out[unique] = value(x, k);
+  }
+  return out;
 }
 
 /**
@@ -173,6 +224,7 @@ function redactLine(line: string, opts: RedactOptions = {}): string {
 /** What a rule leaves behind, which is clean: a header or key with [redacted], a URL cut to its host, a user folder as [user]. */
 function leftByRule(name: string, said: string): boolean {
   if (name === "header" || name === "secret") return /^[^:=]*[:=]\s*\[redacted\]/.test(said);
+  if (name === "userinfo") return said.endsWith("://[redacted]@");
   if (name === "url") {
     const rest = said.replace(/^[a-z]+:\/\//i, "");
     return !rest.includes("@") && !/\/[^…]/.test(rest);

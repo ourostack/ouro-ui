@@ -31,7 +31,7 @@ const SECRETS = {
 test("redactText replaces each shape with its category and keeps the words around it", () => {
   const cases: [string, string][] = [
     [`Authorization: Bearer ${SECRETS.bearer}`, "Authorization: [redacted]"],
-    [`curl -H "Cookie: ESTSAUTH=${SECRETS.cookieValue}; sid=${SECRETS.sessionValue}"`, `curl -H "Cookie: [redacted]`],
+    [`curl -H "Cookie: ESTSAUTH=${SECRETS.cookieValue}; sid=${SECRETS.sessionValue}"`, `curl -H "[text]`],
     [`Set-Cookie: session=${SECRETS.sessionValue}; HttpOnly; Secure`, "Set-Cookie: [redacted]"],
     [`x-api-key=${SECRETS.stripe}`, "x-api-key=[redacted]"],
     [`sent with bearer ${SECRETS.bearer} at 19:57`, "sent with bearer [token] at 19:57"],
@@ -49,6 +49,13 @@ test("redactText replaces each shape with its category and keeps the words aroun
     [`${"Ab".repeat(20)} and ${"12".repeat(20)} stay`, `${"Ab".repeat(20)} and ${"12".repeat(20)} stay`],
     [`read /Users/${SECRETS.macUser}/Library/Logs, /home/${SECRETS.linuxUser}/.config and C:\\Users\\${SECRETS.windowsUser}\\AppData`, "read /Users/[user]/Library/Logs, /home/[user]/.config and C:\\Users\\[user]\\AppData"],
     [`"refresh_token": "${SECRETS.cookieValue}", "state": "up"`, `"refresh_token": "[redacted]", "state": "up"`],
+    [`password: ${SECRETS.password}, client_secret: 'Xy7~Q.abc', token "${SECRETS.sessionValue}" and tokens: 3`, "password: [redacted], client_secret: [redacted], token [redacted] and tokens: [redacted]"],
+    [`{ accessToken: 's3cr3tpassw0rd', ok: true }`, "{ accessToken: [redacted], ok: true }"],
+    [`api-key: 0123abcd\nX-Goog-Api-Key: ${SECRETS.google}`, "api-key: [redacted]\nX-Goog-Api-Key: [redacted]"],
+    ["postgres://app:hunter2@localhost:5432/db, redis://:hunter2@cache:6379 and mongodb://jordan:hunter2@db.example.com/app", "postgres://[redacted]@localhost:5432/db, redis://[redacted]@cache:6379 and mongodb://[redacted]@db.example.com/app"],
+    ["C:\\Users\\Jordan Lee\\AppData, C:/Users/Jordan Lee/AppData, C:\\\\Users\\\\JLee\\\\AppData and C:\\Documents and Settings\\jlee\\Desktop", "C:\\Users\\[user]\\AppData, C:/Users/[user]/AppData, C:\\\\Users\\\\[user]\\\\AppData and C:\\Documents and Settings\\[user]\\Desktop"],
+    [`she wrote "${"I am so sorry about the news. ".repeat(20)}" today`, `she wrote "[text]`],
+    ['note: "Hi Sam, the line was cut', 'note: "[text]'],
     ["-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0Z3VS5JJcds3xfn\n-----END RSA PRIVATE KEY-----\ndone", "[private key]\ndone"],
     ['she wrote "see you at the offsite" and ‘call me’ then “thanks” and \'lunch at noon\'', 'she wrote "[text]" and ‘[text]’ then “[text]” and \'[text]\''],
     ['state "signed-in", mode \'prompt=none\'', 'state "signed-in", mode \'prompt=none\''],
@@ -60,6 +67,7 @@ test("redactText replaces each shape with its category and keeps the words aroun
 test("redactText turns the person's home folder into ~, and runs an app's own rules first", () => {
   assert.equal(redactText(`/Users/${SECRETS.macUser}/Library/Logs/app.log`, { home: `/Users/${SECRETS.macUser}` }), "~/Library/Logs/app.log");
   assert.equal(redactText("~ stays as it is", { home: "/" }), "~ stays as it is", "a home of one character is not a home");
+  assert.equal(redactText("c:/users/jordan lee/AppData and C:\\\\Users\\\\Jordan Lee\\\\x", { home: "C:\\Users\\Jordan Lee" }), "~/AppData and ~\\\\x", "any letter case, either slash, doubled or not");
   const chatIds: RedactRule = { name: "chat-id", re: /\b19:[A-Za-z0-9_-]+@thread\.v2/g, to: "[chat]" };
   assert.equal(redactText("posted in 19:a1b2c3_d4@thread.v2", { rules: [chatIds] }), "posted in [chat]", "the app's rule wins over the built-in email rule");
   assert.equal(redactText("posted in 19:a1b2c3_d4@thread.v2"), "posted in 19:[email]");
@@ -83,6 +91,13 @@ test("redactValue keeps keys, numbers, times and codes, and drops secrets and wh
     url: "https://graph.example.com/v1.0/me/messages?$top=5",
     who: { name: "Jordan" },
     nested: [{ cookie: "x=1", email: SECRETS.email, address: SECRETS.otherEmail }],
+    firstName: "Jordan",
+    login: "jlee",
+    userId: "jordan.lee",
+    pass: "hunter2",
+    [SECRETS.guid]: { ok: true },
+    [SECRETS.email]: 1,
+    [SECRETS.otherEmail]: 2,
   };
   assert.deepEqual(redactValue(line), {
     level: "warn",
@@ -101,6 +116,13 @@ test("redactValue keeps keys, numbers, times and codes, and drops secrets and wh
     url: "https://graph.example.com/…",
     who: { name: "[text]" },
     nested: [{ cookie: "[redacted]", email: "[text]", address: "[text]" }],
+    firstName: "[text]",
+    login: "[text]",
+    userId: "[text]",
+    pass: "[redacted]",
+    "[id]": { ok: true },
+    "[email]": 1,
+    "[email] 2": 2,
   });
   assert.equal(redactValue(`contact ${SECRETS.email}`), "[text]");
   assert.equal(redactValue(SECRETS.email), "[email]", "one word the rules redact comes back redacted");
@@ -128,8 +150,10 @@ test("leaks names each shape left in a text, an app's own included, and nothing 
     SECRETS.hex,
     `/Users/${SECRETS.macUser}`,
     "-----BEGIN PRIVATE KEY-----\nabc",
+    `password: ${SECRETS.password}`,
+    "postgres://app:hunter2@localhost/db",
   ].join("\n");
-  assert.deepEqual(leaks(raw).sort(), ["bearer", "email", "guid", "header", "jwt", "opaque", "private-key", "secret", "secret-field", "service-token", "url", "user-path"]);
+  assert.deepEqual(leaks(raw).sort(), ["bearer", "email", "guid", "header", "jwt", "opaque", "private-key", "secret", "secret-colon", "secret-field", "service-token", "url", "user-path", "userinfo"]);
   assert.deepEqual(leaks(redactText(raw)), []);
   assert.deepEqual(leaks("all clear: 8 checks passed in 0.4s, https://example.com/… and /Users/[user]/Library"), []);
   const chatIds: RedactRule = { name: "chat-id", re: /\b19:[A-Za-z0-9_-]+@thread\.v2/g, to: "[chat]" };

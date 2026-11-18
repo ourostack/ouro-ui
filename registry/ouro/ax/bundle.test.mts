@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, w
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { bundleText, tailLines, writeBundle } from "#ouro-ax/bundle.ts";
-import { leaks } from "#ouro-ax/redact.ts";
+import { leaks, type RedactRule } from "#ouro-ax/redact.ts";
 
 const made: string[] = [];
 after(() => made.forEach((dir) => rmSync(dir, { recursive: true, force: true })));
@@ -24,7 +24,8 @@ const parts = {
     tool: "chat doctor",
     verdict: "failed",
     summary: "1 of 8 checks failed: Sign-in. 6 passed, 1 not run, in under 0.1s.",
-    identity: { account: "jordan.lee@contoso.com", tenant: "6f1c2d9e-4b7a-4c3e-9a51-0d8e2f7b6c41" },
+    identity: { account: "jordan.lee@contoso.com", tenant: "6f1c2d9e-4b7a-4c3e-9a51-0d8e2f7b6c41", displayName: "Jordan Lee" },
+    byTenant: { "6f1c2d9e-4b7a-4c3e-9a51-0d8e2f7b6c41": "signed-in" },
     dataFolder: `${HOME}/Library/Application Support/chat`,
     refreshToken: COOKIE,
     counts: { passed: 6, failed: 1 },
@@ -45,7 +46,8 @@ test("bundleText redacts the facts and every log line, and keeps the tool's own 
     tool: "chat doctor",
     verdict: "failed",
     summary: "1 of 8 checks failed: Sign-in. 6 passed, 1 not run, in under 0.1s.",
-    identity: { account: "[email]", tenant: "[id]" },
+    identity: { account: "[text]", tenant: "[id]", displayName: "[text]" },
+    byTenant: { "[id]": "signed-in" },
     dataFolder: "~/Library/Application Support/chat",
     refreshToken: "[redacted]",
     counts: { passed: 6, failed: 1 },
@@ -60,13 +62,19 @@ test("bundleText redacts the facts and every log line, and keeps the tool's own 
 });
 
 test("a bundle that still holds a secret's shape after redaction is refused, and nothing is written", () => {
-  const leaky = { facts: { byUser: { "jordan.lee@contoso.com": 3 } }, logs: {} };
-  assert.throws(() => bundleText(leaky), { message: "bundle: the bundle still held email after redaction, so it was not written. Fix: drop or rename the facts that hold it." });
+  // A rule that leaves its match as it is, as a rule with a mistake would: the safety net still catches it.
+  const forgetful: RedactRule = { name: "ticket", re: /\bTKT-\d+/g, to: (m) => m };
+  const anyId: RedactRule = { ...forgetful, to: "[ticket]" };
+  const leaky = { facts: { ticket: "TKT-0" }, logs: { service: ["opened TKT-0", '{"ticket":"TKT-0"}'] } };
+  assert.throws(() => bundleText(leaky, { rules: [forgetful] }), {
+    message: "bundle: the facts still held ticket; the service log still held ticket after redaction, so the bundle was not written. Fix: leave that out of the bundle, or pass a rule for its shape in rules.",
+  });
+  assert.doesNotThrow(() => bundleText(leaky, { rules: [anyId] }), "what the app's rule leaves is clean");
   const dir = join(scratch(), "doctor");
-  assert.throws(() => writeBundle(leaky, { dir, prefix: "chat-doctor", at: 0 }), /still held email/);
+  assert.throws(() => writeBundle(leaky, { dir, prefix: "chat-doctor", at: 0, rules: [forgetful] }), /still held ticket/);
   assert.equal(existsSync(dir), false, "not even its folder");
   const chatId = { name: "chat-id", re: /\b19:\w+@thread\.v2/g, to: "[chat]" };
-  assert.throws(() => bundleText({ facts: { ["19:abc@thread.v2"]: 1 }, logs: {} }, { rules: [chatId] }), /still held chat-id, email after redaction/);
+  assert.match(bundleText({ facts: { ["19:abc@thread.v2"]: 1 }, logs: {} }, { rules: [chatId] }), /"\[chat\]": 1/, "keys are redacted too");
   assert.match(bundleText({ facts: {}, logs: { app: ["posted in 19:abc@thread.v2"] } }, { rules: [chatId] }), /posted in \[chat\]/);
 });
 
@@ -89,6 +97,7 @@ test("tailLines reads the last lines from the end of a file, drops a line cut in
   writeFileSync(log, "one\r\ntwo\n\n  \nthree\nfour\n");
   assert.deepEqual(tailLines(log, 3), ["two", "three", "four"], "blank lines don't count, and CRLF ends a line too");
   assert.deepEqual(tailLines(log, 10), ["one", "two", "three", "four"]);
+  assert.deepEqual(tailLines(log, 0), [], "no lines asked for, none given");
   assert.deepEqual(tailLines(log, 10, 8), ["four"], "the last 8 bytes start inside three, which is dropped");
   assert.deepEqual(tailLines(log, 10, 12), ["three", "four"], "a cut just after a line's end drops only the empty piece before it");
 });

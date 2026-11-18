@@ -6,7 +6,7 @@ export type { BundleOptions, BundleParts };
 
 import fs from "node:fs";
 import path from "node:path";
-import { isSecretKey, leaks, redactLine, redactText, type RedactOptions } from "./redact.ts";
+import { isPersonKey, isSecretKey, leaks, redactEntries, redactLine, redactText, type RedactOptions } from "./redact.ts";
 
 /**
  * A diagnostics bundle: one JSON file a doctor writes for an agent to read or attach, the agent's version of a desktop
@@ -22,7 +22,10 @@ import { isSecretKey, leaks, redactLine, redactText, type RedactOptions } from "
  * );
  */
 interface BundleParts {
-  /** The tool's own facts, as plain JSON: its strings go through `redactText`, and a secret key's value is dropped. */
+  /**
+   * The tool's own facts, as plain JSON: its strings and keys go through `redactText`, a secret key's value becomes
+   * `[redacted]` and a person's (`name`, `email`, `account` and the like) `[text]`.
+   */
   facts: Record<string, unknown>;
   /** Log lines by source ("service", "engine"), which go through `redactLine`. */
   logs: Record<string, readonly string[]>;
@@ -31,12 +34,20 @@ interface BundleParts {
 /** `home` becomes `~`, and `rules` are the app's own shapes (ax-redact). */
 type BundleOptions = RedactOptions;
 
-/** Strings redacted as text, keys kept, and a secret key's value as "[redacted]". */
+/** Strings and keys redacted as text, a secret key's value as "[redacted]" and a person's as "[text]". */
 function textDeep(v: unknown, opts: BundleOptions, key = ""): unknown {
-  if (typeof v === "string") return isSecretKey(key) ? "[redacted]" : redactText(v, opts);
+  if (typeof v === "string") return isSecretKey(key) ? "[redacted]" : isPersonKey(key) ? "[text]" : redactText(v, opts);
   if (Array.isArray(v)) return v.map((x) => textDeep(x, opts, key));
-  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, textDeep(x, opts, k)]));
+  if (v && typeof v === "object") return redactEntries(v, (x, k) => textDeep(x, opts, k), opts);
   return v;
+}
+
+/** The keys and strings in a JSON value, unescaped, for `leaks` to read as they are. */
+function stringsOf(v: unknown): string[] {
+  if (typeof v === "string") return [v];
+  if (Array.isArray(v)) return v.flatMap(stringsOf);
+  if (v && typeof v === "object") return Object.entries(v).flatMap(([k, x]) => [k, ...stringsOf(x)]);
+  return [];
 }
 
 /**
@@ -49,11 +60,26 @@ function textDeep(v: unknown, opts: BundleOptions, key = ""): unknown {
  * // logs.service is ["signed in as [email]"]
  */
 function bundleText(parts: BundleParts, opts: BundleOptions = {}): string {
+  const facts = textDeep(parts.facts, opts) as Record<string, unknown>;
   const logs = Object.fromEntries(Object.entries(parts.logs).map(([source, lines]) => [source, lines.map((line) => redactLine(line, opts))]));
-  const text = `${JSON.stringify({ ...(textDeep(parts.facts, opts) as object), logs }, null, 2)}\n`;
-  const left = leaks(text, opts);
-  if (left.length) throw new Error(`bundle: the bundle still held ${left.join(", ")} after redaction, so it was not written. Fix: drop or rename the facts that hold it.`);
-  return text;
+  // Each part is read unescaped: in the JSON text a Windows path's backslashes are doubled, and no rule would see it.
+  const left = [["the facts", stringsOf(facts)] as const, ...Object.entries(logs).map(([source, lines]) => [`the ${source} log`, lines.flatMap((line) => stringsOf(tryJson(line)))] as const)]
+    .map(([part, strings]) => [part, leaks(strings.join("\n"), opts)] as const)
+    .filter(([, shapes]) => shapes.length);
+  if (left.length) {
+    const said = left.map(([part, shapes]) => `${part} still held ${shapes.join(", ")}`).join("; ");
+    throw new Error(`bundle: ${said} after redaction, so the bundle was not written. Fix: leave that out of the bundle, or pass a rule for its shape in rules.`);
+  }
+  return `${JSON.stringify({ ...facts, logs }, null, 2)}\n`;
+}
+
+/** A JSON line as its value, so its strings are read unescaped; any other line as it is. */
+function tryJson(line: string): unknown {
+  try {
+    return JSON.parse(line);
+  } catch {
+    return line;
+  }
 }
 
 /**
@@ -81,6 +107,7 @@ function writeBundle(parts: BundleParts, { dir, prefix, at, ...opts }: BundleOpt
  * tailLines(path.join(logsDir, "service.log"), 300); // the service log's last 300 lines
  */
 function tailLines(file: string, n: number, maxBytes = 256 * 1024): string[] {
+  if (n <= 0) return [];
   let fd: number;
   try {
     fd = fs.openSync(file, "r");

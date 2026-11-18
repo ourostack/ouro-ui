@@ -12,6 +12,21 @@ It installs `lib/ouro/ax/redact.ts`. Its tests are `ax-redact-tests`. Every item
 
 ## Exports
 
+### `isPersonKey`
+
+Whether a JSON key holds who someone is, whatever its value: `name`, `displayName`, `email`, `login`, `handle`, `userId`, `account`, `owner` and the like, by the key's last word.
+
+```ts
+function isPersonKey(key: string): boolean
+```
+
+Example:
+
+```ts
+isPersonKey("displayName"); // true
+isPersonKey("version"); // false
+```
+
 ### `isSecretKey`
 
 Whether a JSON key holds a secret whatever its value: `token`, `refreshToken`, `cookie`, `sessionId`, `password`, `apiKey`, `authorization`, `sid` and the like.
@@ -48,6 +63,20 @@ Each shape that must never leave in a bundle, with what it becomes. Order matter
 
 ```ts
 const REDACT_RULES: readonly RedactRule[]
+```
+
+### `redactEntries`
+
+An object's entries with each value mapped and each key redacted as text, since a key can be an id or an address; two keys that come out the same get a number.
+
+```ts
+function redactEntries(v: object, value: (x: unknown, key: string) => unknown, opts?: RedactOptions): Record<string, unknown>
+```
+
+Example:
+
+```ts
+redactEntries({ "jordan@contoso.com": 3, "sam@contoso.com": 1 }, (n) => n); // { "[email]": 3, "[email] 2": 1 }
 ```
 
 ### `redactLine`
