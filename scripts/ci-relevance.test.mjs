@@ -133,6 +133,7 @@ const namedButUnread = {
   browser: {
     "registry/ouro/lib/ouro/claims.test.ts scripts/agent-usability/runs/2026-10-15/results.md": "a claim source the test parses as text",
     "site/src/voyage/stage/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
+    "site/src/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
     ...Object.fromEntries(
       ["chapter-one", "chapter-three", "chapter-two", "stage"].map((spec) => [`site/scripts/stage-census.mts site/e2e/${spec}.spec.ts`, "the control census, which only its Node test runs"]),
     ),
@@ -154,6 +155,7 @@ const namedButUnread = {
     "site/src/storybook.ts site/src/site.test.tsx": "a claim's source and check, read by the claims check",
     "site/src/routes.ts site/src/site.test.tsx": "a claim's source and check, read by the claims check",
     "site/src/voyage/stage/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
+    "site/src/copy.ts site/e2e/stage.spec.ts": "a claim's source and check, read by the claims check",
     "site/src/pages/docs.tsx test/install-fixture/package.json": "a claim's source and check, read by the claims check",
     "site/src/voyage/home-reference.tsx test/install-fixture/package.json": "a claim's source and check, read by the claims check",
   },

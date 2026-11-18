@@ -117,13 +117,70 @@
     gap: 1rem;
   }
   .site-console-copy {
+    display: grid;
+    justify-items: start;
+    gap: 1rem;
     min-width: 0;
+  }
+  .site-try-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: var(--site-h2-tracking, -0.015em);
+    text-wrap: balance;
+    color: var(--foreground);
+  }
+  .site-try-lede {
+    margin: 0 0 0.5rem;
+    max-width: 34rem;
+    font-size: 1.125rem;
+    line-height: 1.6;
+    text-wrap: pretty;
+    color: var(--muted-foreground);
   }
   /* The headline's second sentence answers the first: quieter than the headline, never faint. */
   .site-hero-line-second {
     color: color-mix(in oklab, var(--muted-foreground) 75%, var(--foreground));
   }
-  /* The eyebrow is a pill naming Ouro UI's two halves; on a phone they are named under the stage instead. */
+  .site-hero-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 1rem;
+    margin-top: 0.75rem;
+    font-size: 1rem;
+  }
+  /* The look and the hand-off: what a person does here, side by side with the story on a wide screen. */
+  .site-hero-side {
+    display: grid;
+    gap: 2rem;
+    width: 100%;
+    max-width: 36rem;
+    margin-inline: auto;
+    text-align: start;
+  }
+  .site-hero-paint {
+    text-align: center;
+  }
+  .site-hero-paint-label {
+    margin: 0 0 0.75rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  .site-hero-dots {
+    justify-content: center;
+  }
+  @media (max-width: 40rem) {
+    .site-hero-side {
+      gap: 1.5rem;
+    }
+    .site-hero-dots {
+      justify-content: space-between;
+    }
+  }
+  /* The eyebrow is a pill saying what Ouro UI is for. */
   .site-hero-brand {
     display: inline-flex;
     align-items: center;
@@ -247,62 +304,70 @@
     height: 1rem;
     color: var(--primary);
   }
-  /* Ouro UI's two halves (hero.tsx, Halves): under one hairline, a line that names them, then a row each, a small mark before each name. */
-  .site-halves {
+  /*
+   * What's in the kit (hero.tsx, Kit): a row of four under a hairline each, no cards. Four across from 64rem, two from
+   * 40rem, one under another on a phone.
+   */
+  .site-kit {
+    padding-block: 2.5rem 1.5rem;
+  }
+  .site-kit-title {
+    margin: 0 0 1.25rem;
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: var(--site-h2-tracking, -0.01em);
+    color: var(--foreground);
+  }
+  .site-kit-list {
     display: grid;
-    gap: 0.875rem;
-    max-width: 36rem;
-    padding: 1.25rem 0 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem 2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .site-kit-item {
+    display: grid;
+    align-content: start;
+    gap: 0.25rem;
+    padding-top: 1rem;
     border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
   }
-  .site-halves-title {
+  .site-kit-name {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--muted-foreground);
+  }
+  .site-kit-heading {
     margin: 0;
     font-family: var(--font-heading);
     font-size: 1.125rem;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: 1.35;
     color: var(--foreground);
   }
-  .site-halves-list {
-    display: grid;
-    gap: 1rem;
+  .site-kit-line {
     margin: 0;
-  }
-  .site-halves-row {
-    position: relative;
-    min-height: 2.5rem;
-    padding-inline-start: 3.25rem;
-  }
-  .site-halves-name {
-    font-weight: 600;
-    color: var(--foreground);
-  }
-  .site-halves-mark {
-    position: absolute;
-    inset-block-start: 0.125rem;
-    inset-inline-start: 0;
-    display: grid;
-    place-items: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: calc(var(--radius) * 0.9);
-    /* The theme's own ink on a wash of its primary, so the letters hold contrast under every preset. */
-    background: color-mix(in oklab, var(--primary) 14%, transparent);
-    color: var(--foreground);
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-  }
-  .site-halves-expansion {
-    font-weight: 400;
-    color: var(--muted-foreground);
-  }
-  .site-halves-line {
-    margin: 0.125rem 0 0;
     font-size: 1rem;
-    line-height: 1.45;
+    line-height: 1.5;
     color: var(--muted-foreground);
+  }
+  @media (min-width: 40rem) {
+    .site-kit-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 64rem) {
+    .site-kit {
+      padding-block: 3.5rem 2rem;
+    }
+    .site-kit-list {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
   @media (min-width: 64rem) {
     .site-console {
@@ -310,31 +375,22 @@
     }
     .site-console-grid {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: 1fr auto auto 1fr;
       column-gap: 3.5rem;
       row-gap: 2rem;
     }
-    /* The copy sits beside the stage; below the copy's top, the two columns share bands. */
+    /* The invitation and the proof beside the porthole, centred on it as one group. */
     .site-console-copy {
       grid-column: 1;
-      grid-row: 1;
+      grid-row: 2;
     }
     .site-console-stage {
       grid-column: 2;
-      grid-row: 1 / span 3;
-    }
-    /* The halves fill the copy's column between the paint and the proof, so it has no hole beside the console. */
-    .site-halves {
-      grid-column: 1;
-      grid-row: 2;
-      align-self: center;
+      grid-row: 1 / -1;
     }
     .site-proof {
       grid-column: 1;
       grid-row: 3;
-      align-self: end;
-      /* Level with the foot of the console's last row. */
-      margin-bottom: 1.125rem;
     }
   }
 }
@@ -599,5 +655,101 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
 @media (min-width: 40rem) and (max-width: 63.99rem) {
   .site-perks {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * The hero's arrangement, outside the components layer: it rearranges the Hero's own grid, whose utilities would
+ * otherwise win.
+ */
+/*
+ * Below 64rem the meadow comes straight after the lede, before the look and the hand-off: the Hero's text column lets
+ * its parts join the header's own grid, and each takes its place in it.
+ */
+@media (max-width: 63.999rem) {
+  .site-voyage-hero {
+    row-gap: 1rem;
+    padding-top: 1.5rem;
+    text-align: center;
+  }
+  .site-voyage-hero > :first-child {
+    display: contents;
+  }
+  .site-voyage-hero > :first-child > *,
+  .site-voyage-hero > [data-slot="media"] {
+    width: var(--hero-width);
+    margin-inline: auto;
+  }
+  .site-voyage-hero > [data-slot="media"] {
+    order: 1;
+    margin-top: 0.5rem;
+  }
+  .site-voyage-hero > :first-child > [data-slot="more"] {
+    order: 2;
+    margin-top: 1rem;
+  }
+}
+@media (min-width: 40rem) and (max-width: 63.999rem) {
+  .site-voyage-hero {
+    padding-top: 3rem;
+  }
+}
+/* From 40rem the hero is as wide as the page's other sections (Container's 75rem of content). */
+@media (min-width: 40rem) {
+  .site-voyage-hero {
+    --hero-width: min(75rem, calc(100% - 4rem));
+  }
+}
+/*
+ * From 64rem the story and the hand-off share a row, the story on the start side, and the meadow runs the full width
+ * under them. The row is centred on the taller of the two.
+ */
+@media (min-width: 64rem) {
+  .site-voyage-hero > :first-child {
+    width: var(--hero-width);
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-rows: 1fr auto auto auto 1fr;
+    column-gap: clamp(2.5rem, 5vw, 5rem);
+    row-gap: 1rem;
+    justify-items: start;
+    align-items: start;
+    text-align: start;
+  }
+  .site-voyage-hero > :first-child > * {
+    grid-column: 1;
+  }
+  .site-voyage-hero > :first-child > :nth-child(1) {
+    grid-row: 2;
+  }
+  .site-voyage-hero > :first-child > :nth-child(2) {
+    grid-row: 3;
+  }
+  .site-voyage-hero > :first-child > :nth-child(3) {
+    grid-row: 4;
+  }
+  .site-voyage-hero > :first-child > [data-slot="more"] {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
+  }
+  .site-hero-links,
+  .site-hero-dots {
+    justify-content: flex-start;
+  }
+  .site-hero-paint {
+    text-align: start;
+  }
+  .site-voyage-hero > [data-slot="media"] {
+    margin-top: 2.5rem;
+  }
+}
+/*
+ * On a phone the headline is a step smaller than the display size, so "Delightful interfaces," holds one line in any
+ * Geist metrics and no word is left alone on a line (Ouro check's one-word-line).
+ */
+@media (max-width: 40rem) {
+  .site-voyage-hero h1 {
+    font-size: 2.25rem;
+    line-height: 1.1;
   }
 }

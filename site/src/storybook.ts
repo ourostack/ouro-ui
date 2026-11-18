@@ -14,8 +14,8 @@ export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
   alt: string;
   /**
-   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header), for the halo a
-   * link-preview card's words carry on the scene and the address's pill (site/scripts/og-cards.mts).
+   * The colour along the scene's top edge, left to right in fifths (sampled from the 1536px header), for the address's
+   * pill on a link-preview card (site/scripts/og-cards.mts).
    */
   sky: readonly [string, string, string, string, string];
   /** The 1536px header's height: 576, or 512 for the whole-world panorama. */
@@ -112,7 +112,7 @@ export const SCENES: Record<SceneName, Scene> = {
 /** Where the copies live under the site's base. */
 export const STORYBOOK = "/brand/storybook/";
 
-/** A page's link-preview card: a scene with the page's title set in its sky (site/scripts/og-cards.mts draws them). */
+/** A page's link-preview card: the page's words on a plain band above a scene, never on it (site/scripts/og-cards.mts draws them). */
 export interface Card {
   /** The file under site/public/og/. */
   file: string;
@@ -120,38 +120,28 @@ export interface Card {
   /** The small line above the title. */
   kicker: string;
   title: string;
-  /** Which side of the sky is clear enough for the words. */
-  side: "left" | "right";
-  /** How wide the words may run, in pixels of the 1200px card: no further than the clear sky. */
-  width?: number;
-  /** The title's size in pixels, where the default would run the words into a drawn figure. */
+  /** The title's size in pixels, where the default 48 would wrap it onto a third line in the band. */
   size?: number;
   /**
-   * Which stretch of the wide 1536px header to show, left to right, when the og crop cuts a figure off: it is drawn
-   * across the card's width under a band of the page's plain background, which meets it on a hard edge.
+   * Which stretch of the wide 1536px header to show, left to right, drawn across the card's width under a band of the
+   * page's plain background that holds the words and the site's address; the whole header by default.
    */
   crop?: { from: number; to: number };
-  /**
-   * Where the site's address goes, clear of every drawn figure: a bottom corner (the words' side unless `addressSide`
-   * says otherwise), or, on a card with a band, the band's other end.
-   */
-  address?: "corner" | "band";
-  addressSide?: "left" | "right";
 }
 
 const APPLE = "Ouro UI for Apple";
 
 /** Every card, by the page that shows it. A docs page shows the docs card. */
 export const CARDS: Record<string, Card> = {
-  "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro UI", title: "Feels right to the people using it. Obvious to the agents building it.", side: "right", addressSide: "left" },
-  "/nautilus/": { file: "nautilus.jpg", scene: "ouroboros-skills", kicker: "A story in chapters", title: "The Nautilus", side: "right", addressSide: "left" },
-  "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", side: "right", width: 640, size: 46, crop: { from: 0, to: 1536 }, address: "band", addressSide: "left" },
-  "/apple/": { file: "apple.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Same manners, now in Swift.", side: "left", width: 330, size: 44 },
-  "/apple/hx/": { file: "apple-hx.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro HX for Apple", side: "left", width: 400 },
-  "/apple/feel/": { file: "apple-feel.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Feel", side: "left", width: 400 },
-  "/apple/ax/": { file: "apple-ax.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro AX for Apple", side: "left", width: 400 },
-  "/apple/reins/": { file: "apple-reins.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Reins", side: "left", width: 400 },
-  "/apple/start/": { file: "apple-start.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Get started", side: "left", width: 400 },
+  "/": { file: "home.jpg", scene: "ouro-hx", kicker: "Ouro UI", title: claim("Delightful interfaces, by agents, for everyone.", { source: [{ test: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" }, { test: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" }], verify: [{ testExists: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" }, { testExists: "registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing" }] }) },
+  "/nautilus/": { file: "nautilus.jpg", scene: "ouroboros-skills", kicker: "A story in chapters", title: "The Nautilus" },
+  "/ax/": { file: "ax.jpg", scene: "playwright-focus-proof", kicker: "Ouro AX", title: "A morning with an agent", size: 46 },
+  "/apple/": { file: "apple.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Same manners, now in Swift.", size: 44 },
+  "/apple/hx/": { file: "apple-hx.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro HX for Apple" },
+  "/apple/feel/": { file: "apple-feel.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Feel" },
+  "/apple/ax/": { file: "apple-ax.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro AX for Apple" },
+  "/apple/reins/": { file: "apple-reins.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Ouro Reins" },
+  "/apple/start/": { file: "apple-start.jpg", scene: "ouro-ui-apple", kicker: APPLE, title: "Get started" },
   "/docs/": {
     file: "docs.jpg",
     scene: "ouro-ui-core",
@@ -160,13 +150,9 @@ export const CARDS: Record<string, Card> = {
       source: [{ file: "site/src/site.test.tsx" }, { file: "site/src/docs/demos.tsx" }],
       verify: { testExists: "site/src/site.test.tsx::docs > has a page for every registry item at docs/<name>" },
     }),
-    side: "left",
-    width: 860,
     size: 40,
     // The og crop cuts Ouro's coil at the right edge (render QA, 2026-11-14): the paint pots to Ouro's tail, whole.
     crop: { from: 40, to: 1456 },
-    address: "band",
-    addressSide: "right",
   },
 };
 

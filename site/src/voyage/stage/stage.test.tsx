@@ -86,10 +86,11 @@ describe("the drawings", () => {
 });
 
 describe("the hero", () => {
-  it("names Ouro UI's two halves first, and engraves the ship's name on the porthole's ring", async () => {
+  it("says what Ouro UI is in six words, under what it is for, and engraves the ship's name on the porthole's ring", async () => {
     await renderPage("/");
-    expect(EYEBROW).toBe("Ouro HX + Ouro AX");
-    expect(document.querySelector("h1")!.textContent).toBe("Feels right to the people using it. Obvious to the agents building it.");
+    expect(EYEBROW).toBe("A complete kit for agents");
+    expect(document.querySelector("h1")!.textContent).toBe("Delightful interfaces, by agents, for everyone.");
+    expect(document.querySelector("h1")!.textContent!.split(/\s+/)).toHaveLength(6);
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
     expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("THE NAUTILUS");
     // real clock: the hero's line, which stays.

@@ -20,7 +20,7 @@ export interface SiteTheme {
 /** The event storeTheme sends after each change. */
 const CHANGED = "ouro-site-theme";
 
-const SERVER: SiteTheme = { preset: "pearl", mode: "light", scheme: "system", sky: undefined };
+const SERVER: SiteTheme = { preset: "live", mode: "light", scheme: "system", sky: undefined };
 let cache: { key: string; value: SiteTheme } | undefined;
 
 function storedScheme(): Mode | "system" {
