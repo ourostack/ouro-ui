@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type JSX, type ReactNode } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -39,10 +39,23 @@ export function CodeBlock({ code, label, wrap, copy, className }: { code: string
         tabIndex={0}
         className={cn("m-0 overflow-x-auto rounded-xl border border-transparent bg-(--site-code) px-4 py-3.5 font-mono text-sm leading-6 text-foreground outline-ring focus-visible:outline-2 focus-visible:outline-offset-2", wrap && "whitespace-pre-wrap [overflow-wrap:anywhere]")}
       >
-        <code>{code}</code>
+        <code>{wrap ? atSlashes(code) : code}</code>
       </pre>
     </figure>
   );
+}
+
+/**
+ * Wrapped code may break after any "/" that ends a part of an address, as the home page's hand-off does, so a long
+ * address on a phone breaks at "docs/", not inside "dialog.md". Copy takes the code itself.
+ */
+function atSlashes(code: string): ReactNode {
+  return code.split(/(?<=\/)(?!\/)/).map((part, index) => (
+    <Fragment key={index}>
+      {index > 0 ? <wbr /> : null}
+      {part}
+    </Fragment>
+  ));
 }
 
 /** Copies text, then says so for a moment, out loud too. */
