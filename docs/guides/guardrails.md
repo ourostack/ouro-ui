@@ -522,7 +522,7 @@ The same harness runs a Windows app's first run, unchanged, through `first-run-w
 | `open` | the app's own `open`, else the shell's `start` on the shortcut or program |
 | `pgrep`, `pkill` | the app's own, else the processes with that image name, or whose command line holds the pattern |
 | `curl`, `dscacheutil` | `curl.exe`, and `Resolve-DnsName` |
-| `sudo -n pfctl` | Windows Firewall's outbound block rules named `ouro-first-run`. Each profile that was off is turned on for the hold, then put back off with its own default actions; a profile that was on is left alone. Windows refuses at once, so a `hang` hold refuses too.[^first-run-windows-firewall] |
+| `sudo -n pfctl` | Windows Firewall's outbound block rules named `ouro-first-run`. Each profile that was off is turned on for the hold, then put back off with its own default actions; a profile that was on is left alone.[^first-run-windows-firewall] Windows refuses at once, so a `hang` hold refuses too.[^first-run-windows-firewall] |
 | `sudo -n sfltool dumpbtm` | the Run keys and the Startup folder, as login items[^first-run-windows-login] |
 
 The runner must be an administrator, as a GitHub-hosted Windows runner is, so the firewall takes the rules. `windowsDataPaths` names what Windows keeps beyond a Mac's Library, the app data folders and the Start menu shortcut, for `leftovers`. The eyes find the app's notification-area icon (Windows' menu bar item) by the name `extra-menu` gives, else `OURO_TRAY_NAME`, else the app's window title.

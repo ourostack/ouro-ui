@@ -61,7 +61,10 @@ const quote = (s: string) => `'${s.replace(/'/g, "''")}'`;
  */
 export function windowsSystem(o: WindowsOptions, base: System = system): System {
   const ps = (command: string, timeout = 60_000) => base.run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], { timeout });
-  /** The profiles that were off when the hold began, each with its default actions, to put back as they were. */
+  /**
+   * The profiles that were off when the hold began, each with its default actions, to put back as they were.
+   * @claim "The profiles that were off when the" scripts/check/first-run-windows.test.mts verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > holds the network with Windows Firewall's outbound rules, turns the firewall on for the hold, and puts it back)
+   */
   let wereOff: { name: string; inbound: string; outbound: string }[] = [];
 
   const pf = (args: string[], input = ""): Result => {
