@@ -1,3 +1,5 @@
+import { claim } from "@/registry/ouro/lib/ouro/claims";
+
 // The line a component page hands to a reader's coding agent, as the home page hands it Ouro UI as a whole (copy.ts,
 // HANDOFF): what to add, and the page to read first, as Markdown, which an agent reads best.
 
@@ -17,7 +19,7 @@ export function withInstall(markdown: string, name: string, release: string): st
   const steps = [
     "## Install",
     "",
-    "Once per app, with Tailwind CSS v4 and an `@/*` path alias (skip `init` in an existing shadcn app), then the component:",
+    `${claim("Once per app, with Tailwind CSS v4", { source: { file: "test/install-fixture/package.json" }, verify: { fileLine: "test/install-fixture/package.json", pattern: '"tailwindcss": "\\^4\\.' } })} and an \`@/*\` path alias (skip \`init\` in an existing shadcn app), then the component:`,
     "",
     "```sh",
     "npx shadcn@latest init --base base --preset nova --yes --no-monorepo",
@@ -30,6 +32,6 @@ export function withInstall(markdown: string, name: string, release: string): st
     "",
   ].join("\n");
   const at = markdown.indexOf("```tsx\nimport ");
-  if (at === -1) throw new Error(`The published Markdown for ${name} has no import line to put its install steps before.`);
+  if (at === -1) throw new Error(`Put the install steps for ${name} before its import line: the Markdown for ${name} must start its code with one.`);
   return markdown.slice(0, at) + steps + markdown.slice(at);
 }
