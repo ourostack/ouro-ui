@@ -157,6 +157,25 @@ describe("Chapter I", () => {
     await expect.element(name).toHaveAccessibleDescription(new RegExp(ARTICLES.taken(CREW[0].name)));
   });
 
+  it.each([
+    ["Jules Verne", "Professor Aronnax", "The author himself? Then you know how this ends."],
+    ["ishmael", "Ned Land", "Wrong ship, friend. No whales here. Only one very large squid."],
+    ["Ana", "Conseil", SIGN.welcome("Ana", "Cook").text],
+    ["Jules", "Conseil", SIGN.welcome("Jules", "Cook").text],
+  ])("signs on %s, and the crew member who knows the name answers in place of the welcome", async (signer, speaker, text) => {
+    await renderPage("/nautilus/");
+    const articles = page.elementLocator(document.querySelector("[data-composition='articles']")!);
+    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), signer);
+    await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
+    await userEvent.click(page.getByRole("option", { name: "Cook" }));
+    await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
+    await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
+    await expect.element(articles.getByText(ARTICLES.welcomeAboard(signer))).toBeVisible();
+    const crew = () => document.querySelector("[data-composition='articles'] [data-chapter-crew]")?.textContent;
+    await expect.poll(crew).toContain(text);
+    expect(crew()).toContain(speaker);
+  });
+
   it("says the signing aloud once: the toast, and Conseil's welcome", async () => {
     await renderPage("/nautilus/");
     await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ana");
