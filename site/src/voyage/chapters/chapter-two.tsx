@@ -40,6 +40,7 @@ import {
 } from "./chapter-two-copy";
 import { Radio } from "./chapter-two-radio";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { writeLog } from "./logbook";
 import { arrivals, chartPoint, DAY_LOCALE, isBook, isShortest, legs, portNamed, routeLeagues, routePath, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 // What only changes once the chapter answers (the route drawing in, a port's number): it comes
 // inside this island's script and goes into the page as the island hydrates.
@@ -265,16 +266,23 @@ function ChartRoom(): JSX.Element {
   const [route, setRoute] = useState<readonly PortId[]>(START_ROUTE);
   const [day, setDay] = useState(START_DAY);
   const [line, setLine] = useState<CrewLine>(ROUTE.opening);
+  // Whether the reader has planned the course (moved a port or picked the day): only then does the ship's log sail it.
+  const [planned, setPlanned] = useState(false);
   // The map, the total and the chart follow the controls a frame later: a press repaints its own
   // control first (and the days beside the ports, which are cheap), then the drawing and the chart.
   const shown = useDeferredValue(route);
   useEffect(() => store.set({ route: shown }), [store, shown]);
+  useEffect(() => {
+    if (!planned) return;
+    return writeLog({ course: { day: writeDay(day), leagues: writeLeagues(routeLeagues(shown)), way: isShortest(shown) ? "shortest" : isBook(shown) ? "book" : "own" } });
+  }, [planned, shown, day]);
   const days = arrivals(route, day);
   const say = useCallback((next: CrewLine) => startTransition(() => setLine(next)), []);
 
   const reorder = (ids: string[]) => {
     const next = ids as PortId[];
     setRoute(next);
+    setPlanned(true);
     if (isShortest(next)) say(ROUTE.shortest);
     else if (isBook(next)) say(ROUTE.book);
     else say(ROUTE.longer(writeLeagues(routeLeagues(next) - SHORTEST)));
@@ -284,6 +292,7 @@ function ChartRoom(): JSX.Element {
     (value: string) => {
       if (!value) return;
       setDay(value);
+      setPlanned(true);
       store.set({ day: value });
       say(ROUTE.day(sayDay(value)));
     },
@@ -440,6 +449,7 @@ function Catalogue(): JSX.Element {
   const all = useMemo(() => [...SPECIMENS, ...FINDS.filter((each) => found.includes(each.id))], [found]);
   const rows = useMemo(() => arrange(all, sort, show), [all, sort, show]);
   useEffect(() => store.set({ classed: found.length }), [store, found]);
+  useEffect(() => writeLog({ sorted: found.length }), [found.length]);
   const say = (next: CrewLine) => startTransition(() => setLine(next));
 
   const classify = (value: string | null) => {

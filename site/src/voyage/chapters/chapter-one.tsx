@@ -24,6 +24,7 @@ import type { CrewName } from "../stage/copy";
 import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
 import { crewFace } from "./crew-faces";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { writeLog } from "./logbook";
 // What only changes once the chapter answers (each part drawn in, the launch, the yard's picture,
 // the crew's cheer): it comes inside this island's script and goes into the page as the island
 // hydrates, so it costs the first paint nothing and holds up no part of the island's loading.
@@ -204,8 +205,9 @@ function Shipyard(): JSX.Element {
   // The plan follows the controls a frame later: a press repaints its own control first, then the
   // drawing (a deferred render), so no press waits on the plan's repaint.
   const plan = useDeferredValue(useMemo(() => ({ built, launched }), [built, launched]));
-  // The rail follows the plan.
+  // The rail follows the plan, and the ship's log (Chapter III) the launch: a job a day.
   useEffect(() => voyage.set(plan), [voyage, plan]);
+  useEffect(() => writeLog({ launched: plan.launched ? PARTS.length : null }), [plan.launched]);
   // The jobs follow a reorder once it has painted: the handles' list and its menu are the press's
   // own, and the checklist renders again for the new order.
   const jobOrder = useAfterPaint(order);
@@ -337,6 +339,8 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
+  // The crew in later chapters know you by name; leaving the crew takes it back.
+  useEffect(() => writeLog({ you }), [you]);
   // The new, empty form a signing asks for (its key, and the cancel of its wait for the paint) until
   // that form has rendered, and whether Leave asked for the name field.
   const emptyForm = useRef<{ key: number; cancel: () => void } | null>(null);

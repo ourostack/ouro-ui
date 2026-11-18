@@ -3,7 +3,9 @@ import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
+import { demos } from "./docs/demos";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
+import { tries } from "./docs/tries";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -599,6 +601,18 @@ describe("docs", () => {
       document.removeEventListener("click", keep, true);
     }
     expect(opened).toEqual(["/docs/dialog/", "/docs/description-list/"]);
+  });
+
+  it("says what to try under a demo whose best trick is hidden, and nothing under one whose trick shows", async () => {
+    for (const name of Object.keys(tries)) expect(Object.hasOwn(demos, name) && docsItems.some((item) => item.name === name), `${name} has a demo`).toBe(true);
+    await renderPage("/docs/sheet/");
+    const demo = page.getByRole("region", { name: "Live demo" }).element();
+    const line = document.querySelector("[data-site-try]")!;
+    expect(line.textContent).toBe(`Try it: ${tries.sheet}`);
+    // Right under the demo it is about.
+    expect(demo.nextElementSibling).toBe(line);
+    await renderPage("/docs/card/");
+    expect(document.querySelector("[data-site-try]")).toBeNull();
   });
 
   it("has a page for every registry item at docs/<name>", () => {

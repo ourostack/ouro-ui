@@ -248,8 +248,11 @@ export const ROLES: Record<CrewLine["name"], string> = {
   "Ned Land": "the harpooner",
 };
 
-/** A crew member's line, with their face, read out when it changes; at a cheer the whole crew turns out. */
-export function Crew({ line, cheer = false }: { line: CrewLine; cheer?: boolean }): JSX.Element {
+/**
+ * A crew member's line, with their face, read out when it changes; at a cheer the whole crew turns out,
+ * with `you` beside them (your initials) once you have signed on.
+ */
+export function Crew({ line, cheer = false, you }: { line: CrewLine; cheer?: boolean; you?: string | undefined }): JSX.Element {
   return (
     <p className="m-0 flex min-h-[2.75lh] items-center gap-2.5 text-sm" aria-live="polite" aria-atomic="true" data-chapter-crew="">
       {cheer ? (
@@ -257,6 +260,7 @@ export function Crew({ line, cheer = false }: { line: CrewLine; cheer?: boolean 
           {CREW.map((member) => (
             <Avatar key={member.name} name={member.name} src={crewFace(member.name)} alt="" size="sm" />
           ))}
+          {you ? <Avatar name={you} alt="" size="sm" /> : null}
         </span>
       ) : (
         <Avatar name={line.name} src={crewFace(line.name)} alt="" size="sm" />
