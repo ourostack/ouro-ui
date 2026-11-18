@@ -4,7 +4,7 @@ name: Screen reader
 # On every push to main, nightly, and by dispatch. release.yml tags a commit of main only when this
 # passed on a push of that exact commit. scripts/sr-classify.mjs sorts a failure into accessibility (an
 # utterance missing or wrong: it blocks a release) and infrastructure (the runner could not drive
-# its screen reader: a release retries once, and a nightly run opens or updates one
+# its screen reader: a release retries once, and a nightly run or a push to main opens or updates one
 # `screen-reader-infra` issue), and harness (Playwright refused the lane's own command: no retry,
 # no issue). Guidepup's setup rewrites VoiceOver and TCC settings, so the lane
 # runs only on GitHub's ephemeral hosted runners, with read-only contents and no secrets, and never
@@ -129,9 +129,9 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
   report:
-    # A nightly infrastructure failure opens one `screen-reader-infra` issue, or comments on it.
+    # A nightly or push-to-main infrastructure failure opens, or comments on, one `screen-reader-infra` issue.
     needs: [lane]
-    if: failure() && github.event_name == 'schedule'
+    if: failure() && (github.event_name == 'schedule' || github.event_name == 'push')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -148,9 +148,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CONTEXT: ${{ github.event_name == 'push' && 'push to main' || 'nightly' }}
         run: |
           if ! grep -rqs '^SR_CLASS=infrastructure$' "$RUNNER_TEMP/sr"; then
             echo "No infrastructure failure: an accessibility failure fails the run without an issue."
             exit 0
           fi
-          scripts/sr-infra-issue.sh "$RUN_URL" "nightly"
+          scripts/sr-infra-issue.sh "$RUN_URL" "$CONTEXT"

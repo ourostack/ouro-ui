@@ -1,0 +1,23 @@
+{
+  "about": "The 18 failed screen-reader jobs filed under #2014 (their cached logs; runs 43855681498 to 44193799072, 2026-11-16 and 2026-11-17). failed_test is the index of the first failed test in its job's run (the `✘ N` number), tests is the job's `Running N tests` count, and minutes_into_run is the failed test's start minus the first test's start. kind is what the failed test's error was: a navigation that hung until the 3-minute test timeout, then VoiceOver not running in the teardown; AppleScript refusing a key press; or VoiceOver's start failing. scripts/sr-navigation.test.mjs checks these counts.",
+  "jobs": [
+    { "job": "133259209347", "lane": "macos-15 advisory", "failed_test": 14, "tests": 15, "kind": "navigation hang", "minutes_into_run": 6.9 },
+    { "job": "133727745823", "lane": "macos-26", "failed_test": 13, "tests": 20, "kind": "navigation hang", "minutes_into_run": 6.9 },
+    { "job": "133754852942", "lane": "macos-26", "failed_test": 13, "tests": 20, "kind": "navigation hang", "minutes_into_run": 6.9 },
+    { "job": "133758125327", "lane": "macos-26", "failed_test": 11, "tests": 20, "kind": "start failed", "minutes_into_run": 7.0 },
+    { "job": "133761934056", "lane": "macos-26", "failed_test": 9, "tests": 20, "kind": "AppleScript keys", "minutes_into_run": 4.2 },
+    { "job": "133772888973", "lane": "macos-26", "failed_test": 14, "tests": 20, "kind": "navigation hang", "minutes_into_run": 8.1 },
+    { "job": "133855746107", "lane": "macos-26", "failed_test": 14, "tests": 20, "kind": "navigation hang", "minutes_into_run": 7.8 },
+    { "job": "133910618553", "lane": "macos-26", "failed_test": 8, "tests": 20, "kind": "AppleScript keys", "minutes_into_run": 4.1 },
+    { "job": "133911751203", "lane": "macos-26", "failed_test": 14, "tests": 20, "kind": "navigation hang", "minutes_into_run": 8.5 },
+    { "job": "133949556926", "lane": "macos-26", "failed_test": 17, "tests": 20, "kind": "navigation hang", "minutes_into_run": 7.6 },
+    { "job": "134006135684", "lane": "macos-26", "failed_test": 12, "tests": 20, "kind": "navigation hang", "minutes_into_run": 5.5 },
+    { "job": "134007924470", "lane": "macos-26", "failed_test": 19, "tests": 20, "kind": "navigation hang", "minutes_into_run": 11.6 },
+    { "job": "134011766547", "lane": "macos-26", "failed_test": 10, "tests": 20, "kind": "AppleScript keys", "minutes_into_run": 4.3 },
+    { "job": "134035320921", "lane": "macos-26", "failed_test": 9, "tests": 20, "kind": "AppleScript keys", "minutes_into_run": 4.2 },
+    { "job": "134166020034", "lane": "macos-26", "failed_test": 2, "tests": 20, "kind": "navigation hang", "minutes_into_run": 0.0 },
+    { "job": "134166020554", "lane": "macos-15 advisory", "failed_test": 14, "tests": 20, "kind": "navigation hang", "minutes_into_run": 6.9 },
+    { "job": "134385701599", "lane": "macos-26", "failed_test": 23, "tests": 23, "kind": "navigation hang", "minutes_into_run": 13.3 },
+    { "job": "134429786716", "lane": "macos-15 advisory", "failed_test": 19, "tests": 23, "kind": "navigation hang", "minutes_into_run": 8.3 }
+  ]
+}

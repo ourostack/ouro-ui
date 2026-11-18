@@ -18,8 +18,15 @@
 // - infrastructure: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt
 //   appeared, a test timed out before the screen reader said anything, the Storybook server never
 //   became ready, the runner image was broken, or the browser failed to open or close a test's
-//   context while nothing else failed (a test body's failure always decides first). The nightly run opens or updates one
-//   `screen-reader-infra` issue; a release retries once.
+//   context while nothing else failed (a test body's failure always decides first). Its reason
+//   separates "VoiceOver did not start" (a start that failed before the page was reached) from
+//   "VoiceOver stopped answering while it reached the page" (a navigation that hung on every try, or
+//   VoiceOver not running once a test had reached the page). The nightly run and a push to main open
+//   or update one `screen-reader-infra` issue; a release retries once.
+//
+// A VoiceOver navigation that hung and was retried logs a `[sr] navigation retry:` line
+// (registry/ouro/e2e/screen-reader/navigation.ts). Those lines are no finding and no reason, so they
+// are left out of the classification; the run summary counts them against the VoiceOver tests that ran.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -29,10 +36,21 @@ const assertion = /\[sr\] no utterance matched|\[sr\] these story ids|Error: exp
 /** Playwright refusing its own command line, before any test ran (ourostack/ouro-ui#1848). */
 const harness = /^Error: Project\(s\) .* not found\. Available projects:|^Error: No tests found|^error: unknown option/m;
 
-/** The runner, not the components: each with the reason the summary gives. */
+/** The reasons the summary gives for an infrastructure failure of VoiceOver. */
+const DID_NOT_START = "VoiceOver did not start";
+const STOPPED = "VoiceOver stopped answering while it reached the page";
+
+/** Whether a test reached the page: an utterance was logged, a test passed, or a navigation was on the stack. */
+const reachedPage = (findings) => /\[sr\] first utterance:|^\s*✓\s|at startReading /m.test(findings);
+
+/** The runner, not the components: each with the reason the summary gives (a function of the log, when it depends on the log). */
 const infrastructure = [
-  // @guidepup/guidepup's own errors (lib/errors.js), and the same in other words.
-  [/VoiceOver (cannot be started|failed to start|could not be started|did not start|not running|is not running|not supported)|Timed out waiting for VoiceOver|Failed to mount Guidepup preferences/i, "VoiceOver did not start"],
+  // @guidepup/guidepup's errors for VoiceOver's start (lib/errors.js), and the same in other words.
+  [/VoiceOver (cannot be started|failed to start|could not be started|did not start|is not supported)|Timed out waiting for VoiceOver to be running|Failed to mount Guidepup preferences/i, DID_NOT_START],
+  // The navigation hung on every try (navigation.ts): VoiceOver stopped answering on the page.
+  [/VoiceOver stopped answering while it reached the page/, STOPPED],
+  // VoiceOver's "not running": from a stop, or a call on a VoiceOver that is no longer started. Before the page was reached, a start that did not finish.
+  [/VoiceOver (not running|is not running)|Timed out waiting for VoiceOver to not be running/i, (findings) => (reachedPage(findings) ? STOPPED : DID_NOT_START)],
   [/NVDA (cannot be started|failed to start|could not be started|did not start|is not running|is not installed|is not supported)|Cannot connect to NVDA|Timed out waiting for NVDA|Failed to create Guidepup preferences/i, "NVDA did not start"],
   [/Not authorized to send Apple events|\(-1743\)|\(-1719\)|assistive access|AppleEvent timed out|Unable to activate application|Unable to send keys|VoiceOver unable to/i, "AppleScript could not control VoiceOver"],
   [/would like to control|kTCCService|TCC\.db/i, "a TCC prompt or database error"],
@@ -60,26 +78,56 @@ function onlyBrowserLifecycleFailed(log) {
   return errors.length > 0 && errors.every((line) => browserLifecycleError.test(line)) && !/Test timeout of \d+ms exceeded/.test(log);
 }
 
+/** A VoiceOver navigation retried after it hung (registry/ouro/e2e/screen-reader/navigation.ts, NAVIGATION_RETRY_PREFIX). */
+const retryLine = /^\s*\[sr\] navigation retry:/;
+
+/** The log without its navigation-retry lines: a navigation a retry recovered is no finding and no reason. */
+const withoutRetries = (log) => log.split(/\r?\n/).filter((line) => !retryLine.test(line)).join("\n");
+
+/** How many VoiceOver navigations were retried after a hang. */
+export const navigationRetries = (log) => log.split(/\r?\n/).filter((line) => retryLine.test(line)).length;
+
+/** How many VoiceOver tests ran (passed or failed): the denominator of the retry rate. */
+export const voiceOverTestsRan = (log) => log.split(/\r?\n/).filter((line) => /^\s*(✓|✘)\s+\d+\s+\[voiceover\]/.test(line)).length;
+
+/**
+ * The run summary's line on VoiceOver's navigation retries, against the VoiceOver tests that ran.
+ * Above 1 in 50 tests it says so: a cause to find, not noise (#2014). Empty when no VoiceOver test ran.
+ */
+export function navigationSummary(log) {
+  const tests = voiceOverTestsRan(log);
+  if (tests === 0) return "";
+  const retries = navigationRetries(log);
+  const rate = retries ? ` (1 in ${Math.round(tests / retries)})` : "";
+  const cause = retries * 50 > tests ? " Above 1 in 50 tests: a cause to find, not noise." : "";
+  return `VoiceOver navigation: ${retries} ${retries === 1 ? "retry" : "retries"} in ${tests} tests that ran${rate}.${cause}`;
+}
+
 /** The lane's class for a log and `pnpm test:sr`'s exit code (null when it never ran). */
 export function classify(log, exitCode) {
   if (exitCode === 0) return "pass";
   if (exitCode === null || exitCode === undefined || log.trim() === "") return "infrastructure";
-  if (assertion.test(log)) return "accessibility";
-  if (harness.test(log)) return "harness";
-  if (onlyBrowserLifecycleFailed(log)) return "infrastructure";
-  if (infrastructure.some(([pattern]) => pattern.test(log))) return "infrastructure";
+  const findings = withoutRetries(log);
+  if (findings.trim() === "") return "infrastructure";
+  if (assertion.test(findings)) return "accessibility";
+  if (harness.test(findings)) return "harness";
+  if (onlyBrowserLifecycleFailed(findings)) return "infrastructure";
+  if (infrastructure.some(([pattern]) => pattern.test(findings))) return "infrastructure";
   // A timeout before the screen reader said anything: it never started speaking.
-  if (/Test timeout of \d+ms exceeded/.test(log) && !/\[sr\] first utterance:/.test(log)) return "infrastructure";
+  if (/Test timeout of \d+ms exceeded/.test(findings) && !/\[sr\] first utterance:/.test(findings)) return "infrastructure";
   return "accessibility";
 }
 
 /** Why a log is infrastructure, for the summary. */
-export const why = (log) =>
-  log.trim() === ""
-    ? "the tests never ran"
-    : onlyBrowserLifecycleFailed(log)
-      ? "the browser failed to open or close a test's context, outside any assertion"
-      : (infrastructure.find(([pattern]) => pattern.test(log))?.[1] ?? "a timeout before the first utterance");
+export const why = (log) => {
+  const findings = withoutRetries(log);
+  if (findings.trim() === "") return "the tests never ran";
+  if (onlyBrowserLifecycleFailed(findings)) return "the browser failed to open or close a test's context, outside any assertion";
+  const match = infrastructure.find(([pattern]) => pattern.test(findings));
+  if (!match) return "a timeout before the first utterance";
+  const [, label] = match;
+  return typeof label === "function" ? label(findings) : label;
+};
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [file, code] = process.argv.slice(2);
@@ -87,9 +135,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const exit = code === undefined || code === "" ? null : Number(code);
   const result = classify(log, log === "" ? null : exit);
   const detail = { pass: "every utterance was as expected", accessibility: "an expected utterance was missing or wrong, or a story is missing: this blocks a release", infrastructure: `${why(log)}: not a finding about the components`, harness: "Playwright refused the lane's own command, so no test ran: fix the command in the workflow, not the components" }[result];
+  const navigation = navigationSummary(log);
   console.log(`SR_CLASS=${result}`);
   console.log(`Screen-reader lane: ${result} (${detail}).`);
+  if (navigation) console.log(navigation);
   if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `class=${result}\n`);
-  if (process.env["GITHUB_STEP_SUMMARY"]) appendFileSync(process.env["GITHUB_STEP_SUMMARY"], `Screen-reader lane: **${result}** (${detail}).\n`);
+  if (process.env["GITHUB_STEP_SUMMARY"]) appendFileSync(process.env["GITHUB_STEP_SUMMARY"], `Screen-reader lane: **${result}** (${detail}).\n${navigation ? `\n${navigation}\n` : ""}`);
   process.exitCode = result === "pass" ? 0 : 1;
 }

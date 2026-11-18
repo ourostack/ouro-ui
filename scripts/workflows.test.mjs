@@ -2057,11 +2057,12 @@ test("the screen-reader lane reads the repository and nothing more, and holds no
   assert.doesNotMatch(text, /secrets\./);
   const jobs = srJobs();
   assert.doesNotMatch(jobs.lane, /permissions:/);
-  // Only the job that files the nightly infrastructure issue may write issues, and it runs no Guidepup.
+  // Only the job that files the infrastructure issue may write issues, and it runs no Guidepup.
   assert.match(jobs.report, /^ {4}permissions:\n {6}contents: read\n {6}issues: write$/m);
-  assert.match(jobs.report, /^ {4}if: failure\(\) && github\.event_name == 'schedule'$/m);
+  assert.match(jobs.report, /^ {4}if: failure\(\) && \(github\.event_name == 'schedule' \|\| github\.event_name == 'push'\)$/m);
   assert.doesNotMatch(jobs.report, /guidepup|test:sr/i);
-  assert.match(jobs.report, /scripts\/sr-infra-issue\.sh "\$RUN_URL" "nightly"/);
+  assert.match(jobs.report, /^ {10}CONTEXT: \$\{\{ github\.event_name == 'push' && 'push to main' \|\| 'nightly' \}\}$/m);
+  assert.match(jobs.report, /scripts\/sr-infra-issue\.sh "\$RUN_URL" "\$CONTEXT"/);
 });
 
 test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory on main's pushes and nightly, at the commit it was given", () => {

@@ -1,0 +1,16 @@
+  ✓  22 [voiceover] › registry/ouro/e2e/screen-reader/timer.sr.spec.ts:8:1 › Timer's Start is heard in its named group, and the time being up is announced once (41.2s)
+[sr] first utterance: "Save recipe button"
+  ✘  23 [voiceover] › registry/ouro/e2e/screen-reader/toast.sr.spec.ts:8:1 › Toast is announced from its live region when it appears (3.1m)
+
+
+  1) [voiceover] › registry/ouro/e2e/screen-reader/toast.sr.spec.ts:8:1 › Toast is announced from its live region when it appears 
+
+    Test timeout of 180000ms exceeded.
+
+    Error: VoiceOver not running
+
+       at VoiceOver.lastSpokenPhrase (node_modules/@guidepup/guidepup/lib/macOS/VoiceOver/VoiceOver.js:1038:19)
+       at openItemChooser (node_modules/@guidepup/playwright/lib/voiceOverTest.js:22:54)
+       at screen-reader.ts:133
+
+  1 failed

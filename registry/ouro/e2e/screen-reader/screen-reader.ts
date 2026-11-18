@@ -3,6 +3,7 @@ import { test as base, expect, type BrowserContext, type BrowserContextOptions, 
 import { execFile, spawn } from "node:child_process";
 import { release } from "node:os";
 import { promisify } from "node:util";
+import { navigateWithRetry, waitUntil } from "./navigation";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
 import { firstMatch, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
@@ -93,6 +94,18 @@ interface NVDAWorker {
   nvdaWorker: void;
 }
 
+/** Whether VoiceOver's process is running, by the pattern Guidepup itself looks for. */
+const voiceOverRunning = () => run("pgrep", ["-f", "VoiceOver launchd -s"]).then(() => true, () => false);
+
+/**
+ * Before VoiceOver starts again after a hung navigation: the hung navigation has finished (10 s at
+ * most), and VoiceOver's process has exited (30 s at most). A process still running is only noted.
+ */
+async function settleVoiceOver(hung: Promise<void>): Promise<void> {
+  await Promise.race([hung, new Promise((resolve) => setTimeout(resolve, 10_000))]);
+  if (!(await waitUntil(async () => !(await voiceOverRunning()), 30_000, 500))) note("VoiceOver's process did not exit", "still running 30 s after it was stopped");
+}
+
 /** The test each spec uses: VoiceOver's on macOS, NVDA's on Windows. */
 export const test: ScreenReaderTest =
   process.platform === "darwin"
@@ -130,7 +143,11 @@ export const test: ScreenReaderTest =
  * first move then announces its control.
  */
 export async function startReading(sr: ScreenReader, page: Page): Promise<void> {
-  await sr.navigateToWebContent();
+  const began = Date.now();
+  // VoiceOver's navigation is bounded and retried once if it hangs (navigation.ts); NVDA's is not.
+  if (isVoiceOver(sr)) await navigateWithRetry({ navigate: () => sr.navigateToWebContent(), stop: () => sr.stop(), start: () => sr.start({ capture: "initial" }), settle: settleVoiceOver, log: (line) => console.log(line) });
+  else await sr.navigateToWebContent();
+  console.log(`[sr] navigation took ${((Date.now() - began) / 1000).toFixed(1)} s`);
   console.log(`[sr] first utterance: "${await sr.lastSpokenPhrase()}"`);
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 }
