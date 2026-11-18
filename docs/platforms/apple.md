@@ -4,13 +4,13 @@ The same colours, motion and manners as this site, in Swift, for iPhone, iPad an
 
 ## What ships today
 
-Release [v1.0.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.0.0) meets core v0.14.0, and v0.13.1 for its A2UI conformance cases: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
+Release [v1.1.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0) meets core v0.14.0, and v0.18.2 for its A2UI conformance cases: its tokens are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core] Add it with Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "1.0.0")
+.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "1.1.0")
 ```
 
-Version 0.5.0 adds `OuroA2UI`, which draws agent-composed UI from Ouro HX's A2UI catalog and is proved against all 10 of core v0.7.1's conformance cases.[^a2ui]
+Version 0.5.0 adds `OuroA2UI`, which draws agent-composed UI from Ouro HX's A2UI catalog and is proved against all 10 of core v0.7.1's conformance cases.[^a2ui] Version 1.1.0 adds `TextField`, `Checkbox` and `Select` to that catalog, so a person can answer a composed card's fields, with a confirm sheet that shows what will be sent, and `ComposedTree`, which draws a tree that didn't come as A2UI.[^a2ui-1-1]
 
 It needs iOS 18 or macOS 15, and Swift 6.1.[^floor] In the box:[^products]
 
@@ -47,8 +47,9 @@ These switch on when you build with the Siri AI SDK. Until then they are written
 - [Ouro AX for Apple's standard](https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/standard/ax/surfaces/apple.md), in core.
 - [The Platforms page](README.md) and its version table.
 
-[^core]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.0.0; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/core-provenance.json; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.0.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96) verify:equals(scripts/parity-data/versions.json#apple.coreTag)=v0.14.0
+[^core]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0; https://github.com/ourostack/ouro-ui-apple/blob/bf029bd61a076fdcdd0c014bb333cd654f08129e/core-provenance.json; https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/bf029bd61a076fdcdd0c014bb333cd654f08129e/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/9931f6d284f44014648482bde69b114e48b7b7de/.github/workflows/ci.yml#L74-L96) verify:equals(scripts/parity-data/versions.json#apple.coreTag)=v0.14.0
 [^a2ui]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#agent-composed-ui-a2ui)
+[^a2ui-1-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0) verify:equals(site/src/apple/kit.json#release)=1.1.0
 [^floor]: https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/Package.swift#L1-L9 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/Package.swift#L1-L9)
 [^products]: https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/Package.swift#L19-L38 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/Package.swift#L19-L38)
 [^siri]: https://developer.apple.com/news/?id=gdk2umrf; https://developer.apple.com/documentation/appintents/siri-ai-developer-preview verify:urlOk(https://developer.apple.com/news/?id=gdk2umrf) verify:urlOk(https://developer.apple.com/documentation/appintents/siri-ai-developer-preview)

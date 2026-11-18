@@ -73,12 +73,45 @@ describe("Chapter I", () => {
     await userEvent.click(page.getByRole("checkbox", { name: PARTS[0].job }));
     await expect.poll(() => plan().dataset.built).toBe("hull");
     // The plan and the crew's line both follow the tick by a frame, in either order.
-    await expect.poll(crew).toContain(YARD.built.hull.text);
+    await expect.poll(crew).toContain(YARD.hull.text);
     for (const part of PARTS.slice(1)) await userEvent.click(page.getByRole("checkbox", { name: part.job }));
     await expect.poll(crew).toContain(YARD.ready.text);
     await userEvent.click(page.getByRole("button", { name: "Launch", exact: true }));
     await expect.poll(() => plan().dataset.launched).toBe("");
     await expect.element(page.elementLocator(document.querySelector("#chapter-one")!).getByText(SHIPYARD.afloat)).toBeVisible();
+  });
+
+  it("lets the crew speak only when it adds something: five ticks in order give at most three lines, and a tick out of order warns", async () => {
+    await renderPage("/nautilus/");
+    const box = document.querySelector("[data-composition='shipyard'] [data-chapter-crew]")!;
+    const crew = () => box.textContent ?? "";
+    const heard = new Set([crew()]);
+    const listen = new MutationObserver(() => heard.add(crew()));
+    listen.observe(box, { subtree: true, childList: true, characterData: true });
+    try {
+      for (const part of PARTS) await userEvent.click(page.getByRole("checkbox", { name: part.job }));
+      await expect.poll(crew).toContain(YARD.ready.text);
+      // The opening, the hull that sets the scene, and the ship ready: the boxes show the rest.
+      expect([...heard].filter((line) => line.trim()).length).toBeLessThanOrEqual(3);
+      // A job taken off warns, and putting it back with the hull built takes the warning back.
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[1].job }));
+      await expect.poll(crew).toContain(YARD.undone(PARTS[1].name).text);
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[1].job }));
+      await expect.poll(crew).toContain(YARD.ready.text);
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[1].job }));
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[2].job }));
+      await expect.poll(crew).toContain(YARD.undone(PARTS[2].name).text);
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[2].job }));
+      await expect.poll(crew).toContain(YARD.hull.text);
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[0].job }));
+      await expect.poll(crew).toContain(YARD.undone(PARTS[0].name).text);
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[3].job }));
+      await expect.poll(crew).toContain(YARD.undone(PARTS[3].name).text);
+      await userEvent.click(page.getByRole("checkbox", { name: PARTS[3].job }));
+      await expect.poll(crew).toContain(YARD.noHull(PARTS[3].name).text);
+    } finally {
+      listen.disconnect();
+    }
   });
 
   it("refuses a name already aboard, through the form's own errors", async () => {

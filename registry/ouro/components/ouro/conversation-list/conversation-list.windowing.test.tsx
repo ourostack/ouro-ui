@@ -693,7 +693,7 @@ describe("ConversationList windowing with sections", () => {
     await frames();
     expect(everything()).toBe(first);
   });
-  it("keeps frame one's element set when sections of two 44px rows sit in a tall pane, as in Tandem's chat list", async () => {
+  it("keeps frame one's element set when sections of two 44px rows sit in a tall pane, as in an app's chat list", async () => {
     const style = document.createElement("style");
     style.textContent =
       '[data-ouro="conversation-list"] [data-ouro-part="row"] { height: 44px } [data-ouro="conversation-list"] [data-ouro-part="section"] { height: 32px }';

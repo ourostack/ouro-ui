@@ -269,11 +269,25 @@
     padding-block: calc(var(--spacing) * 2);
     line-height: 1.5;
     color: var(--foreground);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
   .site-handoff .site-install-copy {
     grid-area: 1 / 2;
     align-self: center;
+  }
+  /*
+   * A narrow hand-off (a phone, or a chapter's column) gives the line the whole width and puts Copy under it, so the
+   * line keeps its words whole and the web address breaks only after a "/".
+   */
+  @container (width < 28rem) {
+    .site-handoff .site-install {
+      grid-template-columns: minmax(0, 1fr);
+      padding-block-end: calc(var(--spacing) * 3);
+    }
+    .site-handoff .site-install-copy {
+      grid-area: 2 / 1;
+      justify-self: start;
+    }
   }
   .site-install-caption {
     margin: 0;

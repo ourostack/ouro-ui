@@ -399,7 +399,7 @@ describe("A2UISurface", () => {
     expect((onAction.mock.calls[1]![0] as A2UIActionMessage).action).toMatchObject({ name: "share_recipe", context: { recipe: "rcp_1", with: "kim@example.com" }, metadata: { extensions: { bot_ouroboros_action: { consent: "consequential", by: "person", confirmed: true } } } });
   });
 
-  it("keeps what the person entered when it renders again with a new label function, and starts over from new messages", async () => {
+  it("keeps what the person entered across a new label function and new messages, until a message changes that field's value", async () => {
     const host = document.createElement("div");
     document.body.append(host);
     mounted.push(host);
@@ -410,8 +410,32 @@ describe("A2UISurface", () => {
     await userEvent.fill(page.getByRole("textbox", { name: "Send to" }), "kim@example.com");
     await act(async () => root.render(<A2UISurface {...props({ messages, label: () => undefined })} />));
     expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("kim@example.com");
-    await act(async () => root.render(<A2UISurface {...props({ messages: [...messages, { version: "1.0", updateDataModel: { surfaceId: "card", path: "/with", value: "lee@example.com" } }] })} />));
+    // A stream that goes on: a new hint and data elsewhere leave the person's answer; setting its path replaces it.
+    const more = [...messages, { version: "1.0", updateComponents: { surfaceId: "card", components: [{ id: "root", component: "TextField", label: "Send to", hint: "An email address.", value: { "@path": "/with" } }] } }, { version: "1.0", updateDataModel: { surfaceId: "card", path: "/note", value: "Soon" } }];
+    await act(async () => root.render(<A2UISurface {...props({ messages: more })} />));
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveAccessibleDescription("An email address.");
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("kim@example.com");
+    await act(async () => root.render(<A2UISurface {...props({ messages: [...more, { version: "1.0", updateDataModel: { surfaceId: "card", path: "/with", value: "lee@example.com" } }] })} />));
     expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("lee@example.com");
+  });
+
+  it("starts the fields over when it shows another surface, or one deleted and created again, whose answers are its own", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const field = [{ id: "root", component: "TextField", label: "Send to", value: { "@path": "/with" } }];
+    const messages = [...surface(field, { with: "sam@example.com" }), { version: "1.0", createSurface: { surfaceId: "other", catalogId: catalog.catalogId, dataModel: { with: "sam@example.com" }, components: field } }];
+    await act(async () => root.render(<A2UISurface {...props({ messages, surfaceId: "card" })} />));
+    await userEvent.fill(page.getByRole("textbox", { name: "Send to" }), "kim@example.com");
+    await act(async () => root.render(<A2UISurface {...props({ messages, surfaceId: "other" })} />));
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("sam@example.com");
+    await userEvent.fill(page.getByRole("textbox", { name: "Send to" }), "lee@example.com");
+    // The same id deleted and created again is a new surface too.
+    const again = [...messages, { version: "1.0", deleteSurface: { surfaceId: "other" } }, ...surface(field, { with: "sam@example.com" }).map((m) => ({ ...m, createSurface: { ...m.createSurface, surfaceId: "other" } }))];
+    await act(async () => root.render(<A2UISurface {...props({ messages: again, surfaceId: "other" })} />));
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("sam@example.com");
   });
 
   it("shows the alert for a stream that updates a surface it never created, which it can't apply", async () => {

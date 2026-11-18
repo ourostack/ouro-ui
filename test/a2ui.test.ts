@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveMessages } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { applyTreeUpdate, loadCatalog, resolveMessages, type ComposedNode, type Json } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { vendored } from "../scripts/vendored.mjs";
 import core from "./fixtures/a2ui/core.json";
 
@@ -27,6 +27,8 @@ describe("A2UI files vendored from core", () => {
     }
     const cases = Object.keys(raw).filter((p) => p.startsWith("/test/fixtures/a2ui/cases/"));
     expect(cases.map((p) => p.slice(1)).sort()).toEqual(Object.keys(core.files).filter((p) => p.includes("/cases/")).sort());
+    const updates = Object.keys(raw).filter((p) => p.startsWith("/test/fixtures/a2ui/updates/"));
+    expect(updates.map((p) => p.slice(1)).sort()).toEqual(Object.keys(core.files).filter((p) => p.includes("/updates/")).sort());
     // Coverage, mutation testing and the docs leave out exactly the registry files pinned here (scripts/vendored.mjs).
     expect(vendored).toEqual(Object.keys(core.files).filter((p) => p.startsWith("registry/")));
   });
@@ -38,5 +40,14 @@ describe("A2UI conformance", () => {
   it.each(cases)("%s resolves to its expect", (path) => {
     const c = json(path.slice(1)) as { catalog: string; messages: unknown[]; expect: unknown };
     expect(resolveMessages(json(`test/fixtures/a2ui/${c.catalog}`), c.messages)).toEqual(c.expect);
+  });
+});
+
+describe("composed tree update conformance", () => {
+  const cases = Object.keys(raw).filter((p) => p.startsWith("/test/fixtures/a2ui/updates/")).sort();
+
+  it.each(cases)("%s gives its expect", (path) => {
+    const c = json(path.slice(1)) as { catalog: string; tree: ComposedNode; data?: Json; update: unknown; expect: unknown };
+    expect(applyTreeUpdate(loadCatalog(json(`test/fixtures/a2ui/${c.catalog}`)), c.tree, c.data, c.update)).toEqual(c.expect);
   });
 });

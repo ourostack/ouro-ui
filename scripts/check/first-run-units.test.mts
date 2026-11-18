@@ -283,10 +283,10 @@ describe("first-run harness: the judges", () => {
       [1, "AXGroup", undefined, { subrole: "AXApplicationDialog", w: 0 }],
       [1, "AXGroup", undefined, { subrole: "AXLandmarkMain" }],
     ]);
-    s.windows.push({ title: "Alert", x: 400, y: 300, w: 300, h: 120, nodes: [{ i: 0, p: -1, d: 0, role: "AXWindow", subrole: "AXDialog", words: "Quit Tandem?", enabled: true, x: 400, y: 300, w: 300, h: 120 }] });
+    s.windows.push({ title: "Alert", x: 400, y: 300, w: 300, h: 120, nodes: [{ i: 0, p: -1, d: 0, role: "AXWindow", subrole: "AXDialog", words: "Quit Example?", enabled: true, x: 400, y: 300, w: 300, h: 120 }] });
     const found = dialogs(s);
     assert.deepEqual(found.map((d) => [d.window.title, d.node.role, d.nodes.length]), [["App", "AXSheet", 2], ["Alert", "AXWindow", 1]]);
-    assert.equal(pane(s).label, "Quit Tandem?");
+    assert.equal(pane(s).label, "Quit Example?");
   });
 
   test("a subtree is the node and the run of deeper nodes after it, and a bad index has none", () => {
@@ -427,7 +427,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", (l
   const [cmd, ...args] = line.split(" ");
   if (cmd === "tree") return out(args[0] === "1" ? { windows: [WINDOW] } : {});
   if (cmd === "shown") return out(args[0] === "1" ? { windows: [{}] } : { ok: true });
-  if (cmd === "extras") return out(args[0] === "1" ? { items: ["Tandem"] } : {});
+  if (cmd === "extras") return out(args[0] === "1" ? { items: ["Example"] } : {});
   if (cmd === "extra-menu") return out(args[0] === "1" ? { ok: true, items: [{ title: "Quit", enabled: true }] } : { ok: false, why: "no menu" });
   if (cmd === "pixels") {
     const file = args[0];
@@ -475,11 +475,11 @@ describe("first-run harness: the eyes", () => {
       assert.equal(await eyes.shown(1), true);
       assert.equal(await eyes.shown(2), false);
       assert.deepEqual(await eyes.closeWindow(3), { ok: true, line: "close-window 3" });
-      assert.deepEqual(await eyes.extras(1), ["Tandem"]);
+      assert.deepEqual(await eyes.extras(1), ["Example"]);
       assert.deepEqual(await eyes.extras(2), []);
       assert.deepEqual(await eyes.extraMenu(1), { ok: true, items: [{ title: "Quit", enabled: true }], why: undefined });
       assert.deepEqual(await eyes.extraMenu(2, 1), { ok: false, items: [], why: "no menu" });
-      assert.deepEqual(await eyes.extraPress("Quit Tandem"), { ok: true, line: "extra-press Quit Tandem" });
+      assert.deepEqual(await eyes.extraPress("Quit Example"), { ok: true, line: "extra-press Quit Example" });
       assert.deepEqual(await eyes.press(4, "Sign in"), { ok: true, line: "press 4 Sign in" });
       assert.deepEqual(await eyes.key("cmd-w"), { ok: true, line: "key cmd-w" });
       const [a, b] = await Promise.all([eyes.click(10.4, 20.6), eyes.key("escape")]);
@@ -686,42 +686,42 @@ describe("first-run harness: the machine", () => {
     "========================",
     " #1:",
     "                 UUID: 1",
-    "                 Name: Tandem",
-    "           Identifier: bot.ouro.tandem",
+    "                 Name: Example",
+    "           Identifier: com.example.app",
     "          Disposition: [enabled, allowed, visible, notified]",
     " #2:",
-    "                 Name: Tandem Helper",
-    "           Identifier: bot.ouro.tandem.helper",
+    "                 Name: Example Helper",
+    "           Identifier: com.example.app.helper",
     "          Disposition: [disabled, allowed, visible, notified]",
     " #3:",
     "                 Name: Other",
     "           Identifier: com.other.app",
     "          Disposition: [enabled, allowed, visible, notified]",
     " #4:",
-    "           Identifier: bot.ouro.tandem.agent",
+    "           Identifier: com.example.app.agent",
     "          Disposition: [enabled]",
     "",
   ].join("\n");
 
-  const app = (dir: string, more: Partial<App> = {}): App => ({ bundle: join(dir, "Applications", "Tandem.app"), id: "bot.ouro.tandem", ...more });
+  const app = (dir: string, more: Partial<App> = {}): App => ({ bundle: join(dir, "Applications", "Example.app"), id: "com.example.app", ...more });
 
   test("an app's data is every folder a Mac keeps under its bundle id, and the folders it names", () => {
     const paths = dataPaths(app("/x", { extraPaths: ["/x/extra"] }), "/home/ada");
     assert.equal(paths.length, 11);
-    assert.equal(paths[0], "/home/ada/Library/Application Support/bot.ouro.tandem");
+    assert.equal(paths[0], "/home/ada/Library/Application Support/com.example.app");
     assert.equal(paths.at(-1), "/x/extra");
-    assert.equal(dataPaths(app("/x"))[0], join(os.homedir(), "Library", "Application Support", "bot.ouro.tandem"));
+    assert.equal(dataPaths(app("/x"))[0], join(os.homedir(), "Library", "Application Support", "com.example.app"));
   });
 
   test("an enabled login item for the app is a leftover; a disabled one or another app's is not", () => {
-    assert.deepEqual(loginItemsOn(app("/x"), dump), ["Tandem", "bot.ouro.tandem"]);
+    assert.deepEqual(loginItemsOn(app("/x"), dump), ["Example", "com.example.app"]);
     assert.deepEqual(loginItemsOn(app("/x", { id: "bot.ouro.absent" }), dump), []);
     assert.equal(loginItemsOn(app("/x"), null), null);
   });
 
   test("the login items are read with passwordless sudo, and unreadable without it", () => {
     const ok = machine(() => ({ stdout: dump.slice(0, 200), stderr: dump.slice(200) }));
-    assert.deepEqual(loginItemsOn(app("/x"), undefined, ok.sys), ["Tandem", "bot.ouro.tandem"]);
+    assert.deepEqual(loginItemsOn(app("/x"), undefined, ok.sys), ["Example", "com.example.app"]);
     assert.deepEqual(ok.lines(), ["sudo -n sfltool dumpbtm"]);
     assert.equal(loginItemsOn(app("/x"), undefined, machine(() => ({ status: 1, stderr: "sudo: a password is required" })).sys), null);
   });
@@ -736,7 +736,7 @@ describe("first-run harness: the machine", () => {
       `the app is installed at ${app(home).bundle}`,
       `its data at ${support}`,
       "a keychain item: refresh token",
-      "a login item turned on: Tandem, bot.ouro.tandem",
+      "a login item turned on: Example, com.example.app",
     ]);
     assert.match(leftovers(app(home), { home, sys: machine(() => ({ status: 1 })).sys }).at(-1)!, /^sudo -n sfltool dumpbtm answered with an error/);
     assert.equal(noCommands(() => leftovers(app(home, { id: "bot.ouro.first-run-unit-absent" }))).length, 2);
@@ -753,7 +753,7 @@ describe("first-run harness: the machine", () => {
     mkdirSync(join(home, "extra"));
     const m = machine();
     reset(used, { home, sys: m.sys });
-    assert.deepEqual(m.lines(), [`pkill -9 -f ${used.bundle}`, "defaults delete bot.ouro.tandem"]);
+    assert.deepEqual(m.lines(), [`pkill -9 -f ${used.bundle}`, "defaults delete com.example.app"]);
     assert.deepEqual(forgot, ["forgot"]);
     assert.deepEqual(leftovers(used, { home, btm: "" }), []);
     reset(app(home), { home, sys: m.sys });

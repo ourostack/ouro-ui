@@ -1,0 +1,1 @@
+- New: `ouro-feel-probe`, Ouro Feel's probe as one plain script (`scripts/ouro/feel/ouro-feel-probe.js`), so an app adds it at a release tag with `npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#<tag>` and puts it first in the page or its web view.

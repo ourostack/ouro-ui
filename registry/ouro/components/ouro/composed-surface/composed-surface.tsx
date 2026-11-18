@@ -52,10 +52,13 @@ export interface ComposedSurfaceProps {
    * The data model the tree's fields start from, such as an MCP tool result's `structuredContent.ouro.data`. A
    * TextField, Checkbox or Select shows what it holds at the field's `value` pointer and writes the person's answer
    * there. A button input bound to that pointer (`{"@path": "/servings"}`) sends the answer when the person presses,
-   * and a consequential button's confirm sheet shows it. A new `data` or `tree` starts the fields over from `data`.
+   * and a consequential button's confirm sheet shows it. When `data` or `tree` changes, as an agent's update changes
+   * them, what the person entered stays, except at a pointer whose value the new `data` changed, or in a list item it
+   * changed: there the agent's value wins.
    *
    * @claim "sends the answer when the person presses" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface fields > presses a bound button with what the person typed, ticked and chose)
    * @claim "a consequential button's confirm sheet shows it" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface fields > shows what the person typed on a consequential button's confirm sheet, and sends it on confirm)
+   * @claim "what the person entered stays, except at a pointer whose value the new `data` changed" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface fields > keeps what the person entered across a new tree and data, except where the new data changed it)
    * @default {}
    */
   data?: Obj | undefined;
@@ -118,7 +121,7 @@ export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
   );
   return (
     <div data-ouro="composed-surface" className={cn("min-w-0", className)}>
-      <ComposedTree tree={tree} data={data} origin={tree} onPress={onPress} onHandoff={onHandoff} />
+      <ComposedTree tree={tree} data={data} onPress={onPress} onHandoff={onHandoff} />
     </div>
   );
 }
@@ -127,25 +130,66 @@ export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
 export interface ComposedTreeProps extends Pick<ComposedSurfaceProps, "tree" | "onPress" | "onHandoff"> {
   /** The data model the fields start from, when the tree has one. */
   data: Json | undefined;
-  /** What the tree came from: a new one starts the fields over from `data`, and so does a new `data`. */
+  /** Which surface the tree is, such as an A2UI surface's id: another one starts the fields over from `data`. */
+  origin?: unknown;
+}
+
+/** The data model as the person fills it in: what the agent last sent, what the fields hold now, and where the person wrote. */
+interface Held {
   origin: unknown;
+  data: Json | undefined;
+  current: Json;
+  edited: ReadonlySet<string>;
+}
+
+/**
+ * The pointers whose value an answer at `pointer` depends on: the pointer itself and each list item on the way to it,
+ * since a list that loses an item moves the next one into its place.
+ *
+ * @claim "each list item on the way to it" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface fields > drops what the person entered in a list item the agent changed, even where the value it held stays the same)
+ */
+function anchors(data: Json, pointer: string): string[] {
+  const keys = pointer.split("/").slice(1);
+  const prefixes = keys.map((_, i) => `/${keys.slice(0, i + 1).join("/")}`);
+  // The data model is an object, so the first key is never a list item.
+  return prefixes.filter((_, i) => i === keys.length - 1 || (i > 0 && Array.isArray(getPointer(data, prefixes[i - 1]!))));
+}
+
+/**
+ * The fields' data model when the agent sends new `data`: the new data, with each answer the person entered kept where
+ * the agent left its value as it was, and the list item it is in. Where the agent changed either, the agent's value wins
+ * and the person's is dropped.
+ *
+ * @claim "each answer the person entered kept where the agent left its value as it was" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface fields > keeps what the person entered across a new tree and data, except where the new data changed it)
+ */
+function carry(held: Held, origin: unknown, data: Json | undefined): Held {
+  if (held.origin !== origin) return { origin, data, current: data ?? {}, edited: new Set() };
+  let current: Json = data ?? {};
+  const before: Json = held.data ?? {};
+  // Comparing as JSON text tells a changed value from the same one; an object with its keys reordered counts as changed.
+  const same = (p: string) => JSON.stringify(getPointer(before, p)) === JSON.stringify(getPointer(current, p));
+  const edited = new Set([...held.edited].filter((path) => anchors(before, path).every(same)));
+  for (const path of edited) current = setPointer(current, path, getPointer(held.current, path) ?? null);
+  return { origin, data, current, edited };
 }
 
 /**
  * The tree's components, drawn straight into the parent: the body of ComposedSurface and of A2UISurface. It holds the
- * data model as the person fills it in, and starts over from `data` when `origin` or `data` changes.
+ * data model as the person fills it in. When `data` changes, what the person entered stays, except where the new
+ * `data` changed the value; when `origin` changes, the fields start over from `data`.
  *
  * @internal
  */
 export function ComposedTree({ tree, data, origin, onPress, onHandoff }: ComposedTreeProps): ReactNode {
   // Stryker disable next-line ObjectLiteral: an empty first state differs from the props, so the check below fills it in on the first render.
-  const [held, setHeld] = useState<{ origin: unknown; data: Json | undefined; current: Json }>(() => ({ origin, data, current: data ?? {} }));
+  const [held, setHeld] = useState<Held>(() => ({ origin, data, current: data ?? {}, edited: new Set() }));
   let current = held.current;
   if (held.origin !== origin || held.data !== data) {
-    current = data ?? {};
-    setHeld({ origin, data, current });
+    const next = carry(held, origin, data);
+    current = next.current;
+    setHeld(next);
   }
-  const write = (pointer: string, value: Json) => setHeld((h) => ({ ...h, current: setPointer(h.current, pointer, value) }));
+  const write = (pointer: string, value: Json) => setHeld((h) => ({ ...h, current: setPointer(h.current, pointer, value), edited: new Set(h.edited).add(pointer) }));
   // Stryker disable next-line StringLiteral: the root's key only prefixes its descendants' keys, which are unique under any prefix.
   return renderNode(tree, { onPress, onHandoff, data: current, write }, "root");
 }

@@ -177,16 +177,6 @@
     },
     {
       "file": "site/src/voyage/chapters/copy.ts",
-      "sentence": "All by electricity.",
-      "reason": "the Nautilus story: Captain Nemo on the engine, after Verne"
-    },
-    {
-      "file": "site/src/voyage/chapters/copy.ts",
-      "sentence": "No coal and no smoke.",
-      "reason": "the Nautilus story: Captain Nemo on the engine, after Verne"
-    },
-    {
-      "file": "site/src/voyage/chapters/copy.ts",
       "sentence": "Windows with no hull would let in the whole sea.",
       "reason": "the Nautilus story: Conseil judging an order of work"
     },
