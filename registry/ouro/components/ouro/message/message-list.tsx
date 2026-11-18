@@ -1535,8 +1535,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       taken = scroller.scrollTop;
     };
     const farthest = () => scroller.scrollHeight - scroller.clientHeight;
-    // Where the content ends in the scroller: below the space kept above the first message, when there is any.
-    const bottom = () => content.offsetTop + content.offsetHeight;
     // At the bottom as the list was before this change, or as it is now: growth at the end, or the
     // view getting shorter, leaves a list that was at the bottom still there, and a scroll anywhere
     // else (the reader's, a key's, or code going to a message) leaves it.
@@ -1554,14 +1552,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // the browser's pull, like any scroll position written, ends WebKit's wheel.
     const floorMark = floorRef.current!;
     let floor = 0;
+    // Space kept above the first message, in px (see setSlack).
+    let slack = 0;
     const setFloor = (px: number) => {
       // Stryker disable next-line ConditionalExpression: only spares writing the values the mark already holds.
       if (px === floor) return;
       floor = px;
       // Out of the layout when it holds nothing, so moving it never stops the browser's own scroll anchoring.
       floorMark.style.display = px > 0 ? "block" : "";
-      floorMark.style.top = `${Math.max(0, px - 1)}px`;
+      placeFloor();
     };
+    // The mark sits at the content's height below the content's top, which the space kept above the first message moves down.
+    const placeFloor = () => void (floorMark.style.top = `${Math.max(0, floor - 1 + slack)}px`);
     // Sets the mark between the anchors being taken and held: the range it holds changes with no change of the messages, so the
     // anchors' range moves with it, and the reader's own scrolling, which takes the anchors again only while the range is the
     // one they were taken with, still does.
@@ -1571,14 +1573,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       end += farthest() - range;
     };
     const followEnd = () => {
-      const height = bottom();
+      const height = content.offsetHeight;
       setFloor(height > scroller.clientHeight ? height : 0);
       toBottom();
       // Content that settles at another height in a later render of the same task (long messages folding behind "See more"
       // as a conversation opens) moves no node the mutation observer hears of, and the resize observer runs only after the
       // frame's animation callbacks: until then the mark would hold the view past the messages. Once the task's work is
       // done, the end is followed to where it settled.
-      if (floor !== 0) queueMicrotask(() => bottom() !== floor && hold());
+      if (floor !== 0) queueMicrotask(() => content.offsetHeight !== floor && hold());
     };
     // Whether the list has opened: at its first messages, at `initialAnchor` if it holds that message, else at the newest.
     let opened = false;
@@ -1667,10 +1669,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // list's start stopped it. A reader whose wheel brings them to the top faster than the rows above were paid (a slowed page
     // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
-    let slack = 0;
     const setSlack = (px: number) => {
       slack = px;
       content.style.marginBlockStart = `${px}px`;
+      placeFloor();
     };
     // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
     const scrollOwn = (by: number) => {
@@ -1695,9 +1697,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // away are left out, so a change waiting for the resize observer is still held.
       taken += applied;
       end += farthest() - range;
-      // The hold on the range, kept while the list follows its end, comes up with the content, so the end is where it was; none
-      // stays none.
-      moveFloor(Math.max(0, floor - gone));
     };
     const pay = () => {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
@@ -1742,8 +1741,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       wheelAt = now;
       wheelFrame = document.timeline.currentTime;
       wheelStarts = true;
-      // The scroll range the wheel turns in holds until it rests (see setFloor): at least to the content's end now.
-      const height = bottom();
+      // The scroll range the wheel turns in holds until it rests (see setFloor): at least the content's height now.
+      const height = content.offsetHeight;
       // Stryker disable next-line EqualityOperator: a floor set to the height it already holds writes nothing.
       if (height > Math.max(floor, scroller.clientHeight)) setFloor(height);
       rest();
@@ -1821,7 +1820,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (!opened) return open();
       // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
       // Stryker disable next-line ConditionalExpression,ArrowFunction: not equivalent; "drops the room at once when hasOlder ends" (message-list.test.tsx) fails on both mutants, but per-test coverage attributes this observer callback to another test, so the shard never runs it.
-      const floorMoved = () => floor !== 0 && bottom() !== floor;
+      const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
       if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
     });
