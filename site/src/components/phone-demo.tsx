@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type JSX } from "react";
+import { lazy, Suspense, useState, useSyncExternalStore, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
@@ -13,6 +13,25 @@ export const PHONE_DEMOS: readonly string[] = ["dialog", "edit-sheet", "confirm-
 /** The demo-only page's address for a component. */
 export const demoAddress = (name: string): string => `${href("/docs/demo/")}?name=${encodeURIComponent(name)}`;
 
+const noUpdates = () => () => undefined;
+
+/** The looks under the demo, a chunk of their own that loads once the page answers: the server draws only their room. */
+const DemoLooks = lazy(() => import("./demo-looks"));
+
+/**
+ * The looks, once the page has hydrated. Its own component, so the render that follows hydration is this one alone: a
+ * render of DemoStage then would reach the demo's Suspense boundary while its chunk is still loading, and React would
+ * drop the server's HTML for the loading line.
+ */
+function LooksOnceHydrated(): JSX.Element | null {
+  const hydrated = useSyncExternalStore(noUpdates, () => true, () => false);
+  return hydrated ? (
+    <Suspense fallback={null}>
+      <DemoLooks />
+    </Suspense>
+  ) : null;
+}
+
 /** A component page's live demo, with a Phone button where the phone's layout differs: pressed, the demo shows in a phone's frame. */
 export function DemoStage({ name, title }: { name: string; title: string }): JSX.Element {
   const [phone, setPhone] = useState(false);
@@ -20,7 +39,7 @@ export function DemoStage({ name, title }: { name: string; title: string }): JSX
   return (
     <section
       aria-label="Live demo"
-      className={`relative flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 lg:px-10 dark:bg-muted/65 ${phoneable ? "sm:pt-16" : ""}`}
+      className={`relative flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 pt-10 pb-20 lg:px-10 dark:bg-muted/65 ${phoneable ? "sm:pt-16" : ""}`}
     >
       {phoneable && (
         // A phone's own screen is already one, so the button shows from 640px up. 24px in from the box's edge (with its
@@ -41,11 +60,13 @@ export function DemoStage({ name, title }: { name: string; title: string }): JSX
       ) : (
         <LiveDemo name={name} title={title} />
       )}
+      {/* In the room the box keeps at its foot (pb-20), centred, away from its corners: nothing moves when it arrives. */}
+      <div className="absolute inset-x-0 bottom-4 flex justify-center">
+        <LooksOnceHydrated />
+      </div>
     </section>
   );
 }
-
-const noUpdates = () => () => undefined;
 
 /** The demo-only page: one component's live demo and nothing else, named by `?name=`, for the phone frame. */
 export function DemoFrame(): JSX.Element {

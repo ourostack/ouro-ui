@@ -5,6 +5,8 @@ import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { demos } from "./docs/demos";
 import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
+import { choiceList } from "./voyage/presets";
+import { finishReveal } from "./voyage/theme-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
@@ -637,6 +639,46 @@ describe("docs", () => {
     expect(demo.nextElementSibling).toBe(line);
     await renderPage("/docs/card/");
     expect(document.querySelector("[data-site-try]")).toBeNull();
+  });
+
+  it("repaints the page, demo and all, from a look under the demo, and keeps its room so nothing moves", async () => {
+    await page.viewport(1280, 900);
+    const root = document.documentElement;
+    const was = localStorage.getItem(THEME_KEY);
+    const attributes = ["data-theme", "data-live", "data-sky", "data-season", "data-weather"].map((name) => [name, root.getAttribute(name)] as const);
+    const live = document.getElementById("ouro-live")?.textContent;
+    try {
+      await renderPage("/docs/button/");
+      const looks = page.getByRole("group", { name: "Try a look" });
+      await expect.element(looks).toBeVisible();
+      expect(looks.getByRole("button").elements().map((dot) => dot.getAttribute("aria-label"))).toEqual(choiceList.map((item) => `${item.label} look`));
+      // In the box's own room, under the demo, so it moved nothing when it arrived.
+      const box = page.getByRole("region", { name: "Live demo" }).element().getBoundingClientRect();
+      const demo = document.querySelector("[data-site-demo]")!.getBoundingClientRect();
+      const row = looks.element().getBoundingClientRect();
+      expect(row.top).toBeGreaterThanOrEqual(demo.bottom);
+      expect(row.bottom).toBeLessThanOrEqual(box.bottom);
+      // Flicked through, each pressed mid-reveal: every press lands (force: no waiting for the reveal to end).
+      for (const name of ["Coral", "Abyss", "Brass"]) {
+        await userEvent.click(looks.getByRole("button", { name: `${name} look` }), { force: true });
+        await expect.poll(() => root.getAttribute("data-theme")).toBe(name.toLowerCase());
+        await expect.element(looks.getByRole("button", { name: `${name} look` })).toHaveAttribute("aria-pressed", "true");
+      }
+    } finally {
+      await finishReveal();
+      if (was === null) localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, was);
+      for (const [name, value] of attributes) {
+        if (value === null) root.removeAttribute(name);
+        else root.setAttribute(name, value);
+      }
+      if (live !== undefined && !document.getElementById("ouro-live")) {
+        const style = document.createElement("style");
+        style.id = "ouro-live";
+        style.textContent = live;
+        document.head.append(style);
+      }
+    }
   });
 
   it("shows a demo on a phone's width at the press of Phone, where the phone's layout differs", async () => {
