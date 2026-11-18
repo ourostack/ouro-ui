@@ -104,7 +104,10 @@ const CEILINGS = { voyage: 279 * 1024, docs: 167_396 + 1024 } as const;
 // The docs' rose to 46 KiB for the theme's control and check shapes (#1915: the rounded-ouro-control utilities, and the
 // style query that clips a round control's surface where corner-shape is missing), whose rules every page's stylesheet
 // carries with ouro-base: 46,104 bytes with them, built locally over main at f34408a1.
-const CSS_CEILINGS = { voyage: 44 * 1024, docs: 46 * 1024 } as const;
+// The voyage's rose to 45 KiB when the home page's first screen took a look to try and the hand-off to a person's agent
+// (Ari, 2026-11-17: "a human will never do that npx"): round paint dots ringed from the page's own theme before it hydrates,
+// and the hand-off's line and Copy, less the install command's rules: 45,107 bytes with them, built locally over main at dc800391.
+const CSS_CEILINGS = { voyage: 45 * 1024, docs: 46 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
