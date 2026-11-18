@@ -194,7 +194,13 @@ function Shipyard(): JSX.Element {
 
   // The crew's line follows the control's own change by a frame: it's a transition, so the press
   // paints first.
-  const say = (next: CrewLine) => startTransition(() => setLine(next));
+  // Whether the line is a tick's warning (a job off, or a part with no hull), which a later tick can
+  // make untrue.
+  const warned = useRef(false);
+  const say = (next: CrewLine, warning = false) => {
+    warned.current = warning;
+    startTransition(() => setLine(next));
+  };
   const reorder = useStable((ids: string[]) => {
     const next = ids as PartId[];
     setOrder(next);
@@ -209,10 +215,13 @@ function Shipyard(): JSX.Element {
     setBuilt(next);
     // Taking a part off a launched ship brings her back to the yard.
     if (launched) setLaunched(false);
-    if (!checked) say(YARD.undone(part.name));
+    // The crew speaks when it adds something: the hull, a warning, or the ship ready. A job ticked
+    // in order keeps the line as it was, since its box and the plan already show it, unless that
+    // line is a warning the tick has made untrue: then the hull's line, true again, comes back.
+    if (!checked) say(YARD.undone(part.name), true);
     else if (next.size === PARTS.length) say(YARD.ready);
-    else if (part.id !== "hull" && !next.has("hull")) say(YARD.noHull(part.name));
-    else say(YARD.built[part.id]);
+    else if (!next.has("hull")) say(YARD.noHull(part.name), true);
+    else if (part.id === "hull" || warned.current) say(YARD.hull);
   });
   // Launch turns the button at once; emptying the yard for another build follows as a transition,
   // and focus goes to the first job, where the next build starts.
