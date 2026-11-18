@@ -11,7 +11,7 @@ export const tries: Readonly<Record<string, string>> = {
   "otp-field": "Copy a six-digit code, then paste it into the first box. It fills the rest in one go.",
   reorderable: "Drag a step by its handle. The other steps move out of the way.",
   "swipe-actions": "On a phone, swipe a row to the left to delete it, then press Undo.",
-  "segmented-control": "Press Grid and watch the thumb slide over. With the arrow keys it moves at once.",
+  "segmented-control": "Press Grid and watch the thumb slide over. With the arrow keys, or with reduced motion on, it moves at once.",
   lightbox: "Open a photo, then step through them with the arrow keys or a swipe.",
   kbd: "On a Mac, iPhone or iPad this reads ⌘K. Elsewhere it reads Ctrl+K.",
 };
