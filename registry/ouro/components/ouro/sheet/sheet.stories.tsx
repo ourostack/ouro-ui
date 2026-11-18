@@ -204,8 +204,8 @@ const looks = [
  * backdrop dims the page, its controls stay in reach, and the sheet closes with Escape or its
  * close button.
  *
- * With `scrim`, a light layer tints the page so the sheet stays set apart from it, and
- * `closeOnOutsidePress` closes the sheet on a press on the page, which still reaches the page.
+ * With `closeOnOutsidePress`, a press on the page closes the sheet and still reaches the page.
+ * `scrim` lays a layer over the page that paints nothing, so the page keeps its contrast.
  */
 export const NonModal: Story = {
   parameters: { screenshot: { name: "sheet-non-modal", open: true }, layout: "fullscreen" },
