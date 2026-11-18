@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { LATENCY } from "./latency";
 
@@ -14,6 +15,25 @@ import { LATENCY } from "./latency";
 
 const PHONE = { width: 390, height: 844 };
 const LOADS = { warmUps: 2, samples: 12 };
+/**
+ * A setup retry, never a timing one (ourostack/ouro-ui#2131). The 4× CPU throttle is a precondition of every load: a
+ * navigation at times lands in a renderer the throttle was not set on, and that load ran at full speed. Whether the
+ * throttle applied is read from the load's own CPU loop (`throttleApplied`), never from its paint times, and a load it
+ * did not apply to is taken again, up to RETAKES times, each retake logged and counted in the job's summary. A load the
+ * throttle still missed after them fails the test.
+ */
+const RETAKES = 3;
+
+/** Whether the throttle applied to a load: its CPU loop ran at least twice as slow as the runner's full speed. */
+function throttleApplied(loopMs: number, fullMs: number): boolean {
+  return loopMs / fullMs >= 2;
+}
+
+/** Appends a line to the CI job's summary, where there is one. */
+function summary(line: string): void {
+  const file = process.env["GITHUB_STEP_SUMMARY"];
+  if (file) appendFileSync(file, `${line}\n`);
+}
 const BARE = "bare-app";
 
 /** A baseline: the median a CI run measured, in ms, and the bare app's median in the same test, which scales it to a runner. */
@@ -154,24 +174,36 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
     const plots: number[] = [];
     const bares: number[] = [];
     const throttledLoops: number[] = [];
+    let retaken = 0;
     for (let index = 0; index < LOADS.warmUps + LOADS.samples; index++) {
       for (const app of [BARE, name]) {
-        const page = await context.newPage();
-        try {
-          const { paint, plot, throttled } = await load(page, app, chart && app === name);
-          throttledLoops.push(throttled);
-          if (index < LOADS.warmUps) continue;
-          if (app === BARE) bares.push(paint);
-          else paints.push(paint);
-          if (plot !== null) plots.push(plot);
-        } finally {
-          await page.close();
+        // The full speed measured so far can only fall, so a load fast enough against it stays fast enough at the end.
+        let taken: Awaited<ReturnType<typeof load>>;
+        for (let take = 0; ; take++) {
+          const page = await context.newPage();
+          try {
+            taken = await load(page, app, chart && app === name);
+          } finally {
+            await page.close();
+          }
+          if (throttleApplied(taken.throttled, full) || take === RETAKES) break;
+          retaken += 1;
+          const line = `${name}: the ${LATENCY.throttle}× throttle did not apply to a ${app} load (its loop ran ${Math.round((taken.throttled / full) * 10) / 10}× full speed); taking it again (${take + 1} of ${RETAKES})`;
+          test.info().annotations.push({ type: "latency-throttle-retake", description: line });
+          console.log(`latency-throttle-retake ${line}`);
         }
+        const { paint, plot, throttled } = taken;
+        throttledLoops.push(throttled);
+        if (index < LOADS.warmUps) continue;
+        if (app === BARE) bares.push(paint);
+        else paints.push(paint);
+        if (plot !== null) plots.push(plot);
       }
     }
     full = Math.min(full, await loop(anchor));
     const slowdowns = throttledLoops.map((time) => Math.round((time / full) * 10) / 10);
     console.log(`latency ${name} throttle: each load's loop ran ${slowdowns.join(", ")}× slower than full speed (${Math.round(full * 10) / 10} ms)`);
+    summary(`Latency: ${name} first paint: ${retaken} ${retaken === 1 ? "load" : "loads"} taken again because the ${LATENCY.throttle}× throttle did not apply.`);
     expect(Math.min(...slowdowns), `${name}: a load ran ${Math.min(...slowdowns)}× slower than full speed, so the ${LATENCY.throttle}× throttle missed it (${slowdowns.join(", ")})`).toBeGreaterThanOrEqual(2);
     const bare = median(bares);
     const runner = Math.round(full * 100) / 100;
