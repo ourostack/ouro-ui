@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CHAPTER_TWO } from "../src/voyage/chapters/chapter-two-copy";
 import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "../src/voyage/chapters/copy";
+import { railStaysInView } from "./chapters";
 import { diagnostics } from "./diagnostics";
 import { watchToasts } from "./toasts";
 
@@ -882,4 +883,8 @@ test.describe("by keyboard alone", () => {
     await page.keyboard.press("Enter");
     await expect(signCrew(page)).toContainText(SIGN.refuse(["trade", "oath"]).text);
   });
+});
+
+test("on a laptop's screen, however short, Chapter I's rail keeps its picture and steps in view to the chapter's end", async ({ page }) => {
+  await railStaysInView(page, "chapter-one", "data-chapter-expedition");
 });

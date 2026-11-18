@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX, type ReactNode, type RefObject } from "react";
+import { useEffect, useState, type CSSProperties, type JSX, type ReactNode, type RefObject } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -55,6 +55,13 @@ export function Handoff({ line }: { line: string }): JSX.Element {
   );
 }
 
+/**
+ * Where a chapter's picture sits, in percent down, when a short screen gives the rail less height than the whole 3:2
+ * scene (the rail's picture shrinks so its steps stay on screen): each keeps every head whole, and its second state
+ * shares the crop, so the two still line up.
+ */
+const PICTURE_Y: Partial<Record<SceneName, number>> = { "nautilus-shipyard": 25, "nautilus-library": 15, "nautilus-squid": 55 };
+
 /** How wide a chapter's picture draws, for the browser's file choice: the rail's width on a wide screen, the screen's below it. */
 const CHAPTER_PICTURE_SIZES = "(min-width: 64rem) 26rem, 100vw";
 
@@ -71,11 +78,12 @@ export function ChapterPicture({ scene, className, state }: { scene: SceneName; 
   const shown = state?.shown ?? false;
   return (
     <div
-      className={cn("relative aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted", className)}
+      className={cn("relative aspect-[3/2] min-h-0 overflow-hidden rounded-ouro-xl border border-border bg-muted [&_img]:h-full [&_picture]:h-full", className)}
+      style={{ "--story-short-y": `${PICTURE_Y[scene] ?? 50}%` } as CSSProperties}
       data-chapter-picture={scene}
       data-chapter-picture-state={state ? (shown ? state.scene : scene) : undefined}
     >
-      <div aria-hidden={shown || undefined}>
+      <div className="absolute inset-0" aria-hidden={shown || undefined}>
         <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} />
         <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} night />
       </div>

@@ -79,3 +79,39 @@ export async function watchMotion(page: Page, chapter: string): Promise<() => Pr
   }, chapter);
   return () => page.evaluate(() => (window as unknown as { __moved: string[] }).__moved);
 }
+
+/**
+ * On a laptop's screen, however short, a chapter's rail stays beside it: scrolled to the end of the
+ * chapter's last composition, the rail's picture and steps are whole on screen, below the site's header.
+ */
+export async function railStaysInView(page: Page, chapter: string, rail: string): Promise<void> {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openChapter(page, chapter);
+  // 1440x540 is short enough that the rail's picture gives up some height to keep the steps on screen.
+  for (const [width, height] of [
+    [1440, 820],
+    [1280, 720],
+    [1440, 540],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.locator(`#${chapter} [data-composition]`).last().evaluate((last) => scrollBy(0, last.getBoundingClientRect().bottom - innerHeight));
+    const place = await page.locator(`#${chapter} [${rail}]`).evaluate((element) => {
+      const frame = element.querySelector<HTMLElement>("[data-chapter-picture]")!;
+      const picture = frame.getBoundingClientRect();
+      const drawn = [...frame.querySelectorAll("img")].filter((img) => img.checkVisibility()).map((img) => img.getBoundingClientRect().height);
+      return {
+        crops: drawn.map((each) => Math.abs(each - frame.clientHeight) <= 1),
+        header: document.querySelector("[data-ouro='navbar']")!.getBoundingClientRect().bottom,
+        pictureTop: picture.top,
+        pictureHeight: picture.height,
+        stepsBottom: element.querySelector("ol")!.getBoundingClientRect().bottom,
+        screen: innerHeight,
+      };
+    });
+    expect(place.pictureTop, `${width}x${height}: the picture's top`).toBeGreaterThanOrEqual(place.header);
+    expect(place.pictureHeight, `${width}x${height}: the picture's height`).toBeGreaterThan(150);
+    expect(place.stepsBottom, `${width}x${height}: the steps' bottom`).toBeLessThanOrEqual(place.screen);
+    // Both states fill the frame, so they crop alike and line up when one fades to the other.
+    expect(place.crops, `${width}x${height}: each state fills the picture`).toEqual([true, true]);
+  }
+}

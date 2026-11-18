@@ -95,7 +95,7 @@ export default function ChapterOne(): JSX.Element {
       <VoyageContext value={voyage}>
         <ExpeditionMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
-          <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
+          <header className="lg:col-span-4">
             <ShipyardPicture className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_ONE.number}</p>
             <h2 id="chapter-one-title" className="site-h2 mt-3">
@@ -141,7 +141,7 @@ function useExpedition(): { voyage: Voyage; steps: Step[] } {
 function Expedition(): JSX.Element {
   const { steps } = useExpedition();
   return (
-    <div className="mt-10 hidden lg:block" data-chapter-expedition="">
+    <div className="mt-10 hidden lg:top-24 lg:flex lg:flex-col lg:[@media(min-height:32rem)]:sticky lg:[@media(min-height:32rem)]:max-h-[calc(100dvh-7rem)]" data-chapter-expedition="">
       <ShipyardPicture />
       <Steps label={EXPEDITION.label} steps={steps} />
     </div>
