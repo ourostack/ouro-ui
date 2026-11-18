@@ -276,7 +276,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
     /** Apple's networking, trusting the authority the stand-in made in `dir`. */
     const apple = (dir: string) => ({ ca: fs.readFileSync(path.join(dir, "ca.pem")), ALPNProtocols: ["h2", "http/1.1"] }) as https.RequestOptions;
     /** A Mac whose security, hosts and DNS commands answer as `say` says; openssl runs for real; osascript reads through the stand-in. */
-    const mac = (port: number, dir: string, say: Partial<Record<"trust" | "verify" | "tee" | "resolve" | "read", boolean>> = {}) => {
+    const mac = (port: number, dir: string, say: Partial<Record<"trust" | "verify" | "tee" | "resolve" | "read" | "delete", boolean>> = {}) => {
       const ran: string[] = [];
       // The System keychain holds the authority twice, as a second import would leave it.
       let kept = 2;
@@ -288,7 +288,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
           const answer = (ok: boolean | undefined, stdout = "") => ({ status: ok === false ? 1 : 0, stdout, stderr: ok === false ? ` ${"refused ".repeat(30)}\n` : "" });
           if (cmd === "sudo" && args[1] === "security" && args[2] === "add-trusted-cert") return answer(say.trust);
           if (cmd === "security" && args[0] === "find-certificate") return answer(true, kept > 0 ? `SHA-1 hash: ${hash(dir)}\n` : "");
-          if (cmd === "sudo" && args[2] === "delete-certificate") return (kept--, answer(true));
+          if (cmd === "sudo" && args[2] === "delete-certificate") return say.delete === false ? answer(false) : (kept--, answer(true));
           if (cmd === "security") return answer(say.verify);
           if (cmd === "sudo" && args[1] === "tee") {
             if (say.tee === false) return answer(false);
@@ -320,7 +320,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
         assert.equal(await ask(port, "/held", apple(dir)), "no answer");
         assert.deepEqual(s.events().map((e) => e.ev), ["ready", "passed", "held"]);
         assert.ok(s.events().every((e) => e.at >= 100_000 && e.at < 160_000), "on the session's clock");
-        assert.ok(fs.readFileSync(log, "utf8").trim().split("\n").every((l) => JSON.parse(l).at >= 100_000), "the log on the session's clock too");
+        assert.ok(fs.readFileSync(log, "utf8").trim().split("\n").every((l) => JSON.parse(l).at >= 100_000 && JSON.parse(l).at < 160_000), "the log on the session's clock too");
         assert.deepEqual(fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l).ev), ["ready", "passed", "held"]);
       } finally {
         s.lift();
@@ -380,6 +380,9 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       assert.ok((await run({ verify: false, trust: false })).includes(`(add-trusted-cert: ${"refused ".repeat(30).trim().slice(0, 160)});`));
       assert.equal(await run({ tee: false }), "no SSO extension stand-in: it couldn't point the hosts at the stand-in (sudo -n tee /etc/hosts)");
       assert.equal(ran.filter((r) => r.startsWith("sudo -n tee ")).length, 1, "a hosts file it never wrote is not written back");
+      // A keychain that keeps refusing the delete is asked five times, then left.
+      await run({ read: false, delete: false });
+      assert.equal(ran.filter((r) => r.startsWith("sudo -n security delete-certificate ")).length, 5);
       assert.equal(await run({ resolve: false }, "darwin", [HOST, OTHER]), `no SSO extension stand-in: ${HOST}, ${OTHER} don't resolve to the stand-in after /etc/hosts and a flush`);
       assert.ok(!ran.some((r) => r.startsWith("osascript")), "nothing is read through a stand-in the hosts don't reach");
       // A read the stand-in holds, rather than passes, never reached the real host.
@@ -403,7 +406,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       const started = Date.now();
       const refused = await ssoExtension({ hosts: [HOST], hold: HOLD }, path.join(scratch, "busy"), () => 0, undefined, { sys, platform: "darwin", hostsFile, port: busy, upstream: { [HOST]: ["127.0.0.1"] } });
       taken.close();
-      assert.ok(Date.now() - started < 10_000, "it says so once the stand-in ends, not after its start's time limit");
+      assert.ok(Date.now() - started < 14_000, "it says so once the stand-in ends, not after its start's 15 s limit");
       assert.match(refused.evidence, new RegExp(`^no SSO extension stand-in: the stand-in didn't start on port ${busy} \\(.*EADDRINUSE.*\\)$`));
     });
 
