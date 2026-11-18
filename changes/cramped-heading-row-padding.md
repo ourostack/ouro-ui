@@ -1,0 +1,1 @@
+- Fixed: Ouro check's `cramped-heading` rule counts a flex row's own padding as room above its heading, so a heading with its text well clear of a box above it, on a row with top padding, is no longer reported as cramped.
