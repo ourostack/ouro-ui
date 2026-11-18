@@ -136,6 +136,44 @@ describe("useMediaQuery", () => {
     await act(async () => root.unmount());
   });
 
+  it("asks a stub that answers with plain objects again for a render in the same task, so one whose answer changed is followed", async () => {
+    const query = "(min-width: 647px)";
+    let matches = false;
+    vi.stubGlobal("matchMedia", (asked: string) => ({ matches, media: asked, addEventListener() {}, removeEventListener() {} }));
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    let first = "";
+    await act(async () => {
+      // Two renders in one task, as a synchronous test's render and rerender are, with the stub's answer changed between them.
+      flushSync(() => root.render(<Probe query={query} serverDefault />));
+      first = container.textContent!;
+      matches = true;
+      flushSync(() => root.render(<Probe query={query} serverDefault={false} />));
+    });
+    expect(first).toBe("false");
+    expect(container.textContent).toBe("true");
+    await act(async () => root.unmount());
+  });
+
+  it("asks a matchMedia swapped in within the task another made a list in", async () => {
+    await page.viewport(1000, 800);
+    const query = "(min-width: 648px)";
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    let first = "";
+    await act(async () => {
+      flushSync(() => root.render(<Probe query={query} serverDefault={false} />));
+      first = container.textContent!;
+      const real = window.matchMedia.bind(window);
+      // A real list, of a query that does not match: only a lookup by the new matchMedia finds it.
+      vi.stubGlobal("matchMedia", () => real("(min-width: 100000px)"));
+      flushSync(() => root.render(<Probe query={query} serverDefault />));
+    });
+    expect(first).toBe("true");
+    expect(container.textContent).toBe("false");
+    await act(async () => root.unmount());
+  });
+
   it("reads a change of the media in the next task, before the browser has drawn a frame, as WebKit's lists made earlier do not", async () => {
     const query = "(prefers-reduced-motion: reduce)";
     const container = document.body.appendChild(document.createElement("div"));
@@ -162,23 +200,6 @@ describe("useMediaQuery", () => {
     const again = createRoot(container);
     await act(async () => again.render(<Probe query={query} serverDefault />));
     expect(container.textContent).toBe("false");
-    await act(async () => again.unmount());
-  });
-
-  it("asks a stub that answers with plain objects again on each read, so one that changes its answer is followed", async () => {
-    const query = "(min-width: 643px)";
-    // A hand-written stub, no mock, reading its answer from a variable as an app's test setup may.
-    let matches = false;
-    vi.stubGlobal("matchMedia", (asked: string) => ({ matches, media: asked, addEventListener() {}, removeEventListener() {} }));
-    const container = document.body.appendChild(document.createElement("div"));
-    const root = createRoot(container);
-    await act(async () => root.render(<Probe query={query} serverDefault />));
-    expect(container.textContent).toBe("false");
-    await act(async () => root.unmount());
-    matches = true;
-    const again = createRoot(container);
-    await act(async () => again.render(<Probe query={query} serverDefault={false} />));
-    expect(container.textContent).toBe("true");
     await act(async () => again.unmount());
   });
 
