@@ -864,7 +864,8 @@ describe("Checklist development messages", () => {
   });
 
   it("names media for an item's icon", async () => {
-    const items = [{ ...tea[0]!, icon: <svg /> }] as unknown as ChecklistItemData[];
+    // One item of two: any item with an icon is enough for the message.
+    const items = [{ ...tea[0]!, icon: <svg /> }, tea[1]!] as unknown as ChecklistItemData[];
     await render(<Checklist label="Steps" items={items} onCheckedChange={() => {}} />);
     await expect.poll(messages).toEqual([
       "[ouro-ui] Checklist: an item's icon is not a field; an item's picture is its media. Fix: items={[{ id: \"boil\", label: \"Boil the water\", media: <KettleIcon />, checked: false }]}.",
