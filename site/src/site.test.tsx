@@ -562,6 +562,42 @@ describe("docs", () => {
     expect(redirects).toEqual(expect.arrayContaining(guessedAddresses));
   });
 
+  it("jumps to the filter on /, and Enter opens the closest match", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/button/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const filter = nav.getByRole("searchbox", { name: "Filter components" });
+    expect(filter.element().getAttribute("aria-keyshortcuts")).toBe("/");
+    (document.activeElement as HTMLElement | null)?.blur();
+    await userEvent.keyboard("/");
+    expect(document.activeElement).toBe(filter.element());
+    // The "/" moved focus; it typed nothing, and inside the field it is just a character.
+    expect(filter.element()).toHaveValue("");
+    await userEvent.keyboard("a/b");
+    expect(filter.element()).toHaveValue("a/b");
+    const opened: string[] = [];
+    const keep = (event: MouseEvent) => {
+      const link = (event.target as Element).closest("a");
+      if (link) {
+        event.preventDefault();
+        opened.push(link.getAttribute("href")!);
+      }
+    };
+    document.addEventListener("click", keep, true);
+    try {
+      await userEvent.fill(filter, "modal");
+      await userEvent.keyboard("{Enter}");
+      // A component's own name wins over another kit's, even from a later group: "list" opens a list, not Select.
+      await userEvent.fill(filter, "list");
+      await userEvent.keyboard("{Enter}");
+      await userEvent.fill(filter, "zzz");
+      await userEvent.keyboard("{Enter}");
+    } finally {
+      document.removeEventListener("click", keep, true);
+    }
+    expect(opened).toEqual(["/docs/dialog/", "/docs/description-list/"]);
+  });
+
   it("has a page for every registry item at docs/<name>", () => {
     const names = registry.items.filter((item) => item.type === "registry:ui").map((item) => item.name);
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));
