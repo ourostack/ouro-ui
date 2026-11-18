@@ -172,6 +172,8 @@ test("Ouro Feel's probe takes the list as a selector and finds it again each fra
       [list(40)],
     );
     assert.ok(measures.blankFrames > 0, `${measures.blankFrames} blank frames scrolled into the new list's gap`);
+    // Only the frames scrolled into the gap: the removed list, measured, would make every frame blank.
+    assert.ok(measures.blankFrames < measures.frames / 2, `${measures.blankFrames} blank frames of ${measures.frames}`);
     assert.equal(measures.rowsMounted, 40, "the new list's rows");
   } finally {
     await browser.close();
