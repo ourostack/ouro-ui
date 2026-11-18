@@ -132,8 +132,8 @@ describe("Ouro check's server", () => {
     }
   });
 
-  test("lists a folder's pages, sorted, without hidden folders or node_modules, and matches a glob", async () => {
-    const folder = site("listed", { "index.html": "", "b.html": "", "docs/index.html": "", "docs/deep/x.html": "", "docs/a.css": "", ".hidden/x.html": "", "node_modules/x/index.html": "" });
+  test("lists a folder's pages, sorted, without hidden folders, node_modules or redirect pages, and matches a glob", async () => {
+    const folder = site("listed", { "index.html": "", "b.html": "", "docs/index.html": "", "docs/deep/x.html": "", "docs/a.css": "", ".hidden/x.html": "", "node_modules/x/index.html": "", "docs/Old/index.html": '<!doctype html><meta http-equiv="refresh" content="0; url=/docs/" />' });
     assert.deepEqual(await listPages(folder), ["/", "/b.html", "/docs/", "/docs/deep/x.html"]);
     assert.deepEqual(await listPages(folder, "docs/**"), ["/docs/", "/docs/deep/x.html"]);
     assert.deepEqual(await listPages(folder, "/docs/*"), ["/docs/"]);

@@ -1,0 +1,1 @@
+- Ouro check skips a page that only refreshes to another (`<meta http-equiv="refresh">`), as a static site's redirect is: the browser leaves it at once, and the page it goes to is checked as itself.

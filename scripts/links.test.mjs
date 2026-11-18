@@ -94,11 +94,15 @@ test("a docs file that no page publishes fails", () => {
 test("the built-site check fails on a link to a missing file or another letter case", () => {
   const dist = tree({
     "index.html": '<a href="/docs/button/">ok</a> <a href="/docs/Button/">case</a> <a href="/docs/gone/">gone</a> <a href="https://example.com/">out</a> <a href="/storybook/">storybook</a>',
+    "docs/AspectRatio/index.html": '<!doctype html><meta http-equiv="refresh" content="0; url=/docs/aspect-ratio/" />',
+    "docs/aspect-ratio/index.html": "<h1>AspectRatio</h1>",
+    "docs/links/index.html": '<a href="/docs/AspectRatio/">redirect</a> <a href="/docs/aspect-ratio/">page</a>',
     "docs/button/index.html": '<a href="/docs/button.md">md</a><pre><a href="/nope">in code</a></pre>',
     "docs/button.md": "[Form](form.md) [Button](button.md)",
   });
   const problems = builtProblems(dist);
-  assert.equal(problems.length, 3, problems.join("\n"));
+  assert.equal(problems.length, 4, problems.join("\n"));
+  assert.match(problems.join("\n"), /docs\/links\/index\.html: \/docs\/AspectRatio\/ is a redirect page/);
   assert.match(problems.join("\n"), /index\.html: \/docs\/Button\/ names no file in the built site/);
   assert.match(problems.join("\n"), /index\.html: \/docs\/gone\/ names no file/);
   assert.match(problems.join("\n"), /docs\/button\.md: form\.md names no file/);

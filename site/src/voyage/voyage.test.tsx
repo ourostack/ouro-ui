@@ -131,7 +131,7 @@ describe("the theme before first paint", () => {
 
 describe("the old /voyage/ address", () => {
   it("is a page that sends the reader to the home page, with a link for when it does not", () => {
-    expect(redirects).toEqual([{ from: "/voyage/", to: "/" }]);
+    expect(redirects[0]).toEqual({ from: "/voyage/", to: "/" });
     const html = redirectPage("/");
     expect(html).toContain('<meta http-equiv="refresh" content="0; url=/" />');
     expect(html).toContain('<link rel="canonical" href="https://ui.ouroboros.bot/" />');
