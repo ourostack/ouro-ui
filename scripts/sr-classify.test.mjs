@@ -135,7 +135,7 @@ test("the run summary counts the VoiceOver navigations retried against the Voice
     const once = run(`${retry}\n${tests}`, "0");
     assert.equal(once.status, 0);
     assert.match(once.stdout, /^SR_CLASS=pass$/m);
-    assert.match(once.stdout, /^VoiceOver navigation: 1 retry in 22 tests that ran \(1 in 22\)\. Above 1 in 50 tests: a cause to find, not noise\.$/m);
+    assert.match(once.stdout, /^VoiceOver navigation: 1 retry in 22 tests that ran \(1 in 22\)\. Too few tests to judge against 1 in 50 alone: #2014 counts the rate across runs\.$/m);
     assert.match(once.summary, /^Screen-reader lane: \*\*pass\*\*/m);
     assert.match(once.summary, /^VoiceOver navigation: 1 retry in 22 tests that ran/m);
     const none = run(tests, "0");

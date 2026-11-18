@@ -123,13 +123,17 @@ test("the recorded #2014 failures: 13 navigation hangs, 12 of them past the midd
   assert.equal(Math.min(...hangs.map((job) => job.failed_test)), 2);
 });
 
-test("navigationSummary: the retries against the VoiceOver tests that ran, and a cause to find above 1 in 50", () => {
+test("navigationSummary: the retries against the VoiceOver tests that ran, and a cause to find above 1 in 50, judged only over 50 tests or more", () => {
   const ran = (count) => Array.from({ length: count }, (_, index) => `  ✓  ${index + 2} [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button (1.0s)`).join("\n");
   assert.equal(navigationSummary("no VoiceOver test ran here"), "");
   assert.equal(navigationSummary(ran(60)), "VoiceOver navigation: 0 retries in 60 tests that ran.");
   assert.equal(navigationSummary(`${NAVIGATION_RETRY_PREFIX} x\n${ran(60)}`), "VoiceOver navigation: 1 retry in 60 tests that ran (1 in 60).");
   assert.equal(
     navigationSummary(`${NAVIGATION_RETRY_PREFIX} x\n${ran(22)}`),
-    "VoiceOver navigation: 1 retry in 22 tests that ran (1 in 22). Above 1 in 50 tests: a cause to find, not noise.",
+    "VoiceOver navigation: 1 retry in 22 tests that ran (1 in 22). Too few tests to judge against 1 in 50 alone: #2014 counts the rate across runs.",
+  );
+  assert.equal(
+    navigationSummary(`${NAVIGATION_RETRY_PREFIX} x\n${NAVIGATION_RETRY_PREFIX} y\n${ran(60)}`),
+    "VoiceOver navigation: 2 retries in 60 tests that ran (1 in 30). Above 1 in 50 tests: a cause to find, not noise.",
   );
 });
