@@ -322,6 +322,17 @@ describe("TextArea autoGrow", () => {
     };
     afterEach(() => vi.restoreAllMocks());
 
+    it("goes back to rows and a resize handle when autoGrow turns off after it measured", async () => {
+      vi.spyOn(navigator, "userAgent", "get").mockReturnValue(safari);
+      const value = "1\n2\n3\n4\n5";
+      const { rerender, textarea } = await render(<TextArea label="Notes" autoGrow defaultValue={value} />);
+      expect(textarea.style.height).not.toBe("");
+      await rerender(<TextArea label="Notes" defaultValue={value} />);
+      expect(textarea.style.height).toBe("");
+      expect(textarea.style.getPropertyValue("field-sizing")).toBe("");
+      expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
+    });
+
     it("fits an uncontrolled field as it is typed in", async () => {
       vi.spyOn(navigator, "userAgent", "get").mockReturnValue(safari);
       const { textarea } = await render(<TextArea label="Notes" autoGrow rows={1} maxRows={6} />);
