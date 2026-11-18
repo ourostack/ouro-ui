@@ -8,12 +8,12 @@
  * With motion: the squid breathes against the glass a few times as it clings; when the fight is won it lets go and
  * drifts off into the deep, smaller and fading, over the painting of the sea it leaves behind, inked; when the organ
  * plays it swims back to the glass to listen. The light from the surface comes up when we surface, the floodlights
- * fade on, and the organ's pipes glow as the captain plays. Under reduced motion nothing moves: the squid, the light
- * and the organ only fade.
+ * fade on, and the organ's pipes glow as the captain plays; on the lullaby the squid at the saloon's window closes its
+ * eye. Under reduced motion nothing moves: the squid, the light and the organ only fade.
  */
 .site-porthole .ph-squid,
 .site-porthole :is(.ph-surface, .ph-beam),
-.site-organ .or-playing {
+.site-organ :is(.or-playing, .or-asleep) {
   transition: opacity var(--ouro-duration-slow) ease;
 }
 .site-porthole[data-squid="gone"] .ph-squid {
@@ -51,6 +51,10 @@
   }
   .site-organ .or-playing {
     transition-duration: 1.2s;
+  }
+  /* The squid's eye closes slowly, as the lullaby ends. */
+  .site-organ .or-asleep {
+    transition-duration: 2.4s;
   }
 }
 @keyframes sq-hold {
@@ -96,7 +100,8 @@
   stop-color: var(--chart-3);
   stop-opacity: 0;
 }
-.site-organ[data-played] .or-playing {
+.site-organ[data-played] .or-playing,
+.site-organ[data-asleep] .or-asleep {
   opacity: 1;
 }
 /* The encounter and the saloon set their picture beside their controls once the screen has room. */

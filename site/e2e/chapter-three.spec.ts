@@ -473,6 +473,43 @@ test("under reduced motion, the fight and the organ change only colour and opaci
   await expect.poll(() => saloon(page).locator(".or-playing").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
 });
 
+test("a third tune puts the squid at the saloon's window to sleep, the log and Conseil say so, and Sail again wakes it", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  await win(page);
+  const organ = saloon(page).locator(".site-organ");
+  const asleep = organ.locator(".or-asleep");
+  const opacity = () => asleep.evaluate((layer) => getComputedStyle(layer).opacity);
+  const log = saloon(page).locator("[data-chapter-log] li");
+  const moved = await watchMotion(page, "chapter-three");
+  await playButton(page).click();
+  const again = saloon(page).getByRole("button", { name: SALOON.playAgain });
+  await again.click();
+  // Two tunes in, it is still awake and listening.
+  await expect(crew(page)).toContainText(FIGHT.organ.text);
+  await expect(organ).not.toHaveAttribute("data-asleep");
+  expect(await opacity()).toBe("0");
+  await again.click();
+  // The lullaby: its eye closes, faded in over the playing picture, and the log and Conseil say so.
+  await expect(organ).toHaveAttribute("data-asleep", "");
+  await expect.poll(opacity).toBe("1");
+  await expect(organ).toHaveAccessibleName(`${SALOON.organ}. ${SALOON.asleep}`);
+  await expect(log.last()).toContainText(SALOON.logAsleep);
+  await expect(crew(page)).toContainText(FIGHT.asleep.text);
+  const lines = await log.count();
+  // More tunes, and it sleeps on: the log gets no new line.
+  await again.click();
+  await expect(organ).toHaveAttribute("data-asleep", "");
+  await expect(log).toHaveCount(lines);
+  // Under reduced motion it only fades.
+  expect(await moved()).toEqual([]);
+  await saloon(page).getByRole("button", { name: SALOON.again }).click();
+  await expect(organ).not.toHaveAttribute("data-asleep");
+  await expect.poll(opacity).toBe("0");
+  await expect(saloon(page).locator("[data-chapter-log]")).not.toContainText(SALOON.logAsleep);
+});
+
 test("without reduced motion, the squid clings, lets go and drifts off into the deep over its ink, and swims back for the organ", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
