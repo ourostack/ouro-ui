@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, voice } from "../../../test/readability";
+import { renderedLines, splitWords } from "../../../test/lines";
+import { HANDOFF } from "../../copy";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import frameStyles from "./frame.css?inline";
@@ -112,6 +114,26 @@ describe("Chapter III", () => {
     await order(ORDERS.surface);
     await expect.poll(crew).toContain(FIGHT.surfaceFree.text);
     expect(scene().dataset.lights).toBeUndefined();
+  });
+
+  it("puts Copy under the hand-off's line at the voyage's end on a phone, and breaks the web address only after a slash", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/nautilus/");
+    await order(ORDERS.surface);
+    await order(ORDERS.feathers);
+    await expect.poll(() => scene().dataset.squid).toBe("gone");
+    await userEvent.click(page.getByRole("button", { name: SALOON.play }));
+    await expect.poll(() => document.querySelector("#chapter-three [data-site-handoff-prompt]")).not.toBeNull();
+    const prompt = document.querySelector<HTMLElement>("#chapter-three [data-site-handoff-prompt]")!;
+    const copy = document.querySelector("#chapter-three [data-site-handoff] .site-install-copy")!;
+    expect(copy.getBoundingClientRect().top).toBeGreaterThanOrEqual(prompt.getBoundingClientRect().bottom);
+    expect(renderedLines(prompt).length).toBeGreaterThan(1);
+    expect(splitWords(prompt)).toEqual([]);
+    expect(prompt.textContent).toBe(HANDOFF.prompt);
+    // At 320px the address no longer fits on one line, and it breaks after a "/".
+    await page.viewport(320, 700);
+    await expect.poll(() => renderedLines(prompt).some((line) => line.endsWith("/"))).toBe(true);
+    expect(splitWords(prompt)).toEqual([]);
   });
 });
 
