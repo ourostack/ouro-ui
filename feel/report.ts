@@ -107,7 +107,7 @@ export const LABELS: Record<string, string> = {
   shifts: "Shifts: the reader's row moved 8 px or more in a frame",
   anchorShiftPx: "The jumps, added up",
   anchorMovePx: "How far the reader's row drifted from where it was",
-  deadInput: "Scrolls that moved nothing",
+  deadInput: "Wheel events the list took 100 ms or more to move for, or never moved for",
   wheelInputs: "Wheel and trackpad events",
   forcedLayouts: "Forced layouts",
   layoutReads: "Layout reads",
@@ -123,6 +123,7 @@ export const LABELS: Record<string, string> = {
   inputToMotionP95Frames: "Frames from a wheel event to the one that moved, 95th percentile",
   inputToMotionMaxFrames: "Frames from a wheel event to the one that moved, at most",
   inputNeverMoved: "Wheel events the list never moved for",
+  inputAtEdge: "Wheel events at the end of the list they turned toward",
 };
 
 const ENGINES: Record<Engine, string> = { wkwebview: "WKWebView", webkit: "Playwright's WebKit", chromium: "Playwright's Chromium" };

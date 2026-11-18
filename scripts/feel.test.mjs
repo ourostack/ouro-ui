@@ -77,7 +77,7 @@ test("Ouro Feel's data is the same for the same seed, and made up", () => {
 });
 
 test("Ouro Feel's cases each name a component and limit only measures the probe takes", () => {
-  const measured = new Set(["frames", "blankFrames", "blankFramesInset", "jumps", "jumpMaxPx", "jumpsStrict", "jumpStrictMaxPx", "shifts", "anchorShiftPx", "anchorMovePx", "deadInput", "wheelInputs", "forcedLayouts", "layoutReads", "layoutReadsPerFrame", "rowsMounted", "longestFrameMs", "refreshMs", "lateFrames", "longFrames", "over16Share", "inputToMotionP95Ms", "inputToMotionMaxMs", "inputToMotionP95Frames", "inputToMotionMaxFrames", "inputNeverMoved"]);
+  const measured = new Set(["frames", "blankFrames", "blankFramesInset", "jumps", "jumpMaxPx", "jumpsStrict", "jumpStrictMaxPx", "shifts", "anchorShiftPx", "anchorMovePx", "deadInput", "wheelInputs", "forcedLayouts", "layoutReads", "layoutReadsPerFrame", "rowsMounted", "longestFrameMs", "refreshMs", "lateFrames", "longFrames", "over16Share", "inputToMotionP95Ms", "inputToMotionMaxMs", "inputToMotionP95Frames", "inputToMotionMaxFrames", "inputNeverMoved", "inputAtEdge"]);
   for (const { name, component, limits } of cases) {
     assert.match(name, /^[a-z]+(-[a-z]+)*$/);
     assert.match(component, /^[a-z]+(-[a-z]+)*$/);
@@ -418,12 +418,57 @@ test("Ouro Feel's probe times each wheel event to the first frame that moved the
       for (let frame = 0; frame < 10; frame++) await ouroFeel.painted();
       return ouroFeel.stop(true).measures;
     });
-    assert.equal(measures.inputNeverMoved, 1);
+    // The wheel up at the top, which the list cannot move that way, is neither a motion nor dead input.
+    assert.equal(measures.inputAtEdge, 1);
+    assert.equal(measures.inputNeverMoved, 0);
     // The wheel that moved the list is no dead input, though the engine moved the list before it dispatched the event.
     assert.equal(measures.deadInput, 0);
     assert.ok(measures.inputToMotionMaxFrames >= 1, `${measures.inputToMotionMaxFrames} frames`);
     assert.ok(measures.inputToMotionMaxMs >= 0 && measures.inputToMotionMaxMs < 1000, `${measures.inputToMotionMaxMs} ms`);
     assert.equal(measures.inputToMotionP95Ms, measures.inputToMotionMaxMs);
+    // A list that cannot scroll by the wheel (overflow hidden), though it has room to: the wheel never moves it.
+    await page.evaluate(() => {
+      const { document, ouroFeel } = globalThis;
+      document.getElementById("list").style.overflow = "hidden";
+      ouroFeel.watch({ case: "stuck", scroller: "#list", rows: ".row" });
+    });
+    await page.mouse.wheel(0, 200);
+    const stuck = await page.evaluate(async () => {
+      const { ouroFeel } = globalThis;
+      for (let frame = 0; frame < 10; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(stuck.inputNeverMoved, 1);
+    assert.equal(stuck.deadInput, 1);
+    // Timed to the last frame in ms, and never in frames, as the frame meter takes them.
+    assert.ok(stuck.inputToMotionMaxMs > 0);
+    assert.equal(stuck.inputToMotionMaxFrames, undefined);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe counts a blank frame as a chat app's frame meter does: no row with height in the view less 40 px at its top and bottom, or a placeholder anywhere in view, rows or none", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.addScriptTag({ content: probe });
+    const blank = (content) =>
+      page.evaluate(async (content) => {
+        const { document, ouroFeel } = globalThis;
+        document.body.innerHTML = `<div id="list" style="height:400px;width:300px;overflow:auto">${content}</div>`;
+        ouroFeel.watch({ case: "blank", scroller: "#list", rows: ".row" });
+        for (let frame = 0; frame < 5; frame++) await ouroFeel.painted();
+        const { frames, blankFramesInset } = ouroFeel.stop(true).measures;
+        return blankFramesInset === frames ? "blank" : blankFramesInset === 0 ? "content" : "mixed";
+      }, content);
+    // No rows at all: nothing to read.
+    assert.equal(await blank(""), "blank");
+    // A narrow row in the middle of the view, away from its sides: content, as only the top and bottom are inset.
+    assert.equal(await blank(`<div style="height:180px"></div><div class="row" style="height:40px;width:20px"></div>`), "content");
+    // A placeholder in the view's top 40 px, above the rows: still loading.
+    assert.equal(await blank(`<div data-ouro="skeleton" style="height:20px"></div>${'<div class="row" style="height:48px"></div>'.repeat(10)}`), "blank");
   } finally {
     await browser.close();
   }

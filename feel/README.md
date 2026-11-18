@@ -22,16 +22,16 @@ A count or a distance fails when any one run is over its limit. A time, whose na
 | `anchorMovePx` | How far the reader's row got from where it started, net of the input, at its farthest. |
 | `jumpsStrict` | Moves of over 2 px with no input in the last 300 ms, against the wheel, or beyond the wheel's movement.[^strict] |
 | `blankFrames` | Frames where none of 5 points down the list lands in a row's box, read from the rows' boxes, so a list that turns off pointer events while it scrolls still shows its rows.[^blank][^blank-boxes] |
-| `blankFramesInset` | Frames with no row inside the list's view inset 40 px, or a loading placeholder in view.[^inset] |
-| `deadInput` | Wheel events that moved nothing for 100 ms, away from the list's ends.[^dead] |
+| `blankFramesInset` | Frames with no row of any height in the list's view less 40 px at its top and bottom, or a loading placeholder anywhere in view, whether the list holds rows or not, and frames with no list.[^inset][^meter-blank] |
+| `deadInput` | Wheel events, away from the end of the list they turned toward, that it took 100 ms or more to move for, or never moved for.[^dead][^motion] |
 | `forcedLayouts` | Layout reads, such as `offsetHeight` or `getBoundingClientRect()`, made while a change to the page was still waiting to be laid out. |
 | `layoutReads` | Layout reads in the case; `layoutReadsPerFrame` is the count in its busiest frame. |
 | `rowsMounted` | Rows added to the page. |
 | `longestFrameMs` | The longest gap between frames. |
 | `refreshMs`, `lateFrames` | The display's refresh, the median gap between frames, and the gaps of 1.5 refreshes or more.[^late] Both need at least 30 gaps, else neither is reported.[^late] |
 | `longFrames`, `over16Share` | Gaps over 50 ms, and the share of gaps over 16.7 ms.[^late] |
-| `inputToMotionP95Ms`, `inputToMotionMaxMs` | From a wheel event's own time to the start of the first frame whose scroll moved its way, at the 95th percentile and at most; `inputToMotionP95Frames` and `inputToMotionMaxFrames` count the frames, from the first after the event.[^motion] |
-| `inputNeverMoved` | Wheel events the list never moved for.[^motion] |
+| `inputToMotionP95Ms`, `inputToMotionMaxMs` | From a wheel event's own time to the start of the first frame whose scroll moved its way, at the 95th percentile and at most, a wheel the list never moved for counting until the last frame; `inputToMotionP95Frames` and `inputToMotionMaxFrames` count the frames, from the first after the event, and are left out once a wheel that never moved reaches them.[^motion] |
+| `inputNeverMoved`, `inputAtEdge` | Wheel events the list never moved for, and those at the end of the list they turned toward, which count as neither.[^motion] |
 
 A wheel event's movement, for `deadInput` and the input-to-motion measures, is measured from where the list was in the last frame the probe sampled, as an engine that scrolls off the main thread may have moved it before it dispatches the event.[^motion] `lateFrames`, `longFrames`, `over16Share` and the input-to-motion measures follow a chat app's frame meter's definitions, under its names.
 
@@ -87,3 +87,4 @@ That writes `scripts/ouro/feel/ouro-feel-probe.js`, the probe built from [`probe
 [^motion]: test:scripts/feel.test.mjs::Ouro Feel's probe times each wheel event to the first frame that moved the list its way, and counts those it never moved verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe times each wheel event to the first frame that moved the list its way, and counts those it never moved)
 [^occasional]: test:scripts/feel.test.mjs::Ouro Feel judges a measure the probe reports only sometimes on the runs that reported it, and gives no verdict when none did verify:testExists(scripts/feel.test.mjs::Ouro Feel judges a measure the probe reports only sometimes on the runs that reported it, and gives no verdict when none did)
 [^anchor-id]: test:scripts/feel.test.mjs::Ouro Feel's probe follows the reader's row by its id, or the attribute watch names, so a row drawn again as a new element that moved is still a jump verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe follows the reader's row by its id, or the attribute watch names, so a row drawn again as a new element that moved is still a jump)
+[^meter-blank]: test:scripts/feel.test.mjs::Ouro Feel's probe counts a blank frame as a chat app's frame meter does: no row with height in the view less 40 px at its top and bottom, or a placeholder anywhere in view, rows or none verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe counts a blank frame as a chat app's frame meter does: no row with height in the view less 40 px at its top and bottom, or a placeholder anywhere in view, rows or none)
