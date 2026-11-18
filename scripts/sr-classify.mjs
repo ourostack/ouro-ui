@@ -92,14 +92,21 @@ export const voiceOverTestsRan = (log) => log.split(/\r?\n/).filter((line) => /^
 
 /**
  * The run summary's line on VoiceOver's navigation retries, against the VoiceOver tests that ran.
- * Above 1 in 50 tests it says so: a cause to find, not noise (#2014). Empty when no VoiceOver test ran.
+ * Above 1 in 50 tests it says so: a cause to find, not noise (#2014). A job that ran fewer than 50 tests is too few
+ * to judge that rate, so a retry there points to #2014, which counts across runs. Empty when no VoiceOver test ran.
  */
 export function navigationSummary(log) {
   const tests = voiceOverTestsRan(log);
   if (tests === 0) return "";
   const retries = navigationRetries(log);
   const rate = retries ? ` (1 in ${Math.round(tests / retries)})` : "";
-  const cause = retries * 50 > tests ? " Above 1 in 50 tests: a cause to find, not noise." : "";
+  const cause = !retries
+    ? ""
+    : tests < 50
+      ? " Too few tests to judge against 1 in 50 alone: #2014 counts the rate across runs."
+      : retries * 50 > tests
+        ? " Above 1 in 50 tests: a cause to find, not noise."
+        : "";
   return `VoiceOver navigation: ${retries} ${retries === 1 ? "retry" : "retries"} in ${tests} tests that ran${rate}.${cause}`;
 }
 
