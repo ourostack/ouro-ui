@@ -240,10 +240,13 @@ function install(): OuroFeel {
   addEventListener(
     "wheel",
     (event) => {
-      const list = watching === undefined ? null : listOf(watching);
-      if (list === null) return;
+      if (watching === undefined) return;
+      // Every wheel event while watching, a list on the page or none, as the frame meter takes them: one in a frame with no list
+      // is at its end.
+      const list = listOf(watching);
       // Lines and pages, which a mouse wheel may send, as pixels.
-      const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? quietly(() => list.clientHeight) : 1);
+      const page = event.deltaMode === 2 && list !== null ? quietly(() => list.clientHeight) : 1;
+      const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : page);
       inputSinceSample += deltaY;
       wheelInputs += 1;
       // The event's own time, or when it was seen where an engine gives none or one in the future.

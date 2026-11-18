@@ -570,10 +570,11 @@ test("Ouro Feel's probe times a wheel event dispatched after the frame it came b
       const list = document.getElementById("list");
       ouroFeel.watch({ case: "late dispatch", scroller: list, rows: ".row" });
       for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
-      // The list moves in this frame, as an engine that scrolls off the main thread moves it; the wheel that moved it is
-      // dispatched only after the frame is sampled, with its own time from before the frame began.
-      const began = await new Promise((resolve) => requestAnimationFrame(resolve));
+      // The list moves before the next frame begins, as an engine that scrolls off the main thread moves it, so the meter (which
+      // reads the scroll as the frame begins) and the probe (once it is painted) both see the move in that frame. The wheel that
+      // moved it is dispatched only after the frame is sampled, with its own time from before the frame began.
       list.scrollTop += 100;
+      const began = await new Promise((resolve) => requestAnimationFrame(resolve));
       await ouroFeel.painted();
       const wheel = new WheelEvent("wheel", { deltaY: 100, bubbles: true });
       Object.defineProperty(wheel, "timeStamp", { value: began - 1 });
@@ -585,6 +586,30 @@ test("Ouro Feel's probe times a wheel event dispatched after the frame it came b
     assert.equal(measures.deadInput, 0);
     assert.equal(measures.inputToMotionMaxFrames, 1);
     assert.equal(measures.inputToMotionMaxMs, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe counts a wheel event while no list is on the page as at the list's end, as a chat app's frame meter does", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<main></main>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, WheelEvent } = globalThis;
+      ouroFeel.watch({ case: "no list", scroller: "#list", rows: ".row" });
+      for (let frame = 0; frame < 2; frame++) await ouroFeel.painted();
+      document.querySelector("main").dispatchEvent(new WheelEvent("wheel", { deltaY: 100, bubbles: true }));
+      for (let frame = 0; frame < 2; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.wheelInputs, 1);
+    assert.equal(measures.inputAtEdge, 1);
+    assert.equal(measures.inputNeverMoved, 0);
+    assert.equal(measures.deadInput, 0);
   } finally {
     await browser.close();
   }
