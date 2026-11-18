@@ -4,8 +4,6 @@ export type { BundleOptions, BundleParts };
 // The export list comes first because the shadcn CLI drops comments before a file's
 // first statement, which would take the JSDoc below with it.
 
-import fs from "node:fs";
-import path from "node:path";
 import { isPersonKey, isSecretKey, leaks, redactEntries, redactLine, redactText, type RedactOptions } from "./redact.ts";
 
 /**
@@ -29,6 +27,25 @@ interface BundleParts {
   facts: Record<string, unknown>;
   /** Log lines by source ("service", "engine"), which go through `redactLine`. */
   logs: Record<string, readonly string[]>;
+}
+
+/** The parts of Node's `fs` and `path` a bundle uses, typed here so the file typechecks in an app without Node's types. */
+interface NodeFiles {
+  fs: {
+    mkdirSync(path: string, options: { recursive: true; mode: number }): unknown;
+    writeFileSync(path: string, data: string, options: { mode: number; flag: "wx" }): void;
+    openSync(path: string, flags: "r"): number;
+    fstatSync(fd: number): { size: number };
+    readSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number): number;
+    closeSync(fd: number): void;
+  };
+  join(...parts: string[]): string;
+}
+
+/** Node's own modules, read when a bundle is written: the kit's items import no `node:` module, so a web app can install them. */
+function node(): NodeFiles {
+  const proc = (globalThis as unknown as { process: { getBuiltinModule(id: string): unknown } }).process;
+  return { fs: proc.getBuiltinModule("node:fs") as NodeFiles["fs"], join: (proc.getBuiltinModule("node:path") as { join: NodeFiles["join"] }).join };
 }
 
 /** `home` becomes `~`, and `rules` are the app's own shapes (ax-redact). */
@@ -91,8 +108,9 @@ function tryJson(line: string): unknown {
  */
 function writeBundle(parts: BundleParts, { dir, prefix, at, ...opts }: BundleOptions & { dir: string; prefix: string; at: number }): string {
   const text = bundleText(parts, opts);
+  const { fs, join } = node();
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const file = path.join(dir, `${prefix}-${new Date(at).toISOString().replace(/[:.]/g, "-")}.json`);
+  const file = join(dir, `${prefix}-${new Date(at).toISOString().replace(/[:.]/g, "-")}.json`);
   fs.writeFileSync(file, text, { mode: 0o600, flag: "wx" });
   return file;
 }
@@ -102,10 +120,11 @@ function writeBundle(parts: BundleParts, { dir, prefix, at, ...opts }: BundleOpt
  *
  * @claim "reading at most `maxBytes` from its end" registry/ouro/ax/bundle.test.mts verify:testExists(registry/ouro/ax/bundle.test.mts::tailLines reads the last lines from the end of a file, drops a line cut in half, and gives none for a missing file)
  * @example
- * tailLines(path.join(logsDir, "service.log"), 300); // the service log's last 300 lines
+ * tailLines(`${logsDir}/service.log`, 300); // the service log's last 300 lines
  */
 function tailLines(file: string, n: number, maxBytes = 256 * 1024): string[] {
   if (n <= 0) return [];
+  const { fs } = node();
   let fd: number;
   try {
     fd = fs.openSync(file, "r");
@@ -115,9 +134,9 @@ function tailLines(file: string, n: number, maxBytes = 256 * 1024): string[] {
   try {
     const size = fs.fstatSync(fd).size;
     const len = Math.min(size, maxBytes);
-    const buf = Buffer.alloc(len);
+    const buf = new Uint8Array(len);
     fs.readSync(fd, buf, 0, len, size - len);
-    const lines = buf.toString("utf8").split(/\r?\n/);
+    const lines = new TextDecoder().decode(buf).split(/\r?\n/);
     // A first line cut by maxBytes is part of a line: dropped.
     if (len < size) lines.shift();
     return lines.filter((line) => line.trim()).slice(-n);
