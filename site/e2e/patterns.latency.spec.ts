@@ -52,7 +52,9 @@ interface Baseline {
  * was lower there, so these, the higher ratios, are the baselines.
  */
 const BASELINES: Record<string, { paint: Baseline | null; plot?: Baseline | null }> = {
-  "dashboard-page": { paint: { median: 502, bare: 152 }, plot: { median: 793, bare: 152 } },
+  // Lowered 2026-11-18 from run 44299455600 (pull request #2126), once Chart loaded Recharts after the first paint: its
+  // first paint went from 3.30 to 2.61 times the bare app's, and its chart from 5.22 to 4.79.
+  "dashboard-page": { paint: { median: 438, bare: 168 }, plot: { median: 804, bare: 168 } },
   "list-detail-page": { paint: { median: 326, bare: 148 } },
   "settings-page": { paint: { median: 402, bare: 152 } },
 };
