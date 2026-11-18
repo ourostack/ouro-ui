@@ -388,6 +388,22 @@ describe("docs", () => {
     expect(nightPhone.srcset).toContain("phone/ouro-ui-core-dark-768.");
   });
 
+  it("on a phone, the menu's search says what another kit's name is called here", async () => {
+    await page.viewport(390, 844);
+    await renderPage("/docs/button/");
+    await userEvent.click(document.querySelector<HTMLElement>("[data-ouro-navbar-menu]")!);
+    const search = page.getByRole("searchbox", { name: "Find a page or component" });
+    await userEvent.fill(search, "modal");
+    await expect.element(page.getByRole("status").filter({ hasText: "Looking for" })).toHaveTextContent("Looking for a modal? Here it's Dialog.");
+    await expect.element(page.getByRole("link", { name: "Dialog", exact: true })).toBeVisible();
+    // A page's own name: the count, for a screen reader only. "panel" is Card elsewhere, but ResizablePanel holds it.
+    for (const own of ["dialog", "panel"]) {
+      await userEvent.fill(search, own);
+      await expect.element(page.getByRole("status").filter({ hasText: /\d+ found/ })).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain("Looking for");
+    }
+  });
+
   it("lists the components in the sidebar under a label per catalog group, with Start first, then Guides, and Platforms last", async () => {
     await page.viewport(1280, 900);
     await renderPage("/docs/checklist/");
