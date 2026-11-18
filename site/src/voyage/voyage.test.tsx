@@ -356,11 +356,11 @@ describe("the Nautilus's page", () => {
       // A wide screen shows the rail's; the one above the chapter waits for a phone.
       expect([phone!.checkVisibility(), rail!.checkVisibility()]).toEqual([false, true]);
     }
-    // With its picture the rail is taller than a laptop's screen, so it holds in view only where it fits.
-    const header = document.querySelector("#chapter-one header")!;
-    expect(getComputedStyle(header).position).toBe("static");
-    await page.viewport(1440, 960);
-    await expect.poll(() => getComputedStyle(header).position).toBe("sticky");
+    // The rail's picture and steps hold in view on a laptop's screen, however short; on a very short one they scroll with the page.
+    const rail = document.querySelector("#chapter-one [data-chapter-rail]")!;
+    await expect.poll(() => getComputedStyle(rail).position).toBe("sticky");
+    await page.viewport(1280, 480);
+    await expect.poll(() => getComputedStyle(rail).position).toBe("static");
     await page.viewport(390, 844);
     await expect.poll(() => document.querySelector<HTMLElement>("[data-chapter-picture='nautilus-squid']")!.checkVisibility()).toBe(true);
   });

@@ -28,6 +28,28 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/*
+ * On a laptop, a chapter's rail (its picture and steps) stays beside the chapter to its end, below the header. On a
+ * screen too short for the whole picture, the picture gives up height so the steps stay on screen, cropped where its
+ * scene keeps every head whole (PICTURE_Y in frame.tsx). On a very short screen the rail scrolls with the page. Here
+ * with the island rather than in the page's CSS: the rail only needs to hold once the reader scrolls past it.
+ */
+@media (width >= 64rem) and (height >= 32rem) {
+  [data-chapter-rail] {
+    position: sticky;
+    top: calc(var(--spacing) * 24);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 7rem);
+  }
+  [data-chapter-rail] [data-chapter-picture] {
+    min-height: 0;
+  }
+}
+/* Both of a picture's states fill its frame, so they crop alike when the rail shortens it. */
+[data-chapter-picture] :is(picture, img) {
+  height: 100%;
+}
 /* A chapter's picture answers the voyage: its second state fades in over it, slowly, as a scene changes (ChapterPicture). */
 .site-picture-state {
   transition: opacity 0.9s var(--ouro-ease-in-out);

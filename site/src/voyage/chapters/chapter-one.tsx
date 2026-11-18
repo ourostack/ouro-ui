@@ -141,7 +141,7 @@ function useExpedition(): { voyage: Voyage; steps: Step[] } {
 function Expedition(): JSX.Element {
   const { steps } = useExpedition();
   return (
-    <div className="mt-10 hidden lg:top-24 lg:flex lg:flex-col lg:[@media(min-height:32rem)]:sticky lg:[@media(min-height:32rem)]:max-h-[calc(100dvh-7rem)]" data-chapter-expedition="">
+    <div className="mt-10 hidden lg:block" data-chapter-rail="" data-chapter-expedition="">
       <ShipyardPicture />
       <Steps label={EXPEDITION.label} steps={steps} />
     </div>

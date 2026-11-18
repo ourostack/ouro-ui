@@ -159,7 +159,7 @@ function usePlanning(): Step[] {
 function Planning(): JSX.Element {
   const steps = usePlanning();
   return (
-    <div className="mt-10 hidden lg:top-24 lg:flex lg:flex-col lg:[@media(min-height:32rem)]:sticky lg:[@media(min-height:32rem)]:max-h-[calc(100dvh-7rem)]" data-chapter-planning="">
+    <div className="mt-10 hidden lg:block" data-chapter-rail="" data-chapter-planning="">
       <LibraryPicture />
       <Steps label={PLANNING.label} steps={steps} />
     </div>

@@ -78,7 +78,7 @@ export function ChapterPicture({ scene, className, state }: { scene: SceneName; 
   const shown = state?.shown ?? false;
   return (
     <div
-      className={cn("relative aspect-[3/2] min-h-0 overflow-hidden rounded-ouro-xl border border-border bg-muted [&_img]:h-full [&_picture]:h-full", className)}
+      className={cn("relative aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted", className)}
       style={{ "--story-short-y": `${PICTURE_Y[scene] ?? 50}%` } as CSSProperties}
       data-chapter-picture={scene}
       data-chapter-picture-state={state ? (shown ? state.scene : scene) : undefined}

@@ -179,7 +179,7 @@ function useBattle(): Step[] {
 function Battle(): JSX.Element {
   const steps = useBattle();
   return (
-    <div className="mt-10 hidden lg:top-24 lg:flex lg:flex-col lg:[@media(min-height:32rem)]:sticky lg:[@media(min-height:32rem)]:max-h-[calc(100dvh-7rem)]" data-chapter-battle="">
+    <div className="mt-10 hidden lg:block" data-chapter-rail="" data-chapter-battle="">
       <SaloonPicture />
       <Steps label={BATTLE.label} steps={steps} />
     </div>
