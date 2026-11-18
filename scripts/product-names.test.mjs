@@ -57,7 +57,7 @@ const P = PERSONAS.join("|");
 const ALL = [...PERSONAS, ...SERVICES].join("|");
 const Q = "[\"'\\x60]";
 const PATTERNS = [
-  { what: "an agent's name", re: new RegExp(String.raw`(?:--agent[ =]["']?|"--agent",\s*"|\bagent"?\s*:\s*${Q}|"agent:|X-Tandem-Agent"?\s*:\s*${Q}|TANDEM_AGENT"?\s*[:=]\s*${Q}?)((?:GitHub )?(?:${ALL}))(?![\w-])`, "gi") },
+  { what: "an agent's name", re: new RegExp(String.raw`(?:--agent[ =]["']?|"--agent",\s*"|\bagent"?\s*:\s*${Q}|"agent:|X-[A-Za-z]+-Agent"?\s*:\s*${Q}|[A-Z]+_AGENT"?\s*[:=]\s*${Q}?)((?:GitHub )?(?:${ALL}))(?![\w-])`, "gi") },
   { what: "a person's name", re: new RegExp(String.raw`\b(?:displayName|senderName|sender|fullName|author|organizer|name|from)"?\s*[:=]\s*${Q}((?:${P})(?: [A-Z][a-z]+)?|${SERVICES.join("|")})${Q}`, "g") },
   { what: "a person's name", re: new RegExp(String.raw`\b((?:${P})(?: [A-Z][a-z]+)?) (?:asked|asks|wrote|replied)\b|\b[Ss]ent by ((?:${P})(?: [A-Z][a-z]+)?)\b`, "g") },
 ];
