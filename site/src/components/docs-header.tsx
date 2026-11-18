@@ -120,7 +120,10 @@ function walk(event: KeyboardEvent, results: HTMLElement | null, field: HTMLElem
 function DocsMenu({ current }: { current: string }): JSX.Element {
   const [query, setQuery] = useState("");
   const found = findDocs(query);
-  const hint = filterHint(query);
+  // Only when every page found came by another kit's name: a page, guide, helper or hook whose own name holds the
+  // search comes first, and the line would send you past it ("panel" finds ResizablePanel before Card).
+  const hint =
+    found?.every((group) => group.label === "Components") && rankedComponents(query).every((link) => link.rank === 2) ? filterHint(query) : undefined;
   const results = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLDivElement>(null);
   const input = () => field.current?.querySelector("input") ?? null;
