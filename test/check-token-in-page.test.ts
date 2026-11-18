@@ -142,7 +142,7 @@ describe("findOffThemeIssues: off-scale", () => {
     </style><div class="h-a">A</div><div class="h-b">B</div><div class="h-c">C</div>`);
     expect(mine()).toEqual([
       ["off-scale", 'div.h-b "B"', ".h-b sets padding: 3px 8px, a fixed spacing; use calc(var(--spacing) * 1) (p-1)"],
-      ["off-scale", 'div.h-c "C"', ".h-c sets margin: -24px 0px, a fixed spacing; use calc(var(--spacing) * 6) (m-6)"],
+      ["off-scale", 'div.h-c "C"', ".h-c sets margin: -24px 0px, a fixed spacing; use calc(var(--spacing) * -6) (-m-6)"],
     ]);
   });
 
