@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "../src/voyage/chapters/copy";
+import { CHAPTER_TWO } from "../src/voyage/chapters/chapter-two-copy";
+import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "../src/voyage/chapters/copy";
 import { diagnostics } from "./diagnostics";
 import { watchToasts } from "./toasts";
 
@@ -29,6 +30,16 @@ const nameField = (page: Page) => page.getByRole("textbox", { name: ARTICLES.nam
 const tradeField = (page: Page) => page.getByRole("combobox", { name: ARTICLES.trade });
 const oath = (page: Page) => page.getByRole("checkbox", { name: ARTICLES.oath });
 const signButton = (page: Page) => page.getByRole("button", { name: ARTICLES.sign });
+/** The way on to Chapter II: under the plan once she floats ("next"), and in the articles once you have signed ("signed-next"). */
+const onward = (page: Page, control: "next" | "signed-next") => page.locator(`#chapter-one [data-chapter-control='${control}']`).getByRole("link", { name: ONWARD.label });
+
+/** Presses the way on, and Chapter II's heading comes into view, with its place in the address. */
+async function goesToChapterTwo(page: Page, link: ReturnType<typeof onward>): Promise<void> {
+  await expect(link).toHaveAttribute("href", ONWARD.href);
+  await link.click();
+  await expect(page).toHaveURL(/#chapter-two$/);
+  await expect(page.locator("#chapter-two").getByRole("heading", { level: 2, name: CHAPTER_TWO.title })).toBeInViewport();
+}
 
 /**
  * Opens a composition's Code sheet: each thing HX does over its line of code, the site's part, the
@@ -165,7 +176,7 @@ test.describe("each control in Chapter I", () => {
     await expect(plan(page)).toHaveAttribute("data-launched", "");
     await expect(plan(page)).toHaveAttribute("aria-label", "The Nautilus, built and afloat.");
     await expect(plan(page).locator(".bp-grid")).toHaveCSS("opacity", "0");
-    await expect(shipyard(page).locator("[data-chapter-afloat]")).toHaveText(SHIPYARD.afloat);
+    await expect(shipyard(page).locator("[data-chapter-afloat]")).toContainText(SHIPYARD.afloat);
     await expect(yardCrew(page)).toContainText(YARD.launch.text);
     await expect(launchButton(page)).toHaveText(SHIPYARD.again);
     await expect(shipyard(page).locator("[data-chapter-cheer] [data-ouro='avatar']")).toHaveCount(CREW.length);
@@ -177,6 +188,16 @@ test.describe("each control in Chapter I", () => {
     // Launch waits for the work again, and focus is where the next build starts.
     await expect(launchButton(page)).toBeDisabled();
     await expect(job(page, "lantern")).toBeFocused();
+  });
+
+  test("control: next, once she floats, takes you down to Chapter II", async ({ page }) => {
+    await open(page);
+    await expect(onward(page, "next")).toHaveCount(0);
+    await buildAll(page);
+    await launchButton(page).click();
+    await expect(shipyard(page).locator("[data-chapter-afloat]")).toContainText(SHIPYARD.afloat);
+    await expect(onward(page, "next")).toBeVisible();
+    await goesToChapterTwo(page, onward(page, "next"));
   });
 
   test("control: name is required, a blank name and a name already aboard are refused under the field", async ({ page }) => {
@@ -240,8 +261,14 @@ test.describe("each control in Chapter I", () => {
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
     await expect(signCrew(page)).toContainText(SIGN.welcome("Ana Lind", "Engineer").text);
     await expect.poll(toasts.titles).toContain(ARTICLES.signed("Ana Lind"));
-    // The articles are blank again for the next hand, and focus is on your row, clear of the toast.
-    await expect(nameField(page)).toHaveValue("");
+    // The articles step aside: you are aboard, with the way on, and no empty form waits to be signed again.
+    await expect(articles(page).locator("[data-chapter-signed]")).toContainText(ARTICLES.welcomeAboard("Ana Lind"));
+    await expect(articles(page).getByText(ARTICLES.signAgain)).toBeVisible();
+    await expect(onward(page, "signed-next")).toBeVisible();
+    await expect(articles(page).locator("form")).toBeHidden();
+    await expect(nameField(page)).toHaveCount(0);
+    await expect(signButton(page)).toHaveCount(0);
+    // Focus is on your row, clear of the toast.
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
     await expect(leave).toBeFocused();
     // Judged only once the toast has settled: it slides in from below its place.
@@ -282,7 +309,7 @@ test.describe("each control in Chapter I", () => {
     await sign(page);
     const leave = articles(page).getByRole("button", { name: ARTICLES.leave });
     await expect(leave).toBeFocused();
-    await expect(nameField(page)).toHaveValue("");
+    await expect(articles(page).locator("form")).toBeHidden();
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     expect(await page.evaluate(() => (window as unknown as { __leaves: string[] }).__leaves)).toEqual(["focused"]);
     expect(await page.evaluate(() => (window as unknown as { __lost: string[] }).__lost)).toEqual([]);
@@ -388,13 +415,23 @@ test.describe("each control in Chapter I", () => {
     await expect(signCrew(page)).toContainText(SIGN.needName.text);
   });
 
+  test("control: signed-next, once you have signed, takes you down to Chapter II", async ({ page }) => {
+    await open(page);
+    await expect(onward(page, "signed-next")).toHaveCount(0);
+    await signOn(page, "Ana");
+    await expect(onward(page, "signed-next")).toBeVisible();
+    await goesToChapterTwo(page, onward(page, "signed-next"));
+  });
+
   test("control: leave takes you off the crew list", async ({ page }) => {
     await open(page);
     await signOn(page, "Ana");
     await articles(page).getByRole("button", { name: ARTICLES.leave }).click();
     await expect(page.getByRole("list", { name: ARTICLES.roster }).getByText("Ana", { exact: true })).toHaveCount(0);
-    // Back to the articles, to sign again.
+    // Back to the articles, empty, to sign again, and the line that you are aboard goes.
     await expect(nameField(page)).toBeFocused();
+    await expect(nameField(page)).toHaveValue("");
+    await expect(articles(page).locator("[data-chapter-signed]")).toHaveCount(0);
     await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length));
     await expect(signCrew(page)).toContainText(SIGN.left.text);
   });
@@ -403,6 +440,9 @@ test.describe("each control in Chapter I", () => {
 test("every operable element in Chapter I is one of its listed controls, in page order", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
+  // Launched and signed on, so the ways on and Leave are there too.
+  await buildAll(page);
+  await launchButton(page).click();
   await signOn(page, "Ana");
   const found = await page.locator("#chapter-one").evaluate((chapter) => {
     const operable = [...chapter.querySelectorAll<HTMLElement>("a[href], button, input:not([type='hidden']), select, textarea, [tabindex]:not([tabindex='-1']), [role='checkbox'], [role='combobox']")].filter((element) => element.checkVisibility());
@@ -465,6 +505,13 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await expect(plan(page)).toHaveAttribute("data-launched", "");
   // The plan is above the button on a phone: Launch brings it into view to watch her float.
   await expect.poll(async () => { const box = (await plan(page).boundingBox())!; return box.y >= 56 && box.y + box.height <= 844; }).toBe(true);
+  // The way on under the plan is a full touch target, and its line keeps clear of the ship.
+  await expect(onward(page, "next")).toBeVisible();
+  const next = (await onward(page, "next").boundingBox())!;
+  expect(Math.min(next.width, next.height)).toBeGreaterThanOrEqual(44);
+  const line = (await shipyard(page).locator("[data-chapter-afloat]").boundingBox())!;
+  const ship = (await plan(page).locator(".bp-ship").boundingBox())!;
+  expect(line.y).toBeGreaterThanOrEqual(ship.y + ship.height);
   await nameField(page).tap();
   await nameField(page).fill("Ana");
   await tradeField(page).tap();
@@ -473,6 +520,8 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   const toasts = await watchToasts(page, { selector: "[data-composition='articles'] [data-chapter-crew]", kind: "below" });
   await signButton(page).tap();
   await expect(articles(page).locator("[data-chapter-aboard]")).toHaveText(ARTICLES.aboard(CREW.length + 1));
+  const signedNext = (await onward(page, "signed-next").boundingBox())!;
+  expect(Math.min(signedNext.width, signedNext.height)).toBeGreaterThanOrEqual(44);
   // The toast never covers your row or Conseil's welcome under it.
   await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
   // Judged only once the toast has settled: it slides in from below its place.
@@ -521,7 +570,8 @@ test("under reduced motion, building, launching and signing change only colour a
       if (!chapter.contains(event.target as Node)) return;
       const animation = (event.target as Element).getAnimations().find((each) => (each as CSSAnimation).animationName === event.animationName);
       const keys = (animation?.effect as KeyframeEffect | undefined)?.getKeyframes().flatMap((frame) => Object.keys(frame)) ?? [];
-      for (const key of keys) if (!["offset", "easing", "composite", "computedOffset", "opacity", "color", "backgroundColor", "fill", "stroke", "strokeDashoffset"].includes(key)) moved.push(`${event.animationName}:${key}`);
+      // Visibility only switches, so a fade can keep a link it brings in from being pressed before it shows.
+      for (const key of keys) if (!["offset", "easing", "composite", "computedOffset", "opacity", "visibility", "color", "backgroundColor", "fill", "stroke", "strokeDashoffset"].includes(key)) moved.push(`${event.animationName}:${key}`);
     });
   });
   await buildAll(page);
