@@ -119,8 +119,8 @@ describe("useMediaQuery", () => {
     vi.stubGlobal("matchMedia", (asked: string) => ({
       matches,
       media: asked,
-      addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
-      removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+      addEventListener: (type: string, listener: () => void) => type === "change" && listeners.add(listener),
+      removeEventListener: (type: string, listener: () => void) => type === "change" && listeners.delete(listener),
     }));
     const container = document.body.appendChild(document.createElement("div"));
     const root = createRoot(container);
@@ -134,6 +134,8 @@ describe("useMediaQuery", () => {
     });
     expect(container.textContent).toBe("true");
     await act(async () => root.unmount());
+    // Unmounted, it listens no more.
+    expect(listeners.size).toBe(0);
   });
 
   it("asks a stub that answers with plain objects again for a render in the same task, so one whose answer changed is followed", async () => {
