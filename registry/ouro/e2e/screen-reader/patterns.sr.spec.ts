@@ -15,11 +15,7 @@ test.describe("the list-and-detail pattern on a phone", () => {
     await expect(heading).toBeFocused();
     const back = page.getByRole("button", { name: "Back to recipes" });
     await heard(sr, () => back.focus(), (phrase) => inOneSentence(phrase, nameAndRole("Back to recipes", "button")), '"Back to recipes", button');
-    // Stopgap (#2012, owned by the issue drain): NVDA sometimes breaks off the row's announcement after Back
-    // ("…clickable, r, , clickable, Lentil so"), a product bug being fixed. Until the fix lands, with this check
-    // restored in the same pull request, NVDA presses Back without the assertion; VoiceOver still asserts it.
-    if (test.info().project.name === "nvda") await page.keyboard.press("Enter");
-    else await heard(sr, () => page.keyboard.press("Enter"), (phrase) => inOneSentence(phrase, nameAndRole("Lentil soup", "button")), '"Lentil soup", button, as focus returns to its row');
+    await heard(sr, () => page.keyboard.press("Enter"), (phrase) => inOneSentence(phrase, nameAndRole("Lentil soup", "button")), '"Lentil soup", button, as focus returns to its row');
     await expect(row).toBeFocused();
   });
 
