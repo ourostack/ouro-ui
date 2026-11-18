@@ -224,6 +224,22 @@ test("every setup-node that restores the pnpm cache in ci.yml has a time limit a
   assert.ok(restoreJobs > 0, "ci.yml restores the pnpm cache in some job");
 });
 
+/**
+ * A job whose steps read no package from node_modules installs none: no pnpm, no pnpm store cache and no pnpm i, so it
+ * restores nothing from the cache (#2194). The merge of the coverage and the motion check each read only Node's own
+ * modules and this repository's files (scripts/coverage-merge.mjs, scripts/motion-coverage.mts).
+ */
+test("the jobs whose steps read no package install none and run no pnpm (#2194)", () => {
+  const jobs = ciJobs();
+  for (const id of ["ci", "motion-coverage"]) {
+    assert.ok(jobs[id], `ci.yml has a ${id} job`);
+    assert.doesNotMatch(jobs[id], /\bpnpm\b/, `${id} runs no pnpm, so it installs no package`);
+    assert.doesNotMatch(jobs[id], /cache: pnpm/, `${id} restores no pnpm store`);
+  }
+  assert.match(jobs.ci, /uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}node-version: 24\n {10}cache: ""\n/, "ci sets node up without a cache, for coverage-merge.mjs");
+  assert.match(jobs["motion-coverage"], /uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}node-version: 24\n {10}cache: ""\n/, "motion-coverage sets node up without a cache, for motion-coverage.mts");
+});
+
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
   assert.ok(workflows.length >= 4);
   const ownActions = new Set(actions.map(({ file }) => `./.github/${file.replace(/\/action\.yml$/, "")}`));
@@ -2058,11 +2074,11 @@ test("motion coverage runs after the ci check, over the partitions the browser s
   const check = stepScript(coverage, "Motion coverage");
   // Full: every map complete. Reduced: every project still ran, and only the ci job's stems' maps must be complete.
   const env = { MOTION_PARTITIONS: "p:6", FULL_SUITE_PARTITIONS: "p:12", RUNNER_TEMP: "/r" };
-  assert.match(runStep(check, { ...env, REDUCED: "false", FALLBACK: "false" }).calls, /^CALL pnpm motion:coverage --dir \/r\/motion --expect p:6$/m);
-  assert.match(runStep(check, { ...env, REDUCED: "true", STEMS: "checkbox,checkbox-group", FALLBACK: "false" }).calls, /^CALL pnpm motion:coverage --dir \/r\/motion --expect p:6 --stems checkbox,checkbox-group$/m);
-  assert.match(runStep(check, { ...env, REDUCED: "", FALLBACK: "" }).calls, /^CALL pnpm motion:coverage --dir \/r\/motion --expect p:6$/m);
+  assert.match(runStep(check, { ...env, REDUCED: "false", FALLBACK: "false" }).calls, /^CALL node scripts\/motion-coverage\.mts --dir \/r\/motion --expect p:6$/m);
+  assert.match(runStep(check, { ...env, REDUCED: "true", STEMS: "checkbox,checkbox-group", FALLBACK: "false" }).calls, /^CALL node scripts\/motion-coverage\.mts --dir \/r\/motion --expect p:6 --stems checkbox,checkbox-group$/m);
+  assert.match(runStep(check, { ...env, REDUCED: "", FALLBACK: "" }).calls, /^CALL node scripts\/motion-coverage\.mts --dir \/r\/motion --expect p:6$/m);
   // The full suite decided in the browser-fallback shards: their partitions.
-  assert.match(runStep(check, { ...env, REDUCED: "false", FALLBACK: "true" }).calls, /^CALL pnpm motion:coverage --dir \/r\/motion --expect p:12$/m);
+  assert.match(runStep(check, { ...env, REDUCED: "false", FALLBACK: "true" }).calls, /^CALL node scripts\/motion-coverage\.mts --dir \/r\/motion --expect p:12$/m);
   assert.match(coverage, /^ {6}REDUCED: \$\{\{ needs\.ci\.outputs\.reduced \}\}\n {6}STEMS: \$\{\{ needs\.ci\.outputs\.stems \}\}\n {6}FALLBACK: \$\{\{ needs\.ci\.outputs\.fallback \}\}$/m);
   assert.match(
     jobs["browser-fallback"],
