@@ -215,6 +215,16 @@ interface CommandItem {
   mark?: ReactNode;
   /** Listed, but cannot be run. */
   disabled?: boolean | undefined;
+  /**
+   * Shown whatever the search is, after the commands that match: a row that acts on the words typed,
+   * such as a "Jump to" row, `{ label: jumpLabel, onSelect: jump, alwaysShown: true }`. When a search matches
+   * only rows like it, the empty state (`empty` or `emptyLabel`) shows above them, and screen readers
+   * hear it politely, once. The result count leaves them out.
+   */
+  alwaysShown?: boolean | undefined;
+
+  /** Not a prop. A row shown whatever the search is says `alwaysShown`: `{ label: "Jump to chat", onSelect: jump, alwaysShown: true }`. */
+  forceMount?: { "Use alwaysShown: true": never };
 
   /** Not a prop. A command runs `onSelect`: `{ label: "New recipe", onSelect: create }`. (A `MenuItem` is the one that takes `onClick`.) */
   onClick?: { 'Use onSelect: { label: "New recipe", onSelect: create }': never };
