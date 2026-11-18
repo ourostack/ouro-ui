@@ -270,7 +270,8 @@ describe("home page", () => {
       expect([...night.querySelectorAll("source")].every((source) => source.srcset.split(", ").every((entry) => entry.includes(`/${scene}-dark`)))).toBe(true);
       const [dayImage, nightImage] = [day.querySelector("img")!, night.querySelector("img")!];
       expect([nightImage.loading, nightImage.fetchPriority === "high"]).toEqual(["lazy", false]);
-      expect(nightImage.alt).toBe(dayImage.alt.replace(/\bat dawn\b/, "at night").replace(/\ba dawn hilltop\b/, "a moonlit hilltop"));
+      expect(nightImage.alt).toBe(SCENES[scene as keyof typeof SCENES].night.alt ?? dayImage.alt);
+      expect(nightImage.alt).toMatch(/\b(night|moon|moonlit)\b/);
       const shown = () => [getComputedStyle(day).display, getComputedStyle(night).display];
       document.documentElement.classList.remove("dark");
       expect(shown()).toEqual(["block", "none"]);
