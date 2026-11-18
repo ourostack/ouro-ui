@@ -1606,12 +1606,37 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
       return space || (heading <= 0 && top < edge()) || (heading >= 0 && top > last - edge());
     };
+    // Space kept above the first message, in px: the part of what was carried down that the scroll position could not take, as the
+    // list's start stopped it. A reader whose wheel brings them to the top faster than the rows above were paid (a slowed page
+    // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
+    // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
+    let slack = 0;
+    const setSlack = (px: number) => {
+      slack = px;
+      content.style.marginBlockStart = px > 0 ? `${px}px` : "";
+    };
+    // Lets the space go once the reader has scrolled past it and the wheel rests: the content moves up by it as the scroll
+    // position does, so nothing on screen moves.
+    const release = () => {
+      if (slack === 0 || turning() || scroller.scrollTop < slack) return;
+      const before = scroller.scrollTop;
+      const by = slack;
+      setSlack(0);
+      // From the position read before the margin went, which a list within the space of its end would already read clamped.
+      scroller.scrollTop = before - by;
+      ownTop.current = scroller.scrollTop;
+      springsRef.current?.moved(scroller.scrollTop - before);
+      keepAnchor();
+    };
     const pay = () => {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
       clearTimeout(resting);
       const by = carriedRef.current;
       // Once the wheel rests, the end the list is not following is held no more: what was carried goes first, so nothing is pulled.
-      const letGo = () => void (!pinned.current && !turning() && setFloor(0));
+      const letGo = () => {
+        if (!pinned.current && !turning()) setFloor(0);
+        release();
+      };
       // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
       if (by === 0) return letGo();
       carriedRef.current = 0;
@@ -1621,6 +1646,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       ownTop.current = scroller.scrollTop;
       const applied = scroller.scrollTop - before;
       springsRef.current?.moved(applied);
+      // What the list's start stopped goes above the content instead, so the content stays where the reader sees it.
+      if (applied - by >= 0.5 && scroller.scrollTop <= 0) setSlack(slack + applied - by);
       // The anchors sit where they did in the content, which a scroll does not move: only the list's own scroll since they were
       // taken is left out of the reader's, so a change waiting for the resize observer is still held.
       taken += applied;
@@ -1743,6 +1770,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
       if (nearEnd()) pay();
+      release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
       setShowJump(!pinned.current);
@@ -1751,7 +1779,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const onScrollEnd = () => void (wheelScrolling = false);
     scroller.addEventListener("scrollend", onScrollEnd);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,

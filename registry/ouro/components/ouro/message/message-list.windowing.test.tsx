@@ -846,6 +846,84 @@ describe("MessageList windowing", () => {
     expect(Math.abs(rested.written - 20)).toBeLessThanOrEqual(ROUNDING);
   });
 
+  /**
+   * Turns the wheel up from the end of a conversation whose 60 newest rows are tall and whose 240 older ones are short, 300px a
+   * step, as a slowed page hands a wheel's scroll over, with the wheel never resting: the rows above come in far shorter than the
+   * estimate the tall ones set, and what that moves is carried, never paid, until the reader nears the top. One step then takes
+   * them past it. Returns how far the reader's row moved, beyond their own scroll, in the worst step.
+   */
+  async function wheelToTheTop() {
+    const items = conversation(300).map((item) => ({ ...item, tall: item.id >= 240 ? 160 : 20 }));
+    const { scroller } = await render(<Chat items={items} springy={false} />);
+    const clock = { now: 1_000_000 };
+    vi.spyOn(performance, "now").mockImplementation(() => clock.now);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const middle = () => {
+      const view = scroller.getBoundingClientRect();
+      const centre = (view.top + view.bottom) / 2;
+      return messages(scroller).find((node) => node.getBoundingClientRect().bottom > centre)!;
+    };
+    let worst = 0;
+    for (let step = 0; step < 400 && scroller.scrollTop > 0; step++) {
+      const row = middle();
+      const before = row.getBoundingClientRect().top;
+      const top = scroller.scrollTop;
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -300 }));
+      scroller.scrollTop = top - 300;
+      const reader = top - scroller.scrollTop;
+      await frame();
+      worst = Math.max(worst, Math.abs(row.getBoundingClientRect().top - (before + reader)));
+    }
+    return { scroller, content, clock, worst };
+  }
+
+  it("holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message", async () => {
+    const { scroller, content, worst } = await wheelToTheTop();
+    expect(scroller.scrollTop).toBe(0);
+    expect(document.getElementById("m0")).not.toBeNull();
+    expect(worst).toBeLessThanOrEqual(1);
+    // What the top stopped is space above the first message.
+    expect(content.offsetTop).toBeGreaterThan(1);
+  });
+
+  it("keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests", async () => {
+    const { scroller, content, clock } = await wheelToTheTop();
+    await frame();
+    const space = content.offsetTop;
+    expect(space).toBeGreaterThan(1);
+    // The wheel turns on, down past the space: the space stays, as writing the scroll position would end the wheel's scroll.
+    const reading = firstVisible(scroller);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 }));
+    scroller.scrollTop = space + 200;
+    const scrolled = scroller.scrollTop;
+    await frame();
+    expect(content.offsetTop).toBe(space);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top - scrolled))).toBeLessThanOrEqual(1);
+    // Once it rests, the space goes, and the scroll position with it: nothing on screen moves.
+    const resting = firstVisible(scroller);
+    clock.now += 10_000;
+    await expect.poll(() => content.offsetTop).toBe(0);
+    await settle(scroller);
+    expect(Math.abs(resting.message.getBoundingClientRect().top - resting.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the space above the first message while the reader is in it once the wheel rests, and lets it go without moving anything as they scroll past it", async () => {
+    const { scroller, content, clock } = await wheelToTheTop();
+    await frame();
+    const space = content.offsetTop;
+    expect(space).toBeGreaterThan(1);
+    clock.now += 10_000;
+    await settle(scroller);
+    // At the top, the space shows: letting it go there would move the content up under the reader.
+    expect(scroller.scrollTop).toBe(0);
+    expect(content.offsetTop).toBe(space);
+    const reading = firstVisible(scroller);
+    await scrollTo(scroller, space + 100);
+    expect(content.offsetTop).toBe(0);
+    // Only the reader's scroll moved the row.
+    expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top - space - 100))).toBeLessThanOrEqual(1);
+  });
+
   it("keeps a conversation of 20 messages whole, and windows it once it grows past 20, leaving the view where it is", async () => {
     const { scroller, rerender } = await render(<Chat items={conversation(20, 80, true)} />);
     expect(messages(scroller)).toHaveLength(20);
