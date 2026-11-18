@@ -1695,7 +1695,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       ownTop.current = scroller.scrollTop;
       const applied = scroller.scrollTop - before;
       // PROBE (#2183)
-      probe(`scrollOwn by=${by} ${before}->${scroller.scrollTop}`);
+      probe(`scrollOwn by=${by} before=${before} applied=${applied}`);
       springsRef.current?.moved(applied);
       return applied;
     };
@@ -1703,7 +1703,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // position does, so nothing on screen moves.
     const release = () => {
       // PROBE (#2183)
-      probe(`release slack=${slack} scrollTop=${scroller.scrollTop} turning=${turning()}`);
+      probe(`release slack=${slack} taken=${taken} end=${end}`);
       // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
       if (slack === 0 || turning() || scroller.scrollTop < slack) return;
       // Scrolled while the space still holds the scroll range, then the space goes.
@@ -1821,15 +1821,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       } else owed = 0;
       keepAnchor();
     };
-    // PROBE (#2183): what each hold does to the anchors, the scroll position and the place they hold
+    // PROBE (#2183): what each hold leaves behind, from values it already holds (no layout read)
     const hold = (from = "call") => {
-      const anchorTops = () => anchors.slice(0, 2).map(({ node, at }) => `${(node as Element).id}@${at.toFixed(1)}:${node.getBoundingClientRect().top.toFixed(1)}`).join(" ");
-      const top = scroller.scrollTop;
       const taken0 = taken;
       const end0 = end;
-      const tops0 = anchorTops();
       holdAt();
-      probe(`hold(${from}) scrollTop ${top}->${scroller.scrollTop} taken ${taken0}->${taken} end ${end0}->${end} owed=${owed} anchors [${tops0}] -> [${anchorTops()}]`);
+      probe(`hold(${from}) taken ${taken0}->${taken} end ${end0}->${end} owed=${owed} pinned=${pinned.current}`);
     };
     const follow = new ResizeObserver(() => hold("resize"));
     follow.observe(content);
@@ -1845,7 +1842,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (records.length === 0) return;
       // PROBE (#2183): the commit that removes messages, as the list hears of it
       const removed = records.flatMap((record) => [...record.removedNodes]).map((node) => (node as Element).id).filter(Boolean);
-      if (removed.length > 0) probe(`moves removed=${removed.join(",")} scrollTop=${scroller.scrollTop} taken=${taken} end=${end} pinned=${pinned.current}`);
+      if (removed.length > 0) probe(`moves removed=${removed.join(",")} taken=${taken} end=${end} pinned=${pinned.current}`);
       const touched = records.some(movesItems);
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
@@ -1861,10 +1858,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // within WHEEL_START, which a loaded machine may take to begin it; judged by time alone, never by the frame the wheel turned
       // in, as a scroll the page makes in that frame (a scrollbar, a jump) is none of the wheel's, and with no scrollend after it
       // would keep the place held by drawing for good. The list's own write is none of the wheel's, and leaves the turn's start.
-      // PROBE (#2183): the scroll as the handler first sees it
-      const probeTop = scroller.scrollTop;
-      const probeOwn = scroller.scrollTop === ownTop.current;
-      if (scroller.scrollTop !== ownTop.current) {
+      // PROBE (#2183): the scroll position is read once, for the comparison the handler already makes, so the log reads no more
+      const own = scroller.scrollTop === ownTop.current;
+      if (!own) {
         if (event.isTrusted && "onscrollend" in scroller && wheelStarts && performance.now() - wheelAt < WHEEL_START) wheelScrolling = true;
         wheelStarts = false;
       }
@@ -1874,10 +1870,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (nearEnd()) pay();
       release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
-      // PROBE (#2183): whether this scroll retakes the anchors
-      const probeRetake = farthest() === end;
-      if (probeRetake) keepAnchor();
-      probe(`scroll top=${probeTop} own=${probeOwn} retake=${probeRetake} end=${end} taken=${taken}`);
+      // PROBE (#2183): the retake check is the one the handler already made
+      const retake = farthest() === end;
+      if (retake) keepAnchor();
+      probe(`scroll own=${own} retake=${retake} end=${end} taken=${taken} ownTop=${ownTop.current}`);
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });

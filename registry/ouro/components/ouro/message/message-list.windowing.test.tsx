@@ -957,7 +957,7 @@ describe("MessageList windowing", () => {
       went = true;
       deleted.disconnect();
       // PROBE (#2183): the test's own deletion, in the probe log before the commit that removes the message
-      (globalThis as { __ouroProbe?: string[] }).__ouroProbe?.push(`test deletes m${gone} scrollTop=${scroller.scrollTop} space=${content.offsetTop}`);
+      (globalThis as { __ouroProbe?: string[] }).__ouroProbe?.push(`test deletes m${gone}`);
       flushSync(() => root.render(<Chat items={items.filter((item) => item.id !== gone)} springy={false} style={style} />));
     });
     deleted.observe(content, { attributes: true, attributeFilter: ["style"] });
