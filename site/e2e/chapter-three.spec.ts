@@ -392,6 +392,23 @@ test("an order paints its control first, and the porthole only in a later frame"
   expect(await frames()).toEqual(["", null]);
 });
 
+test("the chapter's picture answers the fight: once the squid lets go the saloon's window shows open sea, until the organ calls it back", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const picture = page.locator("[data-chapter-battle] [data-chapter-picture='nautilus-squid']");
+  const state = picture.locator(".site-picture-state");
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-squid");
+  await expect(state).toHaveCSS("opacity", "0");
+  await win(page);
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-squid-free");
+  await expect.poll(() => state.evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
+  await expect(picture.getByRole("img")).toHaveCount(1);
+  await expect(picture.getByRole("img")).toHaveAccessibleName(/let go/);
+  await playButton(page).click();
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-squid");
+  await expect.poll(() => state.evaluate((layer) => getComputedStyle(layer).opacity)).toBe("0");
+});
+
 test.describe("by keyboard alone", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });

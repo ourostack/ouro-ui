@@ -61,12 +61,30 @@ const CHAPTER_PICTURE_SIZES = "(min-width: 64rem) 26rem, 100vw";
  * A chapter's picture, in the frosted-glass world of the home page's hero: the whole 3:2 scene, by day, or at night
  * in dark mode, with nothing laid over it. On a wide screen it sits in the rail beside the chapter's title; on a phone,
  * full width above the chapter. It loads as it nears the screen, and its night twin only when it is shown.
+ *
+ * With `state`, the picture answers the voyage: the second scene is the same picture with only what changed redrawn
+ * (she floats, the route is planned, the squid has gone), stacked over it and faded in once `shown`. It loads with the
+ * first, so it is there when the moment comes. Only its opacity changes, so under reduced motion nothing moves.
  */
-export function ChapterPicture({ scene, className }: { scene: SceneName; className?: string }): JSX.Element {
+export function ChapterPicture({ scene, className, state }: { scene: SceneName; className?: string; state?: { scene: SceneName; shown: boolean } }): JSX.Element {
+  const shown = state?.shown ?? false;
   return (
-    <div className={cn("aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted", className)} data-chapter-picture={scene}>
-      <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} />
-      <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} night />
+    <div
+      className={cn("relative aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted", className)}
+      data-chapter-picture={scene}
+      data-chapter-picture-state={state ? (shown ? state.scene : scene) : undefined}
+    >
+      <div aria-hidden={shown || undefined}>
+        <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} />
+        <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} night />
+      </div>
+      {state ? (
+        // Its opacity is inline, so the server HTML has it before the frame's styles come with the island.
+        <div className="site-picture-state absolute inset-0" style={{ opacity: shown ? 1 : 0 }} aria-hidden={!shown || undefined} data-shown={shown ? "" : undefined}>
+          <ScenePicture scene={state.scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} />
+          <ScenePicture scene={state.scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} night />
+        </div>
+      ) : null}
     </div>
   );
 }

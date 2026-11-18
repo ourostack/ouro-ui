@@ -337,6 +337,20 @@ test("without reduced motion, a new route draws itself across the chart", async 
   await expect(chart(page).locator(".ch-route")).toHaveCSS("animation-name", "ch-draw");
 });
 
+test("the chapter's picture answers the plan: once the best route is set, it fades to the atlas open at it and the globe showing it", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const picture = page.locator("[data-chapter-planning] [data-chapter-picture='nautilus-library']");
+  const state = picture.locator(".site-picture-state");
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-library");
+  await expect(state).toHaveCSS("opacity", "0");
+  await planShortest(page);
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-library-planned");
+  await expect.poll(() => state.evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
+  await expect(picture.getByRole("img")).toHaveCount(1);
+  await expect(picture.getByRole("img")).toHaveAccessibleName(/voyage planned/);
+});
+
 test.describe("by keyboard alone", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });

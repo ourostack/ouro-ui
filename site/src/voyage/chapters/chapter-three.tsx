@@ -118,7 +118,7 @@ export default function ChapterThree(): JSX.Element {
         <BattleMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
           <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
-            <ChapterPicture scene="nautilus-squid" className="mb-8 lg:hidden" />
+            <SaloonPicture className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_THREE.number}</p>
             <h2 id="chapter-three-title" className="site-h2 mt-3">
               {CHAPTER_THREE.title}
@@ -154,10 +154,16 @@ function Battle(): JSX.Element {
   const steps = useBattle();
   return (
     <div className="mt-10 hidden lg:block" data-chapter-battle="">
-      <ChapterPicture scene="nautilus-squid" />
+      <SaloonPicture />
       <Steps label={BATTLE.label} steps={steps} />
     </div>
   );
+}
+
+/** The squid at the saloon's window, until it lets go: then the window shows open sea, faded in, until the organ calls it back. */
+function SaloonPicture({ className }: { className?: string }): JSX.Element {
+  const { won, played } = useFight();
+  return <ChapterPicture scene="nautilus-squid" state={{ scene: "nautilus-squid-free", shown: won && !played }} {...(className ? { className } : {})} />;
 }
 
 function BattleMarker(): JSX.Element {
