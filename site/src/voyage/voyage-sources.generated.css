@@ -102,6 +102,7 @@
 @source not "../docs/ships.ts";
 @source not "../docs/sources.json";
 @source not "../docs/spoonjoy.json";
+@source not "../docs/tries.ts";
 @source not "../entry-server.tsx";
 @source not "../head.ts";
 @source not "../nautilus/art/manifest.json";

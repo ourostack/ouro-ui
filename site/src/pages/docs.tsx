@@ -13,6 +13,7 @@ import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import type { SceneName } from "../storybook";
 import { LiveDemo } from "../components/live-demo";
+import { tries } from "../docs/tries";
 import { siteGroups, type SiteGroup } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
@@ -106,6 +107,11 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
       >
         <LiveDemo name={item.name} title={item.title} />
       </section>
+      {Object.hasOwn(tries, item.name) && (
+        <Text size="sm" tone="muted" align="center" className="mt-3" data-site-try="">
+          <span className="font-medium text-foreground">Try it:</span> {tries[item.name]}
+        </Text>
+      )}
 
       <OnThisSite name={item.name} title={item.title} />
       <InSpoonjoy name={item.name} />
