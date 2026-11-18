@@ -250,6 +250,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.276 (first run):** Ouro check has three new gated rules: `blank-pane`, a pane with nothing to read, press or wait for; `dismissable-step`, a modal dialog a person can put away onto a blank page, or onto a signed-out page with no way to sign in; and `signed-out-empty`, an empty state shown while signed out.[^upgrade-first-run] Ouro Current records the findings an app already has as known.[^upgrade-card-known] Mark the app's shell with `data-ouro-session="signed-in"` or `"signed-out"` so the check knows which it is looking at, and give its own words in `ouro-check.json`'s `firstRun` if they aren't English.
 
+- **After v1.3.298 (TextArea):** TextArea's vertical padding is the `--ouro-text-area-py` variable, which `autoGrow` adds to its `rows` and `maxRows` bounds so its first frame has its final height, so an app that changed the padding with a `py-*` class on the textarea (`className="[&_textarea]:py-3"`) sets the variable instead (`className="[&_textarea]:[--ouro-text-area-py:12px]"`); in development, TextArea warns with that fix.[^upgrade-text-area-py]
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -369,6 +371,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-card-rules]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/new-rules.json, /"rule": "reveal-reflow"/)
 [^upgrade-card-known]: scripts/current/current.test.mjs verify:testExists(scripts/current/current.test.mjs::an Ouro check rule an update brings in has the findings the pull request's checks reported recorded as known, the run after, and kept while the next checks run)
 [^upgrade-first-run]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/new-rules.json, /"rule": "signed-out-empty"/)
+[^upgrade-text-area-py]: registry/ouro/components/ouro/text-field/text-area.test.tsx verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea development messages > warns that a py class leaves autoGrow's bounds out of step, and not for the padding variable)
 [^upgrade-card-click]: registry/ouro/components/ouro/card/card.test.tsx verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card with href > opens its link from a click anywhere on it, though the app positions its body over the media, with the same button and keys)
 [^upgrade-scripts-ouro]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::Ouro check installs under scripts/ouro/check/, beside the Ouro AX items its imports name, as ouro-images does) verify:testExists(scripts/current/current.test.mjs::Ouro HX moves Ouro check and the X-ray to scripts/ouro where their items now install, deleting the old copies and fixing package.json)
 <!-- upgrade:end -->

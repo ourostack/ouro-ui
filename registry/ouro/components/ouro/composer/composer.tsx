@@ -700,7 +700,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             onPaste={paste}
             aria-describedby={describedBy}
             // Expanded, the text takes the whole width, and the buttons go on a row under it.
-            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:py-3 [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
+            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:[--ouro-text-area-py:calc(var(--spacing)*3)] [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
           />
           <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
             {canExpand && (
