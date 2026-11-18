@@ -179,7 +179,7 @@ describe("fragmentFocusScript", () => {
     expect(heldBack(link("#ff-quiet"))).toBe(false);
   });
 
-  it("sets aside a stylesheet still loading as parsing ends, then puts it back to apply as it arrives, and leaves a loaded one alone", async () => {
+  it("sets aside a stylesheet still loading as parsing ends, puts it back a moment later, and leaves a loaded one alone", async () => {
     const { sheet: done, loaded: doneLoaded } = stylesheet();
     await doneLoaded;
     // From a blob, so it loads in a later task in every engine (a data: stylesheet has its sheet at once in Chromium).
@@ -189,7 +189,7 @@ describe("fragmentFocusScript", () => {
     expect(done.disabled).toBe(false);
     await task();
     expect(sheet.disabled).toBe(false);
+    // Its own load still comes, for whatever waits on it; that it then applies is Safari's part (site/e2e/fragment-focus.spec.ts).
     await loaded;
-    await expect.poll(() => [...document.styleSheets].some((each) => each.ownerNode === sheet && !each.disabled)).toBe(true);
   });
 });
