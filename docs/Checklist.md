@@ -41,6 +41,7 @@ Type: `ChecklistProps`.
 | `ordered` | `boolean \| readonly string[]` |  | Says the rows are steps to do in order. `true`: the rows' own order. An array of ids: that order, for steps shown in another (shuffled, sorted). A row ticked while a step before it is still unticked is out of order: its box turns the warning tone instead of the primary, it is not struck through, a note under it names the step that comes first, and that note is announced. Once the steps before it are ticked it reads as done on its own. Disabled rows and ids left out of the array never hold a row back. |
 | `outOfOrderLabel` | `((first: string) => string)` | `` (first) => `${first} comes first` `` | The note an out-of-order row shows and announces, from the label of the step that comes first. Translate it here. |
 | `ref` | `Ref<HTMLDivElement>` |  | The group element, a `<div role="group">`. |
+| `variant` | `"outline" \| "plain"` | `"plain"` | How the rows look. `plain`: open rows, the box at their start. `outline`: each row a card with a hairline border, and its tick a circle at the row's end that fills with the primary tone when ticked and the warning tone while out of order, for steps with their own icons (`media`). Another value renders `plain` and warns in development. |
 
 ## Don't use
 
@@ -85,7 +86,14 @@ interface ChecklistItemData {
   checked: boolean;
   /** Disables the row's box and fades it. */
   disabled?: boolean | undefined;
+  /**
+   * An icon at the start of the row, in a soft tile, such as a step's picture. Screen readers
+   * skip it, since the label names the row.
+   */
+  media?: ReactNode | undefined;
   /** A control of the row's own beside it (a button, a menu), its own tab stop; clicking it does not toggle the row. */
   action?: ReactNode | undefined;
+  /** Not a field. Ouro UI uses `media`: `{ id, label, media: <Icon />, checked }`. */
+  icon?: { 'Use media: <Icon />': never };
 }
 ```
