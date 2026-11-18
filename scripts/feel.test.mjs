@@ -614,3 +614,33 @@ test("Ouro Feel's probe counts a wheel event while no list is on the page as at 
     await browser.close();
   }
 });
+
+test("Ouro Feel's probe judges no jump on the frame a list comes back to the page, after a wheel turned while it was gone", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<main><div id="list" style="height:400px;overflow:auto">${Array.from({ length: 40 }, (_, i) => `<div class="row" id="r${i}" style="height:48px">Row ${i}</div>`).join("")}</div></main>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, WheelEvent } = globalThis;
+      const main = document.querySelector("main");
+      const list = document.getElementById("list");
+      ouroFeel.watch({ case: "list away", scroller: "#list", rows: ".row" });
+      for (let frame = 0; frame < 2; frame++) await ouroFeel.painted();
+      list.remove();
+      await ouroFeel.painted();
+      main.dispatchEvent(new WheelEvent("wheel", { deltaY: 150, bubbles: true }));
+      await ouroFeel.painted();
+      main.append(list);
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.wheelInputs, 1);
+    assert.equal(measures.jumps, 0);
+    assert.equal(measures.shifts, 0);
+    assert.equal(measures.anchorMovePx, 0);
+  } finally {
+    await browser.close();
+  }
+});

@@ -387,6 +387,9 @@ function install(): OuroFeel {
     if (list === null) {
       blankFramesInset += 1;
       seen.push({ at: lastFrameAt, top: 0, max: 0 });
+      // As the meter does, the list that comes back is followed from its first frame: no reader's row, and no input, carry over.
+      anchor = undefined;
+      inputSinceSample = 0;
       return false;
     }
     const box = list.getBoundingClientRect();
