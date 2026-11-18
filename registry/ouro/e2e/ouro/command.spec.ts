@@ -93,7 +93,7 @@ for (const touch of [false, true]) {
   test.describe(touch ? "by touch on a phone" : "on a phone", () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: touch });
 
-    test("opens a full-height sheet whose search input, panel and top stay put on every frame while filtering", async ({ page }) => {
+    test("opens a sheet whose search input, panel and top stay put on every frame while filtering", async ({ page }) => {
       await openStory(page, "menus-command--playground");
       const press = (target: Locator) => (touch ? target.tap() : target.click());
       await press(page.getByRole("button", { name: "Search…" }));

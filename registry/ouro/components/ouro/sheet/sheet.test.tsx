@@ -19,7 +19,7 @@ import {
   SheetViewport,
 } from "@/registry/ouro/components/ouro/sheet/sheet-parts";
 import { registerSheetProperties } from "@/registry/ouro/components/ouro/sheet/sheet-styles";
-import { Sheet, SheetFrame, type SheetProps } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { Sheet, SheetFrame, type SheetProps, type SheetSnapPoint } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -101,6 +101,16 @@ function Body() {
         Note <input aria-label="Note" />
       </label>
     </>
+  );
+}
+
+/** A bottom SheetFrame whose snap points and held snap point its caller sets, as Command holds its phone sheet's size. */
+function HeldSheet({ snapPoints, snapPoint }: { snapPoints: SheetSnapPoint[]; snapPoint: number }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <SheetFrame title="Save to cookbook" closeLabel="Close" side="bottom" snapPoints={snapPoints} snapPoint={snapPoint} open={open} onOpenChange={setOpen}>
+      <Body />
+    </SheetFrame>
   );
 }
 
@@ -518,6 +528,16 @@ describe("feel", () => {
     const sheet = await openUncontrolled({ snapPoints: [0.5, 1] });
     expect(sheet.hasAttribute("data-snap-points")).toBe(true);
     expect(Math.abs(innerHeight - sheet.getBoundingClientRect().top - innerHeight / 2)).toBeLessThanOrEqual(2);
+  });
+
+  it("rests at the snap point its caller holds, not the first one, and moves when the caller changes it, with no warning", async () => {
+    await render(<HeldSheet snapPoints={[0.5, 1]} snapPoint={1} />);
+    await settled();
+    // Uncontrolled, this sheet would rest at its first snap point, half the viewport.
+    expect(innerHeight - popup()!.getBoundingClientRect().top).toBeGreaterThan(innerHeight * 0.9);
+    await act(async () => roots.at(-1)!.render(<HeldSheet snapPoints={[0.5, 1]} snapPoint={0.5} />));
+    await settled();
+    expect(Math.abs(innerHeight - popup()!.getBoundingClientRect().top - innerHeight / 2)).toBeLessThanOrEqual(2);
   });
 
   it("gives a top sheet with snap points the full height less the gap, and fits a top sheet without them", async () => {

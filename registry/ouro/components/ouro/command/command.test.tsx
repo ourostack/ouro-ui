@@ -1085,24 +1085,63 @@ describe("Command with useCommandShortcut", () => {
 });
 
 describe("Command presentation", () => {
-  it("is a full-height bottom sheet below 640px, whose search input stays put while results filter", async () => {
+  it("sizes a short palette's sheet to its commands below 640px, not full height", async () => {
     await page.viewport(390, 844);
     const element = await openPalette();
     expect(element.getAttribute("data-ouro-presentation")).toBe("sheet");
     await expect.element(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
-    expect(Math.round(element.getBoundingClientRect().bottom)).toBe(innerHeight);
+    const body = element.querySelector<HTMLElement>("[data-ouro-sheet-content]")!;
+    // The sheet ends where its commands end, with the body's padding below them, so no blank part of it is left over.
+    const list = element.querySelector<HTMLElement>("[data-ouro-command-list]")!;
+    const padding = parseFloat(getComputedStyle(body).paddingBottom);
+    expect(Math.abs(innerHeight - list.getBoundingClientRect().bottom - padding)).toBeLessThan(2);
+    expect(element.getBoundingClientRect().top).toBeGreaterThan(innerHeight / 2);
+  });
+
+  it("keeps the sheet's height and the search input's place while the results filter below 640px", async () => {
+    await page.viewport(390, 844);
+    const element = await openPalette();
+    const sheetTop = element.getBoundingClientRect().top;
     const top = input().element().getBoundingClientRect().top;
-    const height = element.getBoundingClientRect().height;
     await userEvent.type(input(), "import");
     await expect.poll(options).toEqual(["Import from a link"]);
     expect(input().element().getBoundingClientRect().top).toBe(top);
+    expect(element.getBoundingClientRect().top).toBe(sheetTop);
     await userEvent.type(input(), "zzz");
     await expect.poll(options).toEqual([]);
     expect(input().element().getBoundingClientRect().top).toBe(top);
-    expect(element.getBoundingClientRect().height).toBe(height);
+    expect(element.getBoundingClientRect().top).toBe(sheetTop);
     await userEvent.keyboard("{Escape}");
     await expect.poll(popup).toBeNull();
     await expect.poll(() => document.activeElement).toBe(trigger());
+  });
+
+  it("keeps the size it opened at through a resize across 640px, though typing has filtered the results since", async () => {
+    await page.viewport(390, 844);
+    const element = await openPalette();
+    const sheetTop = element.getBoundingClientRect().top;
+    await userEvent.type(input(), "import");
+    await expect.poll(options).toEqual(["Import from a link"]);
+    await page.viewport(1280, 800);
+    await expect.poll(() => popup()?.getAttribute("data-ouro-presentation")).toBe("dialog");
+    await page.viewport(390, 844);
+    await expect.poll(() => popup()?.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(Math.abs((await settled()).getBoundingClientRect().top - sheetTop)).toBeLessThan(1);
+  });
+
+  it("opens a palette whose commands overflow the phone's screen at full height", async () => {
+    await page.viewport(390, 844);
+    const run = vi.fn();
+    const element = await openPalette({ items: [{ label: "Recipes", items: Array.from({ length: 30 }, (_, index) => ({ label: `Recipe ${index + 1}`, onSelect: run })) }] });
+    expect(Math.round(element.getBoundingClientRect().bottom)).toBe(innerHeight);
+    expect(element.getBoundingClientRect().top).toBeLessThan(innerHeight / 10);
+  });
+
+  it("opens a server-searched palette at full height below 640px", async () => {
+    await page.viewport(390, 844);
+    const element = await openPalette({ onQueryChange: () => {} });
+    expect(Math.round(element.getBoundingClientRect().bottom)).toBe(innerHeight);
+    expect(element.getBoundingClientRect().top).toBeLessThan(innerHeight / 10);
   });
 
   it("puts focus in the phone sheet's search after a click below 640px, so the keys typed next land in it", async () => {
