@@ -98,6 +98,10 @@ test("tailLines reads the last lines from the end of a file, drops a line cut in
   assert.deepEqual(tailLines(log, 3), ["two", "three", "four"], "blank lines don't count, and CRLF ends a line too");
   assert.deepEqual(tailLines(log, 10), ["one", "two", "three", "four"]);
   assert.deepEqual(tailLines(log, 0), [], "no lines asked for, none given");
+  const open = () => readdirSync("/dev/fd").length;
+  const before = open();
+  for (let i = 0; i < 50; i++) tailLines(log, 1);
+  assert.equal(open(), before, "it closes the file it read");
   assert.deepEqual(tailLines(log, 10, 8), ["four"], "the last 8 bytes start inside three, which is dropped");
   assert.deepEqual(tailLines(log, 10, 12), ["three", "four"], "a cut just after a line's end drops only the empty piece before it");
 });

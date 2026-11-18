@@ -36,8 +36,6 @@ interface RedactOptions {
 
 /** A quoted value the text keeps: a lowercase code or version ("signed-in", "0.2.10", "mode=silent"). */
 const SAFE_VALUE = /^[a-z0-9._:/+=-]{0,40}$/;
-/** ISO times are kept: they say when, not who. */
-const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/;
 /** Keys whose values are what someone wrote, whatever they hold. */
 const CONTENT_KEYS = /^(title|text|body|content|preview|subject|summary|message|msg|topic|from|to|who)$/i;
 /** Keys whose values say who someone is: a name, an address, a sign-in, an account, by the key's last word. */
@@ -161,20 +159,21 @@ function redactText(s: string, { home, rules = [] }: RedactOptions = {}): string
 }
 
 /**
- * A JSON value with its keys kept, and numbers, booleans, ISO times and lowercase codes. A secret key's value becomes
- * `"[redacted]"`, a content key's (`title`, `name`, `text`, `email`, `message` and the like) `"[text]"`, and any other
- * string `"[text]"` unless it is one word the rules leave alone, or one word they redact, which comes back redacted.
+ * A JSON value with its numbers and booleans kept, and its keys redacted as text. A secret key's value becomes
+ * `"[redacted]"`, the value of a key for what someone wrote (`title`, `text`, `message` and the like) or who they are
+ * (`name`, `email`, `login` and the like) `"[text]"`, and any other string `"[text]"` unless it is one word: a word the
+ * rules leave alone (a time, a version, a code) is kept, and one they redact comes back redacted.
  *
  * @claim "A secret key's value becomes" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::redactValue keeps keys, numbers, times and codes, and drops secrets and what anyone wrote)
  * @example
  * redactValue({ level: "warn", at: "2026-11-17T19:57:02Z", token: "abc", title: "Plans", n: 3 });
  * // { level: "warn", at: "2026-11-17T19:57:02Z", token: "[redacted]", title: "[text]", n: 3 }
  */
+// Stryker disable next-line StringLiteral: a top-level value's empty key and any other key that names nothing redact the same.
 function redactValue(v: unknown, opts: RedactOptions = {}, key = ""): unknown {
   if (typeof v === "string") {
     if (CONTENT_KEYS.test(key) || isPersonKey(key)) return "[text]";
     if (isSecretKey(key)) return "[redacted]";
-    if (ISO_TIME.test(v)) return v;
     return /\s/.test(v) ? "[text]" : redactText(v, opts);
   }
   if (Array.isArray(v)) return v.map((x) => redactValue(x, opts, key));

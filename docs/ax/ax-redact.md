@@ -141,7 +141,7 @@ redactText(`signed in as jordan@contoso.com from /Users/jordan/Library`, { home:
 
 ### `redactValue`
 
-A JSON value with its keys kept, and numbers, booleans, ISO times and lowercase codes. A secret key's value becomes `"[redacted]"`, a content key's (`title`, `name`, `text`, `email`, `message` and the like) `"[text]"`, and any other string `"[text]"` unless it is one word the rules leave alone, or one word they redact, which comes back redacted.
+A JSON value with its numbers and booleans kept, and its keys redacted as text. A secret key's value becomes `"[redacted]"`, the value of a key for what someone wrote (`title`, `text`, `message` and the like) or who they are (`name`, `email`, `login` and the like) `"[text]"`, and any other string `"[text]"` unless it is one word: a word the rules leave alone (a time, a version, a code) is kept, and one they redact comes back redacted.
 
 ```ts
 function redactValue(v: unknown, opts?: RedactOptions, key?: string): unknown

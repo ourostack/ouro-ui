@@ -35,7 +35,7 @@ interface BundleParts {
 type BundleOptions = RedactOptions;
 
 /** Strings and keys redacted as text, a secret key's value as "[redacted]" and a person's as "[text]". */
-function textDeep(v: unknown, opts: BundleOptions, key = ""): unknown {
+function textDeep(v: unknown, opts: BundleOptions, key: string): unknown {
   if (typeof v === "string") return isSecretKey(key) ? "[redacted]" : isPersonKey(key) ? "[text]" : redactText(v, opts);
   if (Array.isArray(v)) return v.map((x) => textDeep(x, opts, key));
   if (v && typeof v === "object") return redactEntries(v, (x, k) => textDeep(x, opts, k), opts);
@@ -60,7 +60,7 @@ function stringsOf(v: unknown): string[] {
  * // logs.service is ["signed in as [email]"]
  */
 function bundleText(parts: BundleParts, opts: BundleOptions = {}): string {
-  const facts = textDeep(parts.facts, opts) as Record<string, unknown>;
+  const facts = redactEntries(parts.facts, (x, k) => textDeep(x, opts, k), opts);
   const logs = Object.fromEntries(Object.entries(parts.logs).map(([source, lines]) => [source, lines.map((line) => redactLine(line, opts))]));
   // Each part is read unescaped: in the JSON text a Windows path's backslashes are doubled, and no rule would see it.
   const left = [["the facts", stringsOf(facts)] as const, ...Object.entries(logs).map(([source, lines]) => [`the ${source} log`, lines.flatMap((line) => stringsOf(tryJson(line)))] as const)]
