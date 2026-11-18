@@ -627,17 +627,19 @@ describe("Chart development messages", () => {
     expect(warn.mock.calls.filter((call: unknown[]) => call[0] === message)).toHaveLength(1);
   });
 
-  it("names nothing for a part of recharts' own that takes content, beside the series", async () => {
+  it("names nothing for a part of recharts' own that takes content, nor for its own parts without it", async () => {
     const { chart } = await render(
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
           <Line dataKey="cooked" />
           <Tooltip content={() => null} />
+          <ChartTooltip />
+          <ChartLegend />
         </LineChart>
       </Chart>,
     );
     await drawn(chart);
-    expect(warn.mock.calls.filter((call: unknown[]) => String(call[0]).startsWith("[ouro-ui] Chart"))).toEqual([]);
+    expect(warn.mock.calls.filter((call: unknown[]) => String(call[0]).startsWith("[ouro-ui]"))).toEqual([]);
   });
 
   it.each([

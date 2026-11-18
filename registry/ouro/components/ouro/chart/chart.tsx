@@ -620,7 +620,6 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  */
 export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
   const { warnKey } = useChartPart("ChartTooltip");
-  useDevWarnings("ChartTooltip", process.env.NODE_ENV !== "production" ? () => [] : /* istanbul ignore next @preserve -- production only */ undefined);
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props, warnKey);
@@ -654,7 +653,6 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  */
 export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
   const { legendTarget, warnKey } = useChartPart("ChartLegend");
-  useDevWarnings("ChartLegend", process.env.NODE_ENV !== "production" ? () => [] : /* istanbul ignore next @preserve -- production only */ undefined);
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props, warnKey);
