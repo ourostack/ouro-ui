@@ -79,7 +79,7 @@ export function sitemap(routes: readonly Route[]): string {
  * it refreshes to the new address at once, names that address as canonical for search engines, and
  * links to it for a browser that does not follow the refresh.
  */
-export function redirectPage(to: string): string {
+export function redirectPage(to: string, note?: string): string {
   const url = escape(to);
   return [
     "<!doctype html>",
@@ -92,7 +92,9 @@ export function redirectPage(to: string): string {
     '<meta name="robots" content="noindex" />',
     "</head>",
     "<body>",
-    `<p>This page has moved to <a href="${url}">${escape(SITE + to)}</a>.</p>`,
+    note === undefined
+      ? `<p>This page has moved to <a href="${url}">${escape(SITE + to)}</a>.</p>`
+      : `<p>${escape(note)} Its page is <a href="${url}">${escape(SITE + to)}</a>.</p>`,
     "</body>",
     "</html>",
     "",

@@ -25,8 +25,8 @@ const { render, routes, redirects, redirectPage, docsItems, docsPages, published
   headTags: (route: Route, canonical: boolean, mono?: boolean) => string[];
   showsMono: (html: string) => boolean;
   routes: Route[];
-  redirects: Array<{ from: string; to: string }>;
-  redirectPage: (to: string) => string;
+  redirects: Array<{ from: string; to: string; note?: string }>;
+  redirectPage: (to: string, note?: string) => string;
   docsItems: Array<{ name: string; title: string }>;
   docsPages: Array<{ name: string; title: string; file: string }>;
   publishedMarkdown: (markdown: string, from: string) => string;
@@ -120,11 +120,11 @@ for (const route of routes) {
   writeFileSync(file, await page(route, route.path, true));
 }
 // Old addresses: GitHub Pages is static, so each is a page that refreshes to the new one.
-for (const { from, to } of redirects) {
+for (const { from, to, note } of redirects) {
   if (routes.some((route) => route.path.toLowerCase() === from.toLowerCase())) throw new Error(`${from} is both a page and a redirect, or differs from a page only in letter case`);
   const file = join(dist, from, "index.html");
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, redirectPage(to));
+  writeFileSync(file, redirectPage(to, note));
 }
 writeFileSync(
   join(dist, "404.html"),
