@@ -15,7 +15,6 @@ import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import chartSource from "../../nautilus/art/voyage-chart.svg?raw";
-import compassSource from "../../nautilus/art/compass.svg?raw";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import { labelBox, labelStyle, parseArt, type Art } from "../stage/art";
@@ -40,7 +39,7 @@ import {
   type SpecimenClass,
 } from "./chapter-two-copy";
 import { Radio } from "./chapter-two-radio";
-import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 import { arrivals, chartPoint, isBook, isShortest, legs, portNamed, routeLeagues, routePath, SHORTEST, writeDay, writeLeagues } from "./route";
 // What only changes once the chapter answers (the route drawing in, a port's number): it comes
 // inside this island's script and goes into the page as the island hydrates.
@@ -71,7 +70,6 @@ const chart: { -readonly [K in keyof Art]: Art[K] } = {
 /** The map's names, drawn over the route so a route never crosses a name (chart.inner without them). */
 const mapNames = /<g class="ch-labels"[\s\S]*?<\/g>/.exec(chart.inner)![0];
 chart.inner = chart.inner.replace(mapNames, "");
-const compass = parseArt(compassSource);
 
 /** How the plan stands: the chart room and the catalogue write it, the rail beside them reads it. */
 interface Plan {
@@ -119,7 +117,8 @@ export default function ChapterTwo(): JSX.Element {
       <PlanContext value={plan}>
         <PlanningMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
-          <header className="lg:sticky lg:top-24 lg:col-span-4 lg:self-start">
+          <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
+            <ChapterPicture scene="nautilus-library" className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_TWO.number}</p>
             <h2 id="chapter-two-title" className="site-h2 mt-3">
               {CHAPTER_TWO.title}
@@ -155,23 +154,12 @@ function usePlanning(): Step[] {
   ];
 }
 
-/** The rail beside the chapter: the compass on the chart, and how the plan stands. Left out on a phone. */
+/** The rail beside the chapter: the library's picture, and how the plan stands. Left out on a phone, where the picture opens the chapter. */
 function Planning(): JSX.Element {
   const steps = usePlanning();
   return (
     <div className="mt-10 hidden lg:block" data-chapter-planning="">
-      <svg
-        className="site-compass"
-        style={{ display: "block", width: "60%", height: "auto", color: "color-mix(in oklab, var(--primary) 60%, var(--foreground))" }}
-        viewBox={compass.viewBox}
-        aria-hidden="true"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        data-done={steps.filter((step) => step.done).length}
-        dangerouslySetInnerHTML={{ __html: compass.inner }}
-      />
+      <ChapterPicture scene="nautilus-library" />
       <Steps label={PLANNING.label} steps={steps} />
     </div>
   );

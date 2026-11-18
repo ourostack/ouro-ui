@@ -4,7 +4,10 @@ import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { ScenePicture } from "../../components/story-world";
 import { GITHUB } from "../../paths";
+import type { SceneName } from "../../storybook";
 import { Container } from "../layout";
 import { CHAPTER_ONE, CODE_SHEETS, CREW, type CrewLine, type SheetLine } from "./copy";
 import frameStyles from "./frame.css?inline";
@@ -48,6 +51,23 @@ export function Handoff({ line }: { line: string }): JSX.Element {
       <p className="m-0 text-sm italic">{line}</p>
       <span className="h-px flex-1 bg-border" aria-hidden="true" />
     </Container>
+  );
+}
+
+/** How wide a chapter's picture draws, for the browser's file choice: the rail's width on a wide screen, the screen's below it. */
+const CHAPTER_PICTURE_SIZES = "(min-width: 64rem) 26rem, 100vw";
+
+/**
+ * A chapter's picture, in the frosted-glass world of the home page's hero: the whole 3:2 scene, by day, or at night
+ * in dark mode, with nothing laid over it. On a wide screen it sits in the rail beside the chapter's title; on a phone,
+ * full width above the chapter. It loads as it nears the screen, and its night twin only when it is shown.
+ */
+export function ChapterPicture({ scene, className }: { scene: SceneName; className?: string }): JSX.Element {
+  return (
+    <div className={cn("aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted", className)} data-chapter-picture={scene}>
+      <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} />
+      <ScenePicture scene={scene} priority={false} sizes={CHAPTER_PICTURE_SIZES} decorative={false} night />
+    </div>
   );
 }
 

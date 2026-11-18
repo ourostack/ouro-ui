@@ -194,65 +194,6 @@
   }
 }
 
-/* The yard on the island, beside the chapter: each part inked in as its job is ticked. */
-.site-yard :is(.yd-part, .yd-scaffold, .yd-blocks, .yd-ripples, .yd-flag) {
-  transition: opacity var(--ouro-duration-slow) ease;
-}
-.site-yard[data-built~="hull"] [data-part="hull"],
-.site-yard[data-built~="windows"] [data-part="windows"],
-.site-yard[data-built~="engine"] [data-part="engine"],
-.site-yard[data-built~="lantern"] [data-part="lantern"],
-.site-yard[data-built~="organ"] [data-part="organ"] {
-  opacity: 1;
-  stroke-dasharray: none;
-}
-.site-yard[data-built~="hull"] .yd-fill {
-  fill: color-mix(in oklab, var(--primary) 26%, var(--background));
-}
-.site-yard[data-built~="lantern"] .yd-light {
-  fill: var(--chart-3);
-}
-.site-yard[data-launched] :is(.yd-scaffold, .yd-blocks) {
-  opacity: 0;
-}
-.site-yard[data-launched] .yd-ripples {
-  opacity: 0.8;
-}
-/* The second ship, drawn afloat, shows only under reduced motion (below). */
-.site-yard .yd-afloat {
-  opacity: 0;
-}
-.site-yard[data-signed] .yd-flag {
-  opacity: 1;
-}
-.yd-pennant {
-  color: var(--primary);
-}
-/* Launched, she leaves the slip for the sea, a little further out (so a little smaller). */
-@media (prefers-reduced-motion: no-preference) {
-  .site-yard .yd-ship {
-    transition:
-      translate 1.6s var(--ouro-ease-in-out),
-      scale 1.6s var(--ouro-ease-in-out);
-  }
-  .site-yard[data-launched] .yd-ship {
-    translate: 157px 42px;
-    scale: 0.8;
-  }
-}
-/* Under reduced motion nothing moves: the ship on the slip fades out and the one afloat fades in. */
-@media (prefers-reduced-motion: reduce) {
-  .site-yard :is(.yd-ship, .yd-afloat) {
-    transition: opacity var(--ouro-duration-slow) ease;
-  }
-  .site-yard[data-launched] .yd-ship {
-    opacity: 0;
-  }
-  .site-yard[data-launched] .yd-afloat {
-    opacity: 1;
-  }
-}
-
 /* A signing that waits on Conseil: your name on the list in pencil, not yet in ink. */
 [data-chapter-pending] {
   opacity: 0.8;

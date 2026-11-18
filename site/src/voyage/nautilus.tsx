@@ -1,17 +1,19 @@
 import type { JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
+import { StoryWorld } from "../components/story-world";
 import { NAUTILUS_PAGE } from "./copy";
 import { Container } from "./layout";
 
 /**
  * The story's opening on /nautilus/: what it is, who Nemo is and where he comes from, and its chapters, with the ones
- * still being built marked so. The page opens on its title: the storybook kitchen it opened on had nothing to do with
- * the Nautilus (Ari, 2026-11-17), and its own picture comes with the Nautilus's scenes.
+ * still being built marked so. It opens on its own scene, full width above the title like the home page's hero: the
+ * Nautilus at the surface at sunset, the crew on deck and a diver at her hull, or under the moon in dark mode.
  */
 export function StoryOpening(): JSX.Element {
   return (
     <>
+    <StoryWorld scene="nautilus" />
     <section aria-labelledby="story-title" className="site-story pt-10 pb-6 lg:pt-14 lg:pb-10">
       <Container className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-7">
