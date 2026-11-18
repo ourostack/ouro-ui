@@ -81,13 +81,8 @@ export const SHIPYARD = {
 /** What the crew says as the work goes on. */
 export const YARD = {
   opening: { name: "Captain Nemo", text: "Hull first, then the rest. Put the jobs in order." },
-  built: {
-    hull: { name: "Ned Land", text: "Two hulls, one in the other. She is strong now." },
-    windows: { name: "Professor Aronnax", text: "Now we can watch the fish from the saloon." },
-    engine: { name: "Captain Nemo", text: "All by electricity. No coal and no smoke." },
-    lantern: { name: "Ned Land", text: "A lamp for the dark. Good." },
-    organ: { name: "Conseil", text: "The organ is in tune. You may play." },
-  },
+  /** The hull, which sets the scene; the jobs after it in order need no word, since the boxes and the plan show them. */
+  hull: { name: "Ned Land", text: "Two hulls, one in the other. She is strong now." },
   /** A part put on before the hull is there to hold it. */
   noHull: (part: string): CrewLine => ({ name: "Conseil", text: `The ${part.toLowerCase()} is waiting for a hull.` }),
   undone: (part: string): CrewLine => ({ name: "Conseil", text: `${part} off again. I made a note.` }),
@@ -207,7 +202,7 @@ export function allChapterOneText(): string[] {
     SHIPYARD.launchHint(1),
     SHIPYARD.launchHint(3),
     YARD.opening.text,
-    ...Object.values(YARD.built).map((line) => line.text),
+    YARD.hull.text,
     YARD.noHull("Lantern").text,
     YARD.undone("Lantern").text,
     ...Object.values(YARD.outOfOrder).map((line) => line.text),
