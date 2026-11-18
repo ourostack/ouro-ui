@@ -13,11 +13,13 @@ let server: Server;
 let origin = "";
 /** Stylesheet requests that never answer, until the test ends. */
 const held: (() => void)[] = [];
+/** Once the page has asked for /release, held stylesheets answer at once. */
+let released = false;
 
-const page = (slow: boolean, deferred: boolean) =>
+const page = (slow: boolean, deferred: string | null) =>
   `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/${slow ? "late" : "now"}.css?head">` +
   // As a module script does when it adds a route's CSS as the page starts.
-  (deferred ? `<script defer src="/route.js"></script>` : "") +
+  (deferred === null ? "" : `<script defer src="/route.js?${deferred}"></script>`) +
   `</head><body>` +
   `<script>${fragmentFocusScript()}</script>` +
   `<p><a id="jump" href="#target">Jump</a></p><div style="height:3000px"></div>` +
@@ -33,19 +35,33 @@ test.beforeAll(async () => {
     if (url.pathname === "/now.css") return css();
     // Late, as on a slow connection.
     if (url.pathname === "/late.css") return void setTimeout(css, LATE_MS);
-    if (url.pathname === "/held.css") return void held.push(css);
+    if (url.pathname === "/held.css") return void (released ? css() : held.push(css));
+    // Adds the route's stylesheet and counts its loads, as Vite's preload does; `after` holds the stylesheet until the page
+    // has finished parsing, so it can arrive while the script has it set aside.
     if (url.pathname === "/route.js") {
+      const after = url.search === "?after";
       response.writeHead(200, { "content-type": "text/javascript" });
-      return void response.end(`const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "/late.css?route"; document.head.append(link);`);
+      return void response.end(
+        `window.routeLoads = 0; const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "/${after ? "held" : "late"}.css?route";` +
+          `link.addEventListener("load", () => window.routeLoads++); document.head.append(link);` +
+          (after ? `document.addEventListener("DOMContentLoaded", () => fetch("/release"));` : ""),
+      );
+    }
+    if (url.pathname === "/release") {
+      released = true;
+      for (const answer of held.splice(0)) answer();
+      response.writeHead(204);
+      return void response.end();
     }
     response.writeHead(200, { "content-type": "text/html" });
-    response.end(page(url.searchParams.has("slow"), url.searchParams.has("deferred")));
+    response.end(page(url.searchParams.has("slow"), url.searchParams.get("deferred")));
   });
   await new Promise<void>((listening) => server.listen(0, "127.0.0.1", listening));
   origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
 
 test.afterEach(() => {
+  released = false;
   for (const answer of held.splice(0)) answer();
 });
 
@@ -81,6 +97,14 @@ const lazyStylesheet = (tab: Page, href: string) =>
     href,
   );
 
+/** The route's stylesheet applies, from its one link, which loaded once. */
+async function routeStyled(tab: Page): Promise<void> {
+  await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--route").trim())).toBe("1");
+  await tab.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  expect(await tab.locator('link[href$="?route"]').count()).toBe(1);
+  expect(await tab.evaluate(() => (window as unknown as { routeLoads: number }).routeLoads)).toBe(1);
+}
+
 test.describe("fragmentFocusScript", () => {
   test("keeps focus as later styles load, on a page opened at a place while its stylesheet loads", async ({ page: tab }) => {
     await tab.goto(`${origin}/?slow#target`, { waitUntil: "load" });
@@ -106,15 +130,18 @@ test.describe("fragmentFocusScript", () => {
   });
 
   test("keeps focus as later styles load, after a stylesheet the page's script added was still loading as parsing ended", async ({ page: tab }) => {
-    await tab.goto(`${origin}/?deferred`, { waitUntil: "load" });
-    // The stylesheet set aside as parsing ended still applies.
-    await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--route").trim())).toBe("1");
-    expect(await tab.locator('link[href="/late.css?route"]').count()).toBe(1);
+    await tab.goto(`${origin}/?deferred=late`, { waitUntil: "load" });
+    await routeStyled(tab);
     await tab.locator("#jump").click();
     await expect.poll(() => tab.evaluate(() => location.hash)).toBe("#target");
     await tab.locator("#kept").focus();
     await laterStyles(tab);
     await expect(tab.locator("#kept")).toBeFocused();
+  });
+
+  test("a stylesheet the page's script added that arrives as parsing ends still applies once, with one load event", async ({ page: tab }) => {
+    await tab.goto(`${origin}/?deferred=after#target`, { waitUntil: "load" });
+    await routeStyled(tab);
   });
 
   test("follows a link to a place on the page after two seconds when a stylesheet is still loading", async ({ page: tab, browserName }) => {

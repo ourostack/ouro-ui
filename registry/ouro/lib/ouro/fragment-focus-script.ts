@@ -14,10 +14,12 @@ const script =
   `function sheets(){return d.querySelectorAll('link[rel~="stylesheet"]')}` +
   `function loading(){var a=sheets(),j;for(j=0;j<a.length;j++)if(pending(a[j]))return true;return false}` +
   // A stylesheet a deferred or module script added is still loading as the page finishes parsing, when Safari decides.
-  // Disabled, it doesn't count; enabled again a moment later, it carries on loading. One that finished meanwhile comes
-  // back empty in Safari, so a copy of it loads again.
-  `d.addEventListener("DOMContentLoaded",function(){var a=sheets(),held=[],j;for(j=0;j<a.length;j++)if(pending(a[j])){a[j].disabled=true;held.push(a[j])}` +
-  `if(held.length)setTimeout(function(){for(var k=0;k<held.length;k++){var x=held[k];x.disabled=false;if(done.has(x)&&!x.sheet)x.replaceWith(x.cloneNode(true))}})});` +
+  // Disabled for that moment it doesn't count, and it keeps loading; enabled again a moment later, it applies when it
+  // arrives. One that arrived while disabled comes back empty in Safari, so a copy of it, from the cache, takes its place.
+  `function renew(x){if(!x.sheet)x.replaceWith(x.cloneNode(true))}` +
+  `d.addEventListener("DOMContentLoaded",function(){var a=sheets(),held=[],j;for(j=0;j<a.length;j++)if(pending(a[j])&&!a[j].sheet){a[j].disabled=true;held.push(a[j])}` +
+  `if(held.length)setTimeout(function(){for(var k=0;k<held.length;k++){var x=held[k];x.disabled=false;` +
+  `if(!x.sheet){if(done.has(x))renew(x);else{x.addEventListener("load",renew.bind(null,x),{once:true});x.addEventListener("error",renew.bind(null,x),{once:true})}}}})});` +
   `function here(){return location.href.split("#")[0]}` +
   // A held link goes only while the page is still the one it was clicked on: a router may have moved on meanwhile.
   `function follow(){if(jump&&(!loading()||Date.now()>=until)){var h=jump;jump=null;if(h.split("#")[0]===here())location.assign(h)}}` +
