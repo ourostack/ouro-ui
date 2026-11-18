@@ -136,6 +136,16 @@ interface CommandGroup {
   label: string;
   /** The group's commands. */
   items: readonly CommandItem[];
+  /**
+   * Shows every row of the group whatever the search is, as if each row had `alwaysShown`: a "Go to" group,
+   * `{ label: "Go to", items: [{ label: jumpLabel, onSelect: jump }], alwaysShown: true }`. Its label
+   * still shows. When a search matches only rows like them, the empty state (`empty` or `emptyLabel`)
+   * shows above them, and screen readers hear it politely, once. The result count leaves them out.
+   */
+  alwaysShown?: boolean | undefined;
+
+  /** Not a prop. A group shown whatever the search is says `alwaysShown`: `{ label: "Go to", items, alwaysShown: true }`. */
+  forceMount?: CommandItem["forceMount"];
 }
 ```
 

@@ -771,6 +771,70 @@ describe("Command rows shown whatever the search", () => {
       said.stop();
     }
   });
+
+  const groupLabels = () => [...document.querySelectorAll("[data-ouro-command-group-label]")].map((label) => label.textContent);
+
+  it("shows every row of a group marked alwaysShown whatever the search, under its label, and the empty state above them, said politely once, when only they match", async () => {
+    const said = watchAnnouncements();
+    try {
+      const items: CommandEntry[] = [
+        { label: "Chats", items: [{ label: "Launch planning", onSelect: run }, { label: "Design review", onSelect: run }] },
+        { label: "Go to", alwaysShown: true, items: [{ label: "Jump to a chat by its address", onSelect: run }, { label: "Search messages", onSelect: run }] },
+      ];
+      await render(<Command title="Commands" open onOpenChange={() => {}} items={items} emptyLabel="No chats match." />);
+      await settled();
+      expect(note().textContent).toBe("");
+      await userEvent.type(input(), "launch");
+      await expect.poll(options).toEqual(["Launch planning", "Jump to a chat by its address", "Search messages"]);
+      expect(groupLabels()).toEqual(["Chats", "Go to"]);
+      expect(note().textContent).toBe("");
+      await userEvent.clear(input());
+      await userEvent.type(input(), "zq");
+      await expect.poll(options).toEqual(["Jump to a chat by its address", "Search messages"]);
+      expect(groupLabels()).toEqual(["Go to"]);
+      await expect.poll(() => note().textContent).toBe("No chats match.");
+      expect(document.querySelector("[data-ouro-command-empty]")).toBeNull();
+      await userEvent.type(input(), "x");
+      await act(async () => {});
+      expect(said.count("No chats match.")).toBe(1);
+    } finally {
+      said.stop();
+    }
+  });
+
+  it("shows the empty state among a server's rows in a group marked alwaysShown, and leaves those rows out of the result count", async () => {
+    const said = watchAnnouncements();
+    try {
+      const palette = (labels: string[]) => (
+        <Command
+          title="Jump to a chat"
+          open
+          onOpenChange={() => {}}
+          onQueryChange={() => {}}
+          emptyLabel="No chats by that name."
+          items={[
+            ...(labels.length > 0 ? [{ label: "Chats", items: labels.map((label) => ({ label, onSelect: run })) }] : []),
+            { label: "Go to", alwaysShown: true, items: [{ label: "Jump to a chat by its address", onSelect: run }, { label: "Search messages", onSelect: run }] },
+          ]}
+        />
+      );
+      await render(palette([]));
+      await settled();
+      expect(note().textContent).toBe("");
+      await userEvent.type(input(), "zq");
+      await expect.poll(() => note().textContent).toBe("No chats by that name.");
+      await expect.poll(() => said.count("No chats by that name.")).toBe(1);
+      expect(groupLabels()).toEqual(["Go to"]);
+      // real clock: the count is said 400ms after results settle; this waits past that to show none comes.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
+      await act(async () => roots[0]!.render(palette(["Zq launch", "Zq review"])));
+      await expect.poll(() => note().textContent).toBe("");
+      await expect.poll(() => document.querySelector("[data-ouro-command-results]")!.textContent).toBe("2 results");
+    } finally {
+      said.stop();
+    }
+  });
 });
 
 describe("Command match highlighting", () => {
@@ -1892,6 +1956,15 @@ describe("Command dev messages", () => {
       '[ouro-ui] Command: commands is not a prop; the commands are items. Fix: <Command items={[{ label: "New recipe", onSelect: create }]}>.',
       '[ouro-ui] Command: the item "Home" has onClick; a command runs onSelect. Fix: { label: "Home", onSelect: run }.',
       '[ouro-ui] Command: the item "Jump to chat" has forceMount; a row shown whatever the search is says alwaysShown. Fix: { label: "Jump to chat", onSelect: run, alwaysShown: true }.',
+    ]);
+  });
+
+  it("names the fix once for a group with forceMount, which says alwaysShown", async () => {
+    await openPalette({
+      items: [{ label: "Go to", forceMount: true, items: [{ label: "Jump to chat", onSelect: () => {} }] }],
+    } as object);
+    expect(warnings()).toEqual([
+      '[ouro-ui] Command: the group "Go to" has forceMount; a group shown whatever the search is says alwaysShown. Fix: { label: "Go to", items, alwaysShown: true }.',
     ]);
   });
 

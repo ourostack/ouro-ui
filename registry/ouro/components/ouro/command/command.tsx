@@ -168,6 +168,21 @@ export interface CommandGroup {
   label: string;
   /** The group's commands. */
   items: readonly CommandItem[];
+  /**
+   * Shows every row of the group whatever the search is, as if each row had `alwaysShown`: a "Go to" group,
+   * `{ label: "Go to", items: [{ label: jumpLabel, onSelect: jump }], alwaysShown: true }`. Its label
+   * still shows. When a search matches only rows like them, the empty state (`empty` or `emptyLabel`)
+   * shows above them, and screen readers hear it politely, once. The result count leaves them out.
+   * @claim "Shows every row of the group" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows every row of a group marked alwaysShown whatever the search, under its label, and the empty state above them, said politely once, when only they match)
+   * @claim "Its label still shows" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows every row of a group marked alwaysShown whatever the search, under its label, and the empty state above them, said politely once, when only they match)
+   * @claim "When a search matches only rows" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows every row of a group marked alwaysShown whatever the search, under its label, and the empty state above them, said politely once, when only they match)
+   * @claim "When a search matches only rows" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows the empty state among a server's rows in a group marked alwaysShown, and leaves those rows out of the result count)
+   * @claim "The result count leaves them" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows the empty state among a server's rows in a group marked alwaysShown, and leaves those rows out of the result count)
+   */
+  alwaysShown?: boolean | undefined;
+
+  /** Not a prop. A group shown whatever the search is says `alwaysShown`: `{ label: "Go to", items, alwaysShown: true }`. */
+  forceMount?: CommandItem["forceMount"];
 }
 
 /** One entry in a Command palette's `items`: a command, or a group of them. */
@@ -342,15 +357,17 @@ const itemsFix = '<Command items={[{ label: "New recipe", onSelect: create }]}>'
 const searchedWords = (item: CommandItem): string[] => [item.description ?? "", ...(item.keywords ?? [])];
 
 /**
- * Groups as given, with each run of loose commands in a group without a heading.
+ * Groups as given, with each run of loose commands in a group without a heading. A group marked
+ * `alwaysShown` marks each of its rows so, so the filter, the empty state and the count read the row alone.
  *
  * @claim "Groups as given, with each run" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > lists loose items without a group heading)
+ * @claim "A group marked `alwaysShown` marks each" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows every row of a group marked alwaysShown whatever the search, under its label, and the empty state above them, said politely once, when only they match) verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows the empty state among a server's rows in a group marked alwaysShown, and leaves those rows out of the result count)
  */
 function toGroups(entries: readonly CommandEntry[]): Group[] {
   const groups: Group[] = [];
   for (const entry of entries) {
     if ("items" in entry) {
-      groups.push({ label: entry.label, items: [...entry.items] });
+      groups.push({ label: entry.label, items: entry.alwaysShown === true ? entry.items.map((item) => ({ ...item, alwaysShown: true })) : [...entry.items] });
       continue;
     }
     const last = groups.at(-1);
@@ -524,6 +541,12 @@ export function Command(props: CommandProps): JSX.Element {
                   [`the item "${item.label}" has forceMount; a row shown whatever the search is says alwaysShown`, `{ label: "${item.label}", onSelect: run, alwaysShown: true }`] as const,
               ),
           ),
+          ...items
+            .filter((entry) => "items" in entry && entry.forceMount !== undefined)
+            .map(
+              (group) =>
+                [`the group "${group.label}" has forceMount; a group shown whatever the search is says alwaysShown`, `{ label: "${group.label}", items, alwaysShown: true }`] as const,
+            ),
           ...groups.flatMap((group) =>
             group.items
               .filter((item) => item.avatar !== undefined && shown(item.icon))
