@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise, describeFrame } from "./latency";
+import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise, describeFrame, thinMargin } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -50,10 +50,10 @@ test("a control slow in more than one press of 20 fails with the presses more, a
 
 test("a runner the probe measures slower stretches the bounds by its factor, at most 1.5 times, and a quiet one by none", () => {
   // Quiet: the probe at or under its quiet median leaves the bounds as they are.
-  expect(runnerFactor(at(48, 10))).toBe(1);
-  expect(runnerFactor(at(64, 10))).toBe(1);
+  expect(runnerFactor(at(LATENCY.probeQuiet, 10))).toBe(1);
+  expect(runnerFactor(at(LATENCY.probeQuiet - 8, 10))).toBe(1);
   // A quarter slower than a quiet runner, and a runner past the cap, judged at the cap.
-  expect(runnerFactor(at(80, 10))).toBe(1.25);
+  expect(runnerFactor(at(Math.round(LATENCY.probeQuiet * 1.25), 10))).toBe(1.25);
   expect(runnerFactor(at(200, 10))).toBe(LATENCY.maxFactor);
   // Every press 112 ms: over the quiet runner's bound (104 ms), within 128 ms on one a quarter slower.
   expect(summarise(at(112, 20), 64).within).toBe(false);
@@ -64,6 +64,18 @@ test("a runner the probe measures slower stretches the bounds by its factor, at 
   // The median's ceiling stretches too: twice the baseline, times the factor.
   expect(summarise(at(80, 20), 32, 1.25).within).toBe(true);
   expect(summarise(at(88, 20), 32, 1.25).within).toBe(false);
+});
+
+test("a quiet runner's p95 within 10% of its bound is a thin margin; over the bound, or on a slower runner, it is not", () => {
+  // The bound is 104 ms and 90% of it 93.6: 96 and 104 are thin, 88 has room.
+  expect(thinMargin(96, 1)).toBe(true);
+  expect(thinMargin(104, 1)).toBe(true);
+  expect(thinMargin(88, 1)).toBe(false);
+  // Over the bound is a failure, not a margin.
+  expect(thinMargin(112, 1)).toBe(false);
+  // 120 is within a slower runner's 128 ms bound and near it, but a runner the probe measured slower is never listed.
+  expect(thinMargin(120, 1.25)).toBe(false);
+  expect(thinMargin(128, 1.25)).toBe(false);
 });
 
 test.describe("a page whose button is slow on purpose", () => {
