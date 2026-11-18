@@ -628,7 +628,11 @@ describe("Checklist ordered", () => {
       { id: "boil", label: "Boil the water", checked: false },
     ];
     const { row } = await render(<Host items={shown} extra={{ label: "Steps", ordered: ["boil", "warm", "leaves"] }} />);
+    const announcements = watchAnnouncements();
     await act(() => partOf(row("Add the leaves"), "box").click());
+    // The shared announcer writes about 100ms later; waiting here keeps it from landing in the next test's watch.
+    await expect.poll(() => announcements.count("Boil the water comes first.")).toBe(1);
+    announcements.stop();
     await act(() => partOf(row("Find a cup"), "box").click());
     expect(row("Add the leaves")).toHaveAttribute("data-out-of-order");
     // A row the order leaves out is never held back.
