@@ -6,7 +6,7 @@
 //   node scripts/pattern-size.mjs            measure every pattern against its ceiling (CEILINGS)
 //   node scripts/pattern-size.mjs --record   measure, and write what each pattern's JavaScript is made of to
 //                                            scripts/pattern-size.json, which names what grew when one is over
-//   node scripts/pattern-size.mjs --out dir  also leave each app's build in dir/<name>/, to serve
+//   node scripts/pattern-size.mjs --out dir  build each app in dir/<name>/ (its build in dir/<name>/dist/, to serve)
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
