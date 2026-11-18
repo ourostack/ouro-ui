@@ -24,7 +24,7 @@ export const CHAPTER_THREE = {
   title: "Face the squid",
   intro: "Something very large has taken hold of the ship. It seems more curious than cross.",
   /** Over the course line from Chapter II into this one. */
-  handoff: "Three days out, the ship stops dead. Something is holding on.",
+  handoff: "Far out at sea, the ship stops dead. Something is holding on.",
 } as const;
 
 /** The orders the crew can be given, by the menu and the palette alike. */
@@ -73,7 +73,7 @@ export function describeEncounter(state: { surfaced: boolean; lights: boolean; w
 /** What the crew says as the rescue goes. */
 export const FIGHT = {
   opening: { name: "Ned Land", text: "Something out there is looking in at us. Something big." },
-  alarm: { name: "Captain Nemo", text: "All hands. We have company on the hull." },
+  alarm: { name: "Captain Nemo", text: "Crew to stations. We have company on the hull." },
   diveHeld: { name: "Captain Nemo", text: "We cannot dive with a squid on the propeller." },
   dive: { name: "Captain Nemo", text: "Take her down. Gently." },
   surface: { name: "Captain Nemo", text: "Up we come. It is still holding on. Bring a lamp up on deck." },
@@ -109,7 +109,8 @@ export const SALOON = {
   logWaiting: "The log waits until the ship is free.",
   stamp: "Voyage logged",
   logDone: "Ship built. Course set. Propeller free. One new friend.",
-  next: "Every control on this voyage is a real Ouro HX part. Now build yours.",
+  next: claim("Every control on this voyage is a real Ouro HX part.", { source: [{ test: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { test: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { test: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }], verify: [{ testExists: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }] }),
+  build: "Now build yours.",
   install: "Install Ouro HX",
   components: "Browse components",
   again: "Sail again",

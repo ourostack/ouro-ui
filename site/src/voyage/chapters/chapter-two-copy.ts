@@ -162,7 +162,7 @@ export const CATALOGUE = {
   find: "A new find",
   classify: "Which group?",
   classifyHint: "Pick the group it belongs to.",
-  done: "All sorted. The book is up to date.",
+  done: "Sorted. The book is up to date.",
   museum: "Visit the museum",
 } as const;
 
@@ -316,7 +316,7 @@ export interface RadioReply {
 
 export const RADIO = {
   title: "The ship's radio",
-  intro: "Write to the crew. Each of them answers in their own way.",
+  intro: "Write to the crew. They answer, in their own way.",
   file: "radio.tsx",
   channels: "Who to call",
   crew: "The whole crew",

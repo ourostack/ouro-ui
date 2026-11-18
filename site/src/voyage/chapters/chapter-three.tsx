@@ -509,7 +509,9 @@ function Saloon(): JSX.Element {
         </div>
         {shown ? (
           <div ref={next} className="grid gap-3 border-t border-border/70 pt-5" data-chapter-next="">
-            <p className="m-0 font-medium">{SALOON.next}</p>
+            <p className="m-0 font-medium">
+              {SALOON.next} {SALOON.build}
+            </p>
             <div className="flex flex-wrap gap-3">
               <span data-chapter-control="install">
                 <Button href={href("/docs/installing/")}>{SALOON.install}</Button>
