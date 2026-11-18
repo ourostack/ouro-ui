@@ -557,3 +557,35 @@ test("Ouro Feel's probe counts a wheel event's frames from the first frame that 
     await browser.close();
   }
 });
+
+test("Ouro Feel's probe times a wheel event dispatched after the frame it came before, to that frame's move, as a chat app's frame meter does", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto">${Array.from({ length: 60 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, requestAnimationFrame, WheelEvent } = globalThis;
+      const list = document.getElementById("list");
+      ouroFeel.watch({ case: "late dispatch", scroller: list, rows: ".row" });
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      // The list moves in this frame, as an engine that scrolls off the main thread moves it; the wheel that moved it is
+      // dispatched only after the frame is sampled, with its own time from before the frame began.
+      const began = await new Promise((resolve) => requestAnimationFrame(resolve));
+      list.scrollTop += 100;
+      await ouroFeel.painted();
+      const wheel = new WheelEvent("wheel", { deltaY: 100, bubbles: true });
+      Object.defineProperty(wheel, "timeStamp", { value: began - 1 });
+      list.dispatchEvent(wheel);
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.inputNeverMoved, 0);
+    assert.equal(measures.deadInput, 0);
+    assert.equal(measures.inputToMotionMaxFrames, 1);
+    assert.equal(measures.inputToMotionMaxMs, 1);
+  } finally {
+    await browser.close();
+  }
+});

@@ -118,11 +118,17 @@ interface Wheel {
   deltaY: number;
 }
 
-/** A wheel event waiting for the list to move its way: when it came, how many frames had been sampled then, and which way. */
-interface Motion {
+/** A wheel event that turned the list one way or the other: when it came, and which way. */
+interface Turn {
   at: number;
-  frame: number;
   direction: number;
+}
+
+/** A frame sampled while watching: when it began (its requestAnimationFrame time), and the list's scroll and how far it could go. */
+interface Seen {
+  at: number;
+  top: number;
+  max: number;
 }
 
 /** A chat app's frame meter's placeholders: one in view makes a `blankFramesInset` frame. */
@@ -228,7 +234,9 @@ function install(): OuroFeel {
 
   // Input the probe can see: trusted wheel events, from the OS or the DevTools Input domain alike.
   const wheels: Wheel[] = [];
-  const motions: Motion[] = [];
+  /** Input to motion is worked out when the case stops, from every wheel turn and frame, as the frame meter works it out. */
+  const turns: Turn[] = [];
+  const seen: Seen[] = [];
   addEventListener(
     "wheel",
     (event) => {
@@ -242,14 +250,7 @@ function install(): OuroFeel {
       const now = performance.now();
       const at = event.timeStamp > 0 && event.timeStamp <= now ? event.timeStamp : now;
       wheels.push({ at, deltaY });
-      // Where the list was in the last frame sampled, before this input: an engine that scrolls off the main thread may have
-      // moved it already by the time the event is dispatched. A wheel that list cannot move, at its end that way, is neither a
-      // motion nor dead input.
-      const direction = Math.sign(deltaY);
-      if (direction === 0) return;
-      const [top, max] = sampled ?? quietly(() => [list.scrollTop, list.scrollHeight - list.clientHeight]);
-      if ((direction < 0 && top <= MOVE_PX) || (direction > 0 && top >= max - MOVE_PX)) inputAtEdge += 1;
-      else motions.push({ at, frame: frames, direction });
+      if (deltaY !== 0) turns.push({ at, direction: Math.sign(deltaY) });
     },
     { capture: true, passive: true },
   );
@@ -275,16 +276,10 @@ function install(): OuroFeel {
   let anchorMovePx = 0;
   let blankFrames = 0;
   let blankFramesInset = 0;
-  let deadInput = 0;
   let wheelInputs = 0;
   let quietFrames = 0;
   /** The gaps between frames while watching, and how long each wheel event took to move the list, in ms and in frames. */
   const gaps: number[] = [];
-  /** Where the list was in the last frame sampled, and how far it could scroll: what a wheel event's movement is measured from. */
-  let sampled: [number, number] | undefined;
-  let inputAtEdge = 0;
-  const toMotionMs: number[] = [];
-  const toMotionFrames: number[] = [];
 
   // The loop runs only while there is something to do (a case watching, or a paint someone waits for), so a page with the probe
   // loaded and nothing watched asks for no frames, and idles as it would without it.
@@ -388,6 +383,7 @@ function install(): OuroFeel {
     const list = listOf(options);
     if (list === null) {
       blankFramesInset += 1;
+      seen.push({ at: lastFrameAt, top: 0, max: 0 });
       return false;
     }
     const box = list.getBoundingClientRect();
@@ -435,28 +431,10 @@ function install(): OuroFeel {
     anchor = next?.[0];
     anchorTop = next?.[1] ?? 0;
 
-    // Input to motion: from a wheel event to the start of the first frame whose scroll moved its way from the frame before.
-    // Dead input: one that took 100 ms or more, or never moved the list.
-    const scrollTop = list.scrollTop;
-    const delta = scrollTop - (sampled?.[0] ?? scrollTop);
-    for (let index = motions.length - 1; index >= 0; index--) {
-      const motion = motions[index]!;
-      // As the meter does, a wheel waits for a frame that began after it, and counts its frames from that one.
-      if (motion.at > lastFrameAt) {
-        motion.frame = frames;
-        continue;
-      }
-      if (Math.sign(delta) !== motion.direction || Math.abs(delta) < MOVE_PX) continue;
-      const ms = Math.max(0, lastFrameAt - motion.at);
-      toMotionMs.push(ms);
-      toMotionFrames.push(frames - motion.frame);
-      if (ms >= DEAD_INPUT_MS) deadInput += 1;
-      motions.splice(index, 1);
-    }
+    seen.push({ at: lastFrameAt, top: list.scrollTop, max: list.scrollHeight - list.clientHeight });
     const keep = wheels.filter((wheel) => now - wheel.at <= INPUT_WINDOW_MS);
     wheels.length = 0;
     wheels.push(...keep);
-    sampled = [scrollTop, list.scrollHeight - list.clientHeight];
 
     // Blank frames, as a chat app's frame meter counts them (blankFramesInset): no row with height in the view less 40 px at its
     // top and bottom, or a placeholder anywhere in it, in any frame, rows or none. Read from the rows' boxes, not hit testing: a
@@ -497,26 +475,46 @@ function install(): OuroFeel {
     return measures;
   }
 
-  /** The wheel events that never moved the list: those a frame began after, as the meter leaves out one that none did. */
-  function neverMoved(): Motion[] {
-    return motions.filter((motion) => motion.at <= lastFrameAt);
-  }
-
   /**
-   * How long wheel events took to move the list, at the 95th percentile and at most, as the frame meter takes them: one that never
-   * moved it counts until the last frame, in ms, and as never in frames, which leaves the frames out once it reaches them.
+   * Input to motion and dead input, worked out as the frame meter works them out. Each wheel turn is timed from its own time to
+   * the start of the first frame, from the first that began after it, whose scroll moved its way from the frame before: at the
+   * 95th percentile and at most, in ms and in frames counted from that first frame. One that never moved the list counts until the
+   * last frame in ms, and as never in frames, which leaves the frames out once it reaches them. One no frame began after counts
+   * in none, and one at the end of the list it turned toward, in the frame before, counts only as `inputAtEdge`. Dead input
+   * moved the list 100 ms or more after it came, or never.
    */
-  function inputToMotion(): Measures {
-    const never = neverMoved();
-    const measures: Measures = { inputNeverMoved: never.length, inputAtEdge };
-    const ms = [...toMotionMs, ...never.map((motion) => lastFrameAt - motion.at)];
-    if (ms.length === 0) return measures;
-    const counted = [...toMotionFrames, ...never.map(() => Infinity)];
+  function inputToMotion(): [Measures, number] {
+    const ms: number[] = [];
+    const counted: number[] = [];
+    let inputAtEdge = 0;
+    let inputNeverMoved = 0;
+    let dead = 0;
+    for (const turn of turns) {
+      const first = seen.findIndex((frame) => frame.at >= turn.at);
+      if (first < 0) continue;
+      const before = seen[first - 1] ?? seen[first]!;
+      if ((turn.direction < 0 && before.top <= MOVE_PX) || (turn.direction > 0 && before.top >= before.max - MOVE_PX)) {
+        inputAtEdge += 1;
+        continue;
+      }
+      let moved = -1;
+      for (let index = first; index < seen.length && moved < 0; index++) {
+        const step = seen[index]!.top - (seen[index - 1] ?? before).top;
+        if (Math.sign(step) === turn.direction && Math.abs(step) >= MOVE_PX) moved = index;
+      }
+      const took = Math.max(0, seen[moved < 0 ? seen.length - 1 : moved]!.at - turn.at);
+      ms.push(took);
+      counted.push(moved < 0 ? Infinity : moved - first + 1);
+      if (moved < 0) inputNeverMoved += 1;
+      if (moved < 0 || took >= DEAD_INPUT_MS) dead += 1;
+    }
+    const measures: Measures = { inputNeverMoved, inputAtEdge };
+    if (ms.length === 0) return [measures, dead];
     measures.inputToMotionP95Ms = Math.round(p95(ms));
     measures.inputToMotionMaxMs = Math.round(Math.max(...ms));
     if (p95(counted) !== Infinity) measures.inputToMotionP95Frames = p95(counted);
     if (Math.max(...counted) !== Infinity) measures.inputToMotionMaxFrames = Math.max(...counted);
-    return measures;
+    return [measures, dead];
   }
 
   const feel: OuroFeel = {
@@ -525,9 +523,9 @@ function install(): OuroFeel {
       watching = options;
       layoutReads = forcedLayouts = readsThisFrame = mostReadsInAFrame = 0;
       jumps = jumpMaxPx = jumpsStrict = jumpStrictMaxPx = shifts = anchorShiftPx = drift = anchorMovePx = 0;
-      blankFrames = blankFramesInset = deadInput = wheelInputs = frames = added = 0;
+      blankFrames = blankFramesInset = wheelInputs = frames = added = 0;
       longestFrame = 0;
-      gaps.length = motions.length = toMotionMs.length = toMotionFrames.length = 0;
+      gaps.length = turns.length = 0;
       inputSinceSample = 0;
       wheels.length = 0;
       const list = listOf(options);
@@ -535,9 +533,11 @@ function install(): OuroFeel {
         const box = list.getBoundingClientRect();
         return middleRow(rowBoxes(list, options.rows, box), box);
       });
-      // The first wheel event's movement is measured from where the list is now, before any frame is sampled.
-      sampled = list === null ? undefined : quietly(() => [list.scrollTop, list.scrollHeight - list.clientHeight]);
-      inputAtEdge = 0;
+      // Where the list is now stands for the frame before the first, which the meter, always running, would have: a wheel event
+      // before any frame is sampled is measured from it. Its time is before every wheel's, so it is never a wheel's first frame.
+      const [top, max] = list === null ? [0, 0] : quietly(() => [list.scrollTop, list.scrollHeight - list.clientHeight]);
+      seen.length = 0;
+      seen.push({ at: -Infinity, top, max });
       anchor = start?.[0];
       anchorTop = start?.[1] ?? 0;
       writePending();
@@ -562,6 +562,7 @@ function install(): OuroFeel {
       return true;
     },
     stop(settled) {
+      const [motion, deadInput] = inputToMotion();
       const result: RunResult = {
         case: watching?.case ?? "",
         settled,
@@ -576,8 +577,7 @@ function install(): OuroFeel {
           shifts,
           anchorShiftPx: Math.round(anchorShiftPx),
           anchorMovePx: Math.round(anchorMovePx * 10) / 10,
-          // Those that moved the list 100 ms or more after they came, and those that never moved it.
-          deadInput: deadInput + neverMoved().length,
+          deadInput,
           wheelInputs,
           forcedLayouts,
           layoutReads,
@@ -585,7 +585,7 @@ function install(): OuroFeel {
           rowsMounted: added,
           longestFrameMs: Math.round(longestFrame),
           ...frameTimes(),
-          ...inputToMotion(),
+          ...motion,
         },
         userAgent: navigator.userAgent,
       };
