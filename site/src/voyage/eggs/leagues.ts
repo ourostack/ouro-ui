@@ -1,8 +1,5 @@
-import { claim } from "@/registry/ouro/lib/ouro/claims";
-import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchXray } from "../xray-store";
 import { firstFind } from "./listen";
-import { LEAGUES_TITLE } from "../copy";
 import "./eggs.css";
 
 /** The leagues in the book's title, where the log stops. */
@@ -19,9 +16,9 @@ const number = new Intl.NumberFormat("en-US");
 /**
  * The ship's log on the Nautilus's page: a small count at the screen's bottom corner of the leagues
  * traveled, which grows as the reader scrolls the story (and never runs back), and stops at twenty
- * thousand at the end of the page with a wink, and a toast once a visit that says why: the book's
- * title is a distance, not a depth. The count is decoration, hidden from screen readers, which
- * hear the toast. It steps aside while X-ray is on.
+ * thousand at the end of the page with a wink: the book's title is a distance, not a depth. It raises
+ * no toast, which would cover the voyage's end as it scrolls in, and the story's opening already says
+ * what a league is. The count is decoration, hidden from screen readers. It steps aside while X-ray is on.
  */
 export function startLeagues(): () => void {
   const log = document.createElement("div");
@@ -47,14 +44,7 @@ export function startLeagues(): () => void {
     if (done === log.hasAttribute("data-done")) return;
     log.toggleAttribute("data-done", done);
     words.textContent = done ? "leagues: a distance, not a depth!" : "leagues traveled";
-    if (done && firstFind("leagues")) {
-      toast(LEAGUES_TITLE, {
-        description: claim(
-          "That's the distance in the book's title, Twenty Thousand Leagues Under the Seas: how far the Nautilus sails, about 80,000 km, nearly twice around the Earth. No sea is that deep.",
-          { source: { spec: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" } },
-        ),
-      });
-    }
+    if (done) firstFind("leagues");
   };
   const schedule = () => {
     if (!frame) frame = requestAnimationFrame(update);

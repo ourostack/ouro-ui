@@ -438,13 +438,13 @@ function Encounter(): JSX.Element {
             <Badge tone={won ? "success" : "destructive"} variant="soft">
               {won ? ENCOUNTER.free : ENCOUNTER.held}
             </Badge>
-            <Badge tone={surfaced ? "primary" : "secondary"} variant="soft">
+            <Badge tone={surfaced ? "primary" : "secondary"} variant={surfaced ? "soft" : "outline"}>
               {surfaced ? ENCOUNTER.surfaced : ENCOUNTER.deep}
             </Badge>
-            <Badge tone={lights ? "primary" : "secondary"} variant="soft">
+            <Badge tone={lights ? "primary" : "secondary"} variant={lights ? "soft" : "outline"}>
               {lights ? ENCOUNTER.lightsOn : ENCOUNTER.lightsOff}
             </Badge>
-            <Badge tone={feathers ? "primary" : "secondary"} variant="soft">
+            <Badge tone={feathers ? "primary" : "secondary"} variant={feathers ? "soft" : "outline"}>
               {feathers ? ENCOUNTER.feathersReady : ENCOUNTER.feathersStowed}
             </Badge>
           </p>

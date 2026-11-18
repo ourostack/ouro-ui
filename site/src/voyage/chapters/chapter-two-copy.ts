@@ -20,7 +20,7 @@ export type ChapterTwoControl = (typeof CHAPTER_TWO_CONTROLS)[number];
 export const CHAPTER_TWO = {
   number: "Chapter II",
   title: "Plan the voyage",
-  intro: "The ship is built. Now plan the trip: where she goes, and when she sails.",
+  intro: "A voyage starts in the chart room: where she goes, and when she sails.",
   /** Over the course line from Chapter I into this one. */
   handoff: "She floats. Now, where to?",
 } as const;

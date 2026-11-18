@@ -29,7 +29,7 @@ export interface CrewLine {
 export const CHAPTER_ONE = {
   number: "Chapter I",
   title: "Build the ship",
-  intro: "Captain Nemo is building a submarine in secret, on a far island. Help him finish it.",
+  intro: "A handful of jobs stand between the slip and the sea. Put them in a sound order, then sign on.",
   next: "Then sign on. A ship needs a crew.",
   code: "Code",
   /** Over the course line from the themes into the chapter. */
