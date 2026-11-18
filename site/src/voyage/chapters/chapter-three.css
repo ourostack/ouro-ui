@@ -14,9 +14,16 @@
  * when the captain plays (a few times, then they rest), and the squid comes back to sway along.
  * Under reduced motion nothing moves: the squid and the ink fade, the notes appear in place.
  */
+/* The squid's coral, as in the chapter's picture: lit on top and shaded below, so it reads as a body, not a cut-out. */
 .site-porthole {
-  --sq-skin: color-mix(in oklab, var(--destructive) 50%, oklch(0.58 0.05 25));
-  --sq-line: color-mix(in oklab, white 72%, var(--sq-skin));
+  --sq-skin: color-mix(in oklab, oklch(0.63 0.15 22) 90%, var(--background));
+  --sq-line: color-mix(in oklab, white 60%, var(--sq-skin));
+}
+.site-porthole .ph-squid-lit {
+  stop-color: color-mix(in oklab, var(--sq-skin) 72%, oklch(0.86 0.08 40));
+}
+.site-porthole .ph-squid-shade {
+  stop-color: color-mix(in oklab, var(--sq-skin) 70%, oklch(0.3 0.08 15));
 }
 .site-porthole .ph-sky rect {
   fill: color-mix(in oklab, var(--primary) 28%, oklch(0.93 0.02 230));
@@ -24,9 +31,11 @@
 .site-porthole .ph-squid {
   color: var(--sq-line);
 }
-.site-porthole .sq-arm,
-.site-porthole :is(.sq-mantle, .sq-head) {
+.site-porthole .sq-arm {
   fill: var(--sq-skin);
+}
+.site-porthole :is(.sq-mantle, .sq-head) {
+  fill: url(#porthole-squid);
 }
 .site-porthole .sq-fin {
   fill: color-mix(in oklab, black 14%, var(--sq-skin));
@@ -192,7 +201,7 @@
 }
 /* Under the floodlights the squid's skin shows paler: a colour, not a filter, which is slow to paint in WebKit. */
 .site-porthole[data-lights] {
-  --sq-skin: color-mix(in oklab, var(--destructive) 42%, oklch(0.7 0.05 25));
+  --sq-skin: color-mix(in oklab, oklch(0.7 0.13 25) 90%, var(--background));
 }
 .site-organ[data-played] .or-note {
   opacity: 1;

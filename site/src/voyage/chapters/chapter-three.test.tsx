@@ -131,6 +131,24 @@ describe("the windows", () => {
   });
 });
 
+describe("the porthole", () => {
+  it("is turned brass and a shaded squid, as the home page's porthole and the chapter's picture are, not flat theme colours", async () => {
+    await renderPage("/nautilus/");
+    await expect.poll(() => document.querySelector("#chapter-three[data-chapter-ready]")).not.toBeNull();
+    for (const scheme of ["light", "dark"] as const) {
+      setScheme(scheme);
+      expect(getComputedStyle(scene().querySelector(".ph-ring")!).stroke).toMatch(/url\(["']?#porthole-metal["']?\)/);
+      expect(getComputedStyle(scene().querySelector(".ph-sea")!).fill).toMatch(/url\(["']?#porthole-sea["']?\)/);
+      expect(getComputedStyle(scene().querySelector(".sq-mantle")!).fill).toMatch(/url\(["']?#porthole-squid["']?\)/);
+      // The rim's brass is its own, never a look's chart colour.
+      const stops = [...document.querySelectorAll<SVGStopElement>("#porthole-metal stop")].map((stop) => stop.style.stopColor);
+      expect(stops).toHaveLength(4);
+      expect(stops.join(" ")).not.toContain("--chart-3");
+    }
+    setScheme("light");
+  });
+});
+
 describe("the crew's cheer", () => {
   it("comes with the shared frame's styles, so a chapter cheers without Chapter I's", () => {
     expect(frameStyles).toContain(".site-cheer");
