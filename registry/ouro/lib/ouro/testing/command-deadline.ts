@@ -1,6 +1,3 @@
-/** The commands `userEvent` sends (`ensureAwaited` in @vitest/browser), which Vitest does not register with the deadline. */
-const USER_EVENT_COMMANDS = new Set(["__vitest_keyboard", "__vitest_type", "__vitest_tab", "__vitest_cleanup"]);
-
 interface Deadline {
   derive(): number;
   track(name: string, promise: Promise<unknown>, timeout: number, source?: Error): Promise<unknown>;
@@ -10,6 +7,9 @@ interface RunnerState {
   runner?: { _deadline?: Deadline | undefined };
   commands: { triggerCommand: (command: string, args: unknown[], error?: Error) => Promise<unknown> };
 }
+
+/** The commands `userEvent` sends (`ensureAwaited` in @vitest/browser), which Vitest does not register with the deadline. */
+const USER_EVENT_COMMANDS = new Set(["__vitest_keyboard", "__vitest_type", "__vitest_tab", "__vitest_cleanup"]);
 
 /** The command as a timeout names it: its verb, and its first string argument (the text typed) when it has one. */
 export function describeCommand(command: string, args: unknown[]): string {
