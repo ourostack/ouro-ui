@@ -38,7 +38,7 @@ export default function AppleFeel(): JSX.Element {
   return (
     <div id="apple-feel" className="apple">
       <AppleMenu current="/apple/feel/" />
-      <StoryOpener scene="ouro-ui-apple" line="The robot double-taps every switch on the bench, hunting for jank. So far the meadow is clean." />
+      <StoryOpener scene="ouro-ui-apple" line="The robot double-taps every switch on the bench, hunting for jank. Not one stutter yet." />
       <Hero
         layout="split"
         eyebrow="Ouro Feel"

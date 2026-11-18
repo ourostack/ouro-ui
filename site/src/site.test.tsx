@@ -269,6 +269,21 @@ describe("home page", () => {
     }
   });
 
+  it("puts each opening line in the place its picture shows", () => {
+    // A line under a picture that names a place the picture is not (a meadow over a train) reads as a mistake.
+    const places = ["meadow", "hill", "train", "studio", "cabin", "deck", "kitchen", "library", "cove", "saloon", "sea", "park"];
+    const sources = import.meta.glob<string>(["./**/*.tsx", "!./**/*.test.tsx"], { query: "?raw", import: "default", eager: true });
+    const openers = Object.entries(sources).flatMap(([file, text]) =>
+      [...text.matchAll(/<StoryOpener scene="([^"]+)" line="([^"]+)"/g)].map(([, scene, line]) => ({ file, scene: scene as keyof typeof SCENES, line: line! })),
+    );
+    expect(openers.length).toBeGreaterThan(5);
+    for (const { file, scene, line } of openers) {
+      for (const place of places.filter((word) => new RegExp(`\\b${word}\\b`, "i").test(line))) {
+        expect(SCENES[scene].alt, `${file}: "${line}" names a ${place}, which ${scene} does not show`).toMatch(new RegExp(`\\b${place}\\b`, "i"));
+      }
+    }
+  });
+
   it("shows each storybook scene at night in dark mode, from its own files, lazily, and only the shown one is drawn or heard", async () => {
     await renderPage("/");
     for (const scene of ["ouro-hx", "ourostack"]) {

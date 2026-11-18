@@ -45,7 +45,7 @@ export default function AppleAx(): JSX.Element {
   return (
     <div id="apple-ax" className="apple">
       <AppleMenu current="/apple/ax/" />
-      <StoryOpener scene="ouro-ui-apple" line="Agents wander up the hill to ask the card what it can do. It tells them, in App Intents." />
+      <StoryOpener scene="ouro-ui-apple" line="Agents drop by the studio to ask the card what it can do. It tells them, in App Intents." />
       <Hero
         layout="column"
         eyebrow="Ouro AX for Apple"

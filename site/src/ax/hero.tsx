@@ -12,7 +12,7 @@ import { StoryOpener } from "../components/story-world";
 export function AxHero({ exhibit }: { exhibit: ReactNode }): JSX.Element {
   return (
     <>
-      <StoryOpener scene="playwright-focus-proof" line="Mid-morning in the meadow. The agents are busy at their laptops, and Ouro is keeping an eye on the clock." />
+      <StoryOpener scene="playwright-focus-proof" line="Mid-morning on the train. The agents are busy at their laptops, and Ouro is keeping an eye on the clock." />
       <Hero
         layout="column"
         eyebrow="Ouro AX"
