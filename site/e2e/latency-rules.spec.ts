@@ -151,8 +151,8 @@ test.describe("a runner the probe reads past the cap", () => {
   test.afterEach(() => void Object.assign(LATENCY, { probeQuiet: quiet, loadWaitMs: wait }));
 
   test("re-measures a fast control too, carrying its presses on, and fails it as too loaded to judge when the probe is past the cap every time", async ({ page }) => {
-    // A measurement for each of LATENCY.loadTries, where the other tests here take one.
-    test.setTimeout(LATENCY.loadTries * 30_000);
+    // The default time limit for one measurement: each re-measure extends it by what it needs.
+    const limit = test.info().timeout;
     await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
     await page.evaluate(() => document.getElementById("b")!.addEventListener("click", () => (document.getElementById("o")!.textContent = String(Math.random()))));
     const pressed: number[] = [];
@@ -166,6 +166,7 @@ test.describe("a runner the probe reads past the cap", () => {
     // Measured LATENCY.loadTries times, each carrying on from the one before's last index rather than starting again at 0.
     expect(pressed).toEqual(Array.from({ length: pressed.length }, (_, index) => index));
     expect(pressed.length).toBe(LATENCY.loadTries * (LATENCY.warmUps + LATENCY.samples));
+    expect(test.info().timeout).toBeGreaterThan(limit);
   });
 });
 
