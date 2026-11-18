@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Ouro Feel's probe [reads the boxes of only the rows in view each frame](scripts/feel.test.mjs "verify:fileLine(scripts/feel.test.mjs, /reads only the rows in view each frame, and still follows the reader's row/)"), not every row the list holds, so watching a long list costs less script a frame.
