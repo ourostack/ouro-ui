@@ -22,6 +22,7 @@ import { useStable } from "../use-stable";
 import { parseArt } from "../stage/art";
 import type { CrewName } from "../stage/copy";
 import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
+import { crewFace } from "./crew-faces";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (each part drawn in, the launch, the yard's picture,
 // the crew's cheer): it comes inside this island's script and goes into the page as the island
@@ -453,7 +454,7 @@ function Articles(): JSX.Element {
         </div>
         <ItemGroup aria-label={ARTICLES.roster} className="mt-1">
           {CREW.map((member) => (
-            <Item key={member.name} size="sm" media={<Avatar name={member.name} alt="" />} title={member.name} actions={<Badge tone="secondary" variant="soft">{member.trade}</Badge>} />
+            <Item key={member.name} size="sm" media={<Avatar name={member.name} src={crewFace(member.name, "md")} alt="" />} title={member.name} actions={<Badge tone="secondary" variant="soft">{member.trade}</Badge>} />
           ))}
           {you ? (
             <Item
