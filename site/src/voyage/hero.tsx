@@ -173,7 +173,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
           <>
             <p>{keepHyphenatedWordsWhole(VOYAGE_HERO.subline)}</p>
             <p className="site-hero-links" data-site-hero-links="">
-              {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews].map((link) => (
+              {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews, VOYAGE_HERO.links.platforms].map((link) => (
                 <Link key={link.href} href={href(link.href)} tone="secondary" inline>
                   {link.label}
                 </Link>

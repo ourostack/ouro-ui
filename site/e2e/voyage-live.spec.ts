@@ -41,18 +41,21 @@ test.describe("Live, at every sky, light and dark", () => {
     }
   }
 
-  test("picking a preset ends Live, and picking Live brings the sky back", async ({ page }) => {
+  test("a reader who has chosen nothing opens in Live, a preset ends it, and picking Live brings the sky back", async ({ page }) => {
     await page.clock.setFixedTime(new Date(SKIES.dusk));
     await page.setViewportSize({ width: 1440, height: 900 });
     await open(page);
-    await expect(page.locator("html")).not.toHaveAttribute("data-live", /.*/);
-    const dots = page.getByRole("group", { name: "Theme", exact: true });
-    await dots.getByRole("button", { name: "Live", exact: true }).click();
+    // Live is the default: the sky is on the page before anything is pressed.
     await expect(page.locator("html")).toHaveAttribute("data-sky", "dusk");
     await expect(page.locator("#ouro-live")).toHaveCount(1);
+    const dots = page.getByRole("group", { name: "Theme", exact: true });
+    await expect(dots.getByRole("button", { name: "Live", exact: true })).toHaveAttribute("aria-pressed", "true");
     await dots.getByRole("button", { name: "Coral", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "coral");
     await expect(page.locator("html")).not.toHaveAttribute("data-live", /.*/);
     await expect(page.locator("#ouro-live")).toHaveCount(0);
+    await dots.getByRole("button", { name: "Live", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-sky", "dusk");
+    await expect(page.locator("#ouro-live")).toHaveCount(1);
   });
 });

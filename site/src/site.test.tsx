@@ -143,13 +143,14 @@ describe("home page", () => {
     }
     expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
     // The hero says what a person choosing it gets, consent built in included, in one lede at every width, and links the
-    // benchmark and the model reviews.
+    // benchmark, the model reviews and the platform gap.
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
     // No line of it breaks inside a hyphenated word: "X-ray" once wrapped as "X-" / "ray".
     expect([...document.querySelectorAll("[data-site-whole-word]")].map((word) => word.textContent)).toEqual(VOYAGE_HERO.subline.match(/\S+-\S+/g) ?? []);
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Agent benchmark", "/docs/agent-interfaces/"],
       ["Model reviews", "/docs/model-reviews/"],
+      ["Android: emulators only", "/docs/platforms/"],
     ]);
     expect(routes[0]!.title).toBe("Ouro UI");
     // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;

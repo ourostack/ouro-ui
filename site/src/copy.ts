@@ -42,10 +42,17 @@ export const VOYAGE_HERO = {
       verify: [{ testExists: "test/theme-tokens.test.tsx::theme fixtures > puts a fixture's values in place of the Ouro look, and its @theme inline fonts too" }, { urlOk: "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L5" }, { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
     },
   ),
-  /** Under the lede: where to check how agents and models judge it. */
+  /** Under the lede: where to check how agents and models judge it, and the platform gap, said plainly. */
   links: {
     benchmark: { label: "Agent benchmark", href: "/docs/agent-interfaces/" },
     reviews: { label: "Model reviews", href: "/docs/model-reviews/" },
+    platforms: {
+      label: claim("Android: emulators only", {
+        source: { file: "docs/platforms/README.md" },
+        verify: [{ fileLine: "docs/platforms/README.md", pattern: "checked on emulators because nobody here owns an Android device" }],
+      }),
+      href: "/docs/platforms/",
+    },
   },
 } as const;
 
@@ -102,7 +109,7 @@ export const KIT = {
       key: "hx",
       name: "Ouro HX",
       title: "Screens people enjoy",
-      line: claim("Components for the web, Apple, Windows and Android, with focus, touch and motion done for you.", {
+      line: claim("Components for the web with focus, touch and motion done for you, and native kits growing on Apple, Windows and Android.", {
         source: [{ file: "docs/platforms/README.md" }, { test: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" }, { file: "registry/ouro/lib/ouro/touch-target.tsx" }],
         verify: [
           { fileLine: "docs/platforms/README.md", pattern: "is a WinUI kit at its latest release" },
