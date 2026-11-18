@@ -601,7 +601,7 @@ describe("docs", () => {
     await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "zzz");
     // No component's link; the line under the filter offers to ask for one.
     expect(nav.getByRole("link").elements().filter((link) => !link.closest('[role="status"]'))).toHaveLength(0);
-    await expect.element(nav.getByRole("status")).toHaveTextContent(/^No component is called that\. Want one\?/);
+    await expect.poll(() => nav.getByRole("status").query()?.textContent?.replace(/\s+/g, " ")).toMatch(/^No component is called that\. Want one\? Ask for “zzz”/);
   });
 
   it("turns a filter that finds nothing into a request for it, filled in on GitHub", async () => {
