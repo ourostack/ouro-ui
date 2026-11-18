@@ -51,7 +51,7 @@ The WKWebView leg runs nightly and by hand in [the Feel workflow](../.github/wor
 
 ## Adding Ouro Feel to an app
 
-An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.js` first in the page's `<head>`, with `data-ouro-feel-bridge` naming where the page polls for commands. Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run, so the app can take its own medians and bands.[^runs]
+An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.js` first in the page's `<head>`, with `data-ouro-feel-bridge` naming where the page polls for commands. `watch` takes the list as an element, or as a selector that the probe looks up again each frame, so an app that puts a new list in the old one's place (another conversation opened) is measured in the new list.[^watch-selector] Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run, so the app can take its own medians and bands.[^runs]
 
 [^seed]: test:scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up verify:testExists(scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up)
 [^service]: test:scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page)
@@ -65,3 +65,4 @@ An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.j
 [^dead]: feel/probe/probe.ts verify:fileLine(feel/probe/probe.ts, /^const DEAD_INPUT_MS = 100;$/)
 [^prepend]: feel/fixture/cases/history-prepend.tsx verify:fileLine(feel/fixture/cases/history-prepend.tsx, /^const LOADED = 200;$/) verify:fileLine(feel/fixture/cases/history-prepend.tsx, /^const PAGE = 200;$/)
 [^runs]: test:scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs verify:testExists(scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs)
+[^watch-selector]: test:scripts/feel.test.mjs::Ouro Feel's probe takes the list as a selector and finds it again each frame, so a list put in another's place is measured verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe takes the list as a selector and finds it again each frame, so a list put in another's place is measured)

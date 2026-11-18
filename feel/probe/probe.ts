@@ -7,8 +7,11 @@
 export interface WatchOptions {
   /** The case's name, such as `history-prepend` or `scroll`. */
   case: string;
-  /** The scrolling list. */
-  scroller: Element;
+  /**
+   * The scrolling list, or a selector that finds it. A selector is looked up again each frame, so a list put in another's place
+   * (an app that opens another conversation in a new list) is the one measured.
+   */
+  scroller: Element | string;
   /** What counts as a row in the list, for the anchor, blank frames and rows mounted. */
   rows: string;
   /** What a loading placeholder is: one in view makes a `blankFramesInset` frame. @default '[data-ouro="skeleton"]' */
@@ -191,17 +194,23 @@ function install(): OuroFeel {
     }
   }
 
+  /** The list being watched now: a selector finds it again, as the page may have put another in its place. */
+  function listOf(options: WatchOptions): Element | null {
+    return typeof options.scroller === "string" ? document.querySelector(options.scroller) : options.scroller;
+  }
+
   // Input the probe can see: trusted wheel events, from the OS or the DevTools Input domain alike.
   const wheels: Wheel[] = [];
   addEventListener(
     "wheel",
     (event) => {
-      if (watching === undefined) return;
+      const list = watching === undefined ? null : listOf(watching);
+      if (list === null) return;
       // Lines and pages, which a mouse wheel may send, as pixels.
-      const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? quietly(() => watching!.scroller.clientHeight) : 1);
+      const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? quietly(() => list.clientHeight) : 1);
       inputSinceSample += deltaY;
       wheelInputs += 1;
-      wheels.push({ at: event.timeStamp, deltaY, scrollTop: quietly(() => watching!.scroller.scrollTop), resolved: false });
+      wheels.push({ at: event.timeStamp, deltaY, scrollTop: quietly(() => list.scrollTop), resolved: false });
     },
     { capture: true, passive: true },
   );
@@ -258,8 +267,8 @@ function install(): OuroFeel {
   };
 
   /** The list's rows and their boxes, read once a frame: a large list's rows are many, and reading them again is the probe's own cost. */
-  function rowBoxes(options: WatchOptions): [Element, DOMRect][] {
-    return [...options.scroller.querySelectorAll(options.rows)].map((row) => [row, row.getBoundingClientRect()]);
+  function rowBoxes(list: Element, rows: string): [Element, DOMRect][] {
+    return [...list.querySelectorAll(rows)].map((row) => [row, row.getBoundingClientRect()]);
   }
 
   /** The row nearest the middle of the list's view, and its top in the view. */
@@ -275,10 +284,12 @@ function install(): OuroFeel {
     return best;
   }
 
-  /** Measures the frame just painted; true when the reader's row moved. */
+  /** Measures the frame just painted; true when the reader's row moved. A frame with no list in the page measures nothing. */
   function sample(options: WatchOptions): boolean {
-    const box = options.scroller.getBoundingClientRect();
-    const rows = rowBoxes(options);
+    const list = listOf(options);
+    if (list === null) return false;
+    const box = list.getBoundingClientRect();
+    const rows = rowBoxes(list, options.rows);
     const boxOf = new Map(rows);
     const now = performance.now();
     const recent = wheels.filter((wheel) => now - wheel.at <= INPUT_WINDOW_MS);
@@ -313,8 +324,8 @@ function install(): OuroFeel {
     anchorTop = next?.[1] ?? 0;
 
     // Dead input: a wheel event that has moved nothing for 100 ms, away from the list's ends.
-    const scrollTop = options.scroller.scrollTop;
-    const atEnd = scrollTop <= 0 || scrollTop >= options.scroller.scrollHeight - options.scroller.clientHeight - 1;
+    const scrollTop = list.scrollTop;
+    const atEnd = scrollTop <= 0 || scrollTop >= list.scrollHeight - list.clientHeight - 1;
     for (const wheel of wheels) {
       if (wheel.resolved) continue;
       if (scrollTop !== wheel.scrollTop || atEnd) wheel.resolved = true;
@@ -339,7 +350,7 @@ function install(): OuroFeel {
       if (blank) blankFrames += 1;
       const inset = { top: box.top + BLANK_INSET_PX, bottom: box.bottom - BLANK_INSET_PX, left: box.left + BLANK_INSET_PX, right: box.right - BLANK_INSET_PX };
       const inside = (rect: DOMRect) => rect.bottom > inset.top && rect.top < inset.bottom && rect.right > inset.left && rect.left < inset.right;
-      const placeholder = [...options.scroller.querySelectorAll(options.skeleton ?? '[data-ouro="skeleton"]')].some((element) => inside(element.getBoundingClientRect()));
+      const placeholder = [...list.querySelectorAll(options.skeleton ?? '[data-ouro="skeleton"]')].some((element) => inside(element.getBoundingClientRect()));
       if (placeholder || !rows.some(([, rect]) => inside(rect))) blankFramesInset += 1;
     }
     return moved;
@@ -355,7 +366,8 @@ function install(): OuroFeel {
       longestFrame = 0;
       inputSinceSample = 0;
       wheels.length = 0;
-      const start = quietly(() => middleRow(rowBoxes(options), options.scroller.getBoundingClientRect()));
+      const list = listOf(options);
+      const start = list === null ? undefined : quietly(() => middleRow(rowBoxes(list, options.rows), list.getBoundingClientRect()));
       anchor = start?.[0];
       anchorTop = start?.[1] ?? 0;
       writePending();
