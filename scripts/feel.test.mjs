@@ -428,3 +428,33 @@ test("Ouro Feel's probe times each wheel event to the first frame that moved the
     await browser.close();
   }
 });
+
+test("Ouro Feel's probe follows the reader's row by its id, so a row drawn again as a new element that moved is still a jump", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    const rows = (gap) => `<div style="height:${gap}px"></div>${Array.from({ length: 40 }, (_, i) => `<div class="row" id="r${i}" style="height:48px">Row ${i}</div>`).join("")}`;
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto">${rows(0)}</div>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(
+      async ([moved]) => {
+        const { document, ouroFeel } = globalThis;
+        const list = document.getElementById("list");
+        list.scrollTop = 480;
+        await ouroFeel.painted();
+        ouroFeel.watch({ case: "redraw", scroller: list, rows: ".row" });
+        await ouroFeel.painted();
+        // Every row drawn again as a new element with the same id, 150 px further down, with no input.
+        list.innerHTML = moved;
+        await ouroFeel.rest(5);
+        return ouroFeel.stop(true).measures;
+      },
+      [rows(150)],
+    );
+    assert.equal(measures.jumps, 1);
+    assert.equal(measures.anchorShiftPx, 150);
+  } finally {
+    await browser.close();
+  }
+});

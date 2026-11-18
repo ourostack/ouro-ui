@@ -383,9 +383,11 @@ function install(): OuroFeel {
     const recentInput = recent.reduce((sum, wheel) => sum + wheel.deltaY, 0);
     let moved = false;
 
-    // The anchor: the row at the middle of the view, followed into this frame by element.
-    if (anchor?.isConnected) {
-      const move = (boxOf.get(anchor) ?? anchor.getBoundingClientRect()).top - box.top - anchorTop;
+    // The anchor: the row at the middle of the view, followed into this frame by element, or by its id where the page drew it again
+    // as a new element (a row re-keyed, or the list drawn again).
+    const followed = anchor?.isConnected ? anchor : anchor?.id ? rows.find(([row]) => row.id === anchor!.id)?.[0] : undefined;
+    if (followed !== undefined) {
+      const move = (boxOf.get(followed) ?? followed.getBoundingClientRect()).top - box.top - anchorTop;
       moved = move !== 0;
       // Scrolling down (a positive delta) moves content up the screen.
       const net = move + inputSinceSample;
