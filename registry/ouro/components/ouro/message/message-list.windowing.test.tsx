@@ -853,9 +853,10 @@ describe("MessageList windowing", () => {
    * estimate the tall ones set, and what that moves is carried, never paid, until the reader nears the top. One step then takes
    * them past it. Returns how far the reader's row moved, beyond their own scroll, in the worst step.
    */
-  async function wheelToTheTop() {
+  async function wheelToTheTop({ height = 400 } = {}) {
     const items = conversation(300).map((item) => ({ ...item, tall: item.id >= 240 ? 160 : 20 }));
-    const { scroller, rerender } = await render(<Chat items={items} springy={false} />);
+    const style = { height, width: 360 };
+    const { scroller, root, rerender } = await render(<Chat items={items} springy={false} style={style} />);
     const clock = { now: 1_000_000 };
     vi.spyOn(performance, "now").mockImplementation(() => clock.now);
     const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
@@ -875,8 +876,35 @@ describe("MessageList windowing", () => {
       await frame();
       worst = Math.max(worst, Math.abs(row.getBoundingClientRect().top - (before + reader)));
     }
-    return { scroller, content, clock, worst, items, rerender };
+    return { scroller, content, clock, worst, items, root, style, rerender };
   }
+
+  it("holds the reader's place for a message that goes in above them in the frame the space above the first message goes, before the list's own scroll is reported", async () => {
+    // A short view, so the space is more than half of it.
+    const { scroller, content, clock, items, root, style } = await wheelToTheTop({ height: 120 });
+    await frame();
+    const space = content.offsetTop;
+    expect(space).toBeGreaterThan(60);
+    // The wheel turns on, down past the space.
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 }));
+    scroller.scrollTop = space + 40;
+    await frame();
+    await settle(scroller);
+    const reading = firstVisible(scroller);
+    // As the space goes, once the wheel rests, a message goes in at the start of the conversation, in the same task.
+    let went = false;
+    const added = new MutationObserver(() => {
+      if (content.offsetTop !== 0) return;
+      went = true;
+      added.disconnect();
+      flushSync(() => root.render(<Chat items={[{ id: -1, text: "Message -1", tall: 20 }, ...items]} springy={false} style={style} />));
+    });
+    added.observe(content, { attributes: true, attributeFilter: ["style"] });
+    clock.now += 10_000;
+    await expect.poll(() => went).toBe(true);
+    await settle(scroller);
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+  });
 
   /** Lets the wheel rest at the top, and waits until the list has taken it: the mark that held the scroll range while it turned goes. */
   async function restWheel(scroller: HTMLElement, clock: { now: number }) {

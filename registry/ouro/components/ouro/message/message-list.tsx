@@ -1683,8 +1683,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const gone = slack;
       const applied = scrollOwn(-gone);
       setSlack(0);
-      // The hold on the range, kept while the list follows its end, comes up with the content, so the end is where it was.
-      if (floor !== 0) setFloor(floor - gone);
+      // The hold on the range, kept while the list follows its end, comes up with the content, so the end is where it was; none
+      // stays none.
+      setFloor(floor && floor - gone);
       // The anchors sit in the content, which the space going does not move: only the list's own scroll and the range it took
       // away are left out, so a change waiting for the resize observer is still held.
       taken += applied;
