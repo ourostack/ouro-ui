@@ -271,7 +271,8 @@ test("Ouro Feel's probe, watching a scroll, adds no layout a frame and under hal
       await page.setContent(app);
       if (watched) await page.addScriptTag({ content: probe });
       const cdp = await page.context().newCDPSession(page);
-      await cdp.send("Performance.enable");
+      // The time on the page's own thread, not the wall's, so a busy machine does not count against the probe.
+      await cdp.send("Performance.enable", { timeDomain: "threadTicks" });
       const read = async () => Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map(({ name, value }) => [name, value]));
       const before = await read();
       await page.evaluate(async (watched) => {
