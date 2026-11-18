@@ -334,7 +334,7 @@ export function SheetFrame({
     <SheetRoot
       side={side}
       snapPoints={snapPoints}
-      {...(snapPoint !== undefined ? { snapPoint } : {})}
+      snapPoint={snapPoint}
       modal={modal}
       disablePointerDismissal={!closeOnOutsidePress}
       {...(open !== undefined ? { open, onOpenChange: (next: boolean) => onOpenChange!(next) } : {})}
