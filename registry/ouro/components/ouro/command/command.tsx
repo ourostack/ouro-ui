@@ -282,7 +282,8 @@ export interface CommandBaseProps {
   /**
    * Keeps the dialog and its rows mounted while closed, hidden (no `dialog` role, nothing
    * focusable), so opening only shows them: for a palette with many rows that a shortcut opens
-   * often. The search is emptied once the dialog has closed (with `onQueryChange("")`), so the next
+   * often. The search is emptied once the dialog has closed (with `onQueryChange("")`), after its
+   * closing fade has ended, so the palette fades out showing what the person searched and the next
    * opening shows the empty search's rows already drawn. The phone sheet mounts as it opens.
    * @default false
    * @claim "Keeps the dialog and its rows mounted while closed" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command kept mounted > lets go of the width it held and holds the width it draws at each opening)
