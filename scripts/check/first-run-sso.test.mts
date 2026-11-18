@@ -41,6 +41,21 @@ const freePort = async () => {
   return port;
 };
 
+/** A ClientHello written byte by byte: its extensions, and a record that can lie about its lengths or carry bytes after it. */
+const u16 = (n: number) => Buffer.from([n >> 8, n & 0xff]);
+const ext = (type: number, body: Buffer) => Buffer.concat([u16(type), u16(body.length), body]);
+const sniExt = (name: string) => ext(0, Buffer.concat([u16(name.length + 3), Buffer.from([0]), u16(name.length), Buffer.from(name)]));
+const alpnExt = (protocols: string[]) => {
+  const list = Buffer.concat(protocols.map((p) => Buffer.concat([Buffer.from([p.length]), Buffer.from(p)])));
+  return ext(0x10, Buffer.concat([u16(list.length), list]));
+};
+function clientHello(exts: Buffer[], o: { extLen?: number; type?: number; first?: number; after?: Buffer } = {}): Buffer {
+  const all = Buffer.concat(exts);
+  const body = Buffer.concat([u16(0x0303), Buffer.alloc(32), Buffer.from([0]), u16(2), u16(0x1301), Buffer.from([1, 0]), u16(o.extLen ?? all.length), all]);
+  const handshake = Buffer.concat([Buffer.from([o.type ?? 1, 0]), u16(body.length), body]);
+  return Buffer.concat([Buffer.from([o.first ?? 0x16, 3, 1]), u16(handshake.length), handshake, o.after ?? Buffer.alloc(0)]);
+}
+
 /** The identity provider itself, with a certificate of its own, and the stand-in's certificates. */
 const certs = { mine: path.join(scratch, "stand-in"), real: path.join(scratch, "real") };
 assert.ok(makeCerts(certs.mine, [HOST, "nowhere.example.test"], "stand-in").ok);
@@ -76,6 +91,25 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
     // A handshake record that isn't a ClientHello, and one too short to hold one.
     assert.deepEqual(helloAlpn(Buffer.from([0x16, 3, 1, 0, 4, 0x02, 0, 0, 0])), []);
     assert.deepEqual(helloAlpn(Buffer.from([0x16, 3, 1, 0, 4, 0x01, 0, 0, 0])), []);
+  });
+
+  test("reads a hello's lengths as the record gives them, never past its end", () => {
+    assert.deepEqual(helloAlpn(clientHello([sniExt("a.test"), alpnExt(["h2", "http/1.1", "x"])])), ["h2", "http/1.1", "x"]);
+    assert.equal(sniOf(clientHello([sniExt("a.test"), alpnExt(["h2"])])), "a.test");
+    // An empty record, and one that ends just before its session id: no hello in either.
+    assert.deepEqual(helloAlpn(Buffer.from([0x16, 3, 1, 0, 0])), []);
+    assert.deepEqual(helloAlpn(Buffer.concat([Buffer.from([0x16, 3, 1, 0, 38, 1]), Buffer.alloc(37)])), []);
+    // Not a ClientHello, or not a handshake record: nothing, though the bytes after look like one.
+    assert.deepEqual(helloAlpn(clientHello([alpnExt(["h2"])], { type: 2 })), []);
+    assert.equal(sniOf(clientHello([sniExt("a.test")], { type: 2 })), "");
+    assert.equal(sniOf(clientHello([sniExt("a.test")], { first: 0x17 })), "");
+    // Extensions that claim to run past the record: what follows the record is not read.
+    assert.deepEqual(helloAlpn(clientHello([], { extLen: 20, after: alpnExt(["h2"]) })), []);
+    assert.equal(sniOf(clientHello([], { extLen: 20, after: sniExt("a.test") })), "");
+    // Extensions that claim to end early: what follows inside the record is not read either.
+    assert.equal(sniOf(clientHello([alpnExt(["h2"]), sniExt("a.test")], { extLen: alpnExt(["h2"]).length })), "");
+    // A server name too short to hold a name is passed over for the next.
+    assert.equal(sniOf(clientHello([ext(0, Buffer.concat([u16(3), Buffer.from([0]), u16(0)])), sniExt("x.test")])), "x.test");
   });
 
   test("holds a request by its path and every named parameter", () => {
@@ -168,14 +202,23 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
   });
 
   test("makes a throwaway authority and a leaf for the hosts, and says why when openssl can't", () => {
-    const dir = path.join(scratch, "made");
-    assert.deepEqual(makeCerts(dir, [HOST, "other.example.test"], "made"), { ok: true, why: "" });
+    const dir = path.join(scratch, "made", "in", "a", "new", "folder");
+    const asked: (number | undefined)[] = [];
+    const counted: System = { ...system, run: (cmd, args, o) => (asked.push(o?.timeout), system.run(cmd, args, o)) };
+    assert.deepEqual(makeCerts(dir, [HOST, "other.example.test"], "made", counted), { ok: true, why: "" });
+    assert.deepEqual(asked, [60_000, 60_000, 60_000]);
     const text = execFileSync("openssl", ["x509", "-in", path.join(dir, "leaf.pem"), "-noout", "-text"], { encoding: "utf8" });
     assert.match(text, /DNS:login\.example\.test, DNS:other\.example\.test/);
     const failing: System = { ...system, run: () => ({ status: 1, stdout: "", stderr: ` ${"no openssl ".repeat(30)}` }) };
     const bad = makeCerts(path.join(scratch, "unmade"), [HOST], "unmade", failing);
     assert.equal(bad.ok, false);
     assert.equal(bad.why.length, 200);
+    // One step failing is enough to fail, and each failure is named, trimmed.
+    let n = 0;
+    const third: System = { ...system, run: (cmd, args, o) => (++n === 3 ? { status: 1, stdout: "", stderr: " unable to sign \n" } : system.run(cmd, args, o)) };
+    assert.deepEqual(makeCerts(path.join(scratch, "half-made"), [HOST], "half", third), { ok: false, why: "unable to sign" });
+    const two: System = { ...system, run: () => ({ status: 1, stdout: "", stderr: " no \n" }) };
+    assert.equal(makeCerts(path.join(scratch, "unmade-two"), [HOST], "two", two).why, "no; no; no");
   });
 
   test("the judge: a silent sign-in held for ever with no way in fails, and one that gives way in time passes", () => {
@@ -186,6 +229,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
     assert.deepEqual(gaveWay, { ok: true, evidence: "2 silent sign-ins held unanswered, the first at 9 s; the app asked for the sign-in page in the open 23.5 s later (the limit is 45 s)" });
     assert.equal(judgeHeld([ev("held", 9000, "none"), ev("failed", 54_000, "select_account")], HOLD, 45_000).ok, true, "a failed ask is still an ask, at the limit");
     assert.equal(judgeHeld([ev("held", 9000, "none"), ev("passed", 80_000, "select_account")], HOLD, 45_000).ok, false, "too late");
+    assert.equal(judgeHeld([ev("held", 9000, "none"), ev("passed", 9000, "select_account")], HOLD, 45_000).ok, false, "an ask at the same moment as the hold is not after it");
     assert.deepEqual(judgeHeld([], HOLD, 45_000), { ok: false, evidence: "the stand-in never held a silent sign-in, so this run proves nothing about a managed Mac" });
   });
 
