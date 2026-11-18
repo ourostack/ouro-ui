@@ -52,7 +52,7 @@ export function componentGroups(filter = "", exports = false): Array<{ label: st
   const wanted = searchable(filter);
   const ranked = <T,>(pages: T[], name: (page: T) => [string, string], path: (page: T) => string, other: (page: T) => boolean = () => false): DocsLink[] =>
     pages
-      .map((page) => ({ page, at: nameRank(filter, ...name(page)) ?? (other(page) ? 2 : undefined) }))
+      .map((page) => ({ page, at: nameRank(filter, ...name(page)) ?? (other(page) ? (2 as const) : undefined) }))
       .filter((entry) => entry.at !== undefined)
       .sort((a, b) => a.at! - b.at!)
       .map(({ page, at }) => ({ path: path(page), label: name(page)[0], rank: at! }));
@@ -81,11 +81,12 @@ export function rankedComponents(filter: string): DocsLink[] {
 
 /**
  * The line under the filter when it finds components only by another kit's name ("Looking for a modal? Here it's
- * Dialog."); undefined when any page's own name matches, so "select" never sends you past Select to another name.
+ * Dialog."); undefined when any component's own name matches, so "select" never sends you past Select to another name.
  */
 export function filterHint(filter: string): string | undefined {
   const wanted = searchable(filter);
-  if (wanted === "" || [...docsItems, ...exportPages].some((page) => nameRank(filter, page.title, page.name) !== undefined)) return undefined;
+  // The sidebar lists components only, so only their names count: "panel" still explains Card past ResizablePanel.
+  if (wanted === "" || docsItems.some((item) => nameRank(filter, item.title, item.name) !== undefined)) return undefined;
   return otherNameHint(
     docsItems
       .map((item) => ({ title: item.title, names: otherNamesStarting(item.name, wanted) }))

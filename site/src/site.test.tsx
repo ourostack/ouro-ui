@@ -496,6 +496,9 @@ describe("docs", () => {
       await userEvent.fill(filter, own);
       await expect.element(nav.getByRole("status")).not.toBeInTheDocument();
     }
+    // An export's name (ResizablePanel) is not in the sidebar, so it doesn't hide the line.
+    await userEvent.fill(filter, "panel");
+    await expect.element(nav.getByRole("status")).toHaveTextContent("Looking for a panel? Here it's Card.");
     // Never from the middle of a word: "own" is in "dropdown", but nobody means Menu by it.
     await userEvent.fill(filter, "own");
     expect(found()).not.toContain("Menu");
