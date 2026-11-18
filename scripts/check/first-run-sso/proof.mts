@@ -9,7 +9,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { judgeHeld, ssoExtension } from "../../../registry/ouro/check/first-run.ts";
+import { judgeHeld, ssoExtension, system, type System } from "../../../registry/ouro/check/first-run.ts";
 
 const out = path.resolve(process.argv[2] ?? ".tmp/first-run-sso");
 fs.mkdirSync(out, { recursive: true });
@@ -29,7 +29,14 @@ const hold = { path: "^/held$", params: { prompt: "none" } };
 const hostsBefore = fs.readFileSync("/etc/hosts", "utf8");
 // Its certificates outside what the run uploads.
 const dir = path.join(path.dirname(out), "first-run-sso-stand-in");
-const standIn = await ssoExtension({ hosts: [HOST], hold }, dir, at, path.join(out, "events.jsonl"));
+// Every command the stand-in runs, with what it answered, for the run's log.
+const commands: string[] = [];
+const logged: System = { ...system, run: (cmd, args, o) => {
+  const r = system.run(cmd, args, o);
+  commands.push(`${cmd} ${args.join(" ").slice(0, 160)}: status ${r.status}${r.status ? `, ${(r.stderr || r.stdout).trim().slice(0, 200)}` : ""}`);
+  return r;
+} };
+const standIn = await ssoExtension({ hosts: [HOST], hold }, dir, at, path.join(out, "events.jsonl"), { sys: logged });
 expect("stand-in", standIn.ok, standIn.evidence);
 
 /** A read through Apple's networking, as a web view's is, given `ms` to answer. */
@@ -53,6 +60,7 @@ if (standIn.ok) {
   standIn.lift();
   const judged = judgeHeld(standIn.events(), hold, 20_000);
   expect("judged", judged.ok, judged.evidence);
+  for (const c of commands) console.log(`  ${c}`);
   const trusted = spawnSync("security", ["find-certificate", "-a", "-c", "Ouro first-run SSO stand-in", "/Library/Keychains/System.keychain"], { encoding: "utf8" });
   // The leaf no longer verifies: the system trusts the stand-in's authority no more.
   const stillTrusted = spawnSync("security", ["verify-cert", "-c", path.join(dir, "leaf.pem"), "-p", "ssl", "-s", HOST], { encoding: "utf8" }).status === 0;
