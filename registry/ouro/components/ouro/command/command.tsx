@@ -971,8 +971,9 @@ function NoMatchNote({ query, children }: { query: string; children: ReactNode }
   const rows = (Autocomplete.useFilteredItems() as readonly Group[]).flatMap((group) => group.items);
   const only = query !== "" && rows.length > 0 && rows.every((item) => item.alwaysShown === true);
   return (
-    <div data-ouro-command-no-match="" role="status" aria-live="polite" aria-atomic="true" className={commandNoMatchClass}>
-      {only && children}
+    // Shown (zero height while empty) rather than display: none, so the region is in the accessibility tree before its note comes.
+    <div data-ouro-command-no-match="" role="status" aria-live="polite" aria-atomic="true">
+      {only && <div className={commandNoMatchClass}>{children}</div>}
     </div>
   );
 }

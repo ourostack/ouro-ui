@@ -135,7 +135,7 @@ const commandCloseClass =
 const commandEmptyClass = "box-border px-2 py-8 text-center text-sm leading-5 text-muted-foreground";
 
 /** The empty state above rows shown whatever the search is: the empty state's words, with less room, since rows follow. */
-const commandNoMatchClass = "box-border px-2 py-3 text-center text-sm leading-5 text-muted-foreground empty:hidden";
+const commandNoMatchClass = "box-border px-2 py-3 text-center text-sm leading-5 text-muted-foreground";
 
 /**
  * Around the empty state in the dialog: while it shows, it takes the room the results had and centres

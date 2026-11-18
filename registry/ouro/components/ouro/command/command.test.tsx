@@ -715,10 +715,16 @@ describe("Command rows shown whatever the search", () => {
       await expect.poll(() => note().textContent).toBe("No commands match.");
       expect(note().getAttribute("role")).toBe("status");
       expect(note().getAttribute("aria-live")).toBe("polite");
-      // Typing on while only that row matches leaves the note as it was: it is said once.
+      // The region stays in the accessibility tree while it is empty, so the note is heard as it comes.
+      await userEvent.clear(input());
+      await expect.poll(() => note().textContent).toBe("");
+      expect(getComputedStyle(note()).display).not.toBe("none");
+      await userEvent.type(input(), "prozq");
+      await expect.poll(() => note().textContent).toBe("No commands match.");
+      // Typing on while only that row matches leaves the note as it was: it is not said again, so twice in all, once each time it came.
       await userEvent.type(input(), "x");
       await act(async () => {});
-      expect(said.count("No commands match.")).toBe(1);
+      expect(said.count("No commands match.")).toBe(2);
       // With no such row, nothing matching is the empty state's to say, not the note's.
       await act(async () => roots[0]!.render(<Command title="Commands" open onOpenChange={() => {}} items={items.filter((item) => !item.alwaysShown)} emptyLabel="No commands match." />));
       await expect.poll(() => document.querySelector("[data-ouro-command-empty]")?.textContent).toBe("No commands match.");
