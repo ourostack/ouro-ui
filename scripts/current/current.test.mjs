@@ -9,7 +9,7 @@ import { lintMarkdown, lintPlain } from "../../registry/ouro/lib/ouro/claims-che
 import { BRANCH, body, createSources, keepCurrent, keepRepo, main, publicView, title } from "./current.mjs";
 import { checkRulesSection } from "./known.mjs";
 import { appJwt, createGitHub, retryable } from "./github.mjs";
-import { UPDATERS, findPins, isBehind, isCandidate } from "./pins.mjs";
+import { UPDATERS, appleRequirement, findPins, isBehind, isCandidate, takes } from "./pins.mjs";
 import { applyItem } from "./stylesheet.mjs";
 import { readTarball } from "./tar.mjs";
 import { fakeRepo, tarball } from "./fake-github.mjs";
@@ -1554,4 +1554,50 @@ test("a fragment name can carry the version with dashes for dots (ourostack/gate
   const result = await keepRepo(repo.gh, "o/r", RELEASES, {});
   assert.equal(result.state, "pr");
   assert.equal(repo.fileAt(BRANCH, "changelog.d/ouro-ui-0-9-0.md"), "---\ntitle: New parts\n---\nUses Ouro UI for Apple v0.9.0.\n");
+});
+
+test("the versions of ouro-ui-apple a Swift manifest takes, as SwiftPM reads them", () => {
+  const manifest = (requirement) => `.package(url: "https://github.com/ourostack/ouro-ui-apple.git", ${requirement}),`;
+  assert.deepEqual(appleRequirement(manifest('.upToNextMinor(from: "1.0.0")')), { rule: "minor", version: "1.0.0" });
+  assert.deepEqual(appleRequirement(manifest('from: "1.0.0"')), { rule: "major", version: "1.0.0" });
+  assert.deepEqual(appleRequirement(manifest('exact: "1.0.0"')), { rule: "exact", version: "1.0.0" });
+  assert.equal(appleRequirement('.package(url: "https://github.com/apple/swift-markdown.git", from: "0.4.0")'), null);
+  assert.equal(takes({ rule: "minor", version: "1.0.0" }, "v1.0.3"), true);
+  assert.equal(takes({ rule: "minor", version: "1.0.0" }, "v1.1.0"), false);
+  assert.equal(takes({ rule: "major", version: "1.0.0" }, "v1.1.0"), true);
+  assert.equal(takes({ rule: "major", version: "1.1.0" }, "v1.0.9"), false);
+  assert.equal(takes({ rule: "major", version: "1.0.0" }, "v2.0.0"), false);
+  assert.equal(takes({ rule: "exact", version: "1.1.0" }, "v1.1.0"), true);
+});
+
+test("Ouro UI for Apple waits while an ourostack package the app resolves does not take the release", async () => {
+  // Ouro MD on ouro-ui-apple 1.0, with an app shell whose manifest takes only 1.0.x at the revision Ouro MD resolves.
+  const apple = (requirement) => `.package(url: "https://github.com/ourostack/ouro-ui-apple.git", ${requirement}),`;
+  const resolved = (shell) => JSON.stringify({ pins: [
+    { identity: "ouro-native-apple-app-shell", location: "https://github.com/ourostack/ouro-native-apple-app-shell.git", state: { branch: "main", revision: shell } },
+    { identity: "ouro-ui-apple", location: "https://github.com/ourostack/ouro-ui-apple.git", state: { revision: "a".repeat(40), version: "0.6.0" } },
+  ] });
+  const shell = { ["1".repeat(40)]: apple('.upToNextMinor(from: "0.6.0")'), ["2".repeat(40)]: apple('from: "0.6.0"') };
+  const releases = { ...RELEASES, web: { ...RELEASES.web, tag: "v0.0.0" } };
+  const run = async (revision, extra = {}) => {
+    const repo = fakeRepo({ "Package.swift": apple('.upToNextMinor(from: "0.6.0")'), "Package.resolved": resolved(revision), ...extra });
+    const fetch = async (url, init) => {
+      const path = url.replace("https://api.github.com/", "");
+      const match = /^repos\/ourostack\/ouro-native-apple-app-shell\/contents\/Package\.swift\?ref=(.+)$/.exec(path);
+      if (match) return { status: 200, headers: new Map(), text: async () => JSON.stringify({ content: Buffer.from(shell[match[1]]).toString("base64") }) };
+      return repo.fetch(url, init);
+    };
+    const gh = createGitHub({ token: "t", fetch, sleep: async () => {} });
+    return { repo, result: await keepRepo(gh, "o/r", releases, {}) };
+  };
+
+  const held = await run("1".repeat(40));
+  assert.equal(held.result.state, "skipped");
+  assert.match(held.result.reason, /ourostack\/ouro-native-apple-app-shell at 1111111 takes 0\.6\.0 up to the next minor/);
+  assert.equal(held.repo.fileAt("main", "Package.swift").includes("0.9.0"), false);
+
+  const moves = await run("2".repeat(40));
+  assert.equal(moves.result.state, "pr");
+  assert.match(moves.repo.fileAt(BRANCH, "Package.swift"), /from: "0\.9\.0"/);
+  assert.match(moves.repo.fileAt(BRANCH, "Package.resolved"), /"version":"0\.9\.0"/);
 });
