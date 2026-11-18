@@ -47,7 +47,7 @@ An `ActionButton` input bound to the same path, `{"@path": "/servings"}`, sends 
 | The agent sends | Web | Apple | Windows | Android |
 | --- | --- | --- | --- | --- |
 | The tree, from your own code or server | [ComposedSurface](../ComposedSurface.md) | Not yet: on Apple a tree comes from `A2UI.resolve` | `OuroComposedSurface` | `OuroComposedSurface` |
-| The tree, in an MCP tool result's `structuredContent.ouro` | [OuroMcpApp](../OuroMcpApp.md), inside any MCP Apps host | | | |
+| The tree, in an MCP tool result's `structuredContent.ouro` | [OuroMcpApp](../OuroMcpApp.md), inside any MCP Apps host | | `OuroComposedSurface`, from `OuroComposedResult.From` | `OuroComposedSurface`, from `OuroComposed.read` |
 | A2UI messages | [A2UISurface](../A2UISurface.md) | `OuroA2UI`, which draws the tree with `ComposedSurface` | Not read: send the tree | Not read: send the tree |
 
 Each draws the same tree with the same components and the same consent.[^draws] Core holds the tree, its validator and the adapters (`ouro-composed.mts`, `ouro-mcp-app.mts`, `ouro-a2ui.mts`), which your app vendors from a core release; [core's guide](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/a2ui.md) says how, and how to generate your catalog from your actions.[^vendor]
