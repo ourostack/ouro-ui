@@ -6,20 +6,24 @@ import { FRAGMENT_FOCUS_WAIT_MS, fragmentFocusScript } from "@/registry/ouro/lib
 // fragmentFocusScript (lib/ouro/fragment-focus-script.ts) against a page of its own, served here: Safari, left to itself,
 // jumps back to the place an address names (#target) each time a stylesheet loads, until the person scrolls, when the
 // page finished parsing or a link to that place was followed while a stylesheet was still loading, and the jump takes
-// focus (ourostack/ouro-ui#2224, #2228). Without the script, the three focus tests fail in WebKit.
+// focus (ourostack/ouro-ui#2224, #2228). Without the script, the focus tests fail in WebKit.
 
 const LATE_MS = 600;
 let server: Server;
 let origin = "";
-/** Stylesheet requests that never answer, until the test ends. */
+/** Stylesheet requests that answer only once the test, or the page through /release, lets them. */
 const held: (() => void)[] = [];
 /** Once the page has asked for /release, held stylesheets answer at once. */
 let released = false;
+/** A deferred script that waits until the route stylesheet's @import has been asked for, so parsing ends with it loading. */
+const waiting: (() => void)[] = [];
+let imported = false;
 
 const page = (slow: boolean, deferred: string | null) =>
   `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/${slow ? "late" : "now"}.css?head">` +
   // As a module script does when it adds a route's CSS as the page starts.
   (deferred === null ? "" : `<script defer src="/route.js?${deferred}"></script>`) +
+  (deferred === "import" ? `<script defer src="/wait.js"></script>` : "") +
   `</head><body>` +
   `<script>${fragmentFocusScript()}</script>` +
   `<p><a id="jump" href="#target">Jump</a></p><div style="height:3000px"></div>` +
@@ -35,16 +39,36 @@ test.beforeAll(async () => {
     if (url.pathname === "/now.css") return css();
     // Late, as on a slow connection.
     if (url.pathname === "/late.css") return void setTimeout(css, LATE_MS);
-    if (url.pathname === "/held.css") return void (released ? css() : held.push(css));
-    // Adds the route's stylesheet and counts its loads, as Vite's preload does; `after` holds the stylesheet until the page
-    // has finished parsing, so it can arrive while the script has it set aside.
+    if (url.pathname === "/held.css") {
+      if (url.search === "?imported") {
+        imported = true;
+        for (const answer of waiting.splice(0)) answer();
+      }
+      return void (released ? css() : held.push(css));
+    }
+    if (url.pathname === "/import.css") {
+      response.writeHead(200, { "content-type": "text/css", "cache-control": "no-store" });
+      return void response.end(`@import url("/held.css?imported"); html { --route: 1 }`);
+    }
+    if (url.pathname === "/wait.js") {
+      const answer = () => {
+        response.writeHead(200, { "content-type": "text/javascript" });
+        response.end("");
+      };
+      return void (imported ? answer() : waiting.push(answer));
+    }
+    // Adds the route's stylesheet and counts its loads, as Vite's preload does. `after` lets the stylesheet arrive only
+    // once parsing has ended, and holds the script's moment-later callback until it has: so it arrives while set aside.
     if (url.pathname === "/route.js") {
-      const after = url.search === "?after";
+      const kind = url.search.slice(1);
+      const href = { late: "/late.css?route", after: "/held.css?route", import: "/import.css?route" }[kind];
       response.writeHead(200, { "content-type": "text/javascript" });
       return void response.end(
-        `window.routeLoads = 0; const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "/${after ? "held" : "late"}.css?route";` +
+        `window.routeLoads = 0; const link = (window.routeLink = document.createElement("link")); link.rel = "stylesheet"; link.href = "${href}";` +
           `link.addEventListener("load", () => window.routeLoads++); document.head.append(link);` +
-          (after ? `document.addEventListener("DOMContentLoaded", () => fetch("/release"));` : ""),
+          (kind === "after"
+            ? `document.addEventListener("DOMContentLoaded", () => { const real = window.setTimeout; window.setTimeout = (callback) => { window.setTimeout = real; link.addEventListener("load", () => real(callback), { once: true }); return 0; }; fetch("/release"); });`
+            : ""),
       );
     }
     if (url.pathname === "/release") {
@@ -62,6 +86,8 @@ test.beforeAll(async () => {
 
 test.afterEach(() => {
   released = false;
+  imported = false;
+  for (const answer of waiting.splice(0)) answer();
   for (const answer of held.splice(0)) answer();
 });
 
@@ -139,9 +165,22 @@ test.describe("fragmentFocusScript", () => {
     await expect(tab.locator("#kept")).toBeFocused();
   });
 
-  test("a stylesheet the page's script added that arrives as parsing ends still applies once, with one load event", async ({ page: tab }) => {
+  test("a stylesheet the page's script added that arrives while set aside still applies, from one link, with one load event", async ({ page: tab, browserName }) => {
+    test.skip(browserName !== "webkit", "Only Safari jumps back, so the script sets a stylesheet aside only there.");
     await tab.goto(`${origin}/?deferred=after#target`, { waitUntil: "load" });
     await routeStyled(tab);
+    // A fresh copy took the place of the one that arrived while set aside, and came back empty.
+    expect(await tab.evaluate(() => document.querySelector('link[href$="?route"]') !== (window as unknown as { routeLink: Element }).routeLink)).toBe(true);
+  });
+
+  test("keeps focus as later styles load, after a stylesheet the page's script added had an @import still loading as parsing ended", async ({ page: tab }) => {
+    await tab.goto(`${origin}/?deferred=import#target`, { waitUntil: "domcontentloaded" });
+    for (const answer of held.splice(0)) answer();
+    await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--imported").trim())).toBe("1");
+    await routeStyled(tab);
+    await tab.locator("#kept").focus();
+    await laterStyles(tab);
+    await expect(tab.locator("#kept")).toBeFocused();
   });
 
   test("follows a link to a place on the page after two seconds when a stylesheet is still loading", async ({ page: tab, browserName }) => {

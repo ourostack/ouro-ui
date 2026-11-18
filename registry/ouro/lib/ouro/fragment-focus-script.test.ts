@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fragmentFocusScript } from "@/registry/ouro/lib/ouro/fragment-focus-script";
 
 // The click half of fragmentFocusScript, in this page; site/e2e/fragment-focus.spec.ts loads pages with it in WebKit
@@ -56,14 +56,22 @@ function heldBack(anchor: Element, init: MouseEventInit = {}): boolean {
 /** A task after a stylesheet's load, when the script follows a link it held. */
 const afterLoad = (loaded: Promise<void>) => loaded.then(() => new Promise((done) => setTimeout(done, 0)));
 
-describe.runIf(!webkit)("fragmentFocusScript outside WebKit", () => {
+describe("fragmentFocusScript outside WebKit", () => {
+  beforeEach((context) => {
+    if (webkit) context.skip();
+  });
+
   it("holds no link", () => {
     void stylesheet();
     expect(heldBack(link("#ff-elsewhere"))).toBe(false);
   });
 });
 
-describe.runIf(webkit)("fragmentFocusScript in WebKit", () => {
+describe("fragmentFocusScript in WebKit", () => {
+  beforeEach((context) => {
+    if (!webkit) context.skip();
+  });
+
   it("leaves a link to a place on the page to the browser while no stylesheet is loading", () => {
     expect(heldBack(link("#ff-now"))).toBe(false);
   });
