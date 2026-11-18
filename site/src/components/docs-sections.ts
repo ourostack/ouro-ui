@@ -22,7 +22,7 @@ const guidePages = pageIndex.filter((page) => page.kind === "guide" && page.name
 const isComparison = (name: string) => name.startsWith("why-no-skill-");
 
 /** A docs page title for matching: "TextField" is found by "text field" too. */
-const searchable = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+export const searchable = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /** A docs page: its site path (no base) and its name. */
 export interface DocsLink {
