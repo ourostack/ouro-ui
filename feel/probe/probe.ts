@@ -227,9 +227,13 @@ function install(): OuroFeel {
     }
   }
 
-  /** The list being watched now: a selector finds it again, as the page may have put another in its place. */
+  /**
+   * The list being watched now: a selector finds it again, as the page may have put another in its place. A list taken off the
+   * page is none, however it was given.
+   */
   function listOf(options: WatchOptions): Element | null {
-    return typeof options.scroller === "string" ? document.querySelector(options.scroller) : options.scroller;
+    if (typeof options.scroller === "string") return document.querySelector(options.scroller);
+    return options.scroller.isConnected ? options.scroller : null;
   }
 
   // Input the probe can see: trusted wheel events, from the OS or the DevTools Input domain alike.

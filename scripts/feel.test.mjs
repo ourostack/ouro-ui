@@ -622,11 +622,13 @@ test("Ouro Feel's probe judges no jump on the frame a list comes back to the pag
     const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
     await page.setContent(`<main><div id="list" style="height:400px;overflow:auto">${Array.from({ length: 40 }, (_, i) => `<div class="row" id="r${i}" style="height:48px">Row ${i}</div>`).join("")}</div></main>`);
     await page.addScriptTag({ content: probe });
-    const measures = await page.evaluate(async () => {
+    // The list given as a selector, and as the element itself.
+    for (const byElement of [false, true]) {
+    const measures = await page.evaluate(async (byElement) => {
       const { document, ouroFeel, WheelEvent } = globalThis;
       const main = document.querySelector("main");
       const list = document.getElementById("list");
-      ouroFeel.watch({ case: "list away", scroller: "#list", rows: ".row" });
+      ouroFeel.watch({ case: "list away", scroller: byElement ? list : "#list", rows: ".row" });
       for (let frame = 0; frame < 2; frame++) await ouroFeel.painted();
       list.remove();
       await ouroFeel.painted();
@@ -635,11 +637,12 @@ test("Ouro Feel's probe judges no jump on the frame a list comes back to the pag
       main.append(list);
       for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
       return ouroFeel.stop(true).measures;
-    });
-    assert.equal(measures.wheelInputs, 1);
-    assert.equal(measures.jumps, 0);
-    assert.equal(measures.shifts, 0);
-    assert.equal(measures.anchorMovePx, 0);
+    }, byElement);
+    assert.equal(measures.wheelInputs, 1, `by element: ${byElement}`);
+    assert.equal(measures.jumps, 0, `by element: ${byElement}`);
+    assert.equal(measures.shifts, 0, `by element: ${byElement}`);
+    assert.equal(measures.anchorMovePx, 0, `by element: ${byElement}`);
+    }
   } finally {
     await browser.close();
   }
