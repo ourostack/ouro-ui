@@ -13,7 +13,7 @@ let rounds = Int(CommandLine.arguments[2]) ?? 10
 let sentence = Array("loop back with all the feedback and see you all soon three weeks")
 let keyCodes: [Character: UInt16] = ["a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5, "z": 6, "x": 7, "c": 8, "v": 9, "b": 11, "q": 12, "w": 13, "e": 14, "r": 15, "y": 16, "t": 17, "o": 31, "u": 32, "i": 34, "p": 35, "l": 37, "j": 38, "k": 40, "n": 45, "m": 46, " ": 49]
 
-/** When each key goes, in ms from the first, as Tandem's typing-120wpm case sends them: the mean gap varied ±30%, and 35 ms for a repeated letter. */
+/** When each key goes, in ms from the first, as an app's typing-120wpm case sends them: the mean gap varied ±30%, and 35 ms for a repeated letter. */
 func schedule(wpm: Double) -> [Double] {
   let mean = 60_000 / (wpm * 5)
   let vary = [1, 0.7, 1.3, 0.85, 1.15, 0.75, 1.25, 1.0]
