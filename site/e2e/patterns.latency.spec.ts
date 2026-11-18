@@ -1,44 +1,50 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, median, probeRound, runnerFactor } from "./latency";
+import { LATENCY } from "./latency";
 
 // How long each page pattern an app installs whole takes to first paint on a phone: a 390px page on a CPU throttled
 // LATENCY.throttle×, from navigation to the first contentful paint. Each app's HTML is an empty root that React fills, so
 // that paint is the pattern's first commit. Chart draws its plot after the first paint, so for a pattern with a chart the
-// time its plot is drawn at full size is measured too. Each app is the production build scripts/pattern-size.mjs makes (the pattern
-// and the registry closure it installs, with React and Ouro's stylesheet), served by playwright.latency.config.ts, and
-// loaded LOADS.warmUps times to warm the cache and then LOADS.samples times, each in a new page. A bare app with the same
-// stylesheet, which renders one paragraph, is measured beside them for what React alone costs. Each median must stay
-// within its ceiling (ceilingFor). This runs alone, one worker, in CI's latency job, so no neighbour shares the CPU.
+// time its plot is drawn at full size is measured too. Each app is the production build scripts/pattern-size.mjs makes
+// (the pattern and the registry closure it installs, with React and Ouro's stylesheet), served by
+// playwright.latency.config.ts, and loaded LOADS.warmUps times to warm the cache and then LOADS.samples times, each in a
+// new page. A bare app with the same stylesheet, which renders one paragraph, is loaded in turn with the pattern: it is
+// the same work on the same runner at the same moment, so its median scales the pattern's baseline to this runner
+// (ceilingFor). This runs alone, one worker, in CI's latency job, so no neighbour shares the CPU.
 
 const PHONE = { width: 390, height: 844 };
 const LOADS = { warmUps: 2, samples: 12 };
+const BARE = "bare-app";
 
-/** A baseline: the median a CI run measured, in ms, and that run's calibration probe median, which scales it to a quiet runner. */
+/** A baseline: the median a CI run measured, in ms, and the bare app's median in the same test, which scales it to a runner. */
 interface Baseline {
   median: number;
-  probe: number;
+  bare: number;
 }
 
 /**
- * Each pattern's baselines, from CI's latency job: its first paint, and for a pattern with a chart, the frame that draws
- * its plot (null until a run has measured it). Re-measure and update a line when a change makes a pattern faster or
+ * Each pattern's baselines, from CI's latency job: its first paint, and for a pattern with a chart, the time its plot is
+ * drawn (null until a run has measured it). Re-measure and update a line when a change makes a pattern faster or
  * knowingly slower.
  */
 const BASELINES: Record<string, { paint: Baseline | null; plot?: Baseline | null }> = {
-  "bare-app": { paint: null },
   "dashboard-page": { paint: null, plot: null },
   "list-detail-page": { paint: null },
   "settings-page": { paint: null },
 };
 
 /**
- * The most a median may be, in ms: its baseline as a quiet runner would have measured it (scaled by the quiet probe over
- * its run's probe, so a baseline taken on a fast runner does not leave a quiet one no room), half again, times this
- * runner's factor (runnerFactor). CI's runs' probe medians range from 32 to 68 ms around the quiet 52 (latency.ts), and a
- * test's own probe is six presses at Event Timing's 8 ms step, so the margin is half the baseline rather than a quarter.
+ * The most a median may be, in ms: its baseline scaled by the bare app's median now over its median then, and a quarter
+ * more, so a pattern that paints a quarter later than the runner explains fails.
  */
-function ceilingFor(baseline: Baseline, factor: number): number {
-  return Math.round(baseline.median * (LATENCY.probeQuiet / baseline.probe) * 1.5 * factor);
+function ceilingFor(baseline: Baseline, bare: number): number {
+  return Math.round(baseline.median * (bare / baseline.bare) * 1.25);
+}
+
+/** The median of a list of numbers. */
+function median(values: readonly number[]): number {
+  const sorted = values.toSorted((a, b) => a - b);
+  const middle = sorted.length / 2;
+  return sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
 }
 
 /** A fixed loop's time in the page, ms: the fastest of three runs after one to compile it, since a busy runner only ever adds time. */
@@ -83,20 +89,19 @@ async function load(page: Page, name: string, chart: boolean): Promise<{ paint: 
       ]).then(([paint, plot]) => ({ paint, plot })),
     chart,
   );
-  await expect(page.locator(name === "bare-app" ? "p" : "main").first()).toBeVisible();
+  await expect(page.locator(name === BARE ? "p" : "main").first()).toBeVisible();
   const throttled = await loop(page);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
   return { paint: Math.round(paint), plot: plot === null ? null : Math.round(plot), throttled };
 }
 
-/** The verdict on one median against its baseline, reported in the log either way. */
-function judge(label: string, samples: number[], baseline: Baseline | null | undefined, factor: number, probe: number[]): void {
+/** Holds one median to its baseline, reporting it either way. */
+function judge(label: string, samples: number[], baseline: Baseline | null | undefined, bare: number): void {
   const middle = median(samples);
-  const ceiling = baseline ? ceilingFor(baseline, factor) : null;
-  const report = `${label}: median ${middle} ms (${ceiling === null ? "no baseline yet" : `≤ ${ceiling}, baseline ${baseline!.median} at probe ${baseline!.probe}`}), runner factor ${factor}, probe median ${median(probe)} (${probe.join(", ")}); samples in order: ${samples.join(", ")}`;
+  const ceiling = baseline ? ceilingFor(baseline, bare) : null;
+  const report = `${label}: median ${middle} ms (${ceiling === null ? "no baseline yet" : `≤ ${ceiling}, baseline ${baseline!.median} beside a bare app's ${baseline!.bare}`}), the bare app ${bare} ms now; samples in order: ${samples.join(", ")}`;
   test.info().annotations.push({ type: "latency", description: report });
   console.log(`latency ${report}`);
-  if (baseline === undefined) return;
   // Soft, so a pattern's every number is measured and reported before the test fails on any of them.
   if (ceiling === null) expect.soft(ceiling, `${label} has no baseline: set it in BASELINES from CI's latency job (${report})`).not.toBeNull();
   else expect.soft(middle, report).toBeLessThanOrEqual(ceiling);
@@ -123,35 +128,36 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
           observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["width", "height", "d"] });
         });
       });
+    // The runner's full speed: the loop on an unthrottled page, fastest of its runs before the loads and after.
     const anchor = await context.newPage();
-    await anchor.setViewportSize(PHONE);
-    const probe = await probeRound(anchor);
-    // The runner's full speed: the loop on the unthrottled anchor page, fastest of its runs before the loads and after.
+    await anchor.goto(`${BARE}/dist/`);
     let full = await loop(anchor);
     const paints: number[] = [];
     const plots: number[] = [];
+    const bares: number[] = [];
     const throttledLoops: number[] = [];
     for (let index = 0; index < LOADS.warmUps + LOADS.samples; index++) {
-      const page = await context.newPage();
-      try {
-        const { paint, plot, throttled } = await load(page, name, chart);
-        throttledLoops.push(throttled);
-        if (index >= LOADS.warmUps) {
-          paints.push(paint);
+      for (const app of [BARE, name]) {
+        const page = await context.newPage();
+        try {
+          const { paint, plot, throttled } = await load(page, app, chart && app === name);
+          throttledLoops.push(throttled);
+          if (index < LOADS.warmUps) continue;
+          if (app === BARE) bares.push(paint);
+          else paints.push(paint);
           if (plot !== null) plots.push(plot);
+        } finally {
+          await page.close();
         }
-      } finally {
-        await page.close();
       }
     }
     full = Math.min(full, await loop(anchor));
-    probe.push(...(await probeRound(anchor)));
-    const factor = runnerFactor(probe);
     const slowdowns = throttledLoops.map((time) => Math.round((time / full) * 10) / 10);
     console.log(`latency ${name} throttle: each load's loop ran ${slowdowns.join(", ")}× slower than full speed (${Math.round(full * 10) / 10} ms)`);
     expect(Math.min(...slowdowns), `${name}: a load ran ${Math.min(...slowdowns)}× slower than full speed, so the ${LATENCY.throttle}× throttle missed it (${slowdowns.join(", ")})`).toBeGreaterThanOrEqual(2);
-    // The bare app has no budget: it is measured for what React alone costs beside the patterns.
-    judge(`${name} first paint`, paints, name === "bare-app" ? undefined : baselines.paint, factor, probe);
-    if (chart) judge(`${name} chart drawn`, plots, baselines.plot, factor, probe);
+    const bare = median(bares);
+    console.log(`latency ${name} beside ${BARE}: median ${bare} ms; samples in order: ${bares.join(", ")}`);
+    judge(`${name} first paint`, paints, baselines.paint, bare);
+    if (chart) judge(`${name} chart drawn`, plots, baselines.plot, bare);
   });
 }
