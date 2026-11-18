@@ -130,6 +130,14 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
+    story: "Message/ChatRaised",
+    rule: "overlap",
+    issue: 1957,
+    reason:
+      "The same conversation as Message/Chat with raised bubbles, so the same thumbs-up reaction overlaps the end of the message's text on some Linux CI runs (2px by 4px) and not others, with no change to Message (#1957).",
+    sometimes: true,
+  },
+  {
     story: "Message/Quote",
     rule: "nested-frame",
     issue: 1958,

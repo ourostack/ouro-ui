@@ -321,6 +321,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // (`py-*`) leaves `--ouro-text-area-frame` out of step, so the bounds autoGrow renders miss it.
   const checked = useRef({});
   useEffect(() => {
+    /* istanbul ignore else @preserve -- the else path exists only in production bundles */
     if (process.env.NODE_ENV !== "production") {
       if (!autoGrow) return;
       const textarea = textareaRef.current!;
