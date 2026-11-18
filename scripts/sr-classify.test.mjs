@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { classify, why } from "./sr-classify.mjs";
+import { speechTimeline, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -212,4 +213,18 @@ test("a teardown error beside any other failure, or a timeout, is not taken for 
   assert.equal(classify(`${teardownAfterPass}\n    Test timeout of 180000ms exceeded.`, 1), "accessibility");
   // A failed exit with no error at all is not a teardown failure either.
   assert.equal(classify("[sr] first utterance: \"Save recipe, button\"\n  1 failed", 1), "accessibility");
+});
+
+test("a miss with its VoiceOver timeline after it classifies and explains as the same miss without one", () => {
+  const timeline = speechTimeline({ records: ["Speech check", "Edit recipe, button"], stamps: [1_000, 1_700], actionStart: 1_500, actionEnd: 1_520, focusMoves: [{ at: 1_510, tag: "button", name: "Edit" }] });
+  const cases = [
+    ['[sr] no utterance matched /edit recipe.*dialog/i; heard: "Edit recipe, button" | "Close, button"', "accessibility"],
+    ["[sr] infrastructure: VoiceOver's speech stopped being read (osascript ended (exit 1)); heard: nothing", "infrastructure"],
+  ];
+  for (const [message, expected] of cases) {
+    const logOf = (error) => `[sr] first utterance: "Edit recipe, button"\n  ✘  2 [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:9:1 › Dialog announces its title when it opens (2.0m)\n    Error: ${error}\n  1 failed`;
+    assert.equal(classify(logOf(withTimeline(message, timeline)), 1), expected);
+    assert.equal(classify(logOf(withTimeline(message, timeline)), 1), classify(logOf(message), 1));
+    assert.equal(why(logOf(withTimeline(message, timeline))), why(logOf(message)));
+  }
 });

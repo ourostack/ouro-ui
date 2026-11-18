@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { CHECKBOX, CHECKED, CURRENT_PAGE, firstMatch, LINK, RADIO_CHECKED, inOneSentence, MARK, missedPhrase, nameAndRole, readRecords, readsBrowser, quietFor, readyForAction, saidInMiss, saysValue, speechTimeline, speechVerdict, spokenAfter, UNCHECKED, WATCH_LIMIT_SECONDS, withoutHints, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 
 // The screen-reader specs' matchers (registry/ouro/e2e/screen-reader/phrases.ts), against phrases
 // VoiceOver and NVDA said in the lane's runs. A matcher takes one phrase at a time, without
@@ -339,4 +339,45 @@ test("the opened dialog, described, must name it as a web dialog in one sentence
   assert.equal(describedDialog("You are currently on a text field, inside of a web dialog. To enter text in this field, type."), false);
   // The trigger's own name is not the dialog's.
   assert.equal(describedDialog("Edit dialog pop up button"), false);
+});
+
+test("a VoiceOver check's timeline gives MARK, each phrase after the last MARK, the action and the focus moves, in time order, on one line", () => {
+  // MARK at 1010 (the last one; the earlier phrase is before it), the action from 1500 to 1900, a focus move at 1560.
+  const records = ["Wrong earlier phrase", "Speech check", "Speech check", "Edit dialog pop up button", "Edit dialog pop up button", "You are currently on a button. To display a list of options, press Control-Option-Space.", "Close, button"];
+  const stamps = [900, 1000, 1010, 1620, 1625, 1700, 2100];
+  const timeline = speechTimeline({ records, stamps, actionStart: 1500, actionEnd: 1900, focusMoves: [{ at: 1560, tag: "button", name: "Edit" }] });
+  assert.equal(
+    timeline,
+    'MARK at -490 ms; action 400 ms, from +0 ms to +400 ms; focus→button[Edit] at +60 ms; "Edit dialog pop up button" at +120 ms; "You are currently on a button. To display a list of optio..." at +200 ms; "Close, button" at +600 ms',
+  );
+  assert.equal(timeline.includes("\n"), false);
+});
+
+test("a timeline cuts a long phrase to 60 characters and a focused name to 40, keeping one line", () => {
+  const long = `Name, edit text, first line\n${"x".repeat(80)}`;
+  const timeline = speechTimeline({ records: ["Speech check", long], stamps: [0, 100], actionStart: 50, actionEnd: 60, focusMoves: [{ at: 55, tag: "input", name: "Recipe name ".repeat(10) }] });
+  // MARK, the action, the focus move, then the phrase: in time order.
+  const [mark, action, focus, phrase] = timeline.split("; ");
+  assert.equal(mark, "MARK at -50 ms");
+  assert.equal(action, "action 10 ms, from +0 ms to +10 ms");
+  assert.equal(focus, "focus→input[Recipe name Recipe name Recipe name R...] at +5 ms");
+  const text = "Name, edit text, first line " + "x".repeat(29) + "...";
+  assert.equal(phrase, `"${text}" at +50 ms`);
+  assert.equal(text.length, 60);
+  assert.equal(timeline.includes("\n"), false);
+});
+
+test("a timeline with no MARK lists every phrase it was given, and a miss with one keeps its prefix, its heard list and its classes", () => {
+  const timeline = speechTimeline({ records: ["Edit recipe, button"], stamps: [1_700], actionStart: 1_500, actionEnd: 1_520, focusMoves: [] });
+  assert.equal(timeline, 'action 20 ms, from +0 ms to +20 ms; "Edit recipe, button" at +200 ms');
+  const miss = '[sr] no utterance matched checked, after Space; heard: "unchecked Email me new recipes checkbox" | "You are currently on a checkbox"';
+  const message = withTimeline(miss, timeline);
+  assert.equal(message, `${miss} timeline: ${timeline}`);
+  assert.equal(missedPhrase(message), true);
+  assert.deepEqual(saidInMiss(message), saidInMiss(miss));
+  assert.deepEqual(saidInMiss(withTimeline("[sr] no utterance matched checked, after Space; heard: nothing", timeline)), []);
+  // The fail verdict's own message, with its timeline: the prefix and the heard list are what they were.
+  const verdict = speechVerdict([], editTrigger, '"Edit", button', { now: 1_001, deadline: 1_000, ended: null });
+  assert.deepEqual(saidInMiss(withTimeline(verdict.fail, timeline)), []);
+  assert.equal(missedPhrase(withTimeline(verdict.fail, timeline)), true);
 });

@@ -5,7 +5,7 @@ import { release } from "node:os";
 import { promisify } from "node:util";
 import { navigateWithRetry, waitUntil } from "./navigation";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
-import { firstMatch, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, type FocusMove, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -47,6 +47,31 @@ const page = async ({ page, storyId }: { page: Page; storyId: string }, provide:
   await openStory(page, storyId);
   await provide(page);
 };
+
+/** The page each VoiceOver runs in, so `heardFromVoiceOver` can read the focus moves its check made. */
+const pages = new WeakMap<VoiceOverPlaywright, Page>();
+
+/**
+ * Records each focus move in the page, from now on: `focusin` on the document, stamped with the
+ * page's `Date.now()`. Chromium and WebKit run on this machine, so that is the clock the watcher's
+ * stamps use (the watcher runs in Node), and a timeline lines the two up. The listener only appends
+ * to an array, which is read when a check fails or SR_TRACE asks for it.
+ */
+async function recordFocus(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const moves: { at: number; tag: string; name: string }[] = [];
+    Object.assign(window, { __srFocus: moves });
+    document.addEventListener(
+      "focusin",
+      (event) => {
+        const element = event.target as HTMLElement;
+        const label = element.getAttribute("aria-label") ?? (element as HTMLInputElement).labels?.[0]?.textContent ?? element.textContent ?? "";
+        moves.push({ at: Date.now(), tag: element.tagName.toLowerCase(), name: label.trim() });
+      },
+      true,
+    );
+  });
+}
 
 const run = promisify(execFile);
 
@@ -114,6 +139,8 @@ export const test: ScreenReaderTest =
         context: ownBrowserContext,
         page,
         sr: async ({ voiceOver, page }, provide) => {
+          await recordFocus(page);
+          pages.set(voiceOver, page);
           await provide(voiceOver);
           await finishVoiceOver(voiceOver, page);
         },
@@ -156,6 +183,9 @@ export async function startReading(sr: ScreenReader, page: Page): Promise<void> 
 interface VoiceOverWatch {
   /** Every phrase VoiceOver moved to since the watch began (phrases.ts, `spokenAfter`). */
   phrases(): string[];
+  /** The watcher's records and their `Date.now()` stamps, as they were read: for a check's timeline. */
+  records(): readonly string[];
+  stamps(): readonly number[];
   /** Resolves when VoiceOver says something new, the watch ends, or `deadline` passes. */
   next(deadline: number): Promise<void>;
   /** How the watcher ended, or null while it runs. */
@@ -230,6 +260,8 @@ end repeat`;
     });
   const watch: VoiceOverWatch = {
     phrases: () => spokenAfter(records),
+    records: () => records,
+    stamps: () => stamps,
     next,
     ended: () => ended,
     stop: async () => {
@@ -255,7 +287,7 @@ end repeat`;
  * Guidepup's capture, which logs every phrase NVDA speaks.
  */
 export async function heard(sr: ScreenReader, action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout = 15_000): Promise<string> {
-  if (isVoiceOver(sr)) return heardFromVoiceOver(action, matches, what, timeout);
+  if (isVoiceOver(sr)) return heardFromVoiceOver(sr, action, matches, what, timeout);
   const phrases: string[] = [];
   const add = (phrase: string) => {
     const text = phrase.trim();
@@ -334,22 +366,40 @@ export async function describesContainer(sr: VoiceOverPlaywright, matches: (phra
 }
 
 /** `heard`, on VoiceOver: polls nothing itself, but wakes each time the watch reads a new phrase. */
-async function heardFromVoiceOver(action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout: number): Promise<string> {
+async function heardFromVoiceOver(sr: VoiceOverPlaywright, action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout: number): Promise<string> {
+  const began = Date.now();
   const watch = await watchVoiceOver();
   try {
+    const actionStart = Date.now();
     await action();
+    const actionEnd = Date.now();
+    const timeline = async () =>
+      speechTimeline({ records: watch.records(), stamps: watch.stamps(), actionStart, actionEnd, focusMoves: await focusMovesSince(pages.get(sr), began) });
     const deadline = Date.now() + timeout;
     for (;;) {
       const verdict = speechVerdict(watch.phrases(), matches, what, { now: Date.now(), deadline, ended: watch.ended() });
       if (verdict === "wait") await watch.next(deadline);
-      else if ("fail" in verdict) throw new Error(verdict.fail);
+      else if ("fail" in verdict) throw new Error(withTimeline(verdict.fail, await timeline()));
       else {
+        if (process.env["SR_TRACE"] === "1") console.log(`[sr] timeline ${what}: ${await timeline()}`);
         console.log(`[sr] heard ${what}: "${verdict.found}" (VoiceOver said: ${verdict.heard})`);
         return verdict.found;
       }
     }
   } finally {
     await watch.stop();
+  }
+}
+
+/** The focus moves recordFocus logged at or after `since`. A page that cannot be read gives none, and the check's own failure still stands. */
+async function focusMovesSince(page: Page | undefined, since: number): Promise<FocusMove[]> {
+  if (page === undefined) return [];
+  try {
+    const moves = await page.evaluate(() => (window as unknown as { __srFocus?: FocusMove[] }).__srFocus ?? []);
+    return moves.filter((move) => move.at >= since);
+  } catch (error) {
+    console.log(`[sr] timeline: the focus moves were not read: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
+    return [];
   }
 }
 
