@@ -1337,6 +1337,51 @@ describe("MessageList windowing", () => {
     expect(first).toBeGreaterThanOrEqual(Math.floor(400 / 96));
   });
 
+  /** 300 rows of exactly `height` px each, the newest of which records how many messages are in the page as its layout effect runs. */
+  function shortRows(height: number, onFirst: (count: number) => void) {
+    function Newest() {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        onFirst(ref.current!.closest("[data-ouro-message-list-content]")!.querySelectorAll('[data-ouro="message"]').length);
+      }, []);
+      return (
+        <Message id="m299" role="assistant" name="Ouro" style={{ height, boxSizing: "border-box" }}>
+          <div ref={ref} />
+        </Message>
+      );
+    }
+    return [
+      ...Array.from({ length: 299 }, (_, id) => <Message key={id} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height, boxSizing: "border-box" }} />),
+      <Newest key={299} />,
+    ];
+  }
+
+  it("draws as many short rows as fill the view in the first commit, given their estimatedItemHeight", async () => {
+    // A 400px view, measured, for the next list to take as its own.
+    await render(<Chat items={conversation(100)} />);
+    let first = 0;
+    await render(
+      <MessageList label="Conversation" estimatedItemHeight={24} style={{ height: 400, width: 360 }}>
+        {shortRows(24, (count) => (first = count))}
+      </MessageList>,
+    );
+    // A row is 24px and the gap 16px: the 400px view, filled. The list's own first guess, 96px, would draw five.
+    expect(first).toBeGreaterThanOrEqual(Math.floor(400 / 40));
+  });
+
+  it("keeps the space for the rows not drawn at estimatedItemHeight each, not the average of the rows measured", async () => {
+    const { scroller } = await render(
+      <MessageList label="Conversation" estimatedItemHeight={57} style={{ height: 400, width: 360 }}>
+        {shortRows(24, () => {})}
+      </MessageList>,
+    );
+    const drawn = ids(scroller)[0]!;
+    expect(drawn).toBeGreaterThan(0);
+    // The rows above the first drawn, 57px each, with the 16px gap between them; the measured rows are 24px.
+    const space = scroller.querySelector<HTMLElement>("[data-ouro-message-list-space]")!;
+    expect(space.getBoundingClientRect().height).toBeCloseTo(57 * drawn + 16 * (drawn - 1), 0);
+  });
+
   it("reads each cached height once a render at most, and none on a scroll, so a long conversation's window costs little to find", async () => {
     const count = 1000;
     let reads = 0;

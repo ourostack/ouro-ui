@@ -148,8 +148,12 @@ export interface MessageListOwnProps {
    * A list the reader scrolled up in that takes older and newer messages in one commit renders no more than 20 of the
    * children it drew before, and the 20 newest, before it finds the view; scrolling up through rows never drawn moves
    * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving the row at the
-   * view's top by more than a pixel.
+   * view's top by more than a pixel. A wheel that takes the reader to the top faster than the rows above them came in moves
+   * nothing either: where those rows came in shorter than the space kept for them and the top stops the scroll position, the
+   * difference stays as space above the first message, until the reader has scrolled past it and the wheel rests.
    * @default true
+   * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message)
+   * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests) verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the reader is in it once the wheel rests, and lets it go without moving anything as they scroll past it)
    * @claim "renders no more than 20 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
    * @claim "moves what the reader looks at by under a pixel" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px)
    * @claim "opens at its end with no frame moving the row" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the row at the view's top by no more than a pixel in any frame)
@@ -168,6 +172,16 @@ export interface MessageListOwnProps {
    */
   heightCache?: Map<string, number> | undefined;
   /**
+   * The height, in CSS pixels with its margins, the list takes for a row it has not measured yet, from its first commit: the
+   * usual height of your rows. Give it when they are much shorter or taller than 96, the list's own first guess, so the first
+   * commit draws as many rows as fill the view, and the space kept for the rows not drawn is about as tall as they are. Left
+   * out, the list starts at 96 and then takes the average of the first rows it measures.
+   * @claim "the list takes for a row it has not measured yet" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space for the rows not drawn at estimatedItemHeight each, not the average of the rows measured)
+   * @claim "so the first commit draws as many rows as fill the view" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws as many short rows as fill the view in the first commit, given their estimatedItemHeight)
+   * @claim "Left out, the list starts at 96" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const ESTIMATE = 96;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /: averageOf\(heights\)/)
+   */
+  estimatedItemHeight?: number | undefined;
+  /**
    * Gets the list's actions: `reveal(id)` brings a message into view, drawing it first if it is not
    * drawn, for a quote, a link to a message, or find in chat; `jumpToNewest()` goes to the end and
    * follows new messages again. See {@link MessageListActions}.
@@ -184,6 +198,12 @@ export interface MessageListOwnProps {
   autoScroll?: { 'Not a prop: the list follows new messages at the bottom. Use <MessageList label="Conversation">': never };
   /** Not a prop. The list follows new messages while the reader is at the bottom, and stops when they scroll up. */
   stickToBottom?: { 'Not a prop: the list follows new messages at the bottom. Use <MessageList label="Conversation">': never };
+  /** Not a prop. The usual height of a row, for those the list has not measured yet, is `estimatedItemHeight`. */
+  estimateSize?: { 'Not a prop. Use <MessageList estimatedItemHeight={56}>': never };
+  /** Not a prop. The usual height of a row, for those the list has not measured yet, is `estimatedItemHeight`. */
+  itemHeight?: { 'Not a prop. Use <MessageList estimatedItemHeight={56}>': never };
+  /** Not a prop. The usual height of a row, for those the list has not measured yet, is `estimatedItemHeight`. */
+  defaultItemHeight?: { 'Not a prop. Use <MessageList estimatedItemHeight={56}>': never };
 }
 
 /** Props for {@link MessageList}: its own props and the `<div>` attributes it passes through. */
@@ -1023,13 +1043,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
     maxWidth,
     windowing = true,
     heightCache,
+    estimatedItemHeight,
     actionsRef,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
     stickToBottom,
+    estimateSize,
+    itemHeight,
+    defaultItemHeight,
     ...rest
   } = props;
+  // The height an app gives for a row not measured yet, where it is a positive number of pixels.
+  const estimate = Number.isFinite(estimatedItemHeight) && estimatedItemHeight! > 0 ? estimatedItemHeight : undefined;
   useAppearanceClassNameCheck(
     "MessageList",
     className,
@@ -1046,6 +1072,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
             `${autoScroll !== undefined ? "autoScroll" : "stickToBottom"} is not a prop; the list follows new messages while the reader is at the bottom`,
             '<MessageList label="Conversation">',
           ],
+          (estimateSize !== undefined || itemHeight !== undefined || defaultItemHeight !== undefined) && [
+            `${estimateSize !== undefined ? "estimateSize" : itemHeight !== undefined ? "itemHeight" : "defaultItemHeight"} is not a prop; the usual height of a row the list has not measured is estimatedItemHeight`,
+            "<MessageList estimatedItemHeight={56}>",
+          ],
+          estimatedItemHeight !== undefined &&
+            estimate === undefined && [
+              `estimatedItemHeight is ${String(estimatedItemHeight)}, not a positive number of pixels, so the list estimates its rows itself`,
+              "<MessageList estimatedItemHeight={56}>",
+            ],
           Children.toArray(children).some((child) => !isValidElement(child)) && [
             "MessageList holds Messages",
             '<MessageList label="Conversation"><Message role="user" name="Ana">Hi</Message></MessageList>',
@@ -1143,7 +1178,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [focusKey, setFocusKey] = useState<string | null>(null);
   // Each child's height, read again only when the children or the heights measured change: the window reads every child's on
   // every scroll, and a cached height's key is text built from the child's key and the width.
-  const sizes = useMemo(() => keys.map((key) => measured.heights.get(key) ?? cache.get(`${key}\0${measured.bucket}`) ?? measured.estimate), [keys, measured, cache]);
+  const sizes = useMemo(
+    () => keys.map((key) => measured.heights.get(key) ?? cache.get(`${key}\0${measured.bucket}`) ?? estimate ?? measured.estimate),
+    [keys, measured, cache, estimate],
+  );
   const sizeOf = (index: number) => sizes[index]!;
   // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
   const indexes = useIndexByKey(keys);

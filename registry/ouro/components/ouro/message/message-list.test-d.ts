@@ -8,6 +8,7 @@ expectTypeOf<{ label: "Conversation"; children: null }>().toExtend<MessageListPr
 expectTypeOf<{ label: "Conversation"; children: null; jumpLabel: "Aller au dernier"; newMessageLabel: (author: string, text: string) => string }>().toExtend<MessageListProps>();
 expectTypeOf<{ label: "Conversation"; children: null; maxWidth: 960 }>().toExtend<MessageListProps>();
 expectTypeOf<{ label: "Conversation"; children: null; pageKeys: false }>().toExtend<MessageListProps>();
+expectTypeOf<{ label: "Conversation"; children: null; estimatedItemHeight: 56 }>().toExtend<MessageListProps>();
 expectTypeOf<{ label: "Conversation"; children: null; hasOlder: true; loadingOlder: true }>().toExtend<MessageListProps>();
 expectTypeOf<ComponentProps<typeof MessageList>>().toEqualTypeOf<MessageListProps>();
 
@@ -15,6 +16,10 @@ expectTypeOf<ComponentProps<typeof MessageList>>().toEqualTypeOf<MessageListProp
 expectTypeOf<{ children: null }>().not.toExtend<MessageListProps>();
 expectTypeOf<{ label: "Conversation"; children: null; autoScroll: true }>().not.toExtend<MessageListProps>();
 expectTypeOf<{ label: "Conversation"; children: null; stickToBottom: true }>().not.toExtend<MessageListProps>();
+// The row-size props of other virtual lists name estimatedItemHeight.
+expectTypeOf<{ label: "Conversation"; children: null; estimateSize: () => 56 }>().not.toExtend<MessageListProps>();
+expectTypeOf<{ label: "Conversation"; children: null; itemHeight: 56 }>().not.toExtend<MessageListProps>();
+expectTypeOf<{ label: "Conversation"; children: null; defaultItemHeight: 56 }>().not.toExtend<MessageListProps>();
 
 // @ts-expect-error label is required.
 createElement(MessageList, { children: null });

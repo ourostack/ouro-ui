@@ -16,7 +16,21 @@ export const agentCases: AgentCase[] = [
     dev: '<MessageList label="Conversation">',
     names: ["tsc", "dev"],
   },
+  {
+    id: "messageList03",
+    habit: "a fixed row height, as react-window and react-virtualized take",
+    tsc: [hint("number", "Not a prop. Use <MessageList estimatedItemHeight={56}>")],
+    dev: "<MessageList estimatedItemHeight={56}>",
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "messageList04",
+    habit: "a row-size function, as TanStack Virtual takes",
+    tsc: [hint("() => number", "Not a prop. Use <MessageList estimatedItemHeight={56}>")],
+    dev: "<MessageList estimatedItemHeight={56}>",
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid message-list snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["messageListOk01", "messageListOk02"];
+export const validSnippets: string[] = ["messageListOk01", "messageListOk02", "messageListOk03"];
