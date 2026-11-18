@@ -15,6 +15,10 @@ env:
 jobs:
   probe:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        copy: [1, 2, 3, 4]
     timeout-minutes: 30
     # In Playwright's image, as the browser shards are.
     container:
@@ -87,4 +91,5 @@ jobs:
       - if: steps.install.outcome == 'failure'
         run: pnpm i --frozen-lockfile
       - name: Probe runs (WebKit)
-        run: pnpm exec vitest run registry/ouro/components/ouro/message/message-list.windowing.test.tsx --project ouro-webkit -t "probe run"
+        # The whole message folder, as a browser shard runs it beside the probe runs: the flake showed only in full shards.
+        run: pnpm exec vitest run registry/ouro/components/ouro/message/ --project ouro-webkit --project ouro-chromium
