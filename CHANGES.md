@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: the list-and-detail page pattern moves focus to the detail's heading in the same task as a row's press, and [after Back keeps focus on Back while the list comes back, then moves it to the row once the list has had a frame](test/patterns.test.tsx "verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone keeps focus on Back while the list comes back, then moves it to the row once the list has had a frame, never through the page)"), so focus never falls to the page and NVDA reads the row whole.
