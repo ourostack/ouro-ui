@@ -46,14 +46,14 @@ export interface Scene {
 
 export const SCENES: Record<SceneName, Scene> = {
   "ouro-hx": {
-    alt: "On a mountain cabin's deck at dawn, a faceless glass person holding a coffee presses a big glass switch on a walnut test board while a small coral robot on a crate studies the brass gauge through a loupe, and Ouro, a smiling emerald snake curled into an O, basks on a folded cloth on the table.",
-    sky: ["#b6b4cb", "#b6b4cb", "#c4c2d1", "#f5dad0", "#c2c7de"],
+    alt: "On a mountain cabin's deck in golden morning light, a faceless glass person in a navy jacket stands at a walnut test board beside a glowing glass push button he has just pressed, while a small coral robot on a crate reads the brass gauge, and Ouro, a smiling emerald snake curled into an O, rests on a folded towel.",
+    sky: ["#84563b", "#885e48", "#cadaec", "#d9e4f1", "#d5e5f5"],
     height: 512,
     phoneHeight: 384,
     band: 27,
     night: {
       phoneHeight: 384,
-      alt: "On a mountain cabin's deck at night, a faceless glass person holding a coffee presses a big glass switch on a walnut test board while a small coral robot on a crate studies the brass gauge through a loupe, and Ouro, a smiling emerald snake curled into an O, basks on a folded cloth on the table.",
+      alt: "On a mountain cabin's deck at night under a full moon, a faceless glass person in a navy jacket stands at a walnut test board beside a softly glowing glass push button, while a small coral robot on a crate, its eyes glowing, reads the brass gauge, and Ouro, a smiling emerald snake curled into an O, rests on a folded towel.",
     },
   },
   "ouro-ui-apple": {
