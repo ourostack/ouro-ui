@@ -80,6 +80,7 @@ interface ChecksDef<C> {
   command: string;
   noun?: readonly [string, string];
   checks: readonly CheckDef<C>[];
+  exits?: ExitTable;
 }
 ```
 
@@ -130,7 +131,7 @@ function checksText(report: ChecksReport, style: TerminalStyle, options?: { verb
 
 ### `defineChecks`
 
-Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on an empty list, a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure has no fix, or its fix is the command just run, so a tool's own tests catch both. A fix or a next step that asks for a developer command or a repository path throws too, so a doctor never tells a person to run a repository script.
+Declares a tool's checks once: from this one definition come the progress while they run, the verdict and the grouped results for a person, the `--json` for an agent, the timing and the exit code. Throws at definition time on an empty list, a repeated id, an empty label or a `needs` that names no earlier check, and at run time when a warning or failure has no fix, or its fix is the command just run, so a tool's own tests catch both. A fix or a next step that asks for a developer command or a repository path throws too, so a doctor never tells a person to run a repository script. Given the tool's own exit table as `exits`, a finding exits with that table's `findings` code, and a table without one is refused, so every code the checks give is one the tool's help documents.
 
 ```ts
 function defineChecks<C>(def: ChecksDef<C>) => Checks<C>
@@ -147,6 +148,9 @@ const doctor = defineChecks({
   ],
 });
 const report = await doctor.run(context, { progress: process.stderr, env: process.env });
+// A tool whose exit 3 means "not running" puts findings after its own codes:
+const exits = defineExitCodes([...BASE_EXIT_CODES, { code: 3, name: "unavailable", short: "not running", meaning: "not running: open the app" }, { ...FINDINGS_EXIT_CODE, code: 4 }]);
+defineChecks({ command: "chat doctor", exits, checks }); // a finding exits 4
 ```
 
 ### `isChecksReport`
