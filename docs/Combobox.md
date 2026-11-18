@@ -33,6 +33,7 @@ The props the modes share. Type: `ComboboxProps`.
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
 | `disabled` | `boolean` |  | Disables the field and its buttons, and fades it. |
 | `doneLabel` | `string` | `"Done"` | The label of the button that closes the sheet on a phone (a visible button with `multiple`). Translate it with your app. |
+| `empty` | `ReactNode` |  | Content for the empty state in place of `emptyLabel`, such as a picture with words: `empty={<Empty icon={<SearchIcon />} title="No herbs by that name" />}`, in the popup and in the phone's sheet alike. Screen readers hear it politely, once each time nothing comes to match. |
 | `emptyLabel` | `string` | `"No results"` | The text the list shows when nothing matches. Translate it with your app. |
 | `error` | `ReadonlyErrorMessages` |  | What is wrong, from your server action or client check. The message (or several, as a list) shows under the field, which gets `aria-invalid`. A message is text or a React node (one with a link); an empty string or array means valid. |
 | `hideLabel` | `boolean` |  | Hides the label visually; screen readers still read it as the field's name. |
