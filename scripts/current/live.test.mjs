@@ -81,7 +81,9 @@ test("live: the check runs at the release in a checkout and its findings come ba
   const config = { waive: {}, known: {} };
   const ok = fakeRun();
   assert.deepEqual(runLiveCheck({ tag: "v1.3.187", targets: LIVE.targets, config }, { run: ok.run, root }).findings, [FINDING], "exit 3 is findings, which the report holds");
-  assert.deepEqual(ok.ran.map(({ file, args }) => (file === process.execPath ? "check" : `${file} ${args[0]}`)), ["git clone", "pnpm install", "pnpm exec", "check"]);
+  assert.deepEqual(ok.ran.map(({ file, args }) => (file === process.execPath ? "check" : `${file} ${args[0]}`)), ["git clone", "pnpm install", "scripts/retry.sh pnpm", "check"]);
+  assert.deepEqual(ok.ran[2].args, ["pnpm", "exec", "playwright", "install", "--with-deps", "chromium"], "the browser download goes through the release's retry.sh, in the checkout");
+  assert.equal(ok.ran[2].cwd, ok.ran[3].cwd);
   assert.deepEqual(ok.ran[0].args.slice(0, 5), ["clone", "--depth", "1", "--branch", "v1.3.187"]);
   assert.equal(ok.ran[0].args[5], "https://github.com/ourostack/ouro-ui.git");
   assert.equal(ok.ran[3].cwd.endsWith("ouro-ui"), true, "the check runs in the checkout at the release");

@@ -124,8 +124,9 @@ export function runLiveCheck({ tag, targets, config }, { run = runCommand, root 
     };
     step("git", ["clone", "--depth", "1", "--branch", tag, `https://github.com/${REPOS.web}.git`, checkout], dir, "git clone");
     step("pnpm", ["install", "--frozen-lockfile"], checkout, "pnpm install");
-    // --with-deps adds the system libraries Chromium needs on a Linux runner, as the check action does.
-    step("pnpm", ["exec", "playwright", "install", "--with-deps", "chromium"], checkout, "the Chromium install");
+    // --with-deps adds the system libraries Chromium needs on a Linux runner, as the check action does. The release's
+    // scripts/retry.sh runs the download again after a failed fetch, as CI's browser installs do.
+    step("scripts/retry.sh", ["pnpm", "exec", "playwright", "install", "--with-deps", "chromium"], checkout, "the Chromium install");
     const checked = run(process.execPath, ["registry/ouro/check/check.ts", ...targets, "--config", configFile, "--out", out], checkout);
     if (checked.status !== 0 && checked.status !== 3) throw new Error(`the check stopped (exit ${checked.status}): ${lastLines(checked.output)}`);
     return { findings: JSON.parse(readFileSync(join(out, "report.json"), "utf8")).findings };
