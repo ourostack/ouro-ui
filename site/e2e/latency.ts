@@ -96,12 +96,19 @@ export const LATENCY = {
    * Measurements in all of a control whose probe reads the runner past the cap: the runner's load is a precondition of
    * judging it, so a loaded runner is waited on and the control measured again, never judged on the reading alone
    * (ourostack/ouro-ui#2142). Each re-measure is logged and counted in the job's summary, and a control still past the
-   * cap after these fails as too loaded to judge.
+   * cap after these fails as too loaded to judge. A steady reading (steadySlow) stops the re-measuring after the first
+   * re-measure instead: the runner is too slow to judge, not loaded (ourostack/ouro-ui#2114).
    */
   loadTries: 3,
-  /** How long a loaded runner is given before the control is measured again, in ms. */
+  /**
+   * How long a runner past the cap is given before the control is measured again, in ms. The wait comes before the first
+   * re-measure whatever the reads, since steadiness is known only from them; a steady reading gets no second wait.
+   */
   loadWaitMs: 10_000,
 } as const;
+
+/** Event Timing's duration step, in ms: every duration it reports is a multiple of this. */
+export const EVENT_TIMING_STEP = 8;
 
 /** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1, or warmUps + samples + more - 1 when 20 more are pressed. */
 export interface Presses {
@@ -131,7 +138,7 @@ export function medianCeiling(baseline: number): number {
  */
 export function p95Bound(factor = 1): number {
   // Round the raw bound to the nearest 8 ms step (ties up): the resolution Event Timing reports durations at.
-  return Math.floor((LATENCY.p95 * factor) / 8 + 0.5) * 8;
+  return Math.floor((LATENCY.p95 * factor) / EVENT_TIMING_STEP + 0.5) * EVENT_TIMING_STEP;
 }
 
 /** Where a press's time went, from its Event Timing entry: waiting for the page's thread, its handlers, and the wait for the next paint (ms). The duration is rounded to 8 ms and the other times are not, so the last part is accurate to within that rounding. */
@@ -479,7 +486,32 @@ export function thinMargin(p95: number, factor: number): boolean {
  * LATENCY.probeQuiet, before the factor is capped. Decided from the probe alone, never from the control's result.
  */
 export function pastCap(probe: readonly number[]): boolean {
-  return median(probe) / LATENCY.probeQuiet > LATENCY.maxFactor;
+  return pastCapRead(median(probe));
+}
+
+/** Whether one probe median reads the runner past the cap (LATENCY.maxFactor). */
+function pastCapRead(read: number): boolean {
+  return read / LATENCY.probeQuiet > LATENCY.maxFactor;
+}
+
+/**
+ * Whether the probe reads the runner steadily past the cap: at least two reads (the first measurement and the first
+ * re-measure), every one past the cap, and all within one Event Timing step (8 ms) of each other. A spiky runner is
+ * waited on; a steady one reads slow, not loaded, so waiting on it again only costs the job its time (ourostack/ouro-ui#2114).
+ */
+export function steadySlow(reads: readonly number[]): boolean {
+  if (reads.length < 2 || !reads.every(pastCapRead)) return false;
+  return Math.max(...reads) - Math.min(...reads) <= EVENT_TIMING_STEP;
+}
+
+/**
+ * The failure message of a control that is not judged because its runner is steadily too slow (steadySlow). It names the
+ * probe reads that decided it, and the control that found them when this control was not measured at all.
+ */
+export function slowRunnerMessage(label: string, reads: readonly number[], foundBy?: string): string {
+  const probe = `probe ${reads.join(" ms, then ")} ms, steady, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms)`;
+  const outcome = foundBy === undefined ? `${label} is not judged` : `found on "${foundBy}"; ${label} is not measured`;
+  return `infrastructure: runner too slow to judge: ${probe}; ${outcome}`;
 }
 
 /** Whether more than 1 in 20 of a job's controls needed a re-measure: a sign the runners or the probe need fixing (ourostack/ouro-ui#2142). */
@@ -490,6 +522,10 @@ export function manyRemeasured(remeasured: number, measured: number): boolean {
 /** Controls re-measured in this worker, for the count in the job summary. */
 let remeasured = 0;
 let measured = 0;
+/** Controls failed without measuring, because this worker's runner was already found steadily too slow. */
+let failedWithoutMeasuring = 0;
+/** The control whose re-measures found this worker's runner steadily too slow, and the probe reads that did. */
+let steadySlowRun: { label: string; reads: readonly number[] } | undefined;
 /** The controls whose quiet-runner p95 was within 10% of its bound (thinMargin), as `label p95/bound`, for the job summary. */
 const thinMargins: string[] = [];
 /** Appends a line to the CI job's summary, where there is one. */
@@ -499,20 +535,34 @@ function summary(line: string): void {
 }
 process.once("exit", () => {
   if (measured > 0) summary(`Latency: ${remeasured} of ${measured} controls re-measured on a runner the probe read past ${LATENCY.maxFactor}× slower.`);
+  if (steadySlowRun) summary(`Latency: runner too slow to judge (steady probe ${steadySlowRun.reads.join(", ")} ms): ${failedWithoutMeasuring} of ${measured} controls failed without measuring.`);
   if (manyRemeasured(remeasured, measured)) summary(`Latency: more than 1 in 20 controls needed a re-measure. The runner pool, or the probe's 8 ms quantum, needs fixing, not more retries.`);
   if (measured > 0) summary(thinMargins.length > 0 ? `Latency: thin margins on a quiet runner (p95 within 10% of its bound): ${thinMargins.join(", ")}.` : "Latency: no thin margins on a quiet runner.");
 });
+
+/** Clears this worker's steady-runner verdict, for the rules spec, whose tests share a worker: a later test starts with the runner judged afresh. */
+export function forgetSteadySlowRunner(): void {
+  steadySlowRun = undefined;
+}
 
 /**
  * Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget,
  * at the runner's factor. When the probe reads the runner past the cap (pastCap), the runner is given LATENCY.loadWaitMs
  * and the control measured again, pass or fail, up to LATENCY.loadTries measurements in all, and the last alone is
  * judged; when its probe is past the cap too, the control fails as too loaded to judge, so an overloaded runner never
- * passes a control unmeasured. Each re-measured control goes to the job summary with every probe reading.
+ * passes a control unmeasured. A steady reading (steadySlow: every read past the cap, within one Event Timing step of
+ * the others) stops the re-measuring after the first re-measure instead: the runner is too slow to judge, not loaded,
+ * so the control fails at once as infrastructure, and every later control in this worker fails without measuring, with
+ * the same message (slowRunnerMessage), never extending its time limit. The job's summary counts both. Each re-measured
+ * control goes to the job summary with every probe reading.
  */
 export async function expectPressesWithinBudget(page: Page, label: string, presses: Presses, baseline: number): Promise<void> {
   const more = (first: readonly number[], before: number) => morePresses(first, baseline, before);
   measured += 1;
+  if (steadySlowRun) {
+    failedWithoutMeasuring += 1;
+    expect(false, slowRunnerMessage(label, steadySlowRun.reads, steadySlowRun.label)).toBe(true);
+  }
   const began = Date.now();
   let result = await measure(page, label, presses, LATENCY.throttle, more);
   // How long one measurement took here: each re-measure adds that, half again, and the wait to the test's time limit, so
@@ -521,7 +571,7 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
   const reads = [median(result.probe)];
   // Each measurement's presses carry on from the last index of the ones before it.
   let pressed = result.presses;
-  while (pastCap(result.probe) && reads.length < LATENCY.loadTries) {
+  while (pastCap(result.probe) && reads.length < LATENCY.loadTries && !steadySlow(reads)) {
     test.info().setTimeout(test.info().timeout + LATENCY.loadWaitMs + Math.ceil(took * 1.5));
     await page.waitForTimeout(LATENCY.loadWaitMs);
     result = await measure(page, `${label} (again)`, presses, LATENCY.throttle, more, pressed);
@@ -534,6 +584,13 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
     test.info().annotations.push({ type: "latency-remeasure", description: line });
     console.log(`latency-remeasure ${line}`);
     summary(`- ${line}`);
+    if (steadySlow(reads)) {
+      const message = slowRunnerMessage(label, reads);
+      steadySlowRun = { label, reads };
+      test.info().annotations.push({ type: "latency-runner-too-slow", description: message });
+      console.log(`latency-runner-too-slow ${reads.join(", ")} ms, steady (${label})`);
+      expect(false, message).toBe(true);
+    }
     expect(pastCap(result.probe), `${label}: runner too loaded to judge: probe ${reads.join(" ms, then ")} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), ${reads.length} times`).toBe(false);
   }
   const { p95 } = summarise(result.samples, baseline, result.factor);
