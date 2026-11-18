@@ -14,6 +14,13 @@ import { LATENCY } from "./latency";
 
 const PHONE = { width: 390, height: 844 };
 const LOADS = { warmUps: 2, samples: 12 };
+/**
+ * Times a load the CPU throttle missed is taken again (ourostack/ouro-ui#2131). A load whose own loop ran under
+ * MISSED_BELOW times slower than the runner's full speed was not throttled, so its paint is no measurement: a navigation
+ * at times lands in a renderer the throttle was not set on. The final check still fails a load that missed after these.
+ */
+const RETAKES = 3;
+const MISSED_BELOW = 2;
 const BARE = "bare-app";
 
 /** A baseline: the median a CI run measured, in ms, and the bare app's median in the same test, which scales it to a runner. */
@@ -154,24 +161,32 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
     const plots: number[] = [];
     const bares: number[] = [];
     const throttledLoops: number[] = [];
+    let retaken = 0;
     for (let index = 0; index < LOADS.warmUps + LOADS.samples; index++) {
       for (const app of [BARE, name]) {
-        const page = await context.newPage();
-        try {
-          const { paint, plot, throttled } = await load(page, app, chart && app === name);
-          throttledLoops.push(throttled);
-          if (index < LOADS.warmUps) continue;
-          if (app === BARE) bares.push(paint);
-          else paints.push(paint);
-          if (plot !== null) plots.push(plot);
-        } finally {
-          await page.close();
+        // The full speed measured so far can only fall, so a load fast enough against it stays fast enough at the end.
+        let taken: Awaited<ReturnType<typeof load>>;
+        for (let take = 0; ; take++) {
+          const page = await context.newPage();
+          try {
+            taken = await load(page, app, chart && app === name);
+          } finally {
+            await page.close();
+          }
+          if (taken.throttled / full >= MISSED_BELOW || take === RETAKES) break;
+          retaken += 1;
         }
+        const { paint, plot, throttled } = taken;
+        throttledLoops.push(throttled);
+        if (index < LOADS.warmUps) continue;
+        if (app === BARE) bares.push(paint);
+        else paints.push(paint);
+        if (plot !== null) plots.push(plot);
       }
     }
     full = Math.min(full, await loop(anchor));
     const slowdowns = throttledLoops.map((time) => Math.round((time / full) * 10) / 10);
-    console.log(`latency ${name} throttle: each load's loop ran ${slowdowns.join(", ")}× slower than full speed (${Math.round(full * 10) / 10} ms)`);
+    console.log(`latency ${name} throttle: each load's loop ran ${slowdowns.join(", ")}× slower than full speed (${Math.round(full * 10) / 10} ms); ${retaken} ${retaken === 1 ? "load" : "loads"} the throttle missed taken again`);
     expect(Math.min(...slowdowns), `${name}: a load ran ${Math.min(...slowdowns)}× slower than full speed, so the ${LATENCY.throttle}× throttle missed it (${slowdowns.join(", ")})`).toBeGreaterThanOrEqual(2);
     const bare = median(bares);
     const runner = Math.round(full * 100) / 100;
