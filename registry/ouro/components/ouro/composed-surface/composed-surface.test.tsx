@@ -373,6 +373,25 @@ describe("ComposedSurface fields", () => {
     expect(page.getByRole("combobox", { name: "Oven" }).element().textContent).toContain("Grill");
   });
 
+  it("keeps a field the person emptied across new data, and drops their answers when the agent's data goes", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const onPress = vi.fn();
+    await act(async () => root.render(<ComposedSurface {...props({ tree: fields, data, onPress })} />));
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "");
+    await userEvent.fill(page.getByRole("textbox", { name: "Title" }), "Typed");
+    await act(async () => root.render(<ComposedSurface {...props({ tree: fields, data: { ...data, oven: "Grill" }, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("");
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Typed");
+    await userEvent.click(page.getByRole("button", { name: "Plan dinner" }));
+    expect((onPress.mock.calls[0]![0] as PersonPress).input).toMatchObject({ servings: null, oven: "Grill", title: "Typed" });
+    await act(async () => root.render(<ComposedSurface {...props({ tree: fields, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("");
+  });
+
   it("starts the fields over when the tree's origin changes, as A2UISurface's does for another surface", async () => {
     const host = document.createElement("div");
     document.body.append(host);
