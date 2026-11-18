@@ -4,15 +4,16 @@ import { useCallback, useSyncExternalStore } from "react";
 
 /**
  * The list for each query, kept by the `matchMedia` that made it: a list's `matches` is live, so one per query serves every
- * reader and every render. Only a browser's own `MediaQueryList` is kept: a test's stub that answers with plain objects is
- * asked again on every read, as one that changes its answer between renders needs, and a `matchMedia` swapped in makes lists
- * of its own.
+ * reader and every render. Only a browser's own `MediaQueryList` is kept, and none from a Vitest or Jest mock (which has a
+ * `mock` property): a test's stub that answers with plain objects, or a mock that may change its answer between renders, is
+ * asked again on every read, and a `matchMedia` swapped in makes lists of its own.
  * @claim "The list for each query, kept by" registry/ouro/lib/ouro/use-media-query.test.tsx verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > calls matchMedia once for a query, however many components read it and however often they render) verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > reads a matchMedia swapped in after the real one made a list for the same query, as a test's stub is)
- * @claim "Only a browser's own `MediaQueryList` is kept" registry/ouro/lib/ouro/use-media-query.test.tsx verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > asks a stub that answers with plain objects again on each read, so a mock that changes its answer is followed) verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > reads a mocked matchMedia where MediaQueryList is not defined, as in jsdom)
+ * @claim "Only a browser's own `MediaQueryList` is kept" registry/ouro/lib/ouro/use-media-query.test.tsx verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > asks a stub that answers with plain objects again on each read, so a mock that changes its answer is followed) verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > follows a spy on matchMedia that passed the browser's lists through and then changes its answer) verify:testExists(registry/ouro/lib/ouro/use-media-query.test.tsx::useMediaQuery > reads a mocked matchMedia where MediaQueryList is not defined, as in jsdom)
  */
 const lists = new WeakMap<typeof matchMedia, Map<string, MediaQueryList>>();
 
 function listFor(query: string): MediaQueryList {
+  if ("mock" in matchMedia) return matchMedia(query);
   let byQuery = lists.get(matchMedia);
   if (byQuery === undefined) lists.set(matchMedia, (byQuery = new Map()));
   const kept = byQuery.get(query);
