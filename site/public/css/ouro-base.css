@@ -65,10 +65,10 @@
   --ouro-backdrop-max: 0.4;
   --ouro-scrim-color: var(--ouro-backdrop-color);
   --ouro-scrim-max: 0.1;
-  --ouro-shadow-sheet-bottom: 0 -1px 0 color-mix(in oklab, var(--border) 60%, transparent), 0 -8px 32px rgb(0 0 0 / 0.12);
-  --ouro-shadow-sheet-top: 0 1px 0 color-mix(in oklab, var(--border) 60%, transparent), 0 8px 32px rgb(0 0 0 / 0.12);
-  --ouro-shadow-sheet-left: 1px 0 0 color-mix(in oklab, var(--border) 60%, transparent), 8px 0 32px rgb(0 0 0 / 0.12);
-  --ouro-shadow-sheet-right: -1px 0 0 color-mix(in oklab, var(--border) 60%, transparent), -8px 0 32px rgb(0 0 0 / 0.12);
+  --ouro-shadow-sheet-bottom: 0 -1px 0 var(--border), 0 -8px 32px rgb(0 0 0 / 0.12);
+  --ouro-shadow-sheet-top: 0 1px 0 var(--border), 0 8px 32px rgb(0 0 0 / 0.12);
+  --ouro-shadow-sheet-left: 1px 0 0 var(--border), 8px 0 32px rgb(0 0 0 / 0.12);
+  --ouro-shadow-sheet-right: -1px 0 0 var(--border), -8px 0 32px rgb(0 0 0 / 0.12);
   --ouro-layer: 50;
   --ouro-glass: #ffffff;
   --ouro-glass-tint: 34%;
