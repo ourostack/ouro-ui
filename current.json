@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-18T01:28:04.177Z",
+  "generatedAt": "2026-11-18T01:55:29.281Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -225,7 +225,7 @@
     },
     {
       "repo": "ourostack/ouro-md",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "Package.resolved",
@@ -244,15 +244,12 @@
         {
           "file": "tools/ouro-actions/dist-manifest.json",
           "follows": "core",
-          "current": "v0.17.6",
+          "current": "v0.17.7",
           "latest": "v0.17.7",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 189,
-        "url": "https://github.com/ourostack/ouro-md/pull/189"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-native-apple-app-shell",
@@ -329,20 +326,17 @@
     },
     {
       "repo": "ourostack/ouroboros-website",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.278",
+          "current": "v1.3.279",
           "latest": "v1.3.279",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 305,
-        "url": "https://github.com/ourostack/ouroboros-website/pull/305"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/shepherd",
