@@ -160,6 +160,65 @@ test("Ouro Feel's probe counts a blank frame by the rows' boxes, so a list that 
   }
 });
 
+for (const [layout, style, hidden] of [
+  ["drawn top to bottom", "", false],
+  ["drawn bottom to top", "display:flex;flex-direction:column-reverse;", false],
+  ["holding a row that draws nothing", "", true],
+]) {
+  test(`Ouro Feel's probe reads only the rows in view each frame, and still follows the reader's row, in a list ${layout}`, async () => {
+    const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+      const rows = Array.from({ length: 200 }, (_, i) => `<div class="row" style="height:48px;flex:none${hidden && i === 100 ? ";display:none" : ""}">Row ${i}</div>`).join("");
+      await page.setContent(`<div id="list" style="${style}height:400px;overflow:auto">${rows}</div>`);
+      // Every read of a row's box, from before the probe loads, so the probe's own reads are counted too.
+      await page.evaluate(() => {
+        const read = globalThis.Element.prototype.getBoundingClientRect;
+        globalThis.rowReads = 0;
+        globalThis.Element.prototype.getBoundingClientRect = function () {
+          if (this.classList.contains("row")) globalThis.rowReads++;
+          return read.call(this);
+        };
+      });
+      await page.addScriptTag({ content: probe });
+      const { measures, reads } = await page.evaluate(async () => {
+        const { document, ouroFeel } = globalThis;
+        const list = document.getElementById("list");
+        // Away from either end: the reader is in the middle of the conversation.
+        list.scrollTop = list.scrollTop + Math.sign(list.scrollTop || 1) * 4000;
+        ouroFeel.watch({ case: "rows", scroller: list, rows: ".row" });
+        const from = globalThis.rowReads;
+        for (let step = 0; step < 20; step++) {
+          list.scrollTop += 40;
+          ouroFeel.inputMoved(40);
+          await ouroFeel.painted();
+        }
+        const reads = (globalThis.rowReads - from) / 20;
+        // A row between the reader's row and where the list starts grows: the reader's row moves with no input.
+        const view = list.getBoundingClientRect();
+        const middle = view.top + view.height / 2;
+        const visible = [...list.querySelectorAll(".row")].filter((row) => {
+          const box = row.getBoundingClientRect();
+          return box.height > 0 && box.bottom > view.top && box.top < view.bottom;
+        });
+        const reversed = globalThis.getComputedStyle(list).flexDirection === "column-reverse";
+        const grow = reversed ? visible.find((row) => row.getBoundingClientRect().top > middle) : visible.findLast((row) => row.getBoundingClientRect().bottom < middle);
+        grow.style.height = "148px";
+        await ouroFeel.painted();
+        await ouroFeel.painted();
+        return { measures: ouroFeel.stop(true).measures, reads };
+      });
+      assert.equal(measures.blankFrames, 0);
+      assert.ok(measures.jumps >= 1, `the reader's row moved 100 px, and the probe saw ${measures.jumps} jumps`);
+      // About 9 rows are in a 400 px view of 48 px rows; reading every row would be 200 a frame.
+      if (!hidden) assert.ok(reads < 40, `${reads} row boxes read a frame`);
+    } finally {
+      await browser.close();
+    }
+  });
+}
+
 test("Ouro Feel's probe takes the list as a selector and finds it again each frame, so a list put in another's place is measured", async () => {
   const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
   const browser = await chromium.launch();
