@@ -11,7 +11,7 @@ import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
-import { href, routes } from "./routes";
+import { guessedAddresses, href, redirects, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, KIT, VOYAGE_HERO, WORKS_WITH } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { SITE_SECTIONS } from "./voyage/site-menu";
@@ -467,6 +467,19 @@ describe("docs", () => {
     // Three letters must be exact.
     await userEvent.fill(filter, "dlg");
     expect(nav.getByRole("link").elements()).toHaveLength(0);
+  });
+
+  it("sends the addresses agents guess on to the page they meant, an export's own name included", () => {
+    const pages = new Set(routes.map((route) => route.path));
+    expect(guessedAddresses).toContainEqual({ from: "/docs/A2UISurface/", to: "/docs/a2ui-surface/" });
+    expect(guessedAddresses).toContainEqual({ from: "/docs/ouro-ax/", to: "/docs/ax/" });
+    expect(guessedAddresses).toContainEqual({ from: "/docs/composed/", to: "/docs/composed-ui/" });
+    for (const { from, to } of guessedAddresses) {
+      expect(pages.has(to), `${from} goes to ${to}, a page`).toBe(true);
+      // A case-insensitive file system would write the redirect over the page itself.
+      expect([...pages].some((path) => path.toLowerCase() === from.toLowerCase()), `${from} is no page in any letter case`).toBe(false);
+    }
+    expect(redirects).toEqual(expect.arrayContaining(guessedAddresses));
   });
 
   it("has a page for every registry item at docs/<name>", () => {

@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -17,7 +17,8 @@ function routes(): string[] {
     for (const name of readdirSync(join(dir))) {
       const full = join(dir, name);
       if (statSync(full).isDirectory()) walk(full, `${path}${name}/`);
-      else if (name === "index.html") found.push(path);
+      // A redirect page (an old or guessed address, routes.ts) refreshes to a page this already opens.
+      else if (name === "index.html" && !/<meta\s+http-equiv="refresh"/i.test(readFileSync(full, "utf8"))) found.push(path);
     }
   };
   walk(DIST, "/");

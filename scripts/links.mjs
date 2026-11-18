@@ -175,6 +175,8 @@ function walk(dir) {
 }
 
 /** Dead internal links in the built site (`dist`), served under `base`. */
+const REFRESH = /<meta\s+http-equiv="refresh"/i;
+
 export function builtProblems(dist, base = "/") {
   const problems = [];
   const check = (file, target) => {
@@ -188,9 +190,11 @@ export function builtProblems(dist, base = "/") {
     path = path.split("#")[0].split("?")[0];
     if (builtElsewhere.test(path) || path === "r/registry.json" || /[<{]/.test(path)) return;
     const resolved = path === "" || path.endsWith("/") ? `${path}index.html` : path;
-    if (existsExactly(dist, resolved) && statSync(join(dist, resolved)).isFile()) return;
+    // A redirect page (routes.ts) is for addresses typed or guessed; the site's own links name the page itself.
+    const redirect = (file) => file.endsWith(".html") && REFRESH.test(readFileSync(join(dist, file), "utf8"));
+    if (existsExactly(dist, resolved) && statSync(join(dist, resolved)).isFile()) return void (redirect(resolved) && problems.push(`${relative(dist, file)}: ${target} is a redirect page; link to the page it sends to`));
     // Pages redirects docs/button to docs/button/.
-    if (existsExactly(dist, `${path}/index.html`)) return;
+    if (existsExactly(dist, `${path}/index.html`)) return void (redirect(`${path}/index.html`) && problems.push(`${relative(dist, file)}: ${target} is a redirect page; link to the page it sends to`));
     problems.push(`${relative(dist, file)}: ${target} names no file in the built site${existsSync(join(dist, resolved)) ? " in that letter case" : ""}`);
   };
   for (const file of walk(dist)) {

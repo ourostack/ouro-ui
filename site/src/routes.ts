@@ -16,8 +16,23 @@ export interface Route {
   noindex?: boolean;
 }
 
-/** Old addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
-export const redirects: Array<{ from: string; to: string }> = [{ from: "/voyage/", to: "/" }];
+/**
+ * Addresses agents guess, sent on to the page they meant. Each docs page also answers at its export's own name
+ * (`/docs/A2UISurface/` for `/docs/a2ui-surface/`), except where the two differ only in letter case, which a
+ * case-insensitive file system would write over. The aliases are the names agents tried in the model reviews.
+ */
+export const guessedAddresses: Array<{ from: string; to: string }> = [
+  ...[...docsItems.map(({ name, title }) => ({ name, title })), ...pageIndex.filter((page) => page.kind === "export")]
+    .filter(({ name, title }) => /^[A-Za-z][A-Za-z0-9]*$/.test(title) && title.toLowerCase() !== name.toLowerCase())
+    .map(({ name, title }) => ({ from: `/docs/${title}/`, to: `/docs/${name}/` })),
+  { from: "/docs/ouro-ax/", to: "/docs/ax/" },
+  { from: "/docs/ax-overview/", to: "/docs/ax/" },
+  { from: "/docs/ouro-hx/", to: "/docs/" },
+  { from: "/docs/composed/", to: "/docs/composed-ui/" },
+];
+
+/** Old and guessed addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
+export const redirects: Array<{ from: string; to: string }> = [{ from: "/voyage/", to: "/" }, ...guessedAddresses];
 
 const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline}`;
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
