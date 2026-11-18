@@ -309,6 +309,62 @@ test("Sail again leaves X-ray as the reader set it, on or off", async ({ page })
   }
 });
 
+/** The page's scroll position once two reads two frames apart agree, so a smooth scroll has ended. */
+async function settledScroll(page: Page): Promise<number> {
+  const read = () => page.evaluate(() => new Promise<number>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(scrollY)))));
+  let last = await read();
+  for (;;) {
+    const now = await read();
+    if (now === last) return now;
+    last = now;
+  }
+}
+
+test("Sail again pressed with a mouse glides back up to the squid, never in one jump, and pressed by keys takes focus to the alarm", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 820 });
+  await open(page);
+  await win(page);
+  await playButton(page).click();
+  const again = saloon(page).getByRole("button", { name: SALOON.again });
+  await again.scrollIntoViewIfNeeded();
+  await settledScroll(page);
+  // The scroll position and the time in every frame from when focus moves to the alarm: the press's own frame can
+  // shift the page by the lines the log loses (Chromium keeps what is under the pointer still), but the move up to
+  // the squid must glide.
+  await page.evaluate(() => {
+    const frames: [number, number][] = [];
+    (window as unknown as { glide: [number, number][] }).glide = frames;
+    const frame = (time: number) => {
+      frames.push([scrollY, time]);
+      requestAnimationFrame(frame);
+    };
+    const moved = (event: FocusEvent) => {
+      if (!(event.target as Element).closest("[data-chapter-control='alarm']")) return;
+      removeEventListener("focusin", moved);
+      frame(performance.now());
+    };
+    addEventListener("focusin", moved);
+  });
+  await again.click();
+  await expect(scene(page)).toHaveAttribute("data-squid", "holding");
+  await expect(alarm(page)).toBeFocused();
+  await settledScroll(page);
+  await expect(scene(page)).toBeInViewport({ ratio: 1 });
+  const frames = await page.evaluate(() => (window as unknown as { glide: [number, number][] }).glide);
+  const moves = frames.filter(([top], index) => index > 0 && top !== frames[index - 1]![0]).map(([, time]) => time);
+  expect(frames[0]![0] - frames.at(-1)![0]).toBeGreaterThan(300);
+  // A glide, not a jump: the page moves over a tenth of a second or more, not in one frame, however slow the frames come.
+  expect(moves.at(-1)! - moves[0]!).toBeGreaterThanOrEqual(100);
+
+  await win(page);
+  await playButton(page).click();
+  await again.focus();
+  await page.keyboard.press("Enter");
+  await expect(scene(page)).toHaveAttribute("data-squid", "holding");
+  await expect(alarm(page)).toBeFocused();
+  await expect(alarm(page)).toBeInViewport();
+});
+
 test("every operable element in Chapter III is one of its listed controls, in page order", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);

@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX } from "react";
+import { createContext, use, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX, type MouseEvent } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
@@ -519,16 +519,25 @@ function Saloon(): JSX.Element {
   const nextLine = useId();
   // Play answers at once (the button and its hint); the organ, the log's line and the way on follow in a render of their own.
   const shown = useAfterPaint(played);
-  const [rounds, setRounds] = useState(0);
+  const [round, setRound] = useState({ count: 0, pointer: false });
   // Focus goes back once the press has painted: React runs this effect in the press's own frame, and the focus
   // scrolls the page up to the alarm, so the press waited on a layout and on painting the whole new view (#1393).
+  // A pointer press glides the page up to the squid (at once under reduced motion) and moves focus without a scroll of
+  // its own, which WebKit would make in one jump; a key press lets focus take the reader's place to the alarm.
   useEffect(() => {
-    if (!rounds) return;
-    return afterPaint(() => document.querySelector<HTMLElement>("#chapter-three [data-chapter-control='alarm'] button")?.focus());
-  }, [rounds]);
-  const again = () => {
+    if (!round.count || shown) return;
+    return afterPaint(() => {
+      const chapter = document.getElementById("chapter-three");
+      const alarm = chapter?.querySelector<HTMLElement>("[data-chapter-control='alarm'] button");
+      if (!round.pointer) return alarm?.focus();
+      alarm?.focus({ preventScroll: true });
+      chapter?.querySelector("[data-composition='encounter'] figure")?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    });
+  }, [round, shown]);
+  const again = (event: MouseEvent) => {
     store.set({ ...START, line: FIGHT.again });
-    setRounds((count) => count + 1);
+    // A click from Enter or Space has no presses to count (detail 0); a mouse's, a pen's or a finger's has.
+    setRound(({ count }) => ({ count: count + 1, pointer: event.detail > 0 }));
   };
   const voyage = useLogbook((log) => log);
   const log = [...voyageLog(voyage), SALOON.logHeld, ...(won ? [SALOON.logFree] : []), ...(shown ? [SALOON.logPlayed] : [])];
