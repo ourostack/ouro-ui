@@ -28,6 +28,19 @@ function keepHyphenatedWordsWhole(text: string): (string | JSX.Element)[] {
   );
 }
 
+/**
+ * The headline's phrases ("Delightful interfaces,", "by agents,", "for everyone.") each stay on one line, so it breaks
+ * only between them, never after "by".
+ */
+function keepPhrasesWhole(text: string): (string | JSX.Element)[] {
+  return text.split(/(?<=,) /).flatMap((phrase, index) => [
+    ...(index > 0 ? [" "] : []),
+    <span key={index} className="whitespace-nowrap" data-site-phrase="">
+      {phrase}
+    </span>,
+  ]);
+}
+
 /** The hero scene's width: Hero's stage width (its 80rem cap, scaled by the root type on a wide screen), never past the 1536px file width. In rem, so a larger browser font never makes it guess too small. */
 const HERO_SCENE_SIZES = "(min-width: 200rem) min(1536px, 100rem), (min-width: 150rem) min(1536px, 90rem), (min-width: 80rem) min(1536px, 80rem), calc(100vw - 4rem)";
 
@@ -165,7 +178,7 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         }
         title={VOYAGE_HERO.title.map((part, index) => (
           <span key={part} className={index === 0 ? undefined : "site-hero-line-second"}>
-            {part}
+            {keepPhrasesWhole(part)}
             {index < VOYAGE_HERO.title.length - 1 ? " " : null}
           </span>
         ))}

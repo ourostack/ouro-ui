@@ -91,6 +91,8 @@ describe("the hero", () => {
     expect(EYEBROW).toBe("A complete kit for agents");
     expect(document.querySelector("h1")!.textContent).toBe("Delightful interfaces, by agents, for everyone.");
     expect(document.querySelector("h1")!.textContent!.split(/\s+/)).toHaveLength(6);
+    // It breaks only between its phrases, never after "by": each phrase holds one line.
+    expect([...document.querySelectorAll("h1 [data-site-phrase]")].map((phrase) => phrase.textContent)).toEqual(["Delightful interfaces,", "by agents,", "for everyone."]);
     expect(document.querySelector("[data-site-eyebrow]")!.textContent).toBe(EYEBROW);
     expect(document.querySelector(".stage-motto textPath")!.textContent).toBe("THE NAUTILUS");
     // real clock: the hero's line, which stays.
