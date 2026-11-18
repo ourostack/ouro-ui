@@ -15,7 +15,7 @@ import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { HandOff } from "../handoff";
-import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
@@ -121,7 +121,8 @@ export default function ChapterThree(): JSX.Element {
       <FightContext value={fight}>
         <BattleMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
-          <header className="lg:sticky lg:top-24 lg:col-span-4 lg:self-start">
+          <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
+            <ChapterPicture scene="nautilus-squid" className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_THREE.number}</p>
             <h2 id="chapter-three-title" className="site-h2 mt-3">
               {CHAPTER_THREE.title}
@@ -152,13 +153,12 @@ function useBattle(): Step[] {
   ];
 }
 
-/** The rail beside the chapter: the organ, lit once it plays, and how the fight stands. Left out on a phone. */
+/** The rail beside the chapter: the squid at the saloon's window, and how the rescue stands. Left out on a phone, where the picture opens the chapter. */
 function Battle(): JSX.Element {
   const steps = useBattle();
-  const played = useAfterPaint(useFight().played);
   return (
     <div className="mt-10 hidden lg:block" data-chapter-battle="">
-      <OrganArt small played={played} />
+      <ChapterPicture scene="nautilus-squid" />
       <Steps label={BATTLE.label} steps={steps} />
     </div>
   );
@@ -168,11 +168,11 @@ function BattleMarker(): JSX.Element {
   return <PhoneMarker chapter={CHAPTER_THREE.number} title={CHAPTER_THREE.title} steps={useBattle()} />;
 }
 
-function OrganArt({ small = false, played, label }: { small?: boolean; played: boolean; label?: string }): JSX.Element {
+function OrganArt({ played, label }: { played: boolean; label?: string }): JSX.Element {
   return (
     <svg
       className="site-organ"
-      style={{ display: "block", width: small ? "55%" : "100%", maxWidth: "20rem", height: "auto", marginInline: small ? 0 : "auto" }}
+      style={{ display: "block", width: "100%", maxWidth: "20rem", height: "auto", marginInline: "auto" }}
       viewBox={organ.viewBox}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
       fill="none"

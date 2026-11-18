@@ -323,6 +323,34 @@ describe("the Nautilus's page", () => {
     expect(page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true }).element().getAttribute("href")).toBe("/");
   });
 
+  it("opens on its own scene above its title, and shows each chapter's picture whole, day and night", async () => {
+    await page.viewport(1280, 800);
+    await renderPage("/nautilus/");
+    const opener = document.querySelector<HTMLElement>("picture[data-brand-scene='nautilus']")!;
+    expect(opener).not.toBeNull();
+    expect(opener.compareDocumentPosition(document.querySelector("#story-title")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(opener.closest(".story-world")!.querySelector("picture[data-brand-scene='nautilus-dark']")).not.toBeNull();
+    for (const scene of ["nautilus-shipyard", "nautilus-library", "nautilus-squid"]) {
+      await expect.poll(() => document.querySelectorAll(`[data-chapter-picture='${scene}']`).length).toBe(2);
+      const [phone, rail] = [...document.querySelectorAll<HTMLElement>(`[data-chapter-picture='${scene}']`)];
+      // The whole 3:2 frame, never a band: its box is the picture's own shape.
+      for (const box of [phone!, rail!]) {
+        expect(getComputedStyle(box).aspectRatio).toBe("3 / 2");
+        expect(box.querySelector(`picture[data-brand-scene='${scene}'] img`)!.getAttribute("loading")).toBe("lazy");
+        expect(box.querySelector(`picture[data-brand-scene='${scene}-dark']`)).not.toBeNull();
+      }
+      // A wide screen shows the rail's; the one above the chapter waits for a phone.
+      expect([phone!.checkVisibility(), rail!.checkVisibility()]).toEqual([false, true]);
+    }
+    // With its picture the rail is taller than a laptop's screen, so it holds in view only where it fits.
+    const header = document.querySelector("#chapter-one header")!;
+    expect(getComputedStyle(header).position).toBe("static");
+    await page.viewport(1440, 960);
+    await expect.poll(() => getComputedStyle(header).position).toBe("sticky");
+    await page.viewport(390, 844);
+    await expect.poll(() => document.querySelector<HTMLElement>("[data-chapter-picture='nautilus-squid']")!.checkVisibility()).toBe(true);
+  });
+
   it("reads cold: it says who Nemo is and where he comes from, with no untranslated Latin or unexplained crew", async () => {
     await renderPage("/nautilus/");
     const opening = document.querySelector("#story-title")!.closest("section")!;

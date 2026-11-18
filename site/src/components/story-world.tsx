@@ -17,7 +17,7 @@ const FULL_WORLD_SIZES = "(min-width: 200rem) max(1536px, 98.75rem), (min-width:
  * stylesheet shows only in dark mode: it always waits to load until it's shown, so a light page never fetches it, and
  * the hidden one of the two is out of the accessibility tree, so a screen reader hears the scene once.
  */
-function ScenePicture({ scene, priority, sizes, decorative, night = false }: { scene: SceneName; priority: boolean; sizes: string; decorative: boolean; night?: boolean }): JSX.Element {
+export function ScenePicture({ scene, priority, sizes, decorative, night = false }: { scene: SceneName; priority: boolean; sizes: string; decorative: boolean; night?: boolean }): JSX.Element {
   const { height } = SCENES[scene];
   const alt = night ? (SCENES[scene].night.alt ?? SCENES[scene].alt) : SCENES[scene].alt;
   const phoneHeight = night ? SCENES[scene].night.phoneHeight : SCENES[scene].phoneHeight;

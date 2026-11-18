@@ -14,7 +14,6 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
-import islandSource from "../../nautilus/art/island-yard.svg?raw";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
@@ -22,14 +21,13 @@ import { useStable } from "../use-stable";
 import { parseArt } from "../stage/art";
 import type { CrewName } from "../stage/copy";
 import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
-import { Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (each part drawn in, the launch, the yard's picture,
 // the crew's cheer): it comes inside this island's script and goes into the page as the island
 // hydrates, so it costs the first paint nothing and holds up no part of the island's loading.
 import chapterStyles from "./chapter-one.css?inline";
 
 const blueprint = parseArt(blueprintSource);
-const island = parseArt(islandSource);
 
 /** How the voyage stands: the shipyard and the articles write it, the rail beside them reads it. */
 interface Voyage {
@@ -76,7 +74,8 @@ export default function ChapterOne(): JSX.Element {
       <VoyageContext value={voyage}>
         <ExpeditionMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
-          <header className="lg:sticky lg:top-24 lg:col-span-4 lg:self-start">
+          <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
+            <ChapterPicture scene="nautilus-shipyard" className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_ONE.number}</p>
             <h2 id="chapter-one-title" className="site-h2 mt-3">
               {CHAPTER_ONE.title}
@@ -114,29 +113,15 @@ function useExpedition(): { voyage: Voyage; steps: Step[] } {
 }
 
 /**
- * The rail beside the chapter, held in view while you work: the yard on the island, drawn in as
- * the jobs are ticked, the ship in the sea once launched and a pennant once you sign on; under it,
- * how the voyage stands in words. On a phone the chapter runs in one column and the rail is left
- * out; ExpeditionMarker keeps the count instead.
+ * The rail beside the chapter, held in view while you work: the shipyard's picture, then how the
+ * voyage stands in words, each step ticked as it is done. On a phone the picture opens the chapter
+ * instead and the steps are left out; ExpeditionMarker keeps the count.
  */
 function Expedition(): JSX.Element {
-  const { voyage, steps } = useExpedition();
-  const { built, launched, you } = voyage;
+  const { steps } = useExpedition();
   return (
     <div className="mt-10 hidden lg:block" data-chapter-expedition="">
-      <svg
-        className="site-yard"
-        viewBox={island.viewBox}
-        aria-hidden="true"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        data-built={[...built].join(" ")}
-        data-launched={launched ? "" : undefined}
-        data-signed={you ? "" : undefined}
-        dangerouslySetInnerHTML={{ __html: island.inner }}
-      />
+      <ChapterPicture scene="nautilus-shipyard" />
       <Steps label={EXPEDITION.label} steps={steps} />
     </div>
   );

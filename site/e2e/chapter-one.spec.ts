@@ -529,9 +529,8 @@ test("under reduced motion, building, launching and signing change only colour a
   const after = await placed();
   const jumped = Object.keys(before).filter((key) => key in after && after[key] !== before[key]).map((key) => `${key}: ${before[key]} -> ${after[key]}`);
   expect(jumped).toEqual([]);
-  // The launch still shows: the ship afloat in the yard fades in.
-  await expect(page.locator(".site-yard .yd-afloat")).toHaveCSS("opacity", "1");
-  await expect(page.locator(".site-yard .yd-ship")).toHaveCSS("opacity", "0");
+  // The launch still shows, in the rail's words.
+  await expect(page.getByRole("list", { name: EXPEDITION.label })).toContainText(EXPEDITION.afloat(true));
 });
 
 test("without reduced motion, each part is lowered into place and the launched ship settles into the water", async ({ page }) => {
@@ -553,31 +552,25 @@ test("without reduced motion, each part is lowered into place and the launched s
   await expect(plan(page).locator(".bp-launch")).toHaveCSS("opacity", "1");
 });
 
-test("the rail beside the chapter shows how the voyage stands, and the yard on the island grows with it", async ({ page }) => {
+test("the rail beside the chapter shows how the voyage stands, beside the chapter's picture", async ({ page }) => {
   // It builds, launches and signs on: a long walk for WebKit on a shared runner.
   test.slow();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   const rail = page.getByRole("list", { name: EXPEDITION.label });
-  const yard = page.locator(".site-yard");
+  const picture = page.locator("[data-chapter-expedition] [data-chapter-picture='nautilus-shipyard']");
+  await expect(picture).toBeVisible();
   await expect(rail).toContainText(EXPEDITION.built(0));
   await expect(rail).toContainText(EXPEDITION.afloat(false));
   await expect(rail).toContainText(EXPEDITION.signed(null));
-  await expect(yard.locator("[data-part='hull']")).toHaveCSS("opacity", "0.35");
   await job(page, "hull").click();
   await expect(rail).toContainText(EXPEDITION.built(1));
-  await expect(yard).toHaveAttribute("data-built", "hull");
-  await expect(yard.locator("[data-part='hull']")).toHaveCSS("opacity", "1");
   for (const part of PARTS.slice(1)) await job(page, part.id).click();
   await launchButton(page).click();
   await expect(rail).toContainText(EXPEDITION.afloat(true));
-  await expect(yard).toHaveAttribute("data-launched", "");
   await signOn(page, "Ana", "Cook");
   await expect(rail).toContainText(EXPEDITION.signed({ name: "Ana", trade: "Cook" }));
-  // The pennant flies on both ships: the one that sails off, and the one drawn afloat for reduced motion.
-  for (const flag of await yard.locator(".yd-flag").all()) await expect(flag).toHaveCSS("opacity", "1");
-  await expect(yard.locator(".yd-afloat")).toHaveCSS("opacity", "1");
   // Held in view beside both applications as you work down them.
   await articles(page).scrollIntoViewIfNeeded();
   const box = (await rail.boundingBox())!;

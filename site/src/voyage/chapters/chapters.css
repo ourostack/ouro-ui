@@ -1,7 +1,6 @@
 /*
  * Chapter I as the server draws it, before it answers: the shipwright's plan
- * (nautilus-blueprint.svg, inlined by chapter-one.tsx) with every part ghosted, and the rail's
- * picture. Everything else is laid out with utilities, and everything that changes once the
+ * (nautilus-blueprint.svg, inlined by chapter-one.tsx) with every part ghosted. Everything else is laid out with utilities, and everything that changes once the
  * chapter answers (parts drawn in, the launch) is in chapter-one.css, which loads with the island.
  * Every colour is the theme's, so each preset repaints the plan.
  */
@@ -46,12 +45,6 @@
     display: none;
   }
 }
-.site-yard {
-  display: block;
-  width: 100%;
-  height: auto;
-  color: color-mix(in oklab, var(--primary) 60%, var(--foreground));
-}
 .site-step-mark {
   flex-shrink: 0;
   width: 1.25rem;
@@ -64,12 +57,12 @@
 }
 /*
  * Chapter II as the server draws it: the chart room's map (voyage-chart.svg, inlined by
- * chapter-two.tsx) with the route on it, the leagues counter and the rail's compass. Every colour
+ * chapter-two.tsx) with the route on it and the leagues counter. Every colour
  * is the theme's, so each preset repaints the chart. Its size, type and ink are on the svg itself:
  * utilities the page has already, and an inline colour.
  */
 /*
- * The rail's compass, Chapter III's drawings and the agents' findings take their size, room and
+ * Chapter III's drawings and the agents' findings take their size, room and
  * colour from inline styles in the server HTML, and what starts hidden is hidden there too
  * (`opacity="0"`), which keeps them out of the first load's CSS budget (catalog.spec.ts).
  */
