@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type JSX } from "react";
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { href } from "../routes";
 import { DocsFilter } from "./docs-filter";
-import { componentGroups, docsSections, filterHint } from "./docs-sections";
+import { componentGroups, docsSections, filterHint, searchable } from "./docs-sections";
 
 // The docs sidebar. docs-shell.tsx loads it as an island, so its code stays out of the docs pages' first load.
 
@@ -77,7 +77,8 @@ export default function DocsSidebar({ current }: { current: string }): JSX.Eleme
             inputRef={field}
             onEnter={() => {
               // Its link in the list, pressed, as the header's search opens its first page.
-              const link = filter.trim() === "" ? undefined : best();
+              // A filter with no letters or digits ("/", "ボタン") filters nothing, so it opens nothing.
+              const link = searchable(filter) === "" ? undefined : best();
               if (link) holder.current?.querySelector<HTMLAnchorElement>(`a[href="${href(link.path)}"]`)?.click();
             }}
           />

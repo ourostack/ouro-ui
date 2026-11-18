@@ -592,6 +592,9 @@ describe("docs", () => {
       await userEvent.keyboard("{Enter}");
       await userEvent.fill(filter, "zzz");
       await userEvent.keyboard("{Enter}");
+      // A second "/" is typed into the field: it filters nothing, so Enter opens nothing.
+      await userEvent.fill(filter, "/");
+      await userEvent.keyboard("{Enter}");
     } finally {
       document.removeEventListener("click", keep, true);
     }
