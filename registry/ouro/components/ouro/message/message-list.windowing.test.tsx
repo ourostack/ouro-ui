@@ -866,7 +866,8 @@ describe("MessageList windowing", () => {
       return messages(scroller).find((node) => node.getBoundingClientRect().bottom > centre)!;
     };
     let worst = 0;
-    for (let step = 0; step < 400 && scroller.scrollTop > 0; step++) {
+    // About 90 steps reach the top; a list that never lets the reader get there fails here, not at the test's timeout.
+    for (let step = 0; step < 150 && scroller.scrollTop > 0; step++) {
       const row = middle();
       const before = row.getBoundingClientRect().top;
       const top = scroller.scrollTop;
@@ -876,6 +877,7 @@ describe("MessageList windowing", () => {
       await frame();
       worst = Math.max(worst, Math.abs(row.getBoundingClientRect().top - (before + reader)));
     }
+    expect(scroller.scrollTop).toBe(0);
     return { scroller, content, clock, worst, items, root, style, rerender };
   }
 
@@ -921,8 +923,7 @@ describe("MessageList windowing", () => {
   }
 
   it("holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message", async () => {
-    const { scroller, content, worst } = await wheelToTheTop();
-    expect(scroller.scrollTop).toBe(0);
+    const { content, worst } = await wheelToTheTop();
     expect(document.getElementById("m0")).not.toBeNull();
     expect(worst).toBeLessThanOrEqual(1);
     // What the top stopped is space above the first message.
