@@ -15,7 +15,7 @@ export function componentPrompt(title: string, name: string): string {
  * A component's published Markdown (/docs/<name>.md) with its install steps, the commands its HTML page shows, put before
  * the import line, so an agent that follows the page installs the component before it imports it.
  */
-export function withInstall(markdown: string, name: string, release: string): string {
+export function withInstall(markdown: string, name: string, latestRelease: string): string {
   const steps = [
     "## Install",
     "",
@@ -23,8 +23,8 @@ export function withInstall(markdown: string, name: string, release: string): st
     "",
     "```sh",
     "npx shadcn@latest init --base base --preset nova --yes --no-monorepo",
-    `npx shadcn@latest add ourostack/ouro-ui/ouro-base#${release}`,
-    `npx shadcn@latest add ourostack/ouro-ui/${name}#${release}`,
+    `npx shadcn@latest add ourostack/ouro-ui/ouro-base#${latestRelease}`,
+    `npx shadcn@latest add ourostack/ouro-ui/${name}#${latestRelease}`,
     "```",
     "",
     `More: [Installing](${PROMPT_SITE}/docs/installing.md).`,
