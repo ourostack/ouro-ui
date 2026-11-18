@@ -434,7 +434,8 @@ test("Ouro Feel's probe follows the reader's row by its id, or the attribute wat
   const browser = await chromium.launch();
   try {
     const rows = (gap, name) => `<div style="height:${gap}px"></div>${Array.from({ length: 40 }, (_, i) => `<div class="row" ${name}="r${i}" style="height:48px">Row ${i}</div>`).join("")}`;
-    for (const name of ["id", "data-message-id"]) {
+    // 150 px keeps the reader's row in the list's 400 px view; 600 px moves it out of the rows the probe reads each frame.
+    for (const [name, gap] of [["id", 150], ["data-message-id", 150], ["data-message-id", 600]]) {
       const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
       await page.setContent(`<div id="list" style="height:400px;overflow:auto">${rows(0, name)}</div>`);
       await page.addScriptTag({ content: probe });
@@ -446,15 +447,15 @@ test("Ouro Feel's probe follows the reader's row by its id, or the attribute wat
           await ouroFeel.painted();
           ouroFeel.watch({ case: "redraw", scroller: list, rows: ".row", rowId });
           await ouroFeel.painted();
-          // Every row drawn again as a new element with the same name, 150 px further down, with no input.
+          // Every row drawn again as a new element with the same name, further down, with no input.
           list.innerHTML = moved;
           await ouroFeel.rest(5);
           return ouroFeel.stop(true).measures;
         },
-        [rows(150, name), name === "id" ? undefined : name],
+        [rows(gap, name), name === "id" ? undefined : name],
       );
-      assert.equal(measures.jumps, 1, name);
-      assert.equal(measures.anchorShiftPx, 150, name);
+      assert.equal(measures.jumps, 1, `${name}, ${gap} px`);
+      assert.equal(measures.anchorShiftPx, gap, `${name}, ${gap} px`);
     }
   } finally {
     await browser.close();

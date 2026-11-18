@@ -389,10 +389,16 @@ function install(): OuroFeel {
     let moved = false;
 
     // The anchor: the row at the middle of the view, followed into this frame by element, or by its id where the page drew it again
-    // as a new element (a row re-keyed, or the list drawn again).
+    // as a new element (a row re-keyed, or the list drawn again). One that moved out of view is found among all the list's rows,
+    // which reads no layout but its own box.
     const name = options.rowId ?? "id";
     const named = anchor?.getAttribute(name);
-    const followed = anchor?.isConnected ? anchor : named ? rows.find(([row]) => row.getAttribute(name) === named)?.[0] : undefined;
+    const sameName = (row: Element) => row.getAttribute(name) === named;
+    const followed = anchor?.isConnected
+      ? anchor
+      : named
+        ? (rows.find(([row]) => sameName(row))?.[0] ?? Array.from(list.querySelectorAll(options.rows)).find(sameName))
+        : undefined;
     if (followed !== undefined) {
       const move = (boxOf.get(followed) ?? followed.getBoundingClientRect()).top - box.top - anchorTop;
       moved = move !== 0;
