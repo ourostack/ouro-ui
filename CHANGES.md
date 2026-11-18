@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: Ouro AX names an argument's choices in plain words when it refuses a word outside them, and its Fix, and an enum flag's, is a command an agent can run as it stands, with the closest choice or else the first (`shepherd: sidebar: it takes plan or apply, not "sweep". Fix: shepherd sidebar plan.`), not a placeholder and a list (`<action> is one of plan, apply` and `shepherd sidebar "plan|apply"`) ([test](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a refused word's Fix is a command an agent can run as it stands, and the problem names the choices in plain words)")).
+- Chart loads recharts itself with a dynamic import once the page has painted, so recharts is a chunk of its own and a page's first paint no longer waits to load or run it; a chart passed as recharts children still comes with the app's own import.
