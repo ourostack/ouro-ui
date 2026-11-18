@@ -413,4 +413,11 @@ describe("A2UISurface", () => {
     await act(async () => root.render(<A2UISurface {...props({ messages: [...messages, { version: "1.0", updateDataModel: { surfaceId: "card", path: "/with", value: "lee@example.com" } }] })} />));
     expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("lee@example.com");
   });
+
+  it("shows the alert for a stream that updates a surface it never created, which it can't apply", async () => {
+    const onProblems = vi.fn();
+    const host = await render(<A2UISurface {...props({ surfaceId: "card", onProblems, messages: [{ version: "1.0", updateComponents: { surfaceId: "card", components: [{ id: "root", component: "Text", text: "Lost" }] } }] })} />);
+    expect(host.querySelector('[data-ouro="alert"]')!.textContent).toContain("This card can't be shown");
+    expect(onProblems).toHaveBeenCalledTimes(1);
+  });
 });
