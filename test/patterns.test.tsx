@@ -278,26 +278,46 @@ describe("ListDetailPage", () => {
     await passesAxe();
   });
 
-  it("on a phone moves focus in the same task as the press, so the page never holds it between and a screen reader is not cut off", async () => {
+  it("on a phone moves focus to the heading in the same task as a row's press, so the page never holds it between", async () => {
     await page.viewport(390, 844);
     await render(<ListDetailPage />);
     // Looked up without a locator, which throws while the element is not in the page yet.
     const rowElement = () => [...host.querySelectorAll("button")].find((button) => button.textContent?.startsWith("Lemon olive oil cake"))!;
     const headingElement = () => [...host.querySelectorAll("h2")].find((heading) => heading.textContent === "Lemon olive oil cake");
     // A click is a discrete event, which React commits in a microtask, before the browser renders again. The press
-    // hides what has focus, so focus must be on its target by then: a move a frame later would leave the browser to
-    // put focus on the page first, and a screen reader starts reading the page, cut off by the move that follows.
-    const microtasks = async () => {
-      for (let tick = 0; tick < 5; tick++) await Promise.resolve();
-    };
+    // hides the row, so focus must be on the heading by then: a move a frame later would leave the browser to put
+    // focus on the page first, and a screen reader starts reading the page, cut off by the move that follows.
     rowElement().focus();
     rowElement().click();
-    await microtasks();
+    for (let tick = 0; tick < 5; tick++) await Promise.resolve();
     expect(document.activeElement).toBe(headingElement());
+  });
+
+  it("on a phone keeps focus on Back while the list comes back, then moves it to the row once the list has had a frame, never through the page", async () => {
+    await page.viewport(390, 844);
+    await render(<ListDetailPage />);
+    const rowElement = () => [...host.querySelectorAll("button")].find((button) => button.textContent?.startsWith("Lemon olive oil cake"))!;
+    await userEvent.click(rowElement());
+    await expect.poll(() => shownNow(host.querySelector("ul")!)).toBe(false);
     backButton().focus();
+    // Each frame's focused element, from the press until focus reaches the row.
+    const seen: Element[] = [];
+    const watching = new Promise<void>((done) => {
+      const sample = () => {
+        if (seen.at(-1) !== document.activeElement) seen.push(document.activeElement!);
+        if (document.activeElement === rowElement()) done();
+        else requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
     backButton().click();
-    await microtasks();
-    expect(document.activeElement).toBe(rowElement());
+    for (let tick = 0; tick < 5; tick++) await Promise.resolve();
+    // The list is back, and focus is still on Back, which stays focusable though unseen.
+    expect(shownNow(host.querySelector("ul")!)).toBe(true);
+    expect(document.activeElement).toBe(backButton());
+    await watching;
+    expect(seen).toEqual([backButton(), rowElement()]);
+    await expect.poll(() => shownNow(section())).toBe(false);
   });
 
   it("on a phone shows the list first, the detail in its place once chosen with focus on its heading, and Back to the row", async () => {

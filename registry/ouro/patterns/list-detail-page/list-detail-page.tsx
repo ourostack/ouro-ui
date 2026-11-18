@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type SVGProps } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ColorSchemeToggle } from "@/registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle";
 import { Empty } from "@/registry/ouro/components/ouro/empty/empty";
@@ -96,6 +96,8 @@ export function ListDetailPage({
   const [query, setQuery] = useState("");
   // On a phone, whether the detail is showing in place of the list.
   const [reading, setReading] = useState(false);
+  // After Back on a phone: the list is back, and focus is still on Back until the list has been on the page a frame.
+  const [returning, setReturning] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const list = useRef<HTMLElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -112,22 +114,34 @@ export function ListDetailPage({
   // Where focus goes once the press's change is in the page. It moves in the same task as the commit, before the
   // browser's own fix-up: the focused row or Back button is hidden by that commit, and a browser that put focus on
   // the page in between would have a screen reader start reading the page, cut off by the move that follows.
-  const focusNext = useRef<"heading" | "row" | null>(null);
+  const focusNext = useRef<"heading" | null>(null);
   useLayoutEffect(() => {
     const target = focusNext.current;
     focusNext.current = null;
     // Where the detail took the list's place (a phone, or text set large), focus follows it there.
     if (target === "heading" && list.current?.checkVisibility() === false) heading.current?.focus();
-    // Back to the row, or to the search when a search has left the row out.
-    if (target === "row") (rows.current.get(open!.id) ?? search.current)?.focus();
   });
+  // Back brings the list back while focus stays on Back, whose detail is kept, unseen and out of the way, so focus
+  // never falls to the page. Focus moves to the row, or to the search when a search has left the row out, once the
+  // list has been on the page for a frame: a screen reader that refreshes its view of the page as the list comes back
+  // (NVDA's browse mode) would otherwise break off the row's announcement to read it again (#2012).
+  useEffect(() => {
+    if (!returning) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        (rows.current.get(open!.id) ?? search.current)?.focus();
+        setReturning(false);
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [returning, open]);
   const choose = (id: string) => {
     focusNext.current = "heading";
     setOpenId(id);
     setReading(true);
   };
   const back = () => {
-    focusNext.current = "row";
+    setReturning(true);
     setReading(false);
   };
 
@@ -170,7 +184,7 @@ export function ListDetailPage({
               ))}
             </ItemGroup>
           </Stack>
-          <section aria-label={open?.title ?? title} className={open && !inPlace ? "max-md:hidden" : undefined}>
+          <section aria-label={open?.title ?? title} className={open && !inPlace ? (returning ? "max-md:pointer-events-none max-md:absolute max-md:opacity-0" : "max-md:hidden") : undefined}>
             {open ? (
               <Stack gap="md">
                 <div className="md:hidden">
