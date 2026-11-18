@@ -417,6 +417,14 @@ describe("TextArea autoGrow", () => {
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 3), 0);
   });
 
+  it("grows with its text when autoGrow turns on after the user dragged its height", async () => {
+    const value = "1\n2\n3\n4\n5";
+    const { rerender, textarea } = await render(<TextArea label="Notes" defaultValue={value} />);
+    textarea.style.height = "200px";
+    await rerender(<TextArea label="Notes" autoGrow defaultValue={value} />);
+    expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 5), 0);
+  });
+
   it("goes back to rows and a resize handle when autoGrow turns off", async () => {
     const value = "1\n2\n3\n4\n5";
     const { rerender, textarea } = await render(<TextArea label="Notes" autoGrow defaultValue={value} />);

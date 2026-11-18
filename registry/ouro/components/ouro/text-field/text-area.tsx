@@ -311,7 +311,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     if (autoGrow && !native) {
       fitHeight(textarea, rows, maxRows);
       grew.current = true;
-    } else if (grew.current) {
+    } else if (autoGrow || grew.current) {
+      // Where the browser grows it, a height left inline (the resize handle's, before autoGrow) would hold it still.
       clearFit(textarea);
       grew.current = false;
     }
