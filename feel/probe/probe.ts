@@ -312,9 +312,50 @@ function install(): OuroFeel {
     for (const resolve of paintWaiters.splice(0)) resolve();
   };
 
-  /** The list's rows and their boxes, read once a frame: a large list's rows are many, and reading them again is the probe's own cost. */
-  function rowBoxes(list: Element, rows: string): [Element, DOMRect][] {
-    return [...list.querySelectorAll(rows)].map((row) => [row, row.getBoundingClientRect()]);
+  /** Every row and its box. */
+  function allRowBoxes(found: NodeListOf<Element>): [Element, DOMRect][] {
+    return [...found].map((row) => [row, row.getBoundingClientRect()]);
+  }
+
+  /**
+   * The rows in the list's view and their boxes, read once a frame. Every measure reads only the rows in view (the anchor
+   * reads its own box when it has left it), so the probe reads those and not every row the list holds, which was most of
+   * its cost a frame (ourostack/ouro-ui#2107). Rows follow the list's direction in document order, down or up (a list
+   * drawn bottom to top), so a binary search finds the first in view. A row that draws nothing (display: none) has no
+   * place to search by, and a view with no row in it is what the blank-frame measure needs to see, so either reads every
+   * row, as before.
+   */
+  function rowBoxes(list: Element, rows: string, box: DOMRect): [Element, DOMRect][] {
+    const found = list.querySelectorAll(rows);
+    const count = found.length;
+    if (count < 2) return allRowBoxes(found);
+    const boxes = new Map<number, DOMRect>();
+    const rectAt = (index: number) => {
+      let rect = boxes.get(index);
+      if (rect === undefined) boxes.set(index, (rect = found[index]!.getBoundingClientRect()));
+      return rect;
+    };
+    const drawsNothing = (rect: DOMRect) => rect.width === 0 && rect.height === 0;
+    const down = rectAt(0).top <= rectAt(count - 1).top;
+    // The row at a place in the list's visual order, top to bottom.
+    const at = (place: number) => (down ? place : count - 1 - place);
+    let low = 0;
+    let high = count;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      const rect = rectAt(at(middle));
+      if (drawsNothing(rect)) return allRowBoxes(found);
+      if (rect.bottom < box.top) low = middle + 1;
+      else high = middle;
+    }
+    const seen: [Element, DOMRect][] = [];
+    for (let place = low; place < count; place++) {
+      const rect = rectAt(at(place));
+      if (drawsNothing(rect)) return allRowBoxes(found);
+      if (rect.top > box.bottom) break;
+      seen.push([found[at(place)]!, rect]);
+    }
+    return seen.length > 0 ? seen : allRowBoxes(found);
   }
 
   /** The row nearest the middle of the list's view, and its top in the view. */
@@ -335,7 +376,7 @@ function install(): OuroFeel {
     const list = listOf(options);
     if (list === null) return false;
     const box = list.getBoundingClientRect();
-    const rows = rowBoxes(list, options.rows);
+    const rows = rowBoxes(list, options.rows, box);
     const boxOf = new Map(rows);
     const now = performance.now();
     const recent = wheels.filter((wheel) => now - wheel.at <= INPUT_WINDOW_MS);
@@ -449,7 +490,10 @@ function install(): OuroFeel {
       inputSinceSample = 0;
       wheels.length = 0;
       const list = listOf(options);
-      const start = list === null ? undefined : quietly(() => middleRow(rowBoxes(list, options.rows), list.getBoundingClientRect()));
+      const start = list === null ? undefined : quietly(() => {
+        const box = list.getBoundingClientRect();
+        return middleRow(rowBoxes(list, options.rows, box), box);
+      });
       // The first wheel event's movement is measured from where the list is now, before any frame is sampled.
       sampledScrollTop = list === null ? undefined : quietly(() => list.scrollTop);
       anchor = start?.[0];
