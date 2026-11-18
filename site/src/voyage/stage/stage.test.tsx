@@ -4,6 +4,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import proof from "virtual:site-proof";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables, voice } from "../../../test/readability";
+import { renderedLines, splitWords } from "../../../test/lines";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { EYEBROW, RELEASE_HREF } from "../hero";
@@ -133,6 +134,19 @@ describe("the hero", () => {
     const label = document.getElementById("site-handoff-label")!.getBoundingClientRect();
     const release = document.querySelector<HTMLElement>("[data-site-release]")!.getBoundingClientRect();
     expect(release.top).toBeLessThan(label.bottom);
+  });
+
+  it("puts Copy under the hand-off's line on a phone, beside it on a wide screen, and breaks the web address only after a slash", async () => {
+    await renderPage("/");
+    const prompt = document.querySelector<HTMLElement>("[data-site-handoff-prompt]")!;
+    const copy = () => document.querySelector("[data-site-handoff] .site-install-copy")!.getBoundingClientRect();
+    expect(copy().top).toBeLessThan(prompt.getBoundingClientRect().bottom);
+    await page.viewport(390, 844);
+    await expect.poll(() => copy().top).toBeGreaterThanOrEqual(prompt.getBoundingClientRect().bottom);
+    expect(renderedLines(prompt).length).toBeGreaterThan(1);
+    expect(splitWords(prompt)).toEqual([]);
+    expect(renderedLines(prompt).some((line) => line.includes("llms.txt"))).toBe(true);
+    expect(prompt.textContent).toBe(HANDOFF.prompt);
   });
 
   it("hands Ouro UI to a person's agent as one line to paste, never a command for the person to run", async () => {

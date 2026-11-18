@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { Fragment, type JSX } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
@@ -19,6 +19,9 @@ function CopyIcon(): JSX.Element {
     </svg>
   );
 }
+
+/** The prompt's parts, each ending in a "/" but the last, so a web address in it breaks only between its parts. */
+const PROMPT_PARTS = HANDOFF.prompt.split(/(?<=\/)(?!\/)/);
 
 /**
  * What a person does once they have seen Ouro UI: hand it to their coding agent, as one line to paste, with Copy beside
@@ -41,7 +44,12 @@ export function HandOff({ id = "site-handoff-label", full = true }: { id?: strin
       </div>
       <div className="site-install">
         <p className="site-handoff-prompt" data-site-handoff-prompt="">
-          {HANDOFF.prompt}
+          {PROMPT_PARTS.map((part, index) => (
+            <Fragment key={index}>
+              {index > 0 ? <wbr /> : null}
+              {part}
+            </Fragment>
+          ))}
         </p>
         <Button
           variant="soft"
