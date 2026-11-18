@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import type http from "node:http";
 import https from "node:https";
 import net from "node:net";
 import os from "node:os";
@@ -60,7 +61,12 @@ function clientHello(exts: Buffer[], o: { extLen?: number; type?: number; first?
 const certs = { mine: path.join(scratch, "stand-in"), real: path.join(scratch, "real") };
 assert.ok(makeCerts(certs.mine, [HOST, "nowhere.example.test"], "stand-in").ok);
 assert.ok(makeCerts(certs.real, [HOST], "the real host").ok);
-const upstream = https.createServer({ key: fs.readFileSync(path.join(certs.real, "leaf.key")), cert: fs.readFileSync(path.join(certs.real, "chain.pem")) }, (req, res) => res.end(`real ${req.url}`));
+const upstream = https.createServer({ key: fs.readFileSync(path.join(certs.real, "leaf.key")), cert: fs.readFileSync(path.join(certs.real, "chain.pem")) }, (req, res) => {
+  // A hop-by-hop header of its own, which the stand-in drops, and one of the request's, read back.
+  res.setHeader("proxy-connection", "close");
+  res.setHeader("x-real", "1");
+  res.end(req.headers["x-asked"] ? `real ${req.url} ${req.headers["x-asked"]} ${req.headers["proxy-connection"] ?? "-"}` : `real ${req.url}`);
+});
 await new Promise<void>((r) => upstream.listen(0, "127.0.0.1", r));
 const upstreamPort = (upstream.address() as net.AddressInfo).port;
 after(() => upstream.close());
@@ -135,6 +141,17 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
     try {
       assert.equal(await ask(s.port, "/common/oauth2/v2.0/authorize?client_id=x&prompt=none&state=s"), "no answer");
       assert.equal(await ask(s.port, "/common/oauth2/v2.0/authorize?client_id=x&prompt=select_account"), "real /common/oauth2/v2.0/authorize?client_id=x&prompt=select_account");
+      // Headers pass both ways but hop-by-hop ones, which are this connection's own.
+      const headers = await new Promise<{ body: string; headers: http.IncomingHttpHeaders }>((resolve) => {
+        https.get({ host: "127.0.0.1", port: s.port, servername: HOST, path: "/headers", agent: false, ca: fs.readFileSync(path.join(certs.mine, "ca.pem")), ALPNProtocols: ["http/1.1"], headers: { "x-asked": "yes", "proxy-connection": "keep-alive" } } as https.RequestOptions, (res) => {
+          let body = "";
+          res.on("data", (d) => (body += d));
+          res.on("end", () => resolve({ body, headers: res.headers }));
+        });
+      });
+      assert.equal(headers.body, "real /headers yes -");
+      assert.equal(headers.headers["x-real"], "1");
+      assert.equal(headers.headers["proxy-connection"], undefined);
       // An app's own stack (no ALPN) meets the real host and its certificate, even for a request the extension would hold.
       assert.equal(await ask(s.port, "/common/oauth2/v2.0/authorize?prompt=none", { ca: fs.readFileSync(path.join(certs.real, "ca.pem")) }), "real /common/oauth2/v2.0/authorize?prompt=none");
       // A host the stand-in takes but can't find: the request fails, named, and the client's connection ends.
@@ -143,10 +160,19 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       assert.match(await ask(s.port, "/x", { ca: fs.readFileSync(path.join(certs.real, "ca.pem")) }, "nowhere.example.test"), /^error: |^no answer$/);
       assert.deepEqual(
         events.filter((e) => e.ev !== "ready").map((e) => [e.ev, "host" in e ? e.host : "", "prompt" in e ? e.prompt : null]),
-        [["held", HOST, "none"], ["passed", HOST, "select_account"], ["failed", "nowhere.example.test", null]],
+        [["held", HOST, "none"], ["passed", HOST, "select_account"], ["passed", HOST, null], ["failed", "nowhere.example.test", null]],
         "the stand-in names what it held, passed and failed, and never sees the app's own stack",
       );
       assert.match((events.at(-1) as { why?: string }).why!, /no address for nowhere\.example\.test/);
+      // A request still held when the stand-in closes ends with it.
+      const held = https.get({ host: "127.0.0.1", port: s.port, servername: HOST, path: "/common/oauth2/v2.0/authorize?prompt=none", agent: false, ca: fs.readFileSync(path.join(certs.mine, "ca.pem")), ALPNProtocols: ["http/1.1"] } as https.RequestOptions);
+      const ended = new Promise<string>((resolve) => {
+        held.on("error", (e) => resolve(e.message));
+        setTimeout(() => resolve("still held"), 3000);
+      });
+      await new Promise((r) => setTimeout(r, 300));
+      s.close();
+      assert.equal(await ended, "socket hang up");
     } finally {
       s.close();
     }
@@ -186,6 +212,16 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       for (let i = 0; i < 64; i++) big.write(Buffer.alloc(64 * 1024, 1));
       await new Promise((r) => setTimeout(r, 500));
       big.destroy();
+      // A record that claims to be a hello but grows past 64 KB without ending is passed through rather than waited on.
+      const huge = net.connect({ host: "127.0.0.1", port: u.port });
+      huge.on("error", () => {});
+      const closed = new Promise<string>((resolve) => {
+        huge.on("close", () => resolve("closed"));
+        setTimeout(() => resolve("still waiting"), 3000);
+      });
+      huge.write(Buffer.concat([Buffer.from([0x16, 3, 1, 0xff, 0xff]), Buffer.alloc(65_531)]));
+      assert.equal(await closed, "closed");
+      huge.destroy();
       u.close();
       // A connection from another address is ended at once.
       const lan = Object.values(os.networkInterfaces()).flat().find((i) => i && !i.internal && i.family === "IPv4")?.address;
@@ -234,11 +270,15 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
   });
 
   describe("on a made-up Mac", () => {
+    /** The SHA-1 of the authority the stand-in made in `dir`, as `security` prints it. */
+    const hash = (dir: string) => execFileSync("openssl", ["x509", "-noout", "-fingerprint", "-sha1", "-in", path.join(dir, "ca.pem")], { encoding: "utf8" }).replace(/^[^=]*=|[:\s]/g, "");
     /** Apple's networking, trusting the authority the stand-in made in `dir`. */
     const apple = (dir: string) => ({ ca: fs.readFileSync(path.join(dir, "ca.pem")), ALPNProtocols: ["h2", "http/1.1"] }) as https.RequestOptions;
     /** A Mac whose security, hosts and DNS commands answer as `say` says; openssl runs for real; osascript reads through the stand-in. */
     const mac = (port: number, dir: string, say: Partial<Record<"trust" | "verify" | "tee" | "resolve" | "read", boolean>> = {}) => {
       const ran: string[] = [];
+      // The System keychain holds the authority twice, as a second import would leave it.
+      let kept = 2;
       const sys: System = {
         ...system,
         run(cmd, args, o) {
@@ -246,6 +286,8 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
           if (cmd === "openssl") return system.run(cmd, args, o);
           const answer = (ok: boolean | undefined, stdout = "") => ({ status: ok === false ? 1 : 0, stdout, stderr: ok === false ? "refused" : "" });
           if (cmd === "sudo" && args[1] === "security" && args[2] === "add-trusted-cert") return answer(say.trust);
+          if (cmd === "security" && args[0] === "find-certificate") return answer(true, kept > 0 ? `SHA-1 hash: ${hash(dir)}\n` : "");
+          if (cmd === "sudo" && args[2] === "delete-certificate") return (kept--, answer(true));
           if (cmd === "security") return answer(say.verify);
           if (cmd === "sudo" && args[1] === "tee") {
             if (say.tee === false) return answer(false);
@@ -282,7 +324,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       }
       assert.equal(fs.readFileSync(hostsFile, "utf8"), "127.0.0.1 localhost");
       assert.ok(!fs.existsSync(path.join(dir, "ca.key")) && !fs.existsSync(path.join(dir, "leaf.key")), "its keys are gone");
-      assert.ok(ran.some((r) => /^sudo -n security delete-certificate -Z [0-9A-F]{40} \/Library\/Keychains\/System\.keychain$/.test(r)) && !ran.some((r) => r.includes("remove-trusted-cert")));
+      assert.ok(ran.filter((r) => /^sudo -n security delete-certificate -Z [0-9A-F]{40} \/Library\/Keychains\/System\.keychain$/.test(r)).length === 2 && !ran.some((r) => r.includes("remove-trusted-cert")));
       assert.ok(ran.includes("sudo -n dscacheutil -flushcache") && ran.includes("sudo -n killall -HUP mDNSResponder"));
       let stopped = "";
       for (let i = 0; i < 50 && !stopped.includes("ECONNREFUSED"); i++) stopped = await ask(port, "/");
@@ -341,6 +383,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       const d = managedMac({ hosts: [HOST], hold: HOLD, dir, machine: { platform: "darwin", hostsFile, port, upstream: { [HOST]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") } });
       assert.equal(d.id, "managed-mac");
       await d.before!(session);
+      assert.deepEqual(steps.map(([n, ok, e]) => [n, ok, ok ? "" : e]), [["sso-extension", true, ""]]);
       assert.equal(await ask(port, "/common/oauth2/v2.0/authorize?prompt=none", apple(dir)), "no answer");
       assert.equal(await ask(port, "/common/oauth2/v2.0/authorize?prompt=select_account", apple(dir)), "real /common/oauth2/v2.0/authorize?prompt=select_account");
       d.end(session);

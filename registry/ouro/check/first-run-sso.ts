@@ -221,6 +221,7 @@ export function sniOf(b: Buffer): string {
 }
 
 const MARK = "# ouro first-run: SSO extension stand-in";
+const KEYCHAIN = "/Library/Keychains/System.keychain";
 /** The stand-in as a process of its own, which takes the identity provider's port for the run. */
 const SERVE = path.join(import.meta.dirname, "first-run-sso-serve.ts");
 
@@ -302,14 +303,15 @@ export async function ssoExtension(o: SsoExtension, dir: string, at: () => numbe
         }
       }
     });
-    child.on("exit", () => resolve(false));
+    // Once its output is all read, so a stand-in that failed to start has said why.
+    child.on("close", () => resolve(false));
   });
   if (!ready) {
     child.kill();
     return none(`the stand-in didn't start on port ${port} (${stderr.split("\n").filter((l) => /Error|code:/.test(l)).concat("no message")[0]!.trim()})`);
   }
 
-  const trust = sudo(["security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", f("ca.pem")]);
+  const trust = sudo(["security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", KEYCHAIN, f("ca.pem")]);
   const verified = sh("security", ["verify-cert", "-c", f("leaf.pem"), "-p", "ssl", "-s", o.hosts[0]!]).status === 0;
   const before = fs.readFileSync(HOSTS, "utf8");
   const mapped = sudo(["tee", HOSTS], `${before.replace(/\n?$/, "\n")}${MARK}\n${o.hosts.flatMap((h) => [`127.0.0.1 ${h}`, `::1 ${h}`]).join("\n")}\n`).status === 0;
@@ -331,10 +333,11 @@ export async function ssoExtension(o: SsoExtension, dir: string, at: () => numbe
   const lift = () => {
     if (mapped) sudo(["tee", HOSTS], before);
     flush();
-    // Out of the System keychain, so nothing trusts it. Removing its admin trust setting too (remove-trusted-cert -d, or
-    // delete-certificate -t) waits for an authorization no one can give on a runner; the setting left names a certificate
-    // no keychain holds.
-    sudo(["security", "delete-certificate", "-Z", sha1, "/Library/Keychains/System.keychain"]);
+    // Out of the System keychain, every copy of it, so nothing trusts it. Removing its admin trust setting too
+    // (remove-trusted-cert -d, or delete-certificate -t) waits for an authorization no one can give on a runner; the
+    // setting left names a certificate no keychain holds.
+    const kept = () => sh("security", ["find-certificate", "-a", "-Z", "-c", name, KEYCHAIN]).stdout.includes(sha1);
+    for (let i = 0; i < 5 && kept(); i++) sudo(["security", "delete-certificate", "-Z", sha1, KEYCHAIN]);
     child.kill();
     for (const k of ["ca.key", "leaf.key"]) fs.rmSync(f(k), { force: true });
   };
