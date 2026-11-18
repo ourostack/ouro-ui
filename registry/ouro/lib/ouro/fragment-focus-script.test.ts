@@ -1,14 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { fragmentFocusScript } from "@/registry/ouro/lib/ouro/fragment-focus-script";
 
-// The click half of fragmentFocusScript, in this page; site/e2e/fragment-focus.spec.ts loads pages with it in WebKit
-// and Chromium, where Safari's jumps and the parser's wait can be seen.
+// fragmentFocusScript's own logic, in this page; site/e2e/fragment-focus.spec.ts loads pages with it in WebKit and
+// Chromium, where Safari's jumps and the parser's wait can be seen. The script acts only where the browser says it is
+// Safari, so here it runs under Safari's user agent in every engine, and a frame with Chrome's or Edge's checks the rest.
 
-const webkit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome\/|Edg\//.test(navigator.userAgent);
+const SAFARI = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15";
+const CHROME = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+const EDGE = `${CHROME} Edg/141.0.0.0`;
+
+/** Runs the script in `view`, which says it is the browser `userAgent` names. */
+function runAs(view: Window & typeof globalThis, userAgent: string): void {
+  Object.defineProperty(view.navigator, "userAgent", { configurable: true, get: () => userAgent });
+  new view.Function(fragmentFocusScript())();
+  delete (view.navigator as { userAgent?: string }).userAgent;
+}
+
 const address = location.pathname + location.search;
-new Function(fragmentFocusScript())();
+runAs(window, SAFARI);
 // A second copy on the page installs nothing more.
-new Function(fragmentFocusScript())();
+runAs(window, SAFARI);
 
 const made: Element[] = [];
 
@@ -27,15 +38,15 @@ function link(href: string, attributes: Record<string, string> = {}): HTMLAnchor
   return anchor;
 }
 
-/** A stylesheet that starts loading now; resolves once it has. */
-function stylesheet(attributes: Record<string, string> = { href: "data:text/css,i{color:red}" }): Promise<void> {
+/** A stylesheet that starts loading now, and the promise of its load. */
+function stylesheet(attributes: Record<string, string> = { href: "data:text/css,i{color:red}" }): { sheet: HTMLLinkElement; loaded: Promise<void> } {
   const sheet = document.createElement("link");
   sheet.rel = "stylesheet";
   for (const [name, value] of Object.entries(attributes)) sheet.setAttribute(name, value);
   const loaded = new Promise<void>((done) => sheet.addEventListener("load", () => done(), { once: true }));
   document.head.append(sheet);
   made.push(sheet);
-  return loaded;
+  return { sheet, loaded };
 }
 
 /** Clicks `anchor` and says whether the script held the click back; the page itself goes nowhere. */
@@ -53,23 +64,22 @@ function heldBack(anchor: Element, init: MouseEventInit = {}): boolean {
   return held;
 }
 
+const task = () => new Promise((done) => setTimeout(done, 0));
 /** A task after a stylesheet's load, when the script follows a link it held. */
-const afterLoad = (loaded: Promise<void>) => loaded.then(() => new Promise((done) => setTimeout(done, 0)));
+const afterLoad = (loaded: Promise<void>) => loaded.then(task);
+/** The end of parsing, as the page sees it. */
+const parsed = () => document.dispatchEvent(new Event("DOMContentLoaded", { bubbles: true }));
 
-describe("fragmentFocusScript outside WebKit", () => {
-  beforeEach((context) => {
-    if (webkit) context.skip();
-  });
-
-  it("holds no link", () => {
-    void stylesheet();
-    expect(heldBack(link("#ff-elsewhere"))).toBe(false);
-  });
-});
-
-describe("fragmentFocusScript in WebKit", () => {
-  beforeEach((context) => {
-    if (!webkit) context.skip();
+describe("fragmentFocusScript", () => {
+  it("does nothing in Chrome or Edge, which don't jump back", () => {
+    for (const userAgent of [CHROME, EDGE]) {
+      const frame = document.createElement("iframe");
+      document.body.append(frame);
+      made.push(frame);
+      const view = frame.contentWindow as Window & typeof globalThis;
+      runAs(view, userAgent);
+      expect((view as unknown as { __ouroFragmentFocus?: number }).__ouroFragmentFocus).toBeUndefined();
+    }
   });
 
   it("leaves a link to a place on the page to the browser while no stylesheet is loading", () => {
@@ -77,7 +87,7 @@ describe("fragmentFocusScript in WebKit", () => {
   });
 
   it("holds a link to a place on the page while a stylesheet loads, and follows it once that has loaded", async () => {
-    const loaded = stylesheet();
+    const { loaded } = stylesheet();
     expect(heldBack(link("#ff-later"))).toBe(true);
     expect(location.hash).toBe("");
     await afterLoad(loaded);
@@ -85,7 +95,7 @@ describe("fragmentFocusScript in WebKit", () => {
   });
 
   it("holds a link to the top of the page, whose address ends in a bare #", async () => {
-    const loaded = stylesheet();
+    const { loaded } = stylesheet();
     expect(heldBack(link("#"))).toBe(true);
     await afterLoad(loaded);
     expect(location.href.endsWith("#")).toBe(true);
@@ -98,21 +108,21 @@ describe("fragmentFocusScript in WebKit", () => {
     const anchor = document.createElement("a");
     anchor.href = "#ff-shadow";
     host.attachShadow({ mode: "open" }).append(anchor);
-    const loaded = stylesheet();
+    const { loaded } = stylesheet();
     expect(heldBack(anchor)).toBe(true);
     await afterLoad(loaded);
     expect(location.hash).toBe("#ff-shadow");
   });
 
   it("drops a held link once the page moves on, or another link is clicked", async () => {
-    let loaded = stylesheet();
+    let { loaded } = stylesheet();
     expect(heldBack(link("#ff-left"))).toBe(true);
     history.pushState(null, "", "?ff-moved");
     await afterLoad(loaded);
     expect(location.search).toBe("?ff-moved");
     expect(location.hash).toBe("");
     history.replaceState(null, "", address);
-    loaded = stylesheet();
+    ({ loaded } = stylesheet());
     expect(heldBack(link("#ff-replaced"))).toBe(true);
     const routed = link("/ff-route");
     routed.addEventListener("click", (event) => event.preventDefault());
@@ -121,12 +131,25 @@ describe("fragmentFocusScript in WebKit", () => {
     expect(location.hash).toBe("");
   });
 
+  it("drops a held link at a hash change or a step back", async () => {
+    for (const event of ["hashchange", "popstate"]) {
+      const { loaded } = stylesheet();
+      expect(heldBack(link("#ff-dropped"))).toBe(true);
+      window.dispatchEvent(new Event(event));
+      await afterLoad(loaded);
+      expect(location.hash).toBe("");
+    }
+  });
+
   it("leaves alone, while a stylesheet loads, a click the page took, a modified or middle click, a link to another page, a new tab or a download", async () => {
-    const loaded = stylesheet();
+    const { loaded } = stylesheet();
     const taken = link("#ff-taken");
     taken.addEventListener("click", (event) => event.preventDefault());
     heldBack(taken);
     expect(heldBack(link("#ff-modified"), { metaKey: true })).toBe(false);
+    expect(heldBack(link("#ff-control"), { ctrlKey: true })).toBe(false);
+    expect(heldBack(link("#ff-shift"), { shiftKey: true })).toBe(false);
+    expect(heldBack(link("#ff-alt"), { altKey: true })).toBe(false);
     expect(heldBack(link("#ff-middle"), { button: 1 })).toBe(false);
     expect(heldBack(link("/elsewhere#ff-away"))).toBe(false);
     expect(heldBack(link("#ff-tab", { target: "_blank" }))).toBe(false);
@@ -135,10 +158,38 @@ describe("fragmentFocusScript in WebKit", () => {
     expect(location.hash).toBe("");
   });
 
-  it("counts no stylesheet as loading that has no address, is disabled or is an alternate", () => {
+  it("holds a link that targets this page by name, or an area of an image map", async () => {
+    const { loaded } = stylesheet();
+    expect(heldBack(link("#ff-self", { target: "_self" }))).toBe(true);
+    const area = document.createElement("area");
+    area.href = "#ff-area";
+    document.body.append(area);
+    made.push(area);
+    expect(heldBack(area)).toBe(true);
+    await afterLoad(loaded);
+  });
+
+  it("counts no stylesheet as loading that has no address, is disabled, is an alternate, has loaded or has failed", async () => {
     void stylesheet({});
     void stylesheet({ href: "data:text/css,i{}", disabled: "" });
     void stylesheet({ href: "data:text/css,i{}", rel: "alternate stylesheet" });
+    await stylesheet().loaded;
+    const failed = stylesheet({ href: "data:text/css,i{}" }).sheet;
+    failed.dispatchEvent(new Event("error"));
     expect(heldBack(link("#ff-quiet"))).toBe(false);
+  });
+
+  it("sets aside a stylesheet still loading as parsing ends, then puts it back to apply as it arrives, and leaves a loaded one alone", async () => {
+    const { sheet: done, loaded: doneLoaded } = stylesheet();
+    await doneLoaded;
+    // Served, so it loads in a later task in every engine (a data: stylesheet has its sheet at once in Chromium).
+    const { sheet, loaded } = stylesheet({ href: "/registry/ouro/theme/ouro-base.css?ff-aside" });
+    parsed();
+    expect(sheet.disabled).toBe(true);
+    expect(done.disabled).toBe(false);
+    await task();
+    expect(sheet.disabled).toBe(false);
+    await loaded;
+    await expect.poll(() => [...document.styleSheets].some((each) => each.ownerNode === sheet && !each.disabled)).toBe(true);
   });
 });
