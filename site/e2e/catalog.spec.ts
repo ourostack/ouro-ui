@@ -108,7 +108,10 @@ const CEILINGS = { voyage: 279 * 1024, docs: 167_396 + 1024 } as const;
 // The voyage's rose to 45 KiB when the home page's first screen took a look to try and the hand-off to a person's agent
 // (Ari, 2026-11-17: "a human will never do that npx"): round paint dots ringed from the page's own theme before it hydrates,
 // and the hand-off's line and Copy, less the install command's rules: 45,107 bytes with them, built locally over main at dc800391.
-const CSS_CEILINGS = { voyage: 45 * 1024, docs: 46 * 1024 } as const;
+// The docs' rose to 47 KiB for X-ray's opening scan (Ari, 2026-11-18: the "oh, nice" moment a first visitor tries): the
+// band that sweeps down the screen and the outlines it shows as it passes, whose rules the docs' Tailwind build carries:
+// 47,158 bytes with them, built locally over main at ca591b4f.
+const CSS_CEILINGS = { voyage: 45 * 1024, docs: 47 * 1024 } as const;
 
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())

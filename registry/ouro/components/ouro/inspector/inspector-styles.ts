@@ -73,21 +73,21 @@ const layerClass =
  */
 // It covers the layer, so the outlines keep the layer's corner as their origin and the clip has a box to cut.
 const outlinesClass =
-  "absolute inset-0 [clip-path:inset(0)] motion-safe:[transition:clip-path_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out)] " +
+  "absolute inset-0 [clip-path:inset(0)] motion-safe:[transition:clip-path_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out),translate_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out)] " +
   "starting:in-data-starting-style:[clip-path:inset(0_0_100%_0)]";
 
 /**
- * The scan: a band in the primary color, with a line at its lower edge, that sweeps down the screen once as X-ray opens,
+ * The scan: a band tinted with the primary color, with a line at its lower edge, that sweeps down the screen once as X-ray opens,
  * on the outlines' timing, and then rests below it. With reduced motion there is no scan. @internal
  *
  * @claim "With reduced motion there is no" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > opens with a scan down the screen that shows the outlines as it passes, and at once with reduced motion)
- * @claim "The scan: a band in the" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > opens with a scan down the screen that shows the outlines as it passes, and at once with reduced motion)
+ * @claim "The scan: a band tinted with" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > opens with a scan down the screen that shows the outlines as it passes, and at once with reduced motion)
  */
 const scanClass =
-  "absolute inset-x-0 top-0 h-24 translate-y-[100vh] border-b-2 border-primary " +
-  "bg-linear-to-b from-transparent to-[color-mix(in_oklab,var(--primary)_16%,transparent)] " +
-  "motion-safe:[transition:translate_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out)] " +
-  "starting:in-data-starting-style:-translate-y-full motion-reduce:hidden";
+  "absolute inset-x-0 top-0 h-24 [translate:0_100vh] border-b-2 border-primary bg-primary/10 " +
+  // The outlines' transition, the one class for both: each part changes only its own property.
+  "motion-safe:[transition:clip-path_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out),translate_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out)] " +
+  "starting:in-data-starting-style:[translate:0_-100%] motion-reduce:hidden";
 
 /**
  * One outline: placed by `transform` from its component's box, and hidden, tag and all, while nothing of it shows. @internal
