@@ -16,6 +16,7 @@ import { HandOff } from "../handoff";
 import { setXray, useXray } from "../xray-store";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 import { firstName, useLogbook } from "./logbook";
+import { playTune, TUNES, tuneFor } from "./organ";
 // What only changes once the chapter answers (the squid letting go, the organ's glow): it comes
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
@@ -60,10 +61,15 @@ interface Fight {
   feathers: boolean;
   won: boolean;
   played: boolean;
+  /** How many tunes the organ has played since the voyage began: the next press plays the next tune. */
+  plays: number;
   line: CrewLine;
 }
 
-const START: Fight = { surfaced: false, lights: false, feathers: false, won: false, played: false, line: FIGHT.opening };
+const START: Fight = { surfaced: false, lights: false, feathers: false, won: false, played: false, plays: 0, line: FIGHT.opening };
+
+/** The squid falls asleep at the saloon's window on the lullaby, the last tune, and sleeps on until Sail again. */
+const asleepAt = (plays: number) => plays >= TUNES.length;
 
 function createFight() {
   let state = START;
@@ -92,7 +98,8 @@ const useFight = () => {
  * Runs an order on the fight: what changes, what the crew says, and the toast when the squid lets
  * go. (The organ's toast comes with the saloon's deferred render, so Play answers at once.) The
  * organ's tune starts here too, in the press that gave the order, so the saloon's Play, the menu
- * and the palette all play it. The site's rules; HX only carries the order here (dialog, menu, palette).
+ * and the palette all play it, the next tune each time; on the lullaby the squid falls asleep, and
+ * Conseil says so. The site's rules; HX only carries the order here (dialog, menu, palette).
  */
 function giveOrder(store: FightStore, order: Order): void {
   const fight = store.get();
@@ -119,11 +126,15 @@ function giveOrder(store: FightStore, order: Order): void {
       if (fight.lights) say(FIGHT.lightsOff, { lights: false });
       else say(fight.won ? FIGHT.lightsOn : FIGHT.lightsOnHeld, { lights: true });
       break;
-    case "organ":
+    case "organ": {
       if (!fight.won) break;
-      if (!fight.played) say(FIGHT.organ, { played: true });
-      playTune();
+      const plays = fight.plays + 1;
+      if (asleepAt(plays) && !asleepAt(fight.plays)) say(FIGHT.asleep, { played: true, plays });
+      else if (!fight.played) say(FIGHT.organ, { played: true, plays });
+      else store.set({ plays });
+      playTune(tuneFor(plays));
       break;
+    }
   }
 }
 
@@ -199,15 +210,25 @@ function BattleMarker(): JSX.Element {
 /**
  * The saloon's organ, painted: the captain at the keys and a small robot at the bellows, quiet until the fight is
  * won and Play is pressed; then the same picture with its pipes glowing and the squid come back to the window to
- * listen, faded in over it. Only its opacity changes, so under reduced motion nothing moves.
+ * listen, faded in over it; then, on the lullaby, the squid asleep at the glass with its eye closed, faded in over
+ * that. Only their opacity changes, so under reduced motion nothing moves.
  */
-function OrganArt({ played, label }: { played: boolean; label: string }): JSX.Element {
+function OrganArt({ played, asleep, label }: { played: boolean; asleep: boolean; label: string }): JSX.Element {
   return (
-    <div className="site-organ relative aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted" role="img" aria-label={label} data-played={played ? "" : undefined}>
+    <div
+      className="site-organ relative aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted"
+      role="img"
+      aria-label={label}
+      data-played={played ? "" : undefined}
+      data-asleep={asleep ? "" : undefined}
+    >
       <Painting scene="nautilus-organ" sizes={ORGAN_SIZES} />
-      {/* Its opacity is inline, so the server HTML has it before the island's styles come. */}
+      {/* Their opacity is inline, so the server HTML has it before the island's styles come. */}
       <div className="or-playing absolute inset-0" style={{ opacity: played ? 1 : 0 }}>
         <Painting scene="nautilus-organ-playing" sizes={ORGAN_SIZES} />
+      </div>
+      <div className="or-asleep absolute inset-0" style={{ opacity: asleep ? 1 : 0 }}>
+        <Painting scene="nautilus-organ-asleep" sizes={ORGAN_SIZES} />
       </div>
     </div>
   );
@@ -215,51 +236,6 @@ function OrganArt({ played, label }: { played: boolean; label: string }): JSX.El
 
 /** How wide the organ's picture draws: half the window's body beside the log on a wide screen, the column below it. */
 const ORGAN_SIZES = "(min-width: 64rem) 22rem, (min-width: 40rem) 40vw, 92vw";
-
-/**
- * The organ's tune, from the press that plays it: the famous opening flourish of Bach's Toccata in
- * D minor, on a few sine waves an octave apart, quiet, about three seconds. Web Audio only, made
- * here; nothing is fetched. Where the browser has no Web Audio, the organ plays in silence. The
- * press makes the audio context, so a browser that only lets a press start sound lets it play;
- * its three dozen pipes are built in a task after the press's frame (afterPaint), which they held
- * up by several milliseconds on a slow CPU, and the first note starts 50 ms after that.
- */
-const TUNE: ReadonlyArray<[midi: number, beats: number]> = [
-  [81, 0.25], [79, 0.25], [81, 1.5], [79, 0.25], [77, 0.25], [76, 0.25], [74, 0.25], [73, 0.75], [74, 2],
-];
-export function playTune(): void {
-  const Context = typeof window === "undefined" ? undefined : window.AudioContext;
-  if (!Context || navigator.webdriver) return;
-  const audio = new Context();
-  afterPaint(() => play(audio));
-}
-
-/** Builds the tune's pipes on `audio` and plays them, then closes it. */
-function play(audio: AudioContext): void {
-  const out = audio.createGain();
-  out.gain.value = 0.08;
-  out.connect(audio.destination);
-  const beat = 0.32;
-  let at = audio.currentTime + 0.05;
-  for (const [midi, beats] of TUNE) {
-    const frequency = 440 * 2 ** ((midi - 69) / 12);
-    const length = beats * beat;
-    for (const [harmonic, level] of [[0.5, 0.6], [1, 1], [2, 0.45], [4, 0.2]] as const) {
-      const pipe = audio.createOscillator();
-      const gain = audio.createGain();
-      pipe.frequency.value = frequency * harmonic;
-      gain.gain.setValueAtTime(0, at);
-      gain.gain.linearRampToValueAtTime(level, at + 0.02);
-      gain.gain.setValueAtTime(level, at + length - 0.04);
-      gain.gain.linearRampToValueAtTime(0, at + length);
-      pipe.connect(gain).connect(out);
-      pipe.start(at);
-      pipe.stop(at + length + 0.02);
-    }
-    at += length;
-  }
-  window.setTimeout(() => void audio.close(), (at - audio.currentTime + 0.5) * 1000);
-}
 
 /** The bolts round the porthole's brass ring. */
 const BOLTS = Array.from({ length: 12 }, (_, index) => {
@@ -509,16 +485,18 @@ function Encounter(): JSX.Element {
  * its last line; then the hand-off to a coding agent, the components, or round again. The log holds
  * only what has happened: it opens with what the reader did in the chapters before (logbook.ts), so
  * a reader who jumps straight here never reads that a ship was built.
- * Play stays where it is and keeps focus (a second press plays the tune again), so nothing scrolls.
+ * Play stays where it is and keeps focus (each press plays the next tune; the lullaby puts the squid
+ * to sleep, and the log says so), so nothing scrolls.
  */
 function Saloon(): JSX.Element {
   const store = useFightStore();
-  const { won, played } = useFight();
+  const { won, played, plays } = useFight();
   // The hint beside Play says why it is off, and Play is described by it, so a screen reader says why too.
   const hint = useId();
   const nextLine = useId();
   // Play answers at once (the button and its hint); the organ, the log's line and the way on follow in a render of their own.
   const shown = useAfterPaint(played);
+  const asleep = useAfterPaint(asleepAt(plays));
   const [round, setRound] = useState({ count: 0, pointer: false });
   // Focus goes back once the press has painted: React runs this effect in the press's own frame, and the focus
   // scrolls the page up to the alarm, so the press waited on a layout and on painting the whole new view (#1393).
@@ -540,12 +518,12 @@ function Saloon(): JSX.Element {
     setRound(({ count }) => ({ count: count + 1, pointer: event.detail > 0 }));
   };
   const voyage = useLogbook((log) => log);
-  const log = [...voyageLog(voyage), SALOON.logHeld, ...(won ? [SALOON.logFree] : []), ...(shown ? [SALOON.logPlayed] : [])];
+  const log = [...voyageLog(voyage), SALOON.logHeld, ...(won ? [SALOON.logFree] : []), ...(shown ? [SALOON.logPlayed] : []), ...(asleep ? [SALOON.logAsleep] : [])];
   return (
     <div className="grid gap-6 py-4 sm:py-6">
       <div className="site-split grid gap-6 sm:items-center">
         <figure className="m-0">
-          <OrganArt played={shown} label={shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
+          <OrganArt played={shown} asleep={asleep} label={asleep ? `${SALOON.organ}. ${SALOON.asleep}` : shown ? `${SALOON.organ}. ${SALOON.playing}` : SALOON.organ} />
         </figure>
         <div className="grid content-start gap-5">
           <div className="grid gap-2" data-chapter-log={shown ? "done" : won ? "free" : "held"}>
@@ -572,7 +550,7 @@ function Saloon(): JSX.Element {
               </Button>
             </span>
             <span id={hint} className="text-sm text-muted-foreground" data-chapter-organ-hint="">
-              {played ? SALOON.playing : won ? null : SALOON.playHint}
+              {asleepAt(plays) ? SALOON.asleep : played ? SALOON.playing : won ? null : SALOON.playHint}
             </span>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcemen
 import frameStyles from "./frame.css?inline";
 import chapterOneStyles from "./chapter-one.css?inline";
 import { allChapterThreeText, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "./chapter-three-copy";
+import { tuneFor } from "./organ";
 
 await loadPageCode("/nautilus/");
 
@@ -183,6 +184,50 @@ describe("Chapter III", () => {
     }
   });
 
+  it("plays the next tune at each press, the Toccata, then the prelude, then the lullaby, and round again, and the lullaby puts the squid to sleep", async () => {
+    expect([1, 2, 3, 4, 5].map((plays) => tuneFor(plays).name)).toEqual(["toccata", "prelude", "lullaby", "toccata", "prelude"]);
+    // The pipes each press sounds, by the audio context it made.
+    const heard: OscillatorNode[][] = [];
+    vi.stubGlobal(
+      "AudioContext",
+      class extends AudioContext {
+        constructor() {
+          super();
+          heard.push([]);
+        }
+        override createOscillator(): OscillatorNode {
+          const pipe = super.createOscillator();
+          heard.at(-1)!.push(pipe);
+          return pipe;
+        }
+      },
+    );
+    const pitches = (press: number) => new Set(heard[press]!.map((pipe) => pipe.frequency.value.toFixed(1)));
+    const melody = (plays: number) => tuneFor(plays).notes.map(([midi]) => Math.fround(440 * 2 ** ((midi - 69) / 12)).toFixed(1));
+    const organ = () => document.querySelector<HTMLElement>("[data-composition='saloon'] .site-organ")!;
+    const log = () => [...document.querySelectorAll("#chapter-three [data-chapter-log] li")].map((line) => line.textContent ?? "");
+    try {
+      await renderPage("/nautilus/");
+      await order(ORDERS.surface);
+      await order(ORDERS.feathers);
+      await expect.poll(() => scene().dataset.squid).toBe("gone");
+      for (const plays of [1, 2, 3, 4]) {
+        await userEvent.click(page.getByRole("button", { name: plays === 1 ? SALOON.play : SALOON.playAgain }));
+        await expect.poll(() => heard[plays - 1]?.length ?? 0).toBeGreaterThan(0);
+        for (const note of melody(plays)) expect(pitches(plays - 1)).toContain(note);
+        // Asleep from the lullaby on, and only then.
+        await expect.poll(() => organ().dataset.asleep).toBe(plays >= 3 ? "" : undefined);
+        expect(log().filter((line) => line.endsWith(SALOON.logAsleep))).toHaveLength(plays >= 3 ? 1 : 0);
+        await expect.poll(crew).toContain(plays >= 3 ? FIGHT.asleep.text : FIGHT.organ.text);
+      }
+      expect(pitches(1)).not.toEqual(pitches(0));
+      expect(pitches(2)).not.toEqual(pitches(1));
+      expect(pitches(3)).toEqual(pitches(0));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("says the water is clear, not that the floodlights are on, when the free ship surfaces again", async () => {
     await renderPage("/nautilus/");
     await order(ORDERS.surface);
@@ -256,7 +301,7 @@ describe("the squid and the organ", () => {
     const organ = document.querySelector<HTMLElement>("[data-composition='saloon'] .site-organ")!;
     for (const [box, scenes] of [
       [scene(), ["nautilus-porthole", "nautilus-porthole-free"]],
-      [organ, ["nautilus-organ", "nautilus-organ-playing"]],
+      [organ, ["nautilus-organ", "nautilus-organ-playing", "nautilus-organ-asleep"]],
     ] as const) {
       // No drawing of the squid or the organ is left: only paintings, each with its night twin.
       expect(box.querySelector("svg :is(path, ellipse)")).toBeNull();

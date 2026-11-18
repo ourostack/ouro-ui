@@ -91,6 +91,8 @@ export const FIGHT = {
   /** The win, once you have signed on in Chapter I: Ned hands you the lamp. It replaces `win`, never adds to it. */
   winWith: (name: string): CrewLine => ({ name: "Ned Land", text: `${name}, hold that lamp steady. It lets go, and slips off into the dark. Good night, friend.` }),
   organ: { name: "Captain Nemo", text: "And now, a little music." },
+  /** On the lullaby, the organ's last tune: the squid at the saloon's window has closed its eye. */
+  asleep: { name: "Conseil", text: "I believe it is asleep, sir." },
   again: { name: "Conseil", text: "It is back at the glass. I think it liked the organ." },
 } as const satisfies Record<string, CrewLine | ((name: string) => CrewLine)>;
 
@@ -108,11 +110,14 @@ export const SALOON = {
   playAgain: "Play it again",
   playHint: "First, free the propeller.",
   playing: "The captain plays. Someone large has come back to listen.",
+  /** Once the lullaby has played: beside Play, and in the organ's picture's name. */
+  asleep: "The captain plays softly. At the glass, the squid has closed its eye.",
   log: "The ship's log",
   /** The log's lines, each written only once it has happened. */
   logHeld: "Stopped dead. A giant squid has the propeller.",
   logFree: "Lamp lit on deck. The squid let go and slipped away.",
   logPlayed: "Music in the saloon. The squid came back to listen.",
+  logAsleep: "The squid fell asleep at the glass.",
   /** What you did on the voyage before (logbook.ts), each line only once you did it. */
   logBuilt: (days: number) => `Built in ${days} days, and launched.`,
   logSigned: (name: string, trade: string) => `${name} signed on, ${trade.toLowerCase()}.`,
@@ -182,7 +187,7 @@ export const CODE_SHEETS_THREE = {
       { text: "Button as a toggle: Show me turns X-ray on and off, and says if it is on.", code: `<Button aria-pressed={xray} onClick={() => setXray(!xray)}>Show me</Button>` },
       { text: "Button as a link: the way into the docs.", code: `<Button href="/docs/">Browse components</Button>` },
     ],
-    site: ["The organ, its tune, and its pipes that glow as he plays.", "The squid that comes back to listen.", "The log, and what goes in it."],
+    site: ["The organ, its tunes, and its pipes that glow as he plays.", "The squid that comes back to listen, and stays to sleep.", "The log, and what goes in it."],
     uses: ["Button", "Toast"],
   },
 } as const;

@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@ef85d2d3a235dd207b09edbe3f17d9bba920cca6:brand/",
+  "origin": "ourostack/.github@e9f5a7a2039bc1be5b2b1c276cf48cba49680693:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -2218,6 +2218,134 @@
     {
       "file": "scenes/nautilus-organ-playing-dark-960.webp",
       "sha256": "43b9e65fa0a41aea218d5f5a4c597151830174fd51310357a2182b8a1d787e6c"
+    },
+    {
+      "file": "headers/nautilus-organ-asleep-dark.webp",
+      "sha256": "fab519dd3eb7be0414dfb80d1a75f83a441ebff9fbc7c046c78f6c1c0e0d829b"
+    },
+    {
+      "file": "headers/nautilus-organ-asleep.webp",
+      "sha256": "85ccd5da5af1d6dfbc7f4850b3abbf057ba1cb97b4bd60297205edf6c6bb0652"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-1152.avif",
+      "sha256": "b096b9779a0c0985e9cbe00472aec60639a84a3b3562372926ffd0227db8fe9b"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-1152.webp",
+      "sha256": "cf44f90e1e704d0c2d99ff6199886b56816967c412de6a25b2720bb926df0d86"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-1536.avif",
+      "sha256": "d56df0910ac583d0792d479867dc59020f0bdc9ee8cb66e857dada767dfc62cb"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-1536.webp",
+      "sha256": "fc7f261a77af9c8d70a4336c95ea7591f65a80e8aad43f527d69a63ab0ff6d88"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-384.avif",
+      "sha256": "05e3bbb6c3eac4d5f156572f6cac7150e5d4e110e56295b258d0bd93dbdbb92a"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-384.webp",
+      "sha256": "0bfac8be11640bce1ca7c578d2cc03f0e271d84a35b15f7fe8ec2010a5b09d02"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-768.avif",
+      "sha256": "71af6238f961877c31641a03a791abbf1b0886f8d61b636bf448db89f6c00c31"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-768.webp",
+      "sha256": "a5f663e7112da1a594097af058f8bfda2b21820bdce86d1f22a423e3cf1c1be7"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-1152.avif",
+      "sha256": "73275bae25a1307104fdc9270356a4391d18ba66747201d4915e08edc4a199da"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-1152.webp",
+      "sha256": "df143e880b206c6acc6593eacc46e54bf05527a5db1ea6596da7c2c8197d78b6"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-1536.avif",
+      "sha256": "975cd02403a09c93c3e61288288f458fa1eacd412e8ae9d453ebdd17188107a8"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-1536.webp",
+      "sha256": "9c3721ac65c06d697535fa0b10ed0938e7da0d9d7c72b330bb453933aa5e4572"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-384.avif",
+      "sha256": "3452f3d91a576a616d3c6212d1f7cfb85011fa5963e6a66cb2981377a32da737"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-384.webp",
+      "sha256": "e8240ec300be27ce1a6247d8e84eb3d0dbdebc794dc26b57f722c643594adf6b"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-768.avif",
+      "sha256": "9a24b0613b520292c6f35081e3b297894a4c4cd9da10455b30307d431a012eda"
+    },
+    {
+      "file": "phone/nautilus-organ-asleep-dark-768.webp",
+      "sha256": "fc16215b4bd240e12409fca9ccee5f22a4961b2b7b2dcbd9cdca8409e2b9cfdb"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-1536.avif",
+      "sha256": "18a3d76b37d6784cdc8c899f34dced3740d8447c106b9151e70dd87dc020d332"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-3072.avif",
+      "sha256": "f8cac4e5b08fb12df01f2d357e21a76150d8a55e2487d1288d083603651cee39"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-3072.webp",
+      "sha256": "e355daede7aaeb401231bb701388e99727c0de25162bdd8714bdd25fcb4f4079"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-640.avif",
+      "sha256": "e312c80fae89401059c7a8083cdf3edde44a72a80515e3ec5a3b96c232130d6b"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-640.webp",
+      "sha256": "ba9fd6e7f41bb8abd8422c11b8723ea7f507bd5cd55477ab532b4c4d65b519ed"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-960.avif",
+      "sha256": "de930d18715e91e433e5d82fddac4d6d962a9d2339658bf87d401383033e5ae7"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-960.webp",
+      "sha256": "50853d342737f6ce52e174b34d7634d8e0a6fe0e33d12830dbd134bce18f9de8"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-dark-1536.avif",
+      "sha256": "f01f2adfaa294b203d701f11ba4f8daecefcb3ca0e0ef0147b5b668f12329736"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-dark-3072.avif",
+      "sha256": "7ab209d6d266fc5e4a8ae0ac3198f4df7ee7c5d53af87abd994e08999ed73765"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-dark-3072.webp",
+      "sha256": "e88a6ebec3bfafd8f79a52cacaab6ec004d4e04e99f412dffddbede1b028534e"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-dark-640.avif",
+      "sha256": "8d5280cec946051f1bd02f57486eade87f3467ce178fd7cadfb2002dac9fb2ed"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-dark-640.webp",
+      "sha256": "ae69e6ca24c6106fd1f00cc2e2cc5784b5a81f6eb1a0354db39dfbf2cf6eb148"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-dark-960.avif",
+      "sha256": "4de03514643b94e89459d77b2d7624a230b86243e2c71b446d4f38d96026bd85"
+    },
+    {
+      "file": "scenes/nautilus-organ-asleep-dark-960.webp",
+      "sha256": "116a5c70ca784e6985bd7c58299a3b447c5e65106d959a89c8ea7aa5cac17d2f"
     }
   ]
 }

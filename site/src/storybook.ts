@@ -25,7 +25,8 @@ export type SceneName =
   | "nautilus-porthole"
   | "nautilus-porthole-free"
   | "nautilus-organ"
-  | "nautilus-organ-playing";
+  | "nautilus-organ-playing"
+  | "nautilus-organ-asleep";
 
 export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
@@ -247,6 +248,17 @@ export const SCENES: Record<SceneName, Scene> = {
     night: {
       phoneHeight: 512,
       alt: "The captain plays the Nautilus's great organ at night: its glowing brass pipes are the brightest light in the dim saloon, the small lilac robot pumps the bellows, Ouro listens from the organ's top, and at the great oval window the giant squid has come back, one gentle eye to the glass, to listen.",
+    },
+  },
+  "nautilus-organ-asleep": {
+    alt: "The captain plays the Nautilus's great organ softly: its brass pipes glow warm gold, the small lilac robot pumps the bellows, Ouro listens from the organ's top, and at the great oval window the giant squid rests against the glass with its eye closed, fast asleep.",
+    sky: ["#1f1212", "#301107", "#995713", "#a25e15", "#502108"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "The captain plays the Nautilus's great organ softly at night: its glowing brass pipes are the brightest light in the dim saloon, the small lilac robot pumps the bellows, Ouro listens from the organ's top, and at the great oval window the giant squid rests against the glass with its eye closed, fast asleep.",
     },
   },
 };
