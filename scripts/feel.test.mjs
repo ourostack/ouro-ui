@@ -651,15 +651,28 @@ test("Ouro Feel's probe judges no jump on the frame a list comes back to the pag
   }
 });
 
-test("Ouro Feel's report reads a measure the probe found unmeasured as unmeasured, with why, never as 0 or an error", () => {
-  const blindRun = { ...run({ jumps: 0, longestFrameMs: 10 }), unmeasured: { deadInput: "no wheel event reached the probe, though the list scrolled (3 scroll events)" } };
-  const entry = judge({ ...spec, limits: { ...spec.limits, deadInput: 0 } }, "webkit", [blindRun]);
+test("Ouro Feel's report fails a case whose limited measure any run left unmeasured, and says why, never reading it as 0 or a pass", () => {
+  const why = "no wheel event reached the probe, though the list scrolled (3 scroll events)";
+  const blindRun = { ...run({ jumps: 0, longestFrameMs: 10 }), unmeasured: { deadInput: why } };
+  const limited = { ...spec, limits: { ...spec.limits, deadInput: 0 } };
+  const entry = judge(limited, "webkit", [blindRun]);
   assert.deepEqual(entry.measures.deadInput.runs, []);
-  assert.equal(entry.measures.deadInput.pass, undefined);
-  assert.equal(entry.measures.deadInput.unmeasured, "no wheel event reached the probe, though the list scrolled (3 scroll events)");
-  assert.match(markdown([entry]), /\| `deadInput` \| unmeasured: no wheel event reached the probe, though the list scrolled \(3 scroll events\) \|/);
-  assert.match(passLine(entry), /Unmeasured, as its source saw nothing: deadInput \(no wheel event reached the probe, though the list scrolled \(3 scroll events\)\)\.$/);
+  assert.equal(entry.measures.deadInput.pass, false);
+  assert.equal(entry.measures.deadInput.unmeasured, why);
+  assert.equal(entry.pass, false);
+  assert.match(markdown([entry]), /\| `deadInput` \| unmeasured: no wheel event reached the probe, though the list scrolled \(3 scroll events\) \| 0 \| ✗ unmeasured \|/);
+  assert.match(passLine(entry), /^✗ Fail: .*deadInput unmeasured \(no wheel event reached the probe, though the list scrolled \(3 scroll events\)\)\.$/);
+  // One run measured it and another did not: the limit holds on every run, so the case fails too.
+  const mixed = judge(limited, "webkit", [run({ jumps: 0, longestFrameMs: 10, deadInput: 0 }), blindRun]);
+  assert.deepEqual(mixed.measures.deadInput.runs, [0]);
+  assert.equal(mixed.measures.deadInput.pass, false);
+  assert.equal(mixed.pass, false);
+  // With no limit on it, it is reported as unmeasured and judges nothing.
+  const reported = judge(spec, "webkit", [blindRun]);
+  assert.equal(reported.measures.deadInput.pass, undefined);
+  assert.equal(reported.pass, true);
 });
+
 
 test("Ouro Feel's probe reads a measure as unmeasured, never 0, when its source sees nothing that a second source saw, in Chromium and WebKit", async () => {
   for (const [name, engine] of [["Chromium", chromium], ["WebKit", webkit]]) {
@@ -744,6 +757,39 @@ test("Ouro Feel's probe times a wheel event that waited behind a long task as th
       assert.ok(Math.abs(measures.inputToMotionMaxMs - expected) <= 1, `the probe read ${measures.inputToMotionMaxMs} ms; the page's own frames, ${expected.toFixed(1)} ms`);
       assert.equal(measures.deadInput, expected >= 100 ? 1 : 0);
       if (name === "Chromium") assert.ok(expected >= 100, `the wheel waited ${expected.toFixed(1)} ms`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("Ouro Feel's probe still reads dead input when the page scrolled the list as it started watching, in Chromium and WebKit", async () => {
+  for (const [name, engine] of [["Chromium", chromium], ["WebKit", webkit]]) {
+    const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+    const browser = await engine.launch();
+    try {
+      const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+      await page.setContent(`<div id="list" style="height:400px;overflow:auto">${Array.from({ length: 60 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+      await page.addScriptTag({ content: probe });
+      await page.mouse.move(200, 200);
+      await page.evaluate(() => {
+        const { document, ouroFeel } = globalThis;
+        const list = document.getElementById("list");
+        // A list that takes no wheel input, scrolled as the case sets up, in the task that starts watching: its scroll event comes
+        // in the first frame, from before watching, and is no movement the frames missed.
+        list.addEventListener("wheel", (event) => event.preventDefault(), { passive: false });
+        list.scrollTop = 480;
+        ouroFeel.watch({ case: "blocked", scroller: list, rows: ".row" });
+      });
+      for (let turn = 0; turn < 3; turn++) await page.mouse.wheel(0, 120);
+      const result = await page.evaluate(async () => {
+        const { ouroFeel } = globalThis;
+        for (let frame = 0; frame < 10; frame++) await ouroFeel.painted();
+        return ouroFeel.stop(true);
+      });
+      assert.equal(result.unmeasured?.deadInput, undefined, `${name}: ${JSON.stringify(result.unmeasured)}`);
+      assert.equal(result.measures.deadInput, 3, name);
+      assert.equal(result.measures.inputNeverMoved, 3, name);
     } finally {
       await browser.close();
     }

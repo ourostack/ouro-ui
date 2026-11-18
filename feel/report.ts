@@ -27,7 +27,7 @@ export interface MeasureEntry {
   limit?: number;
   /** Whether it is within its limit; left out with no limit, or with no run that reported it (no verdict). */
   pass?: boolean;
-  /** Why no run measured it, when a run's probe found its source blind (`RunResult.unmeasured`): it reads as unmeasured, never 0. */
+  /** Why a run left it unmeasured, its probe finding the source blind (`RunResult.unmeasured`): never read as 0, and with a limit, a fail. */
   unmeasured?: string;
 }
 
@@ -77,11 +77,14 @@ export function judge(spec: FeelCaseSpec, engine: Engine, runs: Run[]): ReportEn
   for (const name of names) {
     const values = runs.flatMap((run) => (run.measures[name] === undefined ? [] : [run.measures[name]]));
     const entry: MeasureEntry = values.length === 0 ? { unit: unitOf(name), runs: values } : { unit: unitOf(name), runs: values, median: median(values), spread: [Math.min(...values), Math.max(...values)] };
-    if (values.length === 0 && blind.has(name)) entry.unmeasured = blind.get(name)!;
+    const unmeasured = runs.find((run) => run.unmeasured?.[name] !== undefined)?.unmeasured![name];
+    if (unmeasured !== undefined) entry.unmeasured = unmeasured;
     const limit = spec.limits[name];
     if (limit !== undefined) {
       entry.limit = limit;
-      if (values.length > 0) entry.pass = isTime(name) ? entry.median! <= limit : values.every((value) => value <= limit);
+      // A limit holds on every run: one that a run left unmeasured fails, so a gate never passes on what it did not see.
+      if (unmeasured !== undefined) entry.pass = false;
+      else if (values.length > 0) entry.pass = isTime(name) ? entry.median! <= limit : values.every((value) => value <= limit);
     }
     measures[name] = entry;
   }
@@ -146,13 +149,13 @@ export function passLine(entry: ReportEntry): string {
   const runs = Object.values(entry.measures)[0]?.runs.length ?? 0;
   const where = `${entry.case} in ${engineLine(entry)}, ${runs} run${runs === 1 ? "" : "s"}`;
   const unjudged = Object.entries(entry.measures).filter(([, measure]) => measure.limit !== undefined && measure.pass === undefined).map(([name]) => name);
-  const blind = unjudged.filter((name) => entry.measures[name]!.unmeasured !== undefined).map((name) => `${name} (${entry.measures[name]!.unmeasured})`);
-  const why = blind.length > 0 ? ` Unmeasured, as its source saw nothing: ${blind.join("; ")}.` : "";
-  if (entry.pass && unjudged.length > 0) return `✓ Pass: ${where}. Every measure a run reported is within its limit; no run measured ${unjudged.join(", ")}, so ${unjudged.length === 1 ? "it has" : "they have"} no verdict.${why}`;
+  if (entry.pass && unjudged.length > 0) return `✓ Pass: ${where}. Every measure a run reported is within its limit; no run measured ${unjudged.join(", ")}, so ${unjudged.length === 1 ? "it has" : "they have"} no verdict.`;
   if (entry.pass) return `✓ Pass: ${where}. Every judged measure is within its limit.`;
   const over = Object.entries(entry.measures)
     .filter(([, measure]) => measure.pass === false)
-    .map(([name, measure]) => `${name} ${value(measure, isTime(name) ? measure.median : measure.spread![1])} (limit ${value(measure, measure.limit)})`);
+    .map(([name, measure]) =>
+      measure.unmeasured !== undefined ? `${name} unmeasured (${measure.unmeasured})` : `${name} ${value(measure, isTime(name) ? measure.median : measure.spread![1])} (limit ${value(measure, measure.limit)})`,
+    );
   return `✗ Fail: ${where}. ${[entry.settled ? "" : "It never came to rest", ...over].filter(Boolean).join("; ")}.`;
 }
 
@@ -162,7 +165,7 @@ function caption(entry: ReportEntry, does: string | undefined): string {
 
 /** Whether a judged measure passed, was over, or had no run to judge. */
 function result(entry: MeasureEntry): string {
-  return entry.pass === undefined ? "no verdict" : entry.pass ? "✓ pass" : "✗ over";
+  return entry.pass === undefined ? "no verdict" : entry.pass ? "✓ pass" : entry.unmeasured !== undefined ? "✗ unmeasured" : "✗ over";
 }
 
 function shown(entry: MeasureEntry): string {

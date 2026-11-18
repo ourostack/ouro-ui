@@ -276,7 +276,8 @@ function install(): OuroFeel {
     "scroll",
     (event) => {
       const target = event.target;
-      if (watching === undefined || !(target instanceof Element)) return;
+      // From the first frame sampled on: a scroll the page made before watching fires in that frame, and is no move it missed.
+      if (watching === undefined || frames === 0 || !(target instanceof Element)) return;
       if (typeof watching.scroller === "string" ? target.matches(watching.scroller) : target === watching.scroller) listScrolls += 1;
     },
     { capture: true, passive: true },
