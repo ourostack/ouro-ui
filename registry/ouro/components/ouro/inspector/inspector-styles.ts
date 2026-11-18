@@ -84,7 +84,7 @@ const outlinesClass =
  * @claim "The scan: a band tinted with" registry/ouro/components/ouro/inspector/inspector.test.tsx verify:testExists(registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > opens with a scan down the screen that shows the outlines as it passes, and at once with reduced motion)
  */
 const scanClass =
-  "absolute inset-x-0 top-0 h-24 [translate:0_100vh] border-b-2 border-primary bg-primary/10 " +
+  "absolute inset-x-0 top-0 h-16 [translate:0_100vh] border-b-2 border-primary bg-primary/5 " +
   // The outlines' transition, the one class for both: each part changes only its own property.
   "motion-safe:[transition:clip-path_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out),translate_calc(var(--ouro-duration-slow)*2)_var(--ouro-ease-in-out)] " +
   "starting:in-data-starting-style:[translate:0_-100%] motion-reduce:hidden";
