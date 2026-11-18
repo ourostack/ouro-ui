@@ -164,7 +164,11 @@ describe("home page", () => {
     const worksWith = document.querySelector("[data-site-works-with]")!;
     expect(worksWith.closest("#ax-section")).not.toBeNull();
     expect(worksWith.textContent).toContain(WORKS_WITH.lede);
-    expect([...worksWith.querySelectorAll("a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual(WORKS_WITH.formats.map((format) => [format.label, format.href]));
+    expect([...worksWith.querySelectorAll("a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([...WORKS_WITH.formats, WORKS_WITH.guide].map((link) => [link.label, link.href]));
+    // The tree is Ouro's own; MCP Apps and A2UI are formats it speaks, never "the formats agents compose interfaces in" (core's 2026-11-17 record).
+    expect(worksWith.textContent).not.toMatch(/formats agents compose/);
+    expect(worksWith.textContent).toContain("Ouro's own tree");
+    expect(worksWith.textContent!.indexOf("Ouro's own tree")).toBeLessThan(worksWith.textContent!.indexOf("MCP Apps"));
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).not.toContain("A2UI");
     for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-reviews/", "docs/platforms/android.md"]) {
       expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
