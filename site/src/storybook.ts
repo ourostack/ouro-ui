@@ -141,7 +141,7 @@ export const SCENES: Record<SceneName, Scene> = {
   },
   "nautilus-library": {
     alt: "Down a long aisle of the Nautilus's walnut library, between shelves of books that run to a small porthole at the far end, a faceless glass person in a green velvet jacket sits in a leather wingback chair under a reading lamp with a big closed atlas on their lap, deciding the route, while a small sea-blue robot turns the globe toward them, a small lilac robot on the library ladder carries down a rolled sea chart, and Ouro, a smiling emerald snake curled into an O, watches from the chair's arm.",
-    sky: ["#421a0b", "#301004", "#290a01", "#2c0e05", "#3d190a"],
+    sky: ["#42190b", "#300f05", "#290901", "#2b0d05", "#3d180b"],
     height: 1024,
     phoneHeight: 512,
     band: 50,
