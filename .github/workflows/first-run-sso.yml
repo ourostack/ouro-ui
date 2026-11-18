@@ -1,0 +1,41 @@
+name: First run on a managed Mac
+# Ouro check's first-run harness on a fresh GitHub-hosted Mac, with a managed Mac's SSO extension played by its stand-in
+# (registry/ouro/check/first-run-sso.ts): scripts/check/first-run-sso/proof.mts. Unit tests read the stand-in on any host;
+# only a Mac proves Apple's networking meets it, the system trusts it for the run, and lifting it puts the Mac back.
+on:
+  pull_request:
+    paths:
+      - registry/ouro/check/first-run*
+      - scripts/check/first-run-sso/**
+      - .github/workflows/first-run-sso.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+# A push to a pull request cancels that pull request's run in progress; a dispatched run is never cancelled. It runs on no
+# push to main, where it isn't a required check: the pull request's run gated the change.
+concurrency:
+  group: first-run-sso-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: The stand-in holds the silent sign-in from Apple's networking, and lifting it puts the Mac back
+        run: node scripts/check/first-run-sso/proof.mts "$RUNNER_TEMP/first-run-sso"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: first-run-sso
+          path: ${{ runner.temp }}/first-run-sso
+          if-no-files-found: ignore
+          retention-days: 14

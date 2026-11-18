@@ -12,7 +12,7 @@ import { chromium } from "playwright";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 // The first-run harness: Node, driving an installed app through first-run-ax-tree.swift on a Mac and first-run-uia-tree.cs on Windows.
-const harness = ["first-run-judges.ts", "first-run-eyes.ts", "first-run-machine.ts", "first-run-network.ts", "first-run-session.ts", "first-run-detours.ts", "first-run-system.ts", "first-run-windows.ts"];
+const harness = ["first-run-judges.ts", "first-run-eyes.ts", "first-run-machine.ts", "first-run-network.ts", "first-run-session.ts", "first-run-detours.ts", "first-run-system.ts", "first-run-windows.ts", "first-run-sso.ts"];
 
 test("the Ouro check tests pass and cover every line, branch and function of its Node side", () => {
   const result = spawnSync(
@@ -37,6 +37,7 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "scripts/check/first-run-units.test.mts",
       "scripts/check/first-run-session.test.mts",
       "scripts/check/first-run-windows.test.mts",
+      "scripts/check/first-run-sso.test.mts",
     ],
     {
       cwd: root,
