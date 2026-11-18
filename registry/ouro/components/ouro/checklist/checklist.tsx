@@ -134,11 +134,8 @@ function outOfOrder(items: readonly ChecklistItemData[], ordered: boolean | read
  */
 function keepLeaving(notes: Map<string, string>, before: Map<string, string>, entries: ReadonlyArray<{ key: string; phase: string }>): Map<string, string> {
   const next = new Map(notes);
-  for (const entry of entries) {
-    const kept = before.get(entry.key);
-    // Stryker disable next-line ConditionalExpression: a leaving row stored with no note reads the same as one not stored
-    if (entry.phase === "leaving" && kept !== undefined) next.set(entry.key, kept);
-  }
+  const leaving = new Set(entries.filter((entry) => entry.phase === "leaving").map((entry) => entry.key));
+  for (const [key, note] of before) if (leaving.has(key)) next.set(key, note);
   return next;
 }
 
