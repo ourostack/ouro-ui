@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Changed: the test kit's `userEvent` keyboard, type and tab calls register with the running test's deadline, so [a test whose call never answers fails naming the command and its text, not only "Test timed out"](registry/ouro/lib/ouro/testing/command-deadline.test.ts "verify:testExists(registry/ouro/lib/ouro/testing/command-deadline.test.ts::trackUserEventCommands > registers a userEvent command with the running test's deadline, named with its text)").
+- Fixed: the list-and-detail page pattern moves focus to the detail's heading, and back to the row after Back, in the same task as the press, so [focus never passes through the page between and a screen reader isn't cut off](test/patterns.test.tsx "verify:testExists(test/patterns.test.tsx::ListDetailPage > on a phone moves focus in the same task as the press, so the page never holds it between and a screen reader is not cut off)").
