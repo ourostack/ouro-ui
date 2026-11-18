@@ -89,7 +89,8 @@ const useFight = () => {
 /**
  * Runs an order on the fight: what changes, what the crew says, and the toast when the squid lets
  * go. (The organ's toast comes with the saloon's deferred render, so Play answers at once.) The
- * site's rules; HX only carries the order here (dialog, menu, palette).
+ * organ's tune starts here too, in the press that gave the order, so the saloon's Play, the menu
+ * and the palette all play it. The site's rules; HX only carries the order here (dialog, menu, palette).
  */
 function giveOrder(store: FightStore, order: Order): void {
   const fight = store.get();
@@ -117,7 +118,9 @@ function giveOrder(store: FightStore, order: Order): void {
       else say(fight.won ? FIGHT.lightsOn : FIGHT.lightsOnHeld, { lights: true });
       break;
     case "organ":
-      if (fight.won && !fight.played) say(FIGHT.organ, { played: true });
+      if (!fight.won) break;
+      if (!fight.played) say(FIGHT.organ, { played: true });
+      playTune();
       break;
   }
 }
@@ -546,10 +549,7 @@ function Saloon(): JSX.Element {
                 aria-describedby={hint}
                 variant={won && !played ? "solid" : "outline"}
                 tone={won && !played ? "primary" : "secondary"}
-                onClick={() => {
-                  giveOrder(store, "organ");
-                  playTune();
-                }}
+                onClick={() => giveOrder(store, "organ")}
               >
                 {played ? SALOON.playAgain : SALOON.play}
               </Button>

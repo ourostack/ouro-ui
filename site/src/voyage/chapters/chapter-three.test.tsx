@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, voice } from "../../../test/readability";
@@ -147,6 +147,40 @@ describe("Chapter III", () => {
       expect(option(name).element().textContent).not.toContain(ENCOUNTER.heldOrder);
     }
     await close();
+  });
+
+  it.each(["Orders menu", "palette"] as const)("plays the tune from the %s as from the saloon's Play, once a press, and the log gets its line", async (way) => {
+    // Each AudioContext the page makes, and the event it was made in: a browser lets only a press start sound.
+    const made: string[] = [];
+    vi.stubGlobal(
+      "AudioContext",
+      class extends AudioContext {
+        constructor() {
+          super();
+          made.push(window.event?.type ?? "no press");
+        }
+      },
+    );
+    try {
+      await renderPage("/nautilus/");
+      await order(ORDERS.surface);
+      await order(ORDERS.feathers);
+      await expect.poll(() => scene().dataset.squid).toBe("gone");
+      expect(made).toEqual([]);
+      if (way === "Orders menu") await order(ORDERS.organ);
+      else {
+        await userEvent.click(page.getByRole("button", { name: ENCOUNTER.palette, exact: true }));
+        await userEvent.click(page.getByRole("option", { name: ORDERS.organ }));
+      }
+      expect(made).toEqual(["click"]);
+      await expect.poll(crew).toContain(FIGHT.organ.text);
+      await expect.element(page.elementLocator(document.querySelector("#chapter-three [data-chapter-log]")!).getByText(SALOON.logPlayed, { exact: true })).toBeInTheDocument();
+      // The saloon's Play now offers the tune again, and plays it once.
+      await userEvent.click(page.getByRole("button", { name: SALOON.playAgain }));
+      expect(made).toEqual(["click", "click"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("says the water is clear, not that the floodlights are on, when the free ship surfaces again", async () => {
