@@ -138,6 +138,7 @@ export interface ComposedTreeProps extends Pick<ComposedSurfaceProps, "tree" | "
  * @internal
  */
 export function ComposedTree({ tree, data, origin, onPress, onHandoff }: ComposedTreeProps): ReactNode {
+  // Stryker disable next-line ObjectLiteral: an empty first state differs from the props, so the check below fills it in on the first render.
   const [held, setHeld] = useState<{ origin: unknown; data: Json | undefined; current: Json }>(() => ({ origin, data, current: data ?? {} }));
   let current = held.current;
   if (held.origin !== origin || held.data !== data) {
