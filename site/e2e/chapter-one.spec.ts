@@ -528,9 +528,9 @@ test("the crew's faces come from the Nautilus scenes, a newcomer keeps initials,
     const context = await browser.newContext({ viewport, reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
     const page = await context.newPage();
     await open(page);
-    await expect.poll(() => pictureOf(yardCrew(page).locator("[data-ouro='avatar']")), `${viewport.width}px: the crew line's face`).toBe(`/crew/${FACES[YARD.opening.name]}-96.webp`);
+    await expect.poll(() => pictureOf(yardCrew(page).locator("[data-ouro='avatar']")), { message: `${viewport.width}px: the crew line's face` }).toBe(`/crew/${FACES[YARD.opening.name]}-96.webp`);
     const roster = page.getByRole("list", { name: ARTICLES.roster }).locator("[data-ouro='avatar']");
-    for (const [index, member] of CREW.entries()) await expect.poll(() => pictureOf(roster.nth(index)), `${viewport.width}px: ${member.name} on the crew list`).toBe(`/crew/${FACES[member.name]}-192.webp`);
+    for (const [index, member] of CREW.entries()) await expect.poll(() => pictureOf(roster.nth(index)), { message: `${viewport.width}px: ${member.name} on the crew list` }).toBe(`/crew/${FACES[member.name]}-192.webp`);
     await signOn(page, "Ana Lind");
     await expect(roster).toHaveCount(CREW.length + 1);
     await expect(roster.last()).toHaveAttribute("data-image", "idle");
@@ -542,7 +542,7 @@ test("the crew's faces come from the Nautilus scenes, a newcomer keeps initials,
     await cheer.scrollIntoViewIfNeeded();
     const faces = cheer.locator("[data-ouro='avatar']");
     await expect(faces).toHaveCount(CREW.length);
-    for (const [index, member] of CREW.entries()) await expect.poll(() => pictureOf(faces.nth(index)), `${viewport.width}px: ${member.name} in the cheer`).toBe(`/crew/${FACES[member.name]}-96.webp`);
+    for (const [index, member] of CREW.entries()) await expect.poll(() => pictureOf(faces.nth(index)), { message: `${viewport.width}px: ${member.name} in the cheer` }).toBe(`/crew/${FACES[member.name]}-96.webp`);
     await expect.poll(() => cheer.evaluate((element) => element.getAnimations({ subtree: true }).filter((animation) => animation.playState !== "finished").length)).toBe(0);
     expect(await wholeFaces(cheer), `${viewport.width}px: the cheer's faces`).toEqual(CREW.map(() => ({ inside: true, overlaps: false, onTop: true })));
     await context.close();
