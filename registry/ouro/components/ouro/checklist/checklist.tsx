@@ -329,8 +329,9 @@ export function Checklist(props: ChecklistProps): JSX.Element {
     const before = spoken.current;
     spoken.current = notes;
     if (!before) return;
-    const fresh = [...new Set([...notes].filter(([id]) => !before.has(id)).map(([, note]) => note))];
-    if (fresh.length > 0) announce(fresh.map((note) => `${note}.`).join(" "));
+    // Every row held back waits on the same first unticked step, so one note says it for all of them.
+    const fresh = [...notes].find(([id]) => !before.has(id));
+    if (fresh) announce(`${fresh[1]}.`);
   });
 
   /** Focuses the first enabled box after `from` among the rows still present, else the one before, else the group. */

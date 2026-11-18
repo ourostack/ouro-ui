@@ -566,8 +566,9 @@ describe("Checklist ordered", () => {
         expectMotion(note, { stem: "checklist", state: "data-out-of-order", properties: { opacity: fast }, reduced }),
       ]);
       // Ticked, but not done: the warning tone, no strike, the text at full strength.
-      expect(leaves).toHaveAttribute("data-out-of-order");
+      expect(leaves).toHaveAttribute("data-out-of-order", "");
       expect(leaves).not.toHaveAttribute("data-checked");
+      expect(box).toHaveAttribute("data-out-of-order", "");
       expect(box).toHaveAttribute("aria-checked", "true");
       expect(getComputedStyle(box).backgroundColor).toBe(themeColor("--warning"));
       if (reduced) expect(getComputedStyle(strike).opacity).toBe("0");
@@ -597,8 +598,9 @@ describe("Checklist ordered", () => {
     const recolours = themeColor("--primary-foreground") !== themeColor("--warning-foreground");
     flushSync(() => partOf(row("Warm the pot"), "box").click());
     expectTransition({ stem: "checklist", from: "data-out-of-order", to: "data-checked", interrupt: false });
-    expect(leaves).toHaveAttribute("data-checked");
+    expect(leaves).toHaveAttribute("data-checked", "");
     expect(leaves).not.toHaveAttribute("data-out-of-order");
+    expect(box).not.toHaveAttribute("data-out-of-order");
     await Promise.all([
       expectMotion(box, { stem: "checklist", state: "data-checked", properties: { "background-color": fast, "border-color": fast, ...(recolours ? { color: fast } : {}) }, reduced: false }),
       expectMotion(strike, { stem: "checklist", state: "data-checked", properties: { scale: draw }, reduced: false }),

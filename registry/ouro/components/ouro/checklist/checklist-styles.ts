@@ -147,4 +147,4 @@ const valueClass = "ms-auto shrink-0 ps-3 text-end text-base leading-6 font-medi
 const actionClass = "flex shrink-0 items-center pe-1";
 
 /** The parts of a row whose finite animations hold a leaving row until they end. @internal */
-const rowPartNames: readonly string[] = ["row", "box", "tick", "strike", "label", "note", "value"];
+const rowPartNames: readonly string[] = ["row", "box", "tick", "strike", "label", "value"];
