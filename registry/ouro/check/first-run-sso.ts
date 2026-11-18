@@ -89,7 +89,6 @@ export function helloAlpn(b: Buffer): string[] | null {
 
 const HOP = new Set(["connection", "proxy-connection", "keep-alive", "upgrade", "te", "trailer", "transfer-encoding"]);
 
-/** The stand-in, for this machine's own connections on the port it's given; `emit` hears its events. */
 /**
  * A lookup that answers `host` with the addresses it really has (`upstream`), read before the hosts pointed at the stand-in.
  * @claim "A lookup that answers `host` with" scripts/check/first-run-sso.test.mts verify:testExists(scripts/check/first-run-sso.test.mts::first-run harness: a managed Mac's SSO extension > looks a host up where it really is, one address or all, and fails a host it has none for)
@@ -103,6 +102,7 @@ export function upstreamLookup(upstream: Record<string, string[]>, host: string)
   }) as unknown as net.LookupFunction;
 }
 
+/** The stand-in, for this machine's own connections on the port it's given; `emit` hears its events. */
 export function serve(c: Serve, emit: (e: StandInEvent) => void): Promise<{ port: number; close: () => void }> {
   const context = tls.createSecureContext({ key: fs.readFileSync(c.key), cert: fs.readFileSync(c.cert) });
   const held = new Set<net.Socket>();

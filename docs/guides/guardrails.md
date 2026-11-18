@@ -553,14 +553,17 @@ A control's shortcut reads the same on both, since the eyes send Ctrl where a Ma
 
 On a Mac its organization manages, an Enterprise SSO extension can take the identity provider's sign-in from the app's web view, and it keeps the silent sign-in (`prompt=none`), which an app runs in a web view no one sees, waiting until a web view is in a window.[^first-run-sso-webkit] An app that waits for it shows the person nothing to do until it gives up. `first-run-sso.ts` plays that extension on a runner the harness owns, beside `first-run-network.ts`'s holds: its stand-in takes the identity provider's hosts (pointed at it in `/etc/hosts`, its certificate authority trusted for the run), holds each request that matches `hold` unanswered, passes every other request to the real host, and leaves a client whose TLS hello offers no ALPN, an app's own network stack, untouched.[^first-run-sso-stand-in] Lifting it puts `/etc/hosts` and the system's trust back and deletes its keys.[^first-run-sso-lift]
 
-`managedMac` is the detour. It holds the silent sign-in for the whole path, so the app calls its `end` once the session's path is over: `end` lifts the hold and judges what the stand-in saw.[^first-run-sso-detour] The judge fails a run where the app never asks for the sign-in page in the open after the first held request, or asks later than `giveWayMs` (20 s by default), and a run that held nothing.[^first-run-sso-judge]
+`managedMac` is the detour. It holds the silent sign-in for the whole path, so the app calls its `end` once the session's path is over, in a `finally`, so a run that throws still puts the Mac back: `end` lifts the hold and judges what the stand-in saw.[^first-run-sso-detour] The judge fails a run where the app never asks for the sign-in page in the open after the first held request, or asks later than `giveWayMs` (20 s by default), and a run that held nothing.[^first-run-sso-judge]
 
 ```ts
 import { FirstRunSession, managedMac } from "./scripts/ouro/check/first-run.ts";
 
 const detour = managedMac({ hosts: ["login.microsoftonline.com"], hold: { path: "/oauth2/v2\\.0/authorize$", params: { prompt: "none" } }, dir: ".tmp/sso" });
-await session.run(detour);
-detour.end(session);
+try {
+  await session.run(detour);
+} finally {
+  detour.end(session); // lifts the hold even when the run throws
+}
 assert.ok(session.finish(detour.id));
 ```
 

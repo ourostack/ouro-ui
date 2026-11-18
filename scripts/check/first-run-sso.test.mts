@@ -190,9 +190,9 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
   });
 
   describe("on a made-up Mac", () => {
-    /** A Mac whose security, hosts and DNS commands answer as `say` says; openssl runs for real; osascript reads through the stand-in. */
     /** Apple's networking, trusting the authority the stand-in made in `dir`. */
     const apple = (dir: string) => ({ ca: fs.readFileSync(path.join(dir, "ca.pem")), ALPNProtocols: ["h2", "http/1.1"] }) as https.RequestOptions;
+    /** A Mac whose security, hosts and DNS commands answer as `say` says; openssl runs for real; osascript reads through the stand-in. */
     const mac = (port: number, dir: string, say: Partial<Record<"trust" | "verify" | "tee" | "resolve" | "read", boolean>> = {}) => {
       const ran: string[] = [];
       const sys: System = {
