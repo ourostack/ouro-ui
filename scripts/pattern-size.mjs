@@ -1,0 +1,208 @@
+// What installing a page pattern adds to an app, in gzip bytes of JavaScript and CSS: the pattern and the registry
+// closure `shadcn add` brings with it, built as an app builds them (Vite, React, Tailwind v4 with ouro-base and the
+// Ouro theme), less a bare app with the same stylesheet that renders one paragraph. Each app is a build of its own,
+// so no chunk is shared between them, and its files carry no content hash, so a build measures the same every time.
+//
+//   node scripts/pattern-size.mjs            measure every pattern against its ceiling (CEILINGS)
+//   node scripts/pattern-size.mjs --record   measure, and write what each pattern's JavaScript is made of to
+//                                            scripts/pattern-size.json, which names what grew when one is over
+//   node scripts/pattern-size.mjs --out dir  also leave each app's build in dir/<name>/, to serve
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
+
+const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const prefix = "ourostack/ouro-ui/";
+
+/**
+ * What each pattern may add over the bare app, gzip bytes: its measurement when the ceiling was set, plus 1 KiB of
+ * JavaScript and 512 bytes of CSS, so a change that grows a pattern by more fails and names what grew. Raise a ceiling
+ * only with the reason and the new measurement in a comment here, and run --record with it.
+ */
+// Set 2026-11-18 over main at 0e124635, from a bare app of 67,836 bytes of JavaScript and 3,619 of CSS. Before minifying,
+// about two thirds of what list-detail-page and settings-page add is Base UI and Floating UI (ColorSchemeToggle's Menu
+// in all three, Select in settings-page); about three fifths of dashboard-page's is Recharts and what it brings, for Chart.
+export const CEILINGS = {
+  "dashboard-page": { js: 190_829 + 1024, css: 10_161 + 512 },
+  "list-detail-page": { js: 81_466 + 1024, css: 9_303 + 512 },
+  "settings-page": { js: 99_526 + 1024, css: 13_357 + 512 },
+};
+
+/** The name of the bare app, built beside the patterns. */
+export const BARE = "bare-app";
+
+/** The page patterns in a registry, by name. */
+export function patternNames(registry) {
+  return registry.items.filter((item) => (item.files ?? []).some((file) => file.path.startsWith("registry/ouro/patterns/"))).map((item) => item.name).toSorted();
+}
+
+/** The items `shadcn add` installs for an item: the item and every item it depends on, by name. */
+export function closure(registry, name) {
+  const items = new Map(registry.items.map((item) => [item.name, item]));
+  const seen = new Set();
+  const visit = (next) => {
+    if (seen.has(next)) return;
+    const item = items.get(next);
+    if (!item) throw new Error(`${name} depends on ${next}, which is no item in registry.json.`);
+    seen.add(next);
+    for (const dependency of item.registryDependencies ?? []) {
+      if (!dependency.startsWith(prefix)) throw new Error(`${next} depends on ${dependency}, which is not an Ouro item.`);
+      visit(dependency.slice(prefix.length));
+    }
+  };
+  visit(name);
+  return [...seen].toSorted();
+}
+
+/** Each registry file, by its path in the repository, and the item that ships it. */
+export function owners(registry) {
+  return new Map(registry.items.flatMap((item) => (item.files ?? []).map((file) => [file.path, item.name])));
+}
+
+/** Who a built module belongs to: its registry item, its npm package, or the app's own entry. */
+export function ownerOf(id, files, root = repo) {
+  const path = id.replace(/^\0/, "").split("?")[0];
+  const inModules = path.lastIndexOf("/node_modules/");
+  if (inModules >= 0) {
+    const [scope, name] = path.slice(inModules + "/node_modules/".length).split("/");
+    return scope.startsWith("@") ? `${scope}/${name}` : scope;
+  }
+  return files.get(relative(root, path)) ?? "app";
+}
+
+/** The rendered bytes of a build's JavaScript by owner, largest first. */
+export function breakdown(chunks, files, root = repo) {
+  const bytes = {};
+  for (const chunk of chunks) {
+    for (const [id, module] of Object.entries(chunk.modules)) {
+      const owner = ownerOf(id, files, root);
+      bytes[owner] = (bytes[owner] ?? 0) + module.renderedLength;
+    }
+  }
+  return Object.fromEntries(Object.entries(bytes).filter(([, size]) => size > 0).toSorted(([a, x], [b, y]) => y - x || a.localeCompare(b)));
+}
+
+/** The owners whose bytes rose since the breakdown was recorded, or that are new, by how much, most first. */
+export function grew(recorded, now) {
+  return Object.entries(now)
+    .map(([owner, size]) => [owner, size - (recorded[owner] ?? 0)])
+    .filter(([, rise]) => rise > 0)
+    .toSorted(([a, x], [b, y]) => y - x || a.localeCompare(b))
+    .map(([owner, rise]) => `${owner} +${rise}${owner in recorded ? "" : " (new)"}`);
+}
+
+/** The stylesheet an app has: app.css's, scanning only the given files. */
+export function stylesheet(sources) {
+  const css = readFileSync(join(repo, "app.css"), "utf8");
+  if (!css.includes('@source "./registry";')) throw new Error('app.css no longer scans "./registry": update scripts/pattern-size.mjs to match it.');
+  if (!css.includes('@import "tailwindcss" source(none);')) throw new Error('app.css no longer imports "tailwindcss" with source(none): update scripts/pattern-size.mjs to match it.');
+  // From the repository, as the app's own folder may be outside it.
+  return css
+    .replace('@import "tailwindcss" source(none);', `@import "${repo}/node_modules/tailwindcss/index.css" source(none);`)
+    .replaceAll('@import "./registry/', `@import "${repo}/registry/`)
+    .replace('@source "./registry";', sources.map((source) => `@source "${source}";`).join("\n"));
+}
+
+/** The page a pattern's file exports. */
+export function pageExport(source, file) {
+  const pages = [...source.matchAll(/^export function (\w+Page)\b/gm)].map((match) => match[1]);
+  if (pages.length !== 1) throw new Error(`${file} should export one page (a function named *Page), and exports ${pages.length}.`);
+  return pages[0];
+}
+
+/** Builds one app in dir and measures it: gzip bytes of its JavaScript and CSS, and what its JavaScript is made of. */
+export async function buildApp({ dir: where, entry, sources, files }) {
+  const dir = resolve(where);
+  const { build } = await import("vite");
+  const { default: react } = await import("@vitejs/plugin-react");
+  const { default: tailwindcss } = await import("@tailwindcss/vite");
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "index.html"), '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pattern</title></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>\n');
+  writeFileSync(join(dir, "main.tsx"), entry);
+  writeFileSync(join(dir, "index.css"), stylesheet([join(dir, "main.tsx"), ...sources.map((source) => join(repo, source))]));
+  const output = await build({
+    root: dir,
+    configFile: false,
+    logLevel: "silent",
+    mode: "production",
+    base: "./",
+    plugins: [react(), tailwindcss()],
+    // The app's entry may sit outside the repository (a test's scratch folder), so React resolves to the repository's.
+    resolve: { alias: [{ find: /^@\//, replacement: `${repo}/` }, { find: /^(react|react-dom)(\/.*)?$/, replacement: `${repo}/node_modules/$1$2` }] },
+    build: {
+      outDir: join(dir, "dist"),
+      emptyOutDir: true,
+      reportCompressedSize: false,
+      rolldownOptions: { output: { entryFileNames: "assets/[name].js", chunkFileNames: "assets/[name].js", assetFileNames: "assets/[name][extname]" } },
+    },
+  });
+  const files_ = (Array.isArray(output) ? output : [output]).flatMap((result) => result.output);
+  const chunks = files_.filter((file) => file.type === "chunk");
+  const css = files_.filter((file) => file.type === "asset" && file.fileName.endsWith(".css"));
+  return {
+    js: chunks.reduce((sum, chunk) => sum + gzipSync(chunk.code).byteLength, 0),
+    css: css.reduce((sum, sheet) => sum + gzipSync(sheet.source).byteLength, 0),
+    modules: breakdown(chunks, files),
+  };
+}
+
+/** Measures the bare app and every pattern, each built in work/<name>/. */
+export async function measureAll({ registry, work }) {
+  const files = owners(registry);
+  const results = {};
+  const bare = await buildApp({
+    dir: join(work, BARE),
+    entry: 'import { createRoot } from "react-dom/client";\nimport "./index.css";\n\ncreateRoot(document.getElementById("root")!).render(<p>Bare</p>);\n',
+    sources: [],
+    files,
+  });
+  results[BARE] = bare;
+  for (const name of patternNames(registry)) {
+    const file = `registry/ouro/patterns/${name}/${name}.tsx`;
+    const page = pageExport(readFileSync(join(repo, file), "utf8"), file);
+    const sources = closure(registry, name).flatMap((item) => (registry.items.find((entry) => entry.name === item).files ?? []).map((entry) => entry.path));
+    const app = await buildApp({
+      dir: join(work, name),
+      entry: `import { createRoot } from "react-dom/client";\nimport "./index.css";\nimport { ${page} } from "@/${file.replace(/\.tsx$/, "")}";\n\ncreateRoot(document.getElementById("root")!).render(<${page} />);\n`,
+      sources,
+      files,
+    });
+    results[name] = { ...app, addedJs: app.js - bare.js, addedCss: app.css - bare.css };
+  }
+  return results;
+}
+
+/** Each pattern's verdict against its ceiling, with the owners that grew since its breakdown was recorded when it is over. */
+export function judge(results, { ceilings = CEILINGS, modules = {} } = {}) {
+  return Object.entries(results)
+    .filter(([name]) => name !== BARE)
+    .map(([name, result]) => {
+      const ceiling = ceilings[name];
+      if (!ceiling) return { name, ok: false, message: `${name} has no ceiling: add one to CEILINGS in scripts/pattern-size.mjs (its measurement plus the margin, with why), and run node scripts/pattern-size.mjs --record.` };
+      const over = [];
+      if (result.addedJs > ceiling.js) over.push(`JavaScript ${result.addedJs} of ${ceiling.js}`);
+      if (result.addedCss > ceiling.css) over.push(`CSS ${result.addedCss} of ${ceiling.css}`);
+      const line = `${name} adds JavaScript ${result.addedJs} of ${ceiling.js} and CSS ${result.addedCss} of ${ceiling.css} gzip bytes`;
+      if (over.length === 0) return { name, ok: true, message: line };
+      const rose = grew(modules[name] ?? {}, result.modules);
+      return { name, ok: false, message: `${line}: over in ${over.join(" and ")}. What its JavaScript gained since the ceiling was set, in bytes before minifying: ${rose.join(", ") || "nothing; its CSS is the classes its closure's files use"}.` };
+    });
+}
+
+/** The breakdown recorded when the ceilings were set. */
+export const recordedFile = join(repo, "scripts/pattern-size.json");
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const args = process.argv.slice(2);
+  const out = args.includes("--out") ? resolve(args[args.indexOf("--out") + 1]) : join(repo, "node_modules/.cache/pattern-size");
+  const registry = JSON.parse(readFileSync(join(repo, "registry.json"), "utf8"));
+  const results = await measureAll({ registry, work: out });
+  console.log(`${BARE}: JavaScript ${results[BARE].js}, CSS ${results[BARE].css} gzip bytes`);
+  const modules = Object.fromEntries(Object.entries(results).filter(([name]) => name !== BARE).map(([name, result]) => [name, result.modules]));
+  if (args.includes("--record")) writeFileSync(recordedFile, `${JSON.stringify(modules, null, 2)}\n`);
+  const verdicts = judge(results, { modules: JSON.parse(readFileSync(recordedFile, "utf8")) });
+  for (const { ok, message } of verdicts) console.log(`${ok ? "ok  " : "FAIL"} ${message}`);
+  if (verdicts.some((verdict) => !verdict.ok)) process.exit(1);
+}
