@@ -6,7 +6,7 @@ import { FRAGMENT_FOCUS_WAIT_MS, fragmentFocusScript } from "@/registry/ouro/lib
 // fragmentFocusScript (lib/ouro/fragment-focus-script.ts) against a page of its own, served here: Safari, left to itself,
 // jumps back to the place an address names (#target) each time a stylesheet loads, until the person scrolls, when the
 // page finished parsing or a link to that place was followed while a stylesheet was still loading, and the jump takes
-// focus (ourostack/ouro-ui#2224, #2228). Without the script, the first two tests fail in WebKit.
+// focus (ourostack/ouro-ui#2224, #2228). Without the script, the three focus tests fail in WebKit.
 
 const LATE_MS = 600;
 let server: Server;
@@ -14,8 +14,11 @@ let origin = "";
 /** Stylesheet requests that never answer, until the test ends. */
 const held: (() => void)[] = [];
 
-const page = (slow: boolean) =>
-  `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/${slow ? "late" : "now"}.css?head"></head><body>` +
+const page = (slow: boolean, deferred: boolean) =>
+  `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/${slow ? "late" : "now"}.css?head">` +
+  // As a module script does when it adds a route's CSS as the page starts.
+  (deferred ? `<script defer src="/route.js"></script>` : "") +
+  `</head><body>` +
   `<script>${fragmentFocusScript()}</script>` +
   `<p><a id="jump" href="#target">Jump</a></p><div style="height:3000px"></div>` +
   `<section id="target"><h2>Target</h2><button id="kept">Kept</button></section><div style="height:3000px"></div></body></html>`;
@@ -25,17 +28,25 @@ test.beforeAll(async () => {
     const url = new URL(request.url!, "http://localhost");
     const css = () => {
       response.writeHead(200, { "content-type": "text/css", "cache-control": "no-store" });
-      response.end("p { color: rgb(1, 2, 3) }");
+      response.end(`html { --${url.search.slice(1) || "sheet"}: 1 }`);
     };
     if (url.pathname === "/now.css") return css();
     // Late, as on a slow connection.
     if (url.pathname === "/late.css") return void setTimeout(css, LATE_MS);
-    if (url.pathname === "/never.css") return void held.push(css);
+    if (url.pathname === "/held.css") return void held.push(css);
+    if (url.pathname === "/route.js") {
+      response.writeHead(200, { "content-type": "text/javascript" });
+      return void response.end(`const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "/late.css?route"; document.head.append(link);`);
+    }
     response.writeHead(200, { "content-type": "text/html" });
-    response.end(page(url.searchParams.has("slow")));
+    response.end(page(url.searchParams.has("slow"), url.searchParams.has("deferred")));
   });
   await new Promise<void>((listening) => server.listen(0, "127.0.0.1", listening));
   origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+});
+
+test.afterEach(() => {
+  for (const answer of held.splice(0)) answer();
 });
 
 test.afterAll(async () => {
@@ -78,10 +89,14 @@ test.describe("fragmentFocusScript", () => {
     await expect(tab.locator("#kept")).toBeFocused();
   });
 
-  test("keeps focus as later styles load, after a link to a place on the page is followed while a stylesheet loads, and still goes there", async ({ page: tab }) => {
+  test("keeps focus as later styles load, after a link to a place on the page is followed while a stylesheet loads, and still goes there", async ({ page: tab, browserName }) => {
     await tab.goto(`${origin}/`, { waitUntil: "load" });
-    const loaded = lazyStylesheet(tab, "/late.css?route");
+    const loaded = lazyStylesheet(tab, "/held.css?route");
+    await expect.poll(() => held.length).toBe(1);
     await tab.locator("#jump").click();
+    // Held while the stylesheet loads, in Safari: other browsers don't jump back, so the script leaves them alone.
+    if (browserName === "webkit") expect(await tab.evaluate(() => location.hash)).toBe("");
+    held.shift()!();
     await loaded;
     await expect.poll(() => tab.evaluate(() => document.querySelector(":target")?.id)).toBe("target");
     expect(await tab.evaluate(() => location.hash)).toBe("#target");
@@ -90,9 +105,22 @@ test.describe("fragmentFocusScript", () => {
     await expect(tab.locator("#kept")).toBeFocused();
   });
 
-  test("follows a link to a place on the page after two seconds when a stylesheet is still loading", async ({ page: tab }) => {
+  test("keeps focus as later styles load, after a stylesheet the page's script added was still loading as parsing ended", async ({ page: tab }) => {
+    await tab.goto(`${origin}/?deferred`, { waitUntil: "load" });
+    // The stylesheet set aside as parsing ended still applies.
+    await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--route").trim())).toBe("1");
+    expect(await tab.locator('link[href="/late.css?route"]').count()).toBe(1);
+    await tab.locator("#jump").click();
+    await expect.poll(() => tab.evaluate(() => location.hash)).toBe("#target");
+    await tab.locator("#kept").focus();
+    await laterStyles(tab);
+    await expect(tab.locator("#kept")).toBeFocused();
+  });
+
+  test("follows a link to a place on the page after two seconds when a stylesheet is still loading", async ({ page: tab, browserName }) => {
+    test.skip(browserName !== "webkit", "Only Safari jumps back, so the script holds a link only there.");
     await tab.goto(`${origin}/`, { waitUntil: "load" });
-    void lazyStylesheet(tab, "/never.css").catch(() => {});
+    void lazyStylesheet(tab, "/held.css?never").catch(() => {});
     await expect.poll(() => held.length).toBe(1);
     const clicked = Date.now();
     await tab.locator("#jump").click();
