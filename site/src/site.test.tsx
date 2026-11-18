@@ -273,13 +273,21 @@ describe("home page", () => {
     // A line under a picture that names a place the picture is not (a meadow over a train) reads as a mistake.
     const places = ["meadow", "hill", "train", "studio", "cabin", "deck", "kitchen", "library", "cove", "saloon", "sea", "park"];
     const sources = import.meta.glob<string>(["./**/*.tsx", "!./**/*.test.tsx"], { query: "?raw", import: "default", eager: true });
-    const openers = Object.entries(sources).flatMap(([file, text]) =>
-      [...text.matchAll(/<StoryOpener scene="([^"]+)" line="([^"]+)"/g)].map(([, scene, line]) => ({ file, scene: scene as keyof typeof SCENES, line: line! })),
-    );
+    const attribute = (tag: string, name: string) => tag.match(new RegExp(`\\b${name}="([^"]+)"`))?.[1];
+    const openers = Object.entries(sources).flatMap(([file, text]) => [
+      // <StoryOpener scene="…" line="…" />, its props in any order and on any lines.
+      ...[...text.matchAll(/<StoryOpener\b[^>]*>/g)].map(([tag]) => ({ file, scene: attribute(tag, "scene"), line: attribute(tag, "line") })),
+      // A line written by hand in a StoryWorld band: <StoryWorld scene="…">…<p className="story-world-line">…</p>.
+      ...[...text.matchAll(/<StoryWorld\b[^>]*>[\s\S]*?className="story-world-line"[^>]*>([^<]+)</g)].map(([tag, line]) => ({ file, scene: attribute(tag, "scene"), line: line!.trim() })),
+      // StoryOpener's and StoryWorld's own source passes a line along as {line}: no words of its own.
+    ].filter((opener) => !opener.line?.startsWith("{")));
     expect(openers.length).toBeGreaterThan(5);
     for (const { file, scene, line } of openers) {
-      for (const place of places.filter((word) => new RegExp(`\\b${word}\\b`, "i").test(line))) {
-        expect(SCENES[scene].alt, `${file}: "${line}" names a ${place}, which ${scene} does not show`).toMatch(new RegExp(`\\b${place}\\b`, "i"));
+      expect([scene, line], `${file}: an opening line with its scene`).not.toContain(undefined);
+      const shown = SCENES[scene as keyof typeof SCENES].alt;
+      // The line's place is a whole word ("seat" is no sea), and the picture's may be longer: "hill" is the "hillside".
+      for (const place of places.filter((word) => new RegExp(`\\b${word}\\b`, "i").test(line!))) {
+        expect(shown, `${file}: "${line}" names a ${place}, which ${scene} does not show`).toMatch(new RegExp(`\\b${place}`, "i"));
       }
     }
   });
