@@ -14,6 +14,7 @@ import { DocsShell } from "../components/docs-shell";
 import type { SceneName } from "../storybook";
 import { DemoFrame, DemoStage } from "../components/phone-demo";
 import { tries } from "../docs/tries";
+import { componentPrompt } from "../docs/agent-prompt";
 import { siteGroups, type SiteGroup } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
@@ -115,7 +116,10 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
         Install
       </Heading>
       <div className="grid gap-3">
-        <Text size="sm" tone="muted">
+        {/* Ask an agent first, as the home page does: one line to paste, with Copy. The commands follow for a person. */}
+        <CodeBlock code={componentPrompt(item.title, item.name)} label="Hand it to your agent" copy wrap />
+        <Text size="sm" tone="muted" className="mt-2">
+          Or by hand.{" "}
           {claim("Once per app, with Tailwind CSS v4", { source: { file: "test/install-fixture/package.json" }, verify: { fileLine: "test/install-fixture/package.json", pattern: '"tailwindcss": "\\^4\\.' } })} and an <InlineCode>@/*</InlineCode> path alias (Ouro HX is built on Base UI, so{" "}
           <InlineCode>--base base</InlineCode>; skip <InlineCode>-t</InlineCode> in an existing app):
         </Text>

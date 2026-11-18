@@ -14,7 +14,8 @@ import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./d
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
-import { headTags } from "./head";
+import { headTags, SITE } from "./head";
+import { componentPrompt, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
 import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
 import { bare, otherNames } from "./components/other-names";
@@ -742,6 +743,26 @@ describe("docs", () => {
       history.replaceState(null, "", was);
     }
     for (const name of PHONE_DEMOS) expect(Object.hasOwn(demos, name), `${name} has a demo`).toBe(true);
+  });
+
+  it("hands a component to the reader's agent first under Install, pointing it at the page's own Markdown", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/dialog/");
+    const handoff = [...document.querySelectorAll("figure")].find((figure) => figure.querySelector("figcaption")?.textContent?.startsWith("Hand it to your agent"))!;
+    expect(handoff.querySelector("code")!.textContent).toBe("Add Dialog from Ouro UI to this app. Read https://ui.ouroboros.bot/docs/dialog.md first and follow it.");
+    await expect.element(page.getByRole("button", { name: "Copy Hand it to your agent" })).toBeVisible();
+    // On a phone the address breaks after a "/", never inside a name.
+    expect(handoff.querySelectorAll("code wbr").length).toBeGreaterThan(2);
+    // First under Install, before the commands a person runs.
+    const byHand = page.getByText(/^Or by hand\./).element();
+    expect(document.getElementById("install")!.compareDocumentPosition(handoff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(handoff.compareDocumentPosition(byHand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The address is the site's, and every component's Markdown is published there (site/scripts/prerender.mts).
+    expect(PROMPT_SITE).toBe(SITE);
+    for (const item of docsItems) expect(componentPrompt(item.title, item.name)).toContain(`${SITE}/docs/${item.name}.md `);
+    // The page it follows says how to install the component, before it imports it.
+    const published = withInstall(publishedMarkdown(itemMarkdown(docsItems.find((item) => item.name === "dialog")!), "docs/Dialog.md"), "dialog", "v9.9.9");
+    expect(published).toMatch(/## Install[\s\S]*ouro-ui\/ouro-base#v9\.9\.9[\s\S]*ouro-ui\/dialog#v9\.9\.9[\s\S]*```tsx\nimport \{ Dialog \}/);
   });
 
   it("has a page for every registry item at docs/<name>", () => {
