@@ -9,6 +9,10 @@
 // A test that has run for half its timeout is named once, with the longest hold on Node's event loop
 // while it ran (#2003): a browser command answered through a Node that was held up waits behind it, and
 // a test that times out on a command names the command (registry/ouro/lib/ouro/testing/command-deadline.ts).
+// At the warn level and again at the fail level it also writes one line per browser page (#2149): whether the
+// page's fonts are still loading, whether it is visible and focused, whether a frame arrives, and its path. A page
+// that does not answer in 2 s says so. The fail exit waits for those lines for at most 3 s, and a page the
+// reporter cannot read says why, so a hang names what the page was doing.
 import { relative, sep } from "node:path";
 import type { Reporter, ReportedHookContext, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node";
 
@@ -138,10 +142,151 @@ export function stallReport(
   return { level, text };
 }
 
+/** How long one page has to answer the diagnostic's read. A page that does not answer in time is the finding. */
+const PAGE_DEADLINE_MS = 2_000;
+
+/** How long the whole page diagnostic may take before the stall gives up on it, so the fail exit is not held back. */
+const DIAGNOSTIC_DEADLINE_MS = 3_000;
+
+/** The part of a Playwright page the diagnostic uses: its URL, and a function run inside it. */
+export interface BrowserPage {
+  url(): string;
+  evaluate<R>(pageFunction: () => R | PromiseLike<R>): Promise<R>;
+}
+
+/** A page the diagnostic reads, or the reason a project has none to read (no browser, no provider pages, no page open). */
+export type PageSource = { label: string; page: BrowserPage } | { label: string; note: string };
+
+/** Finds the pages to read. The default reads each Vitest project's browser provider; the result may come late, or never. */
+export type PageLookup = (vitest: Vitest | undefined) => PageSource[] | Promise<PageSource[]>;
+
+/** What a page reports about itself, read inside it by `probePage`. */
+export interface PageReading {
+  fonts: "loaded" | "loading";
+  /** The families of the faces still loading. */
+  loading: string[];
+  visible: boolean;
+  focused: boolean;
+  /** Whether one animation frame ran within a second. */
+  frames: boolean;
+}
+
+/** One page's line: what it reported, that it did not answer, or why it could not be read. */
+export type PageState =
+  | { kind: "note"; label: string; note: string }
+  | { kind: "unanswered"; label: string; path: string }
+  | ({ kind: "read"; label: string; path: string } & PageReading);
+
+/** Runs in the page. Its fonts still loading, its visibility and focus, and whether a frame arrives within a second. */
+async function probePage(): Promise<PageReading> {
+  const loading = Array.from(document.fonts)
+    .filter((face) => face.status === "loading")
+    .map((face) => face.family);
+  const frames = await new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(false), 1000);
+    requestAnimationFrame(() => {
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+  return { fonts: document.fonts.status, loading, visible: document.visibilityState === "visible", focused: document.hasFocus(), frames };
+}
+
+const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+/** Marks a `within` whose promise had not settled when its time ran out. */
+const TIMED_OUT = Symbol("timed out");
+
+/** The promise's value, or TIMED_OUT when it has not settled after `ms`. A rejection is the promise's own. */
+function within<T>(promise: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), ms);
+  });
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
+
+/** The URL's path, or a note when the page has no readable URL. */
+const pathOf = (page: BrowserPage): string => {
+  try {
+    return new URL(page.url()).pathname;
+  } catch {
+    return "no readable URL";
+  }
+};
+
+/** A page's state as one line of the diagnostic: fonts, visibility, focus, frames and path, or why it has no reading. */
+export function pageStateText(state: PageState): string {
+  const head = `[ouro-ui] Vitest page ${state.label}:`;
+  if (state.kind === "note") return `${head} ${state.note}`;
+  if (state.kind === "unanswered") return `${head} did not answer in ${threshold(PAGE_DEADLINE_MS)}, ${state.path}`;
+  const fonts = state.fonts === "loaded" ? "fonts loaded" : state.loading.length > 0 ? `fonts loading (${state.loading.join(", ")})` : "fonts loading";
+  const visibility = state.visible ? "visible" : "hidden";
+  const focus = state.focused ? "focused" : "not focused";
+  const frames = state.frames ? "frames arrive" : "no frame in 1 s";
+  return `${head} ${fonts}, ${visibility}, ${focus}, ${frames}, ${state.path}`;
+}
+
+/** One source's state. Each page is read against its own deadline, and a page that cannot be read says why. */
+async function readPageState(source: PageSource, deadlineMs: number): Promise<PageState> {
+  if (!("page" in source)) return { kind: "note", label: source.label, note: source.note };
+  const { label, page } = source;
+  try {
+    const path = pathOf(page);
+    const reading = await within(page.evaluate(probePage), deadlineMs);
+    if (reading === TIMED_OUT) return { kind: "unanswered", label, path };
+    return { kind: "read", label, path, ...reading };
+  } catch (error) {
+    return { kind: "note", label, note: `could not be read: ${messageOf(error)}` };
+  }
+}
+
+/** Each source's state, all read at once so the slowest page sets the wait. */
+export function readPageStates(sources: readonly PageSource[], deadlineMs = PAGE_DEADLINE_MS): Promise<PageState[]> {
+  return Promise.all(sources.map((source) => readPageState(source, deadlineMs)));
+}
+
+/**
+ * The browser pages of each Vitest project, from its browser provider (Vitest's Playwright provider keeps them in
+ * `pages`). A project with no browser, a provider with no `pages` map, or no page open yet says so, in its line.
+ */
+export function browserPageSources(vitest: Vitest | undefined): PageSource[] {
+  const sources: PageSource[] = [];
+  for (const project of vitest?.projects ?? []) {
+    const name = project.name || "unnamed project";
+    const provider = project.browser?.provider;
+    if (!provider) {
+      sources.push({ label: name, note: "has no browser, so it has no page to read." });
+      continue;
+    }
+    const pages = (provider as { pages?: unknown }).pages;
+    if (!(pages instanceof Map)) {
+      sources.push({ label: name, note: "its browser provider keeps no pages, so there is no page to read." });
+      continue;
+    }
+    if (pages.size === 0) sources.push({ label: name, note: "has no page open yet, so there is no page to read." });
+    for (const [sessionId, page] of pages) sources.push({ label: pages.size > 1 ? `${name} ${sessionId}` : name, page: page as BrowserPage });
+  }
+  return sources;
+}
+
 const envMs = (name: string, fallback: number) => {
   const value = Number(process.env[name]);
   return process.env[name] !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
 };
+
+/** The options the reporter takes; each one defaults to the real behaviour, and the tests inject the rest. */
+export interface StallReporterOptions {
+  warnAfter?: number;
+  failAfter?: number;
+  intervalMs?: number;
+  /** Finds the pages the page diagnostic reads. */
+  pages?: PageLookup;
+  /** Ends the process at the fail level, after the page lines. */
+  exit?: (code: number) => void;
+  /** How long the page diagnostic may take before the stall gives up on it. */
+  diagnosticMs?: number;
+}
 
 /** A file the run has started: its phase, when that began, and the module hook running, if any. */
 interface ModuleEntry {
@@ -156,6 +301,9 @@ interface ModuleEntry {
 export class StallReporter implements Reporter {
   readonly #options: StallOptions;
   readonly #intervalMs: number;
+  readonly #pages: PageLookup;
+  readonly #exit: (code: number) => void;
+  readonly #diagnosticMs: number;
   readonly #modules = new Map<string, ModuleEntry>();
   readonly #cases = new Map<string, { moduleKey: string; entry: InFlight; timeout: number; due: boolean; named: boolean }>();
   readonly #pending = new Map<string, { project: string; file: string }>();
@@ -163,23 +311,38 @@ export class StallReporter implements Reporter {
   #finished = 0;
   #total = 0;
   #root = process.cwd();
+  #vitest: Vitest | undefined;
   #lastFinish = Date.now();
   #warned = false;
+  #pagesWarned = false;
+  #failing = false;
   #timer: ReturnType<typeof setInterval> | undefined;
   #ticker: ReturnType<typeof setInterval> | undefined;
   #tickedAt = Date.now();
 
-  constructor({ warnAfter = envMs("OURO_VITEST_STALL_WARN_MS", 120_000), failAfter = envMs("OURO_VITEST_STALL_FAIL_MS", 300_000), intervalMs = 1_000 } = {}) {
+  constructor({
+    warnAfter = envMs("OURO_VITEST_STALL_WARN_MS", 120_000),
+    failAfter = envMs("OURO_VITEST_STALL_FAIL_MS", 300_000),
+    intervalMs = 1_000,
+    pages = browserPageSources,
+    exit = (code: number) => process.exit(code),
+    diagnosticMs = DIAGNOSTIC_DEADLINE_MS,
+  }: StallReporterOptions = {}) {
     this.#options = { warnAfter, failAfter };
     this.#intervalMs = intervalMs;
+    this.#pages = pages;
+    this.#exit = exit;
+    this.#diagnosticMs = diagnosticMs;
   }
 
   onInit(vitest: Vitest): void {
     this.#root = vitest.config.root;
+    this.#vitest = vitest;
   }
 
   onTestRunStart(specifications: ReadonlyArray<TestSpecification>): void {
     this.#lastFinish = Date.now();
+    this.#pagesWarned = false;
     this.#modules.clear();
     this.#cases.clear();
     this.#pending.clear();
@@ -331,10 +494,37 @@ export class StallReporter implements Reporter {
     if (report.level === "warn" && !this.#warned) {
       this.#warned = true;
       process.stderr.write(`${report.text}\n`);
+      if (!this.#pagesWarned) {
+        this.#pagesWarned = true;
+        void this.#writePages();
+      }
     }
-    if (report.level === "fail") {
+    if (report.level === "fail" && !this.#failing) {
+      this.#failing = true;
       process.stderr.write(`${report.text}\n`);
-      process.exit(1);
+      void this.#writePages().then(() => this.#exit(1));
     }
   }
+
+  /**
+   * Writes one line per browser page, read once the lookup has answered. Never throws: a lookup or read that
+   * does not finish within the diagnostic deadline, or fails, says so in a line instead.
+   */
+  async #writePages(): Promise<void> {
+    try {
+      const states = await within(this.#readPages(), this.#diagnosticMs);
+      if (states === TIMED_OUT) {
+        process.stderr.write(`[ouro-ui] Vitest page state: the page lookup or a page read did not finish in ${threshold(this.#diagnosticMs)}.\n`);
+        return;
+      }
+      for (const state of states) process.stderr.write(`${pageStateText(state)}\n`);
+    } catch (error) {
+      process.stderr.write(`[ouro-ui] Vitest page lookup failed: ${messageOf(error)}.\n`);
+    }
+  }
+
+  async #readPages(): Promise<PageState[]> {
+    return readPageStates(await this.#pages(this.#vitest));
+  }
 }
+
