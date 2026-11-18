@@ -14,4 +14,11 @@ export const tries: Readonly<Record<string, string>> = {
   "segmented-control": "Press Grid and watch the thumb slide over. With the arrow keys, or with reduced motion on, it moves at once.",
   lightbox: "Open a photo, then step through them with the arrow keys or a swipe.",
   kbd: "On a Mac, iPhone or iPad this reads ⌘K. Elsewhere it reads Ctrl+K.",
+  toaster: "Send a few toasts, then press F6 to jump to them. On a phone, swipe one down to dismiss it.",
+  resizable: "Drag the line between Ingredients and Method. Or tab to it and use the arrow keys.",
+  "number-field": "With a mouse, drag the Servings label sideways. The number follows your hand.",
+  command: "Open it and type dark mode. It finds Switch theme by its keywords.",
+  calendar: "Pick two days for a trip. Page Down jumps to the next month.",
+  "image-cropper": "Open it and drag the photo to frame it. Plus and Minus zoom in and out.",
+  "color-scheme-toggle": "Pick Dark. The whole page goes dark, not just the demo.",
 };
