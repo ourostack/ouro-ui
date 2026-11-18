@@ -12,7 +12,7 @@ import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
 import { docsSections } from "./components/docs-sections";
 import { href, routes } from "./routes";
-import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, VOYAGE_HERO, WORKS_WITH } from "./copy";
+import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, KIT, VOYAGE_HERO, WORKS_WITH } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
 import { SITE_SECTIONS } from "./voyage/site-menu";
 import { agentExamples } from "./agents/examples";
@@ -115,21 +115,24 @@ describe("home page", () => {
     }
   });
 
-  it("keeps Ouro UI as the parent, with Ouro AX as the other half and its own page, and never says AX is still being defined", async () => {
+  it("keeps Ouro UI as the parent, with Ouro HX and Ouro AX as parts of its kit, and never says AX is still being defined", async () => {
     await renderPage("/");
-    // The site is Ouro UI; the bar names its two halves side by side, and the hero says so under the install, each name a link to its half.
+    // The site is Ouro UI; the bar names HX and AX side by side, and the kit row under the hero names its four parts, each
+    // a link to where it lives: HX and AX among them, not the whole of it.
     await expect.element(page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true })).toBeVisible();
     expect(SITE_SECTIONS.map((section) => [section.label, section.href]).slice(4, 6)).toEqual([
       ["Ouro HX", "/docs/"],
       ["Ouro AX", "/ax/"],
     ]);
-    const halves = document.querySelector("[data-site-halves]")!;
-    expect([...halves.querySelectorAll("dt")].map((name) => name.textContent)).toEqual(["HXOuro HX · human experience", "AXOuro AX · agent experience"]);
-    expect(halves.querySelector("p")!.textContent).toBe("Ouro UI has a half for people and a half for agents");
-    expect([...halves.querySelectorAll("dt a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-      ["Ouro HX", "/docs/"],
-      ["Ouro AX", "/ax/"],
+    const kit = document.querySelector("[data-site-kit]")!;
+    expect(kit.querySelector("h2")!.textContent).toBe("What's in the kit");
+    expect([...kit.querySelectorAll("li")].map((item) => [item.querySelector("p")!.textContent, item.querySelector("h3")!.textContent, item.querySelector("a")!.getAttribute("href")])).toEqual([
+      ["Ouro HX", "Screens people enjoy", "/docs/"],
+      ["Ouro AX", "Tools agents can call", "/ax/"],
+      ["MCP Apps and A2UI", "Cards agents compose", "/docs/ouro-mcp-app/"],
+      ["X-ray and Ouro check", "Proof you can run", "/docs/guardrails/"],
     ]);
+    expect([...kit.querySelectorAll(".site-kit-line")].map((line) => line.textContent)).toEqual(KIT.items.map((item) => item.line));
     await expect.element(page.getByRole("heading", { level: 2, name: AX_SECTION.title })).toBeVisible();
     await expect.element(page.getByText(AX_SECTION.intro, { exact: true })).toBeVisible();
     expect(page.getByRole("link", { name: "Be the agent" }).element().getAttribute("href")).toBe("/ax/#be-the-agent");
@@ -139,24 +142,20 @@ describe("home page", () => {
       expect(text).not.toMatch(/still being defined|coming soon/i);
     }
     expect(document.body.innerText).toContain("Ouro UI: Ouro HX for people, Ouro AX for agents.");
-    // The hero says what a person choosing it gets, consent built in included, and links the benchmark, the model reviews and the platform gap.
+    // The hero says what a person choosing it gets, consent built in included, in one lede at every width, and links the
+    // benchmark and the model reviews.
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).toContain(VOYAGE_HERO.subline);
     // No line of it breaks inside a hyphenated word: "X-ray" once wrapped as "X-" / "ray".
     expect([...document.querySelectorAll("[data-site-whole-word]")].map((word) => word.textContent)).toEqual(VOYAGE_HERO.subline.match(/\S+-\S+/g) ?? []);
     expect([...document.querySelectorAll("[data-site-hero-links] a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Agent benchmark", "/docs/agent-interfaces/"],
       ["Model reviews", "/docs/model-reviews/"],
-      ["Android: emulators only", "/docs/platforms/"],
     ]);
-    // On a phone, a lede no taller than the old one, so the porthole still starts on the first screen, with the same two links.
-    const phone = document.querySelector("[data-site-hero-phone]")!;
-    expect(phone.textContent).toContain(VOYAGE_HERO.phoneSubline);
-    expect([...phone.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(["/docs/agent-interfaces/", "/docs/model-reviews/"]);
     expect(routes[0]!.title).toBe("Ouro UI");
     // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;
     // the formats agents compose interfaces in come after, under "Works with".
     const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
-    expect(opening.startsWith("# Ouro UI\n\n**A design system for people and agents.** Declare an action once")).toBe(true);
+    expect(opening.startsWith("# Ouro UI\n\n**Delightful interfaces, by agents, for everyone.**[^for-everyone] Ouro UI is a complete kit for agents to build interfaces for people and for other agents. Declare an action once")).toBe(true);
     expect(opening.split("\n\n")[1]).not.toContain("A2UI");
     expect(opening.indexOf("**Works with**")).toBeGreaterThan(opening.indexOf("**X-ray checks.**"));
     expect(opening.indexOf("[A2UI](https://a2ui.org/)")).toBeGreaterThan(opening.indexOf("**Works with** [MCP Apps]"));

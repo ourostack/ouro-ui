@@ -6,7 +6,7 @@ import { Hero } from "@/registry/ouro/components/ouro/hero/hero";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { keepClearOfToasts } from "./clear-of-toasts";
-import { HALVES, HANDOFF, VOYAGE_HERO } from "../copy";
+import { HANDOFF, KIT, TRY, VOYAGE_HERO } from "../copy";
 import { GITHUB, href } from "../paths";
 import { HydrateInTurn } from "../hydrate";
 import { latestRelease } from "../latest-release";
@@ -119,51 +119,42 @@ function Proof(): JSX.Element {
 }
 
 /**
- * Ouro UI's two halves, HX and AX, under a line that says so, as two hairline rows (no cards), each name a link to its
- * half: after the stage on a phone, so they don't push the porthole further down; on a wide screen, in the copy's column
- * between the paint and the proof.
+ * What is in the kit, in one row under the hero: four parts, each named for who it serves, with a hairline above each
+ * (no cards). Four across on a wide screen, two on a tablet, one under another on a phone.
  */
-function Halves(): JSX.Element {
-  const rows = [
-    { key: "hx", ...HALVES.hx },
-    { key: "ax", ...HALVES.ax },
-  ] as const;
+function Kit(): JSX.Element {
   return (
-    <div role="group" aria-labelledby="site-halves-title" className="site-halves" data-site-halves="">
-      <p id="site-halves-title" className="site-halves-title">
-        {HALVES.title}
-      </p>
-      <dl className="site-halves-list">
-        {rows.map((row) => (
-          <div key={row.key} className="site-halves-row" data-site-half={row.key}>
-            <dt className="site-halves-name">
-              <span className="site-halves-mark" aria-hidden="true">
-                {row.key.toUpperCase()}
-              </span>
-              <span>
-                <Link href={href(row.href)} tone="secondary" inline>
-                  {row.name}
-                </Link>{" "}
-                <span className="site-halves-expansion">· {row.expansion}</span>
-              </span>
-            </dt>
-            <dd className="site-halves-line">{row.line}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <section aria-labelledby="site-kit-title" className="site-kit" data-site-kit="">
+      <Container>
+        <h2 id="site-kit-title" className="site-kit-title">
+          {KIT.title}
+        </h2>
+        <ul className="site-kit-list">
+          {KIT.items.map((item) => (
+            <li key={item.key} className="site-kit-item" data-site-kit-item={item.key}>
+              <p className="site-kit-name">{item.name}</p>
+              <h3 className="site-kit-heading">
+                <Link href={href(item.href)} tone="secondary" inline>
+                  {item.title}
+                </Link>
+              </h3>
+              <p className="site-kit-line">{item.line}</p>
+            </li>
+          ))}
+        </ul>
+      </Container>
+    </section>
   );
 }
 
-/** The first viewport: Ouro's meadow with the headline above it, then how to add HX and the porthole stage beneath it. */
+/**
+ * The first viewport. On a wide screen the story and the hand-off share one row, the story beside the things to do, and
+ * the meadow runs the full width under them, so it is on the first screen too. Below that the meadow comes straight after
+ * the lede, before the look and the hand-off (voyage.css).
+ */
 export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
   return (
     <>
-      {/*
-        The arrival: the page opens in Ouro's meadow at dawn (the storybook world, storybook.ts), the headline above
-        it, never drawn wider than the 1536px scene file. The eyebrow names Ouro UI's two halves (the header names Ouro UI
-        itself); on a phone the halves are named under the stage, so it stays for screen readers only.
-      */}
       <Hero
         layout="stage"
         className="site-voyage-hero"
@@ -172,28 +163,17 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
             {EYEBROW}
           </span>
         }
-        title={VOYAGE_HERO.title.map((sentence, index) => (
-          <span key={sentence} className={index === 0 ? undefined : "site-hero-line-second"}>
-            {sentence}
+        title={VOYAGE_HERO.title.map((part, index) => (
+          <span key={part} className={index === 0 ? undefined : "site-hero-line-second"}>
+            {part}
             {index < VOYAGE_HERO.title.length - 1 ? " " : null}
           </span>
         ))}
         description={
           <>
-            <p className="sm:hidden" data-site-hero-phone="">
-              {VOYAGE_HERO.phoneSubline} See the{" "}
-              <Link href={href(VOYAGE_HERO.links.benchmark.href)} tone="secondary" inline>
-                agent benchmark
-              </Link>{" "}
-              and the{" "}
-              <Link href={href(VOYAGE_HERO.links.reviews.href)} tone="secondary" inline>
-                model reviews
-              </Link>
-              .
-            </p>
-            <p className="mx-auto max-w-[44rem] max-sm:hidden">{keepHyphenatedWordsWhole(VOYAGE_HERO.subline)}</p>
-            <p className="site-hero-links mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-base max-sm:hidden" data-site-hero-links="">
-              {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews, VOYAGE_HERO.links.platforms].map((link) => (
+            <p>{keepHyphenatedWordsWhole(VOYAGE_HERO.subline)}</p>
+            <p className="site-hero-links" data-site-hero-links="">
+              {[VOYAGE_HERO.links.benchmark, VOYAGE_HERO.links.reviews].map((link) => (
                 <Link key={link.href} href={href(link.href)} tone="secondary" inline>
                   {link.label}
                 </Link>
@@ -203,34 +183,30 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
         }
         mediaWidth={1536}
         children={
-          // The one thing a person does here, on the first screen, before the art: hand Ouro UI to their agent.
-          <div className="site-hero-handoff mx-auto mt-6 grid w-full max-w-[36rem] gap-8 text-start max-sm:gap-6">
-            {/* Feel it first: a look repaints the whole page, there and then. */}
-            <div className="site-hero-paint text-center" data-site-hero-paint="">
-              <p className="mb-3 text-sm text-muted-foreground">Try a look. The whole page changes with it.</p>
-              <ThemeDots label="Theme" nameClassName="max-sm:hidden" groupClassName="justify-center max-sm:justify-between" />
+          <div className="site-hero-side" data-site-hero-side="">
+            {/* Feel it: a look repaints the whole page, there and then. Live, the default, follows the reader's sky. */}
+            <div className="site-hero-paint" data-site-hero-paint="">
+              <p className="site-hero-paint-label">Try a look. The whole page changes with it.</p>
+              <ThemeDots label="Theme" nameClassName="max-sm:hidden" groupClassName="site-hero-dots" />
             </div>
             <HandOff />
           </div>
         }
         media={<StoryWorld scene="ouro-hx" sizes={HERO_SCENE_SIZES} className="site-voyage-scene" />}
       />
+      <Kit />
       <section aria-label="Try the porthole" className="site-console">
         <Container className="site-console-grid">
-          <div className="site-console-copy">
-            {/*
-              Having tried a look and handed Ouro UI over (in the hero), a newcomer plays: the porthole beside it, the
-              Nautilus's story or the components. The commands wait in the install section.
-            */}
-            <div className="flex flex-col">
-              <div className="flex flex-wrap gap-3">
-                <Button href={href("/nautilus/")} size="lg">
-                  Come aboard
-                </Button>
-                <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
-                  Browse components
-                </Button>
-              </div>
+          <div className="site-console-copy" data-site-try="">
+            <h2 className="site-try-title">{TRY.title}</h2>
+            <p className="site-try-lede">{TRY.lede}</p>
+            <div className="flex flex-wrap gap-3">
+              <Button href={href("/nautilus/")} size="lg">
+                Come aboard
+              </Button>
+              <Button href={href("/docs/")} variant="outline" tone="secondary" size="lg">
+                Browse components
+              </Button>
             </div>
           </div>
           <div className="site-console-stage">
@@ -238,7 +214,6 @@ export function VoyageHero({ onXray }: { onXray: () => void }): JSX.Element {
               <Stage onXray={onXray} />
             </HydrateInTurn>
           </div>
-          <Halves />
           <Proof />
         </Container>
       </section>

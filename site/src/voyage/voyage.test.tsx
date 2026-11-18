@@ -51,9 +51,9 @@ afterEach(async () => {
 });
 
 describe("the theme before first paint", () => {
-  it("defaults to Pearl and follows the OS until the reader picks Surfaced or Submerged", () => {
+  it("defaults to Live, on Pearl's rules, and follows the OS until the reader picks Surfaced or Submerged", () => {
     const fake = fakeRoot();
-    expect(applyStoredTheme(storage(null), fake, true, PRESET_NAMES)).toEqual({ preset: "pearl", mode: undefined });
+    expect(applyStoredTheme(storage(null), fake, true, PRESET_NAMES)).toEqual({ preset: "live", mode: undefined });
     expect(fake.attributes.get("data-theme")).toBe("pearl");
     expect(fake.classes.has("dark")).toBe(true);
     applyStoredTheme(storage('{"preset":"brass","mode":"light"}'), fake, true, PRESET_NAMES);
@@ -66,9 +66,9 @@ describe("the theme before first paint", () => {
   it("ignores a stored value it does not know, and a refused or broken storage", () => {
     for (const value of ["{", '"abyss"', '{"preset":"neon","mode":"dusk"}', "null"]) {
       const fake = fakeRoot();
-      expect(applyStoredTheme(storage(value), fake, false, PRESET_NAMES)).toEqual({ preset: "pearl", mode: undefined });
+      expect(applyStoredTheme(storage(value), fake, false, PRESET_NAMES)).toEqual({ preset: "live", mode: undefined });
     }
-    expect(applyStoredTheme(null, fakeRoot(), false, PRESET_NAMES).preset).toBe("pearl");
+    expect(applyStoredTheme(null, fakeRoot(), false, PRESET_NAMES).preset).toBe("live");
   });
 
   it("runs from the inline script the head carries, first, on every page", () => {

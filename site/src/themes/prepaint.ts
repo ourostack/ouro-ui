@@ -13,7 +13,7 @@ import { applyLive, isSouthern, LIVE_PALETTES, liveCss, localTimeZone, skyAt, WE
  */
 export const THEME_KEY = "ouro-site-theme";
 
-/** Every preset, the default first. themes.test.ts checks this list against themes.json. */
+/** Every preset, Live's base first. themes.test.ts checks this list against themes.json. */
 export const PRESET_NAMES = ["pearl", "abyss", "brass", "chart", "coral", "cookbook"] as const;
 export type PresetName = (typeof PRESET_NAMES)[number];
 /** What a reader can choose: Live, or one of the presets. */
@@ -43,7 +43,8 @@ export function applyStoredTheme(
   } catch {
     stored = {};
   }
-  const preset = typeof stored.preset === "string" && (stored.preset === "live" || presets.indexOf(stored.preset) !== -1) ? stored.preset : presets[0]!;
+  // A reader who has chosen nothing gets Live: the page under their own sky (Ari, 2026-11-17: "make live theme the default").
+  const preset = typeof stored.preset === "string" && (stored.preset === "live" || presets.indexOf(stored.preset) !== -1) ? stored.preset : "live";
   const mode = stored.mode === "light" || stored.mode === "dark" ? stored.mode : undefined;
   // Live is Pearl under the reader's sky: Pearl's rules apply, and live.ts tints them.
   root.setAttribute("data-theme", preset === "live" ? presets[0]! : preset);
