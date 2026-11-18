@@ -1356,7 +1356,7 @@ const designRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && n
 const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
 
 /** The screen-reader lane (sr-yield and screen-reader): a pull request from this repository whose change reaches a spec, which the plan's screen_reader names. */
-const laneRuns = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}";
+const laneRuns = "${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}";
 
 /** The checks the main ruleset requires (ruleset 24881709, .github/required-checks.json). */
 const requiredChecks = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
