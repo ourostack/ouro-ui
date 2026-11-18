@@ -549,7 +549,7 @@ function hasLegend(chart: ReactElement): boolean {
   return partsOf(chart).some((part) => part.type === ChartLegend);
 }
 
-/** The series a recharts chart passed as children draws, as its legend lists them: each part's `dataKey`. */
+/** The series a recharts chart passed as children draws, as its legend lists them, by their `dataKey`s. */
 function drawnKeys(chart: ReactElement): { dataKey?: unknown }[] {
   return partsOf(chart).map((part) => ({ dataKey: (part.props as { dataKey?: unknown }).dataKey }));
 }
