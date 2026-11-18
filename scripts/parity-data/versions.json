@@ -7,10 +7,10 @@
     "treeCoreTag": "v0.18.2"
   },
   "windows": {
-    "tag": "v0.2.2",
-    "commit": "b94b09d7572b994775da52fafd5e7cc578b5878b",
-    "coreTag": "v0.18.2",
-    "treeCoreTag": "v0.18.2"
+    "tag": "v0.3.0",
+    "commit": "2138b3d29b89e335857da610ae05eab99511faa1",
+    "coreTag": "v0.19.0",
+    "treeCoreTag": "v0.19.0"
   },
   "android": {
     "tag": "v0.2.2",
