@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: an auto-growing TextArea [paints its first frame at the height it settles at](registry/ouro/components/ouro/text-field/text-area.test.tsx "verify:testExists(registry/ouro/components/ouro/text-field/text-area.test.tsx::TextArea autoGrow first frame > is its settled height on its first frame, with a defaultValue of several lines)") in Chromium, where it showed `rows` lines for a frame and then jumped: it renders with `field-sizing: content` and its `rows` and `maxRows` bounds, and measures nothing at mount. Its vertical padding is now the `--ouro-text-area-py` variable; an app that set a `py-*` class on the textarea sets the variable instead, and development says so.
