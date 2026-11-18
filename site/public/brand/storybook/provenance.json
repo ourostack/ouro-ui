@@ -1,6 +1,6 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@cee15ca6821ce1850e7c044a5ff88daaf5973efc:brand/",
+  "origin": "ourostack/.github@ab04b08a6808cf094a21a89b787f7a0047623b73:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
@@ -669,19 +669,19 @@
     },
     {
       "file": "phone/ourostack-dark-1152.avif",
-      "sha256": "0d84536060b39e5502a9f19a033d9de604ce57de17cc6899cb4302878a92da8c"
+      "sha256": "ad0b53709ddf5314566cfb725b73cd67cd8e8616c5d3cbca98f83364fb6c62a9"
     },
     {
       "file": "phone/ourostack-dark-1152.webp",
-      "sha256": "4ac0c83ddf39a540153e58b247b9898ea39d73e587d1b67929db091453a1af39"
+      "sha256": "362e6622d3218fb8194132d2f77eab47a4f5aec2f9a259a590a4c1a57030a358"
     },
     {
       "file": "phone/ourostack-dark-1536.avif",
-      "sha256": "2649355e0ee38c6fcfdd1cd170787e45e11c207703da0dd6716796c1576e5266"
+      "sha256": "6685aad17f718fec45c1dad66ffdce713f90e7d7b47d523c35b5fa206b3e1969"
     },
     {
       "file": "phone/ourostack-dark-1536.webp",
-      "sha256": "9083aed08e873d3eacc79ec7587a1c32af9beabc3eb09e8b892d21baa27e2c0a"
+      "sha256": "739bdeb5139e6fd4a82533083d657633b52768669f8b5929f5c45a00e3e819e2"
     },
     {
       "file": "phone/ourostack-dark-384.avif",
@@ -1245,11 +1245,11 @@
     },
     {
       "file": "scenes/ourostack-dark-3072.avif",
-      "sha256": "f23d5e714d965ad1d97fa222d8e78df32dedc0fc3997b24dafa2659c37581da8"
+      "sha256": "b6e0f1201ee2aa628d2fe26642183e4bd479cf337e78aee7b36eebdb11eac68d"
     },
     {
       "file": "scenes/ourostack-dark-3072.webp",
-      "sha256": "df0a082d1cd9da410a26d17dc43782223764acbe9bcd170621f56852a9521c81"
+      "sha256": "111da8b1c21c6c643fb834f694aad53acdc42e6e76bc3f1e37eeebec6963090e"
     },
     {
       "file": "scenes/ourostack-dark-640.avif",
