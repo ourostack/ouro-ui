@@ -15,6 +15,7 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { formErrors } from "@/registry/ouro/lib/ouro/form-answer";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import blueprintSource from "../../nautilus/art/nautilus-blueprint.svg?raw";
+import { href } from "../../paths";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
@@ -150,10 +151,12 @@ function Onward({ control }: { control: "next" | "signed-next" }): JSX.Element {
   );
 }
 
-/** The engraved plan: each built part drawn in, and the finished ship in the sea once launched, with the way on. */
+/** The engraved plan: each built part drawn in, and once launched the finished ship slides into the sea and the plan becomes a painting of her afloat, with the way on. */
 const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
   return (
-    <figure ref={ref} className="relative m-0 -mx-4 border-b border-border sm:-mx-6" style={{ scrollMarginTop: "5rem" }}>
+    // Brought into view at the launch, it clears the header and a phone's chapter marker under it, so the crew on
+    // deck show whole.
+    <figure ref={ref} className="relative m-0 -mx-4 border-b border-border sm:-mx-6" style={{ scrollMarginTop: "calc(var(--site-header-h, 3.5rem) + 3rem)" }}>
       <svg
         className="site-blueprint"
         viewBox={blueprint.viewBox}
@@ -167,15 +170,45 @@ const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<P
         data-launched={launched ? "" : undefined}
         dangerouslySetInnerHTML={{ __html: blueprint.inner }}
       />
-      {launched ? (
-        <figcaption className="site-afloat" data-chapter-afloat="">
-          <span>{SHIPYARD.afloat}</span>
-          <Onward control="next" />
-        </figcaption>
-      ) : null}
+      {/* Once she floats, the plan becomes a painting of her afloat. The plan's label already says so, so the painting
+          is decoration. Its opacity is inline, so the server HTML has it before the chapter's styles arrive. */}
+      <div className="site-plan-ship pointer-events-none absolute inset-x-0 top-0" style={{ opacity: launched ? 1 : 0 }} aria-hidden="true" data-chapter-plan-ship="" data-shown={launched ? "" : undefined}>
+        <PlanShip night={false} />
+        <PlanShip night />
+      </div>
+      {/* Under the art, never over it. The row says she is on the slip until then, so nothing below moves at the launch. */}
+      <figcaption className="flex min-h-13 items-center px-4 sm:px-6">
+        {launched ? (
+          <span data-chapter-afloat="">
+            <span>{SHIPYARD.afloat}</span>
+            <Onward control="next" />
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">{EXPEDITION.afloat(false)}</span>
+        )}
+      </figcaption>
     </figure>
   );
 });
+
+/** The plan's widest is 790px, on a 1440px screen; on a phone it is the screen's width. */
+const PLAN_SHIP_SIZES = "(max-width: 640px) 100vw, 50rem";
+
+/**
+ * The plan's painting: the opener scene cropped to the plan's 3:1, the hull in profile with her bow to the right, as
+ * the plan draws her (site/scripts/plan-ship.mts makes the files). By day, or at night in dark mode, whose file loads
+ * only then. It loads as the plan nears the screen, so it is there when she floats.
+ */
+function PlanShip({ night }: { night: boolean }): JSX.Element {
+  const name = night ? "nautilus-afloat-dark" : "nautilus-afloat";
+  const set = (format: "avif" | "webp") => [720, 1440].map((width) => `${href(`/plan-ship/${name}-${width}.${format}`)} ${width}w`).join(", ");
+  return (
+    <picture className={night ? "story-world-night" : "story-world-day"}>
+      <source type="image/avif" srcSet={set("avif")} sizes={PLAN_SHIP_SIZES} />
+      <img src={href(`/plan-ship/${name}-720.webp`)} srcSet={set("webp")} sizes={PLAN_SHIP_SIZES} alt="" width={720} height={240} className="block h-auto w-full" loading="lazy" decoding="async" draggable={false} />
+    </picture>
+  );
+}
 
 /** What the plan shows, in words, for screen readers. */
 function describePlan(built: ReadonlySet<PartId>, launched: boolean): string {
@@ -254,9 +287,11 @@ function Shipyard(): JSX.Element {
     } else {
       setLaunched(true);
       say(YARD.launch);
-      // On a phone the plan is above the button, out of sight: bring it in to watch her go.
+      // On a phone or a tablet the plan can be above the button, under the header and the chapter's marker: when less
+      // than half the drawing shows below them, bring it in to watch her go.
       const plan = drawing.current;
-      if (plan && plan.getBoundingClientRect().bottom < 120) plan.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      const art = plan?.querySelector(".site-blueprint")?.getBoundingClientRect();
+      if (plan && art && art.bottom - parseFloat(getComputedStyle(plan).scrollMarginTop) < art.height / 2) plan.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     }
   };
 

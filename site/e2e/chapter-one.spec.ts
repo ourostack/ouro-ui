@@ -559,8 +559,9 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await expect(plan(page)).toHaveAttribute("data-built", PARTS.map((part) => part.id).join(" "));
   await launchButton(page).tap();
   await expect(plan(page)).toHaveAttribute("data-launched", "");
-  // The plan is above the button on a phone: Launch brings it into view to watch her float.
-  await expect.poll(async () => { const box = (await plan(page).boundingBox())!; return box.y >= 56 && box.y + box.height <= 844; }).toBe(true);
+  // The plan is above the button on a phone: Launch brings it into view to watch her float, whole, below the chapter's marker.
+  const marker = (await page.locator("#chapter-one [data-chapter-marker]").boundingBox())!;
+  await expect.poll(async () => { const box = (await plan(page).boundingBox())!; return box.y >= marker.y + marker.height && box.y + box.height <= 844; }).toBe(true);
   // The way on under the plan is a full touch target, and its line keeps clear of the ship.
   await expect(onward(page, "next")).toBeVisible();
   const next = (await onward(page, "next").boundingBox())!;
@@ -584,6 +585,24 @@ test("on a phone, the shipyard and the articles work by touch, and nothing overf
   await expect.poll(toasts.settled).toBeGreaterThan(5);
   expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+test("on a tablet, Launch brings the plan into view when it sits hidden under the header and the chapter's marker", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: browserName === "chromium", reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
+  const page = await context.newPage();
+  const errors = diagnostics(page);
+  await open(page);
+  for (const part of PARTS) await job(page, part.id).tap();
+  // The drawing just under the header and the marker, out of sight, with Launch on screen.
+  const bottom = (await plan(page).boundingBox())!;
+  await page.evaluate((by) => window.scrollBy({ top: by, behavior: "instant" }), bottom.y + bottom.height - 80);
+  await expect(launchButton(page)).toBeInViewport();
+  await launchButton(page).tap();
+  await expect(plan(page)).toHaveAttribute("data-launched", "");
+  const marker = (await page.locator("#chapter-one [data-chapter-marker]").boundingBox())!;
+  await expect.poll(async () => { const box = (await plan(page).boundingBox())!; return box.y >= marker.y + marker.height && box.y + box.height <= 1024; }).toBe(true);
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -658,6 +677,8 @@ test("without reduced motion, each part is lowered into place and the launched s
   await expect(ship).toHaveCSS("animation-name", "bp-slide");
   await expect(plan(page).locator(".bp-wake path").first()).toHaveCSS("animation-name", "bp-wake");
   await expect(plan(page).locator(".bp-bubbles circle").first()).toHaveCSS("animation-name", "bp-bubble");
+  // The painting she becomes waits for the slide, so it is seen before the painting covers it.
+  await expect(shipyard(page).locator("[data-chapter-plan-ship]")).toHaveCSS("transition-delay", "1.2s");
   await expect.poll(() => ship.evaluate((group) => getComputedStyle(group).translate)).toBe("0px 10px");
   await expect(plan(page).locator(".bp-launch")).toHaveCSS("opacity", "1");
 });
@@ -708,6 +729,46 @@ test("the chapter's picture answers the yard: once she is launched it fades to t
   await launchButton(page).click();
   await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-shipyard");
   await expect.poll(() => state.evaluate((layer) => getComputedStyle(layer).opacity)).toBe("0");
+});
+
+test("the plan becomes the ship: at the launch it fades into a painting of her afloat, and back to the plan when you build her again", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const painting = shipyard(page).locator("[data-chapter-plan-ship]");
+  const opacity = () => painting.evaluate((layer) => getComputedStyle(layer).opacity);
+  // It's in the server HTML and loads with the plan, unseen, so it is there when she floats.
+  await expect(painting).toHaveCSS("opacity", "0");
+  await expect(painting).toHaveAttribute("aria-hidden", "true");
+  const day = painting.locator("picture.story-world-day img");
+  await expect(day).toHaveAttribute("loading", "lazy");
+  await expect(day).toHaveAttribute("alt", "");
+  await buildAll(page);
+  await expect(painting).toHaveCSS("opacity", "0");
+  const jobsTop = async () => (await shipyard(page).locator("[data-chapter-control='jobs']").boundingBox())!.y - (await plan(page).boundingBox())!.y;
+  const before = await jobsTop();
+  await launchButton(page).click();
+  await expect.poll(opacity).toBe("1");
+  // The plan's own label says what the painting shows; the painting itself is decoration.
+  await expect(plan(page)).toHaveAttribute("aria-label", "The Nautilus, built and afloat.");
+  await expect(day).toBeVisible();
+  await expect.poll(() => day.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  // It covers the plan exactly.
+  const [art, drawing] = [(await painting.boundingBox())!, (await plan(page).boundingBox())!];
+  expect(Math.abs(art.height - drawing.height)).toBeLessThanOrEqual(1);
+  expect(Math.abs(art.width - drawing.width)).toBeLessThanOrEqual(1);
+  // The words that she floats sit under the painting, never over it, in a row that was kept for them: nothing below moves.
+  await expect(shipyard(page).locator("[data-chapter-afloat]")).toBeVisible();
+  expect((await shipyard(page).locator("[data-chapter-afloat]").boundingBox())!.y).toBeGreaterThanOrEqual(art.y + art.height);
+  expect(await jobsTop()).toBe(before);
+  // At night it is the same sea under the moon, its own file, and the day's is not drawn.
+  await page.evaluate(() => document.documentElement.classList.add("dark"));
+  const night = painting.locator("picture.story-world-night img");
+  await expect(night).toBeVisible();
+  await expect(day).toBeHidden();
+  await expect.poll(() => night.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await launchButton(page).click();
+  await expect.poll(opacity).toBe("0");
+  await expect(plan(page)).not.toHaveAttribute("data-launched", "");
 });
 
 test.describe("by keyboard alone", () => {
