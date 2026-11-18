@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { LATENCY } from "./latency";
 
@@ -15,12 +16,24 @@ import { LATENCY } from "./latency";
 const PHONE = { width: 390, height: 844 };
 const LOADS = { warmUps: 2, samples: 12 };
 /**
- * Times a load the CPU throttle missed is taken again (ourostack/ouro-ui#2131). A load whose own loop ran under
- * MISSED_BELOW times slower than the runner's full speed was not throttled, so its paint is no measurement: a navigation
- * at times lands in a renderer the throttle was not set on. The final check still fails a load that missed after these.
+ * A setup retry, never a timing one (ourostack/ouro-ui#2131). The 4× CPU throttle is a precondition of every load: a
+ * navigation at times lands in a renderer the throttle was not set on, and that load ran at full speed. Whether the
+ * throttle applied is read from the load's own CPU loop (`throttleApplied`), never from its paint times, and a load it
+ * did not apply to is taken again, up to RETAKES times, each retake logged and counted in the job's summary. A load the
+ * throttle still missed after them fails the test.
  */
 const RETAKES = 3;
-const MISSED_BELOW = 2;
+
+/** Whether the throttle applied to a load: its CPU loop ran at least twice as slow as the runner's full speed. */
+function throttleApplied(loopMs: number, fullMs: number): boolean {
+  return loopMs / fullMs >= 2;
+}
+
+/** Appends a line to the CI job's summary, where there is one. */
+function summary(line: string): void {
+  const file = process.env["GITHUB_STEP_SUMMARY"];
+  if (file) appendFileSync(file, `${line}\n`);
+}
 const BARE = "bare-app";
 
 /** A baseline: the median a CI run measured, in ms, and the bare app's median in the same test, which scales it to a runner. */
@@ -173,8 +186,11 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
           } finally {
             await page.close();
           }
-          if (taken.throttled / full >= MISSED_BELOW || take === RETAKES) break;
+          if (throttleApplied(taken.throttled, full) || take === RETAKES) break;
           retaken += 1;
+          const line = `${name}: the ${LATENCY.throttle}× throttle did not apply to a ${app} load (its loop ran ${Math.round((taken.throttled / full) * 10) / 10}× full speed); taking it again (${take + 1} of ${RETAKES})`;
+          test.info().annotations.push({ type: "latency-throttle-retake", description: line });
+          console.log(`latency-throttle-retake ${line}`);
         }
         const { paint, plot, throttled } = taken;
         throttledLoops.push(throttled);
@@ -186,7 +202,8 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
     }
     full = Math.min(full, await loop(anchor));
     const slowdowns = throttledLoops.map((time) => Math.round((time / full) * 10) / 10);
-    console.log(`latency ${name} throttle: each load's loop ran ${slowdowns.join(", ")}× slower than full speed (${Math.round(full * 10) / 10} ms); ${retaken} ${retaken === 1 ? "load" : "loads"} the throttle missed taken again`);
+    console.log(`latency ${name} throttle: each load's loop ran ${slowdowns.join(", ")}× slower than full speed (${Math.round(full * 10) / 10} ms)`);
+    summary(`Latency: ${name} first paint: ${retaken} ${retaken === 1 ? "load" : "loads"} taken again because the ${LATENCY.throttle}× throttle did not apply.`);
     expect(Math.min(...slowdowns), `${name}: a load ran ${Math.min(...slowdowns)}× slower than full speed, so the ${LATENCY.throttle}× throttle missed it (${slowdowns.join(", ")})`).toBeGreaterThanOrEqual(2);
     const bare = median(bares);
     const runner = Math.round(full * 100) / 100;
