@@ -8,6 +8,7 @@ import { ReactionBar, type Reaction } from "@/registry/ouro/components/ouro/reac
 import { RADIO, RADIO_START, REACTIONS, radioReply, type ChannelId, type RadioLine, type ReactionKey } from "./chapter-two-copy";
 import { crewFace } from "./crew-faces";
 import { ROLES } from "./frame";
+import { firstName, useLogbook } from "./logbook";
 
 /** One line on the radio as it shows: who, what, the reactions on it, and whether it is still being written. */
 interface Line {
@@ -17,6 +18,8 @@ interface Line {
   text: string;
   reactions: Reaction[];
   streaming?: boolean;
+  /** The captain's welcome, which greets you by name once you have signed on. */
+  welcome?: boolean;
 }
 
 /** How long the crew take to start writing back, and then to finish, in milliseconds. */
@@ -56,12 +59,14 @@ function crewReacts(reactions: readonly Reaction[], key: ReactionKey): Reaction[
  */
 export function Radio({ planned }: { planned: boolean }): JSX.Element {
   const [channel, setChannel] = useState<ChannelId>("crew");
-  const [lines, setLines] = useState<Record<ChannelId, Line[]>>(() => ({ crew: RADIO_START.crew.map(toLine), captain: RADIO_START.captain.map(toLine), caller: RADIO_START.caller.map(toLine) }));
+  const [lines, setLines] = useState<Record<ChannelId, Line[]>>(() => ({ crew: RADIO_START.crew.map((line, index) => ({ ...toLine(line), welcome: index === 0 })), captain: RADIO_START.captain.map(toLine), caller: RADIO_START.caller.map(toLine) }));
   const [sent, setSent] = useState<Record<ChannelId, number>>({ crew: 0, captain: 0, caller: 0 });
   const [calling, setCalling] = useState(false);
   const [unread, setUnread] = useState(false);
   const [awake, setAwake] = useState(false);
   const timers = useRef<number[]>([]);
+  // Whoever signed on in Chapter I, by the name the crew call them.
+  const you = useLogbook((log) => (log.you ? firstName(log.you.name) : null));
   useEffect(() => () => timers.current.forEach((timer) => clearTimeout(timer)), []);
 
   const call = () => {
@@ -161,7 +166,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
                 )
               }
             >
-              {line.text}
+              {line.welcome && you ? RADIO.welcome(you) : line.text}
             </Message>
           ))}
         </MessageList>

@@ -4,6 +4,9 @@ import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
 import { watchToasts } from "./toasts";
 import { HANDOFF } from "../src/copy";
+import { ARTICLES, CREW, PARTS } from "../src/voyage/chapters/copy";
+import { CATALOGUE, FINDS } from "../src/voyage/chapters/chapter-two-copy";
+import { SHORTEST, writeLeagues } from "../src/voyage/chapters/route";
 
 // Chapter III, "Face the squid", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_THREE_CONTROLS has a test named "control: <id>" that operates it
@@ -467,5 +470,68 @@ test.describe("by keyboard alone", () => {
     await page.keyboard.press("Enter");
     await expect(saloon(page).locator("[data-chapter-log] li").last()).toHaveText(new RegExp(SALOON.logPlayed));
     await expect(saloon(page).getByRole("button", { name: SALOON.playAgain })).toBeFocused();
+  });
+});
+
+test.describe("the ship's log remembers your voyage", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  const log = (page: Page) => saloon(page).locator("[data-chapter-log] li");
+  /** Scrolls on to a chapter on the same page, so the voyage so far is kept, and waits for it to hydrate. */
+  const sailOn = async (page: Page, id: string) => {
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+    await expect(page.locator(`#${id}[data-chapter-ready]`)).toBeAttached();
+  };
+
+  test("build her, sign on as Ana, plan the shortest way, sort a find, win and play: the log lists each, the crew call Ana by name, and she cheers with them", async ({ page }) => {
+    test.slow();
+    await openChapter(page, "chapter-one");
+    for (const part of PARTS) await page.getByRole("checkbox", { name: part.job }).click();
+    await page.locator("[data-composition='shipyard'] [data-chapter-control='launch'] button").click();
+    const articles = page.locator("[data-composition='articles']");
+    await articles.getByRole("textbox", { name: ARTICLES.name }).fill("Ana Ruiz");
+    await articles.getByRole("combobox", { name: ARTICLES.trade }).click();
+    await page.getByRole("option", { name: "Engineer" }).click();
+    await articles.getByRole("checkbox", { name: ARTICLES.oath }).click();
+    await articles.getByRole("button", { name: ARTICLES.sign }).click();
+    await expect(articles.locator("[data-chapter-signed]")).toBeVisible();
+
+    await sailOn(page, "chapter-two");
+    for (const name of ["Crespo Island", "Atlantis", "Vigo Bay", "The Red Sea tunnel", "The South Pole"]) {
+      await page.getByRole("button", { name: new RegExp(`^Reorder ${name}`) }).click();
+      await page.getByRole("menu", { name: `Reorder ${name}` }).getByRole("menuitem", { name: "Move to bottom" }).click();
+    }
+    await expect(page.locator("[data-composition='chart-room'] .site-leagues")).toHaveText(writeLeagues(SHORTEST));
+    await page.getByRole("combobox", { name: CATALOGUE.classify }).click();
+    await page.getByRole("option", { name: "Crustacean", exact: true }).click();
+    await expect(page.locator("[data-composition='catalogue'] [data-chapter-crew]")).toContainText(FINDS[0].name);
+
+    await sailOn(page, "chapter-three");
+    await expect(log(page)).toHaveText(["Built in 5 days, and launched.", "Ana Ruiz signed on, engineer.", `Sailed 1867-11-06 by Conseil's shortest way, ${writeLeagues(SHORTEST)} leagues.`, "Sorted 1 new find.", SALOON.logHeld].map((line, index) => `${String(index + 1).padStart(2, "0")}${line}`));
+    await win(page);
+    await expect(crew(page)).toContainText("Ana, hold that lamp steady.");
+    const cheer = crew(page).locator("[data-chapter-cheer] [data-ouro='avatar']");
+    await expect(cheer).toHaveCount(CREW.length + 1);
+    await expect(cheer.last().locator("[data-ouro-avatar-initials='AR']")).toBeAttached();
+    await playButton(page).click();
+    await expect(log(page)).toHaveCount(7);
+    await expect(log(page).last()).toHaveText(new RegExp(SALOON.logPlayed));
+  });
+
+  test("a reader who opens Chapter III straight from its link finds no line for what they didn't do, and the crew use no name", async ({ page }) => {
+    await page.goto("nautilus/#chapter-three");
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    await page.locator("#chapter-three").scrollIntoViewIfNeeded();
+    await expect(page.locator("#chapter-three[data-chapter-ready]")).toBeAttached();
+    await expect(log(page)).toHaveText([`01${SALOON.logHeld}`]);
+    await win(page);
+    await expect(crew(page)).toContainText(FIGHT.win.text);
+    await expect(crew(page).locator("[data-chapter-cheer] [data-ouro='avatar']")).toHaveCount(CREW.length);
+    await playButton(page).click();
+    await expect(log(page)).toHaveText([SALOON.logHeld, SALOON.logFree, SALOON.logPlayed].map((line, index) => `0${index + 1}${line}`));
+    await expect(saloon(page).locator("[data-chapter-log]")).not.toContainText(/signed on|leagues|Built/);
   });
 });

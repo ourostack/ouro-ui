@@ -58,6 +58,9 @@
 .site-cheer > :nth-child(4) {
   animation-delay: 0.24s;
 }
+.site-cheer > :nth-child(5) {
+  animation-delay: 0.32s;
+}
 /* Two hops, a big one and a small one, like a crew cheering on the quay. */
 @keyframes site-hop {
   0% {

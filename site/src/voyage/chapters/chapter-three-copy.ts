@@ -1,5 +1,6 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import type { CrewLine } from "./copy";
+import type { Logbook } from "./logbook";
 
 /**
  * Every word Chapter III says ("Face the squid", site-design.md): the encounter at the porthole,
@@ -87,9 +88,11 @@ export const FIGHT = {
   lightsOn: { name: "Professor Aronnax", text: "Floodlights on. The whole sea turns green and gold." },
   lightsOff: { name: "Conseil", text: "Floodlights off." },
   win: { name: "Ned Land", text: "It follows the lamp, lets go, and slips off into the dark. Good night, friend." },
+  /** The win, once you have signed on in Chapter I: Ned hands you the lamp. It replaces `win`, never adds to it. */
+  winWith: (name: string): CrewLine => ({ name: "Ned Land", text: `${name}, hold that lamp steady. It lets go, and slips off into the dark. Good night, friend.` }),
   organ: { name: "Captain Nemo", text: "And now, a little music." },
   again: { name: "Conseil", text: "It is back at the glass. I think it liked the organ." },
-} as const satisfies Record<string, CrewLine>;
+} as const satisfies Record<string, CrewLine | ((name: string) => CrewLine)>;
 
 export const TOASTS = {
   win: "The propeller is free",
@@ -110,11 +113,29 @@ export const SALOON = {
   logHeld: "Stopped dead. A giant squid has the propeller.",
   logFree: "Lamp lit on deck. The squid let go and slipped away.",
   logPlayed: "Music in the saloon. The squid came back to listen.",
+  /** What you did on the voyage before (logbook.ts), each line only once you did it. */
+  logBuilt: (days: number) => `Built in ${days} days, and launched.`,
+  logSigned: (name: string, trade: string) => `${name} signed on, ${trade.toLowerCase()}.`,
+  logSailed: (day: string, leagues: string, way: "shortest" | "book" | "own") => `Sailed ${day}${way === "shortest" ? " by Conseil's shortest way" : way === "book" ? " by the book's route" : ""}, ${leagues} leagues.`,
+  logSorted: (count: number) => (count === 1 ? "Sorted 1 new find." : `Sorted ${count} new finds.`),
   next: claim("Every control on this voyage is a real Ouro HX part.", { source: [{ test: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { test: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { test: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }], verify: [{ testExists: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }] }),
   build: "Now build yours.",
   components: "Browse components",
   again: "Sail again",
 } as const;
+
+/**
+ * The log's lines for the voyage before the squid: only what the reader did (logbook.ts). A reader
+ * who jumped straight here did none of it, and gets none of them.
+ */
+export function voyageLog({ launched, you, course, sorted }: Logbook): string[] {
+  return [
+    ...(launched ? [SALOON.logBuilt(launched)] : []),
+    ...(you ? [SALOON.logSigned(you.name, you.trade)] : []),
+    ...(course ? [SALOON.logSailed(course.day, course.leagues, course.way)] : []),
+    ...(sorted ? [SALOON.logSorted(sorted)] : []),
+  ];
+}
 
 /** The rail beside the chapter. */
 export const BATTLE = {
@@ -172,9 +193,12 @@ export function allChapterThreeText(): string[] {
     describeEncounter({ surfaced: false, lights: true, won: false }),
     describeEncounter({ surfaced: true, lights: false, won: true }),
     describeEncounter({ surfaced: true, lights: false, won: true, played: true }),
-    ...Object.values(FIGHT).map((line) => line.text),
+    ...Object.values(FIGHT).map((line) => (typeof line === "function" ? line("Ana") : line).text),
     ...Object.values(TOASTS),
-    ...Object.values(SALOON),
+    ...Object.values(SALOON).flatMap((value) => (typeof value === "string" ? [value] : [])),
+    ...voyageLog({ launched: 5, you: { name: "Ana Ruiz", trade: "Engineer" }, course: { day: "1867-11-06", leagues: "7,519", way: "shortest" }, sorted: 4 }),
+    SALOON.logSailed("1867-11-06", "10,843", "book"),
+    SALOON.logSorted(1),
     ...Object.values(BATTLE),
     ...[CODE_SHEETS_THREE.encounter, CODE_SHEETS_THREE.saloon].flatMap((sheet) => [sheet.title, sheet.description, ...sheet.hx.map((line) => line.text), ...sheet.site]),
   ];
