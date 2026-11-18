@@ -328,7 +328,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
         const style = getComputedStyle(textarea);
         const chrome = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
         const ours = textarea.style.minHeight === autoGrowBounds(rows, maxRows).minHeight;
-        if (ours && Math.abs(parseFloat(style.minHeight) - (rows * parseFloat(style.lineHeight) + chrome)) > 0.5) {
+        // Firefox and WebKit report a border snapped to device pixels (0.67px at 150%), under 1px in all; a py class moves it by more.
+        if (ours && Math.abs(parseFloat(style.minHeight) - (rows * parseFloat(style.lineHeight) + chrome)) > 1) {
           devWarn(
             "TextArea",
             "a class sets the textarea's vertical padding, so autoGrow's rows and maxRows leave it out",
