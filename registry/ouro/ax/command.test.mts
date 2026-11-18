@@ -357,6 +357,77 @@ test("an unknown flag that is one of an argument's words gets that word as its f
   assert.equal(parse(tool, ["calendar", "week"]).kind, "run");
 });
 
+test("a word outside a required argument's values is refused with the usage exit, naming the word and the values, and the fix names the closest value", () => {
+  const gate = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "gate", summary: "G.", effect: "private", readOnly: true, args: [{ name: "action", description: "A.", required: true, values: ["check", "wait", "init", "pre", "post", "show"] }], run: () => [] })] });
+  const shape = (argv: string[]) => {
+    try {
+      parse(gate, argv);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    return null;
+  };
+  assert.deepEqual(shape(["gate", "nope"]), { code: "bad-value", exit: 2, thing: "gate", problem: '<action> is one of check, wait, init, pre, post, show, not "nope"', fix: 't gate "check|wait|init|pre|post|show"' });
+  assert.equal(shape(["gate", "chek"])?.fix, "t gate check");
+  assert.equal(shape(["gate", "chek", "--json"])?.fix, "t gate check --json");
+  assert.equal(parse(gate, ["gate", "wait"]).kind, "run");
+});
+
+test("an optional argument's word outside its values is refused too; a valid word or none still parses as before", () => {
+  const tool = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "gate", summary: "G.", effect: "private", readOnly: true, args: [{ name: "action", description: "A.", values: ["check", "wait"] }], run: () => [] })] });
+  const refused = (argv: string[]) => {
+    try {
+      parse(tool, argv);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    return null;
+  };
+  assert.deepEqual(refused(["gate", "nope"]), { code: "bad-value", exit: 2, thing: "gate", problem: '<action> is one of check, wait, not "nope"', fix: 't gate "check|wait"' });
+  assert.equal(refused(["gate", "waot"])?.fix, "t gate wait");
+  assert.deepEqual(run2(tool, ["gate", "wait"]).input, { action: "wait" });
+  assert.deepEqual(run2(tool, ["gate"]).input, {});
+});
+
+test("a list argument checks each of its words, and a free-text rest argument keeps its values as unchecked hints", () => {
+  const pick = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "pick", summary: "P.", effect: "private", readOnly: true, args: [{ name: "days", description: "D.", rest: "list", values: ["mon", "tue"] }], run: () => [] })] });
+  assert.deepEqual(run2(pick, ["pick", "mon", "tue"]).input, { days: ["mon", "tue"] });
+  const shape = (argv: string[]) => {
+    try {
+      parse(pick, argv);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    return null;
+  };
+  assert.equal(shape(["pick", "mon", "tues"])?.fix, "t pick mon tue");
+  const say = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "say", summary: "S.", effect: "private", args: [{ name: "text", description: "T.", rest: true, values: ["hi"] }], run: () => null })] });
+  assert.doesNotThrow(() => parse(say, ["say", "hello", "there"]));
+  assert.equal((inputSchema(say, say.commands[0]!).properties as Record<string, { enum?: unknown }>).text?.enum, undefined);
+});
+
+test("an argument's values are its input schema's enum, and an MCP call outside them is refused as a flag's value is", () => {
+  const tool = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "gate", summary: "G.", effect: "private", readOnly: true, args: [{ name: "action", description: "A.", required: true, values: ["check", "wait"] }, { name: "days", description: "D.", rest: "list", values: ["mon", "tue"] }], run: () => [] })] });
+  const cmd = tool.commands[0]!;
+  assert.deepEqual(inputSchema(tool, cmd).properties, {
+    action: { type: "string", enum: ["check", "wait"], description: "A." },
+    days: { type: "array", items: { type: "string", enum: ["mon", "tue"] }, description: "D." },
+  });
+  assert.deepEqual(checkInput(tool, cmd, { action: "wait", days: ["mon"] }), { action: "wait", days: ["mon"] });
+  const refused = (raw: unknown) => {
+    try {
+      checkInput(tool, cmd, raw);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    return null;
+  };
+  assert.deepEqual(refused({ action: "nope" }), { code: "bad-value", exit: 2, thing: "gate", problem: '"action" is one of check, wait, not "nope"', fix: '{"action":"check"}' });
+  assert.deepEqual(refused({ action: "wait", days: ["tues"] }), { code: "bad-value", exit: 2, thing: "gate", problem: '"days" is one of mon, tue, not "tues"', fix: '{"action":"wait","days":["tue"]}' });
+  // A list keeps its valid words, and a word with no close value takes the first.
+  assert.deepEqual(refused({ action: "wait", days: ["mon", "zzzz"] }), { code: "bad-value", exit: 2, thing: "gate", problem: '"days" is one of mon, tue, not "zzzz"', fix: '{"action":"wait","days":["mon","mon"]}' });
+});
+
 test("a tool with a voice takes --quiet, which stays out of the input schema and argv", () => {
   const tool = defineCli({ name: "t", about: [], voice: { banner: ["Hello there."] }, commands: [defineCommand({ name: "list", summary: "L.", effect: "private", readOnly: true, run: () => [] })] });
   assert.deepEqual(run2(tool, ["--quiet", "list"]).input, { quiet: true });
