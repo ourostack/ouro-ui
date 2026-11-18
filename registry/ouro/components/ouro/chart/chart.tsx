@@ -27,18 +27,16 @@ export type { ChartMarkerShape, ChartSummaryInfo, ChartTone, ChartType } from "@
 /** The parts of Recharts Chart draws with. */
 type Loaded = Pick<typeof Recharts, "Area" | "AreaChart" | "Bar" | "BarChart" | "CartesianGrid" | "Legend" | "Line" | "LineChart" | "ResponsiveContainer" | "Tooltip" | "XAxis" | "YAxis">;
 
-/** Recharts' parts, once loadRecharts has loaded them: Chart draws its plot, which holds its parts, only after that. */
-let loaded = undefined as unknown as Loaded;
-let loading: Promise<unknown> | undefined;
+let loading: Promise<Loaded> | undefined;
 
 /**
  * Loads Recharts once, by a dynamic import, so it is a chunk of its own that a page's first paint does not wait for. The
  * parts are named where the import resolves, so a bundler keeps only those, as it would for a static import.
  */
-function loadRecharts(): Promise<unknown> {
-  return (loading ??= import("recharts").then(({ Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis }) => {
-    loaded = { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis };
-  }));
+function loadRecharts(): Promise<Loaded> {
+  return (loading ??= import("recharts").then(
+    ({ Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis }) => ({ Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis }),
+  ));
 }
 
 /** One series in a chart's `config`: its label and the theme tone it is drawn in. */
@@ -164,6 +162,11 @@ interface ChartState {
    * @claim "Chart and its parts give their development messages" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart development messages > warns when %s gets shadcn's content prop, with the page and before the plot draws, once)
    */
   warnKey: object;
+  /**
+   * Recharts' parts, once Chart has loaded them; null until then. The plot, and the parts inside it, render only once
+   * they are here. They live in Chart's state, not the module's, so a development edit that runs the module again keeps them.
+   */
+  parts: Loaded | null;
 }
 
 const ChartContext = createContext<ChartState | null>(null);
@@ -189,6 +192,11 @@ function useChartPart(part: string): ChartState {
     devThrow(part, "must be rendered inside <Chart>", process.env.NODE_ENV !== "production" ? partShape(part) : /* istanbul ignore next @preserve -- production only */ "");
   }
   return state;
+}
+
+/** Recharts' parts, for what renders inside the plot, which Chart draws only once they have loaded. */
+function useParts(part: string): Loaded {
+  return useChartPart(part).parts!;
 }
 
 /**
@@ -332,12 +340,20 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   const [legendTarget, setLegendTarget] = useState<HTMLElement | null>(null);
   // Recharts lays a chart out in script, a long task on its first use, so the plot draws in the task after the
   // page's first paint, in the room the plot box keeps for it: the rest of the page shows without waiting for it.
-  // Recharts itself loads then too, in a chunk of its own (loadRecharts), so the first paint never waits to run it.
-  const [drawn, setDrawn] = useState(false);
+  // Recharts itself loads then too, in a chunk of its own (loadRecharts), so the first paint never waits to run it. A
+  // load that fails throws in each chart's render, where the app's error boundary and its framework's handling of a
+  // chunk that failed to load can see it, rather than leaving the chart without its plot and saying nothing.
+  const [parts, setParts] = useState<Loaded | null>(null);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const frame = requestAnimationFrame(() => {
-      timer = setTimeout(() => void loadRecharts().then(() => setDrawn(true)));
+      timer = setTimeout(() =>
+        loadRecharts().then(setParts, (error: unknown) =>
+          setParts(() => {
+            throw error;
+          }),
+        ),
+      );
     });
     // Stryker disable next-line BlockStatement: an unmounted chart ignores the late update, so the cleanup changes nothing anyone sees
     return () => {
@@ -352,8 +368,8 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   );
   // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
   const state = useMemo<ChartState>(
-    () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget, warnKey }),
-    [series, formatValue, legendTarget, warnKey],
+    () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget, warnKey, parts }),
+    [series, formatValue, legendTarget, warnKey, parts],
   );
   const colors = useMemo(() => Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties, [series]);
   // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
@@ -375,18 +391,18 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       {description !== undefined && <p className="-mt-2 mb-0 text-sm text-muted-foreground">{description}</p>}
       <div data-ouro-chart-plot="" className={plotClass}>
         <ChartContext value={state}>
-          {drawn && (
+          {parts && (
             // A first size of its own draws the chart, and its legend, in the commit that takes the placeholder legend away.
-            <loaded.ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+            <parts.ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
               {plot}
-            </loaded.ResponsiveContainer>
+            </parts.ResponsiveContainer>
           )}
         </ChartContext>
       </div>
       {/* Empty until a ChartLegend portals its list here, so it takes no gap. Until the plot draws, the legend of the
           series in config holds its place, so nothing under the chart moves when the plot's own arrives. */}
       <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden">
-        {!drawn && (child ? hasLegend(child) : series.length > 1) && (
+        {!parts && (child ? hasLegend(child) : series.length > 1) && (
           <ChartContext value={state}>
             <LegendContent payload={child ? drawnKeys(child) : series.map((item) => ({ dataKey: item.key }))} />
           </ChartContext>
@@ -470,7 +486,7 @@ interface SeriesChartProps {
  * @claim "The chart `type` draws: a grid" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > leaves out the legend for a single series, which the title already names)
  */
 function SeriesChart({ type, data, categoryKey, series, formatValue, plotProps }: SeriesChartProps): JSX.Element {
-  const { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } = loaded;
+  const { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } = useParts("Chart");
   const Plot = type === "line" ? LineChart : type === "area" ? AreaChart : BarChart;
   const marks = series.map((item) => {
     const shared = {
@@ -641,11 +657,12 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  */
 export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
   const { warnKey } = useChartPart("ChartTooltip");
+  const { Tooltip } = useParts("ChartTooltip");
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props, warnKey);
   });
-  return <loaded.Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
+  return <Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
 }
 
 /**
@@ -674,6 +691,7 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  */
 export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
   const { legendTarget, warnKey } = useChartPart("ChartLegend");
+  const { Legend } = useParts("ChartLegend");
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props, warnKey);
@@ -683,5 +701,5 @@ export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
   /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */
   // Stryker disable next-line ConditionalExpression: the slot mounts before Recharts measures the plot, so this never runs with a null target and forcing it false changes nothing.
   if (legendTarget === null) return null;
-  return <loaded.Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
+  return <Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
 }
