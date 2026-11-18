@@ -154,9 +154,13 @@ describe("home page", () => {
     ]);
     expect(routes[0]!.title).toBe("Ouro UI");
     // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;
-    // the formats agents compose interfaces in come after, under "Works with".
+    // MCP Apps and A2UI come after, under "Works with", as formats of Ouro's tree.
     const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
-    expect(opening.startsWith("# Ouro UI\n\n**Delightful interfaces, by agents, for everyone.**[^for-everyone] Ouro UI is a complete kit for agents to build interfaces for people and for other agents. Declare an action once")).toBe(true);
+    expect(opening.startsWith("# Ouro UI\n\n**Delightful interfaces, by agents, for everyone.**[^for-everyone] Ouro UI is a complete kit for agents to build interfaces for people and for other agents. An agent composes an interface as data that Ouro draws natively")).toBe(true);
+    // The composed tree leads beside the one action (core's 2026-11-17 record): it is the first point, before the formats.
+    expect(opening).toContain("**Composed UI.**");
+    expect(opening.indexOf("**Composed UI.**")).toBeLessThan(opening.indexOf("**One action declaration.**"));
+    expect(opening).not.toMatch(/formats agents compose/);
     expect(opening.split("\n\n")[1]).not.toContain("A2UI");
     expect(opening.indexOf("**Works with**")).toBeGreaterThan(opening.indexOf("**X-ray checks.**"));
     expect(opening.indexOf("[A2UI](https://a2ui.org/)")).toBeGreaterThan(opening.indexOf("**Works with** [MCP Apps]"));
