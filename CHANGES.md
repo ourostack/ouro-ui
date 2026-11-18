@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Added: `Sheet` takes `scrim`, a light dimming layer behind a `modal={false}` sheet that [takes no presses, so a press on the page still reaches it and closes the sheet with `closeOnOutsidePress`](registry/ouro/components/ouro/sheet/sheet.test.tsx "verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with scrim, tints the page lightly, takes no presses, and a press on the page still closes it)"); its color and strength are the new `--ouro-scrim-color` and `--ouro-scrim-max` tokens, and the `SheetScrim` part draws it.
+- Changed: a left or right sheet's shadow gains the hairline on its open edge that a top or bottom sheet's already had, in `--ouro-shadow-sheet-left` and `--ouro-shadow-sheet-right`.
