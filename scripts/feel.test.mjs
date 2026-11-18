@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { stripTypeScriptTypes } from "node:module";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -175,6 +176,116 @@ test("Ouro Feel's probe takes the list as a selector and finds it again each fra
     // Only the frames scrolled into the gap: the removed list, measured, would make every frame blank.
     assert.ok(measures.blankFrames < measures.frames / 2, `${measures.blankFrames} blank frames of ${measures.frames}`);
     assert.equal(measures.rowsMounted, 40, "the new list's rows");
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe asks for no frames while it watches nothing and nothing waits on a paint, so a page with it loaded idles as without it", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`<div id="list" style="height:200px;overflow:auto">${Array.from({ length: 20 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    // Every frame the page asks for, counted from before the probe loads.
+    await page.evaluate(() => {
+      const ask = globalThis.requestAnimationFrame.bind(globalThis);
+      globalThis.asked = 0;
+      globalThis.requestAnimationFrame = (callback) => (globalThis.asked++, ask(callback));
+    });
+    await page.addScriptTag({ content: probe });
+    const counts = await page.evaluate(async () => {
+      const { ouroFeel } = globalThis;
+      const idleFor = async () => {
+        const from = globalThis.asked;
+        await new Promise((resolve) => globalThis.setTimeout(resolve, 300));
+        return globalThis.asked - from;
+      };
+      const loaded = await idleFor();
+      ouroFeel.watch({ case: "idle", scroller: "#list", rows: ".row" });
+      await ouroFeel.painted();
+      await ouroFeel.painted();
+      ouroFeel.stop(true);
+      await ouroFeel.painted();
+      const stopped = await idleFor();
+      return { loaded, stopped };
+    });
+    assert.deepEqual(counts, { loaded: 0, stopped: 0 });
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe waits before polling again when its bridge answers at once with no command", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  let polls = 0;
+  // A service that has no command and says so at once, as an app's own probe service may.
+  const service = createServer((request, response) => {
+    if (request.url === "/") return response.writeHead(200, { "content-type": "text/html" }).end("<!doctype html><html><head></head><body></body></html>");
+    if (request.url === "/feel/next") polls++;
+    response.writeHead(request.url === "/feel/next" ? 204 : 200).end();
+  }).listen(0);
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto(`http://127.0.0.1:${service.address().port}/`);
+    await page.addScriptTag({ content: probe.replace("document.currentScript", '({ dataset: { ouroFeelBridge: "/feel/" } })') });
+    await page.waitForTimeout(2000);
+    assert.ok(polls <= 3, `${polls} polls in 2 s`);
+  } finally {
+    await browser.close();
+    service.close();
+  }
+});
+
+test("Ouro Feel's probe, watching a scroll, adds no layout a frame and under half a millisecond of script", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  // A page that does what a chat list does each frame it scrolls: it reads where its rows are and writes their styles.
+  const rows = Array.from({ length: 200 }, (_, i) => `<div class="row" id="r${i}" style="height:48px">Row ${i}</div>`).join("");
+  const app = `<div id="list" style="height:600px;overflow:auto">${rows}</div><script>
+    const list = document.getElementById("list");
+    list.addEventListener("scroll", () => {
+      for (const row of list.querySelectorAll(".row")) {
+        const box = row.getBoundingClientRect();
+        if (box.bottom > 0 && box.top < 800) row.style.setProperty("--seen", String(Math.round(box.top)));
+      }
+    }, { passive: true });
+  </script>`;
+  const browser = await chromium.launch();
+  try {
+    /** The script time and layouts of 120 frames of scrolling, a step a frame, with the probe watching or without it. */
+    const scroll = async (watched) => {
+      const page = await browser.newPage({ viewport: { width: 400, height: 800 } });
+      await page.setContent(app);
+      if (watched) await page.addScriptTag({ content: probe });
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send("Performance.enable");
+      const read = async () => Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map(({ name, value }) => [name, value]));
+      const before = await read();
+      await page.evaluate(async (watched) => {
+        const { document, ouroFeel } = globalThis;
+        const list = document.getElementById("list");
+        const frame = () => new Promise((resolve) => globalThis.requestAnimationFrame(() => globalThis.setTimeout(resolve)));
+        if (watched) ouroFeel.watch({ case: "cost", scroller: list, rows: ".row" });
+        for (let step = 0; step < 120; step++) {
+          list.scrollTop = step * 40;
+          await frame();
+        }
+        if (watched) ouroFeel.stop(true);
+      }, watched);
+      const after = await read();
+      await page.close();
+      return { scriptMs: (after.ScriptDuration - before.ScriptDuration) * 1000, layouts: after.LayoutCount - before.LayoutCount };
+    };
+    const without = [];
+    const watched = [];
+    for (let pair = 0; pair < 3; pair++) {
+      without.push(await scroll(false));
+      watched.push(await scroll(true));
+    }
+    const added = median(watched.map(({ scriptMs }) => scriptMs)) - median(without.map(({ scriptMs }) => scriptMs));
+    assert.ok(added / 120 < 0.5, `the probe added ${(added / 120).toFixed(3)} ms of script a frame`);
+    assert.ok(Math.abs(median(watched.map(({ layouts }) => layouts)) - median(without.map(({ layouts }) => layouts))) <= 2, JSON.stringify({ without, watched }));
   } finally {
     await browser.close();
   }
