@@ -1,0 +1,1 @@
+- Fixed: ListDetailPage [says how many entries match once you stop typing](test/patterns.test.tsx "verify:testExists(test/patterns.test.tsx::ListDetailPage > says how many match once the person stops typing, not while each key is still being said)"), so VoiceOver no longer drops the count while it echoes the keys you type.

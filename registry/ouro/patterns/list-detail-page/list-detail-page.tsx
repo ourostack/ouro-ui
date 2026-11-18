@@ -11,6 +11,7 @@ import { Stack } from "@/registry/ouro/components/ouro/stack/stack";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
+import { AFTER_ACTION_MS } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 
@@ -104,6 +105,17 @@ export function ListDetailPage({
   const rows = useRef(new Map<string, HTMLButtonElement>());
   const words = query.trim().toLowerCase();
   const shown = entries.filter((entry) => `${entry.title} ${entry.summary}`.toLowerCase().includes(words));
+  // What the search found, for a screen reader, which the list's change alone does not say. Its status region takes it
+  // once the person stops typing (AFTER_ACTION_MS after the last key): taken at the first key, it changed while VoiceOver
+  // echoed that key, which dropped it (ourostack/ouro-ui#2086). Each key clears it and starts the wait over.
+  const found = words ? `${shown.length} ${shown.length === 1 ? "match" : "matches"}` : "";
+  const [settled, setSettled] = useState<{ query: string; found: string } | null>(null);
+  useEffect(() => {
+    if (!found) return;
+    const timer = setTimeout(() => setSettled({ query, found }), AFTER_ACTION_MS);
+    return () => clearTimeout(timer);
+  }, [query, found]);
+  const said = settled?.query === query ? settled.found : "";
   // The entry chosen, or the first while none is (entries that arrive later, or the chosen one gone).
   const open = entries.find((entry) => entry.id === openId) ?? entries[0];
   // On a phone the detail shows in the list's place while there is one to read.
@@ -162,9 +174,8 @@ export function ListDetailPage({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            {/* What the search found, for a screen reader, which the list's change alone does not say. */}
             <p role="status" className="sr-only">
-              {words ? `${shown.length} ${shown.length === 1 ? "match" : "matches"}` : ""}
+              {said}
             </p>
             <ItemGroup
               aria-label={title}
