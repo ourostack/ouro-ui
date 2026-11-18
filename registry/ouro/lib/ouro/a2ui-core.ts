@@ -1,6 +1,6 @@
 export const COMPOSED_VERSION = "1";
 
-// Vendored from ourostack/ouro-ui-core v0.18.3: src/composed.mts, src/mcp-app.mts, src/a2ui.mts, joined into one file by scripts/core-bundle.mts
+// Vendored from ourostack/ouro-ui-core v0.19.0: src/composed.mts, src/mcp-app.mts, src/a2ui.mts, joined into one file by scripts/core-bundle.mts
 // with the imports between them taken out. Never edit it: run `node scripts/core-bundle.mts --update <tag>`.
 
 // COMPOSED_VERSION above is the version of Ouro's composed-UI tree. (No comment goes before the first statement:
@@ -523,16 +523,127 @@ export function personPress(button: ComposedNode, confirmed?: boolean, data?: Js
   return { action: p.action as string, input: p.input as Obj, consent: p.consent as Consent, label: p.label as string, by: "person", ...(p.press === "confirm" ? { confirmed: true as const } : {}) };
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Updating a tree a renderer already draws
+// ---------------------------------------------------------------------------------------------------------------
+
+/**
+ * A change to a tree a renderer already draws, so an agent sends what changed instead of the whole tree (A2UI's
+ * `updateComponents` and `updateDataModel`). Each of `nodes` replaces the tree's one node with its id, children and all.
+ * Each of `data` sets the value at its JSON pointer in the data model, and null deletes it (`setPointer`); `/` is the
+ * whole data model. Nodes apply in order, each to the tree the ones before it left, then data, in order.
+ */
+export interface TreeUpdate {
+  nodes?: ComposedNode[];
+  data?: { path: string; value: Json }[];
+}
+
+/**
+ * Every problem in an update that needs no tree: its shape, each node against the catalog (`validateTree`, at
+ * `/nodes/<i>`) and each data path, which is absolute and never names an object's prototype (`isDataPointer`). A sender
+ * checks this; `applyTreeUpdate` checks it too, then the ids and the tree it gives.
+ */
+export function treeUpdateProblems(cat: Catalog, update: unknown): TreeProblem[] {
+  const shape = "An update is { nodes?, data? }: nodes replace the tree's nodes by id, and data sets values by JSON pointer.";
+  if (!isObj(update)) return [{ path: "", message: shape }];
+  const notJson = nonJsonAt(update, "", new Set());
+  if (notJson !== undefined) return [{ path: notJson, message: "An update is JSON: text, finite numbers, true, false, null, lists and objects." }];
+  const problems: TreeProblem[] = [];
+  for (const key of Object.keys(update)) if (key !== "nodes" && key !== "data") problems.push({ path: `/${key}`, message: `An update has no ${key}. ${shape}` });
+  const { nodes, data } = update;
+  if (nodes !== undefined) {
+    if (!Array.isArray(nodes)) problems.push({ path: "/nodes", message: "nodes is a list of nodes, each replacing the tree's node with its id." });
+    else nodes.forEach((n, i) => problems.push(...validateTree(cat, n, `/nodes/${i}`)));
+  }
+  if (data !== undefined) {
+    if (!Array.isArray(data)) problems.push({ path: "/data", message: "data is a list of { path, value }, each setting the data model at a JSON pointer." });
+    else
+      data.forEach((d, i) => {
+        if (!isObj(d) || !("value" in d) || d.value === undefined || Object.keys(d).some((k) => k !== "path" && k !== "value")) problems.push({ path: `/data/${i}`, message: "A data entry is { path, value }: value is JSON, and null deletes." });
+        else if (typeof d.path !== "string" || !isDataPointer(d.path)) problems.push({ path: `/data/${i}/path`, message: "path is a JSON pointer into the data model, such as /servings, and never names __proto__, constructor or prototype." });
+      });
+  }
+  return problems;
+}
+
+/** Where a value first stops being JSON (as JSON.stringify would lose or change it), or undefined when it is JSON. */
+function nonJsonAt(v: unknown, at: string, seen: Set<object>): string | undefined {
+  if (v === null || typeof v === "string" || typeof v === "boolean") return undefined;
+  if (typeof v === "number") return Number.isFinite(v) ? undefined : at;
+  if (typeof v !== "object" || seen.has(v) || (!Array.isArray(v) && Object.getPrototypeOf(v) !== Object.prototype && Object.getPrototypeOf(v) !== null)) return at;
+  seen.add(v);
+  const entries: [string, unknown][] = Array.isArray(v) ? Array.from(v, (x, i) => [String(i), x]) : Object.entries(v);
+  for (const [k, x] of entries) {
+    const found = nonJsonAt(x, `${at}/${k.replace(/~/g, "~0").replace(/\//g, "~1")}`, seen);
+    if (found !== undefined) return found;
+  }
+  seen.delete(v);
+  return undefined;
+}
+
+/** Why setting `pointer` in `data` would not give JSON: a list is written only at an index from 0 to its length. */
+function listIndexProblem(data: Json, pointer: string): string | undefined {
+  let cur: Json | undefined = data;
+  for (const k of segments(pointer)) {
+    if (Array.isArray(cur)) {
+      if (!/^\d+$/.test(k) || Number(k) > cur.length) return `${pointer} names ${JSON.stringify(k)} in a list of ${cur.length}; in a list, a segment is an index from 0 to ${cur.length}.`;
+      cur = cur[Number(k)];
+    } else if (isObj(cur)) cur = Object.hasOwn(cur, k) ? cur[k] : undefined;
+    else return undefined;
+  }
+  return undefined;
+}
+
+const countId = (n: ComposedNode, id: string): number => (n.id === id ? 1 : 0) + n.children.reduce((sum, c) => sum + countId(c, id), 0);
+const replaceNode = (n: ComposedNode, by: ComposedNode): ComposedNode => (n.id === by.id ? by : { ...n, children: n.children.map((c) => replaceNode(c, by)) });
+
+/**
+ * A tree and its data model after an update (`TreeUpdate`), or every problem and no change: never a tree partly
+ * updated. A node's id must name exactly one node of the tree: an id the tree lacks is a problem, never ignored, and so
+ * is one a template's instances share (replace the node that holds them). The result passes `validateTree`, so an
+ * update can't relabel a button or loosen its consent any more than a whole tree can. Problem paths point into the
+ * update, or into the tree when the tree given is itself invalid. It changes neither input, and the result shares no
+ * object with them.
+ */
+export function applyTreeUpdate(cat: Catalog, tree: ComposedNode, data: Json | undefined, update: unknown): { tree: ComposedNode; data: Json | undefined } | { problems: TreeProblem[] } {
+  const shape = treeUpdateProblems(cat, update);
+  if (shape.length) return { problems: shape };
+  const given = validateTree(cat, tree);
+  if (given.length) return { problems: given };
+  const u = update as TreeUpdate;
+  const problems: TreeProblem[] = [];
+  let next = structuredClone(tree);
+  (u.nodes ?? []).forEach((n, i) => {
+    const found = countId(next, n.id);
+    if (found === 0) problems.push({ path: `/nodes/${i}/id`, message: `${JSON.stringify(n.id)} is not in the tree; replace a node it has, or the node that should hold this one.` });
+    else if (found > 1) problems.push({ path: `/nodes/${i}/id`, message: `${JSON.stringify(n.id)} names ${found} nodes, a template's instances; replace the node that holds them, by its own id.` });
+    else next = replaceNode(next, structuredClone(n));
+  });
+  let model: Json | undefined = data === undefined ? undefined : structuredClone(data);
+  (u.data ?? []).forEach((d, i) => {
+    const base: Json = model ?? {};
+    const index = listIndexProblem(base, d.path);
+    if (index) return void problems.push({ path: `/data/${i}/path`, message: index });
+    const written = setPointer(base, d.path, structuredClone(d.value));
+    if (!isObj(written)) return void problems.push({ path: `/data/${i}/value`, message: "The data model is an object; set / only to an object." });
+    model = written;
+  });
+  if (problems.length) return { problems };
+  const invalid = validateTree(cat, next);
+  return invalid.length ? { problems: invalid } : { tree: next, data: model };
+}
+
 export const MCP_APP_MIME = "text/html;profile=mcp-app";
 
 // MCP_APP_MIME above is MCP Apps' content type for an HTML view (SEP-1865). (No comment goes before the first
 // statement: shadcn's CLI drops it when web's registry installs this file.)
 //
 // The MCP Apps adapter for Ouro's composed UI (src/composed.mts): the `ui://` resource a server lists for its HX view,
-// the tool `_meta` that links a tool to it, and a tool result that carries Ouro's composed tree. MCP Apps is the
-// transport, not the format: a result may carry the tree itself (`structuredContent.ouro`, here) or an A2UI stream
-// (`structuredContent.a2ui`, a2ui.mts's `mcpAppToolResult`), and web's view draws either. Decision:
-// docs/decisions/2026-11-14-composed-ui-own-tree.md.
+// the tool `_meta` that links a tool to it, and a tool result that carries Ouro's composed tree or an update to it.
+// MCP Apps is the transport, not the format: a result may carry the tree itself (`structuredContent.ouro`, here), an
+// update to the tree the view already draws (`structuredContent.ouro.update`, here) or an A2UI stream
+// (`structuredContent.a2ui`, a2ui.mts's `mcpAppToolResult`), and web's view draws each. Decisions:
+// docs/decisions/2026-11-14-composed-ui-own-tree.md, docs/decisions/2026-11-18-composed-tree-updates.md.
 //
 // It imports only composed.mts. Apps vendor it from a release as `ouro-mcp-app.mts`, beside `ouro-composed.mts`.
 
@@ -559,6 +670,21 @@ export function mcpAppTreeResult(args: { text: string; catalog: Catalog; tree: C
   return {
     content: [{ type: "text" as const, text: args.text }],
     structuredContent: { ouro: { version: COMPOSED_VERSION, catalogId: args.catalog.catalogId, tree: args.tree as unknown as Json, ...(args.data ? { data: args.data } : {}) } },
+  };
+}
+
+/**
+ * A tool result carrying an update to the tree the view already draws (`TreeUpdate`), in `structuredContent.ouro.update`:
+ * the nodes it replaces by id and the data it sets by JSON pointer, so the agent resends only what changed. Throws, with
+ * the problems, when the update's shape, a node or a data path doesn't validate; the view applies it with
+ * `applyTreeUpdate`, which also checks each id against the tree it draws and validates the tree it gives.
+ */
+export function mcpAppTreeUpdateResult(args: { text: string; catalog: Catalog; update: TreeUpdate }) {
+  const problems = treeUpdateProblems(args.catalog, args.update);
+  if (problems.length) throw new Error(`the tree update doesn't validate: ${problems.map((p) => `${p.path} ${p.message}`).join("; ")}`);
+  return {
+    content: [{ type: "text" as const, text: args.text }],
+    structuredContent: { ouro: { version: COMPOSED_VERSION, catalogId: args.catalog.catalogId, update: args.update as unknown as Json } },
   };
 }
 

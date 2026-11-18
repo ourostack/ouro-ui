@@ -2,12 +2,12 @@ import { type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { ComposedSurface, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
+import { ComposedSurface, ComposedTree, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Row } from "@/registry/ouro/components/ouro/stack/row";
 import { Stack } from "@/registry/ouro/components/ouro/stack/stack";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
-import { actionButtonProps, loadCatalog, validateTree, type ComposedNode, type Obj, type PersonPress } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { actionButtonProps, applyTreeUpdate, loadCatalog, validateTree, type ComposedNode, type Obj, type PersonPress } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Runs in Chromium and WebKit. The tree is built in code, with no A2UI in between: a recipe app's catalog, cut down to
@@ -321,7 +321,7 @@ describe("ComposedSurface fields", () => {
     expect(onPress.mock.calls[0]![0]).toEqual({ action: "share_recipe", input: { recipe: "rcp_1", with: "kim@example.com" }, consent: "consequential", label: "Share recipe", by: "person", confirmed: true });
   });
 
-  it("starts the fields over from new data, and sends null for a bound value the data lacks", async () => {
+  it("takes the agent's value where new data changes it, and sends null for a bound value the data lacks", async () => {
     const host = document.createElement("div");
     document.body.append(host);
     mounted.push(host);
@@ -339,7 +339,78 @@ describe("ComposedSurface fields", () => {
     await act(async () => root.render(<ComposedSurface {...props({ tree: fields, data, onPress })} />));
     expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Typed again");
     await act(async () => root.render(<ComposedSurface {...props({ tree: { ...fields }, data, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Typed again");
+  });
+
+  it("keeps what the person entered across a new tree and data, except where the new data changed it", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const onPress = vi.fn();
+    await act(async () => root.render(<ComposedSurface {...props({ tree: fields, data, onPress })} />));
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
+    await userEvent.fill(page.getByRole("textbox", { name: "Note" }), "Extra lemon");
+    await userEvent.click(page.getByRole("checkbox", { name: "Make it vegetarian" }));
+    // The agent updates the card: a new hint on Servings, a note of its own and a new title, as one update gives them.
+    const result = applyTreeUpdate(catalog, fields, data, {
+      nodes: [node("servings", "TextField", { label: "Servings", value: "/servings", hint: "Up to 8.", type: "number", multiline: false })],
+      data: [{ path: "/note", value: "Use the big pan" }, { path: "/title", value: "Lemon orzo" }],
+    }) as { tree: ComposedNode; data: Obj };
+    await act(async () => root.render(<ComposedSurface {...props({ tree: result.tree, data: result.data, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveAccessibleDescription("Up to 8.");
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("6");
+    expect(page.getByRole("checkbox", { name: "Make it vegetarian" }).element()).not.toBeChecked();
+    expect(page.getByRole("textbox", { name: "Note" }).element()).toHaveValue("Use the big pan");
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Lemon orzo");
+    await userEvent.click(page.getByRole("button", { name: "Plan dinner" }));
+    expect((onPress.mock.calls[0]![0] as PersonPress).input).toEqual({ recipe: "rcp_1", servings: 6, vegetarian: false, oven: "Fan", note: "Use the big pan", title: "Lemon orzo" });
+    // Once the agent has set the note, the person's next answer there is theirs again, until the agent changes it.
+    await userEvent.fill(page.getByRole("textbox", { name: "Note" }), "Small pan");
+    await act(async () => root.render(<ComposedSurface {...props({ tree: result.tree, data: { ...result.data, oven: "Grill" }, onPress })} />));
+    expect(page.getByRole("textbox", { name: "Note" }).element()).toHaveValue("Small pan");
+    expect(page.getByRole("combobox", { name: "Oven" }).element().textContent).toContain("Grill");
+  });
+
+  it("starts the fields over when the tree's origin changes, as A2UISurface's does for another surface", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const draw = (origin: string, d: Obj | undefined) => act(async () => root.render(<ComposedTree tree={fields} data={d} origin={origin} onPress={vi.fn()} onHandoff={vi.fn()} />));
+    await draw("a", data);
+    await userEvent.fill(page.getByRole("textbox", { name: "Title" }), "Typed");
+    await draw("b", data);
     expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("Orzo");
+    await userEvent.fill(page.getByRole("textbox", { name: "Title" }), "Typed again");
+    await draw("c", undefined);
+    expect(page.getByRole("textbox", { name: "Title" }).element()).toHaveValue("");
+  });
+
+  it("drops what the person entered in a list item the agent changed, even where the value it held stays the same", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const list = node("root", "Stack", { direction: "vertical", gap: "medium" }, [
+      node("first", "TextField", { label: "First", value: "/items/0/qty", type: "text", multiline: false }),
+      node("second", "TextField", { label: "Second", value: "/items/1/qty", type: "text", multiline: false }),
+    ]);
+    const items = { items: [{ name: "Eggs", qty: 2 }, { name: "Milk", qty: 2 }, { name: "Flour", qty: 2 }] };
+    await act(async () => root.render(<ComposedSurface {...props({ tree: list, data: items })} />));
+    await userEvent.fill(page.getByRole("textbox", { name: "First" }), "5");
+    await userEvent.fill(page.getByRole("textbox", { name: "Second" }), "7");
+    // The agent takes Eggs out: Milk moves to the first place, with the same quantity Eggs had.
+    await act(async () => root.render(<ComposedSurface {...props({ tree: list, data: { items: items.items.slice(1) } })} />));
+    expect(page.getByRole("textbox", { name: "First" }).element()).toHaveValue("2");
+    expect(page.getByRole("textbox", { name: "Second" }).element()).toHaveValue("2");
+    await userEvent.fill(page.getByRole("textbox", { name: "Second" }), "9");
+    await act(async () => root.render(<ComposedSurface {...props({ tree: list, data: { items: [{ name: "Butter", qty: 1 }, ...items.items.slice(2)] } })} />));
+    expect(page.getByRole("textbox", { name: "First" }).element()).toHaveValue("1");
+    expect(page.getByRole("textbox", { name: "Second" }).element()).toHaveValue("9");
   });
 
   it("shows a value the data holds as text in a text field, and none in a field that can't hold it", async () => {

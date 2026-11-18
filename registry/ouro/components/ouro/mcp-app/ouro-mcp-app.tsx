@@ -5,7 +5,7 @@ import { A2UISurface, type A2UIActionMessage, type A2UIHandoff, type A2UIProblem
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { ComposedSurface, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
 import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
-import { functionCallProblem, loadCatalog, validateTree, type ComposedNode, type LoadedCatalog, type Obj, type TreeProblem } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { applyTreeUpdate, functionCallProblem, loadCatalog, validateTree, type ComposedNode, type LoadedCatalog, type Obj, type TreeProblem } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { connectMcpApp, MCP_APPS_PROTOCOL, McpAppError, windowHostLink, type McpAppConnection, type McpAppHostLink } from "@/registry/ouro/lib/ouro/mcp-app";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -47,24 +47,46 @@ interface Status {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** The card a tool result carries: Ouro's composed tree with the data model its fields start from, or A2UI messages. */
-type CardContent = { tree: unknown; catalogId: unknown; data: Obj | undefined } | { messages: unknown[] };
+/**
+ * Ouro's composed tree with the data model its fields start from. `problems` holds why an update to it couldn't apply;
+ * the tree and data stay the last ones that did, so a corrected update applies to them.
+ */
+type TreeCard = { tree: unknown; catalogId: unknown; data: Obj | undefined; problems?: TreeProblem[] };
+
+/** The card a tool result carries: Ouro's composed tree, or A2UI messages. */
+type CardContent = TreeCard | { messages: unknown[] };
 
 /**
- * The card in a tool result: `structuredContent.ouro`, as core's `mcpAppTreeResult` puts it, else
- * `structuredContent.a2ui`, as core's `mcpAppToolResult` puts it.
+ * What a tool result carries: `structuredContent.ouro` with a tree, as core's `mcpAppTreeResult` puts it, or with an
+ * update to the tree the view shows, as core's `mcpAppTreeUpdateResult` puts it, else `structuredContent.a2ui`, as
+ * core's `mcpAppToolResult` puts it.
  */
-function cardOf(result: Record<string, unknown>): CardContent | undefined {
+function cardOf(result: Record<string, unknown>): CardContent | { update: unknown; catalogId: unknown } | undefined {
   const content = isRecord(result.structuredContent) ? result.structuredContent : {};
   const { ouro, a2ui } = content;
   if (isRecord(ouro) && "tree" in ouro) return { tree: ouro.tree, catalogId: ouro.catalogId, data: isRecord(ouro.data) ? (ouro.data as Obj) : undefined };
+  if (isRecord(ouro) && "update" in ouro) return { update: ouro.update, catalogId: ouro.catalogId };
   return isRecord(a2ui) && Array.isArray(a2ui.messages) ? { messages: a2ui.messages } : undefined;
 }
 
-/** What is wrong with a composed tree for this view: core's `validateTree` against its catalog, and the catalog it names. */
-function treeProblems(actions: LoadedCatalog, card: { tree: unknown; catalogId: unknown }): TreeProblem[] {
-  const named = card.catalogId === actions.catalogId ? [] : [{ path: "/catalogId", message: `The tree is for catalog ${JSON.stringify(card.catalogId)}; this view draws ${actions.catalogId}.` }];
-  return [...named, ...validateTree(actions, card.tree)];
+/** The catalog a tree or an update names, when it isn't this view's. */
+const catalogProblems = (actions: LoadedCatalog, catalogId: unknown): TreeProblem[] =>
+  catalogId === actions.catalogId ? [] : [{ path: "/catalogId", message: `The tree is for catalog ${JSON.stringify(catalogId)}; this view draws ${actions.catalogId}.` }];
+
+/** What is wrong with a card's own tree for this view: core's `validateTree` against its catalog, and the catalog it names. */
+const checkTree = (actions: LoadedCatalog, card: TreeCard): TreeProblem[] => [...catalogProblems(actions, card.catalogId), ...validateTree(actions, card.tree)];
+
+/**
+ * The card after a tool result: a tree or A2UI messages take the card's place, and an update applies to the tree the
+ * view shows with core's `applyTreeUpdate`, or, when it can't, keeps that tree and says why.
+ */
+function nextCard(actions: LoadedCatalog, card: CardContent | undefined, found: NonNullable<ReturnType<typeof cardOf>>): CardContent {
+  if (!("update" in found)) return found;
+  if (!card || !("tree" in card) || card.tree === undefined) return { tree: undefined, catalogId: found.catalogId, data: undefined, problems: [{ path: "/update", message: "An update changes the composed tree the view shows, and it shows none yet; send the whole tree first, in structuredContent.ouro.tree." }] };
+  const named = catalogProblems(actions, found.catalogId);
+  // applyTreeUpdate checks the tree it is given too, so an update never makes a tree that failed the checks draw.
+  const applied = named.length ? { problems: named } : applyTreeUpdate(actions, card.tree as ComposedNode, card.data, found.update);
+  return "problems" in applied ? { ...card, problems: applied.problems } : { tree: applied.tree, catalogId: card.catalogId, data: applied.data as Obj | undefined };
 }
 
 /** What a press asks the action's own tool to do, from either format. */
@@ -95,7 +117,10 @@ function applyTheme(context: unknown): void {
  * The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it,
  * and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface,
  * once it passes core's `validateTree` against the catalog, its fields starting from `structuredContent.ouro.data`, or A2UI messages in `structuredContent.a2ui` with
- * {@link A2UISurface}. Read and write buttons call
+ * {@link A2UISurface}. A result whose `structuredContent.ouro` carries `update` (core's `mcpAppTreeUpdateResult`)
+ * changes the tree it shows with core's `applyTreeUpdate`, and the person's answers stay except where the update
+ * changed the value; an update that can't apply shows the same short alert as a tree that fails the checks, and the agent hears
+ * why. Read and write buttons call
  * their action's own tool through the host, a consequential one only after the person confirms, and a person-only
  * one takes the person to your app's screen. It follows the host's light or dark theme and tells the host its size.
  *
@@ -103,6 +128,8 @@ function applyTheme(context: unknown): void {
  * `ui://` resource. Use A2UISurface instead when the card is in your own app's screen, not in an MCP host.
  *
  * @claim "a consequential one only after the person confirms" registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > calls a consequential action's tool only after the person confirms)
+ * @claim "changes the tree it shows with core's `applyTreeUpdate`" registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > applies an update in structuredContent.ouro to the tree it shows, keeping what the person typed where the update left it)
+ * @claim "an update that can't apply shows the same short alert as a tree that fails the checks, and the agent hears why" registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > tells the agent why an update can't apply, shows the person the short alert, and applies a corrected one to the last tree)
  * @claim "a person-only one takes the person to your app's screen" registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > opens the app's own screen for a person-only button and calls no tool)
  *
  * @group Display
@@ -131,9 +158,9 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
     const c = connectMcpApp(link, {
       onNotification: (method, params) => {
         if (method === "ui/notifications/tool-result") {
-          const next = cardOf(params);
-          if (next) {
-            setCard(next);
+          const found = cardOf(params);
+          if (found) {
+            setCard((card) => nextCard(actions, card, found));
             setStatus(undefined);
           } else setStatus({ tone: "destructive", title: "This card can't be shown", description: "The tool's result had no card in it." });
         } else if (method === "ui/notifications/tool-cancelled") setStatus({ tone: "primary", title: "The agent stopped before the card was ready." });
@@ -175,15 +202,15 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
     async ({ name, input, label }: ToolPress) => {
       try {
         const result = await connection!.request("tools/call", { name, arguments: input });
-        const next = cardOf(result);
-        if (next) setCard(next);
+        const found = cardOf(result);
+        if (found) setCard((card) => nextCard(actions, card, found));
         const text = resultText(result);
         setStatus(result.isError === true ? { tone: "destructive", title: `${label} didn't go through`, ...(text ? { description: text } : {}) } : { tone: "success", title: text ?? `${label}: done.` });
       } catch (e) {
         setStatus({ tone: "destructive", title: `${label} didn't go through`, description: (e as Error).message });
       }
     },
-    [connection],
+    [connection, actions],
   );
   const runAction = useCallback(({ action }: A2UIActionMessage) => callTool({ name: action.name, input: action.context, label: action.userMessage }), [callTool]);
   const pressTree = useCallback<ComposedSurfaceProps["onPress"]>((press) => callTool({ name: press.action, input: press.input, label: press.label }), [callTool]);
@@ -213,7 +240,10 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
   const reportProblems = useCallback((problems: readonly A2UIProblem[]) => tellAgent(problems, { a2uiProblems: problems }), [tellAgent]);
 
   const tree = card && "tree" in card ? card : undefined;
-  const problems = useMemo(() => (tree ? treeProblems(actions, tree) : []), [actions, tree]);
+  // A tree that passes the checks stays drawn, hidden, while an update to it can't apply, so what the person typed
+  // survives until a corrected update arrives.
+  const own = useMemo(() => (tree ? checkTree(actions, tree) : []), [actions, tree]);
+  const problems = tree?.problems ?? own;
   useEffect(() => {
     if (problems.length && connection) tellAgent(problems, { ouroProblems: problems });
   }, [problems, connection, tellAgent]);
@@ -228,10 +258,11 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
       {card && connection ? (
         "messages" in card ? (
           <A2UISurface catalog={catalog} messages={card.messages} label={label} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} />
-        ) : problems.length ? (
-          <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
         ) : (
-          <ComposedSurface tree={card.tree as ComposedNode} data={card.data} onPress={pressTree} onHandoff={handOff} />
+          <>
+            {problems.length ? <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." /> : null}
+            {own.length ? null : <ComposedSurface tree={card.tree as ComposedNode} data={card.data} onPress={pressTree} onHandoff={handOff} className={problems.length ? "hidden" : undefined} />}
+          </>
         )
       ) : status ? null : (
         <Spinner label="Waiting for the card" />
