@@ -329,6 +329,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
         const chrome = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
         const ours = textarea.style.minHeight === autoGrowBounds(rows, maxRows).minHeight;
         // Firefox and WebKit report a border snapped to device pixels (0.67px at 150%), under 1px in all; a py class moves it by more.
+        // Stryker disable next-line EqualityOperator: no padding is exactly 1px out, so > and >= find the same classes.
         if (ours && Math.abs(parseFloat(style.minHeight) - (rows * parseFloat(style.lineHeight) + chrome)) > 1) {
           devWarn(
             "TextArea",
@@ -338,6 +339,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
           );
         }
       });
+      // Stryker disable next-line ArrowFunction: a check that runs after unmount reads a detached textarea, whose styles are empty, and says nothing.
       return () => cancelAnimationFrame(frame);
     }
   }, [autoGrow, rows, maxRows, size, variant]);

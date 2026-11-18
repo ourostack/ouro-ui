@@ -425,6 +425,19 @@ describe("TextArea autoGrow", () => {
     expect(height(textarea)).toBeCloseTo(linesHeight(textarea, 5), 0);
   });
 
+  it("keeps a height the user dragged as a controlled value changes, after autoGrow turned off and when it never grew", async () => {
+    const field = (value: string, autoGrow: boolean) => <TextArea label="Notes" autoGrow={autoGrow} value={value} onChange={() => {}} />;
+    const never = await render(field("one", false));
+    never.textarea.style.height = "200px";
+    await never.rerender(field("one\ntwo", false));
+    expect(never.textarea.style.height).toBe("200px");
+    const { rerender, textarea } = await render(field("one", true));
+    await rerender(field("one", false));
+    textarea.style.height = "200px";
+    await rerender(field("one\ntwo", false));
+    expect(textarea.style.height).toBe("200px");
+  });
+
   it("goes back to rows and a resize handle when autoGrow turns off", async () => {
     const value = "1\n2\n3\n4\n5";
     const { rerender, textarea } = await render(<TextArea label="Notes" autoGrow defaultValue={value} />);
@@ -573,6 +586,9 @@ describe("TextArea development messages", () => {
     const variable = await render(<TextArea label="Notes" autoGrow rows={2} className="[&_textarea]:[--ouro-text-area-py:calc(var(--spacing)*4)]" />);
     expect(warn).not.toHaveBeenCalledWith(message);
     expect(height(variable.textarea)).toBeCloseTo(linesHeight(variable.textarea, 2), 0);
+    // An app that sets its own min-height has taken the bounds over.
+    await render(<TextArea label="Notes" autoGrow rows={2} className="[&_textarea]:py-4" style={{ minHeight: "1px" }} />);
+    expect(warn).not.toHaveBeenCalledWith(message);
     await render(<TextArea label="Notes" autoGrow rows={2} className="[&_textarea]:py-4" />);
     expect(warn).toHaveBeenCalledWith(message);
   });
