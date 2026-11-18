@@ -4,9 +4,10 @@ import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { chromium } from "playwright";
 import { readComponents } from "./components.mts";
 import { axeMinimum } from "../registry/ouro/lib/ouro/testing/axe-version.ts";
-import { buildRegistry, censusAxeVersion, cssToItem, itemForFile, rewriteDependencies, testingSetup, toolingMinimum, unreadableOnGitHub } from "./registry.mts";
+import { buildRegistry, censusAxeVersion, cssToItem, feelProbeScript, itemForFile, rewriteDependencies, testingSetup, toolingMinimum, unreadableOnGitHub } from "./registry.mts";
 import { uncommitted } from "./generated-files.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { copyTree, treeFiles } from "./tree.mjs";
@@ -131,6 +132,7 @@ test("the registry is named ouro and lists every item", () => {
     "ouro-source-rules",
     "ouro-check",
     "ouro-images",
+    "ouro-feel-probe",
     ...readdirSync(join(root, "registry/ouro/patterns")).sort(),
     ...axRuntime,
     ...axRuntime.filter((name) => name !== "ax-example").map((name) => `${name}-tests`),
@@ -817,4 +819,28 @@ test("every registry file an item imports is installed with it: in its own files
     }
   }
   assert.deepEqual(missing, [], "an item imports a registry file that neither it nor any item it depends on installs");
+});
+
+test("ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is", async () => {
+  const shipped = readFileSync(join(root, "registry/ouro/feel/ouro-feel-probe.js"), "utf8");
+  assert.equal(shipped, feelProbeScript(root), "run node scripts/registry.mts");
+  assert.deepEqual(item("ouro-feel-probe").files.map((file) => [file.type, file.target]), [["registry:file", "~/scripts/ouro/feel/ouro-feel-probe.js"]]);
+  assert.doesNotMatch(shipped, /^\s*(import|export)\b/m, "a plain script, not a module");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`<div id="list" style="height:200px;overflow:auto">${'<div class="row" style="height:48px"></div>'.repeat(10)}</div>`);
+    await page.addScriptTag({ content: shipped });
+    const measures = await page.evaluate(async () => {
+      const { ouroFeel } = globalThis;
+      ouroFeel.watch({ case: "shipped", scroller: "#list", rows: ".row" });
+      await ouroFeel.painted();
+      return { version: ouroFeel.version, ...ouroFeel.stop(true).measures, leaked: "JUMP_PX" in globalThis };
+    });
+    assert.equal(measures.version, 1);
+    assert.ok(measures.frames >= 1);
+    assert.equal(measures.leaked, false, "the probe's names stay out of the page's");
+  } finally {
+    await browser.close();
+  }
 });

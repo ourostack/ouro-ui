@@ -57,8 +57,15 @@ The WKWebView leg runs nightly and by hand in [the Feel workflow](../.github/wor
 
 ## Adding Ouro Feel to an app
 
-An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.js` first in the page's `<head>`, with `data-ouro-feel-bridge` naming where the page polls for commands. `watch` takes the list as an element, or as a selector that the probe looks up again each frame, so an app that puts a new list in the old one's place (another conversation opened) is measured in the new list.[^watch-selector] Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run that reported it, so the app can take its own medians and bands.[^runs]
+An app keeps its own cases and limits. It takes the probe as one plain script from the registry, at a release tag:
 
+```sh
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#<tag>
+```
+
+That writes `scripts/ouro/feel/ouro-feel-probe.js`, the probe built from [`probe/probe.ts`](probe/probe.ts), which `pnpm registry --check` keeps the same; it runs as it is in a page, and keeps its own names out of the page's.[^built] The app puts it first in the page's `<head>`, or injects it into its web view before the page's own scripts. Served with `data-ouro-feel-bridge` on its script tag, it also polls that address for commands. `watch` takes the list as an element, or as a selector that the probe looks up again each frame, so an app that puts a new list in the old one's place (another conversation opened) is measured in the new list.[^watch-selector] Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run that reported it, so the app can take its own medians and bands.[^runs]
+
+[^built]: test:scripts/registry.test.mjs::ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is verify:testExists(scripts/registry.test.mjs::ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is)
 [^seed]: test:scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up verify:testExists(scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up)
 [^service]: test:scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page)
 [^judge]: test:scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs verify:testExists(scripts/feel.test.mjs::Ouro Feel judges a count or distance on every run, and a time on the median of its runs)
