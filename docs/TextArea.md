@@ -42,7 +42,7 @@ Type: `TextAreaProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `autoGrow` | `boolean` |  | Grows with the content, from `rows` lines up to `maxRows`, instead of scrolling. Use it for messages and notes, so people see what they wrote. |
+| `autoGrow` | `boolean` |  | Grows with the content, from `rows` lines up to `maxRows`, instead of scrolling. Use it for messages and notes, so people see what they wrote. Its first frame already has the height it settles at, with a starting value too. To change its vertical padding, set `--ouro-text-area-py` (`className="[&_textarea]:[--ouro-text-area-py:12px]"`), not a `py-*` class. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style fields in your theme. |
 | `defaultValue` | `string` |  | The starting text, for an uncontrolled field. |
 | `description` | `ReactNode` |  | Supporting text under the label, read after the label through `aria-describedby`. |
