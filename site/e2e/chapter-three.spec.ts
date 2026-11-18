@@ -645,6 +645,38 @@ test.describe("by keyboard alone", () => {
     await expect(saloon(page).locator("[data-chapter-log] li").last()).toHaveText(new RegExp(SALOON.logPlayed));
     await expect(saloon(page).getByRole("button", { name: SALOON.playAgain })).toBeFocused();
   });
+
+  test("from a link straight to Chapter III on a slow connection, focus stays in the Orders menu as the page's later styles load (#2224)", async ({ page }) => {
+    // The page's stylesheet comes late, as on a slow connection, so it is still on its way as the HTML arrives. Then Safari,
+    // left to itself, jumps to #chapter-three again each time a later stylesheet loads (opening the menu fetches one, and
+    // Chapter II brings its own as it wakes), and each jump takes focus out of the menu (site/index.html).
+    await page.route(/\/assets\/voyage-[^/]*\.css$/, async (route) => {
+      await new Promise((arrived) => setTimeout(arrived, 1000));
+      await route.continue();
+    });
+    let wake!: () => void;
+    const woken = new Promise<void>((done) => (wake = done));
+    await page.route(/\/assets\/chapter-two-[^/]*\.js$/, async (route) => {
+      await woken;
+      await route.continue();
+    });
+    await page.goto("nautilus/#chapter-three");
+    await expect(page.locator("html[data-site-ready]")).toBeAttached();
+    await expect(page.locator("#chapter-three[data-chapter-ready]")).toBeAttached();
+    const menuButton = encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true });
+    await menuButton.focus();
+    await page.keyboard.press("Enter");
+    const surface = page.getByRole("menuitem", { name: ORDERS.surface });
+    await expect(surface).toBeFocused();
+    wake();
+    await expect(page.locator("#chapter-two[data-chapter-ready]")).toBeAttached();
+    // Two frames on, so a jump the new styles set off has landed.
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await expect(surface).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("menuitem", { name: ORDERS.surface })).not.toBeFocused();
+    await expect.poll(() => page.evaluate(() => document.activeElement?.closest('[role="menu"]') != null)).toBe(true);
+  });
 });
 
 test.describe("the ship's log remembers your voyage", () => {
