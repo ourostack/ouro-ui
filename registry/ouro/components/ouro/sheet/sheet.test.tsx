@@ -12,6 +12,7 @@ import {
   SheetDescription,
   SheetHandle,
   SheetPopup,
+  SheetScrim,
   SheetPortal,
   SheetRoot,
   SheetTitle,
@@ -813,11 +814,13 @@ describe("non-modal sheet", () => {
     onPage = () => {},
     onOpenChange = () => {},
     closeOnOutsidePress,
+    scrim,
     children = <Button>Ocean</Button>,
   }: {
     onPage?: () => void;
     onOpenChange?: (open: boolean) => void;
     closeOnOutsidePress?: boolean;
+    scrim?: boolean;
     children?: ReactNode;
   }) {
     const [open, setOpen] = useState(true);
@@ -832,6 +835,7 @@ describe("non-modal sheet", () => {
           side="right"
           modal={false}
           closeOnOutsidePress={closeOnOutsidePress}
+          scrim={scrim}
           open={open}
           onOpenChange={(next) => {
             onOpenChange(next);
@@ -910,6 +914,42 @@ describe("non-modal sheet", () => {
     expect(onPage).toHaveBeenCalledOnce();
     expect(onOpenChange).toHaveBeenCalledWith(false);
     await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("with scrim, tints the page lightly, takes no presses, and a press on the page still closes it", async () => {
+    await page.viewport(1280, 800);
+    const onPage = vi.fn();
+    const onOpenChange = vi.fn();
+    await render(<Preview onPage={onPage} onOpenChange={onOpenChange} closeOnOutsidePress scrim />);
+    await settled();
+    const scrim = document.querySelector<HTMLElement>('[data-ouro="sheet-scrim-backdrop"]')!;
+    expect(scrim).not.toBeNull();
+    expect(backdrop()).toBeNull();
+    const style = getComputedStyle(scrim);
+    expect(style.pointerEvents).toBe("none");
+    expect(scrim.getAttribute("aria-hidden")).toBe("true");
+    await expect.poll(() => Number(getComputedStyle(scrim).opacity)).toBeCloseTo(Number(style.getPropertyValue("--ouro-scrim-max")), 2);
+    expect(Number(getComputedStyle(scrim).opacity)).toBeLessThan(0.25);
+    expect(getComputedStyle(popup()!).boxShadow).not.toBe("none");
+    await userEvent.click(page.getByRole("button", { name: "Page action" }));
+    expect(onPage).toHaveBeenCalledOnce();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await expect.poll(() => popup()).toBeNull();
+  });
+
+  it("draws no scrim unless asked, and not on a modal sheet, which has its backdrop", async () => {
+    await page.viewport(1280, 800);
+    await render(<Preview />);
+    await settled();
+    expect(document.querySelector('[data-ouro="sheet-scrim-backdrop"]')).toBeNull();
+    await render(
+      <Sheet title="Modal" open onOpenChange={() => {}} scrim>
+        <Body />
+      </Sheet>,
+    );
+    await settled();
+    expect(document.querySelector('[data-ouro="sheet-scrim-backdrop"]')).toBeNull();
+    expect(backdrop()).not.toBeNull();
   });
 
   it("with closeOnOutsidePress, stays open on a press in a menu or a dialog opened from inside it", async () => {
@@ -1455,6 +1495,7 @@ describe("Sheet parts", () => {
     ["SheetTrigger", <SheetTrigger key="t" />, shape("…")],
     ["SheetPortal", <SheetPortal key="p" />, shape("…")],
     ["SheetBackdrop", <SheetBackdrop key="b" />, shape("…")],
+    ["SheetScrim", <SheetScrim key="s" />, shape("…")],
     ["SheetViewport", <SheetViewport key="v" />, shape("…")],
     ["SheetPopup", <SheetPopup key="pp" />, shape("…")],
     ["SheetHandle", <SheetHandle key="h" />, shape("<SheetHandle />…")],
