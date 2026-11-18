@@ -278,6 +278,28 @@ describe("ListDetailPage", () => {
     await passesAxe();
   });
 
+  it("on a phone moves focus in the same task as the press, so the page never holds it between and a screen reader is not cut off", async () => {
+    await page.viewport(390, 844);
+    await render(<ListDetailPage />);
+    // Looked up without a locator, which throws while the element is not in the page yet.
+    const rowElement = () => [...host.querySelectorAll("button")].find((button) => button.textContent?.startsWith("Lemon olive oil cake"))!;
+    const headingElement = () => [...host.querySelectorAll("h2")].find((heading) => heading.textContent === "Lemon olive oil cake");
+    // A click is a discrete event, which React commits in a microtask, before the browser renders again. The press
+    // hides what has focus, so focus must be on its target by then: a move a frame later would leave the browser to
+    // put focus on the page first, and a screen reader starts reading the page, cut off by the move that follows.
+    const microtasks = async () => {
+      for (let tick = 0; tick < 5; tick++) await Promise.resolve();
+    };
+    rowElement().focus();
+    rowElement().click();
+    await microtasks();
+    expect(document.activeElement).toBe(headingElement());
+    backButton().focus();
+    backButton().click();
+    await microtasks();
+    expect(document.activeElement).toBe(rowElement());
+  });
+
   it("on a phone shows the list first, the detail in its place once chosen with focus on its heading, and Back to the row", async () => {
     await page.viewport(390, 844);
     await render(<ListDetailPage />);
