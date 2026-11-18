@@ -18,12 +18,14 @@ describe("Ouro check's command", () => {
   const fast = ["--sizes", "390x844", "--themes", "light"];
 
   test("new-rules.json names rules Ouro check has, each once, with a one-line summary, for Ouro Current to list in an update", () => {
-    const listed = JSON.parse(readFileSync(join(root, "registry/ouro/check/new-rules.json"), "utf8")) as { rule: string; summary: string }[];
+    const listed = JSON.parse(readFileSync(join(root, "registry/ouro/check/new-rules.json"), "utf8")) as { rule: string; summary: string; widened?: string }[];
     assert.ok(listed.length > 0);
-    assert.equal(new Set(listed.map((entry) => entry.rule)).size, listed.length);
-    for (const { rule, summary, ...rest } of listed) {
+    // A rule is listed once as new, and once more for each widening of its reach a release declares.
+    assert.equal(new Set(listed.map((entry) => `${entry.rule}\n${entry.widened ?? ""}`)).size, listed.length);
+    for (const { rule, summary, widened, ...rest } of listed) {
       assert.ok(RULES.includes(rule), rule);
       assert.ok(typeof summary === "string" && summary.length > 0 && !summary.includes("\n"), rule);
+      assert.ok(widened === undefined || (widened.length > 0 && !widened.includes("\n")), rule);
       assert.deepEqual(rest, {}, rule);
     }
   });

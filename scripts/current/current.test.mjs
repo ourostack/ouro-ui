@@ -785,6 +785,18 @@ test("new Ouro check rules: a new-rules.json that cannot be read leaves the sect
   }
 });
 
+test("widened Ouro check rules: an entry with widened names an existing rule again, new to the app by its rule and widening, and the body says what it now finds", async () => {
+  const WIDER = { rule: "off-scale", widened: "negative lengths", summary: OFF_SCALE.summary };
+  const { update, pin } = checkRulesFixture({ before: JSON.stringify([OFF_THEME, OFF_SCALE]), after: JSON.stringify([OFF_THEME, OFF_SCALE, WIDER]) });
+  const result = await update();
+  assert.deepEqual(result.checkRules.map(({ rule, widened }) => [rule, widened]), [["off-scale", "negative lengths"]], "the rule itself is not new to the app; its widening is");
+  const text = prBody(result, pin, { counts: { "off-scale": 4 } });
+  assert.match(text, /- `off-scale`, which now also finds negative lengths: Spacing .*\[\^ouro-check-off-scale\] `4` findings this app already has are recorded/);
+  assert.deepEqual(lintMarkdown(text, { file: "pull request body" }), []);
+  const again = checkRulesFixture({ before: JSON.stringify([OFF_SCALE, WIDER]), after: JSON.stringify([OFF_SCALE, WIDER]) });
+  assert.deepEqual((await again.update()).checkRules, [], "a widening the old release already declared is not new");
+});
+
 test("new Ouro check rules reach the update pull request's body", async () => {
   const { record, ctx, consumer } = checkRulesFixture({ before: undefined, after: JSON.stringify([OFF_THEME]) });
   const repo = fakeRepo({ ...Object.fromEntries([...consumer].map(([path, bytes]) => [path, bytes.toString("utf8")])), ".github/ouro-hx-installed.json": JSON.stringify(record) });
@@ -1417,6 +1429,32 @@ test("an Ouro check rule an update brings in has the findings the pull request's
   await keepRepo(repo.gh, "o/r", RELEASES, sources);
   assert.equal(repo.refs.get(BRANCH), head);
   assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), seeded);
+});
+
+test("a rule the release declares widened has the findings the pull request's checks reported recorded as known, as a new rule's are, and an existing rule it does not declare has none", async () => {
+  const lockOf = (commit, text) => JSON.stringify({ schemaVersion: 1, sources: [{ id: "check", repository: "ourostack/ouro-ui", commit, files: [{ sourcePath: "registry/ouro/check/run.ts", generatedPath: "scripts/ouro/check/run.ts", sha256: sha256(text) }] }] }, null, 2);
+  const code = 'const RULES = ["overlap", "off-scale"];\n';
+  const rules = (entries) => ["registry/ouro/check/new-rules.json", Buffer.from(JSON.stringify(entries))];
+  const scale = { rule: "off-scale", summary: "Spacing off the theme's spacing scale." };
+  const findings = [
+    { rule: "off-scale", detail: ".lab-line sets margin: -0.25rem, a fixed spacing; use calc(var(--spacing) * -1) (-m-1)" },
+    { rule: "overlap", detail: "a rule the release did not widen" },
+  ];
+  for (const [declared, known] of [
+    [[scale, { ...scale, widened: "negative lengths" }], { "off-scale": [".lab-line sets margin: -0.25rem, a fixed spacing"] }],
+    [[scale], undefined],
+  ]) {
+    const repo = fakeRepo({ "upstream-sources.lock.json": lockOf("old", code), "scripts/ouro/check/run.ts": code, "ouro-check.json": '{\n  "waive": {}\n}\n' });
+    // The release changes the rule's code without naming it anew: only new-rules.json says it reaches further.
+    const tarball = async (follows, at) => new Map([["registry/ouro/check/run.ts", Buffer.from(at === "old" ? code : `${code}// negative lengths\n`)], rules(at === "old" ? [scale] : declared)]);
+    let reports = [];
+    const sources = { tarball, ciReports: async (gh, name, sha) => (sha === repo.refs.get(BRANCH) ? reports : []) };
+    await keepRepo(repo.gh, "o/r", RELEASES, sources);
+    reports = [{ findings }];
+    await keepRepo(repo.gh, "o/r", RELEASES, sources);
+    assert.deepEqual(JSON.parse(repo.fileAt(BRANCH, "ouro-check.json")).known, known);
+    if (known) assert.match(repo.pulls[0].body, /- `off-scale`, which now also finds negative lengths: Spacing off the theme's spacing scale\.\[\^ouro-check-off-scale\] `1` findings this app already has/);
+  }
 });
 
 test("when a failing shard cancelled the others and the round pushes nothing, a full run is asked for with a repository_dispatch event, and a workflow without its trigger is named", async () => {
