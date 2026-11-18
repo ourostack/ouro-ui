@@ -118,11 +118,11 @@ test("the CLI prints SR_CLASS, writes the class as a step output and fails unles
   assert.match(refused.stdout, /no test ran: fix the command in the workflow/);
 });
 
-test("the run summary counts the VoiceOver starts retried before a test ran, and names none when there were none", () => {
+test("the run summary counts the VoiceOver navigations retried against the VoiceOver tests that ran, and names none when there were none", () => {
   mkdirSync(join(root, ".tmp"), { recursive: true });
   const dir = mkdtempSync(join(root, ".tmp/sr-classify-summary-"));
   try {
-    const retry = "[sr] start retry: VoiceOver's start failed on try 1 of 2 (VoiceOver cannot be started); trying again once its process has exited.";
+    const retry = "[sr] navigation retry: VoiceOver's navigation hung for 45 s on try 1 of 2; waiting for it to settle, then starting it again.";
     const run = (log, exit) => {
       const file = join(dir, `${Math.random()}.log`);
       writeFileSync(file, log);
@@ -131,20 +131,45 @@ test("the run summary counts the VoiceOver starts retried before a test ran, and
       const result = spawnSync("node", [join(root, "scripts/sr-classify.mjs"), file, exit], { encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: "", GITHUB_STEP_SUMMARY: summary } });
       return { ...result, summary: readFileSync(summary, "utf8") };
     };
-    const once = run(`${retry}\n  5 passed (3.4m)`, "0");
+    const tests = Array.from({ length: 22 }, (_, index) => `  ✓  ${index + 2} [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button (1.0s)`).join("\n");
+    const once = run(`${retry}\n${tests}`, "0");
     assert.equal(once.status, 0);
     assert.match(once.stdout, /^SR_CLASS=pass$/m);
-    assert.match(once.stdout, /^VoiceOver's start was retried 1 time before a test ran/m);
+    assert.match(once.stdout, /^VoiceOver navigation: 1 retry in 22 tests that ran \(1 in 22\)\. Above 1 in 50 tests: a cause to find, not noise\.$/m);
     assert.match(once.summary, /^Screen-reader lane: \*\*pass\*\*/m);
-    assert.match(once.summary, /^VoiceOver's start was retried 1 time before a test ran/m);
-    const twice = run(`${retry}\n${retry}\n  5 passed (3.4m)`, "0");
-    assert.match(twice.summary, /^VoiceOver's start was retried 2 times before a test ran/m);
-    const none = run(logs.pass, "0");
+    assert.match(once.summary, /^VoiceOver navigation: 1 retry in 22 tests that ran/m);
+    const none = run(tests, "0");
     assert.equal(none.status, 0);
-    assert.doesNotMatch(none.stdout + none.summary, /retried/);
+    assert.match(none.summary, /^VoiceOver navigation: 0 retries in 22 tests that ran\.$/m);
+    const noVoiceOver = run(logs.nvdaDidNotStart, "1");
+    assert.doesNotMatch(noVoiceOver.stdout + noVoiceOver.summary, /navigation/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("a VoiceOver that stopped answering after a test reached the page is that reason, and a start that failed after passing tests is still did not start", () => {
+  const hangAfterTests = recorded("voiceover-hang-after-tests.txt");
+  assert.equal(classify(hangAfterTests, 1), "infrastructure");
+  assert.equal(why(hangAfterTests), "VoiceOver stopped answering while it reached the page");
+  // Job 133758125327 (run 43999015231): test 20 passed, then test 21's start failed.
+  const startAfterPass = "  ✓  20 [voiceover] › registry/ouro/e2e/screen-reader/toast.sr.spec.ts:8:1 › Toast (20.3s)\n  ✘  21 [voiceover] › registry/ouro/e2e/screen-reader/toast.sr.spec.ts:8:1 › Toast (1.0s)\n    Error: VoiceOver cannot be started\n    [cause]: Error: Unable to activate application: VoiceOver\n  1 failed";
+  assert.equal(classify(startAfterPass, 1), "infrastructure");
+  assert.equal(why(startAfterPass), "VoiceOver did not start");
+});
+
+test("a VoiceOver not running before any test reached the page is a start that did not finish: did not start", () => {
+  const beforeThePage = "  ✘  1 [voiceover] › registry/ouro/e2e/screen-reader/checkbox.sr.spec.ts:8:1 › Checkbox (3.0m)\n    Test timeout of 180000ms exceeded.\n    Error: VoiceOver not running\n  1 failed";
+  assert.equal(classify(beforeThePage, 1), "infrastructure");
+  assert.equal(why(beforeThePage), "VoiceOver did not start");
+});
+
+test("a navigation retry is no finding: a test's own failure after a recovered navigation decides the class", () => {
+  const retried = "[sr] navigation retry: VoiceOver's navigation hung for 45 s on try 1 of 2 (stop failed: VoiceOver not running); waiting for it to settle, then starting it again.";
+  const assertionFailure = "  ✘  3 [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:9:1 › Dialog\n    Error: [sr] no utterance matched /edit recipe/i; heard: \"Edit\"\n  1 failed";
+  assert.equal(classify(`${retried}\n${assertionFailure}`, 1), "accessibility");
+  assert.equal(classify(`${retried}\n  1 passed (3.4m)`, 0), "pass");
+  assert.equal(classify(retried, 1), "infrastructure");
 });
 
 // Recorded runs (scripts/fixtures/sr-logs/): the lane's log on main, run 39235687123, where NVDA's

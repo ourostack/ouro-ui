@@ -1,0 +1,71 @@
+export { NAVIGATION_HUNG, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, NAVIGATION_TRIES, navigateWithRetry, waitUntil };
+
+/**
+ * The start of each retry's log line. scripts/sr-classify.mjs counts these and reads them as no finding.
+ *
+ * VoiceOver's navigation to the page's web content (screen-reader.ts's startReading), bounded: a
+ * navigation that hangs is stopped, waited on and started again once, and only the navigation is
+ * retried, never a test's assertions. The navigate, stop, start and settle are injected, so
+ * scripts/sr-navigation.test.mjs runs it under node --test, without VoiceOver.
+ */
+const NAVIGATION_RETRY_PREFIX = "[sr] navigation retry:";
+
+/** The signature of a navigation that hung on every try; scripts/sr-classify.mjs reads it as infrastructure. */
+const NAVIGATION_HUNG = "VoiceOver stopped answering while it reached the page";
+
+/** A navigation's bound: above the slowest start-to-first-utterance gap measured on main, well below a test's timeout. */
+const NAVIGATION_TIMEOUT_MS = 45_000;
+
+/** Attempts in all, before the navigation fails as infrastructure. */
+const NAVIGATION_TRIES = 2;
+
+interface NavigationAttempts {
+  /** One navigation to the page's web content. */
+  navigate: () => Promise<void>;
+  /** Stops VoiceOver; a failure here is logged, and the restart goes ahead. */
+  stop: () => Promise<void>;
+  /** Starts VoiceOver again. */
+  start: () => Promise<void>;
+  /** Waits, bounded, for the hung navigation to finish and for VoiceOver to exit, before it starts again. */
+  settle: (hung: Promise<void>) => Promise<void>;
+  /** Writes one line of the lane's log. */
+  log: (line: string) => void;
+  timeoutMs?: number;
+  tries?: number;
+}
+
+const firstLine = (error: unknown): string => (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
+
+/**
+ * Navigates. A navigation that is not done within `timeoutMs` has hung: VoiceOver is stopped,
+ * settled, and started again, and the navigation is tried once more. A navigation that fails
+ * outright is not retried, and the error reaches the test as it was thrown.
+ */
+async function navigateWithRetry({ navigate, stop, start, settle, log, timeoutMs = NAVIGATION_TIMEOUT_MS, tries = NAVIGATION_TRIES }: NavigationAttempts): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    const attempting = navigate();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const outcome = await Promise.race([
+      attempting.then(() => "done" as const),
+      new Promise<"hung">((resolve) => {
+        timer = setTimeout(() => resolve("hung"), timeoutMs);
+      }),
+    ]).finally(() => clearTimeout(timer));
+    if (outcome === "done") return;
+    if (attempt >= tries) throw new Error(`${NAVIGATION_HUNG}: its navigation hung on ${tries} tries of ${timeoutMs / 1000} s each`);
+    const stopped = await stop().then(() => "", (error: unknown) => ` (stop failed: ${firstLine(error)})`);
+    log(`${NAVIGATION_RETRY_PREFIX} VoiceOver's navigation hung for ${timeoutMs / 1000} s on try ${attempt} of ${tries}${stopped}; waiting for it to settle, then starting it again.`);
+    await settle(attempting.then(() => undefined, () => undefined));
+    await start();
+  }
+}
+
+/** Checks until `check` is true, or until `timeoutMs` has passed, every `intervalMs`: whether it became true. */
+async function waitUntil(check: () => Promise<boolean>, timeoutMs: number, intervalMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (await check()) return true;
+    if (Date.now() >= deadline) return false;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}

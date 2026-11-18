@@ -1,12 +1,11 @@
-import { voiceOver } from "@guidepup/guidepup";
 import { voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
 import { test as base, expect, type BrowserContext, type BrowserContextOptions, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
 import { execFile, spawn } from "node:child_process";
 import { release } from "node:os";
 import { promisify } from "node:util";
+import { navigateWithRetry, waitUntil } from "./navigation";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
 import { firstMatch, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechVerdict, spokenAfter, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
-import { pollUntil, startWithRetry } from "./voiceover-start";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -99,25 +98,13 @@ interface NVDAWorker {
 const voiceOverRunning = () => run("pgrep", ["-f", "VoiceOver launchd -s"]).then(() => true, () => false);
 
 /**
- * Before the next start after a failed one: waits, for at most 30 s, for VoiceOver's process to exit.
- * Guidepup's start stops what is left before it starts again, so a timeout is only noted.
+ * Before VoiceOver starts again after a hung navigation: the hung navigation has finished (10 s at
+ * most), and VoiceOver's process has exited (30 s at most). A process still running is only noted.
  */
-async function settleVoiceOver(): Promise<void> {
-  if (!(await pollUntil(async () => !(await voiceOverRunning()), 30_000, 500))) note("VoiceOver's process did not exit", "still running 30 s after its start failed");
+async function settleVoiceOver(hung: Promise<void>): Promise<void> {
+  await Promise.race([hung, new Promise((resolve) => setTimeout(resolve, 10_000))]);
+  if (!(await waitUntil(async () => !(await voiceOverRunning()), 30_000, 500))) note("VoiceOver's process did not exit", "still running 30 s after it was stopped");
 }
-
-/**
- * Guidepup's start, tried at most twice before a test runs (voiceover-start.ts). The library's
- * voiceOver fixture calls this singleton's start itself, so the retry wraps it rather than copying
- * the fixture. Guidepup's own start makes two attempts of its own, so one failed start here is up to
- * four launches of VoiceOver.
- */
-function retryVoiceOverStart(): void {
-  const start = voiceOver.start.bind(voiceOver);
-  voiceOver.start = (options) => startWithRetry({ start: () => start(options), settle: settleVoiceOver, log: (line) => console.log(line) });
-}
-
-if (process.platform === "darwin") retryVoiceOverStart();
 
 /** The test each spec uses: VoiceOver's on macOS, NVDA's on Windows. */
 export const test: ScreenReaderTest =
@@ -156,7 +143,11 @@ export const test: ScreenReaderTest =
  * first move then announces its control.
  */
 export async function startReading(sr: ScreenReader, page: Page): Promise<void> {
-  await sr.navigateToWebContent();
+  const began = Date.now();
+  // VoiceOver's navigation is bounded and retried once if it hangs (navigation.ts); NVDA's is not.
+  if (isVoiceOver(sr)) await navigateWithRetry({ navigate: () => sr.navigateToWebContent(), stop: () => sr.stop(), start: () => sr.start({ capture: "initial" }), settle: settleVoiceOver, log: (line) => console.log(line) });
+  else await sr.navigateToWebContent();
+  console.log(`[sr] navigation took ${((Date.now() - began) / 1000).toFixed(1)} s`);
   console.log(`[sr] first utterance: "${await sr.lastSpokenPhrase()}"`);
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 }
