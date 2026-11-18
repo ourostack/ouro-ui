@@ -7,15 +7,15 @@
     "treeCoreTag": "v0.13.1"
   },
   "windows": {
-    "tag": "v0.1.1",
-    "commit": "55639374c1e097e649194ba2d8dbfef847f68534",
-    "coreTag": "v0.13.1",
-    "treeCoreTag": "v0.13.1"
+    "tag": "v0.2.2",
+    "commit": "b94b09d7572b994775da52fafd5e7cc578b5878b",
+    "coreTag": "v0.18.2",
+    "treeCoreTag": "v0.18.2"
   },
   "android": {
-    "tag": "v0.1.0",
-    "commit": "653bd51323cda7724479f10e65ce6377be4d168a",
-    "coreTag": "v0.15.0",
-    "treeCoreTag": "v0.15.0"
+    "tag": "v0.2.2",
+    "commit": "1ff3aea830b2c8c48f08cb79b9f213432fbe3d70",
+    "coreTag": "v0.18.2",
+    "treeCoreTag": "v0.18.2"
   }
 }

@@ -6,7 +6,7 @@ Nobody here owns an Android phone or tablet. The kit is checked on emulators in 
 
 ## What ships today
 
-Release [v0.1.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0) meets core v0.15.0: its tokens, component specs and action generator are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
+Release [v0.2.2](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.2.2) meets core v0.18.2: its tokens, component specs and action generator are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
 The kit has four of core's components as composables, where web has [125 components](registry.json "verify:count(registry:ui)=125"): `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
 
@@ -41,7 +41,7 @@ The `build` job runs core's component claims in Robolectric, reading the semanti
 
 A new platform starts from [the guide for platform builders](contributing.md) instead.
 
-[^core]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0; https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/core-provenance.json; https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml#L37-L48 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.1.0) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml#L37-L48) verify:equals(scripts/parity-data/versions.json#android.coreTag)=v0.15.0
+[^core]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.2.2; https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/core-provenance.json; https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml#L37-L48 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.2.2) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml#L37-L48) verify:equals(scripts/parity-data/versions.json#android.coreTag)=v0.18.2
 [^devices]: https://github.com/ourostack/ouro-ui-android/issues/3 verify:urlOk(https://github.com/ourostack/ouro-ui-android/issues/3)
 [^readme]: https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/README.md)
 [^ci]: https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/653bd51323cda7724479f10e65ce6377be4d168a/.github/workflows/ci.yml)

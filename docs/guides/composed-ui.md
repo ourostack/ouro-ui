@@ -44,17 +44,17 @@ An `ActionButton` input bound to the same path, `{"@path": "/servings"}`, sends 
 
 ## How a tree reaches the screen
 
-| The agent sends | Web draws it with | Apple draws it with |
-| --- | --- | --- |
-| The tree, from your own code or server | [ComposedSurface](../ComposedSurface.md) | Not yet: on Apple a tree comes from `A2UI.resolve` |
-| The tree, in an MCP tool result's `structuredContent.ouro` | [OuroMcpApp](../OuroMcpApp.md), inside any MCP Apps host | |
-| A2UI messages | [A2UISurface](../A2UISurface.md) | `OuroA2UI`, which draws the tree with `ComposedSurface` |
+| The agent sends | Web | Apple | Windows | Android |
+| --- | --- | --- | --- | --- |
+| The tree, from your own code or server | [ComposedSurface](../ComposedSurface.md) | Not yet: on Apple a tree comes from `A2UI.resolve` | `OuroComposedSurface` | `OuroComposedSurface` |
+| The tree, in an MCP tool result's `structuredContent.ouro` | [OuroMcpApp](../OuroMcpApp.md), inside any MCP Apps host | | | |
+| A2UI messages | [A2UISurface](../A2UISurface.md) | `OuroA2UI`, which draws the tree with `ComposedSurface` | Not read: send the tree | Not read: send the tree |
 
 Each draws the same tree with the same components and the same consent.[^draws] Core holds the tree, its validator and the adapters (`ouro-composed.mts`, `ouro-mcp-app.mts`, `ouro-a2ui.mts`), which your app vendors from a core release; [core's guide](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/a2ui.md) says how, and how to generate your catalog from your actions.[^vendor]
 
 ## Which platforms draw it
 
-Web and Apple draw the tree natively today. The Windows and Android kits don't draw it yet. Every renderer passes the same conformance cases from core, so a card looks and behaves alike wherever it is drawn.[^platforms]
+Every kit draws the tree natively: web and Apple, and Windows and Android with `OuroComposedSurface`, which read the tree itself rather than A2UI messages.[^kits] Every renderer passes the same conformance cases from core, so a card looks and behaves alike wherever it is drawn.[^platforms]
 
 Ouro's kits are written in their platforms' own toolkits: React on the web, SwiftUI on Apple, WinUI 3 on Windows and Compose on Android.[^native] There is no Flutter, React Native or other cross-platform kit, on purpose: agents now write each platform's native app, so sharing one implementation no longer pays for the compromise in how it feels.[^native]
 
@@ -76,3 +76,4 @@ Ouro's kits are written in their platforms' own toolkits: React on the web, Swif
 [^vendor]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md#1-vendor-the-files verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md#1-vendor-the-files)
 [^platforms]: https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift; https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/decisions/2026-11-14-android-kit.md verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift) verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/decisions/2026-11-14-android-kit.md)
 [^native]: https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md)
+[^kits]: https://github.com/ourostack/ouro-ui-windows/blob/b94b09d7572b994775da52fafd5e7cc578b5878b/src/Ouro.UI.Windows/OuroComposedSurface.cs; https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/ouro-hx/src/main/kotlin/bot/ouro/ui/hx/OuroComposedSurface.kt verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/b94b09d7572b994775da52fafd5e7cc578b5878b/src/Ouro.UI.Windows/OuroComposedSurface.cs) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/ouro-hx/src/main/kotlin/bot/ouro/ui/hx/OuroComposedSurface.kt) verify:equals(scripts/parity-data/versions.json#windows.tag)=v0.2.2 verify:equals(scripts/parity-data/versions.json#android.tag)=v0.2.2
