@@ -826,9 +826,16 @@ test("ouro-feel-probe ships the probe built as one plain script, kept the same a
   // Built from probe.ts by pnpm i and pnpm registry, and committed only by a release commit, so no change to probe.ts can leave
   // main with a stale copy: --check builds it again, stale or missing.
   const path = "registry/ouro/feel/ouro-feel-probe.js";
+  // A release commit's tracked copy is compared instead, so --check fails on a stale one.
   assert.ok(uncommitted.includes(path), "main commits no copy of the built probe");
+  const tracked = spawnSync("git", ["ls-files", "--", path], { cwd: root, encoding: "utf8" }).stdout.trim() !== "";
+  const built = readFileSync(join(root, path), "utf8");
   writeFileSync(join(root, path), "stale\n");
-  assert.equal(run("--check").status, 0);
+  try {
+    assert.equal(run("--check").status, tracked ? 1 : 0);
+  } finally {
+    if (tracked) writeFileSync(join(root, path), built);
+  }
   const shipped = readFileSync(join(root, path), "utf8");
   assert.equal(shipped, feelProbeScript(root));
   assert.deepEqual(item("ouro-feel-probe").files.map((file) => [file.type, file.target]), [["registry:file", "~/scripts/ouro/feel/ouro-feel-probe.js"]]);
