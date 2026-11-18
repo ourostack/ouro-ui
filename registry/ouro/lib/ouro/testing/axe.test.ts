@@ -807,9 +807,11 @@ describe("audit", () => {
     }
   }
 
-  // A paragraph about 1500px tall at a phone's width, dark text (#767676) over `background`.
+  // A paragraph 1488px tall at a phone's width, dark text (#767676) over `background`: 62 short lines that each break
+  // where the fixture says, at 24px each, so its height does not hang on how wide the host app's font sets the text
+  // (spoonjoy-v2#760: 1104px tall when it wrapped one long run of text).
   const tallParagraph = (background: string, id = "tall") =>
-    `<p id="${id}" style="margin:0;color:#767676;background:${background};font-size:16px;line-height:24px">${"Set in a tall paragraph, every line of it is text. ".repeat(60)}</p>`;
+    `<p id="${id}" style="margin:0;color:#767676;background:${background};font-size:16px;line-height:24px;white-space:nowrap">${"Every line of it is text.<br>".repeat(62)}</p>`;
   const darkBelowTheFold = "linear-gradient(#fff 85%,#555)";
 
   it("fails a tall paragraph whose gradient darkens below the fold, and names the part below the fold that fails", async () => {
@@ -823,6 +825,18 @@ describe("audit", () => {
       const { reason } = verdict as { reason: string };
       expect(Number(/centred (\d+)px/.exec(reason)![1])).toBeGreaterThan(paragraph.getBoundingClientRect().height / 2);
       expect(describeFindings(await scanPage())).toMatch(/^undecided color-contrast \(serious\): .*\n {2}#tall: measured \d\.\d\d:1 against the worst pixel behind its text, needs 4\.5:1, in the part of its text centred \d+px below its top/);
+    });
+  });
+
+  it("keeps the tall paragraph taller than the screen in an app whose font sets text narrow", async () => {
+    await atPhone(async () => {
+      document.documentElement.style.setProperty("letter-spacing", "-3px");
+      try {
+        mountPage(tallParagraph("#fff"));
+        expect(document.querySelector("#tall")!.getBoundingClientRect().height).toBeGreaterThan(1400);
+      } finally {
+        document.documentElement.style.removeProperty("letter-spacing");
+      }
     });
   });
 
