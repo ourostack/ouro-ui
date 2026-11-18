@@ -179,27 +179,27 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml#L37-L48": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/README.md": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/README.md": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/RELEASING.md": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/RELEASING.md": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/core-provenance.json": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/core-provenance.json": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/ouro-hx/src/main/kotlin/bot/ouro/ui/hx/OuroComposedSurface.kt": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/ouro-hx/src/main/kotlin/bot/ouro/ui/hx/OuroComposedSurface.kt": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -211,7 +211,7 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/releases/tag/v0.2.2": {
+  "https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0": {
     "status": 200,
     "checked": "2026-11-18"
   },

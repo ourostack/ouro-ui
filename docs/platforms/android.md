@@ -6,11 +6,11 @@ Nobody here owns an Android phone or tablet. The kit is checked on emulators in 
 
 ## What ships today
 
-Release [v0.2.2](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.2.2) meets core v0.18.2: its tokens, component specs and action generator are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
+Release [v0.3.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0) meets core v0.19.0: its tokens, component specs and action generator are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
 The kit has eight of core's components as composables, where web has [125 components](registry.json "verify:count(registry:ui)=125"): `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
 
-`OuroComposedSurface` draws Ouro's [composed tree](../guides/composed-ui.md), the card an agent composes, from an MCP tool result's `structuredContent.ouro` (`OuroComposed.read`). Fields write the data model, a consequential button asks the person first, and a person-only one hands them to the app. It reads no A2UI messages: send the tree.[^readme]
+`OuroComposedSurface` draws Ouro's [composed tree](../guides/composed-ui.md), the card an agent composes, from an MCP tool result's `structuredContent.ouro` (`OuroComposed.read`). Fields write the data model, a consequential button asks the person first, and a person-only one hands them to the app. To change a card it already shows, the agent sends only what changed, an update in `structuredContent.ouro.update`, and `OuroComposedState` applies it, keeping what the person entered except where the agent set the value. It reads no A2UI messages: send the tree.[^readme]
 
 `ouro-actions` is the runtime the actions run on, so a person's press and an agent's AppFunction call take one path. In the sample, place order is person-only: it has a person door and a typed refusal for agents, in place of an AppFunction. A consequential action is refused until the app's `confirm` asks the person, because Android has no system prompt for it.[^decision]
 
@@ -20,7 +20,7 @@ The Maven files are attached to the release and served from GitHub Pages, which 
 
 ```kotlin
 repositories { maven { url = uri("https://ourostack.github.io/ouro-ui-android/maven") } }
-dependencies { implementation("bot.ouro.ui:ouro-hx:0.2.2") }
+dependencies { implementation("bot.ouro.ui:ouro-hx:0.3.0") }
 ```
 
 AppFunctions need compileSdk 37 and AGP 9.1 or later, and Google still calls them an experimental preview.[^appfunctions]
@@ -43,10 +43,10 @@ The `build` job runs core's component claims in Robolectric, reading the semanti
 
 A new platform starts from [the guide for platform builders](contributing.md) instead.
 
-[^core]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.2.2; https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/core-provenance.json; https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml#L37-L48 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.2.2) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml#L37-L48) verify:equals(scripts/parity-data/versions.json#android.coreTag)=v0.18.2
+[^core]: https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0; https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/core-provenance.json; https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml#L37-L48 verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml#L37-L48) verify:equals(scripts/parity-data/versions.json#android.coreTag)=v0.19.0
 [^devices]: https://github.com/ourostack/ouro-ui-android/issues/3 verify:urlOk(https://github.com/ourostack/ouro-ui-android/issues/3)
-[^readme]: https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/README.md)
-[^ci]: https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/.github/workflows/ci.yml)
-[^releasing]: https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/RELEASING.md verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/1ff3aea830b2c8c48f08cb79b9f213432fbe3d70/RELEASING.md)
+[^readme]: https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/README.md)
+[^ci]: https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml)
+[^releasing]: https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/RELEASING.md verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/RELEASING.md)
 [^decision]: https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md)
 [^appfunctions]: https://developer.android.com/ai/appfunctions verify:urlOk(https://developer.android.com/ai/appfunctions)
