@@ -76,7 +76,7 @@ export default function ChapterOne(): JSX.Element {
         <ExpeditionMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
           <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
-            <ChapterPicture scene="nautilus-shipyard" className="mb-8 lg:hidden" />
+            <ShipyardPicture className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_ONE.number}</p>
             <h2 id="chapter-one-title" className="site-h2 mt-3">
               {CHAPTER_ONE.title}
@@ -122,10 +122,16 @@ function Expedition(): JSX.Element {
   const { steps } = useExpedition();
   return (
     <div className="mt-10 hidden lg:block" data-chapter-expedition="">
-      <ChapterPicture scene="nautilus-shipyard" />
+      <ShipyardPicture />
       <Steps label={EXPEDITION.label} steps={steps} />
     </div>
   );
+}
+
+/** The shipyard, until she is launched: then the same cove with the Nautilus afloat, faded in. */
+function ShipyardPicture({ className }: { className?: string }): JSX.Element {
+  const { launched } = useExpedition().voyage;
+  return <ChapterPicture scene="nautilus-shipyard" state={{ scene: "nautilus-shipyard-afloat", shown: launched }} {...(className ? { className } : {})} />;
 }
 
 /** On a phone: the chapter and its steps done, held under the header while the chapter is on screen. */

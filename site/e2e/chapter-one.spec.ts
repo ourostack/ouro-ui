@@ -632,6 +632,28 @@ test("the rail beside the chapter shows how the voyage stands, beside the chapte
   expect(box.y + box.height).toBeLessThanOrEqual(900);
 });
 
+test("the chapter's picture answers the yard: once she is launched it fades to the cove with her afloat, and back when you build her again", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const picture = page.locator("[data-chapter-expedition] [data-chapter-picture='nautilus-shipyard']");
+  const state = picture.locator(".site-picture-state");
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-shipyard");
+  await expect(state).toHaveCSS("opacity", "0");
+  // The second picture loads with the first, so it is there when she floats.
+  await expect(state.locator("picture[data-brand-scene='nautilus-shipyard-afloat'] img")).toHaveAttribute("loading", "lazy");
+  await buildAll(page);
+  await expect(state).toHaveCSS("opacity", "0");
+  await launchButton(page).click();
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-shipyard-afloat");
+  await expect.poll(() => state.evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
+  // A screen reader hears the picture that shows, once.
+  await expect(picture.getByRole("img")).toHaveCount(1);
+  await expect(picture.getByRole("img")).toHaveAccessibleName(/launched/);
+  await launchButton(page).click();
+  await expect(picture).toHaveAttribute("data-chapter-picture-state", "nautilus-shipyard");
+  await expect.poll(() => state.evaluate((layer) => getComputedStyle(layer).opacity)).toBe("0");
+});
+
 test.describe("by keyboard alone", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });

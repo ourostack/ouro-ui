@@ -28,6 +28,15 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* A chapter's picture answers the voyage: its second state fades in over it, slowly, as a scene changes (ChapterPicture). */
+.site-picture-state {
+  transition: opacity 0.9s var(--ouro-ease-in-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-picture-state {
+    transition-duration: var(--ouro-duration-slow);
+  }
+}
 /* The crew turns out when a chapter's work is done (Crew's cheer): each face hops up in turn (fades in, under reduced motion). */
 .site-cheer {
   display: inline-flex;

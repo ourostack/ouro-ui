@@ -18,7 +18,14 @@ export type SceneName =
   | "nautilus"
   | "nautilus-shipyard"
   | "nautilus-library"
-  | "nautilus-squid";
+  | "nautilus-squid"
+  | "nautilus-shipyard-afloat"
+  | "nautilus-library-planned"
+  | "nautilus-squid-free"
+  | "nautilus-porthole"
+  | "nautilus-porthole-free"
+  | "nautilus-organ"
+  | "nautilus-organ-playing";
 
 export interface Scene {
   /** What the picture shows, for a screen reader: the friends in it and what they are up to. */
@@ -159,6 +166,87 @@ export const SCENES: Record<SceneName, Scene> = {
     night: {
       phoneHeight: 512,
       alt: "In the Nautilus's great saloon at night, lit by its brass wall lamps, a softly glowing giant squid rests one huge, gentle eye against the oval window, while a small coral robot in a yellow raincoat stands on the sofa's back with its mitten on the glass, a faceless glass person in a navy coat watches calmly from behind the sofa, and Ouro, a smiling emerald snake curled into an O, looks on from the sofa's arm.",
+    },
+  },
+  // The chapter pictures' second states, which the page cross-fades to as the voyage goes: each is its chapter's picture
+  // with only what changed redrawn, so nothing else moves when it fades in.
+  "nautilus-shipyard-afloat": {
+    alt: "The same hidden cove at dawn, the Nautilus launched: she floats on the calm water out by the sea arch, the slipway's trestles stand empty, the small amber robot in goggles stands on one with its hammer at its side to watch her go, the teal robot works the bellows at the brazier, the glass person in the charcoal coat looks on, and Ouro dozes on his coil of rope.",
+    sky: ["#503f29", "#4a3d30", "#554e49", "#bfc5de", "#4e4f50"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "The same hidden cove at night under the full moon, the Nautilus launched: she floats out by the sea arch with her wheelhouse windows lit amber, the slipway's trestles stand empty, the small amber robot stands on one to watch her go, the teal robot works the bellows at the glowing brazier, the glass person looks on, and Ouro dozes on his coil of rope.",
+    },
+  },
+  "nautilus-library-planned": {
+    alt: "The Nautilus's walnut library aisle with the voyage planned: the glass person in the green velvet jacket has the atlas open on their lap at a sea chart with a dotted red route across it, the small sea-blue robot holds the globe with the same red route winding round it, the lilac robot carries a rolled chart down the ladder, and Ouro watches from the chair's arm.",
+    sky: ["#431a0c", "#311006", "#290a02", "#2c0e06", "#3e190b"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "The Nautilus's library aisle at night, lit by a single reading lamp, with the voyage planned: the atlas lies open on the glass person's lap at a sea chart with a dotted red route, the sea-blue robot holds the globe with the same route round it, the lilac robot carries a chart down the ladder, and Ouro watches from the chair's arm.",
+    },
+  },
+  "nautilus-squid-free": {
+    alt: "The Nautilus's great saloon after the squid has let go: the oval window shows only open blue-green sea, a shoal of silver fish and a last cloud of ink far off, while the small coral robot in the yellow raincoat keeps its mitten up to the glass, the glass person in the navy coat watches from behind the sofa, and Ouro looks on from the sofa's arm.",
+    sky: ["#1f0c09", "#240c07", "#270f0b", "#29100a", "#27110c"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "The Nautilus's great saloon at night after the squid has let go: the oval window shows only the dark night sea and a last cloud of ink far off, while the small coral robot in the yellow raincoat keeps its mitten up to the glass, the glass person watches from behind the sofa, and Ouro looks on from the sofa's arm.",
+    },
+  },
+  // The encounter's porthole: the sea outside the glass, of which the page shows the centre circle inside its brass ring.
+  "nautilus-porthole": {
+    alt: "Through the porthole glass, a giant rose-coloured squid holds fast to the hull, one big, gentle eye peering in and two tentacle tips curled against the glass, in clear blue-green water with shafts of light from above.",
+    sky: ["#0e809d", "#63e1ee", "#6f85a2", "#2e6b94", "#036685"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "Through the porthole glass at night, a giant rose-coloured squid holds fast to the hull, lit warm by the ship's lamps, one big, gentle eye peering in and two tentacle tips curled against the glass, in the dark night sea.",
+    },
+  },
+  "nautilus-porthole-free": {
+    alt: "Through the porthole glass, the squid has let go: only a cloud of its ink drifts in the blue-green water, a shoal of silver fish swims by, and far below the squid swims off into the deep.",
+    sky: ["#0e90a8", "#72edf4", "#58e2f1", "#1fb8d6", "#03738c"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "Through the porthole glass at night, the squid has let go: a cloud of its ink drifts in the lamplit dark water, silver fish glint by, and far below the squid swims off, glowing faintly rose.",
+    },
+  },
+  // The saloon's organ, quiet and then playing; the squid comes back to the window to listen.
+  "nautilus-organ": {
+    alt: "In the Nautilus's great saloon, the glass person in the navy coat sits at the walnut pipe organ with one glass hand on the keys, a small lilac robot in a leather apron grips the bellows handle, Ouro waits on top of the organ's case, and the great oval window beside them shows only the empty sea.",
+    sky: ["#1f1211", "#301107", "#5b320f", "#6d3c13", "#331206"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "The Nautilus's great saloon at night, its lamps turned low: the glass person in the navy coat sits at the walnut pipe organ with one glass hand on the keys, a small lilac robot grips the bellows handle, Ouro waits on top of the organ's case, and the great oval window shows only the dark sea.",
+    },
+  },
+  "nautilus-organ-playing": {
+    alt: "The captain plays the Nautilus's great organ: its brass pipes glow warm gold, the small lilac robot pumps the bellows, Ouro listens from the organ's top, and at the great oval window the giant squid has come back, one gentle eye to the glass, to listen.",
+    sky: ["#1f1211", "#301107", "#995712", "#a25f14", "#502107"],
+    height: 1024,
+    phoneHeight: 512,
+    band: 50,
+    night: {
+      phoneHeight: 512,
+      alt: "The captain plays the Nautilus's great organ at night: its glowing brass pipes are the brightest light in the dim saloon, the small lilac robot pumps the bellows, Ouro listens from the organ's top, and at the great oval window the giant squid has come back, one gentle eye to the glass, to listen.",
     },
   },
 };

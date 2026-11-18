@@ -118,7 +118,7 @@ export default function ChapterTwo(): JSX.Element {
         <PlanningMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
           <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
-            <ChapterPicture scene="nautilus-library" className="mb-8 lg:hidden" />
+            <LibraryPicture className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_TWO.number}</p>
             <h2 id="chapter-two-title" className="site-h2 mt-3">
               {CHAPTER_TWO.title}
@@ -159,10 +159,16 @@ function Planning(): JSX.Element {
   const steps = usePlanning();
   return (
     <div className="mt-10 hidden lg:block" data-chapter-planning="">
-      <ChapterPicture scene="nautilus-library" />
+      <LibraryPicture />
       <Steps label={PLANNING.label} steps={steps} />
     </div>
   );
+}
+
+/** The library, until the best route is set: then the atlas lies open at it and the globe shows it too, faded in. */
+function LibraryPicture({ className }: { className?: string }): JSX.Element {
+  const [route] = usePlanning();
+  return <ChapterPicture scene="nautilus-library" state={{ scene: "nautilus-library-planned", shown: route!.done }} {...(className ? { className } : {})} />;
 }
 
 /** The radio, told when the plan is done, so someone new can call. */
