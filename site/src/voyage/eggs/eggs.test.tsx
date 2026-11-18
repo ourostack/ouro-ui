@@ -174,4 +174,19 @@ describe("lost at sea", () => {
     expect(search("   ")).toEqual([]);
     expect(search("e").length).toBe(8);
   });
+
+  it("names the components another kit's name stands for, when two share it", async () => {
+    const was = location.pathname;
+    history.replaceState(null, "", "/docs/dropdown/");
+    try {
+      await renderPage("/docs/dropdown/");
+      const line = page.getByText(/^Looking for a dropdown\?/);
+      await expect.element(line).toHaveTextContent("Looking for a dropdown? Here it's Select or Menu.");
+      expect(line.getByRole("link").elements().map((link) => link.getAttribute("href"))).toEqual(["/docs/select/", "/docs/menu/"]);
+      // The exact name wins over the nearest one.
+      expect(page.getByText(/^Were you looking for/).elements()).toHaveLength(0);
+    } finally {
+      history.replaceState(null, "", was);
+    }
+  });
 });

@@ -7,6 +7,7 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { docsItems } from "../docs/items";
 import { docsPages } from "../docs/pages";
 import { href } from "../paths";
+import { otherNameTargets } from "./other-names";
 
 /** A page someone might have meant: its title and its path on the site. */
 interface Chart {
@@ -94,7 +95,13 @@ export function LostAtSea(): JSX.Element {
     () => null,
   );
   const [query, setQuery] = useState("");
-  const meant = address === null ? undefined : guess(address);
+  // Another kit's name for components (/docs/dropdown/: Select and Menu) says so; else the nearest name, if any.
+  const found0 = address === null ? undefined : otherNameTargets(address);
+  // In the catalog's order, as the sidebar lists them.
+  const order = (name: string) => docsItems.findIndex((item) => item.name === name);
+  const other = found0 && { ...found0, names: [...found0.names].sort((a, b) => order(a) - order(b)) };
+  const meant = address === null || other ? undefined : guess(address);
+  const titled = (name: string) => docsItems.find((item) => item.name === name)!.title;
   const found = search(query);
   return (
     <div className="mx-auto grid max-w-[36rem] justify-items-center gap-5 py-6 text-center sm:py-12">
@@ -111,6 +118,20 @@ export function LostAtSea(): JSX.Element {
       <Text size="lg" tone="muted" className="text-pretty">
         This page has drifted off our charts. It may have moved, or the address has a typo.
       </Text>
+      {other && (
+        <Text>
+          Looking for {other.phrase}? Here it's{" "}
+          {other.names.map((name, at) => (
+            <span key={name}>
+              {at > 0 && (at === other.names.length - 1 ? " or " : ", ")}
+              <a href={href(`/docs/${name}/`)} className="text-primary underline underline-offset-4">
+                {titled(name)}
+              </a>
+            </span>
+          ))}
+          .
+        </Text>
+      )}
       {meant && (
         <Text>
           Were you looking for{" "}

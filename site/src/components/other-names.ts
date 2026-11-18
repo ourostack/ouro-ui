@@ -14,7 +14,7 @@ export const otherNames: Readonly<Record<string, readonly string[]>> = {
   autocomplete: ["a typeahead", "search suggestions"],
   "number-field": ["a stepper", "a number input", "a spin button"],
   slider: ["a range input"],
-  "otp-field": ["a one-time code", "a verification code", "a PIN input"],
+  "otp-field": ["a one-time code", "a verification code", "a PIN input", "an input OTP"],
   "file-field": ["an upload", "a dropzone", "a file input"],
   "image-field": ["a photo upload"],
   "color-field": ["a color picker"],
@@ -97,4 +97,14 @@ export function otherNameHint(found: ReadonlyArray<{ title: string; names: reado
     .sort((a, b) => bare(a).length - bare(b).length)[0];
   if (phrase === undefined) return undefined;
   return `Looking for ${phrase}? Here it's ${either(found.filter((entry) => entry.names.includes(phrase)).map((entry) => entry.title))}.`;
+}
+
+/** A phrase as an address part: "a bottom sheet" is "bottom-sheet". */
+export const slug = (phrase: string): string => bare(phrase).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** The components another kit calls by an address's last part: `/docs/dropdown/` is Select and Menu. */
+export function otherNameTargets(path: string): { phrase: string; names: string[] } | undefined {
+  const last = slug(path.split("/").filter(Boolean).at(-1) ?? "");
+  const found = Object.entries(otherNames).flatMap(([name, phrases]) => phrases.filter((phrase) => slug(phrase) === last).map((phrase) => ({ name, phrase })));
+  return last === "" || found.length === 0 ? undefined : { phrase: found[0]!.phrase, names: found.map((entry) => entry.name) };
 }

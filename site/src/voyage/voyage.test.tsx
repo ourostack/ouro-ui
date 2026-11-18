@@ -139,6 +139,12 @@ describe("the old /voyage/ address", () => {
     expect(html).toMatch(/<a href="\/">[^<]+<\/a>/);
     expect(html.startsWith("<!doctype html>")).toBe(true);
   });
+
+  it("says why a guessed address sends you on, when it is another kit's name", () => {
+    expect(redirectPage("/docs/dialog/", "A modal is called Dialog in Ouro HX.")).toContain(
+      '<p>A modal is called Dialog in Ouro HX. Its page is <a href="/docs/dialog/">https://ui.ouroboros.bot/docs/dialog/</a>.</p>',
+    );
+  });
 });
 
 describe("the header and the theme section", () => {

@@ -572,10 +572,16 @@ describe("docs", () => {
     expect(guessedAddresses).toContainEqual({ from: "/docs/A2UISurface/", to: "/docs/a2ui-surface/" });
     expect(guessedAddresses).toContainEqual({ from: "/docs/ouro-ax/", to: "/docs/ax/" });
     expect(guessedAddresses).toContainEqual({ from: "/docs/composed/", to: "/docs/composed-ui/" });
+    // Another kit's name for one component, with a line that says so for an agent that reads the page.
+    expect(guessedAddresses).toContainEqual({ from: "/docs/modal/", to: "/docs/dialog/", note: "A modal is called Dialog in Ouro HX." });
+    expect(guessedAddresses).toContainEqual({ from: "/docs/input-otp/", to: "/docs/otp-field/", note: "shadcn's InputOTP is called OtpField in Ouro HX." });
+    // A name two components share is left to the lost page, which names both.
+    expect(guessedAddresses.some(({ from }) => from === "/docs/dropdown/")).toBe(false);
     for (const { from, to } of guessedAddresses) {
       expect(pages.has(to), `${from} goes to ${to}, a page`).toBe(true);
       // A case-insensitive file system would write the redirect over the page itself.
       expect([...pages].some((path) => path.toLowerCase() === from.toLowerCase()), `${from} is no page in any letter case`).toBe(false);
+      expect(guessedAddresses.filter((other) => other.from.toLowerCase() === from.toLowerCase()), `${from} is no other redirect in any letter case`).toHaveLength(1);
     }
     expect(redirects).toEqual(expect.arrayContaining(guessedAddresses));
   });

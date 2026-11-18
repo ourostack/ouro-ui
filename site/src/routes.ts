@@ -21,7 +21,7 @@ export interface Route {
  * (`/docs/A2UISurface/` for `/docs/a2ui-surface/`), except where the two differ only in letter case, which a
  * case-insensitive file system would write over. The aliases are the names agents tried in the model reviews.
  */
-export const guessedAddresses: Array<{ from: string; to: string }> = [
+export const guessedAddresses: Array<{ from: string; to: string; note?: string }> = [
   ...[...docsItems.map(({ name, title }) => ({ name, title })), ...pageIndex.filter((page) => page.kind === "export")]
     .filter(({ name, title }) => /^[A-Za-z][A-Za-z0-9]*$/.test(title) && title.toLowerCase() !== name.toLowerCase())
     .map(({ name, title }) => ({ from: `/docs/${title}/`, to: `/docs/${name}/` })),
@@ -29,10 +29,31 @@ export const guessedAddresses: Array<{ from: string; to: string }> = [
   { from: "/docs/ax-overview/", to: "/docs/ax/" },
   { from: "/docs/ouro-hx/", to: "/docs/" },
   { from: "/docs/composed/", to: "/docs/composed-ui/" },
+  // The names agents type for a component they know from elsewhere, with a line that says so for one that reads the
+  // page: shadcn/ui's own names (docs/switching-from-shadcn) and a few every kit uses. Any other kit's name gets the lost
+  // page, which names the component (lost-at-sea.tsx); a redirect is only for a name that means one component.
+  ...(
+    [
+      ["modal", "dialog", "A modal"],
+      ["drawer", "sheet", "shadcn's Drawer"],
+      ["bottom-sheet", "sheet", "A bottom sheet"],
+      ["alert-dialog", "confirm-dialog", "shadcn's AlertDialog"],
+      ["dropdown-menu", "menu", "shadcn's DropdownMenu"],
+      ["context-menu", "menu", "shadcn's ContextMenu"],
+      ["input", "text-field", "shadcn's Input"],
+      ["input-otp", "otp-field", "shadcn's InputOTP"],
+      ["label", "field", "shadcn's Label"],
+      ["data-table", "table", "shadcn's data table"],
+      ["sonner", "toaster", "shadcn's Sonner"],
+      ["snackbar", "toaster", "A snackbar"],
+      ["loader", "spinner", "A loader"],
+      ["divider", "separator", "A divider"],
+    ] as const
+  ).map(([from, name, said]) => ({ from: `/docs/${from}/`, to: `/docs/${name}/`, note: `${said} is called ${docsItems.find((item) => item.name === name)!.title} in Ouro HX.` })),
 ];
 
 /** Old and guessed addresses that send the reader on: a static page with a refresh, a canonical link and a plain link (head.ts). */
-export const redirects: Array<{ from: string; to: string }> = [{ from: "/voyage/", to: "/" }, ...guessedAddresses];
+export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, ...guessedAddresses];
 
 const DESCRIPTION = `${VOYAGE_HERO.title.join(" ")} ${VOYAGE_HERO.subline}`;
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
