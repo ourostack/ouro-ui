@@ -52,6 +52,10 @@ const layoutMethods = [
     [Document.prototype, "elementFromPoint"],
     [Document.prototype, "elementsFromPoint"],
 ];
+/** A chat app's frame meter's placeholders: one in view makes a `blankFramesInset` frame. */
+const PLACEHOLDERS = "[data-ouro='skeleton'], [aria-busy='true'] [data-ouro='skeleton']";
+/** A move of the list under this many px between two frames is none, as the frame meter counts. */
+const MOVE_PX = 0.5;
 /** The value at the 95th percentile of `values`, which are not empty. */
 function p95(values) {
     const sorted = [...values].sort((a, b) => a - b);
@@ -141,30 +145,37 @@ function install() {
             own = false;
         }
     }
-    /** The list being watched now: a selector finds it again, as the page may have put another in its place. */
+    /**
+     * The list being watched now: a selector finds it again, as the page may have put another in its place. A list taken off the
+     * page is none, however it was given.
+     */
     function listOf(options) {
-        return typeof options.scroller === "string" ? document.querySelector(options.scroller) : options.scroller;
+        if (typeof options.scroller === "string")
+            return document.querySelector(options.scroller);
+        return options.scroller.isConnected ? options.scroller : null;
     }
     // Input the probe can see: trusted wheel events, from the OS or the DevTools Input domain alike.
     const wheels = [];
-    const motions = [];
+    /** Input to motion is worked out when the case stops, from every wheel turn and frame, as the frame meter works it out. */
+    const turns = [];
+    const seen = [];
     addEventListener("wheel", (event) => {
-        const list = watching === undefined ? null : listOf(watching);
-        if (list === null)
+        if (watching === undefined)
             return;
+        // Every wheel event while watching, a list on the page or none, as the frame meter takes them: one in a frame with no list
+        // is at its end.
+        const list = listOf(watching);
         // Lines and pages, which a mouse wheel may send, as pixels.
-        const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? quietly(() => list.clientHeight) : 1);
+        const page = event.deltaMode === 2 && list !== null ? quietly(() => list.clientHeight) : 1;
+        const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : page);
         inputSinceSample += deltaY;
         wheelInputs += 1;
         // The event's own time, or when it was seen where an engine gives none or one in the future.
         const now = performance.now();
         const at = event.timeStamp > 0 && event.timeStamp <= now ? event.timeStamp : now;
-        // Where the list was in the last frame sampled, before this input: an engine that scrolls off the main thread may have
-        // moved it already by the time the event is dispatched.
-        const scrollTop = sampledScrollTop ?? quietly(() => list.scrollTop);
-        wheels.push({ at, deltaY, scrollTop, resolved: false });
+        wheels.push({ at, deltaY });
         if (deltaY !== 0)
-            motions.push({ at, frame: frames, deltaY, scrollTop });
+            turns.push({ at, direction: Math.sign(deltaY) });
     }, { capture: true, passive: true });
     // Frames: a requestAnimationFrame loop marks each frame, and a task posted from it runs once the
     // engine has laid out and painted that frame, which is where the probe samples what the reader saw.
@@ -187,15 +198,10 @@ function install() {
     let anchorMovePx = 0;
     let blankFrames = 0;
     let blankFramesInset = 0;
-    let deadInput = 0;
     let wheelInputs = 0;
     let quietFrames = 0;
     /** The gaps between frames while watching, and how long each wheel event took to move the list, in ms and in frames. */
     const gaps = [];
-    /** Where the list was in the last frame sampled: what a wheel event's movement is measured from. */
-    let sampledScrollTop;
-    const toMotionMs = [];
-    const toMotionFrames = [];
     // The loop runs only while there is something to do (a case watching, or a paint someone waits for), so a page with the probe
     // loaded and nothing watched asks for no frames, and idles as it would without it.
     let looping = false;
@@ -301,11 +307,17 @@ function install() {
         }
         return best;
     }
-    /** Measures the frame just painted; true when the reader's row moved. A frame with no list in the page measures nothing. */
+    /** Measures the frame just painted; true when the reader's row moved. A frame with no list in the page is a blank one. */
     function sample(options) {
         const list = listOf(options);
-        if (list === null)
+        if (list === null) {
+            blankFramesInset += 1;
+            seen.push({ at: lastFrameAt, top: 0, max: 0 });
+            // As the meter does, the list that comes back is followed from its first frame: no reader's row, and no input, carry over.
+            anchor = undefined;
+            inputSinceSample = 0;
             return false;
+        }
         const box = list.getBoundingClientRect();
         const rows = rowBoxes(list, options.rows, box);
         const boxOf = new Map(rows);
@@ -350,34 +362,23 @@ function install() {
         const next = middleRow(rows, box);
         anchor = next?.[0];
         anchorTop = next?.[1] ?? 0;
-        // Input to motion: from a wheel event to the start of the first frame whose scroll moved its way.
-        const scrollTop = list.scrollTop;
-        for (let index = motions.length - 1; index >= 0; index--) {
-            const motion = motions[index];
-            if (Math.sign(scrollTop - motion.scrollTop) !== Math.sign(motion.deltaY))
-                continue;
-            toMotionMs.push(Math.max(0, lastFrameAt - motion.at));
-            toMotionFrames.push(frames - motion.frame);
-            motions.splice(index, 1);
-        }
-        // Dead input: a wheel event that has moved nothing for 100 ms, away from the list's ends.
-        const atEnd = scrollTop <= 0 || scrollTop >= list.scrollHeight - list.clientHeight - 1;
-        for (const wheel of wheels) {
-            if (wheel.resolved)
-                continue;
-            if (scrollTop !== wheel.scrollTop || atEnd)
-                wheel.resolved = true;
-            else if (now - wheel.at >= DEAD_INPUT_MS) {
-                wheel.resolved = true;
-                deadInput += 1;
-            }
-        }
-        const keep = wheels.filter((wheel) => !wheel.resolved || now - wheel.at <= INPUT_WINDOW_MS);
+        seen.push({ at: lastFrameAt, top: list.scrollTop, max: list.scrollHeight - list.clientHeight });
+        const keep = wheels.filter((wheel) => now - wheel.at <= INPUT_WINDOW_MS);
         wheels.length = 0;
         wheels.push(...keep);
-        sampledScrollTop = scrollTop;
-        // Blank frames, only while the list holds rows. Read from the rows' boxes, not hit testing: a list that turns off
-        // pointer events while it scrolls still shows its rows.
+        // Blank frames, as a chat app's frame meter counts them (blankFramesInset): no row with height in the view less 40 px at its
+        // top and bottom, or a placeholder anywhere in it, in any frame, rows or none. Read from the rows' boxes, not hit testing: a
+        // list that turns off pointer events while it scrolls still shows its rows.
+        const inTop = box.top + BLANK_INSET_PX;
+        const inBottom = box.bottom - BLANK_INSET_PX;
+        const content = rows.some(([, rect]) => rect.height > 0 && rect.bottom > inTop && rect.top < inBottom);
+        const placeholder = [...list.querySelectorAll(options.skeleton ?? PLACEHOLDERS)].some((element) => {
+            const rect = element.getBoundingClientRect();
+            return rect.height > 0 && rect.bottom > box.top && rect.top < box.bottom;
+        });
+        if (!content || placeholder)
+            blankFramesInset += 1;
+        // The first gate's blank frames, while the list holds rows.
         if (rows.length > 0) {
             const x = box.left + box.width / 2;
             let blank = true;
@@ -387,11 +388,6 @@ function install() {
             }
             if (blank)
                 blankFrames += 1;
-            const inset = { top: box.top + BLANK_INSET_PX, bottom: box.bottom - BLANK_INSET_PX, left: box.left + BLANK_INSET_PX, right: box.right - BLANK_INSET_PX };
-            const inside = (rect) => rect.bottom > inset.top && rect.top < inset.bottom && rect.right > inset.left && rect.left < inset.right;
-            const placeholder = [...list.querySelectorAll(options.skeleton ?? '[data-ouro="skeleton"]')].some((element) => inside(element.getBoundingClientRect()));
-            if (placeholder || !rows.some(([, rect]) => inside(rect)))
-                blankFramesInset += 1;
         }
         return moved;
     }
@@ -402,22 +398,60 @@ function install() {
             over16Share: gaps.length === 0 ? 0 : Math.round((gaps.filter((gap) => gap > FRAME_60HZ_MS).length / gaps.length) * 1000) / 1000,
         };
         if (gaps.length >= REFRESH_GAPS) {
-            const refresh = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
+            // The median as the frame meter takes it: the lower middle of an even count.
+            const refresh = [...gaps].sort((a, b) => a - b)[Math.ceil(gaps.length / 2) - 1];
             measures.refreshMs = Math.round(refresh * 10) / 10;
             measures.lateFrames = gaps.filter((gap) => gap >= LATE_REFRESHES * refresh).length;
         }
         return measures;
     }
-    /** How long wheel events took to move the list, at the 95th percentile and at most, and how many never moved it. */
+    /**
+     * Input to motion and dead input, worked out as the frame meter works them out. Each wheel turn is timed from its own time to
+     * the start of the first frame, from the first that began after it, whose scroll moved its way from the frame before: at the
+     * 95th percentile and at most, in ms and in frames counted from that first frame. One that never moved the list counts until the
+     * last frame in ms, and as never in frames, which leaves the frames out once it reaches them. One no frame began after counts
+     * in none, and one at the end of the list it turned toward, in the frame before, counts only as `inputAtEdge`. Dead input
+     * moved the list 100 ms or more after it came, or never.
+     */
     function inputToMotion() {
-        const measures = { inputNeverMoved: motions.length };
-        if (toMotionMs.length === 0)
-            return measures;
-        measures.inputToMotionP95Ms = Math.round(p95(toMotionMs));
-        measures.inputToMotionMaxMs = Math.round(Math.max(...toMotionMs));
-        measures.inputToMotionP95Frames = p95(toMotionFrames);
-        measures.inputToMotionMaxFrames = Math.max(...toMotionFrames);
-        return measures;
+        const ms = [];
+        const counted = [];
+        let inputAtEdge = 0;
+        let inputNeverMoved = 0;
+        let dead = 0;
+        for (const turn of turns) {
+            const first = seen.findIndex((frame) => frame.at >= turn.at);
+            if (first < 0)
+                continue;
+            const before = seen[first - 1] ?? seen[first];
+            if ((turn.direction < 0 && before.top <= MOVE_PX) || (turn.direction > 0 && before.top >= before.max - MOVE_PX)) {
+                inputAtEdge += 1;
+                continue;
+            }
+            let moved = -1;
+            for (let index = first; index < seen.length && moved < 0; index++) {
+                const step = seen[index].top - (seen[index - 1] ?? before).top;
+                if (Math.sign(step) === turn.direction && Math.abs(step) >= MOVE_PX)
+                    moved = index;
+            }
+            const took = Math.max(0, seen[moved < 0 ? seen.length - 1 : moved].at - turn.at);
+            ms.push(took);
+            counted.push(moved < 0 ? Infinity : moved - first + 1);
+            if (moved < 0)
+                inputNeverMoved += 1;
+            if (moved < 0 || took >= DEAD_INPUT_MS)
+                dead += 1;
+        }
+        const measures = { inputNeverMoved, inputAtEdge };
+        if (ms.length === 0)
+            return [measures, dead];
+        measures.inputToMotionP95Ms = Math.round(p95(ms));
+        measures.inputToMotionMaxMs = Math.round(Math.max(...ms));
+        if (p95(counted) !== Infinity)
+            measures.inputToMotionP95Frames = p95(counted);
+        if (Math.max(...counted) !== Infinity)
+            measures.inputToMotionMaxFrames = Math.max(...counted);
+        return [measures, dead];
     }
     const feel = {
         version: 1,
@@ -425,9 +459,9 @@ function install() {
             watching = options;
             layoutReads = forcedLayouts = readsThisFrame = mostReadsInAFrame = 0;
             jumps = jumpMaxPx = jumpsStrict = jumpStrictMaxPx = shifts = anchorShiftPx = drift = anchorMovePx = 0;
-            blankFrames = blankFramesInset = deadInput = wheelInputs = frames = added = 0;
+            blankFrames = blankFramesInset = wheelInputs = frames = added = 0;
             longestFrame = 0;
-            gaps.length = motions.length = toMotionMs.length = toMotionFrames.length = 0;
+            gaps.length = turns.length = 0;
             inputSinceSample = 0;
             wheels.length = 0;
             const list = listOf(options);
@@ -435,8 +469,11 @@ function install() {
                 const box = list.getBoundingClientRect();
                 return middleRow(rowBoxes(list, options.rows, box), box);
             });
-            // The first wheel event's movement is measured from where the list is now, before any frame is sampled.
-            sampledScrollTop = list === null ? undefined : quietly(() => list.scrollTop);
+            // Where the list is now stands for the frame before the first, which the meter, always running, would have: a wheel event
+            // before any frame is sampled is measured from it. Its time is before every wheel's, so it is never a wheel's first frame.
+            const [top, max] = list === null ? [0, 0] : quietly(() => [list.scrollTop, list.scrollHeight - list.clientHeight]);
+            seen.length = 0;
+            seen.push({ at: -Infinity, top, max });
             anchor = start?.[0];
             anchorTop = start?.[1] ?? 0;
             writePending();
@@ -462,6 +499,7 @@ function install() {
             return true;
         },
         stop(settled) {
+            const [motion, deadInput] = inputToMotion();
             const result = {
                 case: watching?.case ?? "",
                 settled,
@@ -484,7 +522,7 @@ function install() {
                     rowsMounted: added,
                     longestFrameMs: Math.round(longestFrame),
                     ...frameTimes(),
-                    ...inputToMotion(),
+                    ...motion,
                 },
                 userAgent: navigator.userAgent,
             };

@@ -77,7 +77,7 @@ test("Ouro Feel's data is the same for the same seed, and made up", () => {
 });
 
 test("Ouro Feel's cases each name a component and limit only measures the probe takes", () => {
-  const measured = new Set(["frames", "blankFrames", "blankFramesInset", "jumps", "jumpMaxPx", "jumpsStrict", "jumpStrictMaxPx", "shifts", "anchorShiftPx", "anchorMovePx", "deadInput", "wheelInputs", "forcedLayouts", "layoutReads", "layoutReadsPerFrame", "rowsMounted", "longestFrameMs", "refreshMs", "lateFrames", "longFrames", "over16Share", "inputToMotionP95Ms", "inputToMotionMaxMs", "inputToMotionP95Frames", "inputToMotionMaxFrames", "inputNeverMoved"]);
+  const measured = new Set(["frames", "blankFrames", "blankFramesInset", "jumps", "jumpMaxPx", "jumpsStrict", "jumpStrictMaxPx", "shifts", "anchorShiftPx", "anchorMovePx", "deadInput", "wheelInputs", "forcedLayouts", "layoutReads", "layoutReadsPerFrame", "rowsMounted", "longestFrameMs", "refreshMs", "lateFrames", "longFrames", "over16Share", "inputToMotionP95Ms", "inputToMotionMaxMs", "inputToMotionP95Frames", "inputToMotionMaxFrames", "inputNeverMoved", "inputAtEdge"]);
   for (const { name, component, limits } of cases) {
     assert.match(name, /^[a-z]+(-[a-z]+)*$/);
     assert.match(component, /^[a-z]+(-[a-z]+)*$/);
@@ -418,12 +418,57 @@ test("Ouro Feel's probe times each wheel event to the first frame that moved the
       for (let frame = 0; frame < 10; frame++) await ouroFeel.painted();
       return ouroFeel.stop(true).measures;
     });
-    assert.equal(measures.inputNeverMoved, 1);
+    // The wheel up at the top, which the list cannot move that way, is neither a motion nor dead input.
+    assert.equal(measures.inputAtEdge, 1);
+    assert.equal(measures.inputNeverMoved, 0);
     // The wheel that moved the list is no dead input, though the engine moved the list before it dispatched the event.
     assert.equal(measures.deadInput, 0);
     assert.ok(measures.inputToMotionMaxFrames >= 1, `${measures.inputToMotionMaxFrames} frames`);
     assert.ok(measures.inputToMotionMaxMs >= 0 && measures.inputToMotionMaxMs < 1000, `${measures.inputToMotionMaxMs} ms`);
     assert.equal(measures.inputToMotionP95Ms, measures.inputToMotionMaxMs);
+    // A list that cannot scroll by the wheel (overflow hidden), though it has room to: the wheel never moves it.
+    await page.evaluate(() => {
+      const { document, ouroFeel } = globalThis;
+      document.getElementById("list").style.overflow = "hidden";
+      ouroFeel.watch({ case: "stuck", scroller: "#list", rows: ".row" });
+    });
+    await page.mouse.wheel(0, 200);
+    const stuck = await page.evaluate(async () => {
+      const { ouroFeel } = globalThis;
+      for (let frame = 0; frame < 10; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(stuck.inputNeverMoved, 1);
+    assert.equal(stuck.deadInput, 1);
+    // Timed to the last frame in ms, and never in frames, as the frame meter takes them.
+    assert.ok(stuck.inputToMotionMaxMs > 0);
+    assert.equal(stuck.inputToMotionMaxFrames, undefined);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe counts a blank frame as a chat app's frame meter does: no row with height in the view less 40 px at its top and bottom, or a placeholder anywhere in view, rows or none", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.addScriptTag({ content: probe });
+    const blank = (content) =>
+      page.evaluate(async (content) => {
+        const { document, ouroFeel } = globalThis;
+        document.body.innerHTML = `<div id="list" style="height:400px;width:300px;overflow:auto">${content}</div>`;
+        ouroFeel.watch({ case: "blank", scroller: "#list", rows: ".row" });
+        for (let frame = 0; frame < 5; frame++) await ouroFeel.painted();
+        const { frames, blankFramesInset } = ouroFeel.stop(true).measures;
+        return blankFramesInset === frames ? "blank" : blankFramesInset === 0 ? "content" : "mixed";
+      }, content);
+    // No rows at all: nothing to read.
+    assert.equal(await blank(""), "blank");
+    // A narrow row in the middle of the view, away from its sides: content, as only the top and bottom are inset.
+    assert.equal(await blank(`<div style="height:180px"></div><div class="row" style="height:40px;width:20px"></div>`), "content");
+    // A placeholder in the view's top 40 px, above the rows: still loading.
+    assert.equal(await blank(`<div data-ouro="skeleton" style="height:20px"></div>${'<div class="row" style="height:48px"></div>'.repeat(10)}`), "blank");
   } finally {
     await browser.close();
   }
@@ -456,6 +501,147 @@ test("Ouro Feel's probe follows the reader's row by its id, or the attribute wat
       );
       assert.equal(measures.jumps, 1, `${name}, ${gap} px`);
       assert.equal(measures.anchorShiftPx, gap, `${name}, ${gap} px`);
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe leaves out a wheel event no frame began after, as a chat app's frame meter does", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto">${Array.from({ length: 60 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, WheelEvent } = globalThis;
+      ouroFeel.watch({ case: "late wheel", scroller: "#list", rows: ".row" });
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      // A wheel down the list, then the case stops in the same task, before any frame begins after it.
+      document.getElementById("list").dispatchEvent(new WheelEvent("wheel", { deltaY: 100, bubbles: true }));
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.wheelInputs, 1);
+    assert.equal(measures.inputNeverMoved, 0);
+    assert.equal(measures.deadInput, 0);
+    assert.equal(measures.inputToMotionMaxMs, undefined);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe counts a wheel event's frames from the first frame that began after it, as a chat app's frame meter does", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto">${Array.from({ length: 60 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, requestAnimationFrame, WheelEvent } = globalThis;
+      const list = document.getElementById("list");
+      ouroFeel.watch({ case: "wheel in a frame", scroller: list, rows: ".row" });
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      // A wheel down the list after this frame began, so the next frame is the first after it, and that frame moves the list.
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      list.dispatchEvent(new WheelEvent("wheel", { deltaY: 100, bubbles: true }));
+      await ouroFeel.painted();
+      list.scrollTop += 100;
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.inputNeverMoved, 0);
+    assert.equal(measures.inputToMotionMaxFrames, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe times a wheel event dispatched after the frame it came before, to that frame's move, as a chat app's frame meter does", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto">${Array.from({ length: 60 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, requestAnimationFrame, WheelEvent } = globalThis;
+      const list = document.getElementById("list");
+      ouroFeel.watch({ case: "late dispatch", scroller: list, rows: ".row" });
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      // The list moves before the next frame begins, as an engine that scrolls off the main thread moves it, so the meter (which
+      // reads the scroll as the frame begins) and the probe (once it is painted) both see the move in that frame. The wheel that
+      // moved it is dispatched only after the frame is sampled, with its own time from before the frame began.
+      list.scrollTop += 100;
+      const began = await new Promise((resolve) => requestAnimationFrame(resolve));
+      await ouroFeel.painted();
+      const wheel = new WheelEvent("wheel", { deltaY: 100, bubbles: true });
+      Object.defineProperty(wheel, "timeStamp", { value: began - 1 });
+      list.dispatchEvent(wheel);
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.inputNeverMoved, 0);
+    assert.equal(measures.deadInput, 0);
+    assert.equal(measures.inputToMotionMaxFrames, 1);
+    assert.equal(measures.inputToMotionMaxMs, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe counts a wheel event while no list is on the page as at the list's end, as a chat app's frame meter does", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<main></main>`);
+    await page.addScriptTag({ content: probe });
+    const measures = await page.evaluate(async () => {
+      const { document, ouroFeel, WheelEvent } = globalThis;
+      ouroFeel.watch({ case: "no list", scroller: "#list", rows: ".row" });
+      for (let frame = 0; frame < 2; frame++) await ouroFeel.painted();
+      document.querySelector("main").dispatchEvent(new WheelEvent("wheel", { deltaY: 100, bubbles: true }));
+      for (let frame = 0; frame < 2; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.wheelInputs, 1);
+    assert.equal(measures.inputAtEdge, 1);
+    assert.equal(measures.inputNeverMoved, 0);
+    assert.equal(measures.deadInput, 0);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe judges no jump on the frame a list comes back to the page, after a wheel turned while it was gone", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<main><div id="list" style="height:400px;overflow:auto">${Array.from({ length: 40 }, (_, i) => `<div class="row" id="r${i}" style="height:48px">Row ${i}</div>`).join("")}</div></main>`);
+    await page.addScriptTag({ content: probe });
+    // The list given as a selector, and as the element itself.
+    for (const byElement of [false, true]) {
+    const measures = await page.evaluate(async (byElement) => {
+      const { document, ouroFeel, WheelEvent } = globalThis;
+      const main = document.querySelector("main");
+      const list = document.getElementById("list");
+      ouroFeel.watch({ case: "list away", scroller: byElement ? list : "#list", rows: ".row" });
+      for (let frame = 0; frame < 2; frame++) await ouroFeel.painted();
+      list.remove();
+      await ouroFeel.painted();
+      main.dispatchEvent(new WheelEvent("wheel", { deltaY: 150, bubbles: true }));
+      await ouroFeel.painted();
+      main.append(list);
+      for (let frame = 0; frame < 3; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    }, byElement);
+    assert.equal(measures.wheelInputs, 1, `by element: ${byElement}`);
+    assert.equal(measures.jumps, 0, `by element: ${byElement}`);
+    assert.equal(measures.shifts, 0, `by element: ${byElement}`);
+    assert.equal(measures.anchorMovePx, 0, `by element: ${byElement}`);
     }
   } finally {
     await browser.close();
