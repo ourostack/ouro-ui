@@ -83,7 +83,7 @@ export const YARD = {
   opening: { name: "Captain Nemo", text: "Hull first, then the rest. Put the jobs in order." },
   built: {
     hull: { name: "Ned Land", text: "Two hulls, one in the other. She is strong now." },
-    windows: { name: "Professor Aronnax", text: "Now we can watch the fish from the saloon!" },
+    windows: { name: "Professor Aronnax", text: "Now we can watch the fish from the saloon." },
     engine: { name: "Captain Nemo", text: "All by electricity. No coal and no smoke." },
     lantern: { name: "Ned Land", text: "A lamp for the dark. Good." },
     organ: { name: "Conseil", text: "The organ is in tune. You may play." },
@@ -99,7 +99,7 @@ export const YARD = {
     organ: { name: "Conseil", text: "The organ cannot float on its own, I think." },
   },
   inOrder: { name: "Conseil", text: "Hull first. A good plan. I have sorted it." },
-  ready: { name: "Captain Nemo", text: "Every job is done. Press Launch!" },
+  ready: { name: "Captain Nemo", text: "Every job is done. She is ready to launch." },
   launch: { name: "Ned Land", text: "Hurrah! Look at her float!" },
   again: { name: "Conseil", text: "Back to the first plank, then." },
 } as const satisfies Record<string, unknown>;
@@ -160,7 +160,7 @@ export const SIGN = {
   /** What the pending line on the list waits for. */
   waiting: (wants: readonly ("trade" | "oath")[]) => (wants.length === 2 ? "Waiting for your trade and the oath." : wants[0] === "trade" ? "Waiting for your trade." : "Waiting for the oath."),
   /** The one aboard with that name, when you sign as them. */
-  mine: (name: CrewName): CrewLine => ({ name, text: "That is my name! Sign your own." }),
+  mine: (name: CrewName): CrewLine => ({ name, text: "That name is taken, I am afraid. By me." }),
 } as const satisfies Record<string, unknown>;
 
 /** What each composition's Code sheet says: which part is Ouro HX's and which is this site's own. */

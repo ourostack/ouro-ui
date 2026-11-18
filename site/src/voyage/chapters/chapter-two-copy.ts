@@ -22,7 +22,7 @@ export const CHAPTER_TWO = {
   title: "Plan the voyage",
   intro: "The ship is built. Now plan the trip: where she goes, and when she sails.",
   /** Over the course line from Chapter I into this one. */
-  handoff: "She floats! Now, where to?",
+  handoff: "She floats. Now, where to?",
 } as const;
 
 /** One port of call: where it is (degrees north and east; south and west are negative) and why we go. */
@@ -80,21 +80,21 @@ export const ROUTE = {
   opening: { name: "Captain Nemo", text: "Pick our route. The map will tell us how far it is." },
   shortest: {
     name: "Conseil",
-    text: claim("That is the shortest way! I tried every order to be sure.", {
+    text: claim("That is the shortest way. I tried every order to be sure.", {
       source: { test: "site/src/voyage/chapters/chapter-two.test.tsx::Chapter II's route > knows the shortest way, of every order the ports can go in" },
       verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::Chapter II's route > knows the shortest way, of every order the ports can go in" },
     }),
   },
   book: {
     name: "Professor Aronnax",
-    text: claim("Ha! That is the route from the first story, in 1870.", {
+    text: claim("Now that is the route from the book, in 1870.", {
       source: [{ spec: "https://www.gutenberg.org/ebooks/164" }, { test: "site/src/voyage/chapters/chapter-two.test.tsx::Chapter II's route > follows the book: Crespo, the tunnel, Vigo, Atlantis, the pole" }],
       verify: [{ urlOk: "https://www.gutenberg.org/ebooks/164" }, { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::Chapter II's route > follows the book: Crespo, the tunnel, Vigo, Atlantis, the pole" }],
     }),
   },
-  longer: (extra: string): CrewLine => ({ name: "Conseil", text: `Not bad! But I know a way that is ${extra} leagues shorter.` }),
+  longer: (extra: string): CrewLine => ({ name: "Conseil", text: `Not bad. But I know a way that is ${extra} leagues shorter.` }),
   first: (port: string): CrewLine => ({ name: "Ned Land", text: `${port} first? Fine by me. I will pack a snack.` }),
-  day: (day: string): CrewLine => ({ name: "Captain Nemo", text: `We sail on ${day}. Do not be late!` }),
+  day: (day: string): CrewLine => ({ name: "Captain Nemo", text: `We sail on ${day}. Do not be late.` }),
   leg: (port: string, leagues: string): CrewLine => ({ name: "Professor Aronnax", text: `${leagues} leagues to ${port}.` }),
 } as const satisfies Record<string, unknown>;
 
@@ -117,23 +117,23 @@ export interface Specimen {
   depth: number;
   /** Where to read about it. */
   href: string;
-  /** The scientist's fun fact, in the hover card. */
+  /** The scientist's note, in the hover card. */
   note: string;
 }
 
 /** What the specimen book holds before you add to it: creatures the story meets. */
 export const SPECIMENS: readonly Specimen[] = [
   { id: "argonaut", name: "Argonaut", kind: "mollusc", depth: 0, href: "https://en.wikipedia.org/wiki/Argonaut_(animal)", note: "A whole fleet of them sailed past in shells as thin as paper." },
-  { id: "dugong", name: "Dugong", kind: "mammal", depth: 4, href: "https://en.wikipedia.org/wiki/Dugong", note: "The harpooner met one. It was bigger than his boat!" },
-  { id: "narwhal", name: "Narwhal", kind: "mammal", depth: 40, href: "https://en.wikipedia.org/wiki/Narwhal", note: "People once thought our ship was a giant one of these. Rude." },
+  { id: "dugong", name: "Dugong", kind: "mammal", depth: 4, href: "https://en.wikipedia.org/wiki/Dugong", note: "The harpooner met one. It was bigger than his boat." },
+  { id: "narwhal", name: "Narwhal", kind: "mammal", depth: 40, href: "https://en.wikipedia.org/wiki/Narwhal", note: "People once took our ship for a giant one of these. The captain was not amused." },
   { id: "pearl-oyster", name: "Pearl oyster", kind: "mollusc", depth: 12, href: "https://en.wikipedia.org/wiki/Pinctada", note: "One holds a pearl as big as a coconut. The captain lets it grow." },
-  { id: "torpedo", name: "Torpedo ray", kind: "fish", depth: 55, href: "https://en.wikipedia.org/wiki/Electric_ray", note: "It can give you a zap, like a little battery. Do not pet it." },
+  { id: "torpedo", name: "Torpedo ray", kind: "fish", depth: 55, href: "https://en.wikipedia.org/wiki/Electric_ray", note: "It can give you a shock, like a small battery. Admire it from over here." },
   { id: "coral", name: "Red coral", kind: "zoophyte", depth: 90, href: "https://en.wikipedia.org/wiki/Precious_coral", note: "It looks like a plant, but it is made of tiny animals." },
 ];
 
 /** What the crew brings in for you to sort, one at a time, with what gives each away, and a hint that teaches the group. */
 export const FINDS = [
-  { id: "crab", name: "Spider crab", kind: "crustacean", depth: 75, href: "https://en.wikipedia.org/wiki/Japanese_spider_crab", note: "Its legs are longer than you are tall!", clue: claim("It has a hard shell and ten long legs.", { source: { spec: "https://en.wikipedia.org/wiki/Decapoda" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Decapoda" } }), hint: claim("Crabs, lobsters and shrimp have hard shells and lots of legs. They are crustaceans.", { source: { spec: "https://en.wikipedia.org/wiki/Crustacean" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Crustacean" } }) },
+  { id: "crab", name: "Spider crab", kind: "crustacean", depth: 75, href: "https://en.wikipedia.org/wiki/Japanese_spider_crab", note: "Its legs are longer than you are tall.", clue: claim("It has a hard shell and ten long legs.", { source: { spec: "https://en.wikipedia.org/wiki/Decapoda" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Decapoda" } }), hint: claim("Crabs, lobsters and shrimp have hard shells and lots of legs. They are crustaceans.", { source: { spec: "https://en.wikipedia.org/wiki/Crustacean" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Crustacean" } }) },
   { id: "octopus", name: "Octopus", kind: "mollusc", depth: 110, href: "https://en.wikipedia.org/wiki/Octopus", note: claim("It has a beak like a parrot's, and three hearts.", { source: { spec: "https://en.wikipedia.org/wiki/Octopus" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Octopus" } }), clue: claim("It has eight arms and a beak like a parrot's.", { source: { spec: "https://en.wikipedia.org/wiki/Octopus" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Octopus" } }), hint: claim("It has a soft body and no bones, like a snail. Snails and octopuses are molluscs.", { source: { spec: "https://en.wikipedia.org/wiki/Octopus" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Octopus" } }) },
   { id: "flying-fish", name: "Flying fish", kind: "fish", depth: 0, href: "https://en.wikipedia.org/wiki/Flying_fish", note: "It leaps out of the sea and glides on its fins.", clue: "It breathes water and glides on its long fins.", hint: claim("It breathes water with gills, like other fish.", { source: { spec: "https://en.wikipedia.org/wiki/Fish" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Fish" } }) },
   { id: "seal", name: "Seal", kind: "mammal", depth: 20, href: "https://en.wikipedia.org/wiki/Earless_seal", note: "We met lots of them, lazing on the ice near the pole.", clue: "It breathes air and feeds its pups on milk.", hint: claim("It breathes air and has fur, like a dog. That makes it a mammal.", { source: { spec: "https://en.wikipedia.org/wiki/Mammal" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Mammal" } }) },
@@ -141,7 +141,7 @@ export const FINDS = [
 
 export const CATALOGUE = {
   title: "The specimen book",
-  intro: "The ship's scientist keeps a book of the sea creatures we meet. Point at a name for a fun fact, then help sort the new finds.",
+  intro: "The ship's scientist keeps a book of the sea creatures we meet. Point at a name to read his notes, then sort the new finds.",
   file: "specimens.tsx",
   table: "Specimens",
   sort: "Sort by",
@@ -162,18 +162,18 @@ export const CATALOGUE = {
   find: "A new find",
   classify: "Which group?",
   classifyHint: "Pick the group it belongs to.",
-  done: "Sorted! The book is tidy.",
+  done: "All sorted. The book is up to date.",
   museum: "Visit the museum",
 } as const;
 
 /** What the scientist's helper says as you sort the finds. */
 export const CLASSING = {
-  opening: { name: "Conseil", text: "A new find! Which group does it go in?" },
+  opening: { name: "Conseil", text: "A new find. Which group does it go in?" },
   wrong: (kind: string, hint: string): CrewLine => ({ name: "Conseil", text: `Hmm, not a ${kind.toLowerCase()}. ${hint}` }),
-  right: (name: string, kind: string): CrewLine => ({ name: "Conseil", text: `${name}: ${kind.toLowerCase()}. Yes! Into the book it goes.` }),
+  right: (name: string, kind: string): CrewLine => ({ name: "Conseil", text: `${name}: ${kind.toLowerCase()}. Quite right. Into the book it goes.` }),
   toast: (kind: string) => `Sorted: ${kind}`,
   toastNote: (name: string) => `The ${name.toLowerCase()} is in the book.`,
-  finished: { name: "Conseil", text: "That was the last one. What a tidy book!" },
+  finished: { name: "Conseil", text: "That was the last one. The book is up to date." },
 } as const satisfies Record<string, unknown>;
 
 /** The rail beside the chapter. */
@@ -231,7 +231,7 @@ export const CODE_SHEETS_TWO = {
     description: `Ouro HX does the chat. ${claim("The site writes the crew's replies from a script, with no network and no AI.", { source: { file: "site/src/voyage/chapters/chapter-two-copy.ts" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > answers from a script: the squid makes someone new call, a greeting gets a wave, and the crew take turns" } })}`,
     hx: [
       { text: "ConversationList: who you can call, with a dot for news, and one Tab stop.", code: `<ConversationList label="Who to call" items={channels} selectedId={channel} onSelect={setChannel} />` },
-      { text: `MessageList and Message: the chat, which keeps up with new lines and reads them out. ${claim("Each line shows its writer's dot.", { source: { file: "site/src/voyage/chapters/chapter-two-radio.tsx" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > shows the crew's presence on their lines, as in the list of who is on the air" } })}`, code: `<MessageList label="Radio: The whole crew">\n  <Message role="assistant" name="Ned Land" presence="away" presenceLabel="Napping">Ha! Good one.</Message>\n</MessageList>` },
+      { text: `MessageList and Message: the chat, which keeps up with new lines and reads them out. ${claim("Each line shows its writer's dot.", { source: { file: "site/src/voyage/chapters/chapter-two-radio.tsx" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > shows the crew's presence on their lines, as in the list of who is on the air" } })}`, code: `<MessageList label="Radio: The whole crew">\n  <Message role="assistant" name="Ned Land" presence="away" presenceLabel="Napping">Ha. Good one.</Message>\n</MessageList>` },
       { text: "Composer: the box you write in. Enter sends, and Shift and Enter start a new line.", code: `<Composer label="Message" sendOn="enter" onSend={send} />` },
       { text: "ReactionBar: the emoji under a line. Press one to add yours, and again to take it back.", code: `<ReactionBar reactions={line.reactions} quick={quick} onReact={react} />` },
       { text: "Avatar: who is on the radio, and a dot that shows if they are free, busy or away.", code: `<Avatar name="Ned Land" presence="away" presenceLabel="Napping" />` },
@@ -316,7 +316,7 @@ export interface RadioReply {
 
 export const RADIO = {
   title: "The ship's radio",
-  intro: "Say hello to the crew. They write back, and they love a good emoji.",
+  intro: "Write to the crew. Each of them answers in their own way.",
   file: "radio.tsx",
   channels: "Who to call",
   crew: "The whole crew",
@@ -324,13 +324,13 @@ export const RADIO = {
   captain: "Captain Nemo",
   captainNote: "On the bridge",
   caller: "Unknown caller",
-  callerNote: "👋👋👋👋👋👋👋👋",
+  callerNote: "Keeps calling",
   unread: "New",
   onAir: "On the radio",
   you: "You",
   list: (channel: string) => `Radio: ${channel}`,
   compose: "Message",
-  placeholder: "Say hi to the crew…",
+  placeholder: "Write to the crew…",
   send: "Send",
   writing: "Writing",
   /** Each of the crew's presence on the radio, by name. */
@@ -343,21 +343,21 @@ export const RADIO = {
   /** Once the harpooner has said something, he is awake. */
   awake: "Awake now",
   /** When someone new calls: a note in the crew's conversation. */
-  crackle: "📻 The radio crackles. Someone new is calling…",
+  crackle: "The radio crackles. Someone new is calling…",
 } as const;
 
 /** What each conversation holds when the radio first comes on. */
 export const RADIO_START: Record<ChannelId, readonly RadioLine[]> = {
   crew: [
-    { name: "Captain Nemo", text: "Welcome aboard! This is the ship's radio. Say hi to the crew.", reactions: [{ key: "wave", count: 3 }] },
+    { name: "Captain Nemo", text: "Welcome aboard. This is the ship's radio. Say hello to the crew.", reactions: [{ key: "wave", count: 3 }] },
     { name: "Ned Land", text: "Ask us anything. Just do not mention the squid.", reactions: [{ key: "funny", count: 1 }] },
     { name: "Conseil", text: "Squid? What squid, sir?", reactions: [{ key: "like", count: 1 }] },
   ],
   captain: [{ name: "Captain Nemo", text: "The captain here, on the bridge. What can I do for you?" }],
   caller: [
-    { name: "Unknown caller", text: "Hello? Hello! Is this the little ship? 👋" },
-    { name: "Unknown caller", text: `I have been following you. ${claim("I have eight arms, and two more just for hugs.", { source: { spec: "https://en.wikipedia.org/wiki/Giant_squid" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Giant_squid" } })}` },
-    { name: "Unknown caller", text: "I am coming to say hi. See you very soon! 🦑", reactions: [{ key: "wave", count: 1 }] },
+    { name: "Unknown caller", text: "Hello? Is this the small ship with the big windows?" },
+    { name: "Unknown caller", text: `I have been following you. ${claim("I have eight arms, and two long ones for reaching.", { source: { spec: "https://en.wikipedia.org/wiki/Giant_squid" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Giant_squid" } })}` },
+    { name: "Unknown caller", text: "I am coming over to see you. Very soon.", reactions: [{ key: "wave", count: 1 }] },
   ],
 };
 
@@ -367,24 +367,24 @@ export const RADIO_START: Record<ChannelId, readonly RadioLine[]> = {
  * the squid makes someone new call.
  */
 const RULES: ReadonlyArray<{ match: RegExp; crew: RadioLine; captain: string; reaction: ReactionKey; call?: true }> = [
-  { match: /squid|octopus|kraken|tentacle|🦑/i, crew: { name: "Ned Land", text: "Shh! Do not say that word. It might hear you." }, captain: "A squid? Out here? Nonsense. Well… probably nonsense.", reaction: "funny", call: true },
-  { match: /\b(hi|hello|hey|ahoy|hiya|howdy|yo)\b|👋/i, crew: { name: "Captain Nemo", text: "Ahoy there! Glad to have you aboard." }, captain: "Ahoy! Good to hear your voice.", reaction: "wave" },
+  { match: /squid|octopus|kraken|tentacle|🦑/i, crew: { name: "Ned Land", text: "Hush. Do not say that word out loud. It might hear you." }, captain: "A squid? Out here? Nonsense. Well… probably nonsense.", reaction: "funny", call: true },
+  { match: /\b(hi|hello|hey|ahoy|hiya|howdy|yo)\b|👋/i, crew: { name: "Captain Nemo", text: "Good day, and welcome aboard." }, captain: "Good to hear your voice.", reaction: "wave" },
   { match: /food|eat|lunch|dinner|snack|hungry|breakfast|cook/i, crew: { name: "Conseil", text: "Dinner tonight is seaweed soup. Again." }, captain: "We eat what the sea gives us. Tonight, that is seaweed.", reaction: "funny" },
-  { match: /treasure|gold|pirate|rich/i, crew: { name: "Professor Aronnax", text: "There is real gold at Vigo Bay. Put it on your route!" }, captain: "Gold? Yes, at Vigo Bay. Heaps of it.", reaction: "hooray" },
-  { match: /where|route|map|plan|trip/i, crew: { name: "Captain Nemo", text: "Wherever your plan says. You have the map!" }, captain: "You plan the route. I just steer.", reaction: "like" },
-  { match: /thank|love|cool|great|awesome|nice|wow|fun|❤️/i, crew: { name: "Ned Land", text: "Aw, shucks. You are not so bad yourself." }, captain: "You are kind. Now, back to work!", reaction: "love" },
-  { match: /\?\s*$/, crew: { name: "Professor Aronnax", text: "Good question! Let me look it up in my specimen book." }, captain: "A fine question. I will think on it.", reaction: "like" },
+  { match: /treasure|gold|pirate|rich/i, crew: { name: "Professor Aronnax", text: "There is real gold at Vigo Bay. Put it on your route." }, captain: "Gold? Yes, at Vigo Bay. Heaps of it.", reaction: "hooray" },
+  { match: /where|route|map|plan|trip/i, crew: { name: "Captain Nemo", text: "Wherever your plan says. You have the map." }, captain: "You plan the route. I just steer.", reaction: "like" },
+  { match: /thank|love|cool|great|awesome|nice|wow|fun|❤️/i, crew: { name: "Ned Land", text: "Aw, shucks. You are not so bad yourself." }, captain: "You are kind. Now, back to work.", reaction: "love" },
+  { match: /\?\s*$/, crew: { name: "Professor Aronnax", text: "A good question. Let me look it up in my notes." }, captain: "A fine question. I will think on it.", reaction: "like" },
 ];
 
 /** When nothing else matches, the crew take turns, and so does the captain. */
 const ROUND: readonly RadioLine[] = [
-  { name: "Professor Aronnax", text: "How interesting. Tell me more!" },
-  { name: "Ned Land", text: "Ha! Good one." },
+  { name: "Professor Aronnax", text: "How interesting. Tell me more." },
+  { name: "Ned Land", text: "Ha. Good one." },
   { name: "Conseil", text: "Noted, and filed, sir." },
-  { name: "Captain Nemo", text: "Message received. Full speed ahead!" },
+  { name: "Captain Nemo", text: "Message received. Steady as she goes." },
 ];
-const CAPTAIN_ROUND = ["Noted. Now, back to the map.", "Hmm. Very interesting.", "Good. Carry on, sailor!"] as const;
-const CALLER_ROUND = ["Blub! 🫧", "I like you. I will give you a big hug soon.", "🦑💕", "Hee hee. You are funny."] as const;
+const CAPTAIN_ROUND = ["Noted. Now, back to the map.", "Hmm. Very interesting.", "Good. Carry on, sailor."] as const;
+const CALLER_ROUND = ["Bubbles. That means yes.", "I like your ship. I would like to hold it.", "Your lights are very pretty.", "I am nearly there now."] as const;
 
 /** How many messages you send before someone new calls anyway. */
 export const CALL_AFTER = 3;

@@ -70,7 +70,7 @@ async function orderByKeys(page: Page, name: string): Promise<void> {
 }
 
 /**
- * Up, and the feathers: the squid lets go. By keys, because on CI WebKit sometimes closes the menu
+ * Up, and the deck lamp (the `feathers` order): the squid lets go. By keys, because on CI WebKit sometimes closes the menu
  * after surfacing or drops a pointer press on an item; the orders control test keeps the pointer.
  */
 async function win(page: Page): Promise<void> {
@@ -122,7 +122,7 @@ test.describe("each control in Chapter III", () => {
     await expect(crew(page)).toContainText(FIGHT.win.text);
   });
 
-  test("control: surface, from the dialog, takes the ship up; then the feathers, and the squid lets go", async ({ page }) => {
+  test("control: surface, from the dialog, takes the ship up; then the deck lamp, and the squid lets go", async ({ page }) => {
     await open(page);
     await alarm(page).click();
     await dialog(page).getByRole("button", { name: ENCOUNTER.hope }).click();
@@ -166,7 +166,7 @@ test.describe("each control in Chapter III", () => {
     await expect(trigger).toBeFocused();
     await trigger.click();
     await expect(search).toBeFocused();
-    await page.keyboard.type("harpoon");
+    await page.keyboard.type("deck");
     await expect(page.getByRole("option", { name: ORDERS.feathers })).toBeVisible();
     await page.keyboard.press("Enter");
     await expect(status(page)).toContainText(ENCOUNTER.feathersReady);
