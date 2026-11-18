@@ -599,8 +599,29 @@ describe("docs", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["TextField"]);
     await expect.element(nav.getByRole("list", { name: "Forms", exact: true })).toBeVisible();
     await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "zzz");
-    expect(nav.getByRole("link").elements()).toHaveLength(0);
-    await expect.element(nav.getByRole("status")).toHaveTextContent("No component is called that.");
+    // No component's link; the line under the filter offers to ask for one.
+    expect(nav.getByRole("link").elements().filter((link) => !link.closest('[role="status"]'))).toHaveLength(0);
+    await expect.element(nav.getByRole("status")).toHaveTextContent(/^No component is called that\. Want one\?/);
+  });
+
+  it("turns a filter that finds nothing into a request for it, filled in on GitHub", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "  zzz   gizmo ");
+    const ask = nav.getByRole("status").getByRole("link", { name: /^Ask for “zzz gizmo”/ });
+    await expect.element(ask).toBeVisible();
+    const url = new URL(ask.element().getAttribute("href")!);
+    expect(`${url.origin}${url.pathname}`).toBe("https://github.com/ourostack/ouro-ui/issues/new");
+    expect(url.searchParams.get("title")).toBe("Component request: zzz gizmo");
+    expect(url.searchParams.get("body")).toContain('"zzz gizmo"');
+    await expect.element(ask).toHaveAttribute("target", "_blank");
+    // A long one is cut short in the sentence, never in the request.
+    const long = "a component that does a great many things at once";
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), long);
+    const cut = nav.getByRole("status").getByRole("link", { name: /^Ask for “.{31}…”/ });
+    await expect.element(cut).toBeVisible();
+    expect(new URL(cut.element().getAttribute("href")!).searchParams.get("title")).toBe(`Component request: ${long}`);
   });
 
   it("forgives one slip in a filter of four letters or more, after the names that hold it", async () => {
