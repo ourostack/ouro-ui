@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { drift, factsOf, gatherApple, gatherCore, pinnedProblems, render, renderAndroid, renderApple, renderPlatforms, renderWindows } from "./platform-versions.mjs";
+import { drift, factsOf, gatherApple, gatherCore, pinnedProblems, render, renderAndroid, renderApple, renderPlatforms, renderWindows, syncUrlCache, urlOks } from "./platform-versions.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const real = (path) => readFileSync(join(root, path), "utf8");
@@ -182,4 +182,22 @@ test("render writes versions.json with every kit's pin, and every page from the 
   assert.deepEqual(written.apple, facts.apple);
   assert.deepEqual(written.windows, facts.windows);
   assert.deepEqual(written.android, facts.android);
+});
+
+test("rendering again keeps the claim cache in step: an address the pages stop citing leaves it, and one they start citing joins it", async () => {
+  const old = "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.12.1";
+  const shared = "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.9.0";
+  const page = renderPlatforms(real(PLATFORMS), facts);
+  const before = new Set([...urlOks(page), old, shared]);
+  const after = urlOks(renderPlatforms(real(PLATFORMS), { ...facts, core: { tag: "v0.11.0", commit: "d".repeat(40) } }));
+  const fresh = "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.11.0";
+  assert.ok(after.has(fresh) && !after.has(old));
+  const cache = Object.fromEntries([...before].map((url) => [url, { status: 200, checked: "2026-11-01" }]));
+  const asked = [];
+  const synced = await syncUrlCache(cache, { before, after, citedElsewhere: (url) => url === shared, statusOf: async (url) => (asked.push(url), 200), today: "2026-11-18" });
+  assert.equal(synced[old], undefined, "an address nothing cites any more leaves the cache");
+  assert.deepEqual(synced[shared], { status: 200, checked: "2026-11-01" }, "an address another file still cites stays");
+  assert.deepEqual(synced[fresh], { status: 200, checked: "2026-11-18" });
+  assert.ok(asked.includes(fresh) && !asked.some((url) => url in cache), "only addresses the cache lacks are fetched");
+  assert.deepEqual(Object.keys(synced), Object.keys(synced).toSorted());
 });

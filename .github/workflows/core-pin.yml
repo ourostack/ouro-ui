@@ -1,0 +1,143 @@
+name: Core pin
+# Points main's Platforms pages at core's newest release: `node scripts/platform-versions.mjs --write` copies core's claim
+# files into scripts/parity-data, rewrites the pages that name core's release and keeps the claim cache in step with their
+# links, and `node scripts/parity-matrix.mjs --render` redraws the parity matrix from the new copies. The Pages build does
+# the same at build time, so the site is current; this keeps main's copy, which GitHub shows, current too. Its own pull
+# request, never Docs pin's, so a core release that breaks a test here can't hold up pointing the docs at a web release.
+# It keeps one pull request open on one branch, force-updating it, and turns auto-merge on. It pushes as Docs pin does: the
+# Ouro Current app's token, else DOCS_PIN_TOKEN, else its own token, whose held runs it approves.
+on:
+  schedule:
+    - cron: "37 */6 * * *"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: core-pin
+  cancel-in-progress: false
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # approve the pull request's held runs
+      contents: write # push the branch, and delete it when main already names core's newest release
+      pull-requests: write # open, retitle, close and auto-merge the pull request
+    timeout-minutes: 30
+    env:
+      GH_REPO: ${{ github.repository }}
+      BRANCH: docs/point-at-core
+    steps:
+      # Fails when the app is not installed here; the job then goes on with DOCS_PIN_TOKEN or its own token.
+      - id: app
+        name: Sign in as the Ouro Current app, if it is installed here
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.OURO_CURRENT_APP_ID }}
+          private-key: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          token: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: pin
+        name: Point the Platforms pages at core's newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          code=0
+          node scripts/platform-versions.mjs --write || code=$?
+          if [ "$code" = 2 ]; then
+            echo "::notice::Core's newest release could not be read, so main keeps the copies it has."
+            echo "result=unreadable" >> "$GITHUB_OUTPUT"
+            exit 0
+          elif [ "$code" != 0 ]; then
+            exit "$code"
+          fi
+          node scripts/parity-matrix.mjs --render
+          tag=$(node -p 'require("./scripts/parity-data/provenance.json").coreTag')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "::notice::main's Platforms pages already name core $tag."
+            echo "result=current" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=changed" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.pin.outputs.result == 'changed'
+        id: push
+        name: Commit the pages and push their branch
+        env:
+          TAG: ${{ steps.pin.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -q -c "$BRANCH"
+          git add -A
+          git commit -q -m "Point the Platforms pages at core $TAG"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git push -q --force origin "$BRANCH"
+      - if: steps.pin.outputs.result == 'changed'
+        id: pr
+        name: Open or update the pull request, and turn auto-merge on
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
+          TAG: ${{ steps.pin.outputs.tag }}
+        run: |
+          title="Point the Platforms pages at a core release"
+          body=$(printf '%s\n\n%s\n' "Core pin opened this pull request to point the Platforms pages at core $TAG, with \`node scripts/platform-versions.mjs --write\` and \`node scripts/parity-matrix.mjs --render\`.[^core]" "[^core]: scripts/parity-data/provenance.json verify:equals(scripts/parity-data/provenance.json#coreTag)=$TAG")
+          number=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --title "$title" --body "$body"
+          else
+            gh pr create --base main --head "$BRANCH" --title "$title" --body "$body"
+            number=$(gh pr view "$BRANCH" --json number --jq .number)
+          fi
+          # Merge with an explicit message: GitHub's default appends bot Co-authored-by lines, which the ruleset rejects.
+          subject=$(gh pr view "$number" --json title,number --jq '"\(.title) (#\(.number))"')
+          message=$(gh pr view "$number" --json body --jq .body | tr -d '\r' | grep -v -i -E '^[[:space:]]*[A-Za-z-]+-by[[:space:]]*:.*(\[bot\]|(^|[^A-Za-z0-9])(copilot|claude|anthropic|openai|chatgpt|gpt|codex|gemini|cursor|devin|aider)([^A-Za-z]|$))' || true)
+          if ! gh pr merge "$number" --auto --squash --subject "$subject" --body "$message"; then
+            [ "$(gh pr view "$number" --json state --jq .state)" = MERGED ] || { echo "::error::Could not turn auto-merge on for #$number."; exit 1; }
+          fi
+          echo "Auto-merge is on for #$number: it merges once the checks main's ruleset requires pass." >> "$GITHUB_STEP_SUMMARY"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+      - if: steps.pin.outputs.result == 'changed'
+        name: Start the pull request's CI, and fail when it has not started
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.push.outputs.sha }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+          POLLS: 90
+          INTERVAL: 10
+        run: |
+          # A push with the workflow's own token leaves the pull request's runs held for approval, which
+          # this token may give (actions: write). CI has started once it has a run on the pushed commit and
+          # no run there is still held.
+          for _ in $(seq 1 "$POLLS"); do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$SHA&per_page=100" --jq '.workflow_runs[] | [.id, .name, (.conclusion // "")] | @tsv') || runs=
+            held=$(awk -F '\t' '$3 == "action_required" { print $1 }' <<<"$runs")
+            for id in $held; do
+              gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" >/dev/null && echo "Approved held run $id." || echo "::warning::Could not approve held run $id."
+            done
+            if [ -z "$held" ] && awk -F '\t' '$2 == "CI" { found = 1 } END { exit !found }' <<<"$runs"; then
+              echo "CI started on #$NUMBER ($SHA)." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep "$INTERVAL"
+          done
+          message="CI has not started on #$NUMBER ($SHA) $((POLLS * INTERVAL / 60)) minutes after its push, so it cannot merge. Approve its held runs in Actions, or push an empty commit to $BRANCH."
+          echo "::error::$message"
+          gh pr comment "$NUMBER" --body "$message" || true
+          exit 1
+      - if: steps.pin.outputs.result == 'current'
+        name: Close the pull request, since main already names core's newest release
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
+          TAG: ${{ steps.pin.outputs.tag }}
+        run: |
+          for number in $(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[].number'); do
+            gh pr close "$number" --comment "main's Platforms pages already name core $TAG, so this pull request is not needed."
+          done
+          git push -q origin --delete "$BRANCH" 2>/dev/null || true

@@ -303,10 +303,6 @@
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/0bdacddba45f47018639f89d9f6a67f7e6097e29/parity.json": {
-    "status": 200,
-    "checked": "2026-11-15"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/20d06ff7ff7ffb3c50e33add65959608148edcd6/docs/guides/actions.md#L45": {
     "status": 200,
     "checked": "2026-11-15"
@@ -347,6 +343,10 @@
     "status": 200,
     "checked": "2026-11-15"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/parity.json": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/e2ab6ea4072dff1674cecf1b1df70933e4c0f0f9/docs/decisions/2026-11-14-native-kits.md#windows-v010": {
     "status": 200,
     "checked": "2026-11-14"
@@ -359,9 +359,9 @@
     "status": 200,
     "checked": "2026-11-15"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.12.1": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.17.7": {
     "status": 200,
-    "checked": "2026-11-15"
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
@@ -559,6 +559,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://html.spec.whatwg.org/multipage/semantics-other.html#selector-hover": {
+    "status": 200,
+    "checked": "2026-11-17"
+  },
   "https://nodejs.org/api/typescript.html#type-stripping": {
     "status": 200,
     "checked": "2026-11-06"
@@ -722,9 +726,5 @@
   "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/": {
     "status": 200,
     "checked": "2026-11-06"
-  },
-  "https://html.spec.whatwg.org/multipage/semantics-other.html#selector-hover": {
-    "status": 200,
-    "checked": "2026-11-17"
   }
 }

@@ -16,6 +16,7 @@
 //   Exits 1 on drift (and writes behind=true to GITHUB_OUTPUT), 2 when GitHub cannot be read, which is no drift. --write
 //   reports a 2 as a warning and writes nothing, so the build keeps the copies main has.
 import { Buffer } from "node:buffer";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -23,6 +24,25 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const URL_CACHE = "scripts/claims-urls.json";
+
+/** An address's HTTP status, as the claims check reads it: HEAD, then GET, three tries; 0 when nothing answers. */
+async function urlStatus(url) {
+  let last = 0;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      for (const method of ["HEAD", "GET"]) {
+        const response = await globalThis.fetch(url, { method, redirect: "follow", signal: globalThis.AbortSignal.timeout(15000), headers: { "user-agent": "ouro-ui claims check" } });
+        last = response.status;
+        if (response.ok) return last;
+      }
+    } catch {
+      last = 0;
+    }
+    await delay(1000 * (attempt + 1));
+  }
+  return last;
+}
 const CORE = "ourostack/ouro-ui-core";
 const APPLE = "ourostack/ouro-ui-apple";
 const WINDOWS = "ourostack/ouro-ui-windows";
@@ -147,6 +167,21 @@ export function render(facts, read) {
   };
 }
 
+/** The addresses a text's urlOk checks name. */
+export const urlOks = (text) => new Set([...text.matchAll(/verify:urlOk\(([^)\s]+)\)/g)].map((match) => match[1]));
+
+/**
+ * The claim cache (scripts/claims-urls.json) after the pages are rendered again: an address the pages no longer cite and
+ * no other file's claim cites (`citedElsewhere`: a `verify:urlOk(…)` in prose, or `urlOk: "…"` in a TypeScript claim) leaves it, and one they now cite that it lacks joins it with the status
+ * `statusOf` reads, so the claims check passes on the rendered pages with no hand edit.
+ */
+export async function syncUrlCache(cache, { before, after, citedElsewhere, statusOf, today }) {
+  const next = { ...cache };
+  for (const url of before) if (!after.has(url) && !citedElsewhere(url)) delete next[url];
+  for (const url of after) if (!(url in next)) next[url] = { status: await statusOf(url), checked: today };
+  return Object.fromEntries(Object.entries(next).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+}
+
 /** What differs between the committed data and the pages and versions.json as they are, each with what to do. */
 export function drift(versions, read) {
   return Object.entries(render(factsOf(versions, read), read))
@@ -249,13 +284,29 @@ async function main(args) {
     for (const problem of problems) console.log(`::error::${problem}`);
     return problems.length > 0 ? 1 : 0;
   };
-  const renderPages = () => {
-    for (const [path, text] of Object.entries(render(factsOf(versions(), read), read))) writeFileSync(join(root, path), text);
+  const renderPages = async () => {
+    const pages = render(factsOf(versions(), read), read);
+    const paths = Object.keys(pages).filter((path) => path.endsWith(".md"));
+    const before = new Set(paths.flatMap((path) => [...urlOks(read(path))]));
+    const after = new Set(paths.flatMap((path) => [...urlOks(pages[path])]));
+    for (const [path, text] of Object.entries(pages)) writeFileSync(join(root, path), text);
+    const citedElsewhere = (url) => {
+      try {
+        execFileSync("git", ["grep", "-q", "-F", "-e", `verify:urlOk(${url})`, "-e", `urlOk: "${url}"`, "-e", `urlOk: '${url}'`, "--", ".", ...paths.map((path) => `:!${path}`)], { cwd: root });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const cache = JSON.parse(read(URL_CACHE));
+    const today = new Date().toISOString().slice(0, 10);
+    const synced = await syncUrlCache(cache, { before, after, citedElsewhere, statusOf: urlStatus, today });
+    if (JSON.stringify(synced) !== JSON.stringify(cache)) writeFileSync(join(root, URL_CACHE), `${JSON.stringify(synced, null, 2)}\n`);
   };
   const options = { token: process.env.GH_TOKEN, fetch: globalThis.fetch, attempts: 3, delayMs: 2000 };
 
   if (args.includes("--render")) {
-    renderPages();
+    await renderPages();
     console.log(`Rendered ${PLATFORMS}, ${APPLE_PAGE}, ${WINDOWS_PAGE}, ${ANDROID_PAGE} and ${VERSIONS} from the committed data.`);
     return 0;
   }
@@ -267,7 +318,7 @@ async function main(args) {
       return unreadable(error, "warning");
     }
     writeCopies(core);
-    renderPages();
+    await renderPages();
     console.log(`Wrote core ${core.core.tag}'s copies and the Platforms pages that name it. The kit releases stay ${versions().apple.tag} (Apple), ${versions().windows.tag} (Windows) and ${versions().android.tag} (Android).`);
     return 0;
   }
@@ -288,7 +339,7 @@ async function main(args) {
     }
     const current = versions();
     writeFileSync(join(root, VERSIONS), versionsFile({ ...current, [kit]: pinned }));
-    renderPages();
+    await renderPages();
     console.log(`Pinned ${repo} ${tag} (${kitCore(pinned)}) and rewrote the Platforms pages that state it.`);
     return 0;
   }

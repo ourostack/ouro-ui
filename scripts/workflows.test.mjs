@@ -417,7 +417,7 @@ test("only the jobs that push, release.yml's release job, docs-pin.yml's pin job
       const step = lines.slice(index + 1, index + 4).join("\n");
       const persists = !/^\s+persist-credentials: false$/m.test(step);
       const job = lines.slice(0, index).findLast((above) => /^ {2}[\w-]+:$/.test(above))?.trim().slice(0, -1);
-      const pushes = (file === "release.yml" && job === "release") || (file === "docs-pin.yml" && job === "pin") || (file === "sync-brand.yml" && job === "sync");
+      const pushes = (file === "release.yml" && job === "release") || ((file === "docs-pin.yml" || file === "core-pin.yml") && job === "pin") || (file === "sync-brand.yml" && job === "sync");
       if (persists !== pushes) problems.push(`${file}:${index + 1}`);
     });
   }
@@ -2700,6 +2700,23 @@ test("Docs pin points main's docs at the newest release through one pull request
   assert.match(open, /gh pr edit "\$number" --title "\$title"/);
   assert.match(open, /gh pr create --base main --head "\$BRANCH"/);
   assert.match(open, /gh pr merge "\$number" --auto --squash --subject "\$subject" --body "\$message"/);
+});
+
+test("Core pin points main's Platforms pages at core's newest release through its own pull request, never Docs pin's, and turns auto-merge on", () => {
+  const corePin = workflow("core-pin.yml");
+  assert.match(corePin, /^permissions: \{\}$/m);
+  assert.match(corePin, /^on:\n {2}schedule:\n {4}- cron: "[^"]+"\n {2}workflow_dispatch:$/m);
+  assert.match(corePin, /^concurrency:\n {2}group: core-pin\n {2}cancel-in-progress: false$/m);
+  const pin = corePin.split("\n  pin:\n")[1];
+  assert.deepEqual(permissionsOf(pin), { actions: "write", contents: "write", "pull-requests": "write" });
+  assert.match(pin, /\n {6}BRANCH: docs\/point-at-core\n/);
+  assert.deepEqual(
+    stepScript(pin, "Point the Platforms pages at core's newest release").split("\n").filter((line) => /^(node|pnpm) /.test(line.trim())).map((line) => line.trim()),
+    ["node scripts/platform-versions.mjs --write || code=$?", "node scripts/parity-matrix.mjs --render"],
+  );
+  const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
+  assert.match(open, /gh pr merge "\$number" --auto --squash --subject "\$subject" --body "\$message"/);
+  assert.doesNotMatch(workflow("docs-pin.yml"), /platform-versions/, "a core release that breaks a test must not hold up Docs pin's pull request");
 });
 
 test("Docs pin pushes as the Ouro Current app when it is installed here, so CI starts with no approval (#1610), and goes on without it", () => {
