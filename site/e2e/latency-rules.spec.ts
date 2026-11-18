@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectPressesWithinBudget, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise, describeFrame, thinMargin } from "./latency";
+import { LATENCY, expectPressesWithinBudget, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise, describeFrame, thinMargin } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -145,11 +145,14 @@ test("a probe past the cap calls for a re-measure, read from the probe alone", (
 test.describe("a runner the probe reads past the cap", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
   const quiet = LATENCY.probeQuiet;
-  // A quiet reading so low that any runner reads past the cap, as an overloaded one does.
-  test.beforeEach(() => void ((LATENCY as { probeQuiet: number }).probeQuiet = 1));
-  test.afterEach(() => void ((LATENCY as { probeQuiet: number }).probeQuiet = quiet));
+  const wait = LATENCY.loadWaitMs;
+  // A quiet reading so low that any runner reads past the cap, as an overloaded one does; no wait between measurements.
+  test.beforeEach(() => void Object.assign(LATENCY, { probeQuiet: 1, loadWaitMs: 0 }));
+  test.afterEach(() => void Object.assign(LATENCY, { probeQuiet: quiet, loadWaitMs: wait }));
 
-  test("re-measures a fast control too, carrying its presses on, and fails it as too loaded to judge when the probe is past the cap again", async ({ page }) => {
+  test("re-measures a fast control too, carrying its presses on, and fails it as too loaded to judge when the probe is past the cap every time", async ({ page }) => {
+    // A measurement for each of LATENCY.loadTries, where the other tests here take one.
+    test.setTimeout(LATENCY.loadTries * 30_000);
     await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
     await page.evaluate(() => document.getElementById("b")!.addEventListener("click", () => (document.getElementById("o")!.textContent = String(Math.random()))));
     const pressed: number[] = [];
@@ -159,10 +162,18 @@ test.describe("a runner the probe reads past the cap", () => {
       (error: Error) => error.message,
     );
     expect(failure).toContain("overloaded: runner too loaded to judge: probe");
-    // Measured twice, the second carrying on from the first's last index rather than starting again at 0.
+    expect(failure).toContain(`${LATENCY.loadTries} times`);
+    // Measured LATENCY.loadTries times, each carrying on from the one before's last index rather than starting again at 0.
     expect(pressed).toEqual(Array.from({ length: pressed.length }, (_, index) => index));
-    expect(pressed.length).toBe(2 * (LATENCY.warmUps + LATENCY.samples));
+    expect(pressed.length).toBe(LATENCY.loadTries * (LATENCY.warmUps + LATENCY.samples));
   });
+});
+
+test("flags a job where more than 1 in 20 controls needed a re-measure, as a sign the runners or the probe need fixing", () => {
+  expect(manyRemeasured(0, 20)).toBe(false);
+  expect(manyRemeasured(1, 20)).toBe(false);
+  expect(manyRemeasured(2, 20)).toBe(true);
+  expect(manyRemeasured(1, 19)).toBe(true);
 });
 
 test("a slow press's time is split into the page's input delay, its handlers and the wait for the next paint", () => {
