@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, CODE_SHEETS_TWO, FINDS, MUSEUM, PLANNING, RADIO, RADIO_START, ROUTE, SPECIMENS, START_ROUTE } from "../src/voyage/chapters/chapter-two-copy";
+import { ARTICLES } from "../src/voyage/chapters/copy";
 import { arrivals, routeLeagues, SHORTEST, writeDay, writeLeagues } from "../src/voyage/chapters/route";
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
@@ -76,6 +77,25 @@ test.describe("each control in Chapter II", () => {
     await expect(yours).toBeVisible();
     await expect(radio(page).locator("[data-ouro-message-content]", { hasText: "Good day, and welcome aboard." })).toBeVisible();
     await expect(yours.locator("[data-ouro='reaction-bar']")).toContainText("Wave, 1");
+  });
+
+  test("once you sign on in Chapter I, the captain's welcome on the radio greets you by name, until you leave the crew", async ({ page }) => {
+    await openChapter(page, "chapter-one");
+    const articles = page.locator("[data-composition='articles']");
+    await articles.getByRole("textbox", { name: ARTICLES.name }).fill("Ana Ruiz");
+    await articles.getByRole("combobox", { name: ARTICLES.trade }).click();
+    await page.getByRole("option", { name: "Engineer" }).click();
+    await articles.getByRole("checkbox", { name: ARTICLES.oath }).click();
+    await articles.getByRole("button", { name: ARTICLES.sign }).click();
+    await expect(articles.locator("[data-chapter-signed]")).toBeVisible();
+    // On to the radio on the same page, so the signing is kept.
+    await page.locator("#chapter-two").scrollIntoViewIfNeeded();
+    await expect(page.locator("#chapter-two[data-chapter-ready]")).toBeAttached();
+    const welcome = radio(page).locator("[data-ouro-message-content]").first();
+    await expect(welcome).toHaveText("Welcome aboard, Ana. This is the ship's radio. Say hello to the crew.");
+    await articles.getByRole("button", { name: ARTICLES.leave }).click();
+    await radio(page).scrollIntoViewIfNeeded();
+    await expect(welcome).toHaveText(RADIO_START.crew[0]!.text);
   });
 
   test("control: react puts your emoji on the crew's newest line, and takes it back", async ({ page }) => {
