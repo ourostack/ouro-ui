@@ -22,6 +22,7 @@ test/generated/
 # (scripts/release-commit.sh).
 /registry.json
 /site/public/llms.txt
+/registry/ouro/feel/ouro-feel-probe.js
 /site/src/docs/catalog.json
 /site/src/docs/sources.json
 /site/src/docs/pages.json

@@ -41,8 +41,9 @@ test("main commits no registry.json, and a release commit adds it, so only a rel
   assert.match(readFileSync(join(root, ".gitattributes"), "utf8"), /^\* text=auto eol=lf$/m);
   // What a GitHub install at a tag reads must be committed, and not as a Git LFS pointer.
   assert.deepEqual(unreadableOnGitHub(root, registry), []);
-  const probe = { ...registry, items: [{ name: "probe", type: "registry:ui", files: [{ path: "registry.json", type: "registry:ui" }, { path: "registry/ouro/components/ouro/button/button.tsx", type: "registry:ui" }] }] };
-  assert.deepEqual(unreadableOnGitHub(root, probe), tracked.length > 0 ? [] : ["registry.json is not committed"]);
+  // A generated file main does not commit is the release commit's to add; any other file must be committed.
+  const probe = { ...registry, items: [{ name: "probe", type: "registry:ui", files: [{ path: "registry/ouro/feel/ouro-feel-probe.js", type: "registry:file" }, { path: "registry/ouro/not-committed.tsx", type: "registry:ui" }, { path: "registry/ouro/components/ouro/button/button.tsx", type: "registry:ui" }] }] };
+  assert.deepEqual(unreadableOnGitHub(root, probe), ["registry/ouro/not-committed.tsx is not committed"]);
 });
 
 test("--check fails when registry.json is stale, and names the fix", () => {
@@ -822,8 +823,21 @@ test("every registry file an item imports is installed with it: in its own files
 });
 
 test("ouro-feel-probe ships the probe built as one plain script, kept the same as feel/probe/probe.ts, that a page runs as it is", async () => {
-  const shipped = readFileSync(join(root, "registry/ouro/feel/ouro-feel-probe.js"), "utf8");
-  assert.equal(shipped, feelProbeScript(root), "run node scripts/registry.mts");
+  // Built from probe.ts by pnpm i and pnpm registry, and committed only by a release commit, so no change to probe.ts can leave
+  // main with a stale copy: --check builds it again, stale or missing.
+  const path = "registry/ouro/feel/ouro-feel-probe.js";
+  // A release commit's tracked copy is compared instead, so --check fails on a stale one.
+  assert.ok(uncommitted.includes(path), "main commits no copy of the built probe");
+  const tracked = spawnSync("git", ["ls-files", "--", path], { cwd: root, encoding: "utf8" }).stdout.trim() !== "";
+  const built = readFileSync(join(root, path), "utf8");
+  writeFileSync(join(root, path), "stale\n");
+  try {
+    assert.equal(run("--check").status, tracked ? 1 : 0);
+  } finally {
+    if (tracked) writeFileSync(join(root, path), built);
+  }
+  const shipped = readFileSync(join(root, path), "utf8");
+  assert.equal(shipped, feelProbeScript(root));
   assert.deepEqual(item("ouro-feel-probe").files.map((file) => [file.type, file.target]), [["registry:file", "~/scripts/ouro/feel/ouro-feel-probe.js"]]);
   assert.doesNotMatch(shipped, /^\s*(import|export)\b/m, "a plain script, not a module");
   const browser = await chromium.launch();

@@ -1,6 +1,6 @@
 // Writes the generated files main does not commit (scripts/generated-files.mjs): the control and
 // motion matrices, the site's catalog.json, sources.json, pages.json and page-index.json,
-// registry.json and site/public/llms.txt. package.json's postinstall runs it, so every checkout and
+// registry.json, site/public/llms.txt and Ouro Feel's built probe. package.json's postinstall runs it, so every checkout and
 // every CI job has them after `pnpm i`. A file git tracks, as a release commit's, is left as
 // committed.
 //
