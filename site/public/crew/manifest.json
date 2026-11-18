@@ -1,0 +1,68 @@
+{
+  "portraits": [
+    {
+      "id": "nemo",
+      "name": "Captain Nemo",
+      "figure": "the glass sailor in the navy pea coat, at the hatch",
+      "source": "site/public/brand/storybook/scenes/nautilus-3072.webp",
+      "box": {
+        "left": 1125,
+        "top": 92,
+        "size": 220
+      },
+      "sha256": "50d064dfc4390349b0642fc903d14e2b3aeef27403e9d4034ea5172f178d75bf",
+      "files": [
+        "nemo-96.webp",
+        "nemo-192.webp"
+      ]
+    },
+    {
+      "id": "aronnax",
+      "name": "Professor Aronnax",
+      "figure": "the glass reader in the green velvet jacket, in the armchair",
+      "source": "site/public/brand/storybook/scenes/nautilus-library-3072.webp",
+      "box": {
+        "left": 617,
+        "top": 470,
+        "size": 440
+      },
+      "sha256": "c965eab91ece24456a39495a8cc95791331bd692a28a32d4c176f4cfa35f8d1c",
+      "files": [
+        "aronnax-96.webp",
+        "aronnax-192.webp"
+      ]
+    },
+    {
+      "id": "conseil",
+      "name": "Conseil",
+      "figure": "the sea-blue robot in the striped scarf, at the globe",
+      "source": "site/public/brand/storybook/scenes/nautilus-library-3072.webp",
+      "box": {
+        "left": 1966,
+        "top": 786,
+        "size": 400
+      },
+      "sha256": "c965eab91ece24456a39495a8cc95791331bd692a28a32d4c176f4cfa35f8d1c",
+      "files": [
+        "conseil-96.webp",
+        "conseil-192.webp"
+      ]
+    },
+    {
+      "id": "ned",
+      "name": "Ned Land",
+      "figure": "the sea-blue robot in the striped jersey and red cap, with the spyglass",
+      "source": "site/public/brand/storybook/scenes/nautilus-3072.webp",
+      "box": {
+        "left": 1542,
+        "top": 126,
+        "size": 210
+      },
+      "sha256": "50d064dfc4390349b0642fc903d14e2b3aeef27403e9d4034ea5172f178d75bf",
+      "files": [
+        "ned-96.webp",
+        "ned-192.webp"
+      ]
+    }
+  ]
+}

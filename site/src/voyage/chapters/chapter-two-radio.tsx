@@ -6,6 +6,7 @@ import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ReactionBar, type Reaction } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
 import { RADIO, RADIO_START, REACTIONS, radioReply, type ChannelId, type RadioLine, type ReactionKey } from "./chapter-two-copy";
+import { crewFace } from "./crew-faces";
 import { ROLES } from "./frame";
 
 /** One line on the radio as it shows: who, what, the reactions on it, and whether it is still being written. */
@@ -107,7 +108,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
   const captain = presenceOf("Captain Nemo");
   const channels: ConversationListItem[] = [
     { id: "crew", title: RADIO.crew, subtitle: RADIO.crewNote, avatar: <Avatar name={RADIO.crew} shape="square" alt="" /> },
-    { id: "captain", title: RADIO.captain, subtitle: RADIO.captainNote, avatar: <Avatar name="Captain Nemo" alt="" presence={captain.presence} presenceLabel={captain.label} /> },
+    { id: "captain", title: RADIO.captain, subtitle: RADIO.captainNote, avatar: <Avatar name="Captain Nemo" src={crewFace("Captain Nemo", "md")} alt="" presence={captain.presence} presenceLabel={captain.label} /> },
     ...(calling ? [{ id: "caller", title: RADIO.caller, preview: RADIO.callerNote, unread, avatar: <Avatar name="?" shape="square" alt="" /> }] : []),
   ];
   const title = channel === "crew" ? RADIO.crew : channel === "captain" ? RADIO.captain : RADIO.caller;
@@ -125,7 +126,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
               const { presence, label } = presenceOf(name);
               return (
                 <li key={name} className="flex items-center gap-2.5 text-sm" data-chapter-presence={presence}>
-                  <Avatar name={name} alt="" size="sm" presence={presence} presenceLabel={label} />
+                  <Avatar name={name} src={crewFace(name)} alt="" size="sm" presence={presence} presenceLabel={label} />
                   <span className="min-w-0">
                     <span className="font-medium">{name}</span>
                     <span className="block text-xs text-muted-foreground">
@@ -146,6 +147,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
               key={line.id}
               role={line.role}
               name={line.name}
+              avatar={line.role === "assistant" ? crewFace(line.name) : undefined}
               {...dotOf(line)}
               streaming={line.streaming}
               streamingLabel={RADIO.writing}

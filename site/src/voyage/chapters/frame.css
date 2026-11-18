@@ -37,16 +37,16 @@
     transition-duration: var(--ouro-duration-slow);
   }
 }
-/* The crew turns out when a chapter's work is done (Crew's cheer): each face hops up in turn (fades in, under reduced motion). */
+/*
+ * The crew turns out when a chapter's work is done (Crew's cheer): each face hops up in turn (fades
+ * in, under reduced motion). The faces stand side by side, never over one another, so each is whole.
+ */
 .site-cheer {
   display: inline-flex;
   flex-shrink: 0;
-}
-.site-cheer > * + * {
-  margin-inline-start: -0.5rem;
+  gap: calc(var(--spacing) * 1);
 }
 .site-cheer > * {
-  box-shadow: 0 0 0 2px var(--card);
   animation: site-hop 1.1s var(--ouro-ease-out) both;
 }
 .site-cheer > :nth-child(2) {

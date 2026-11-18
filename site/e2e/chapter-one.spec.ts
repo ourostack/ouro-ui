@@ -493,6 +493,62 @@ test("X-ray outlines Chapter I's HX components", async ({ page }) => {
   for (const item of ["reorderable", "checklist", "progress", "form", "text-field", "select", "checkbox", "item-group", "avatar", "badge"]) expect(names, item).toContain(item);
 });
 
+/** The crew's faces, cut from the Nautilus scenes into site/public/crew/ (crew-faces.ts). */
+const FACES = { "Captain Nemo": "nemo", "Professor Aronnax": "aronnax", Conseil: "conseil", "Ned Land": "ned" } as const;
+
+/** Whether an avatar draws a picture that has loaded, and which: its path, or null for initials. */
+const pictureOf = (avatar: ReturnType<Page["locator"]>) =>
+  avatar.evaluate((element) => {
+    const image = element.querySelector("img");
+    return image && image.complete && image.naturalWidth > 0 ? new URL(image.src).pathname : null;
+  });
+
+/**
+ * Whether each face in the cheer is whole: inside the cheer's box, overlapping no other face, and
+ * on top at its middle and near each edge, so nothing covers any part of it.
+ */
+const wholeFaces = (cheer: ReturnType<Page["locator"]>) =>
+  cheer.evaluate((element) => {
+    const outer = element.getBoundingClientRect();
+    const faces = [...element.querySelectorAll<HTMLElement>("[data-ouro='avatar']")];
+    const boxes = faces.map((face) => face.getBoundingClientRect());
+    return faces.map((face, index) => {
+      const box = boxes[index]!;
+      const inside = box.left >= outer.left - 0.5 && box.right <= outer.right + 0.5 && box.top >= outer.top - 0.5 && box.bottom <= outer.bottom + 0.5;
+      const overlaps = boxes.some((other, at) => at !== index && Math.min(box.right, other.right) - Math.max(box.left, other.left) > 0.5 && Math.min(box.bottom, other.bottom) - Math.max(box.top, other.top) > 0.5);
+      const points = [[0.5, 0.5], [0.2, 0.5], [0.8, 0.5], [0.5, 0.2], [0.5, 0.8]] as const;
+      const onTop = points.every(([x, y]) => face.contains(document.elementFromPoint(box.left + box.width * x, box.top + box.height * y)));
+      return { inside, overlaps, onTop };
+    });
+  });
+
+test("the crew's faces come from the Nautilus scenes, a newcomer keeps initials, and the cheer shows every face whole", async ({ browser }) => {
+  test.slow();
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    const context = await browser.newContext({ viewport, reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
+    const page = await context.newPage();
+    await open(page);
+    await expect.poll(() => pictureOf(yardCrew(page).locator("[data-ouro='avatar']")), { message: `${viewport.width}px: the crew line's face` }).toBe(`/crew/${FACES[YARD.opening.name]}-96.webp`);
+    const roster = page.getByRole("list", { name: ARTICLES.roster }).locator("[data-ouro='avatar']");
+    for (const [index, member] of CREW.entries()) await expect.poll(() => pictureOf(roster.nth(index)), { message: `${viewport.width}px: ${member.name} on the crew list` }).toBe(`/crew/${FACES[member.name]}-192.webp`);
+    await signOn(page, "Ana Lind");
+    await expect(roster).toHaveCount(CREW.length + 1);
+    await expect(roster.last()).toHaveAttribute("data-image", "idle");
+    expect(await pictureOf(roster.last()), `${viewport.width}px: a newcomer's avatar`).toBeNull();
+    await expect(roster.last().locator("[data-ouro-avatar-initials='AL']")).toBeAttached();
+    await buildAll(page);
+    await launchButton(page).click();
+    const cheer = shipyard(page).locator("[data-chapter-cheer]");
+    await cheer.scrollIntoViewIfNeeded();
+    const faces = cheer.locator("[data-ouro='avatar']");
+    await expect(faces).toHaveCount(CREW.length);
+    for (const [index, member] of CREW.entries()) await expect.poll(() => pictureOf(faces.nth(index)), { message: `${viewport.width}px: ${member.name} in the cheer` }).toBe(`/crew/${FACES[member.name]}-96.webp`);
+    await expect.poll(() => cheer.evaluate((element) => element.getAnimations({ subtree: true }).filter((animation) => animation.playState !== "finished").length)).toBe(0);
+    expect(await wholeFaces(cheer), `${viewport.width}px: the cheer's faces`).toEqual(CREW.map(() => ({ inside: true, overlaps: false, onTop: true })));
+    await context.close();
+  }
+});
+
 test("on a phone, the shipyard and the articles work by touch, and nothing overflows", async ({ browser, browserName }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName === "chromium", reducedMotion: "reduce", baseURL: test.info().project.use.baseURL! });
   const page = await context.newPage();
