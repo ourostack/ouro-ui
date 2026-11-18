@@ -403,7 +403,7 @@ function argUsage(a: ArgSpec): string {
 
 /** A few words in plain English, as a refusal names them: "plan or apply", "read, plan or status". */
 function inWords(values: readonly string[]): string {
-  return values.length < 2 ? (values[0] ?? "") : `${values.slice(0, -1).join(", ")} or ${values.at(-1)}`;
+  return values.length > 1 ? `${values.slice(0, -1).join(", ")} or ${values.at(-1)}` : values.join("");
 }
 
 function placeholderOf(name: string, spec: FlagSpec): string {

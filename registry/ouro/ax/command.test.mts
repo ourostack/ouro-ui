@@ -644,4 +644,6 @@ test("a refused word's Fix is a command an agent can run as it stands, and the p
     assert.doesNotMatch(`${shape?.problem} ${shape?.fix}`, /[<>|]/, "no placeholder or choice list an agent cannot run");
     assert.equal(parse(tool, (shape?.fix ?? "").split(" ").slice(1)).kind, "run", "the Fix parses");
   }
+  const one = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "go", summary: "G.", effect: "private", readOnly: true, args: [{ name: "where", description: "W.", values: ["home"] }], run: () => [] })] });
+  assert.throws(() => parse(one, ["go", "zzzzzz"]), /it takes home, not "zzzzzz"\. Fix: t go home\./);
 });
