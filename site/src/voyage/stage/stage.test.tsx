@@ -1,12 +1,13 @@
 import { createElement, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import proof, { install } from "virtual:site-proof";
+import proof from "virtual:site-proof";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, syllables } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { EYEBROW, INSTALL_CAPTION, INSTALL_COMMAND, NEW_APP_LINK, RELEASE_HREF } from "../hero";
+import { EYEBROW, RELEASE_HREF } from "../hero";
+import { HANDOFF } from "../../copy";
 import { latestRelease } from "../../latest-release";
 import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt, partsOf } from "./art";
@@ -22,7 +23,7 @@ await loadPageCode("/");
 
 // The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later,
 // once the press has painted, so the tests poll it) and the log, the copy reads at grade 6 or under, the
-// theme paints the sea, and the hero's install line and proof
+// theme paints the sea, and the hero's hand-off and proof
 // line say what they should.
 
 const root = document.documentElement;
@@ -95,12 +96,12 @@ describe("the hero", () => {
     await expect.element(page.getByText(STAGE_COPY.real)).toBeVisible();
   });
 
-  it("shows the release the command pins beside it, linking to that release", async () => {
+  it("shows the release the hand-off brings in beside it, linking to that release", async () => {
     await renderPage("/");
     const release = page.getByRole("link", { name: `${latestRelease} · latest release` });
     await expect.element(release).toHaveAttribute("href", `https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
     expect(RELEASE_HREF).toBe(`https://github.com/ourostack/ouro-ui/releases/tag/${latestRelease}`);
-    expect(release.element().closest(".site-install-block")).toBe(document.querySelector("[data-site-install]")!.closest(".site-install-block"));
+    expect(release.element().closest("[data-site-handoff]")).not.toBeNull();
   });
 
   it("links each proof claim, computed from the repository, to its evidence", async () => {
@@ -109,46 +110,46 @@ describe("the hero", () => {
     for (const claim of proof.claims) await expect.element(page.getByRole("link", { name: claim.text, exact: true })).toHaveAttribute("href", claim.href);
   });
 
-  it("sends a newcomer without a set-up app to the installing guide's first steps, beside the install command", async () => {
+  it("points a person setting Ouro UI up themselves to the commands in the install section, on a wide screen", async () => {
     await renderPage("/");
-    const link = page.getByRole("link", { name: NEW_APP_LINK.text, exact: true });
-    await expect.element(link).toHaveAttribute("href", "/docs/installing/#start-a-new-app");
-    expect(link.element().closest("[data-site-install-caption]")).not.toBeNull();
-    // On a phone it waits with the caption's second sentence, so the release stays on the caption's line and the
-    // stage keeps its place on the first screen.
+    const link = page.getByRole("link", { name: HANDOFF.commands.text, exact: true });
+    await expect.element(link).toHaveAttribute("href", "#install");
+    expect(link.element().closest("[data-site-handoff-caption]")).not.toBeNull();
+    expect(document.getElementById("install")).not.toBeNull();
+    // On a phone it waits: a phone's reader hands Ouro UI to an agent, and the release sits on the label's line.
     const anchor = link.element();
     await page.viewport(390, 844);
     await expect.poll(() => anchor.checkVisibility()).toBe(false);
-    const caption = document.querySelector<HTMLElement>("[data-site-install-caption]")!.getBoundingClientRect();
+    const label = document.getElementById("site-handoff-label")!.getBoundingClientRect();
     const release = document.querySelector<HTMLElement>("[data-site-release]")!.getBoundingClientRect();
-    expect(release.top).toBeLessThan(caption.bottom);
+    expect(release.top).toBeLessThan(label.bottom);
   });
 
-  it("shows the whole install command, for one component in the latest release, pinned to it", async () => {
+  it("hands Ouro UI to a person's agent as one line to paste, never a command for the person to run", async () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
     try {
       await renderPage("/");
-      expect(install.release).toBe(latestRelease);
-      expect(INSTALL_COMMAND).toBe(`npx shadcn@latest add ourostack/ouro-ui/${install.item}#${latestRelease}`);
-      expect(INSTALL_CAPTION).toBe(`Adds ${install.item.charAt(0).toUpperCase()}${install.item.slice(1)}. Any other part installs the same way.`);
-      // No count of components on the home page (Ari, 2026-10-30).
-      expect(INSTALL_CAPTION).not.toMatch(/\d/);
-      // real clock: the hero's install command, which stays.
-      await expect.element(page.getByText(INSTALL_COMMAND, { exact: true })).toBeVisible();
-      // The caption, which stays, starts with these words; the new-app link follows them in the same line.
-      const caption = document.querySelector<HTMLElement>("[data-site-install-caption]")!;
-      expect(caption.checkVisibility()).toBe(true);
-      expect(caption.textContent).toContain(INSTALL_CAPTION);
-      const code = document.querySelector<HTMLElement>("[data-site-install]")!;
-      expect(code.scrollWidth).toBeLessThanOrEqual(code.clientWidth);
-      // A toast shows for five seconds, which a loaded runner can outlast between two steps; the
-      // announcement is recorded as it happens.
+      expect(HANDOFF.prompt).toContain("https://ui.ouroboros.bot/llms.txt");
+      const handoff = document.querySelector<HTMLElement>("[data-site-handoff]")!;
+      expect(handoff.getAttribute("role")).toBe("group");
+      await expect.element(page.getByRole("group", { name: HANDOFF.label })).toBeVisible();
+      // real clock: the hero's prompt, which stays.
+      await expect.element(page.getByText(HANDOFF.prompt, { exact: true })).toBeVisible();
+      const prompt = document.querySelector<HTMLElement>("[data-site-handoff-prompt]")!;
+      expect(prompt.scrollWidth).toBeLessThanOrEqual(prompt.clientWidth);
+      // On the first screen, under the lede, before the art; and the hero asks the person to run nothing: the commands
+      // wait in the install section.
+      const hero = handoff.closest<HTMLElement>('[data-ouro="hero"]')!;
+      expect(hero).not.toBeNull();
+      expect(handoff.getBoundingClientRect().top).toBeLessThan(hero.querySelector('[data-slot="media"]')!.getBoundingClientRect().top);
+      for (const part of [hero, document.querySelector<HTMLElement>(".site-console")!]) expect(part.textContent).not.toMatch(/npx|shadcn@/);
+      // A toast shows for five seconds, which a loaded runner can outlast between two steps; the announcement is recorded as it happens.
       const announced = watchAnnouncements();
       await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
-      await expect.poll(() => announced.count("Copied the install command")).toBe(1);
+      await expect.poll(() => announced.count(HANDOFF.copied)).toBe(1);
       announced.stop();
-      expect(writes).toEqual([INSTALL_COMMAND]);
+      expect(writes).toEqual([HANDOFF.prompt]);
     } finally {
       spy.mockRestore();
     }

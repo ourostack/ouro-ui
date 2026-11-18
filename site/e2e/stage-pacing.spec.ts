@@ -218,6 +218,9 @@ test("the stage judges the screen only once the site menu over it has closed", a
   await onTheBeat(page, { delay: 6000 });
   await slowFrames(page, 150);
   await openSlow(page);
+  // On a phone the home page's first screen is the look to try and the hand-off, so the stage is brought up first: only
+  // the menu over it may hold its judging back.
+  await bringUp(page);
   // A record of what the stage waits on, read back if it has not judged: the menu's mark on the root, its beats (the
   // 500 ms waits) as they are set and fire, and the frames drawn. Kept from the loaded page, whose root is the one marked.
   // Whether the page's other timers fire too (how many, and the last), and the longest gap between frames, tell a page whose

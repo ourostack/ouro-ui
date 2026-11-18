@@ -286,7 +286,7 @@ export function InstallSteps(): JSX.Element {
     <section id="install" aria-labelledby="install-title" className="border-t border-border/70 py-20 lg:py-28">
       <Container className="grid gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-16">
         <div>
-          <p className="site-eyebrow">Install</p>
+          <p className="site-eyebrow">Install, for agents and the curious</p>
           <h2 id="install-title" className="site-h2 mt-4">
             Copy it in, then make it yours
           </h2>
