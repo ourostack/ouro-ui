@@ -113,7 +113,14 @@ export default function AppleStart(): JSX.Element {
         lede={
           <p>
             {`Ouro Feel and Ouro Reins ship in ouro-ui-apple ${kit.feelReinsRelease}, as the OuroFeel and OuroReins products, so the package line above includes them.`} Their pages show what they do.{" "}
-            {`OuroA2UI ships in ouro-ui-apple ${kit.release} as the OuroA2UI product, for an app where an agent composes UI for a person.`}
+            {`OuroA2UI ships in ouro-ui-apple ${kit.release} as the OuroA2UI product, for an app where an agent composes UI for a person.`}{" "}
+            {claim("Since 1.1.0 it also takes fields, TextField, Checkbox and Select, and a tree that didn't come as A2UI, through ComposedTree.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0" },
+              verify: [
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.1.0" },
+                { equals: "site/src/apple/kit.json#release", is: "1.1.0" },
+              ],
+            })}
           </p>
         }
       >
