@@ -104,6 +104,8 @@ export const routes: Route[] = [
     title: "Updating components · Ouro HX",
     description: "Review upstream changes with add --diff, then overwrite and reapply your edits.",
   },
+  // One component's live demo alone (components/phone-demo.tsx), which a component page shows in a phone's frame.
+  { path: "/docs/demo/", title: "Live demo · Ouro HX", description: "One Ouro HX component's live demo, on its own.", noindex: true },
 ];
 
 /** The route for a path, tolerating a missing trailing slash and `index.html`. */

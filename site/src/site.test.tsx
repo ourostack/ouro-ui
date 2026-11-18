@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
+import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderFixture, renderPage, scan, setScheme, settle } from "../test/render";
+import { App, loadPage } from "./app";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { demos } from "./docs/demos";
+import { PHONE_DEMOS } from "./components/phone-demo";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
@@ -635,6 +637,42 @@ describe("docs", () => {
     expect(demo.nextElementSibling).toBe(line);
     await renderPage("/docs/card/");
     expect(document.querySelector("[data-site-try]")).toBeNull();
+  });
+
+  it("shows a demo on a phone's width at the press of Phone, where the phone's layout differs", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/dialog/");
+    const phone = page.getByRole("button", { name: "Phone" });
+    await userEvent.click(phone);
+    await expect.element(phone).toHaveAttribute("aria-pressed", "true");
+    const frame = page.getByTitle("Dialog on a phone").element() as HTMLIFrameElement;
+    expect(frame.getAttribute("src")).toBe("/docs/demo/?name=dialog");
+    // A phone's width, so the demo's media queries see a phone.
+    expect(frame.getBoundingClientRect().width).toBeCloseTo(390, -1);
+    await userEvent.click(phone);
+    await expect.poll(() => document.querySelector('[data-site-demo="dialog"]')).not.toBeNull();
+    // Nothing to show where the phone's layout is the same, nor on a phone itself.
+    await renderPage("/docs/card/");
+    expect(page.getByRole("button", { name: "Phone" }).elements()).toHaveLength(0);
+    await page.viewport(390, 844);
+    await renderPage("/docs/dialog/");
+    expect(getComputedStyle(document.querySelector("[data-site-phone]")!).display).toBe("none");
+  });
+
+  it("has a page for one component's demo alone, named by the address, for the phone's frame", async () => {
+    const was = location.pathname + location.search;
+    history.replaceState(null, "", "/docs/demo/?name=edit-sheet");
+    try {
+      // No header on this page, so not renderPage, which waits for one.
+      await renderFixture(<App path="/docs/demo/" Page={await loadPage("/docs/demo/")} />);
+      await expect.element(page.getByRole("heading", { level: 1, name: "EditSheet live demo" })).toBeInTheDocument();
+      await expect.poll(() => document.querySelector('[data-site-demo="edit-sheet"]')).not.toBeNull();
+      expect(document.querySelector("[data-site-brand]")).toBeNull();
+      expect(routes.find((route) => route.path === "/docs/demo/")?.noindex).toBe(true);
+    } finally {
+      history.replaceState(null, "", was);
+    }
+    for (const name of PHONE_DEMOS) expect(Object.hasOwn(demos, name), `${name} has a demo`).toBe(true);
   });
 
   it("has a page for every registry item at docs/<name>", () => {

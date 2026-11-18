@@ -12,7 +12,7 @@ import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
 import { DocsShell } from "../components/docs-shell";
 import type { SceneName } from "../storybook";
-import { LiveDemo } from "../components/live-demo";
+import { DemoFrame, DemoStage } from "../components/phone-demo";
 import { tries } from "../docs/tries";
 import { siteGroups, type SiteGroup } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
@@ -101,12 +101,7 @@ export function DocsComponent({ item }: { item: DocsItem }): JSX.Element {
   return (
     <DocsShell current={`/docs/${item.name}/`} opener={{ scene: groupScene(item.group), eyebrow: item.group, title: item.title }}>
       <Lead>{prose(purpose)}</Lead>
-      <section
-        aria-label="Live demo"
-        className="flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 py-10 lg:px-10 dark:bg-muted/65"
-      >
-        <LiveDemo name={item.name} title={item.title} />
-      </section>
+      <DemoStage name={item.name} title={item.title} />
       {Object.hasOwn(tries, item.name) && (
         <Text size="sm" tone="muted" align="center" className="mt-3" data-site-try="">
           <span className="font-medium text-foreground">Try it:</span> {tries[item.name]}
@@ -575,13 +570,14 @@ export async function prepare(path: string): Promise<void> {
 /** Whether the docs module has no page for a path, so it shows Not found. */
 function lost(path: string): boolean {
   const route = routeFor(path)?.path;
-  return route !== "/docs/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && !docFor(path);
+  return route !== "/docs/" && route !== "/docs/demo/" && route !== "/docs/switching-from-shadcn/" && route !== "/docs/updating/" && !docFor(path);
 }
 
 /** The docs module's page for a path: the index, a guide, a component's page, or Not found. */
 export default function DocsRoute({ path }: { path: string }): JSX.Element {
   const route = routeFor(path)?.path;
   if (route === "/docs/") return <DocsIndex />;
+  if (route === "/docs/demo/") return <DemoFrame />;
   if (route === "/docs/switching-from-shadcn/") return <Switching />;
   if (route === "/docs/updating/") return <Updating />;
   if (lost(path)) return <NotFound />;
