@@ -6,7 +6,7 @@ export const otherNames: Readonly<Record<string, readonly string[]>> = {
   dialog: ["a modal", "a popup window"],
   sheet: ["a drawer", "a bottom sheet", "a side panel", "a slide-over", "an action sheet"],
   "confirm-dialog": ["an alert dialog", "an are-you-sure prompt"],
-  menu: ["a dropdown", "a dropdown menu", "a context menu", "a menubar", "a kebab menu", "an overflow menu"],
+  menu: ["a dropdown", "a dropdown menu", "a context menu", "a kebab menu", "an overflow menu"],
   select: ["a dropdown", "a picker", "a listbox"],
   "text-field": ["an input", "a text input", "a text box"],
   "text-area": ["a multiline input"],

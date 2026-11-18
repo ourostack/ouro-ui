@@ -122,6 +122,7 @@ for (const route of routes) {
 // Old addresses: GitHub Pages is static, so each is a page that refreshes to the new one.
 for (const { from, to, note } of redirects) {
   if (routes.some((route) => route.path.toLowerCase() === from.toLowerCase())) throw new Error(`${from} is both a page and a redirect, or differs from a page only in letter case`);
+  if (redirects.some((other) => other.from !== from && other.from.toLowerCase() === from.toLowerCase())) throw new Error(`${from} differs from another redirect only in letter case`);
   const file = join(dist, from, "index.html");
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, redirectPage(to, note));

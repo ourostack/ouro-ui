@@ -563,6 +563,7 @@ describe("docs", () => {
       expect(pages.has(to), `${from} goes to ${to}, a page`).toBe(true);
       // A case-insensitive file system would write the redirect over the page itself.
       expect([...pages].some((path) => path.toLowerCase() === from.toLowerCase()), `${from} is no page in any letter case`).toBe(false);
+      expect(guessedAddresses.filter((other) => other.from.toLowerCase() === from.toLowerCase()), `${from} is no other redirect in any letter case`).toHaveLength(1);
     }
     expect(redirects).toEqual(expect.arrayContaining(guessedAddresses));
   });
