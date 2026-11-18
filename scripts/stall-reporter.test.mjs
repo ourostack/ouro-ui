@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { StallReporter, stallReport } from "./stall-reporter.mts";
+import { StallReporter, holdText, slowTestText, stallReport } from "./stall-reporter.mts";
 
 const options = { warnAfter: 120_000, failAfter: 300_000 };
 const now = 1_000_000_000;
@@ -157,4 +157,89 @@ test("StallReporter says the run is in teardown when every file has started and 
     reporter.onTestModuleEnd(moduleOf("a.test.tsx"));
   });
   assert.match(text, /^\[ouro-ui\] Vitest has had no test finish for .*No test in flight: the run is between files or in teardown\. Finished 1 of 1 files\.\n$/);
+});
+
+test("slowTestText names a test that has run for half its timeout, with the longest hold on Node's event loop", () => {
+  const entry = { project: "ouro-chromium (chromium)", file: "registry/ouro/components/ouro/composer/composer.test.tsx", name: "Composer > grows" };
+  assert.equal(
+    slowTestText(entry, 7_600, 15_000, 9_100),
+    "[ouro-ui] Vitest: ouro-chromium (chromium) registry/ouro/components/ouro/composer/composer.test.tsx > Composer > grows has run for 7s of its 15 s timeout. Node's event loop was held up for 9s while it ran, so an answer from Node may have waited behind it. The reporter cannot see the browser command a test awaits; a timeout names it.",
+  );
+});
+
+test("slowTestText says Node was not held up when no hold reached 50 ms, and shows short spans in milliseconds", () => {
+  assert.equal(
+    slowTestText({ project: "", file: "test/a.test.tsx", name: "A > b" }, 480, 1_000, 0),
+    "[ouro-ui] Vitest: test/a.test.tsx > A > b has run for 480 ms of its 1 s timeout. Node's event loop was not held up for 50 ms or more while it ran, so the wait is not in Node. The reporter cannot see the browser command a test awaits; a timeout names it.",
+  );
+});
+
+/** Holds Node's event loop for `ms`, as work in the same process does, so no timer or answer runs meanwhile. */
+function holdNode(ms) {
+  const end = Date.now() + ms;
+  let spins = 0;
+  while (Date.now() < end) spins++;
+  return spins;
+}
+
+/** A test case as Vitest hands it to the reporter: its id, full name, timeout (or the project's), and file. */
+const caseOf = (file, name, timeout, projectTimeout = 15_000) => ({
+  id: `${file} ${name}`,
+  fullName: name,
+  module: { moduleId: `/repo/${file}`, project: { name: "ouro-chromium (chromium)", config: { testTimeout: projectTimeout } } },
+  options: { timeout },
+});
+
+test("StallReporter names a test that has run for half its timeout once, and the hold on Node's event loop while it ran", async () => {
+  const text = await stallTextFor((reporter) => {
+    reporter.onTestRunStart([specOf("a.test.tsx")]);
+    reporter.onTestCaseReady(caseOf("a.test.tsx", "A > slow", 100));
+    holdNode(120);
+  });
+  const named = text.split("\n").filter((line) => line.includes("has run for"));
+  assert.equal(named.length, 1);
+  assert.match(named[0], /^\[ouro-ui\] Vitest: ouro-chromium \(chromium\) a\.test\.tsx > A > slow has run for \d+ ms of its 100 ms timeout\. Node's event loop was held up for \d+ ms while it ran/);
+});
+
+test("StallReporter takes a test's timeout from its project when the test sets none", async () => {
+  const text = await stallTextFor((reporter) => {
+    reporter.onTestRunStart([specOf("a.test.tsx")]);
+    reporter.onTestCaseReady(caseOf("a.test.tsx", "A > default", undefined, 100));
+    holdNode(80);
+  });
+  assert.match(text, /has run for \d+ ms of its 100 ms timeout/);
+});
+
+test("StallReporter does not name a test that finishes before half its timeout", async () => {
+  const text = await stallTextFor((reporter) => {
+    reporter.onTestRunStart([specOf("a.test.tsx")]);
+    const testCase = caseOf("a.test.tsx", "A > quick", 60_000);
+    reporter.onTestCaseReady(testCase);
+    reporter.onTestCaseResult(testCase);
+  });
+  assert.doesNotMatch(text, /has run for/);
+});
+
+test("holdText names a hold and each test in flight with its running time, or says none is", () => {
+  const inFlight = [{ project: "ouro-chromium (chromium)", file: "registry/ouro/components/ouro/composer/composer.test.tsx", name: "Composer > grows", startedAt: now - 20_000 }];
+  assert.equal(
+    holdText(20_100, inFlight, now),
+    "[ouro-ui] Vitest: Node's event loop was held up for 20s, and a browser command answered in that time waited behind it. In flight: ouro-chromium (chromium) registry/ouro/components/ouro/composer/composer.test.tsx > Composer > grows (running 20s).",
+  );
+  assert.equal(
+    holdText(1_200, [], now),
+    "[ouro-ui] Vitest: Node's event loop was held up for 1s, and a browser command answered in that time waited behind it. No test in flight.",
+  );
+});
+
+test("StallReporter names a hold of a second or more as it ends, with the test in flight", async () => {
+  const text = await stallTextFor((reporter) => {
+    reporter.onTestRunStart([specOf("a.test.tsx")]);
+    reporter.onTestCaseReady(caseOf("a.test.tsx", "A > held", 60_000));
+    holdNode(1100);
+  });
+  assert.match(
+    text,
+    /\[ouro-ui\] Vitest: Node's event loop was held up for 1s, and a browser command answered in that time waited behind it\. In flight: ouro-chromium \(chromium\) a\.test\.tsx > A > held \(running 1s\)\./,
+  );
 });

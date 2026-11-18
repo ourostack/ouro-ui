@@ -6,6 +6,9 @@
 // includes each file still loading, waiting to start or in a module hook, and the files no worker
 // has started yet (issue #1814). vitest.config.ts adds it to CI's shard runs. OURO_VITEST_STALL_WARN_MS
 // and OURO_VITEST_STALL_FAIL_MS change the two thresholds, for tests and local runs.
+// A test that has run for half its timeout is named once, with the longest hold on Node's event loop
+// while it ran (#2003): a browser command answered through a Node that was held up waits behind it, and
+// a test that times out on a command names the command (registry/ouro/lib/ouro/testing/command-deadline.ts).
 import { relative, sep } from "node:path";
 import type { Reporter, ReportedHookContext, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node";
 
@@ -43,8 +46,8 @@ export interface StallReport {
 /** The files the stall names before it says how many more there are. */
 const LISTED = 12;
 
-/** A duration as the thresholds name it: `2 min`, or `10 s` when it is not whole minutes. */
-const threshold = (ms: number) => (ms >= 60_000 && ms % 60_000 === 0 ? `${ms / 60_000} min` : `${Math.round(ms / 1000)} s`);
+/** A duration as the thresholds name it: `2 min`, `10 s` when it is not whole minutes, `500 ms` under a second. */
+const threshold = (ms: number) => (ms >= 60_000 && ms % 60_000 === 0 ? `${ms / 60_000} min` : ms < 1000 ? `${ms} ms` : `${Math.round(ms / 1000)} s`);
 
 /** An elapsed time as the in-flight list shows it: `45s`, then `2m 10s`. */
 const elapsed = (ms: number) => {
@@ -54,6 +57,41 @@ const elapsed = (ms: number) => {
 
 /** A file as the stall names it: its project, when it has one, then its path. */
 const label = (project: string, file: string) => (project ? `${project} ${file}` : file);
+
+/** A hold on Node's event loop at least this long is named; shorter ones are scheduling noise. */
+const HOLD_MS = 50;
+
+/** A hold at least this long is named when it ends, with the tests in flight. */
+const LONG_HOLD_MS = 1000;
+
+/** How often the reporter's ticker looks at Node's event loop: a tick that runs late was held up by the work before it. */
+const LOOP_TICK_MS = 20;
+
+/** A duration on the slow-test and hold lines: `120 ms` under a second, then as the in-flight list shows it. */
+const spanOf = (ms: number) => (ms < 1000 ? `${Math.round(ms)} ms` : elapsed(ms));
+
+/**
+ * The line written when a hold of at least LONG_HOLD_MS ends: the hold, and what was in flight meanwhile. A browser
+ * command Node answers in that time waits behind the hold, and a test that times out on one names the command.
+ */
+export function holdText(heldMs: number, inFlight: readonly InFlight[], now: number): string {
+  const list = inFlight.length === 0 ? "No test in flight." : `In flight: ${inFlight.map((entry) => describeInFlight(entry, now)).join("; ")}.`;
+  return `[ouro-ui] Vitest: Node's event loop was held up for ${spanOf(heldMs)}, and a browser command answered in that time waited behind it. ${list}`;
+}
+
+/**
+ * The line written once a test case has run for half its timeout: how long it has run, and the longest hold on
+ * Node's event loop while it ran (`heldMs`, 0 when no hold reached HOLD_MS). A hold is what a browser command's
+ * answer waits behind, since Node answers every browser command. The reporter cannot see the browser command
+ * a test awaits, so the line says so.
+ */
+export function slowTestText(entry: Pick<InFlight, "project" | "file" | "name">, runningMs: number, timeoutMs: number, heldMs: number): string {
+  const loop =
+    heldMs >= HOLD_MS
+      ? `Node's event loop was held up for ${spanOf(heldMs)} while it ran, so an answer from Node may have waited behind it.`
+      : `Node's event loop was not held up for ${HOLD_MS} ms or more while it ran, so the wait is not in Node.`;
+  return `[ouro-ui] Vitest: ${label(entry.project, entry.file)} > ${entry.name} has run for ${spanOf(runningMs)} of its ${threshold(timeoutMs)} timeout. ${loop} The reporter cannot see the browser command a test awaits; a timeout names it.`;
+}
 
 /** One in-flight entry: a test case with its running time, or a file in the phase or hook it is in. */
 const describeInFlight = ({ project, file, name, startedAt, phase = "running", hook }: InFlight, now: number): string => {
@@ -114,21 +152,24 @@ interface ModuleEntry {
   hook?: { name: string; startedAt: number };
 }
 
-/** Watches for a stall, every 15 seconds, from the run's start to its end (see the file's comment). */
+/** Watches for a stall, and for a test that has run long, every second, from the run's start to its end (see the file's comment). */
 export class StallReporter implements Reporter {
   readonly #options: StallOptions;
   readonly #intervalMs: number;
   readonly #modules = new Map<string, ModuleEntry>();
-  readonly #cases = new Map<string, { moduleKey: string; entry: InFlight }>();
+  readonly #cases = new Map<string, { moduleKey: string; entry: InFlight; timeout: number; due: boolean; named: boolean }>();
   readonly #pending = new Map<string, { project: string; file: string }>();
+  readonly #holds: { endedAt: number; ms: number }[] = [];
   #finished = 0;
   #total = 0;
   #root = process.cwd();
   #lastFinish = Date.now();
   #warned = false;
   #timer: ReturnType<typeof setInterval> | undefined;
+  #ticker: ReturnType<typeof setInterval> | undefined;
+  #tickedAt = Date.now();
 
-  constructor({ warnAfter = envMs("OURO_VITEST_STALL_WARN_MS", 120_000), failAfter = envMs("OURO_VITEST_STALL_FAIL_MS", 300_000), intervalMs = 15_000 } = {}) {
+  constructor({ warnAfter = envMs("OURO_VITEST_STALL_WARN_MS", 120_000), failAfter = envMs("OURO_VITEST_STALL_FAIL_MS", 300_000), intervalMs = 1_000 } = {}) {
     this.#options = { warnAfter, failAfter };
     this.#intervalMs = intervalMs;
   }
@@ -142,11 +183,15 @@ export class StallReporter implements Reporter {
     this.#modules.clear();
     this.#cases.clear();
     this.#pending.clear();
+    this.#holds.length = 0;
     for (const { project, moduleId } of specifications) {
       this.#pending.set(`${project.name}\0${moduleId}`, { project: project.name, file: this.#file(moduleId) });
     }
     this.#finished = 0;
     this.#total = this.#pending.size;
+    this.#tickedAt = Date.now();
+    this.#ticker = setInterval(() => this.#tick(), LOOP_TICK_MS);
+    this.#ticker.unref();
     this.#timer = setInterval(() => this.#check(), this.#intervalMs);
     this.#timer.unref();
   }
@@ -182,7 +227,8 @@ export class StallReporter implements Reporter {
 
   onTestCaseReady(testCase: TestCase): void {
     const entry = { project: testCase.module.project.name, file: this.#file(testCase.module.moduleId), name: testCase.fullName, startedAt: Date.now() };
-    this.#cases.set(testCase.id, { moduleKey: this.#moduleKey(testCase.module), entry });
+    const timeout = testCase.options.timeout ?? testCase.module.project.config.testTimeout;
+    this.#cases.set(testCase.id, { moduleKey: this.#moduleKey(testCase.module), entry, timeout, due: false, named: false });
   }
 
   onTestCaseResult(testCase: TestCase): void {
@@ -193,6 +239,23 @@ export class StallReporter implements Reporter {
 
   onTestRunEnd(): void {
     clearInterval(this.#timer);
+    clearInterval(this.#ticker);
+  }
+
+  /** Records a tick that ran late as a hold on Node's event loop, and names a long one as it ends. */
+  #tick(): void {
+    const now = Date.now();
+    const late = now - this.#tickedAt - LOOP_TICK_MS;
+    this.#tickedAt = now;
+    if (late < HOLD_MS) return;
+    this.#holds.push({ endedAt: now, ms: late });
+    if (this.#holds.length > 200) this.#holds.shift();
+    if (late >= LONG_HOLD_MS) process.stderr.write(`${holdText(late, this.#inFlight(), now)}\n`);
+  }
+
+  /** The longest hold that ended since `start`, 0 when none did. */
+  #heldSince(start: number): number {
+    return this.#holds.reduce((longest, hold) => (hold.endedAt >= start ? Math.max(longest, hold.ms) : longest), 0);
   }
 
   #moduleKey(testModule: TestModule): string {
@@ -244,8 +307,25 @@ export class StallReporter implements Reporter {
     return [...cases.map(({ entry }) => entry), ...files];
   }
 
+  /**
+   * Writes the slow-test line once for each test case that has run for half its timeout. A test is named a tick
+   * after it is due, so a hold that ends just after this tick is counted.
+   */
+  #watchCases(now: number): void {
+    for (const kase of this.#cases.values()) {
+      if (kase.named || now - kase.entry.startedAt < kase.timeout / 2) continue;
+      if (!kase.due) {
+        kase.due = true;
+        continue;
+      }
+      kase.named = true;
+      process.stderr.write(`${slowTestText(kase.entry, now - kase.entry.startedAt, kase.timeout, this.#heldSince(kase.entry.startedAt))}\n`);
+    }
+  }
+
   #check(): void {
     const now = Date.now();
+    this.#watchCases(now);
     const pending: PendingRun = { notStarted: [...this.#pending.values()], finished: this.#finished, total: this.#total };
     const report = stallReport(this.#inFlight(), this.#lastFinish, now, this.#options, pending);
     if (report.level === "warn" && !this.#warned) {
