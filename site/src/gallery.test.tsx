@@ -89,6 +89,30 @@ describe("live demos", () => {
     await expect.poll(() => document.activeElement).toBe(trigger.element());
   });
 
+  it("lets a person fill in an agent's card, and each press sends what they entered", async () => {
+    await renderPage("/docs/composed-surface/");
+    const servings = page.getByRole("textbox", { name: "Servings" }).or(page.getByRole("spinbutton", { name: "Servings" }));
+    await userEvent.clear(servings);
+    await userEvent.type(servings, "6");
+    await userEvent.click(page.getByRole("button", { name: "Add ingredients to list", exact: true }));
+    await expect.element(page.getByText('Runs add_recipe_to_shopping_list with {"recipe":"rcp_lemon_orzo","servings":6}.')).toBeVisible();
+    await userEvent.type(page.getByRole("textbox", { name: "Share with" }), "sam@example.com");
+    await userEvent.click(page.getByRole("button", { name: "Share recipe", exact: true }));
+    const sheet = page.getByRole("alertdialog");
+    // The sheet shows what the person typed, and the app's own name for the recipe beside its id.
+    // Its text, without the invisible break points the sheet puts in a long value so it can wrap.
+    const shown = () => (sheet.element().textContent ?? "").replace(/[^\x21-\x7E]/g, "");
+    await expect.poll(shown).toContain("Sendto:sam@example.com");
+    await expect.poll(shown).toContain("Recipe:CharredLemonOrzo");
+    await userEvent.click(sheet.getByRole("button", { name: "Share recipe", exact: true }));
+    await expect.element(page.getByText('Runs share_recipe with {"recipe":"rcp_lemon_orzo","with":"sam@example.com"}.')).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "What the agent sent" }));
+    await expect.poll(() => document.querySelector("[data-ouro='code-block']")?.textContent).toContain('"component": "TextField"');
+    await expect.poll(() => document.querySelector("[data-ouro='code-block']")?.textContent).toContain('"catalogId"');
+    // Opening it keeps the person's answers.
+    await expect.element(page.getByRole("textbox", { name: "Share with" })).toHaveValue("sam@example.com");
+  });
+
   it("supports local list deletion and Undo", async () => {
     await renderPage("/docs/swipe-actions/");
     const actions = page.getByRole("button", { name: "Actions for Shakshuka", exact: true });
