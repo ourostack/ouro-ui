@@ -25,8 +25,10 @@
 //   or update one `screen-reader-infra` issue; a release retries once.
 //
 // A VoiceOver navigation that hung and was retried logs a `[sr] navigation retry:` line
-// (registry/ouro/e2e/screen-reader/navigation.ts). Those lines are no finding and no reason, so they
-// are left out of the classification; the run summary counts them against the VoiceOver tests that ran.
+// (registry/ouro/e2e/screen-reader/navigation.ts), and a VoiceOver start that could not start and was
+// retried logs a `[sr] start retry:` line with its `[sr] start diagnostics:` lines
+// (start-retry.ts). Those lines are no finding and no reason, so they are left out of the
+// classification; the run summary counts them against the VoiceOver tests that ran.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -78,26 +80,36 @@ function onlyBrowserLifecycleFailed(log) {
   return errors.length > 0 && errors.every((line) => browserLifecycleError.test(line)) && !/Test timeout of \d+ms exceeded/.test(log);
 }
 
-/** A VoiceOver navigation retried after it hung (registry/ouro/e2e/screen-reader/navigation.ts, NAVIGATION_RETRY_PREFIX). */
-const retryLine = /^\s*\[sr\] navigation retry:/;
+/** A VoiceOver navigation retried after it hung or quit (navigation.ts), or a VoiceOver start retried (start-retry.ts): no finding and no reason. */
+const retryLine = /^\s*\[sr\] (navigation|start) retry:/;
 
-/** The log without its navigation-retry lines: a navigation a retry recovered is no finding and no reason. */
-const withoutRetries = (log) => log.split(/\r?\n/).filter((line) => !retryLine.test(line)).join("\n");
+/** The diagnostics a start retry logs under its line (start-retry.ts): no finding either. */
+const diagnosticsLine = /^\s*\[sr\] start diagnostics:/;
+
+/** The log without its retry lines: a navigation or a start a retry recovered is no finding and no reason. */
+const withoutRetries = (log) => log.split(/\r?\n/).filter((line) => !retryLine.test(line) && !diagnosticsLine.test(line)).join("\n");
 
 /** How many VoiceOver navigations were retried after a hang. */
-export const navigationRetries = (log) => log.split(/\r?\n/).filter((line) => retryLine.test(line)).length;
+export const navigationRetries = (log) => log.split(/\r?\n/).filter((line) => /^\s*\[sr\] navigation retry:/.test(line)).length;
+
+/** How many VoiceOver starts were retried after VoiceOver could not be started (start-retry.ts, START_RETRY_PREFIX). */
+export const startRetries = (log) => log.split(/\r?\n/).filter((line) => /^\s*\[sr\] start retry:/.test(line)).length;
 
 /** How many VoiceOver tests ran (passed or failed): the denominator of the retry rate. */
 export const voiceOverTestsRan = (log) => log.split(/\r?\n/).filter((line) => /^\s*(✓|✘)\s+\d+\s+\[voiceover\]/.test(line)).length;
 
 /**
- * The run summary's line on VoiceOver's navigation retries, against the VoiceOver tests that ran.
- * Above 1 in 50 tests it says so: a cause to find, not noise (#2014). A job that ran fewer than 50 tests is too few
- * to judge that rate, so a retry there points to #2014, which counts across runs. Empty when no VoiceOver test ran.
+ * The run summary's line on VoiceOver's retries, against the VoiceOver tests that ran: navigations
+ * retried, and starts retried (`; VoiceOver start: …`). Above 1 in 50 tests the navigations say so: a
+ * cause to find, not noise (#2014). A job that ran fewer than 50 tests is too few to judge that rate, so
+ * a retry there points to #2014, which counts across runs. Empty when no VoiceOver test ran and no start
+ * was retried.
  */
 export function navigationSummary(log) {
   const tests = voiceOverTestsRan(log);
-  if (tests === 0) return "";
+  const starts = startRetries(log);
+  const startClause = starts ? `; VoiceOver start: ${starts} ${starts === 1 ? "retry" : "retries"}` : "";
+  if (tests === 0) return starts ? `VoiceOver start: ${starts} ${starts === 1 ? "retry" : "retries"}.` : "";
   const retries = navigationRetries(log);
   const rate = retries ? ` (1 in ${Math.round(tests / retries)})` : "";
   const cause = !retries
@@ -107,7 +119,7 @@ export function navigationSummary(log) {
       : retries * 50 > tests
         ? " Above 1 in 50 tests: a cause to find, not noise."
         : "";
-  return `VoiceOver navigation: ${retries} ${retries === 1 ? "retry" : "retries"} in ${tests} tests that ran${rate}.${cause}`;
+  return `VoiceOver navigation: ${retries} ${retries === 1 ? "retry" : "retries"} in ${tests} tests that ran${rate}${startClause}.${cause}`;
 }
 
 /** The lane's class for a log and `pnpm test:sr`'s exit code (null when it never ran). */

@@ -4,8 +4,9 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { classify, why } from "./sr-classify.mjs";
+import { classify, navigationSummary, why } from "./sr-classify.mjs";
 import { speechTimeline, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
+import { START_DIAGNOSTICS_PREFIX, START_RETRY_PREFIX } from "../registry/ouro/e2e/screen-reader/start-retry.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -226,5 +227,39 @@ test("a miss with its VoiceOver timeline after it classifies and explains as the
     assert.equal(classify(logOf(withTimeline(message, timeline)), 1), expected);
     assert.equal(classify(logOf(withTimeline(message, timeline)), 1), classify(logOf(message), 1));
     assert.equal(why(logOf(withTimeline(message, timeline))), why(logOf(message)));
+  }
+});
+
+test("a start retry is no finding: a test's own failure after a recovered start decides the class", () => {
+  const retried = `${START_RETRY_PREFIX} VoiceOver could not be started (Application isn't running. (-600)); waiting for it to settle, then starting it again.\n${START_DIAGNOSTICS_PREFIX} pgrep -fl VoiceOver: none`;
+  const assertionFailure = "  ✘  3 [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:9:1 › Dialog\n    Error: [sr] no utterance matched /edit recipe/i; heard: \"Edit\"\n  1 failed";
+  assert.equal(classify(`${retried}\n${assertionFailure}`, 1), "accessibility");
+  assert.equal(classify(`${retried}\n  1 passed (3.4m)`, 0), "pass");
+  assert.equal(classify(retried, 1), "infrastructure");
+  assert.equal(classify(`${retried}\n  ✘  1 [voiceover] › dialog.sr.spec.ts:9:1 › Dialog\n    Error: VoiceOver cannot be started\n  1 failed`, 1), "infrastructure");
+});
+
+test("the run summary names VoiceOver start retries beside the navigation retries, and counts no diagnostics line", () => {
+  const tests = (count) => Array.from({ length: count }, (_, index) => `  ✓  ${index + 2} [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button (1.0s)`).join("\n");
+  const start = `${START_RETRY_PREFIX} VoiceOver could not be started (x); waiting for it to settle, then starting it again.`;
+  const diagnostics = `${START_DIAGNOSTICS_PREFIX} pgrep -fl VoiceOver: none\n${START_DIAGNOSTICS_PREFIX} no VoiceOver crash report in the last 10 minutes`;
+  assert.equal(navigationSummary(`${start}\n${diagnostics}\n${tests(22)}`), "VoiceOver navigation: 0 retries in 22 tests that ran; VoiceOver start: 1 retry.");
+  assert.equal(navigationSummary(`${start}\n${start}\n${tests(60)}`), "VoiceOver navigation: 0 retries in 60 tests that ran; VoiceOver start: 2 retries.");
+  assert.equal(
+    navigationSummary(`[sr] navigation retry: VoiceOver's navigation hung for 45 s on try 1 of 2; waiting for it to settle, then starting it again.\n${start}\n${tests(22)}`),
+    "VoiceOver navigation: 1 retry in 22 tests that ran (1 in 22); VoiceOver start: 1 retry. Too few tests to judge against 1 in 50 alone: #2014 counts the rate across runs.",
+  );
+  assert.equal(navigationSummary(start), "VoiceOver start: 1 retry.");
+  assert.equal(navigationSummary("no VoiceOver test ran here"), "");
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(join(root, ".tmp/sr-classify-start-"));
+  try {
+    const file = join(dir, "run.log");
+    writeFileSync(file, `${start}\n${tests(22)}`);
+    const result = spawnSync("node", [join(root, "scripts/sr-classify.mjs"), file, "0"], { encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: "", GITHUB_STEP_SUMMARY: "" } });
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /^VoiceOver navigation: 0 retries in 22 tests that ran; VoiceOver start: 1 retry\.$/m);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

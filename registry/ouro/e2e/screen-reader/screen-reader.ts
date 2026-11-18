@@ -1,3 +1,4 @@
+import { voiceOver } from "@guidepup/guidepup";
 import { voiceOverTest, type NVDAPlaywright, type VoiceOverPlaywright } from "@guidepup/playwright";
 import { test as base, expect, type BrowserContext, type BrowserContextOptions, type Page, type PlaywrightTestArgs, type PlaywrightTestOptions, type PlaywrightWorkerArgs, type PlaywrightWorkerOptions, type TestType } from "@playwright/test";
 import { execFile, spawn } from "node:child_process";
@@ -5,6 +6,7 @@ import { release } from "node:os";
 import { promisify } from "node:util";
 import { navigateWithRetry, waitUntil } from "./navigation";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
+import { installVoiceOverStartRetry, voiceOverRunning } from "./start-retry";
 import { firstMatch, type FocusMove, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
@@ -119,9 +121,6 @@ interface NVDAWorker {
   nvdaWorker: void;
 }
 
-/** Whether VoiceOver's process is running, by the pattern Guidepup itself looks for. */
-const voiceOverRunning = () => run("pgrep", ["-f", "VoiceOver launchd -s"]).then(() => true, () => false);
-
 /**
  * Before VoiceOver starts again after a hung navigation: the hung navigation has finished (10 s at
  * most), and VoiceOver's process has exited (30 s at most). A process still running is only noted.
@@ -130,6 +129,9 @@ async function settleVoiceOver(hung: Promise<void>): Promise<void> {
   await Promise.race([hung, new Promise((resolve) => setTimeout(resolve, 10_000))]);
   if (!(await waitUntil(async () => !(await voiceOverRunning()), 30_000, 500))) note("VoiceOver's process did not exit", "still running 30 s after it was stopped");
 }
+
+// VoiceOver's start, as every VoiceOver test's fixture makes it, retries once when VoiceOver cannot be started (start-retry.ts).
+if (process.platform === "darwin") installVoiceOverStartRetry(voiceOver);
 
 /** The test each spec uses: VoiceOver's on macOS, NVDA's on Windows. */
 export const test: ScreenReaderTest =
