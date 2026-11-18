@@ -408,7 +408,10 @@ test("typing nemo on the built page brings the Nautilus by with a toast, once a 
   await open(page, "nautilus/");
   await page.keyboard.type("nemo");
   const nemo = page.locator('[data-egg="nemo"]');
-  await expect(nemo.locator(".egg-ship svg")).toBeVisible();
+  // The painted ship, loaded from the built site's own files.
+  const ship = nemo.locator(".egg-ship img");
+  await expect(ship).toBeVisible();
+  await expect.poll(() => ship.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
   await expect(page.locator("[data-ouro-toast-title]", { hasText: "Captain Nemo waves hello!" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(nemo).toHaveCount(0);
