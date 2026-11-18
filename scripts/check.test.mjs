@@ -5,12 +5,14 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
-// Ouro check's Node side (registry/ouro/check/run.ts and serve.ts, which drive headless Chromium, and fades.ts, which
-// reads source) has node:test tests (the files in scripts/check/) that run under node --test with
+// Ouro check's Node side (registry/ouro/check/run.ts and serve.ts, which drive headless Chromium, fades.ts, which reads
+// source, and the first-run harness) has node:test tests (the files in scripts/check/) that run under node --test with
 // Node's own coverage, held to 100% like the components, in the scripts (browser) job. Its in-page side is covered by
 // test/check-in-page.test.ts in Vitest.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+// The first-run harness: Node, driving an installed Mac app through first-run-ax-tree.swift.
+const harness = ["first-run-judges.ts", "first-run-eyes.ts", "first-run-machine.ts", "first-run-network.ts", "first-run-session.ts", "first-run-detours.ts", "first-run-system.ts"];
 
 test("the Ouro check tests pass and cover every line, branch and function of its Node side", () => {
   const result = spawnSync(
@@ -22,6 +24,7 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "--test-coverage-include=registry/ouro/check/run.ts",
       "--test-coverage-include=registry/ouro/check/serve.ts",
       "--test-coverage-include=registry/ouro/check/fades.ts",
+      ...harness.map((file) => `--test-coverage-include=registry/ouro/check/${file}`),
       "--test-coverage-lines=100",
       "--test-coverage-branches=100",
       "--test-coverage-functions=100",
@@ -31,6 +34,8 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "scripts/check/check-rules.test.mts",
       "scripts/check/fades.test.mts",
       "scripts/check/ax-hooks.test.mts",
+      "scripts/check/first-run-units.test.mts",
+      "scripts/check/first-run-session.test.mts",
     ],
     {
       cwd: root,

@@ -1,0 +1,1 @@
+- New: Ouro check's first-run harness (scripts/ouro/check/first-run.ts) drives an installed Mac app from a fresh machine to signed in and synced through the detours a person takes, dismissing dialogs, pressing early, quitting, going offline and signing out, and fails a blank pane, a dead end, a dismissed required step or a signed-out empty state.
