@@ -3,9 +3,10 @@ description: >-
   Restores Playwright's browsers from the Actions cache, keyed on the runner's OS, image and
   architecture, Playwright's version and the browsers: WebKit's build differs per Ubuntu release,
   under the same folder name. Downloads them only on a miss, retrying the download with
-  backoff (scripts/retry.sh), and saves them for the next job. Then installs their system packages,
+  backoff (scripts/retry.sh), and saves them on main for the other runs to restore (a pull request
+  restores only: its own cache is readable by it alone). Then installs their system packages,
   unless the job installs those itself, from their own cache of .deb files per runner image version
-  (scripts/browser-deps.sh), saved on a miss. Run it after pnpm i.
+  (scripts/browser-deps.sh), saved on main on a miss. Run it after pnpm i.
 inputs:
   browsers:
     description: The browsers, as `playwright install` takes them, separated by spaces.
@@ -47,7 +48,7 @@ runs:
         # Word splitting is wanted: one argument per browser.
         # shellcheck disable=SC2086
         scripts/retry.sh pnpm exec playwright install $BROWSERS
-    - if: steps.restore.outputs.cache-hit != 'true'
+    - if: steps.restore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       # Another job may have saved the same key first.
       continue-on-error: true
@@ -70,7 +71,7 @@ runs:
         # Word splitting is wanted: one argument per browser.
         # shellcheck disable=SC2086
         scripts/browser-deps.sh "$OURO_BROWSER_DEBS" $BROWSERS
-    - if: inputs.system-packages == 'true' && steps.debs.outputs.cache-hit != 'true'
+    - if: inputs.system-packages == 'true' && steps.debs.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       # Another job may have saved the same key first.
       continue-on-error: true

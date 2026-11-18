@@ -270,6 +270,33 @@ test("CI downloads Playwright's browsers only through the cached action", () => 
   assert.match(warm, /runs-on: \$\{\{ matrix\.runner \}\}/);
 });
 
+test("only main saves a cache: every cache save in a workflow or action is guarded to main and to no pull request, except the mutation job's one (#2194)", () => {
+  // An actions/cache step saves at the end of its job, where no condition of its own can reach it, so none may remain.
+  const guard = ["github.ref == 'refs/heads/main'", "github.event_name != 'pull_request'"];
+  const saves = [];
+  for (const { file, text } of [...workflows, ...actions]) {
+    assert.doesNotMatch(text, /uses: actions\/cache@/, `${file} saves its cache at the end of its job`);
+    const lines = text.split("\n");
+    lines.forEach((line, index) => {
+      if (!/uses: actions\/cache\/save@/.test(line)) return;
+      // The step's dash sits two columns before its `uses:`, whether `uses:` opens the step or follows its `if:` or `id:`.
+      const dash = line.indexOf("uses:") - 2;
+      let start = index;
+      while (!new RegExp(`^ {${dash}}- `).test(lines[start])) start -= 1;
+      let end = index + 1;
+      while (end < lines.length && !new RegExp(`^ {0,${dash}}\\S`).test(lines[end])) end += 1;
+      saves.push({ file, step: lines.slice(start, end).join("\n") });
+    });
+  }
+  assert.ok(saves.length >= 6, `found ${saves.length} saves`);
+  const exempt = saves.filter(({ step }) => step.includes("path: .tmp/stryker-incremental.json"));
+  assert.deepEqual(exempt.map(({ file }) => file), ["ci.yml"], "the one save a pull request makes is the mutation job's");
+  for (const { file, step } of saves.filter((save) => !exempt.includes(save))) {
+    const condition = step.match(/if: (.*)$/m)?.[1] ?? "";
+    for (const part of guard) assert.ok(condition.includes(part), `${file} saves a cache without ${part}:\n${step}`);
+  }
+});
+
 test("a test that reaches gh with no stub is refused with exit 97, with no token, and its step stops there", () => {
   const saved = process.env.GH_TOKEN;
   process.env.GH_TOKEN = "not-a-token";
@@ -338,12 +365,12 @@ test("the browser action restores, downloads only what is missing with retries, 
   assert.match(browserAction, /image=\$\{ImageOS:-\}/);
   assert.match(browserAction, /image=\$\(\. \/etc\/os-release && echo "\$\{ID\}\$\{VERSION_ID\}"\)/);
   assert.match(browserAction, /version=\$\(node -p 'require\("playwright\/package\.json"\)\.version'\)/);
-  assert.match(browserAction, /- if: steps\.restore\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@/);
+  assert.match(browserAction, /- if: steps\.restore\.outputs\.cache-hit != 'true' && github\.ref == 'refs\/heads\/main' && github\.event_name != 'pull_request'\n\s+uses: actions\/cache\/save@/);
   // The system packages' .deb files, kept per runner image version (whose installed packages they
   // complete), architecture, Playwright version and browsers.
   assert.match(browserAction, /debs-key=browser-debs-\$\{RUNNER_OS\}-\$\{image\}-\$\{ImageVersion:-unknown\}-\$\{RUNNER_ARCH\}-\$\{version\}-\$\{set\}/);
   assert.match(browserAction, /- if: inputs\.system-packages == 'true'\n\s+id: debs\n\s+uses: actions\/cache\/restore@/);
-  assert.match(browserAction, /- if: inputs\.system-packages == 'true' && steps\.debs\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n\s+# Another job may have saved the same key first\.\n\s+continue-on-error: true/);
+  assert.match(browserAction, /- if: inputs\.system-packages == 'true' && steps\.debs\.outputs\.cache-hit != 'true' && github\.ref == 'refs\/heads\/main' && github\.event_name != 'pull_request'\n\s+uses: actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n\s+# Another job may have saved the same key first\.\n\s+continue-on-error: true/);
   assert.match(browserAction, /^ {2}debs-key:\n {4}description: .+\n {4}value: \$\{\{ steps\.key\.outputs\.debs-key \}\}$/m);
   assert.doesNotMatch(browserAction, /exec playwright install-deps/);
 });

@@ -167,6 +167,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://github.com/actions/setup-node/blob/949feb2413d6458794dcd2491c4babbbce0c15c1/action.yml#L21": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
   "https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx": {
     "status": 200,
     "checked": "2026-11-06"
