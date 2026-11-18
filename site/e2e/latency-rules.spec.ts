@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectPressesWithinBudget, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, splitPaint, splitPress, summarise, describeFrame, thinMargin } from "./latency";
+import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -142,15 +142,43 @@ test("a probe past the cap calls for a re-measure, read from the probe alone", (
   expect(pastCap([cap + 8, cap + 8, cap])).toBe(true);
 });
 
+test("a probe that reads past the cap every time, within one Event Timing step, is steady; spiky or within the cap is not", () => {
+  const slow = 80;
+  // The reads from ourostack/ouro-ui#2114: 80, then 80; 80, 84, 80; 80, 88, 80. Steady, past the cap every time.
+  expect(steadySlow([slow, slow])).toBe(true);
+  expect(steadySlow([slow, slow + 4, slow])).toBe(true);
+  expect(steadySlow([slow, slow + EVENT_TIMING_STEP, slow])).toBe(true);
+  // Spiky: 80 then 68, and 68 is within the cap.
+  expect(steadySlow([slow, 68])).toBe(false);
+  // One read is not yet a re-measure, so not steady.
+  expect(steadySlow([slow])).toBe(false);
+  // Within the cap: 70 is under 1.5× quiet (78 ms).
+  expect(steadySlow([70, 70])).toBe(false);
+  // Spread just over the step: 9 ms apart is not one step.
+  expect(steadySlow([slow, slow + EVENT_TIMING_STEP + 1])).toBe(false);
+});
+
+test("the infrastructure failure names the probe reads that decided it, and the control that found them when it did not measure", () => {
+  const message = slowRunnerMessage("shipyard", [80, 80]);
+  expect(message.startsWith("infrastructure: runner too slow to judge")).toBe(true);
+  expect(message).toContain("probe 80 ms, then 80 ms, steady, past 1.5× quiet (52 ms)");
+  expect(message).toContain("shipyard is not judged");
+  expect(slowRunnerMessage("nemo", [80, 80], "shipyard")).toContain(`found on "shipyard"; nemo is not measured`);
+});
+
 test.describe("a runner the probe reads past the cap", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling is a Chromium DevTools feature");
   const quiet = LATENCY.probeQuiet;
   const wait = LATENCY.loadWaitMs;
   // A quiet reading so low that any runner reads past the cap, as an overloaded one does; no wait between measurements.
+  // Whether its two reads are steady or spiky is the runner's, so the test accepts either outcome and checks each.
   test.beforeEach(() => void Object.assign(LATENCY, { probeQuiet: 1, loadWaitMs: 0 }));
-  test.afterEach(() => void Object.assign(LATENCY, { probeQuiet: quiet, loadWaitMs: wait }));
+  test.afterEach(() => {
+    Object.assign(LATENCY, { probeQuiet: quiet, loadWaitMs: wait });
+    forgetSteadySlowRunner();
+  });
 
-  test("re-measures a fast control too, carrying its presses on, and fails it as too loaded to judge when the probe is past the cap every time", async ({ page }) => {
+  test("re-measures a fast control too, carrying its presses on, and fails it as too loaded to judge, or as too slow to judge when its reads are steady, never on the reading alone", async ({ page }) => {
     // The default time limit for one measurement: each re-measure extends it by what it needs.
     const limit = test.info().timeout;
     await page.setContent(`<button id="b">Press</button><output id="o"></output>`);
@@ -161,14 +189,34 @@ test.describe("a runner the probe reads past the cap", () => {
       () => null,
       (error: Error) => error.message,
     );
-    expect(failure).toContain("overloaded: runner too loaded to judge: probe");
-    expect(failure).toContain(`${LATENCY.loadTries} times`);
-    // Measured LATENCY.loadTries times, each carrying on from the one before's last index rather than starting again at 0.
+    expect(failure).not.toBeNull();
+    // Measured each time from the index the one before stopped at, never starting again at 0.
     expect(pressed).toEqual(Array.from({ length: pressed.length }, (_, index) => index));
-    expect(pressed.length).toBe(LATENCY.loadTries * (LATENCY.warmUps + LATENCY.samples));
     expect(test.info().timeout).toBeGreaterThan(limit);
+    if (failure!.startsWith("infrastructure: runner too slow to judge")) {
+      // Steady: measured twice, then not again, and the next control fails without measuring, its time limit unchanged.
+      expect(failure).toContain("overloaded is not judged");
+      expect(pressed.length).toBe(2 * (LATENCY.warmUps + LATENCY.samples));
+      const limitAfterFirst = test.info().timeout;
+      const later: number[] = [];
+      const laterPresses = { press: async (index: number) => void later.push(index) };
+      const second = await expectPressesWithinBudget(page, "later", laterPresses, 48).then(
+        () => null,
+        (error: Error) => error.message,
+      );
+      expect(second).toContain(`found on "overloaded"; later is not measured`);
+      expect(second).toContain("probe");
+      expect(later).toEqual([]);
+      expect(test.info().timeout).toBe(limitAfterFirst);
+    } else {
+      expect(failure).toContain("overloaded: runner too loaded to judge: probe");
+      expect(failure).toContain(`${LATENCY.loadTries} times`);
+      // Measured LATENCY.loadTries times, each carrying on from the one before's last index.
+      expect(pressed.length).toBe(LATENCY.loadTries * (LATENCY.warmUps + LATENCY.samples));
+    }
   });
 });
+
 
 test("flags a job where more than 1 in 20 controls needed a re-measure, as a sign the runners or the probe need fixing", () => {
   expect(manyRemeasured(0, 20)).toBe(false);
