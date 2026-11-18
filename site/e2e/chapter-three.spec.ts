@@ -510,7 +510,7 @@ test.describe("the ship's log remembers your voyage", () => {
     await expect(page.locator("[data-composition='catalogue'] [data-chapter-crew]")).toContainText(FINDS[0].name);
 
     await sailOn(page, "chapter-three");
-    await expect(log(page)).toHaveText(["Built in 5 days, and launched.", "Ana Ruiz signed on, engineer.", `Sailed 1867-11-06 by Conseil's shortest way, ${writeLeagues(SHORTEST)} leagues.`, "Sorted 1 new find.", SALOON.logHeld].map((line, index) => `${String(index + 1).padStart(2, "0")}${line}`));
+    await expect(log(page)).toHaveText(["Built in 5 days, and launched.", "Ana Ruiz signed on, engineer.", `Sailed 1867-11-06 by Conseil's shortest way, ${writeLeagues(SHORTEST)} leagues.`, "Sorted a new find.", SALOON.logHeld].map((line, index) => `${String(index + 1).padStart(2, "0")}${line}`));
     await win(page);
     await expect(crew(page)).toContainText("Ana, hold that lamp steady.");
     const cheer = crew(page).locator("[data-chapter-cheer] [data-ouro='avatar']");

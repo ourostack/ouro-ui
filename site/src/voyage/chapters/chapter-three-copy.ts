@@ -117,7 +117,7 @@ export const SALOON = {
   logBuilt: (days: number) => `Built in ${days} days, and launched.`,
   logSigned: (name: string, trade: string) => `${name} signed on, ${trade.toLowerCase()}.`,
   logSailed: (day: string, leagues: string, way: "shortest" | "book" | "own") => `Sailed ${day}${way === "shortest" ? " by Conseil's shortest way" : way === "book" ? " by the book's route" : ""}, ${leagues} leagues.`,
-  logSorted: (count: number) => (count === 1 ? "Sorted 1 new find." : `Sorted ${count} new finds.`),
+  logSorted: (count: number) => (count === 1 ? "Sorted a new find." : `Sorted ${count} new finds.`),
   next: claim("Every control on this voyage is a real Ouro HX part.", { source: [{ test: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { test: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { test: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }], verify: [{ testExists: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }] }),
   build: "Now build yours.",
   components: "Browse components",
