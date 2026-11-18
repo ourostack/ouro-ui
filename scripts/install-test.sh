@@ -108,10 +108,14 @@ shadcn=(npx --yes shadcn@4.21.1)
 preset=${OURO_PRESET:-nova}
 vitest=(npx --yes vitest@5.0.3)
 create_next_app=(npx --yes create-next-app@16.3.8)
-# Every component's runtime item (type registry:ui), in registry order, from this commit's registry.json.
-# shellcheck disable=SC2207 # item names have no spaces
-items=($(node -e 'for (const item of require(process.argv[1]).items) if (item.type === "registry:ui") console.log(item.name)' "$root/registry.json"))
-[ "${#items[@]}" -gt 0 ] || { echo "registry.json lists no component"; exit 1; }
+# Every component's runtime item (type registry:ui), in registry order, from this commit's registry.json. The github
+# variant reads the release tag's own instead, so it needs neither this commit's generated registry.json nor the
+# install that writes it (ci.yml's install-github job runs no install at the root).
+if [ "$variant" != github ]; then
+  # shellcheck disable=SC2207 # item names have no spaces
+  items=($(node -e 'for (const item of require(process.argv[1]).items) if (item.type === "registry:ui") console.log(item.name)' "$root/registry.json"))
+  [ "${#items[@]}" -gt 0 ] || { echo "registry.json lists no component"; exit 1; }
+fi
 
 # The runtime items add components only: no test, story or spec file, no test kit, no test
 # tooling in package.json, and so nothing for a plain `vitest run` to find.
