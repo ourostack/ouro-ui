@@ -11,8 +11,12 @@
 // a test that times out on a command names the command (registry/ouro/lib/ouro/testing/command-deadline.ts).
 // At the warn level and again at the fail level it also writes one line per browser page (#2149): whether the
 // page's fonts are still loading, whether it is visible and focused, whether a frame arrives, and its path. A page
-// that does not answer in 2 s says so. The fail exit waits for those lines for at most 3 s, and a page the
-// reporter cannot read says why, so a hang names what the page was doing.
+// that does not answer in 2 s says so, then reads the JavaScript it is stuck in through a DevTools session (#2149)
+// when the page still pauses, or says why it cannot: Chromium pauses a loop only for a debugger enabled before the
+// loop began, so a stall usually says the page did not pause either. Once a page does not answer, its browser's
+// renderers get a CPU reading over a second, once per browser (#2149): a renderer near 1 s is spinning, one near 0 is
+// hung. The fail exit waits for those lines for at most 8 s, and a page the reporter cannot read says why, so a hang
+// names what it was doing.
 import { relative, sep } from "node:path";
 import type { Reporter, ReportedHookContext, TestCase, TestModule, TestSpecification, TestSuite, Vitest } from "vitest/node";
 
@@ -145,13 +149,60 @@ export function stallReport(
 /** How long one page has to answer the diagnostic's read. A page that does not answer in time is the finding. */
 const PAGE_DEADLINE_MS = 2_000;
 
-/** How long the whole page diagnostic may take before the stall gives up on it, so the fail exit is not held back. */
-const DIAGNOSTIC_DEADLINE_MS = 3_000;
+/** How long a page that did not answer has to open a DevTools session, and then to pause, before its stack is given up. */
+const STACK_DEADLINE_MS = 2_000;
 
-/** The part of a Playwright page the diagnostic uses: its URL, and a function run inside it. */
+/** How long each step of letting a session go may take. A hung renderer or browser never answers, so each step is bounded. */
+const RELEASE_MS = 500;
+
+/** The call frames a stuck page's stack names, top first; a deeper stack ends with `…`. */
+const STACK_FRAMES = 8;
+
+/** How long a browser's renderer CPU read may take, from its session to its second sample. */
+const CPU_DEADLINE_MS = 4_000;
+
+/** The span between the two renderer CPU samples. */
+const CPU_SAMPLE_MS = 1_000;
+
+/**
+ * How long the whole page diagnostic may take before the stall gives up on it, so the fail exit is not held back for
+ * long: a page's answer (2 s), then its stack (at most 5.5 s) and its browser's CPU (at most 4.5 s), in parallel.
+ */
+const DIAGNOSTIC_DEADLINE_MS = 8_000;
+
+/** The part of a Playwright page the diagnostic uses: its URL, a function run inside it, and its browser context. */
 export interface BrowserPage {
   url(): string;
   evaluate<R>(pageFunction: () => R | PromiseLike<R>): Promise<R>;
+  /** Playwright's context: its DevTools session on the page, which the stack is read through, and its browser. Chromium only; other engines throw. */
+  context?(): BrowserContextLike;
+}
+
+/** The part of Playwright's browser context the diagnostic uses. */
+export interface BrowserContextLike {
+  newCDPSession(page: BrowserPage): Promise<CdpSession>;
+  browser?(): BrowserLike | null;
+}
+
+/** The part of Playwright's browser the diagnostic uses: its DevTools session on the whole browser (Chromium only), and its type. */
+export interface BrowserLike {
+  newBrowserCDPSession(): Promise<CdpSession>;
+  browserType?(): { name(): string };
+}
+
+/** The part of a Chrome DevTools Protocol session the diagnostic uses. */
+export interface CdpSession {
+  send(method: string, params?: object): Promise<unknown>;
+  on(event: string, listener: (params: unknown) => void): unknown;
+  detach(): Promise<unknown>;
+}
+
+/** How the page reads are bounded: a page's answer, its stack, and its browser's renderer CPU (two samples, `cpuSampleMs` apart). */
+export interface PageReadOptions {
+  deadlineMs?: number;
+  stackDeadlineMs?: number;
+  cpuDeadlineMs?: number;
+  cpuSampleMs?: number;
 }
 
 /** A page the diagnostic reads, or the reason a project has none to read (no browser, no provider pages, no page open). */
@@ -171,11 +222,33 @@ export interface PageReading {
   frames: boolean;
 }
 
-/** One page's line: what it reported, that it did not answer, or why it could not be read. */
+/** One page's line: what it reported, that it did not answer (with the stack it was stuck in, or why none was read), or why it could not be read. */
 export type PageState =
   | { kind: "note"; label: string; note: string }
-  | { kind: "unanswered"; label: string; path: string }
+  | { kind: "unanswered"; label: string; path: string; stack?: string[]; stackNote?: string }
   | ({ kind: "read"; label: string; path: string } & PageReading);
+
+/** The top of the JavaScript stack a page is paused in, or the reason none was read. */
+export type StackReading = { stack: string[] } | { stackNote: string };
+
+/** One browser's renderer CPU over a sample window, read once for all its pages that did not answer, or why none was read. */
+export type BrowserState =
+  | { kind: "cpu"; name: string; windowMs: number; renderers: { pid: number; seconds: number }[] }
+  | { kind: "cpuNote"; name: string; note: string };
+
+/** The part of a debugger's paused event the stack read uses. */
+interface CallFrame {
+  functionName: string;
+  url?: string;
+  location: { scriptId: string; lineNumber: number; columnNumber: number };
+}
+
+/** A process as `SystemInfo.getProcessInfo` reports it: its type, its id (the OS process id) and its CPU time so far, in seconds. */
+interface ProcessInfo {
+  type: string;
+  id: number;
+  cpuTime: number;
+}
 
 /** Runs in the page. Its fonts still loading, its visibility and focus, and whether a frame arrives within a second. */
 async function probePage(): Promise<PageReading> {
@@ -227,23 +300,190 @@ export function pageStateText(state: PageState): string {
   return `${head} ${fonts}, ${visibility}, ${focus}, ${frames}, ${state.path}`;
 }
 
-/** One source's state. Each page is read against its own deadline, and a page that cannot be read says why. */
-async function readPageState(source: PageSource, deadlineMs: number): Promise<PageState> {
+/** The line under a page that did not answer: the stack it was stuck in, or why none was read. */
+export function stackText(state: Extract<PageState, { kind: "unanswered" }>): string {
+  const head = `[ouro-ui] Vitest page ${state.label}:`;
+  return state.stack ? `${head} stuck in: ${state.stack.join(" < ")}` : `${head} ${state.stackNote ?? "no stack read."}`;
+}
+
+/** A script's URL as the stack names it: its path, without the origin or the query. */
+const scriptPath = (url: string): string => {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url || "(no script URL)";
+  }
+};
+
+/** A call frame as the stack names it: `fn (path:line:col)`, its script's URL looked up by the frame's script id, else the frame's own. */
+const frameText = ({ functionName, url, location }: CallFrame, scripts: ReadonlyMap<string, string>): string => {
+  const { scriptId, lineNumber, columnNumber } = location;
+  return `${functionName || "(anonymous)"} (${scriptPath(scripts.get(scriptId) || url || "")}:${lineNumber + 1}:${columnNumber + 1})`;
+};
+
+/** One step of letting a session go: tolerated, and bounded, since a hung renderer or browser never answers. */
+const tidy = (action: () => Promise<unknown>) => within(Promise.resolve().then(action).catch(() => undefined), RELEASE_MS);
+
+/** Lets a paused page go: resumes it, turns its debugger off and detaches. */
+async function release(session: CdpSession): Promise<void> {
+  await tidy(() => session.send("Debugger.resume"));
+  await tidy(() => session.send("Debugger.disable"));
+  await tidy(() => session.detach());
+}
+
+/** A session that opens within `ms`, or TIMED_OUT; one that opens later is detached, so it is not left open. */
+async function openWithin(opening: Promise<CdpSession>, ms: number): Promise<CdpSession | typeof TIMED_OUT> {
+  const opened = await within(opening, ms);
+  if (opened === TIMED_OUT) void opening.then((late) => late.detach()).catch(() => undefined);
+  return opened;
+}
+
+/**
+ * The top call frames of the JavaScript a page that did not answer is stuck in, through a Chrome DevTools session.
+ * A page with no session (Playwright's WebKit and Firefox throw on one), a session that does not open in time, and a
+ * page that does not pause in time (a hung renderer, or a loop begun before the debugger was on) each say so instead.
+ * The page is always let go.
+ */
+export async function readStack(page: BrowserPage, deadlineMs = STACK_DEADLINE_MS): Promise<StackReading> {
+  let session: CdpSession;
+  try {
+    const context = page.context?.();
+    if (!context) return { stackNote: "no stack read: the page has no Chrome DevTools session." };
+    const opened = await openWithin(context.newCDPSession(page), deadlineMs);
+    if (opened === TIMED_OUT) return { stackNote: `no stack read: no Chrome DevTools session in ${threshold(deadlineMs)}.` };
+    session = opened;
+  } catch (error) {
+    return { stackNote: `no stack read: no Chrome DevTools session (${messageOf(error)}).` };
+  }
+  const scripts = new Map<string, string>();
+  try {
+    const paused = new Promise<{ callFrames: CallFrame[] }>((resolve) => {
+      session.on("Debugger.scriptParsed", (event) => {
+        const { scriptId, url } = event as { scriptId: string; url: string };
+        scripts.set(scriptId, url);
+      });
+      session.on("Debugger.paused", (event) => resolve(event as { callFrames: CallFrame[] }));
+    });
+    const outcome = await within(
+      (async () => {
+        await session.send("Debugger.enable");
+        await session.send("Debugger.pause");
+        return paused;
+      })(),
+      deadlineMs,
+    );
+    if (outcome === TIMED_OUT) {
+      return { stackNote: `the page did not pause in ${threshold(deadlineMs)} either, so it is hung, or looping since before the debugger was on (Chromium pauses a loop only for a debugger enabled before it began).` };
+    }
+    const frames = outcome.callFrames.slice(0, STACK_FRAMES).map((frame) => frameText(frame, scripts));
+    if (frames.length === 0) return { stackNote: "no stack read: the page paused with no call frames." };
+    return { stack: outcome.callFrames.length > STACK_FRAMES ? [...frames, "…"] : frames };
+  } catch (error) {
+    return { stackNote: `no stack read: ${messageOf(error)}.` };
+  } finally {
+    await release(session);
+  }
+}
+
+/** The browser a page belongs to, when its context has one. A page without one has no renderer CPU to read. */
+function browserOf(page: BrowserPage): BrowserLike | undefined {
+  try {
+    return page.context?.()?.browser?.() ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The renderer processes among a browser's processes, as its browser-level session reports them. */
+async function sampleRenderers(session: CdpSession): Promise<ProcessInfo[]> {
+  const { processInfo } = (await session.send("SystemInfo.getProcessInfo")) as { processInfo: ProcessInfo[] };
+  return processInfo.filter((process) => process.type === "renderer");
+}
+
+/**
+ * Each renderer process's CPU time over `cpuSampleMs`, from two `SystemInfo.getProcessInfo` samples on a browser-level
+ * DevTools session. A browser without that session (Playwright's WebKit and Firefox throw on one) says so instead.
+ * The session is always detached.
+ */
+async function readBrowserCpu(name: string, browser: BrowserLike | undefined, { cpuDeadlineMs, cpuSampleMs }: { cpuDeadlineMs: number; cpuSampleMs: number }): Promise<BrowserState> {
+  if (!browser) return { kind: "cpuNote", name, note: "the page has no browser to read its renderer CPU from." };
+  const end = Date.now() + cpuDeadlineMs;
+  const left = () => Math.max(0, end - Date.now());
+  let session: CdpSession;
+  try {
+    const opened = await openWithin(browser.newBrowserCDPSession(), cpuDeadlineMs);
+    if (opened === TIMED_OUT) return { kind: "cpuNote", name, note: `no Chrome DevTools session in ${threshold(cpuDeadlineMs)}.` };
+    session = opened;
+  } catch (error) {
+    return { kind: "cpuNote", name, note: `no Chrome DevTools session (${messageOf(error)}).` };
+  }
+  try {
+    const first = await within(sampleRenderers(session), left());
+    if (first === TIMED_OUT) return { kind: "cpuNote", name, note: `the browser did not report its processes in ${threshold(cpuDeadlineMs)}.` };
+    const started = performance.now();
+    await new Promise((resolve) => setTimeout(resolve, cpuSampleMs));
+    const second = await within(sampleRenderers(session), left());
+    if (second === TIMED_OUT) return { kind: "cpuNote", name, note: `the browser did not report its processes in ${threshold(cpuDeadlineMs)}.` };
+    const before = new Map(first.map((process) => [process.id, process.cpuTime]));
+    return {
+      kind: "cpu",
+      name,
+      windowMs: performance.now() - started,
+      renderers: second.map((process) => ({ pid: process.id, seconds: Math.max(0, process.cpuTime - (before.get(process.id) ?? 0)) })),
+    };
+  } catch (error) {
+    return { kind: "cpuNote", name, note: `${messageOf(error)}.` };
+  } finally {
+    await tidy(() => session.detach());
+  }
+}
+
+/** A browser's renderer CPU as one line of the diagnostic: each renderer's CPU time over the window, or why none was read. */
+export function browserStateText(state: BrowserState): string {
+  const head = `[ouro-ui] Vitest browser ${state.name}:`;
+  if (state.kind === "cpuNote") return `${head} renderer CPU not read: ${state.note}`;
+  const span = `${Math.round(state.windowMs / 100) / 10} s`;
+  if (state.renderers.length === 0) return `${head} renderer CPU in ${span}: no renderer process.`;
+  return `${head} renderer CPU in ${span}: ${state.renderers.map(({ pid, seconds }) => `pid ${pid} ${seconds.toFixed(2)} s`).join(", ")}`;
+}
+
+/**
+ * One source's state. Each page is read against its own deadline, and a page that cannot be read says why. A page
+ * that does not answer also reads its browser's renderer CPU, started once for each browser (`browsers`).
+ */
+async function readPageState(source: PageSource, options: Required<PageReadOptions>, browsers: Map<unknown, Promise<BrowserState>>): Promise<PageState> {
   if (!("page" in source)) return { kind: "note", label: source.label, note: source.note };
   const { label, page } = source;
   try {
     const path = pathOf(page);
-    const reading = await within(page.evaluate(probePage), deadlineMs);
-    if (reading === TIMED_OUT) return { kind: "unanswered", label, path };
+    const reading = await within(page.evaluate(probePage), options.deadlineMs);
+    if (reading === TIMED_OUT) {
+      const browser = browserOf(page);
+      const key = browser ?? page;
+      if (!browsers.has(key)) browsers.set(key, readBrowserCpu(browser?.browserType?.().name() ?? label, browser, options));
+      return { kind: "unanswered", label, path, ...(await readStack(page, options.stackDeadlineMs)) };
+    }
     return { kind: "read", label, path, ...reading };
   } catch (error) {
     return { kind: "note", label, note: `could not be read: ${messageOf(error)}` };
   }
 }
 
-/** Each source's state, all read at once so the slowest page sets the wait. */
-export function readPageStates(sources: readonly PageSource[], deadlineMs = PAGE_DEADLINE_MS): Promise<PageState[]> {
-  return Promise.all(sources.map((source) => readPageState(source, deadlineMs)));
+/**
+ * Each source's state, all read at once so the slowest page sets the wait, then one renderer CPU state for each browser
+ * that had a page not answer. The options bound each read; the defaults are the diagnostic's own.
+ */
+export async function readPageStates(sources: readonly PageSource[], options: PageReadOptions = {}): Promise<(PageState | BrowserState)[]> {
+  const resolved: Required<PageReadOptions> = {
+    deadlineMs: PAGE_DEADLINE_MS,
+    stackDeadlineMs: STACK_DEADLINE_MS,
+    cpuDeadlineMs: CPU_DEADLINE_MS,
+    cpuSampleMs: CPU_SAMPLE_MS,
+    ...options,
+  };
+  const browsers = new Map<unknown, Promise<BrowserState>>();
+  const pages = await Promise.all(sources.map((source) => readPageState(source, resolved, browsers)));
+  return [...pages, ...(await Promise.all(browsers.values()))];
 }
 
 /**
@@ -517,13 +757,20 @@ export class StallReporter implements Reporter {
         process.stderr.write(`[ouro-ui] Vitest page state: the page lookup or a page read did not finish in ${threshold(this.#diagnosticMs)}.\n`);
         return;
       }
-      for (const state of states) process.stderr.write(`${pageStateText(state)}\n`);
+      for (const state of states) {
+        if (state.kind === "cpu" || state.kind === "cpuNote") {
+          process.stderr.write(`${browserStateText(state)}\n`);
+          continue;
+        }
+        process.stderr.write(`${pageStateText(state)}\n`);
+        if (state.kind === "unanswered") process.stderr.write(`${stackText(state)}\n`);
+      }
     } catch (error) {
       process.stderr.write(`[ouro-ui] Vitest page lookup failed: ${messageOf(error)}.\n`);
     }
   }
 
-  async #readPages(): Promise<PageState[]> {
+  async #readPages(): Promise<(PageState | BrowserState)[]> {
     return readPageStates(await this.#pages(this.#vitest));
   }
 }

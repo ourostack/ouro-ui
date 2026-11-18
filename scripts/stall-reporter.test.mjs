@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { StallReporter, browserPageSources, holdText, pageStateText, readPageStates, slowTestText, stallReport } from "./stall-reporter.mts";
+import { StallReporter, browserPageSources, browserStateText, holdText, pageStateText, readPageStates, readStack, slowTestText, stackText, stallReport } from "./stall-reporter.mts";
 
 const options = { warnAfter: 120_000, failAfter: 300_000 };
 const now = 1_000_000_000;
@@ -288,14 +288,259 @@ test("readPageStates reads a page's own state, with the path of its URL", async 
   ]);
 });
 
-test("readPageStates says a page did not answer when it outlives its deadline", async () => {
+test("readPageStates says a page did not answer when it outlives its deadline, and why no stack or CPU was read", async () => {
   const page = { url: () => "http://localhost:63315/slow", evaluate: () => new Promise(() => {}) };
-  assert.deepEqual(await readPageStates([{ label: "b", page }], 20), [{ kind: "unanswered", label: "b", path: "/slow" }]);
+  assert.deepEqual(await readPageStates([{ label: "b", page }], { deadlineMs: 20 }), [
+    { kind: "unanswered", label: "b", path: "/slow", stackNote: "no stack read: the page has no Chrome DevTools session." },
+    { kind: "cpuNote", name: "b", note: "the page has no browser to read its renderer CPU from." },
+  ]);
 });
 
 test("readPageStates says why a page could not be read when reading it fails", async () => {
   const page = { url: () => "http://localhost:63315/", evaluate: () => Promise.reject(new Error("Target closed")) };
   assert.deepEqual(await readPageStates([{ label: "c", page }]), [{ kind: "note", label: "c", note: "could not be read: Target closed" }]);
+});
+
+/**
+ * A fake page whose DevTools session reports `scripts` when Debugger.enable is sent, and pauses with `callFrames` when
+ * Debugger.pause is, unless `pauses` is false. The methods in `fails` throw. Every call the session gets is in `calls`.
+ */
+function stuckPage({ callFrames = [], scripts = [], pauses = true, fails = [] } = {}) {
+  const calls = [];
+  const listeners = {};
+  const emit = (event, params) => (listeners[event] ?? []).forEach((listener) => listener(params));
+  const session = {
+    on(event, listener) {
+      (listeners[event] ??= []).push(listener);
+      return session;
+    },
+    async send(method) {
+      calls.push(method);
+      if (fails.includes(method)) throw new Error(`${method} failed`);
+      if (method === "Debugger.enable") scripts.forEach((script) => emit("Debugger.scriptParsed", script));
+      if (method === "Debugger.pause" && pauses) emit("Debugger.paused", { callFrames });
+      return {};
+    },
+    async detach() {
+      calls.push("detach");
+    },
+  };
+  const page = {
+    url: () => "http://localhost:63315/dialog",
+    evaluate: () => new Promise(() => {}),
+    context: () => ({ newCDPSession: async () => session }),
+  };
+  return { page, calls };
+}
+
+test("readPageStates reads the stack of a page that did not answer, after its deadline", async () => {
+  const { page } = stuckPage({
+    callFrames: [{ functionName: "spin", url: "http://localhost:63315/src/spin.tsx", location: { scriptId: "7", lineNumber: 0, columnNumber: 0 } }],
+  });
+  assert.deepEqual(await readPageStates([{ label: "d", page }], { deadlineMs: 20, stackDeadlineMs: 20 }), [
+    { kind: "unanswered", label: "d", path: "/dialog", stack: ["spin (/src/spin.tsx:1:1)"] },
+    { kind: "cpuNote", name: "d", note: "the page has no browser to read its renderer CPU from." },
+  ]);
+});
+
+test("readStack names the top frames a stuck page is in, first frame first, each with its script's path", async () => {
+  const { page } = stuckPage({
+    scripts: [{ scriptId: "7", url: "http://localhost:63315/src/spin.tsx?t=1" }],
+    callFrames: [
+      { functionName: "spin", url: "", location: { scriptId: "7", lineNumber: 11, columnNumber: 4 } },
+      { functionName: "", url: "http://localhost:63315/src/run.tsx", location: { scriptId: "8", lineNumber: 2, columnNumber: 8 } },
+    ],
+  });
+  assert.deepEqual(await readStack(page, 20), { stack: ["spin (/src/spin.tsx:12:5)", "(anonymous) (/src/run.tsx:3:9)"] });
+});
+
+test("readStack names at most eight frames of a deeper stack, and marks the rest with an ellipsis", async () => {
+  const callFrames = Array.from({ length: 10 }, (_, index) => ({
+    functionName: `f${index}`,
+    url: "http://localhost:63315/a.ts",
+    location: { scriptId: "1", lineNumber: index, columnNumber: 0 },
+  }));
+  const { stack } = await readStack(stuckPage({ callFrames }).page, 20);
+  assert.equal(stack.length, 9);
+  assert.equal(stack[0], "f0 (/a.ts:1:1)");
+  assert.equal(stack.at(-1), "…");
+});
+
+test("readStack says the page did not pause either when no pause arrives in time, and does not call it hung or looping", async () => {
+  const { page, calls } = stuckPage({ pauses: false });
+  assert.deepEqual(await readStack(page, 20), {
+    stackNote:
+      "the page did not pause in 20 ms either, so it is hung, or looping since before the debugger was on (Chromium pauses a loop only for a debugger enabled before it began).",
+  });
+  assert.deepEqual(calls, ["Debugger.enable", "Debugger.pause", "Debugger.resume", "Debugger.disable", "detach"]);
+});
+
+test("readStack resumes, disables and detaches the page when pausing fails, and when resuming fails too", async () => {
+  const { page, calls } = stuckPage({ fails: ["Debugger.pause", "Debugger.resume"] });
+  assert.deepEqual(await readStack(page, 20), { stackNote: "no stack read: Debugger.pause failed." });
+  assert.deepEqual(calls, ["Debugger.enable", "Debugger.pause", "Debugger.resume", "Debugger.disable", "detach"]);
+});
+
+test("readStack says no stack was read when the page has no DevTools session to read it through", async () => {
+  const page = { url: () => "http://localhost:63315/", evaluate: () => new Promise(() => {}) };
+  assert.deepEqual(await readStack(page, 20), { stackNote: "no stack read: the page has no Chrome DevTools session." });
+});
+
+test("readStack says no stack was read when opening a DevTools session throws, as it does in WebKit", async () => {
+  const page = {
+    url: () => "http://localhost:63315/",
+    evaluate: () => new Promise(() => {}),
+    context: () => ({ newCDPSession: () => Promise.reject(new Error("Protocol error: not supported by WebKit")) }),
+  };
+  assert.deepEqual(await readStack(page, 20), { stackNote: "no stack read: no Chrome DevTools session (Protocol error: not supported by WebKit)." });
+});
+
+test("stackText names the stack an unanswered page is stuck in, or why none was read", () => {
+  assert.equal(
+    stackText({ kind: "unanswered", label: "ouro-chromium (chromium)", path: "/dialog", stack: ["spin (/src/spin.tsx:12:5)", "run (/src/run.tsx:3:9)", "…"] }),
+    "[ouro-ui] Vitest page ouro-chromium (chromium): stuck in: spin (/src/spin.tsx:12:5) < run (/src/run.tsx:3:9) < …",
+  );
+  assert.equal(
+    stackText({ kind: "unanswered", label: "ouro-webkit (webkit)", path: "/dialog", stackNote: "no stack read: the page has no Chrome DevTools session." }),
+    "[ouro-ui] Vitest page ouro-webkit (webkit): no stack read: the page has no Chrome DevTools session.",
+  );
+});
+
+/**
+ * A fake browser whose browser-level session answers each `SystemInfo.getProcessInfo` with the next of `samples`.
+ * `opensFail` makes opening the session throw, and `sampleFails` makes each sample throw. `opens` records each open.
+ */
+function fakeBrowser({ samples = [], opensFail, sampleFails = false, name = "chromium" } = {}) {
+  const calls = [];
+  const opens = [];
+  const session = {
+    async send(method) {
+      calls.push(method);
+      if (sampleFails) throw new Error("SystemInfo.getProcessInfo failed");
+      return { processInfo: samples.shift() };
+    },
+    async detach() {
+      calls.push("detach");
+    },
+  };
+  return {
+    calls,
+    opens,
+    browserType: () => ({ name: () => name }),
+    newBrowserCDPSession: async () => {
+      opens.push(true);
+      if (opensFail) throw new Error(opensFail);
+      return session;
+    },
+  };
+}
+
+/** A page that never answers, in `browser`. Its own DevTools session cannot open, so only the browser's renderer CPU is read. */
+const silentPage = (browser, path) => ({
+  url: () => `http://localhost:63315${path}`,
+  evaluate: () => new Promise(() => {}),
+  context: () => ({ newCDPSession: () => Promise.reject(new Error("no page session")), browser: () => browser }),
+});
+
+test("browserStateText names each renderer's CPU over the second, as the stall line does", () => {
+  assert.equal(
+    browserStateText({ kind: "cpu", name: "chromium", windowMs: 1000, renderers: [{ pid: 123, seconds: 0.98 }, { pid: 456, seconds: 0.01 }] }),
+    "[ouro-ui] Vitest browser chromium: renderer CPU in 1 s: pid 123 0.98 s, pid 456 0.01 s",
+  );
+});
+
+test("browserStateText says a browser with no renderer process has none to read, and says why none was read", () => {
+  assert.equal(
+    browserStateText({ kind: "cpu", name: "chromium", windowMs: 1000, renderers: [] }),
+    "[ouro-ui] Vitest browser chromium: renderer CPU in 1 s: no renderer process.",
+  );
+  assert.equal(
+    browserStateText({ kind: "cpuNote", name: "webkit", note: "no Chrome DevTools session (Protocol error: not supported by WebKit)." }),
+    "[ouro-ui] Vitest browser webkit: renderer CPU not read: no Chrome DevTools session (Protocol error: not supported by WebKit).",
+  );
+});
+
+test("readPageStates reads a busy renderer as using a whole second of CPU in the window", async () => {
+  const browser = fakeBrowser({
+    samples: [
+      [{ type: "renderer", id: 123, cpuTime: 10 }],
+      [{ type: "renderer", id: 123, cpuTime: 11 }],
+    ],
+  });
+  const states = await readPageStates([{ label: "busy", page: silentPage(browser, "/busy") }], { deadlineMs: 20, stackDeadlineMs: 20, cpuSampleMs: 20 });
+  const cpu = states.find((state) => state.kind === "cpu");
+  assert.deepEqual(cpu.renderers, [{ pid: 123, seconds: 1 }]);
+  assert.match(browserStateText(cpu), /renderer CPU in \d+ s: pid 123 1\.00 s$/);
+  assert.equal(states[0].kind, "unanswered");
+});
+
+test("readPageStates reads an idle renderer as using no CPU in the window, and ignores other processes", async () => {
+  const browser = fakeBrowser({
+    samples: [
+      [{ type: "renderer", id: 123, cpuTime: 10 }, { type: "gpu", id: 9, cpuTime: 1 }],
+      [{ type: "renderer", id: 123, cpuTime: 10 }, { type: "gpu", id: 9, cpuTime: 4 }],
+    ],
+  });
+  const states = await readPageStates([{ label: "idle", page: silentPage(browser, "/idle") }], { deadlineMs: 20, stackDeadlineMs: 20, cpuSampleMs: 20 });
+  assert.deepEqual(
+    states.find((state) => state.kind === "cpu").renderers,
+    [{ pid: 123, seconds: 0 }],
+  );
+});
+
+test("readPageStates reads a renderer that started in the window from its whole CPU time", async () => {
+  const browser = fakeBrowser({
+    samples: [
+      [{ type: "renderer", id: 123, cpuTime: 10 }],
+      [{ type: "renderer", id: 123, cpuTime: 10 }, { type: "renderer", id: 456, cpuTime: 0.5 }],
+    ],
+  });
+  const states = await readPageStates([{ label: "new", page: silentPage(browser, "/new") }], { deadlineMs: 20, stackDeadlineMs: 20, cpuSampleMs: 20 });
+  assert.deepEqual(
+    states.find((state) => state.kind === "cpu").renderers,
+    [{ pid: 123, seconds: 0 }, { pid: 456, seconds: 0.5 }],
+  );
+});
+
+test("readPageStates reads each browser's renderer CPU once, however many of its pages did not answer", async () => {
+  const browser = fakeBrowser({
+    samples: [
+      [{ type: "renderer", id: 123, cpuTime: 10 }],
+      [{ type: "renderer", id: 123, cpuTime: 10.5 }],
+    ],
+  });
+  const states = await readPageStates(
+    [
+      { label: "one", page: silentPage(browser, "/one") },
+      { label: "two", page: silentPage(browser, "/two") },
+    ],
+    { deadlineMs: 20, stackDeadlineMs: 20, cpuSampleMs: 20 },
+  );
+  assert.equal(states.filter((state) => state.kind === "unanswered").length, 2);
+  assert.equal(states.filter((state) => state.kind === "cpu").length, 1);
+  assert.equal(browser.opens.length, 1);
+  assert.deepEqual(browser.calls, ["SystemInfo.getProcessInfo", "SystemInfo.getProcessInfo", "detach"]);
+});
+
+test("readPageStates says renderer CPU is not read on a browser without a DevTools session, as in WebKit", async () => {
+  const browser = fakeBrowser({ opensFail: "Protocol error: not supported by WebKit", name: "webkit" });
+  const states = await readPageStates([{ label: "w", page: silentPage(browser, "/") }], { deadlineMs: 20, stackDeadlineMs: 20, cpuSampleMs: 20 });
+  const note = states.find((state) => state.kind === "cpuNote");
+  assert.equal(
+    browserStateText(note),
+    "[ouro-ui] Vitest browser webkit: renderer CPU not read: no Chrome DevTools session (Protocol error: not supported by WebKit).",
+  );
+});
+
+test("readPageStates detaches the browser's session, and says why no CPU was read, when sampling fails", async () => {
+  const browser = fakeBrowser({ sampleFails: true });
+  const states = await readPageStates([{ label: "s", page: silentPage(browser, "/") }], { deadlineMs: 20, stackDeadlineMs: 20, cpuSampleMs: 20 });
+  assert.deepEqual(states.find((state) => state.kind === "cpuNote"), {
+    kind: "cpuNote",
+    name: "chromium",
+    note: "SystemInfo.getProcessInfo failed.",
+  });
+  assert.deepEqual(browser.calls, ["SystemInfo.getProcessInfo", "detach"]);
 });
 
 test("browserPageSources names a project with no browser, no pages or no page open, and reads each page of the rest", () => {
