@@ -18,6 +18,7 @@ import { system, type System } from "../../registry/ouro/check/first-run-system.
 // commands, and runs openssl for real). CI's First run SSO job (scripts/check/first-run-sso/proof.mts) runs it on a real Mac.
 
 const HOST = "login.example.test";
+const OTHER = "other.example.test";
 const HOLD = { path: "/oauth2/v2\\.0/authorize$", params: { prompt: "none" } };
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "ouro-first-run-sso-"));
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
@@ -282,9 +283,9 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       const sys: System = {
         ...system,
         run(cmd, args, o) {
-          ran.push([cmd, ...args].join(" "));
+          ran.push(`${[cmd, ...args].join(" ")} [${o?.timeout}]${o?.input === undefined ? "" : " <input>"}`);
           if (cmd === "openssl") return system.run(cmd, args, o);
-          const answer = (ok: boolean | undefined, stdout = "") => ({ status: ok === false ? 1 : 0, stdout, stderr: ok === false ? "refused" : "" });
+          const answer = (ok: boolean | undefined, stdout = "") => ({ status: ok === false ? 1 : 0, stdout, stderr: ok === false ? ` ${"refused ".repeat(30)}\n` : "" });
           if (cmd === "sudo" && args[1] === "security" && args[2] === "add-trusted-cert") return answer(say.trust);
           if (cmd === "security" && args[0] === "find-certificate") return answer(true, kept > 0 ? `SHA-1 hash: ${hash(dir)}\n` : "");
           if (cmd === "sudo" && args[2] === "delete-certificate") return (kept--, answer(true));
@@ -309,23 +310,51 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       const port = await freePort();
       const { sys, ran } = mac(port, dir);
       const log = path.join(scratch, "events.jsonl");
-      const t0 = Date.now();
-      const s = await ssoExtension({ hosts: [HOST], hold: { path: "^/held$" } }, dir, () => Date.now() - t0, log, { sys, platform: "darwin", hostsFile, port, upstream: { [HOST]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") });
+      // The session's clock started 100 s ago.
+      const t0 = Date.now() - 100_000;
+      const s = await ssoExtension({ hosts: [HOST, OTHER], hold: { path: "^/held$" } }, dir, () => Date.now() - t0, log, { sys, platform: "darwin", hostsFile, port, upstream: { [HOST]: ["127.0.0.1"], [OTHER]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") });
       try {
         assert.equal(s.ok, true, s.evidence);
-        assert.equal(s.evidence, `the SSO extension's stand-in takes ${HOST} (pointed at it, its certificate trusted for the run, and a read through Apple's networking reached it) and holds ^/held$ unanswered`);
-        assert.equal(fs.readFileSync(hostsFile, "utf8"), `127.0.0.1 localhost\n# ouro first-run: SSO extension stand-in\n127.0.0.1 ${HOST}\n::1 ${HOST}\n`);
+        assert.equal(s.evidence, `the SSO extension's stand-in takes ${HOST}, ${OTHER} (pointed at it, its certificate trusted for the run, and a read through Apple's networking reached it) and holds ^/held$ unanswered`);
+        assert.equal(fs.readFileSync(hostsFile, "utf8"), `127.0.0.1 localhost\n# ouro first-run: SSO extension stand-in\n127.0.0.1 ${HOST}\n::1 ${HOST}\n127.0.0.1 ${OTHER}\n::1 ${OTHER}\n`);
         assert.equal(await ask(port, "/held", apple(dir)), "no answer");
         assert.deepEqual(s.events().map((e) => e.ev), ["ready", "passed", "held"]);
-        assert.ok(s.events().every((e) => e.at >= 0 && e.at < 60_000), "on the session's clock");
+        assert.ok(s.events().every((e) => e.at >= 100_000 && e.at < 160_000), "on the session's clock");
+        assert.ok(fs.readFileSync(log, "utf8").trim().split("\n").every((l) => JSON.parse(l).at >= 100_000), "the log on the session's clock too");
         assert.deepEqual(fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l).ev), ["ready", "passed", "held"]);
       } finally {
         s.lift();
       }
       assert.equal(fs.readFileSync(hostsFile, "utf8"), "127.0.0.1 localhost");
       assert.ok(!fs.existsSync(path.join(dir, "ca.key")) && !fs.existsSync(path.join(dir, "leaf.key")), "its keys are gone");
-      assert.ok(ran.filter((r) => /^sudo -n security delete-certificate -Z [0-9A-F]{40} \/Library\/Keychains\/System\.keychain$/.test(r)).length === 2 && !ran.some((r) => r.includes("remove-trusted-cert")));
-      assert.ok(ran.includes("sudo -n dscacheutil -flushcache") && ran.includes("sudo -n killall -HUP mDNSResponder"));
+      // Every command, in order, with its time limit: made, trusted, pointed at, read through, then put back.
+      const name = /\/CN=(Ouro first-run SSO stand-in \d+-\d+) /.exec(ran[0]!)?.[1];
+      assert.ok(name, ran[0]);
+      const f = (n: string) => path.join(dir, n);
+      const flushed = ["sudo -n dscacheutil -flushcache [30000]", "sudo -n killall -HUP mDNSResponder [30000]"];
+      const find = `security find-certificate -a -Z -c ${name} /Library/Keychains/System.keychain [60000]`;
+      const remove = `sudo -n security delete-certificate -Z ${hash(dir)} /Library/Keychains/System.keychain [30000]`;
+      assert.deepEqual(ran, [
+        `openssl req -x509 -new -nodes -newkey rsa:2048 -sha256 -days 2 -subj /CN=${name} -config ${f("ca.cnf")} -extensions ca -keyout ${f("ca.key")} -out ${f("ca.pem")} [60000]`,
+        `openssl req -new -nodes -newkey rsa:2048 -sha256 -subj /CN=${HOST} -config ${f("ca.cnf")} -keyout ${f("leaf.key")} -out ${f("leaf.csr")} [60000]`,
+        `openssl x509 -req -sha256 -days 2 -in ${f("leaf.csr")} -CA ${f("ca.pem")} -CAkey ${f("ca.key")} -CAcreateserial -extfile ${f("leaf.cnf")} -extensions leaf -out ${f("leaf.pem")} [60000]`,
+        `openssl x509 -noout -fingerprint -sha1 -in ${f("ca.pem")} [60000]`,
+        `sudo -n security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ${f("ca.pem")} [30000]`,
+        `security verify-cert -c ${f("leaf.pem")} -p ssl -s ${HOST} [60000]`,
+        `sudo -n tee ${hostsFile} [30000] <input>`,
+        ...flushed,
+        `dscacheutil -q host -a name ${HOST} [60000]`,
+        `dscacheutil -q host -a name ${OTHER} [60000]`,
+        `osascript -l JavaScript -e ObjC.import("Foundation"); const d = $.NSData.dataWithContentsOfURL($.NSURL.URLWithString("https://${HOST}/")); d.isNil() ? "nothing" : "read " + d.length [60000]`,
+        `sudo -n tee ${hostsFile} [30000] <input>`,
+        ...flushed,
+        find,
+        remove,
+        find,
+        "sleep 1 [60000]",
+        remove,
+        find,
+      ]);
       let stopped = "";
       for (let i = 0; i < 50 && !stopped.includes("ECONNREFUSED"); i++) stopped = await ask(port, "/");
       assert.equal(stopped, `error: connect ECONNREFUSED 127.0.0.1:${port}`, "the stand-in has stopped");
@@ -333,12 +362,14 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
 
     test("says why it can't play the extension, and changes nothing it didn't put back", async () => {
       const hostsFile = path.join(scratch, "hosts-unplayed");
-      const run = async (say: Parameters<typeof mac>[2], platform = "darwin", hosts = [HOST]) => {
+      let ran: string[] = [];
+      const run = async (say: Parameters<typeof mac>[2], platform = "darwin", hosts = [HOST], hold: typeof HOLD | { path: string } = HOLD) => {
         fs.writeFileSync(hostsFile, "127.0.0.1 localhost\n");
         const port = await freePort();
         const dir = path.join(scratch, `unplayed-${port}`);
-        const { sys } = mac(port, dir, say);
-        const s = await ssoExtension({ hosts, hold: HOLD }, dir, () => 0, undefined, { sys, platform, hostsFile, port, upstream: { [HOST]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") });
+        const made = mac(port, dir, say);
+        ran = made.ran;
+        const s = await ssoExtension({ hosts, hold }, dir, () => 0, undefined, { sys: made.sys, platform, hostsFile, port, upstream: { [HOST]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") });
         s.lift();
         assert.equal(s.ok, false);
         assert.equal(fs.readFileSync(hostsFile, "utf8"), "127.0.0.1 localhost\n");
@@ -346,9 +377,13 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       };
       assert.equal(await run({}, "linux"), "no SSO extension stand-in: it plays a Mac's extension, and this isn't a Mac");
       assert.match(await run({ verify: false }), /^no SSO extension stand-in: the system doesn't trust its certificate \(add-trusted-cert: no message\); run it where sudo -n works, as on a CI runner$/);
-      assert.match(await run({ verify: false, trust: false }), /\(add-trusted-cert: refused\)/);
+      assert.ok((await run({ verify: false, trust: false })).includes(`(add-trusted-cert: ${"refused ".repeat(30).trim().slice(0, 160)});`));
       assert.equal(await run({ tee: false }), "no SSO extension stand-in: it couldn't point the hosts at the stand-in (sudo -n tee /etc/hosts)");
-      assert.equal(await run({ resolve: false }), `no SSO extension stand-in: ${HOST} don't resolve to the stand-in after /etc/hosts and a flush`);
+      assert.equal(ran.filter((r) => r.startsWith("sudo -n tee ")).length, 1, "a hosts file it never wrote is not written back");
+      assert.equal(await run({ resolve: false }, "darwin", [HOST, OTHER]), `no SSO extension stand-in: ${HOST}, ${OTHER} don't resolve to the stand-in after /etc/hosts and a flush`);
+      assert.ok(!ran.some((r) => r.startsWith("osascript")), "nothing is read through a stand-in the hosts don't reach");
+      // A read the stand-in holds, rather than passes, never reached the real host.
+      assert.equal(await run({}, "darwin", [HOST], { path: "^/$" }), "no SSO extension stand-in: a read through Apple's networking never reached it");
       assert.equal(await run({ read: false }), "no SSO extension stand-in: a read through Apple's networking never reached it");
       // A host it can't find before it starts: the stand-in has no address for it, but still starts.
       assert.equal(await run({ read: false }, "darwin", [HOST, "nowhere.invalid", "localhost"]), "no SSO extension stand-in: a read through Apple's networking never reached it");
@@ -365,8 +400,10 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       await new Promise<void>((r) => taken.listen(0, "::", r));
       const busy = (taken.address() as net.AddressInfo).port;
       const { sys } = mac(busy, path.join(scratch, "busy"));
+      const started = Date.now();
       const refused = await ssoExtension({ hosts: [HOST], hold: HOLD }, path.join(scratch, "busy"), () => 0, undefined, { sys, platform: "darwin", hostsFile, port: busy, upstream: { [HOST]: ["127.0.0.1"] } });
       taken.close();
+      assert.ok(Date.now() - started < 10_000, "it says so once the stand-in ends, not after its start's time limit");
       assert.match(refused.evidence, new RegExp(`^no SSO extension stand-in: the stand-in didn't start on port ${busy} \\(.*EADDRINUSE.*\\)$`));
     });
 
@@ -381,15 +418,17 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       const t0 = Date.now();
       const session = { sys, report: { at: () => Date.now() - t0, step: (n: string, ok: boolean, e: string) => void steps.push([n, ok, e]), note: (e: string, d?: unknown) => void notes.push([e, d]), log: () => {} } } as unknown as FirstRunSession;
       const d = managedMac({ hosts: [HOST], hold: HOLD, dir, machine: { platform: "darwin", hostsFile, port, upstream: { [HOST]: ["127.0.0.1"] }, upstreamPort, ca: path.join(certs.real, "ca.pem") } });
-      assert.equal(d.id, "managed-mac");
+      assert.deepEqual([d.id, d.title], ["managed-mac", "a managed Mac: its SSO extension holds the silent sign-in and never answers it"]);
       await d.before!(session);
       assert.deepEqual(steps.map(([n, ok, e]) => [n, ok, ok ? "" : e]), [["sso-extension", true, ""]]);
+      assert.match(steps[0]![2], / and holds \/oauth2\/v2\\\.0\/authorize\$ with prompt=none unanswered$/);
       assert.equal(await ask(port, "/common/oauth2/v2.0/authorize?prompt=none", apple(dir)), "no answer");
       assert.equal(await ask(port, "/common/oauth2/v2.0/authorize?prompt=select_account", apple(dir)), "real /common/oauth2/v2.0/authorize?prompt=select_account");
       d.end(session);
       assert.deepEqual(steps.map(([n, ok]) => [n, ok]), [["sso-extension", true], ["sso-extension-held", true]]);
       assert.match(steps[1]![2], /^1 silent sign-in held unanswered, the first at [\d.]+ s; the app asked for the sign-in page in the open [\d.]+ s later \(the limit is 20 s\)$/);
       assert.deepEqual(notes.map(([e]) => e), ["sso-stand-in passed", "sso-stand-in held", "sso-stand-in passed"]);
+      assert.deepEqual({ ...(notes[1]![1] as object), at: 0 }, { at: 0, host: HOST, method: "GET", path: "/common/oauth2/v2.0/authorize", prompt: "none", status: undefined, why: undefined });
       assert.equal(fs.readFileSync(hostsFile, "utf8"), "");
 
       // Where it couldn't play the extension, the detour says so and judges nothing; the limit is 20 s by default.

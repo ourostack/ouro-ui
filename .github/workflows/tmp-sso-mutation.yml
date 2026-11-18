@@ -17,9 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         part:
-          - { name: pure, mutate: '"registry/ouro/check/first-run-sso.ts:56-103", "registry/ouro/check/first-run-sso.ts:205-245", "registry/ouro/check/first-run-sso.ts:368-377"', tests: "TLS hello|holds a request|looks a host|the judge:|throwaway authority" }
+          - { name: pure, mutate: '"registry/ouro/check/first-run-sso.ts:56-88", "registry/ouro/check/first-run-sso.ts:96-103", "registry/ouro/check/first-run-sso.ts:205-221", "registry/ouro/check/first-run-sso.ts:232-246", "registry/ouro/check/first-run-sso.ts:374-383"', tests: "TLS hello|lengths as the record|holds a request|looks a host|the judge:|throwaway authority" }
           - { name: serve, mutate: '"registry/ouro/check/first-run-sso.ts:106-202"', tests: "the stand-in" }
-          - { name: setup, mutate: '"registry/ouro/check/first-run-sso.ts:262-358", "registry/ouro/check/first-run-sso.ts:386-405"', tests: "made-up Mac" }
+          - { name: setup, mutate: '"registry/ouro/check/first-run-sso.ts:263-364", "registry/ouro/check/first-run-sso.ts:392-411"', tests: "made-up Mac" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
