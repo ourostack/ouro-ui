@@ -199,20 +199,42 @@ describe("the windows", () => {
 });
 
 describe("the porthole", () => {
-  it("is turned brass and a shaded squid, as the home page's porthole and the chapter's picture are, not flat theme colours", async () => {
+  it("is turned brass round the painted squid, as the home page's porthole and the chapter's picture are, not flat theme colours", async () => {
     await renderPage("/nautilus/");
     await expect.poll(() => document.querySelector("#chapter-three[data-chapter-ready]")).not.toBeNull();
     for (const scheme of ["light", "dark"] as const) {
       setScheme(scheme);
       expect(getComputedStyle(scene().querySelector(".ph-ring")!).stroke).toMatch(/url\(["']?#porthole-metal["']?\)/);
       expect(getComputedStyle(scene().querySelector(".ph-sea")!).fill).toMatch(/url\(["']?#porthole-sea["']?\)/);
-      expect(getComputedStyle(scene().querySelector(".sq-mantle")!).fill).toMatch(/url\(["']?#porthole-squid["']?\)/);
       // The rim's brass is its own, never a look's chart colour.
       const stops = [...document.querySelectorAll<SVGStopElement>("#porthole-metal stop")].map((stop) => stop.style.stopColor);
       expect(stops).toHaveLength(4);
       expect(stops.join(" ")).not.toContain("--chart-3");
     }
     setScheme("light");
+  });
+});
+
+describe("the squid and the organ", () => {
+  it("are paintings in the frosted-glass world of the chapter's pictures, by day and at night, each with the state it changes to, not line drawings", async () => {
+    await renderPage("/nautilus/");
+    await expect.poll(() => document.querySelector("#chapter-three[data-chapter-ready]")).not.toBeNull();
+    const organ = document.querySelector<HTMLElement>("[data-composition='saloon'] .site-organ")!;
+    for (const [box, scenes] of [
+      [scene(), ["nautilus-porthole", "nautilus-porthole-free"]],
+      [organ, ["nautilus-organ", "nautilus-organ-playing"]],
+    ] as const) {
+      // No drawing of the squid or the organ is left: only paintings, each with its night twin.
+      expect(box.querySelector("svg :is(path, ellipse)")).toBeNull();
+      for (const name of scenes) {
+        expect(box.querySelector(`picture[data-brand-scene='${name}'] img`)!.getAttribute("loading")).toBe("lazy");
+        expect(box.querySelector(`picture[data-brand-scene='${name}-dark']`)).not.toBeNull();
+      }
+    }
+    // The squid holds the glass and the organ is quiet until the fight says otherwise.
+    expect(scene().getAttribute("data-squid")).toBe("holding");
+    expect(getComputedStyle(organ.querySelector(".or-playing")!).opacity).toBe("0");
+    expect(organ.getAttribute("role")).toBe("img");
   });
 });
 

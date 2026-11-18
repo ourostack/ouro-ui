@@ -5,12 +5,10 @@ import { Command } from "@/registry/ouro/components/ouro/command/command";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator } from "@/registry/ouro/components/ouro/menu/menu";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import organSource from "../../nautilus/art/organ.svg?raw";
-import squidSource from "../../nautilus/art/squid.svg?raw";
 import { href } from "../../paths";
+import { SCENES, STORYBOOK, sceneSources, type SceneName } from "../../storybook";
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
-import { parseArt, type Art } from "../stage/art";
 import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
 import { afterPaint, useAfterPaint } from "../after-paint";
@@ -20,14 +18,37 @@ import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChap
 // inside this island's script and goes into the page as the island hydrates.
 import chapterStyles from "./chapter-three.css?inline";
 
-// What starts hidden (the organ's notes, the squid's ink) and the arm's core colour are set in the
-// drawings' own markup, so the server HTML has them without a rule in the first load's CSS.
-const organ = hide(parseArt(organSource), "or-note");
-const squid = hide(parseArt(squidSource), "sq-ink");
-
-/** A drawing whose parts of a class start hidden (`opacity="0"`); island CSS shows them. */
-function hide(art: Art, name: string): Art {
-  return { ...art, inner: art.inner.replaceAll(`class="${name}"`, `class="${name}" opacity="0"`) };
+/**
+ * One of the chapter's paintings (storybook.ts), by day, or at night in dark mode, as its files serve it: AVIF then
+ * WebP at each width. Its box is the caller's; the picture fills it (`cover`), centred, so the porthole shows the
+ * painting's middle circle. It loads as it nears the screen, and its night twin only when it is shown. With `alt`,
+ * a screen reader hears it; without, it is a layer of a picture the caller names.
+ */
+function Painting({ scene, sizes, alt = false, className }: { scene: SceneName; sizes: string; alt?: boolean; className?: string }): JSX.Element {
+  const at = (path: string) => href(`${STORYBOOK}${path}`);
+  return (
+    <>
+      {[false, true].map((night) => {
+        const { wide, header } = sceneSources(scene, at, night);
+        return (
+          <picture key={String(night)} className={`${night ? "story-world-night" : "story-world-day"} ${className ?? ""}`} style={{ height: "100%" }} data-brand-scene={night ? `${scene}-dark` : scene}>
+            <source type="image/avif" srcSet={wide("avif")} sizes={sizes} />
+            <source type="image/webp" srcSet={wide("webp")} sizes={sizes} />
+            <img
+              src={header}
+              alt={alt ? ((night ? SCENES[scene].night.alt : undefined) ?? SCENES[scene].alt) : ""}
+              width={1536}
+              height={1024}
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </picture>
+        );
+      })}
+    </>
+  );
 }
 
 /** How the fight stands: the encounter writes it, the saloon and the rail read it. */
@@ -170,22 +191,25 @@ function BattleMarker(): JSX.Element {
   return <PhoneMarker chapter={CHAPTER_THREE.number} title={CHAPTER_THREE.title} steps={useBattle()} />;
 }
 
-function OrganArt({ played, label }: { played: boolean; label?: string }): JSX.Element {
+/**
+ * The saloon's organ, painted: the captain at the keys and a small robot at the bellows, quiet until the fight is
+ * won and Play is pressed; then the same picture with its pipes glowing and the squid come back to the window to
+ * listen, faded in over it. Only its opacity changes, so under reduced motion nothing moves.
+ */
+function OrganArt({ played, label }: { played: boolean; label: string }): JSX.Element {
   return (
-    <svg
-      className="site-organ"
-      style={{ display: "block", width: "100%", maxWidth: "20rem", height: "auto", marginInline: "auto" }}
-      viewBox={organ.viewBox}
-      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      data-played={played ? "" : undefined}
-      dangerouslySetInnerHTML={{ __html: organ.inner }}
-    />
+    <div className="site-organ relative aspect-[3/2] overflow-hidden rounded-ouro-xl border border-border bg-muted" role="img" aria-label={label} data-played={played ? "" : undefined}>
+      <Painting scene="nautilus-organ" sizes={ORGAN_SIZES} />
+      {/* Its opacity is inline, so the server HTML has it before the island's styles come. */}
+      <div className="or-playing absolute inset-0" style={{ opacity: played ? 1 : 0 }}>
+        <Painting scene="nautilus-organ-playing" sizes={ORGAN_SIZES} />
+      </div>
+    </div>
   );
 }
+
+/** How wide the organ's picture draws: half the window's body beside the log on a wide screen, the column below it. */
+const ORGAN_SIZES = "(min-width: 64rem) 22rem, (min-width: 40rem) 40vw, 92vw";
 
 /**
  * The organ's tune, from the press that plays it: the famous opening flourish of Bach's Toccata in
@@ -238,11 +262,7 @@ const BOLTS = Array.from({ length: 12 }, (_, index) => {
   return { x: (200 + Math.cos(angle) * 186).toFixed(1), y: (200 + Math.sin(angle) * 186).toFixed(1) };
 });
 
-/** The sea's surface across the porthole, when we are up: a line of gentle waves. */
-const WAVE = `M0 150 ${Array.from({ length: 10 }, (_, index) => `Q${index * 40 + 20} ${index % 2 ? 158 : 142} ${index * 40 + 40} 150`).join(" ")} V164 H0 Z`;
-
-/** The sea behind the glass, and its surface when we are up: lit near the top, deepening below, as the stage's is. */
-const SEA = "color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250))";
+/** The sea behind the glass until the painting arrives: lit near the top, deepening below, as the stage's is. */
 const SEA_TOP = "color-mix(in oklab, var(--primary) 40%, oklch(0.46 0.08 220))";
 const SEA_DEEP = "color-mix(in oklab, var(--primary) 20%, oklch(0.14 0.035 250))";
 /**
@@ -258,12 +278,16 @@ const METAL = [
   { offset: 1, color: `color-mix(in oklab, ${BRASS} 78%, white)` },
 ] as const;
 
+/** How wide the porthole's paintings draw: the glass shows their middle, a square two thirds of their width. */
+const PORTHOLE_SIZES = "(min-width: 40rem) 33rem, 130vw";
+
 /**
- * The porthole: the sea, the squid at the glass (or swimming off), the floodlights, and the surface.
- * Three drawings stacked: the sea behind, the squid, the glass and its brass ring in front. The squid
- * is a drawing of its own on a layer of its own (`will-change-transform`), clipped to the glass, so
- * it sinks without repainting the sea or the menu that gave the order. The sea, the ring and its
- * bolts carry their colours in the server HTML; the rest comes with the island (chapter-three.css).
+ * The porthole: the squid holding the glass, painted in the frosted-glass world of the chapter's pictures, then the
+ * same sea with the squid gone behind its ink once it lets go. The two paintings are stacked inside the glass, the
+ * squid's on a layer of its own (`will-change-transform`), so with motion it drifts off into the deep as it fades,
+ * without repainting the sea or the menu that gave the order; under reduced motion it only fades. Over them, the
+ * light from the surface when we are up, the floodlights, the glass and its brass ring. The ring and its bolts carry
+ * their colours in the server HTML; the rest comes with the island (chapter-three.css).
  */
 function Porthole(): JSX.Element {
   const fight = useFight();
@@ -281,17 +305,34 @@ function Porthole(): JSX.Element {
     >
       <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
         <defs>
-          <clipPath id="porthole-glass">
-            <circle cx="200" cy="200" r="176" />
-          </clipPath>
-          <radialGradient id="porthole-beam" cx="0.32" cy="0.4" r="0.65">
-            <stop offset="0" className="ph-beam-core" />
-            <stop offset="1" className="ph-beam-edge" />
-          </radialGradient>
           <linearGradient id="porthole-sea" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" style={{ stopColor: SEA_TOP }} />
             <stop offset="1" style={{ stopColor: SEA_DEEP }} />
           </linearGradient>
+        </defs>
+        <circle className="ph-sea" cx="200" cy="200" r="176" style={{ fill: "url(#porthole-sea)" }} />
+      </svg>
+      <div className="absolute inset-0 overflow-hidden" style={{ clipPath: "circle(44%)" }}>
+        <div className="ph-free absolute inset-0">
+          <Painting scene="nautilus-porthole-free" sizes={PORTHOLE_SIZES} />
+        </div>
+        <div className="ph-squid absolute inset-0 will-change-transform">
+          <Painting scene="nautilus-porthole" sizes={PORTHOLE_SIZES} />
+        </div>
+      </div>
+      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
+        <defs>
+          <clipPath id="porthole-glass">
+            <circle cx="200" cy="200" r="176" />
+          </clipPath>
+          <linearGradient id="porthole-surface" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" className="ph-surface-top" />
+            <stop offset="0.6" className="ph-surface-end" />
+          </linearGradient>
+          <radialGradient id="porthole-beam" cx="0.32" cy="0.4" r="0.65">
+            <stop offset="0" className="ph-beam-core" />
+            <stop offset="1" className="ph-beam-edge" />
+          </radialGradient>
           <linearGradient id="porthole-metal" x1="0.15" y1="0" x2="0.85" y2="1">
             {METAL.map((stop) => (
               <stop key={stop.offset} offset={stop.offset} style={{ stopColor: stop.color }} />
@@ -305,39 +346,10 @@ function Porthole(): JSX.Element {
             <stop offset="0" style={{ stopColor: "white", stopOpacity: 0.28 }} />
             <stop offset="0.55" style={{ stopColor: "white", stopOpacity: 0 }} />
           </linearGradient>
-          <radialGradient id="porthole-squid" cx="0.42" cy="0.32" r="0.75">
-            <stop offset="0" className="ph-squid-lit" />
-            <stop offset="1" className="ph-squid-shade" />
-          </radialGradient>
         </defs>
         <g clipPath="url(#porthole-glass)">
-          <rect className="ph-sea" width="400" height="400" style={{ fill: "url(#porthole-sea)" }} />
-          <g className="ph-sky" opacity={0}>
-            <rect width="400" height="150" />
-            <circle className="ph-sun" cx="292" cy="84" r="20" />
-            <path className="ph-wave" d={WAVE} style={{ fill: SEA }} />
-          </g>
+          <rect className="ph-surface" width="400" height="400" fill="url(#porthole-surface)" opacity={0} />
           <rect className="ph-beam" width="400" height="400" fill="url(#porthole-beam)" opacity={0} />
-        </g>
-      </svg>
-      <div className="absolute inset-0" style={{ clipPath: "circle(44%)" }}>
-        <svg
-          viewBox="0 0 400 400"
-          aria-hidden="true"
-          className="ph-squid absolute inset-0 size-full will-change-transform"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          dangerouslySetInnerHTML={{ __html: squid.inner }}
-        />
-      </div>
-      <svg viewBox="0 0 400 400" fill="none" aria-hidden="true" className="absolute inset-0 size-full">
-        <g className="ph-bubbles" fill="white" fillOpacity={0.45}>
-          <circle cx="90" cy="320" r="4" />
-          <circle cx="110" cy="290" r="2.5" />
-          <circle cx="300" cy="330" r="3.5" />
-          <circle cx="320" cy="300" r="2" />
         </g>
         <circle cx="200" cy="200" r="176" fill="url(#porthole-vignette)" />
         <circle className="ph-sheen" cx="200" cy="200" r="176" fill="url(#porthole-sheen)" />
