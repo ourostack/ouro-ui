@@ -414,10 +414,10 @@ function install(): OuroFeel {
 
   /** The frame meter's late and long frames; the refresh and late frames only once there are enough gaps to tell the refresh. */
   function frameTimes(): Measures {
-    const measures: Measures = {};
-    if (gaps.length === 0) return measures;
-    measures.longFrames = gaps.filter((gap) => gap > LONG_FRAME_MS).length;
-    measures.over16Share = Math.round((gaps.filter((gap) => gap > FRAME_60HZ_MS).length / gaps.length) * 1000) / 1000;
+    const measures: Measures = {
+      longFrames: gaps.filter((gap) => gap > LONG_FRAME_MS).length,
+      over16Share: gaps.length === 0 ? 0 : Math.round((gaps.filter((gap) => gap > FRAME_60HZ_MS).length / gaps.length) * 1000) / 1000,
+    };
     if (gaps.length >= REFRESH_GAPS) {
       const refresh = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)]!;
       measures.refreshMs = Math.round(refresh * 10) / 10;
