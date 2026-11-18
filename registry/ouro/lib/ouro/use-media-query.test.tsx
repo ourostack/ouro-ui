@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useMediaQuery } from "@/registry/ouro/lib/ouro/use-media-query";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -71,11 +71,10 @@ describe("useMediaQuery", () => {
     await act(async () => root.unmount());
   });
 
-  it("calls matchMedia once for a query, however many components read it and however often they render", async () => {
+  it("calls matchMedia once for a query in a render, however many components read it", async () => {
     await page.viewport(1000, 800);
-    // A query no other test asks, so no list for it is kept from before.
     const query = "(min-width: 641px)";
-    // A plain wrapper, not a mock, which is asked on every read: it counts the calls and answers with the browser's lists.
+    // A plain wrapper that counts the calls and answers with the browser's lists.
     const real = window.matchMedia.bind(window);
     let calls = 0;
     vi.stubGlobal("matchMedia", (asked: string) => {
@@ -85,13 +84,14 @@ describe("useMediaQuery", () => {
     const container = document.body.appendChild(document.createElement("div"));
     const root = createRoot(container);
     const probes = (n: number) => Array.from({ length: n }, (_, at) => <Probe key={at} query={query} serverDefault={false} />);
-    await act(async () => root.render(<>{probes(5)}</>));
     await act(async () => root.render(<>{probes(8)}</>));
     expect(container.textContent).toBe("true".repeat(8));
-    await page.viewport(400, 800);
-    await vi.waitFor(() => expect(container.textContent).toBe("false".repeat(8)), { timeout: 10_000 });
-    await act(async () => root.unmount());
     expect(calls).toBe(1);
+    await act(async () => root.render(<>{probes(12)}</>));
+    expect(calls).toBe(2);
+    await page.viewport(400, 800);
+    await vi.waitFor(() => expect(container.textContent).toBe("false".repeat(12)), { timeout: 10_000 });
+    await act(async () => root.unmount());
   });
 
   it("follows a spy on matchMedia that passed the browser's lists through and then changes its answer", async () => {
@@ -108,6 +108,20 @@ describe("useMediaQuery", () => {
     const again = createRoot(container);
     await act(async () => again.render(<Probe query={query} serverDefault />));
     expect(container.textContent).toBe("false");
+    await act(async () => again.unmount());
+  });
+
+  it("reads a change of the media in the next task, before the browser has drawn a frame, as WebKit's lists made earlier do not", async () => {
+    const query = "(prefers-reduced-motion: reduce)";
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe query={query} serverDefault />));
+    expect(container.textContent).toBe("false");
+    await act(async () => root.unmount());
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    const again = createRoot(container);
+    await act(async () => again.render(<Probe query={query} serverDefault={false} />));
+    expect(container.textContent).toBe("true");
     await act(async () => again.unmount());
   });
 
