@@ -194,11 +194,6 @@ function useChartPart(part: string): ChartState {
   return state;
 }
 
-/** Recharts' parts, for what renders inside the plot, which Chart draws only once they have loaded. */
-function useParts(part: string): Loaded {
-  return useChartPart(part).parts!;
-}
-
 /**
  * The series in config order: every key but the category, each with its color and marker.
  *
@@ -486,7 +481,7 @@ interface SeriesChartProps {
  * @claim "The chart `type` draws: a grid" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > leaves out the legend for a single series, which the title already names)
  */
 function SeriesChart({ type, data, categoryKey, series, formatValue, plotProps }: SeriesChartProps): JSX.Element {
-  const { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } = useParts("Chart");
+  const { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } = useContext(ChartContext)!.parts!;
   const Plot = type === "line" ? LineChart : type === "area" ? AreaChart : BarChart;
   const marks = series.map((item) => {
     const shared = {
@@ -656,8 +651,9 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  * @claim "The tooltip for a recharts chart" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
  */
 export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
-  const { warnKey } = useChartPart("ChartTooltip");
-  const { Tooltip } = useParts("ChartTooltip");
+  const state = useChartPart("ChartTooltip");
+  const { warnKey } = state;
+  const { Tooltip } = state.parts!;
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props, warnKey);
@@ -690,8 +686,9 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws lines with a different point shape per series)
  */
 export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
-  const { legendTarget, warnKey } = useChartPart("ChartLegend");
-  const { Legend } = useParts("ChartLegend");
+  const state = useChartPart("ChartLegend");
+  const { legendTarget, warnKey } = state;
+  const { Legend } = state.parts!;
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props, warnKey);
