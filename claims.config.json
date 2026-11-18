@@ -231,11 +231,6 @@
       "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
     },
     {
-      "file": "site/src/voyage/nautilus.tsx",
-      "sentence": "Every voyage starts with someone opening the book.",
-      "reason": "the storybook brand: a scene's sky line, the story of what the friends in the picture are up to"
-    },
-    {
       "file": "site/src/storybook.ts",
       "sentence": "Inside a sleek high-speed train in low golden morning sun, two small robots type at their laptops across a window table while a faceless glass person in a sage hoodie leans back across the aisle, hands in pocket, with Ouro the green snake curled on the seat beside them, under a station clock on the end wall.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
