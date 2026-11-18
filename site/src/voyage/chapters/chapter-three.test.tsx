@@ -6,7 +6,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import frameStyles from "./frame.css?inline";
 import chapterOneStyles from "./chapter-one.css?inline";
-import { allChapterThreeText, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "./chapter-three-copy";
+import { allChapterThreeText, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "./chapter-three-copy";
 
 await loadPageCode("/nautilus/");
 
@@ -68,14 +68,17 @@ describe("Chapter III", () => {
     // Each chapter is an island that loads on its own, so the one before may come second.
     await expect.poll(() => document.querySelector("#chapter-two")).not.toBeNull();
     expect(document.querySelector("#chapter-two")!.compareDocumentPosition(document.querySelector("#chapter-three")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The dialog's choices are in the dialog; install, components and again show once the organ plays.
+    // The dialog's choices are in the dialog; the hand-off, components and again show once the organ plays.
     const marked = [...document.querySelectorAll("#chapter-three [data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control"));
-    expect(marked).toEqual(CHAPTER_THREE_CONTROLS.filter((id) => !["feathers", "surface", "install", "components", "again"].includes(id)));
+    expect(marked).toEqual(CHAPTER_THREE_CONTROLS.filter((id) => !["feathers", "surface", "handoff", "components", "again"].includes(id)));
   });
 
   it("keeps the squid on until the crew is up and armed, then lets the organ play", async () => {
     await renderPage("/nautilus/");
     expect(scene().dataset.squid).toBe("holding");
+    // The log holds only what has happened: a reader who jumps here reads no ship built and no course set.
+    const log = () => [...document.querySelectorAll("#chapter-three [data-chapter-log] li")].map((line) => line.textContent);
+    expect(log()).toEqual([`01${SALOON.logHeld}`]);
     await order(ORDERS.dive);
     await expect.poll(crew).toContain(FIGHT.diveHeld.text);
     await order(ORDERS.organ);
@@ -89,14 +92,14 @@ describe("Chapter III", () => {
     await expect.poll(() => scene().dataset.squid).toBe("gone");
     await expect.poll(() => announced.count(TOASTS.win)).toBe(1);
     await expect.poll(() => announced.count(FIGHT.win.text)).toBe(1);
+    expect(log()).toEqual([`01${SALOON.logHeld}`, `02${SALOON.logFree}`]);
     await userEvent.click(page.getByRole("button", { name: SALOON.play }));
-    await expect.poll(() => announced.count(TOASTS.organ)).toBe(1);
     announced.stop();
     // The squid comes back to listen, and the porthole says so.
     await expect.poll(() => scene().dataset.squid).toBe("listening");
     expect(scene().getAttribute("aria-label")).toContain(describeEncounter({ surfaced: true, lights: false, won: true, played: true }));
-    await expect.element(page.elementLocator(document.querySelector("#chapter-three")!).getByText(SALOON.stamp, { exact: true })).toBeInTheDocument();
-    await expect.element(page.getByRole("link", { name: SALOON.install })).toHaveFocus();
+    await expect.element(page.elementLocator(document.querySelector("#chapter-three")!).getByText(SALOON.logPlayed, { exact: true })).toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: SALOON.playAgain })).toHaveFocus();
   });
 
   it("says the water is clear, not that the floodlights are on, when the free ship surfaces again", async () => {
@@ -109,6 +112,22 @@ describe("Chapter III", () => {
     await order(ORDERS.surface);
     await expect.poll(crew).toContain(FIGHT.surfaceFree.text);
     expect(scene().dataset.lights).toBeUndefined();
+  });
+});
+
+describe("the windows", () => {
+  it("frame each composition as an application's window, its file and Code in the bar and its HX components along the foot", async () => {
+    await renderPage("/nautilus/");
+    await expect.poll(() => document.querySelector("#chapter-three[data-chapter-ready]")).not.toBeNull();
+    for (const [id, sheet, file] of [["encounter", CODE_SHEETS_THREE.encounter, ENCOUNTER.file], ["saloon", CODE_SHEETS_THREE.saloon, SALOON.file]] as const) {
+      const window = document.querySelector(`[data-composition='${id}'] [data-composition-window]`)!;
+      expect(window.querySelector("[data-composition-bar]")!.textContent).toContain(file);
+      expect(window.querySelector(`[data-composition-bar] [data-chapter-control='${id}-code']`)).not.toBeNull();
+      const uses = [...window.querySelectorAll("[data-composition-uses] [data-ouro='badge']")].map((badge) => badge.textContent);
+      expect(uses).toEqual([...sheet.uses]);
+      // A real border, not a shadow alone, so the window keeps its edge in forced colours.
+      expect(getComputedStyle(window).borderTopStyle).toBe("solid");
+    }
   });
 });
 

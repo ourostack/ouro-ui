@@ -16,7 +16,7 @@ import type { CrewLine } from "./copy";
  * operates each in a test named "control: <id>" and asserts what it changes;
  * site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const CHAPTER_THREE_CONTROLS = ["encounter-code", "alarm", "orders", "palette", "feathers", "surface", "saloon-code", "organ", "install", "components", "again"] as const;
+export const CHAPTER_THREE_CONTROLS = ["encounter-code", "alarm", "orders", "palette", "feathers", "surface", "saloon-code", "organ", "handoff", "components", "again"] as const;
 export type ChapterThreeControl = (typeof CHAPTER_THREE_CONTROLS)[number];
 
 export const CHAPTER_THREE = {
@@ -93,8 +93,6 @@ export const FIGHT = {
 export const TOASTS = {
   win: "The propeller is free",
   winNote: "The squid followed the lamp into the dark.",
-  organ: "Voyage logged",
-  organNote: "Ship built, course set, propeller free.",
 } as const;
 
 export const SALOON = {
@@ -103,15 +101,16 @@ export const SALOON = {
   file: "saloon.tsx",
   organ: "Captain Nemo's organ",
   play: "Play the organ",
+  playAgain: "Play it again",
   playHint: "First, free the propeller.",
   playing: "The captain plays. Someone large has come back to listen.",
   log: "The ship's log",
-  logWaiting: "The log waits until the ship is free.",
-  stamp: "Voyage logged",
-  logDone: "Ship built. Course set. Propeller free. One new friend.",
+  /** The log's lines, each written only once it has happened. */
+  logHeld: "Stopped dead. A giant squid has the propeller.",
+  logFree: "Lamp lit on deck. The squid let go and slipped away.",
+  logPlayed: "Music in the saloon. The squid came back to listen.",
   next: claim("Every control on this voyage is a real Ouro HX part.", { source: [{ test: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { test: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { test: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }], verify: [{ testExists: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }] }),
   build: "Now build yours.",
-  install: "Install Ouro HX",
   components: "Browse components",
   again: "Sail again",
 } as const;
@@ -148,16 +147,18 @@ export const CODE_SHEETS_THREE = {
       { text: "Badge and Toast: how the ship stands, and the news when the squid lets go.", code: `<Badge tone="success">Ship is free</Badge>\ntoast("The propeller is free", { tone: "success" })` },
     ],
     site: ["The porthole, the squid, and the sea.", "What an order does, and when the ship is free.", "What the crew says."],
+    uses: ["Dialog", "Menu", "Command", "Badge", "Toast"],
   },
   saloon: {
     title: "How the saloon is built",
     description: "Ouro HX does the buttons and the toast. The site does the organ, its tune and the log.",
     hx: [
       { text: "Button: the press, and Play kept off until the ship is free.", code: `<Button disabled={!free} onClick={play}>Play the organ</Button>` },
-      { text: "Button as a link: the way into the docs.", code: `<Button href="/ouro-ui/docs/installing/">Install Ouro HX</Button>` },
-      { text: "Toast: the last line of the voyage.", code: `toast("Voyage logged", { tone: "success" })` },
+      { text: "Button and Toast: Copy puts the line for your agent on the clipboard, and a toast says so.", code: `<Button onClick={copy}>Copy</Button>\ntoast("Copied. Paste it to your agent.", { tone: "success" })` },
+      { text: "Button as a link: the way into the docs.", code: `<Button href="/docs/">Browse components</Button>` },
     ],
-    site: ["The organ, its tune, and the notes that rise from it.", "The squid that comes back to listen.", "The log, and its stamp."],
+    site: ["The organ, its tune, and the notes that rise from it.", "The squid that comes back to listen.", "The log, and what goes in it."],
+    uses: ["Button", "Toast"],
   },
 } as const;
 

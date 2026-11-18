@@ -115,7 +115,7 @@ export default function ChapterTwo(): JSX.Element {
   useChapterReady(root, "chapter-two-styles", chapterStyles);
   return (
     <section ref={root} id="chapter-two" aria-labelledby="chapter-two-title" className="pb-20 lg:pb-32" data-chapter="two">
-      <Handoff art={compass} line={CHAPTER_TWO.handoff} />
+      <Handoff line={CHAPTER_TWO.handoff} />
       <PlanContext value={plan}>
         <PlanningMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
@@ -127,7 +127,7 @@ export default function ChapterTwo(): JSX.Element {
             <p className="site-lede mt-4">{CHAPTER_TWO.intro}</p>
             <Planning />
           </header>
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-20 lg:col-span-8">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-16 lg:col-span-8">
             <Composition id="chart-room" title={CHART_ROOM.title} intro={CHART_ROOM.intro} file={CHART_ROOM.file} sheet={CODE_SHEETS_TWO.chartRoom}>
               <ChartRoom />
             </Composition>
@@ -216,7 +216,7 @@ function ChartLabel({ x, y, anchor, className, fontSize, fontWeight, halo = fals
 /** The engraved chart, with the route drawn from port to port and each port's place in it. */
 const RouteMap = memo(function RouteMap({ route }: { route: readonly PortId[] }): JSX.Element {
   return (
-    <figure className="m-0 border-b border-border/70">
+    <figure className="m-0 -mx-4 border-b border-border sm:-mx-6">
       <svg className="site-chart block h-auto w-full font-[family-name:var(--font-heading)]" style={{ color: "color-mix(in oklab, var(--primary) 70%, var(--foreground))" }} viewBox={chart.viewBox} role="img" aria-label={describeRoute(route)} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" data-route={route.join(" ")}>
         <g dangerouslySetInnerHTML={{ __html: chart.inner }} />
         {/* A new route draws itself in afresh. */}

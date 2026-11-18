@@ -3,6 +3,8 @@ import { BATTLE, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, ENCOU
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
 import { watchToasts } from "./toasts";
+import { HANDOFF } from "../src/copy";
+import { LEAGUES_TITLE } from "../src/voyage/copy";
 
 // Chapter III, "Face the squid", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_THREE_CONTROLS has a test named "control: <id>" that operates it
@@ -172,30 +174,39 @@ test.describe("each control in Chapter III", () => {
     await expect(status(page)).toContainText(ENCOUNTER.feathersReady);
   });
 
-  test("control: organ waits for the fight, then plays: the notes rise, the log is stamped, and the way on is offered", async ({ page }) => {
+  test("control: organ waits for the fight, then plays: the notes rise, the log gets its line, and the way on is offered, with focus kept on Play", async ({ page }) => {
     await open(page);
     await expect(playButton(page)).toBeDisabled();
     await expect(saloon(page).locator("[data-chapter-organ-hint]")).toHaveText(SALOON.playHint);
     await win(page);
     await expect(playButton(page)).toBeEnabled();
     const toasts = await watchToasts(page);
+    await playButton(page).scrollIntoViewIfNeeded();
+    const top = await page.evaluate(() => scrollY);
     await playButton(page).click();
-    await expect(page.locator("[data-chapter-stamp]")).toHaveText(SALOON.stamp);
-    await expect.poll(toasts.titles).toContain(TOASTS.organ);
+    await expect(saloon(page).locator("[data-chapter-log] li").last()).toHaveText(new RegExp(SALOON.logPlayed));
     await expect(scene(page)).toHaveAttribute("data-squid", "listening");
     await expect(saloon(page).locator(".site-organ .or-note").first()).toHaveCSS("opacity", "1");
     await expect(page.getByRole("list", { name: BATTLE.label })).toContainText(BATTLE.organDone);
-    await expect(saloon(page).getByRole("link", { name: SALOON.install })).toBeFocused();
+    await expect(saloon(page).locator("[data-chapter-next]")).toBeVisible();
+    // Play keeps focus and the page stays put: the way on shows below without taking either.
+    await expect(saloon(page).getByRole("button", { name: SALOON.playAgain })).toBeFocused();
+    expect(await page.evaluate(() => scrollY)).toBe(top);
+    // The end raises no toast of its own: the log and the porthole say it. (The win's toast came before, and the leagues
+    // egg's comes as the page's end scrolls in.)
+    expect((await toasts.titles()).filter((title) => title !== TOASTS.win && title !== LEAGUES_TITLE)).toEqual([]);
   });
 
-  test("control: install leads to the installing guide", async ({ page }) => {
+  test("control: handoff copies the line for a coding agent, and says so", async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium", "Only Chromium lets a test grant the clipboard");
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
     await open(page);
     await win(page);
     await playButton(page).click();
-    const link = saloon(page).getByRole("link", { name: SALOON.install });
-    await expect(link).toHaveAttribute("href", /^\/docs\/installing\/$/);
-    await link.click();
-    await expect(page).toHaveURL(/\/docs\/installing\/$/);
+    const toasts = await watchToasts(page);
+    await saloon(page).locator("[data-chapter-control='handoff']").getByRole("button", { name: "Copy" }).click();
+    await expect.poll(toasts.titles).toContain(HANDOFF.copied);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(HANDOFF.prompt);
   });
 
   test("control: components leads to the catalogue of components", async ({ page }) => {
@@ -216,7 +227,7 @@ test.describe("each control in Chapter III", () => {
     await expect(scene(page)).toHaveAttribute("data-squid", "holding");
     await expect(scene(page)).not.toHaveAttribute("data-surfaced", "");
     await expect(playButton(page)).toBeDisabled();
-    await expect(page.locator("[data-chapter-stamp]")).toHaveCount(0);
+    await expect(saloon(page).locator("[data-chapter-log] li")).toHaveCount(1);
     await expect(crew(page)).toContainText(FIGHT.again.text);
     await expect(alarm(page)).toBeFocused();
   });
@@ -294,7 +305,7 @@ test("on a phone, the fight and the organ work by touch, and nothing overflows",
   await dialog(page).getByRole("button", { name: ORDERS.feathers }).tap();
   await expect(scene(page)).toHaveAttribute("data-squid", "gone");
   await playButton(page).tap();
-  await expect(page.locator("[data-chapter-stamp]")).toHaveText(SALOON.stamp);
+  await expect(saloon(page).locator("[data-chapter-log] li").last()).toHaveText(new RegExp(SALOON.logPlayed));
   const marker = page.locator("#chapter-three [data-chapter-marker]");
   await expect(marker.getByRole("img")).toHaveAccessibleName("3 of 3 done");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -410,7 +421,7 @@ test.describe("by keyboard alone", () => {
     await expect(scene(page)).toHaveAttribute("data-squid", "gone");
     await playButton(page).focus();
     await page.keyboard.press("Enter");
-    await expect(page.locator("[data-chapter-stamp]")).toHaveText(SALOON.stamp);
-    await expect(saloon(page).getByRole("link", { name: SALOON.install })).toBeFocused();
+    await expect(saloon(page).locator("[data-chapter-log] li").last()).toHaveText(new RegExp(SALOON.logPlayed));
+    await expect(saloon(page).getByRole("button", { name: SALOON.playAgain })).toBeFocused();
   });
 });
