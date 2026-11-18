@@ -1591,6 +1591,30 @@ test("the ci check passes only when its parts passed and the browser shards' mer
   assert.match(runStep(merge, { RUNNER_TEMP: "/r", FALLBACK_SHARDS: "16" }).calls, /^CALL node scripts\/coverage-merge\.mjs \/r\/coverage --shards 16$/m);
 });
 
+test("the attribution job fails a pull request whose title, body or commits name an internal app, with ourostack/.github's one list", () => {
+  const block = ciJobs().attribution;
+  const script = stepScript(block, "No internal names");
+  // The guard's two files come from ourostack/.github's main; curl stands in here, so no test reads the network.
+  const run = (env, nodeStatus = 0) => runStep(`curl() { printf 'CALL curl %s\\n' "$*" >&2; }\n${script}`, { RUNNER_TEMP: "/tmp", ...env }, { nodeStatus });
+  const pull = run({ EVENT: "pull_request", BASE_REF: "main", PR_HEAD: "abc", PR_TITLE: "t", PR_BODY: "b" });
+  assert.equal(pull.status, 0);
+  assert.match(pull.calls, /CALL curl .*raw\.githubusercontent\.com\/ourostack\/\.github\/main\/tools\/internal-names\/check\.mjs$/m);
+  assert.match(pull.calls, /CALL curl .*\/tools\/internal-names\/hashes\.txt$/m);
+  assert.match(pull.calls, /^CALL node \/tmp\/internal-names\/check\.mjs --text$/m);
+  assert.match(pull.calls, /^CALL node \/tmp\/internal-names\/check\.mjs origin\/main\.\.abc$/m);
+  assert.match(run({ EVENT: "merge_group", QUEUE_BASE: "base", QUEUE_HEAD: "head" }).calls, /^CALL node \/tmp\/internal-names\/check\.mjs base\.\.head$/m);
+  // A finding fails the job, and with it the ci check.
+  assert.equal(run({ EVENT: "pull_request", BASE_REF: "main", PR_HEAD: "abc" }, 1).status, 1);
+  const push = run({ EVENT: "push" });
+  assert.equal(push.status, 0);
+  assert.doesNotMatch(push.calls, /CALL (curl|node)/);
+  // The title and body are checked again when the description is edited, in the Claims workflow.
+  const claims = readFileSync(join(dir, "claims.yml"), "utf8");
+  assert.match(claims, /types: \[opened, edited, synchronize, reopened\]/);
+  assert.match(claims, /- name: No internal names in the title and body\n/);
+  assert.match(claims, /node "\$guard\/check\.mjs" --text/);
+});
+
 test("the ci check requires the attribution job, which checks a pull request's commits and the merge queue's squash commits with git alone", () => {
   const jobs = ciJobs();
   const block = jobs.attribution;
