@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { allCrewLines, BELL_TOASTS, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
+import { allCrewLines, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "../src/voyage/stage/copy";
 import { diagnostics } from "./diagnostics";
 import { watchToasts } from "./toasts";
 import { open, scene, bringUp, swimming, porthole, lastLog, FORE, MIDDLE, AFT, tank, diveButton, settled, scrollAtRest, changesThePicture, recordAnimations, fillTanks } from "./stage-helpers";
@@ -153,17 +153,18 @@ test.describe("each control on the stage", () => {
     await expect.poll(height).toBe(0);
   });
 
-  test("control: bell brings a toast from the crew, rings, and sends rings through the water", async ({ page }) => {
+  test("control: bell rings, the crew answers in its own line with no toast, and rings go through the water", async ({ page }) => {
     await open(page);
     const started = await recordAnimations(page);
     const toasts = await watchToasts(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
-    await expect.poll(toasts.titles).toContain(`${SPEAKER[BELL_TOASTS[0]!.name]}: ${BELL_TOASTS[0]!.text}`);
-    await expect(lastLog(page)).toContainText(LOG.bell.text);
+    await expect(lastLog(page)).toContainText(LOG.bell[0].text);
     await expect(page.locator("[data-stage-control='bell']")).toHaveAttribute("data-ring", "a");
     await expect(page.locator(".stage-ripple")).toHaveCount(3);
     // Under reduced motion the bell glows instead of swinging.
     await expect.poll(() => started(".stage-bell-icon")).toEqual(["stage-bell-glow-a"]);
+    // The crew's line is the answer: no toast says it again over the bell.
+    expect(await toasts.titles()).toEqual([]);
   });
 });
 
@@ -221,7 +222,7 @@ for (const viewport of [
     await page.getByRole("radio", { name: "Stop" }).tap();
     await expect(scene(page)).toHaveAttribute("data-speed", "stop");
     await page.getByRole("button", { name: STAGE_COPY.bell }).tap();
-    await expect(lastLog(page)).toContainText(LOG.bell.text);
+    await expect(lastLog(page)).toContainText(LOG.bell[0].text);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(errors).toEqual([]);
     await context.close();
@@ -413,15 +414,14 @@ test.describe("the ballast manifold and the bell's payoffs", () => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await open(page);
     const started = await recordAnimations(page);
-    const toasts = await watchToasts(page);
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "a");
-    await expect.poll(toasts.titles).toContain(`${SPEAKER[BELL_TOASTS[0]!.name]}: ${BELL_TOASTS[0]!.text}`);
-    await expect(lastLog(page)).toContainText(LOG.bell.text);
+    await expect(lastLog(page)).toContainText(LOG.bell[0].text);
     await expect.poll(() => started(".stage-ripple")).toContain("stage-ripple");
     await expect.poll(() => started(".stage-band-sunlit")).toContain("stage-startle-a");
     await page.getByRole("button", { name: STAGE_COPY.bell }).click();
     await expect(scene(page)).toHaveAttribute("data-ring", "b");
+    await expect(lastLog(page)).toContainText(LOG.bell[1].text);
     await expect.poll(() => started(".stage-band-sunlit")).toContain("stage-startle-b");
   });
 
@@ -545,18 +545,3 @@ for (const mode of ["light", "dark"] as const) {
     await context.close();
   });
 }
-
-test("on a phone, the bell's toast never covers the bell", async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, baseURL: test.info().project.use.baseURL! });
-  const page = await context.newPage();
-  await open(page);
-  const bell = page.getByRole("button", { name: STAGE_COPY.bell });
-  await bell.evaluate((element) => element.scrollIntoView({ block: "end" }));
-  const toasts = await watchToasts(page, { selector: "[data-stage-control='bell'] button", kind: "below" });
-  await bell.tap();
-  await expect.poll(async () => (await toasts.titles()).length).toBeGreaterThan(0);
-  // Judged only once the toast has settled: it slides in from below its place.
-  await expect.poll(toasts.settled).toBeGreaterThan(5);
-  expect(await toasts.overlapped(), await toasts.overlap()).toBe(false);
-  await context.close();
-});

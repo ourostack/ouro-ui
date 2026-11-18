@@ -7,10 +7,11 @@ import { fleschKincaid, syllables, voice } from "../../../test/readability";
 import { renderedLines, splitWords } from "../../../test/lines";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { EYEBROW, RELEASE_HREF } from "../hero";
 import { HANDOFF } from "../../copy";
 import { latestRelease } from "../../latest-release";
-import { allStageText, bandAt, BELL_TOASTS, describeScene, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
+import { allStageText, bandAt, describeScene, LOG, OPENING_LOG, SPEAKER, STAGE_CONTROLS, STAGE_COPY, TANKS } from "./copy";
 import { art, parseArt, partsOf } from "./art";
 
 // Every state the stage hands the picture, recorded by a stand-in that draws the real one.
@@ -149,7 +150,7 @@ describe("the hero", () => {
     expect(prompt.textContent).toBe(HANDOFF.prompt);
   });
 
-  it("hands Ouro UI to a person's agent as one line to paste, never a command for the person to run", async () => {
+  it("hands Ouro UI to a person's agent as one line to paste, never a command to run, and Copy says Copied on itself", async () => {
     const writes: string[] = [];
     const spy = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(async (text) => void writes.push(text));
     try {
@@ -168,12 +169,26 @@ describe("the hero", () => {
       expect(hero).not.toBeNull();
       expect(handoff.getBoundingClientRect().top).toBeLessThan(hero.querySelector('[data-slot="media"]')!.getBoundingClientRect().top);
       for (const part of [hero, document.querySelector<HTMLElement>(".site-console")!]) expect(part.textContent).not.toMatch(/npx|shadcn@/);
-      // A toast shows for five seconds, which a loaded runner can outlast between two steps; the announcement is recorded as it happens.
+      // Copy says so on itself, once, and no toast in the corner says it again. "Copied" lasts two seconds, which a
+      // loaded runner can outlast between two steps, so the clock is held from the press.
       const announced = watchAnnouncements();
-      await userEvent.click(page.getByRole("button", { name: "Copy", exact: true }));
-      await expect.poll(() => announced.count(HANDOFF.copied)).toBe(1);
+      const copy = handoff.querySelector<HTMLButtonElement>("[data-ouro='copy-button'] button")!;
+      expect(copy.textContent).toBe("Copy");
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        await userEvent.click(copy);
+        // Real frames, not expect.poll, which moves the held timers on at each retry.
+        const deadline = performance.now() + 10_000;
+        while (copy.textContent !== "Copied" && performance.now() < deadline) await new Promise((frame) => requestAnimationFrame(frame));
+        expect(copy.textContent).toBe("Copied");
+        await act(async () => vi.advanceTimersByTime(100));
+        expect(announced.count("Copied")).toBe(1);
+      } finally {
+        vi.useRealTimers();
+      }
       announced.stop();
       expect(writes).toEqual([HANDOFF.prompt]);
+      expect(document.querySelectorAll('[data-ouro="toast"]')).toHaveLength(0);
     } finally {
       spy.mockRestore();
     }
@@ -325,28 +340,27 @@ describe("the stage's controls", () => {
     await expect.poll(() => scene().getAttribute("aria-label")).toContain("The fish hold still.");
   });
 
-  it("rings the bell: a toast from the crew, in turn, each replacing the last, and a line in the log", async () => {
+  it("rings the bell: the crew answers in turn, once each, in its own line, with no toast", async () => {
     await renderPage("/");
     const bell = page.getByRole("button", { name: STAGE_COPY.bell });
     const ring = () => document.querySelector<HTMLElement>("[data-stage-control='bell']")!.dataset.ring;
     expect(ring()).toBeUndefined();
-    // Each toast shows for five seconds, which a loaded runner can outlast between two steps; the
-    // announcements are recorded as they happen.
     const announced = watchAnnouncements();
     await userEvent.click(bell);
-    await expect.poll(() => announced.count(`${SPEAKER[BELL_TOASTS[0]!.name]}: ${BELL_TOASTS[0]!.text}`)).toBe(1);
-    await expect.poll(lastLog).toContain(LOG.bell.text);
+    await expect.poll(lastLog).toContain(LOG.bell[0].text);
     // The bell swings and the water rings, again on each press.
     expect(ring()).toBe("a");
     await expect.poll(() => document.querySelectorAll(".stage-ripple").length).toBe(3);
     await userEvent.click(bell);
-    await expect.poll(() => announced.count(`${SPEAKER[BELL_TOASTS[1]!.name]}: ${BELL_TOASTS[1]!.text}`)).toBe(1);
-    announced.stop();
+    await expect.poll(lastLog).toContain(LOG.bell[1].text);
     expect(ring()).toBe("b");
-    // The second ring's answer took the first one's place: one toast shows, and the first answer is gone.
-    const toaster = () => document.querySelector<HTMLElement>('[data-ouro="toaster"]')!;
-    expect(toaster().querySelectorAll('[data-ouro="toast"]')).toHaveLength(1);
-    expect(toaster().textContent).not.toContain(BELL_TOASTS[0]!.text);
+    await act(() => undefined);
+    announced.stop();
+    // Each answer is heard once, from the crew's line, and nothing raises a toast over the bell.
+    expect(announced.count(LOG.bell[0].text)).toBe(1);
+    expect(announced.count(LOG.bell[1].text)).toBe(1);
+    expect(announced.changes.filter((change) => change.region.closest('[data-ouro="toaster"]'))).toEqual([]);
+    expect(document.querySelectorAll('[data-ouro="toast"]')).toHaveLength(0);
   });
 
   it("keeps the newest five lines in the log, the newest also under the porthole", async () => {

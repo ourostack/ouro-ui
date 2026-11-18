@@ -109,11 +109,6 @@ export const FIGHT = {
   again: { name: "Conseil", text: "It is back at the glass. I think it liked the organ." },
 } as const satisfies Record<string, CrewLine | ((name: string) => CrewLine)>;
 
-export const TOASTS = {
-  win: "The propeller is free",
-  winNote: "The squid followed the lamp into the dark.",
-} as const;
-
 export const SALOON = {
   title: "The saloon",
   intro: "With the ship free, the captain sits down at his organ. Turn your sound on.",
@@ -186,23 +181,23 @@ export const CODE_SHEETS_THREE = {
       },
       { text: "Menu: the list of orders, the arrow keys, the tick by the floodlights, and Dive kept off until the ship is free.", code: ({ free, lights }: EncounterLive) => `<Menu trigger={<Button>${ENCOUNTER.orders}</Button>}>\n  <MenuItem onClick={surface}>${ORDERS.surface}</MenuItem>\n  <MenuItem disabled={${!free}} onClick={dive}>${ORDERS.dive}</MenuItem>\n  <MenuCheckboxItem checked={${lights}} onCheckedChange={setLights}>${ORDERS.lights}</MenuCheckboxItem>\n</Menu>` },
       { text: "Command: the palette, its search, and the order you pick.", code: `<Command title="Orders for the crew" placeholder="Search orders…" trigger={<Button>Give an order</Button>} items={orders} />` },
-      { text: "Badge and Toast: how the ship stands, and the news when the squid lets go.", code: `<Badge tone="success">Ship is free</Badge>\ntoast("The propeller is free", { tone: "success" })` },
+      { text: "Badge: how the ship stands.", code: `<Badge tone="success">Ship is free</Badge>` },
     ],
     site: ["The porthole, the squid, and the sea.", "What an order does, and when the ship is free.", "What the crew says."],
-    uses: ["Dialog", "Menu", "Command", "Badge", "Toast"],
+    uses: ["Dialog", "Menu", "Command", "Badge"],
     start: { free: false, lights: false } as EncounterLive,
   },
   saloon: {
     title: "How the saloon is built",
-    description: "Ouro HX does the buttons and the toast. The site does the organ, its tune and the log.",
+    description: "Ouro HX does the buttons. The site does the organ, its tune and the log.",
     hx: [
       { text: "Button: the press, and Play kept off until the ship is free.", code: ({ free, played }: SaloonLive) => `<Button disabled={${!free}} onClick={play}>${played ? SALOON.playAgain : SALOON.play}</Button>` },
-      { text: "Button and Toast: Copy puts the line for your agent on the clipboard, and a toast says so.", code: `<Button onClick={copy}>Copy</Button>\ntoast("Copied. Paste it to your agent.", { tone: "success" })` },
+      { text: "CopyButton: Copy puts the line for your agent on the clipboard, then says Copied on itself.", code: `<CopyButton value={prompt} variant="soft" />` },
       { text: "Button as a toggle: Show me turns X-ray on and off, and says if it is on.", code: ({ xray }: SaloonLive) => `<Button aria-pressed={${xray}} onClick={() => setXray(!xray)}>${SALOON.reveal}</Button>` },
       { text: "Button as a link: the way into the docs.", code: `<Button href="/docs/">Browse components</Button>` },
     ],
     site: ["The organ, its tunes, and its pipes that glow as he plays.", "The squid that comes back to listen, and stays to sleep.", "The log, and what goes in it."],
-    uses: ["Button", "Toast"],
+    uses: ["Button", "CopyButton"],
     start: { free: false, played: false, xray: false } as SaloonLive,
   },
 } as const;
@@ -217,7 +212,6 @@ export function allChapterThreeText(): string[] {
     describeEncounter({ surfaced: true, lights: false, won: true }),
     describeEncounter({ surfaced: true, lights: false, won: true, played: true }),
     ...Object.values(FIGHT).map((line) => (typeof line === "function" ? line("Ana") : line).text),
-    ...Object.values(TOASTS),
     ...Object.values(SALOON).flatMap((value) => (typeof value === "string" ? [value] : [])),
     ...voyageLog({ launched: 5, you: { name: "Ana Ruiz", trade: "Engineer" }, course: { day: "1867-11-06", leagues: "7,519", way: "shortest" }, sorted: 4 }),
     SALOON.logSailed("1867-11-06", "10,843", "book"),

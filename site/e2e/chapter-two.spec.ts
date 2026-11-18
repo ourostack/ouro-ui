@@ -246,7 +246,7 @@ test.describe("each control in Chapter II", () => {
     await expect(page.getByText(argonaut.note)).toBeVisible();
   });
 
-  test("control: classify checks your class: a wrong one gets a hint, a right one joins the catalogue with a toast", async ({ page }) => {
+  test("control: classify checks your class: a wrong one gets a hint, a right one joins the catalogue, with no toast to repeat it", async ({ page }) => {
     await open(page);
     const crab = FINDS[0];
     await expect(catalogue(page).locator("[data-chapter-find]")).toContainText(crab.clue);
@@ -255,12 +255,13 @@ test.describe("each control in Chapter II", () => {
     await expect.poll(() => names(page)).toHaveLength(SPECIMENS.length);
     const toasts = await watchToasts(page);
     await pick(page, "Crustacean");
-    await expect.poll(toasts.titles).toContain(CLASSING.toast("Crustacean"));
     await expect(catalogueCrew(page)).toContainText(CLASSING.right(crab.name, "Crustacean").text);
     await expect.poll(() => names(page)).toContain(crab.name);
     await expect(catalogue(page).locator("tbody tr", { hasText: crab.name })).toContainText(CATALOGUE.added);
     await expect(catalogue(page).locator("[data-chapter-find]")).toContainText(FINDS[1].clue);
     await expect(page.getByRole("list", { name: PLANNING.label })).toContainText(PLANNING.classed(1, FINDS.length));
+    // Conseil's line and the new row in the book say it: no toast says it again.
+    expect(await toasts.titles()).toEqual([]);
   });
 
   test("control: museum opens the sheet of Nemo's treasures, and gives focus back", async ({ page }) => {

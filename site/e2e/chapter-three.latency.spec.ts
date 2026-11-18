@@ -29,11 +29,7 @@ async function giveOrder(page: Page, name: string): Promise<void> {
   await expect(page.getByRole("menu")).toBeHidden();
 }
 
-/**
- * Up, the deck lamp, and the organ: the saloon offers the way on. The win and the organ raise toasts that
- * last 5 s, so a later press would pay for one leaving (its exit, and Base UI's observers redrawing the
- * stack) in its own frame (#1484). They are closed here, and gone, before the press is measured.
- */
+/** Up, the deck lamp, and the organ: the saloon offers the way on. None of it raises a toast, so no press pays for one leaving (#1484). */
 async function finish(page: Page): Promise<void> {
   if (!(await saloon(page).locator("[data-chapter-next]").count())) {
     await giveOrder(page, ORDERS.surface);
@@ -41,18 +37,6 @@ async function finish(page: Page): Promise<void> {
     await saloon(page).getByRole("button", { name: SALOON.play }).click();
     await saloon(page).locator("[data-chapter-next]").waitFor();
   }
-  await closeToasts(page);
-}
-
-/**
- * Closes the toasts a set-up raised, until none is left, so none arrives or leaves in the press measured next (#1484): the
- * win's toast comes with the order that wins, and the organ's just after the way on shows.
- */
-async function closeToasts(page: Page): Promise<void> {
-  await expect(async () => {
-    await page.evaluate(() => document.querySelectorAll<HTMLElement>('[data-ouro="toaster"] [data-ouro-part="close"]').forEach((close) => close.click()));
-    await expect(page.locator('[data-ouro="toast"]')).toHaveCount(0, { timeout: 1000 });
-  }).toPass();
 }
 
 /** Holds back a link's navigation, so its press can be measured on this page. */
@@ -74,7 +58,6 @@ const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Step; befo
     before: async (page) => {
       await giveOrder(page, ORDERS.surface);
       await giveOrder(page, ORDERS.feathers);
-      await closeToasts(page);
     },
     press: (page) => saloon(page).getByRole("button", { name: SALOON.play }).click(),
     after: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click(),
@@ -88,11 +71,10 @@ const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Step; befo
       await expect(page.locator("[data-ouro='inspector']")).toHaveCount(0);
     },
   },
-  // Copy raises a toast: it is closed before the next press, so none arrives or leaves in a measured frame (#1484).
+  // Copy says Copied on itself for two seconds; it is found by its place, not its name, so a press while it says so counts too.
   handoff: {
     before: async (page) => (await page.context().grantPermissions(["clipboard-read", "clipboard-write"]), finish(page)),
-    press: (page) => saloon(page).locator("[data-chapter-control='handoff']").getByRole("button", { name: "Copy" }).click(),
-    after: closeToasts,
+    press: (page) => saloon(page).locator("[data-chapter-control='handoff'] [data-ouro='copy-button'] button").click(),
   },
   components: { before: async (page) => (await finish(page), holdLinks(page)), press: (page) => saloon(page).getByRole("link", { name: SALOON.components }).click() },
   again: { before: finish, press: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click() },

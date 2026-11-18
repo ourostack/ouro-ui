@@ -43,7 +43,7 @@ export interface ShipyardLive {
   launchOff: boolean;
 }
 
-/** What the articles' Code sheet writes from them: the name you signed on with, if you have. */
+/** What the articles' Code sheet writes from them: the name you signed on with, if you have, on your row of the crew list. */
 export interface ArticlesLive {
   name: string | null;
 }
@@ -184,8 +184,6 @@ export const ARTICLES = {
   blank: "Write your name.",
   /** Someone has started to sign but the articles are not done. */
   pending: "Not signed yet",
-  signed: (name: string) => `${name} signed on`,
-  onList: "Your name is on the crew list now.",
   /** In place of the form once you have signed, over the way on (ONWARD). */
   welcomeAboard: (name: string) => `You are aboard, ${name}.`,
   /** How to sign as someone else: the form comes back when you leave. */
@@ -244,11 +242,10 @@ export const CODE_SHEETS = {
     hx: [
       { text: claim("Form: it checks each field when you sign, puts each note under its field, and takes you to the first.", { source: { test: "registry/ouro/components/ouro/form/form.test.tsx::Form > validates with the browser's constraints and focuses the first invalid control" }, verify: [{ testExists: "registry/ouro/components/ouro/form/form.test.tsx::Form > validates with the browser's constraints and focuses the first invalid control" }, { testExists: "registry/ouro/components/ouro/form/form.test.tsx::Form > shows each error on the field with that name, linked and marked invalid" }] }), code: `<Form errors={formErrors(answer, answer?.errors)} onSubmit={sign}>` },
       { text: "TextField, Select and Checkbox: the labels, the marks on what you must fill in, and the notes.", code: `<TextField label="Your name" name="name" required />\n<Select label="Your trade" name="trade" options={trades} required />\n<Checkbox label="I will keep the Nautilus a secret." name="oath" required />` },
-      { text: "ItemGroup, Item, Avatar and Badge: the crew list.", code: `<ItemGroup aria-label="Crew list">\n  <Item media={<Avatar name={name} />} title={name} actions={<Badge>{trade}</Badge>} />\n</ItemGroup>` },
-      { text: "Toast: the note when you sign on.", code: ({ name }: ArticlesLive) => (name === null ? `toast(\`\${name} signed on\`, { tone: "success" })` : `toast(${JSON.stringify(ARTICLES.signed(name))}, { tone: "success" })`) },
+      { text: "ItemGroup, Item, Avatar and Badge: the crew list.", code: ({ name }: ArticlesLive) => (name === null ? `<ItemGroup aria-label="Crew list">\n  <Item media={<Avatar name={name} />} title={name} actions={<Badge>{trade}</Badge>} />\n</ItemGroup>` : `<ItemGroup aria-label="Crew list">\n  …\n  <Item media={<Avatar name=${JSON.stringify(name)} />} title=${JSON.stringify(name)} actions={<Badge>{trade}</Badge>} />\n</ItemGroup>`) },
     ],
     site: ["Who is aboard already.", "The list of names, and you on it.", "What Conseil says when the articles are not done."],
-    uses: ["Form", "TextField", "Select", "Checkbox", "ItemGroup", "Avatar", "Toast", "Link"],
+    uses: ["Form", "TextField", "Select", "Checkbox", "ItemGroup", "Avatar", "Link"],
     start: { name: null } as ArticlesLive,
   },
   builtWith: "Built with",
@@ -295,7 +292,6 @@ export function allChapterOneText(): string[] {
     ...Object.values(ARTICLES).flatMap((value) => (typeof value === "string" ? [value] : [])),
     ARTICLES.aboard(5),
     ARTICLES.taken("Ned Land"),
-    ARTICLES.signed("Ana"),
     ARTICLES.welcomeAboard("Ana"),
     ONWARD.label,
     SIGN.welcome("Ana", "Cook").text,
