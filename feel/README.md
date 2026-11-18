@@ -28,6 +28,12 @@ A count or a distance fails when any one run is over its limit. A time, whose na
 | `layoutReads` | Layout reads in the case; `layoutReadsPerFrame` is the count in its busiest frame. |
 | `rowsMounted` | Rows added to the page. |
 | `longestFrameMs` | The longest gap between frames. |
+| `refreshMs`, `lateFrames` | The display's refresh, the median gap between frames, and the gaps of 1.5 refreshes or more.[^late] Both need at least 30 gaps, else neither is reported.[^late] |
+| `longFrames`, `over16Share` | Gaps over 50 ms, and the share of gaps over 16.7 ms.[^late] |
+| `inputToMotionP95Ms`, `inputToMotionMaxMs` | From a wheel event's own time to the start of the first frame whose scroll moved its way, at the 95th percentile and at most; `inputToMotionP95Frames` and `inputToMotionMaxFrames` count the frames, from the first after the event.[^motion] |
+| `inputNeverMoved` | Wheel events the list never moved for.[^motion] |
+
+A wheel event's movement, for `deadInput` and the input-to-motion measures, is measured from where the list was in the last frame the probe sampled, as an engine that scrolls off the main thread may have moved it before it dispatches the event.[^motion] `lateFrames`, `longFrames`, `over16Share` and the input-to-motion measures follow a chat app's frame meter's definitions, under its names.
 
 The reader's row is the one in the middle of the list's view, followed from frame to frame. `jumps`, `shifts` and `blankFrames` follow the first app gate's definitions, under its names, so its gate reads the same numbers; `jumpsStrict` and `blankFramesInset` are its stricter options.
 
@@ -69,3 +75,5 @@ An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.j
 [^idle]: test:scripts/feel.test.mjs::Ouro Feel's probe asks for no frames while it watches nothing and nothing waits on a paint, so a page with it loaded idles as without it verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe asks for no frames while it watches nothing and nothing waits on a paint, so a page with it loaded idles as without it)
 [^cost]: test:scripts/feel.test.mjs::Ouro Feel's probe, watching a scroll, adds no layout a frame and under half a millisecond of script verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe, watching a scroll, adds no layout a frame and under half a millisecond of script)
 [^poll]: test:scripts/feel.test.mjs::Ouro Feel's probe waits before polling again when its bridge answers at once with no command verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe waits before polling again when its bridge answers at once with no command)
+[^late]: test:scripts/feel.test.mjs::Ouro Feel's probe counts late frames against the refresh it measures, as a chat app's frame meter does, and long ones over 50 ms verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe counts late frames against the refresh it measures, as a chat app's frame meter does, and long ones over 50 ms) verify:fileLine(feel/probe/probe.ts, /^const LATE_REFRESHES = 1\.5;$/) verify:fileLine(feel/probe/probe.ts, /^const REFRESH_GAPS = 30;$/) verify:fileLine(feel/probe/probe.ts, /^const LONG_FRAME_MS = 50;$/) verify:fileLine(feel/probe/probe.ts, /^const FRAME_60HZ_MS = 16\.7;$/)
+[^motion]: test:scripts/feel.test.mjs::Ouro Feel's probe times each wheel event to the first frame that moved the list its way, and counts those it never moved verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe times each wheel event to the first frame that moved the list its way, and counts those it never moved)

@@ -24,6 +24,18 @@ test("Ouro Feel judges a count or distance on every run, and a time on the media
   assert.equal(entry.pass, false);
 });
 
+test("Ouro Feel judges a measure the probe reports only sometimes on the runs that reported it, and gives no verdict when none did", () => {
+  const sometimes = { ...spec, limits: { lateFrames: 0, inputToMotionP95Ms: 100 } };
+  const some = judge(sometimes, "webkit", [run({ lateFrames: 1, inputToMotionP95Ms: 50 }), run({})]);
+  assert.deepEqual(some.measures.lateFrames.runs, [1]);
+  assert.equal(some.measures.lateFrames.pass, false);
+  assert.equal(some.measures.inputToMotionP95Ms.pass, true);
+  const none = judge(sometimes, "webkit", [run({ jumps: 0 }), run({ jumps: 0 })]);
+  assert.equal(none.measures.lateFrames.pass, undefined);
+  assert.equal(none.pass, true);
+  assert.match(markdown([none]), /\| `lateFrames` \| not measured \| 0 \| no verdict \|/);
+});
+
 test("Ouro Feel fails a case that never came to rest, and a limit on a measure the probe does not take", () => {
   assert.equal(judge(spec, "webkit", [run({ jumps: 0, longestFrameMs: 10 }, false)]).pass, false);
   assert.throws(() => judge({ ...spec, limits: { anchorJumps: 0 } }, "webkit", [run({ jumps: 0 })]), /anchorJumps, which the probe did not measure/);
@@ -63,7 +75,7 @@ test("Ouro Feel's data is the same for the same seed, and made up", () => {
 });
 
 test("Ouro Feel's cases each name a component and limit only measures the probe takes", () => {
-  const measured = new Set(["frames", "blankFrames", "blankFramesInset", "jumps", "jumpMaxPx", "jumpsStrict", "jumpStrictMaxPx", "shifts", "anchorShiftPx", "anchorMovePx", "deadInput", "wheelInputs", "forcedLayouts", "layoutReads", "layoutReadsPerFrame", "rowsMounted", "longestFrameMs"]);
+  const measured = new Set(["frames", "blankFrames", "blankFramesInset", "jumps", "jumpMaxPx", "jumpsStrict", "jumpStrictMaxPx", "shifts", "anchorShiftPx", "anchorMovePx", "deadInput", "wheelInputs", "forcedLayouts", "layoutReads", "layoutReadsPerFrame", "rowsMounted", "longestFrameMs", "refreshMs", "lateFrames", "longFrames", "over16Share", "inputToMotionP95Ms", "inputToMotionMaxMs", "inputToMotionP95Frames", "inputToMotionMaxFrames", "inputNeverMoved"]);
   for (const { name, component, limits } of cases) {
     assert.match(name, /^[a-z]+(-[a-z]+)*$/);
     assert.match(component, /^[a-z]+(-[a-z]+)*$/);
@@ -286,6 +298,70 @@ test("Ouro Feel's probe, watching a scroll, adds no layout a frame and under hal
     const added = median(watched.map(({ scriptMs }) => scriptMs)) - median(without.map(({ scriptMs }) => scriptMs));
     assert.ok(added / 120 < 0.5, `the probe added ${(added / 120).toFixed(3)} ms of script a frame`);
     assert.ok(Math.abs(median(watched.map(({ layouts }) => layouts)) - median(without.map(({ layouts }) => layouts))) <= 2, JSON.stringify({ without, watched }));
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe counts late frames against the refresh it measures, as a chat app's frame meter does, and long ones over 50 ms", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`<div id="list" style="height:200px;overflow:auto">${Array.from({ length: 20 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    await page.addScriptTag({ content: probe });
+    const [few, many] = await page.evaluate(async () => {
+      const { ouroFeel, performance } = globalThis;
+      const busy = (ms) => {
+        for (const end = performance.now() + ms; performance.now() < end; );
+      };
+      // Too few frames to tell the refresh: no late frames are judged.
+      ouroFeel.watch({ case: "few", scroller: "#list", rows: ".row" });
+      for (let frame = 0; frame < 5; frame++) await ouroFeel.painted();
+      const few = ouroFeel.stop(true).measures;
+      // Forty frames, two of which the page holds up for 250 ms: late at any refresh up to 166 ms.
+      ouroFeel.watch({ case: "many", scroller: "#list", rows: ".row" });
+      for (let frame = 0; frame < 40; frame++) {
+        if (frame === 20 || frame === 30) busy(250);
+        await ouroFeel.painted();
+      }
+      return [few, ouroFeel.stop(true).measures];
+    });
+    assert.equal(few.lateFrames, undefined);
+    assert.ok(few.longFrames >= 0);
+    assert.ok(many.refreshMs > 0, `refresh ${many.refreshMs} ms`);
+    assert.ok(many.lateFrames >= 2, `${many.lateFrames} late frames`);
+    assert.ok(many.longFrames >= 2, `${many.longFrames} long frames`);
+    assert.ok(many.over16Share > 0 && many.over16Share <= 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("Ouro Feel's probe times each wheel event to the first frame that moved the list its way, and counts those it never moved", async () => {
+  const probe = stripTypeScriptTypes(readFileSync(new globalThis.URL("../feel/probe/probe.ts", import.meta.url), "utf8"));
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 400, height: 600 } });
+    await page.setContent(`<div id="list" style="height:400px;overflow:auto">${Array.from({ length: 60 }, (_, i) => `<div class="row" style="height:48px">Row ${i}</div>`).join("")}</div>`);
+    await page.addScriptTag({ content: probe });
+    await page.mouse.move(200, 200);
+    // Watching starts just before the wheel turns, so the probe may not have sampled a frame yet.
+    await page.evaluate(() => globalThis.ouroFeel.watch({ case: "wheel", scroller: "#list", rows: ".row" }));
+    // Up at the top, which moves nothing; then down, which does.
+    await page.mouse.wheel(0, -200);
+    await page.mouse.wheel(0, 200);
+    const measures = await page.evaluate(async () => {
+      const { ouroFeel } = globalThis;
+      for (let frame = 0; frame < 10; frame++) await ouroFeel.painted();
+      return ouroFeel.stop(true).measures;
+    });
+    assert.equal(measures.inputNeverMoved, 1);
+    // The wheel that moved the list is no dead input, though the engine moved the list before it dispatched the event.
+    assert.equal(measures.deadInput, 0);
+    assert.ok(measures.inputToMotionMaxFrames >= 1, `${measures.inputToMotionMaxFrames} frames`);
+    assert.ok(measures.inputToMotionMaxMs >= 0 && measures.inputToMotionMaxMs < 1000, `${measures.inputToMotionMaxMs} ms`);
+    assert.equal(measures.inputToMotionP95Ms, measures.inputToMotionMaxMs);
   } finally {
     await browser.close();
   }
