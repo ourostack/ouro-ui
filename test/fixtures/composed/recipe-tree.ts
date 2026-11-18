@@ -33,3 +33,25 @@ export function recipeTree(options: ResolveOptions & { image?: string } = {}): C
     ]),
   ]);
 }
+
+/**
+ * The same card asking the person two things: how many servings to shop for, and who to share it with. Each field
+ * writes to the data model, and the buttons bound to it send what the person entered (core's 2026-11-17 fields record).
+ */
+export function recipeFormTree(options: ResolveOptions & { image?: string } = {}): { tree: ComposedNode; data: Obj } {
+  const { image = ORZO_URL, ...resolve } = options;
+  const tree = node("root", "Card", {}, [
+    node("photo", "Image", { url: image, description: "A shallow pan of golden orzo with peas and charred lemon halves", aspect: "landscape" }),
+    node("name", "Heading", { text: "Charred Lemon Orzo", level: 1 }),
+    node("about", "Text", { text: "Orzo toasted in brown butter, finished with charred lemon and peas. A weeknight pan dinner.", tone: "muted" }),
+    node("servings", "TextField", { label: "Servings", value: "/servings", type: "number", multiline: false, hint: "How many people you're cooking for." }),
+    node("share-with", "TextField", { label: "Share with", value: "/share/with", type: "text", multiline: false, hint: "An email address." }),
+    node("line", "Separator"),
+    node("buttons", "Stack", { direction: "vertical", gap: "small" }, [
+      button("shop", "add_recipe_to_shopping_list", { recipe: "rcp_lemon_orzo", servings: { "@path": "/servings" } }, "primary", resolve),
+      button("share", "share_recipe", { recipe: "rcp_lemon_orzo", with: { "@path": "/share/with" } }, "secondary", resolve),
+      button("order", "order_ingredients", {}, "secondary", resolve),
+    ]),
+  ]);
+  return { tree, data: { servings: 4, share: { with: "" } } };
+}
