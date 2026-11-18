@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
-import { StallReporter, holdText, slowTestText, stallReport } from "./stall-reporter.mts";
+import { StallReporter, browserPageSources, holdText, pageStateText, readPageStates, slowTestText, stallReport } from "./stall-reporter.mts";
 
 const options = { warnAfter: 120_000, failAfter: 300_000 };
 const now = 1_000_000_000;
@@ -242,4 +242,152 @@ test("StallReporter names a hold of a second or more as it ends, with the test i
     text,
     /\[ouro-ui\] Vitest: Node's event loop was held up for 1s, and a browser command answered in that time waited behind it\. In flight: ouro-chromium \(chromium\) a\.test\.tsx > A > held \(running 1s\)\./,
   );
+});
+
+const healthy = { fonts: "loaded", loading: [], visible: true, focused: true, frames: true };
+const pageLine = (state) => pageStateText({ kind: "read", label: "ouro-chromium (chromium)", path: "/dialog", ...state });
+
+test("pageStateText says a healthy page has its fonts loaded, is visible and focused, and its frames arrive", () => {
+  assert.equal(pageLine(healthy), "[ouro-ui] Vitest page ouro-chromium (chromium): fonts loaded, visible, focused, frames arrive, /dialog");
+});
+
+test("pageStateText names the families of the fonts still loading", () => {
+  assert.equal(
+    pageLine({ ...healthy, fonts: "loading", loading: ["Geist", "Geist Mono"] }),
+    "[ouro-ui] Vitest page ouro-chromium (chromium): fonts loading (Geist, Geist Mono), visible, focused, frames arrive, /dialog",
+  );
+});
+
+test("pageStateText says a hidden page is hidden and not focused", () => {
+  assert.equal(pageLine({ ...healthy, visible: false, focused: false }), "[ouro-ui] Vitest page ouro-chromium (chromium): fonts loaded, hidden, not focused, frames arrive, /dialog");
+});
+
+test("pageStateText says a page where no frame arrives in a second has no frame", () => {
+  assert.equal(pageLine({ ...healthy, frames: false }), "[ouro-ui] Vitest page ouro-chromium (chromium): fonts loaded, visible, focused, no frame in 1 s, /dialog");
+});
+
+test("pageStateText says a page that did not answer in 2 s, and gives its path", () => {
+  assert.equal(
+    pageStateText({ kind: "unanswered", label: "ouro-chromium (chromium)", path: "/dialog" }),
+    "[ouro-ui] Vitest page ouro-chromium (chromium): did not answer in 2 s, /dialog",
+  );
+});
+
+test("pageStateText says why a project has no page to read, or a page could not be read", () => {
+  assert.equal(
+    pageStateText({ kind: "note", label: "unit", note: "has no browser, so it has no page to read." }),
+    "[ouro-ui] Vitest page unit: has no browser, so it has no page to read.",
+  );
+});
+
+const fakePage = (path, reading) => ({ url: () => `http://localhost:63315${path}`, evaluate: async () => reading });
+
+test("readPageStates reads a page's own state, with the path of its URL", async () => {
+  assert.deepEqual(await readPageStates([{ label: "a", page: fakePage("/dialog?x=1", healthy) }]), [
+    { kind: "read", label: "a", path: "/dialog", ...healthy },
+  ]);
+});
+
+test("readPageStates says a page did not answer when it outlives its deadline", async () => {
+  const page = { url: () => "http://localhost:63315/slow", evaluate: () => new Promise(() => {}) };
+  assert.deepEqual(await readPageStates([{ label: "b", page }], 20), [{ kind: "unanswered", label: "b", path: "/slow" }]);
+});
+
+test("readPageStates says why a page could not be read when reading it fails", async () => {
+  const page = { url: () => "http://localhost:63315/", evaluate: () => Promise.reject(new Error("Target closed")) };
+  assert.deepEqual(await readPageStates([{ label: "c", page }]), [{ kind: "note", label: "c", note: "could not be read: Target closed" }]);
+});
+
+test("browserPageSources names a project with no browser, no pages or no page open, and reads each page of the rest", () => {
+  const pageA = fakePage("/a", healthy);
+  const pageB = fakePage("/b", healthy);
+  const vitest = {
+    projects: [
+      { name: "ouro-chromium (chromium)", browser: { provider: { pages: new Map([["s1", pageA]]) } } },
+      { name: "unit", browser: undefined },
+      { name: "ouro-webkit (webkit)", browser: { provider: {} } },
+      { name: "ouro-touch (chromium)", browser: { provider: { pages: new Map() } } },
+      { name: "two", browser: { provider: { pages: new Map([["s1", pageA], ["s2", pageB]]) } } },
+    ],
+  };
+  assert.deepEqual(
+    browserPageSources(vitest).map((source) => ("page" in source ? [source.label, source.page] : [source.label, source.note])),
+    [
+      ["ouro-chromium (chromium)", pageA],
+      ["unit", "has no browser, so it has no page to read."],
+      ["ouro-webkit (webkit)", "its browser provider keeps no pages, so there is no page to read."],
+      ["ouro-touch (chromium)", "has no page open yet, so there is no page to read."],
+      ["two s1", pageA],
+      ["two s2", pageB],
+    ],
+  );
+  assert.deepEqual(browserPageSources(undefined), []);
+});
+
+/** Polls until `condition` holds, failing after five seconds. */
+async function until(condition) {
+  const end = Date.now() + 5_000;
+  while (!condition()) {
+    if (Date.now() > end) assert.fail("the reporter did not exit");
+    await sleep(5);
+  }
+}
+
+/** Runs a reporter through a stall with injected pages and exit, until it exits; returns what it wrote, its lookups and its exit codes. */
+async function stallRun({ pages, warnAfter = 1, failAfter = 1e9, diagnosticMs = 1_000 }) {
+  const writes = [];
+  const exits = [];
+  let lookups = 0;
+  const write = process.stderr.write;
+  process.stderr.write = (chunk) => {
+    writes.push(String(chunk));
+    return true;
+  };
+  const reporter = new StallReporter({
+    warnAfter,
+    failAfter,
+    intervalMs: 5,
+    pages: (vitest) => {
+      lookups++;
+      return pages(vitest);
+    },
+    exit: (code) => exits.push(code),
+    diagnosticMs,
+  });
+  try {
+    reporter.onInit({ config: { root: "/repo" } });
+    reporter.onTestRunStart([specOf("a.test.tsx")]);
+    await until(() => exits.length > 0);
+  } finally {
+    reporter.onTestRunEnd();
+    process.stderr.write = write;
+  }
+  return { text: writes.join(""), lookups, exits };
+}
+
+test("StallReporter reads each page once at warn and once at fail, then exits 1 at fail", async () => {
+  const { text, lookups, exits } = await stallRun({
+    failAfter: 60,
+    pages: () => [{ label: "ouro-chromium (chromium)", page: fakePage("/dialog", healthy) }],
+  });
+  assert.equal(lookups, 2);
+  assert.deepEqual(exits, [1]);
+  assert.equal(text.split("\n").filter((line) => line === "[ouro-ui] Vitest page ouro-chromium (chromium): fonts loaded, visible, focused, frames arrive, /dialog").length, 2);
+});
+
+test("StallReporter still exits 1 at fail when the page lookup hangs, and says the lookup did not finish", async () => {
+  const { text, exits } = await stallRun({ failAfter: 30, diagnosticMs: 20, pages: () => new Promise(() => {}) });
+  assert.deepEqual(exits, [1]);
+  assert.match(text, /\[ouro-ui\] Vitest page state: the page lookup or a page read did not finish in 20 ms\./);
+});
+
+test("StallReporter still exits 1 at fail when the page lookup throws, and says why", async () => {
+  const { text, exits } = await stallRun({
+    failAfter: 30,
+    pages: () => {
+      throw new Error("no vitest");
+    },
+  });
+  assert.deepEqual(exits, [1]);
+  assert.match(text, /\[ouro-ui\] Vitest page lookup failed: no vitest\./);
 });
