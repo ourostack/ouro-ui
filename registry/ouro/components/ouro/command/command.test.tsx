@@ -1052,6 +1052,19 @@ describe("Command presentation", () => {
     await expect.poll(() => document.activeElement).toBe(trigger());
   });
 
+  it("keeps the size it opened at through a resize across 640px, though typing has filtered the results since", async () => {
+    await page.viewport(390, 844);
+    const element = await openPalette();
+    const sheetTop = element.getBoundingClientRect().top;
+    await userEvent.type(input(), "import");
+    await expect.poll(options).toEqual(["Import from a link"]);
+    await page.viewport(1280, 800);
+    await expect.poll(() => popup()?.getAttribute("data-ouro-presentation")).toBe("dialog");
+    await page.viewport(390, 844);
+    await expect.poll(() => popup()?.getAttribute("data-ouro-presentation")).toBe("sheet");
+    expect(Math.abs((await settled()).getBoundingClientRect().top - sheetTop)).toBeLessThan(1);
+  });
+
   it("opens a palette whose commands overflow the phone's screen at full height", async () => {
     await page.viewport(390, 844);
     const run = vi.fn();

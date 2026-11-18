@@ -551,9 +551,11 @@ export function Command(props: CommandProps): JSX.Element {
   // then its one snap point holds that size, so filtering never moves the search input. The size is kept on close, so
   // the sheet does not change height while it slides away. The snap point is held by the caller (a controlled Drawer),
   // because Base UI warns when an uncontrolled one's snap points change after it opens.
+  // Stryker disable next-line BooleanLiteral,ObjectLiteral: the first render resets this to the open state before anything commits.
   const [phone, setPhone] = useState<{ open: boolean; snapPoints?: SheetSnapPoint[] | undefined }>({ open: false });
   if (phone.open !== isOpenNow) setPhone({ open: isOpenNow, snapPoints: isOpenNow ? undefined : phone.snapPoints });
-  const measuring = phone.open && phone.snapPoints === undefined && onQueryChange === undefined;
+  // A server's search measures too, but its sheet is full height whatever it measures (`phoneSnapPoints`).
+  const measuring = phone.open && phone.snapPoints === undefined;
   const sizePhone = useCallback(
     (palette: HTMLDivElement | null) => {
       if (palette && measuring) setPhone({ open: true, snapPoints: [fitSnapPoint(palette)] });
@@ -900,9 +902,8 @@ const fullSheet: SheetSnapPoint[] = [1];
  * or full height when its body has to scroll to show its commands.
  */
 function fitSnapPoint(palette: HTMLElement): SheetSnapPoint {
-  const body = palette.closest<HTMLElement>("[data-ouro-sheet-content]")!;
-  if (body.scrollHeight > body.clientHeight) return 1;
-  const sheet = body.closest<HTMLElement>('[data-ouro="sheet"]')!;
+  // A body that has to scroll fills a sheet already capped at full height, so the same division gives full height.
+  const sheet = palette.closest<HTMLElement>('[data-ouro="sheet"]')!;
   // Base UI resolves a snap point against the viewport the sheet sits in, which is the sheet's parent.
   return sheet.offsetHeight / sheet.parentElement!.offsetHeight;
 }
