@@ -54,10 +54,42 @@ export const LATENCY = {
   /** How many times slower than the runner the CPU is. */
   throttle: 4,
   /**
-   * The calibration probe's median on a quiet CI runner, in ms: the most it read on runners with nothing beside them
-   * (48 to 64 ms, ourostack/ouro-ui#798), so a quiet runner keeps the bounds as they are.
+   * The calibration probe's median on a quiet CI runner, in ms, measured from main's own runs: the median of the probe's
+   * medians over the latency shards of the last 20 completed push runs of ci.yml on main, which the probe's logs name
+   * beside each control. Each run's value is the median of its own probe medians (the probes of its three shards), and this
+   * is the median of those values, rounded to a whole ms. Recompute it with `node scripts/latency-quiet.mjs --runs 20`
+   * (it reads the runs' logs through the GitHub API and needs GH_TOKEN; it writes nothing). Derived on 2026-11-18 (UTC) from runs
+   * 44241837744 (#8083) to 44260827968 (#8156); two of the 20 ran no latency shards, so 18 runs set it:
+   *
+   * ```text
+   * latency-quiet: ourostack/ouro-ui, the last 20 completed push runs of ci.yml on main (created 2026-11-18 to 2026-11-18)
+   *   run 44260827968 (#8156, 6bba3a89): median 48 ms over 50 probes in 3 latency shard(s)
+   *   run 44257987022 (#8151, c15d2274): median 52 ms over 50 probes in 3 latency shard(s)
+   *   run 44257200298 (#8150, ac63b302): median 48 ms over 50 probes in 3 latency shard(s)
+   *   run 44256311973 (#8145, 37d6c55f): median 60 ms over 50 probes in 3 latency shard(s)
+   *   run 44255988195 (#8144, bb9f2e89): median 56 ms over 50 probes in 3 latency shard(s)
+   *   run 44255061326 (#8141, 17d5d294): median 48 ms over 50 probes in 3 latency shard(s)
+   *   run 44253970660 (#8136, 83d7ba6a): median 60 ms over 50 probes in 3 latency shard(s)
+   *   run 44252753013 (#8127, 40a54ca6): median 56 ms over 50 probes in 3 latency shard(s)
+   *   run 44252511046 (#8124, 0baf94f9): no latency probe in 0 latency shard(s)
+   *   run 44250906634 (#8116, 94005473): median 40 ms over 50 probes in 3 latency shard(s)
+   *   run 44249972375 (#8113, 0d07c5c8): median 52 ms over 50 probes in 3 latency shard(s)
+   *   run 44249006839 (#8108, 17b513a9): median 56 ms over 50 probes in 3 latency shard(s)
+   *   run 44248270281 (#8106, 2995ef02): median 48 ms over 50 probes in 3 latency shard(s)
+   *   run 44246645376 (#8101, 8f1d7ebc): median 68 ms over 50 probes in 3 latency shard(s)
+   *   run 44245991720 (#8097, 7b780919): median 48 ms over 50 probes in 3 latency shard(s)
+   *   run 44244785743 (#8093, e7785d0b): median 48 ms over 50 probes in 3 latency shard(s)
+   *   run 44244684049 (#8092, 17773151): median 68 ms over 50 probes in 3 latency shard(s)
+   *   run 44243584246 (#8089, 9b851026): median 64 ms over 50 probes in 3 latency shard(s)
+   *   run 44242303928 (#8085, d9761771): median 32 ms over 50 probes in 3 latency shard(s)
+   *   run 44241837744 (#8083, b196df39): no latency probe in 0 latency shard(s)
+   *   quiet median: 52 ms, the median of 18 runs' medians (probeQuiet)
+   * ```
+   *
+   * A runner whose probe reads at or under this keeps the bounds as they are; a slower one is stretched by its factor
+   * (runnerFactor), up to LATENCY.maxFactor. Of the 18 runs, 8 read over 52 ms, and their factors run from 1.08 to 1.31.
    */
-  probeQuiet: 64,
+  probeQuiet: 52,
   /** The most a slow runner's factor stretches the bounds: a runner slower than this is still judged at this. */
   maxFactor: 1.5,
 } as const;
@@ -425,6 +457,15 @@ export function expectWithinBudget(label: string, samples: readonly number[], ba
 }
 
 /**
+ * Whether a control's p95 on a quiet runner (factor 1) is within 10% of its bound, at or over 90% of it while still within
+ * it: a press with so little room that a slightly slower page would fail it, which is listed in the job summary so the
+ * thin margins stay visible. A p95 over the bound is a failure, not a margin, and a slower runner's factor is never one.
+ */
+export function thinMargin(p95: number, factor: number): boolean {
+  return factor === 1 && p95 <= p95Bound(1) && p95 >= 0.9 * p95Bound(1);
+}
+
+/**
  * Whether the probe read the runner past the slowest it is calibrated for (LATENCY.maxFactor): its median over
  * LATENCY.probeQuiet, before the factor is capped. Decided from the probe alone, never from the control's result.
  */
@@ -435,6 +476,8 @@ export function pastCap(probe: readonly number[]): boolean {
 /** Re-measures in this worker, for the count in the job summary. */
 let remeasures = 0;
 let measured = 0;
+/** The controls whose quiet-runner p95 was within 10% of its bound (thinMargin), as `label p95/bound`, for the job summary. */
+const thinMargins: string[] = [];
 /** Appends a line to the CI job's summary, where there is one. */
 function summary(line: string): void {
   const file = process.env["GITHUB_STEP_SUMMARY"];
@@ -442,6 +485,7 @@ function summary(line: string): void {
 }
 process.once("exit", () => {
   if (measured > 0) summary(`Latency: ${remeasures} of ${measured} controls re-measured on a runner the probe read past ${LATENCY.maxFactor}× slower.`);
+  if (measured > 0) summary(thinMargins.length > 0 ? `Latency: thin margins on a quiet runner (p95 within 10% of its bound): ${thinMargins.join(", ")}.` : "Latency: no thin margins on a quiet runner.");
 });
 
 /**
@@ -468,5 +512,11 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
   }
   const { p95 } = summarise(result.samples, baseline, result.factor);
   summary(`- ${label}: p95 ${p95} ms, bound ${p95Bound(result.factor)} ms (${LATENCY.p95 * result.factor} raw, rounded to Event Timing's 8 ms step)`);
+  if (thinMargin(p95, result.factor)) {
+    const line = `${label}: p95 ${p95} ms within 10% of its ${p95Bound(1)} ms bound on a quiet runner`;
+    test.info().annotations.push({ type: "latency-thin", description: line });
+    console.log(`latency-thin ${line}`);
+    thinMargins.push(`${label} ${p95}/${p95Bound(1)}`);
+  }
   expectWithinBudget(label, result.samples, baseline, result.factor);
 }
