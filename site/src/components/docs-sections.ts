@@ -4,7 +4,7 @@ import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { docsItems } from "../docs/items";
 import pageIndex from "../docs/page-index.json";
 import { href } from "../paths";
-import { otherNameHint, otherNamesFor } from "./other-names";
+import { otherNameHint, otherNamesFor, otherNamesStarting } from "./other-names";
 
 // The docs' pages in sections, without the Sidebar: the sidebar island and the header's menu (voyage/site-menu.tsx) both read them.
 
@@ -28,6 +28,8 @@ const searchable = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, ""
 export interface DocsLink {
   path: string;
   label: string;
+  /** A found component's rank: 0, its name holds the filter; 1, one slip from it; 2, another kit's name for it. */
+  rank?: 0 | 1 | 2;
 }
 
 /** A filter's rank for a page's names: 0, the name holds it; 1, one slip from the name; undefined, no match. */
@@ -53,7 +55,7 @@ export function componentGroups(filter = "", exports = false): Array<{ label: st
       .map((page) => ({ page, at: nameRank(filter, ...name(page)) ?? (other(page) ? 2 : undefined) }))
       .filter((entry) => entry.at !== undefined)
       .sort((a, b) => a.at! - b.at!)
-      .map(({ page }) => ({ path: path(page), label: name(page)[0] }));
+      .map(({ page, at }) => ({ path: path(page), label: name(page)[0], rank: at! }));
   return siteGroups
     .map((group) => ({
       label: group,
@@ -70,13 +72,23 @@ export function componentGroups(filter = "", exports = false): Array<{ label: st
     .filter((group) => group.links.length > 0);
 }
 
-/** The line under the filter when it finds components only by another kit's name ("Looking for a modal? Here it's Dialog."); undefined otherwise. */
+/** Every component and export a filter finds, in one list: the names that hold it first, whatever their group, then slips, then other kits' names. */
+export function rankedComponents(filter: string): DocsLink[] {
+  return componentGroups(filter, true)
+    .flatMap((group) => group.links)
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+}
+
+/**
+ * The line under the filter when it finds components only by another kit's name ("Looking for a modal? Here it's
+ * Dialog."); undefined when any page's own name matches, so "select" never sends you past Select to another name.
+ */
 export function filterHint(filter: string): string | undefined {
   const wanted = searchable(filter);
+  if (wanted === "" || [...docsItems, ...exportPages].some((page) => nameRank(filter, page.title, page.name) !== undefined)) return undefined;
   return otherNameHint(
     docsItems
-      .filter((item) => nameRank(filter, item.title, item.name) === undefined)
-      .map((item) => ({ title: item.title, names: otherNamesFor(item.name, wanted) }))
+      .map((item) => ({ title: item.title, names: otherNamesStarting(item.name, wanted) }))
       .filter((entry) => entry.names.length > 0),
   );
 }

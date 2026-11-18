@@ -42,7 +42,7 @@ export default function SitePalette({ open, onOpenChange }: { open: boolean; onO
           label: link.label,
           description: group.label,
           onSelect: go(href(link.path)),
-          // "modal" finds Dialog, as in the docs' filter.
+          // "modal" finds Dialog. The palette matches inside words too, as it does for every label.
           keywords: (otherNames[link.path.replace(/^\/docs\/|\/$/g, "")] ?? []).map(bare),
         })),
       ),

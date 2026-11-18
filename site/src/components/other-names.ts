@@ -78,13 +78,18 @@ export function otherNamesFor(name: string, wanted: string): string[] {
   return (otherNames[name] ?? []).filter((phrase) => fromEachWord(phrase).some((part) => part.startsWith(wanted)));
 }
 
+/** The other names of a component that a squeezed filter starts: "drop" starts "a dropdown menu", "menu" doesn't. */
+export function otherNamesStarting(name: string, wanted: string): string[] {
+  return otherNamesFor(name, wanted).filter((phrase) => fromEachWord(phrase)[0]!.startsWith(wanted));
+}
+
 /** "Menu", "Menu or Select", "Menu, Select or Combobox". */
 const either = (titles: string[]): string => (titles.length < 2 ? (titles[0] ?? "") : `${titles.slice(0, -1).join(", ")} or ${titles.at(-1)}`);
 
 /**
  * The line under the filter when it finds a component by another kit's name: "Looking for a modal? Here it's Dialog."
- * `found` is each component the filter found only by another name, with the names it matched; the phrase the filter
- * spells most closely wins (the shortest), and every component found by that phrase is named.
+ * `found` is each component with the other names the filter starts; the shortest phrase, the one the filter spells most
+ * closely, wins, and every component with that phrase is named.
  */
 export function otherNameHint(found: ReadonlyArray<{ title: string; names: readonly string[] }>): string | undefined {
   const phrase = found
