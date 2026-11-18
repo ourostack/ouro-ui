@@ -141,7 +141,11 @@ interface ChartState {
   formatValue: (value: number, series: string) => string;
   /** The element a `ChartLegend` portals its list into, below the plot; `null` until it mounts. */
   legendTarget: HTMLElement | null;
-  /** One key per Chart for its parts' development messages, so Chart's early check and a part's own say each once. */
+  /**
+   * The key Chart and its parts give their development messages, one per Chart.
+   *
+   * @claim "Chart and its parts give their development messages" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart development messages > warns when %s gets shadcn's content prop, with the page and before the plot draws, once)
+   */
   warnKey: object;
 }
 
