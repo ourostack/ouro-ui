@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BATTLE, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "../src/voyage/chapters/chapter-three-copy";
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
@@ -22,6 +22,24 @@ const status = (page: Page) => encounter(page).locator("[data-chapter-status]");
 const alarm = (page: Page) => encounter(page).getByRole("button", { name: ENCOUNTER.alarm });
 const playButton = (page: Page) => saloon(page).getByRole("button", { name: SALOON.play });
 const dialog = (page: Page) => page.getByRole("dialog", { name: ENCOUNTER.dialog });
+
+/**
+ * The HX name X-ray's tag shows on the element `control` finds: the tag of the outline drawn over its
+ * box, or null while X-ray draws none there or hides that tag (crowded out, or covered).
+ */
+async function tagOn(page: Page, control: Locator): Promise<string | null> {
+  const box = await control.boundingBox();
+  if (!box) return null;
+  return page.evaluate((want) => {
+    for (const outline of document.querySelectorAll<HTMLElement>("[data-ouro-inspector-outline]")) {
+      const drawn = outline.getBoundingClientRect();
+      const over = [drawn.x - want.x, drawn.y - want.y, drawn.width - want.width, drawn.height - want.height].every((gap) => Math.abs(gap) < 1);
+      const tag = outline.querySelector<HTMLElement>("[data-ouro-part='tag']");
+      if (over && tag && getComputedStyle(tag).visibility === "visible") return tag.textContent;
+    }
+    return null;
+  }, box);
+}
 
 /** Gives an order from the Orders menu. */
 async function order(page: Page, name: string): Promise<void> {
@@ -208,6 +226,30 @@ test.describe("each control in Chapter III", () => {
     expect((await toasts.titles()).filter((title) => title !== TOASTS.win)).toEqual([]);
   });
 
+  test("control: reveal turns X-ray on where the reader stands, so the organ's Play wears its HX name, and a second press turns it off", async ({ page }) => {
+    await open(page);
+    await win(page);
+    await playButton(page).click();
+    const reveal = saloon(page).locator("[data-chapter-control='reveal']").getByRole("button", { name: SALOON.reveal });
+    const xray = page.getByRole("switch", { name: "X-ray" });
+    await expect(reveal).toHaveAttribute("aria-pressed", "false");
+    await expect(xray).not.toBeChecked();
+    await reveal.scrollIntoViewIfNeeded();
+    const top = await page.evaluate(() => scrollY);
+    await reveal.click();
+    await expect(reveal).toHaveAttribute("aria-pressed", "true");
+    await expect(xray).toBeChecked();
+    await expect.poll(() => tagOn(page, saloon(page).getByRole("button", { name: SALOON.playAgain }))).toBe("button");
+    // The reader stays where they are, at the toggle, and the tags appear around it.
+    await expect(reveal).toBeFocused();
+    expect(await page.evaluate(() => scrollY)).toBe(top);
+    await reveal.click();
+    await expect(reveal).toHaveAttribute("aria-pressed", "false");
+    await expect(xray).not.toBeChecked();
+    await expect(page.locator("[data-ouro-inspector-outline]")).toHaveCount(0);
+    await expect(reveal).toBeFocused();
+  });
+
   test("control: handoff copies the line for a coding agent, and says so", async ({ page, browserName }) => {
     test.skip(browserName !== "chromium", "Only Chromium lets a test grant the clipboard");
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -242,6 +284,26 @@ test.describe("each control in Chapter III", () => {
     await expect(crew(page)).toContainText(FIGHT.again.text);
     await expect(alarm(page)).toBeFocused();
   });
+});
+
+test("Sail again leaves X-ray as the reader set it, on or off", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const xray = page.getByRole("switch", { name: "X-ray" });
+  for (const on of [true, false]) {
+    await win(page);
+    await playButton(page).click();
+    const reveal = saloon(page).getByRole("button", { name: SALOON.reveal });
+    if (on) await reveal.click();
+    await expect(xray).toBeChecked({ checked: on });
+    await saloon(page).getByRole("button", { name: SALOON.again }).click();
+    await expect(alarm(page)).toBeFocused();
+    await expect(xray).toBeChecked({ checked: on });
+    if (on) await expect.poll(() => tagOn(page, alarm(page))).toBe("button");
+    else await expect(page.locator("[data-ouro-inspector-outline]")).toHaveCount(0);
+    if (on) await xray.click();
+  }
 });
 
 test("every operable element in Chapter III is one of its listed controls, in page order", async ({ page }) => {

@@ -21,6 +21,7 @@ async function open(page: Page): Promise<void> {
 const encounter = (page: Page) => page.locator("[data-composition='encounter']");
 const saloon = (page: Page) => page.locator("[data-composition='saloon']");
 const alarm = (page: Page) => encounter(page).getByRole("button", { name: ENCOUNTER.alarm });
+const reveal = (page: Page) => saloon(page).getByRole("button", { name: SALOON.reveal });
 
 async function giveOrder(page: Page, name: string): Promise<void> {
   await encounter(page).getByRole("button", { name: ENCOUNTER.orders, exact: true }).click();
@@ -78,6 +79,15 @@ const steps: Record<(typeof CHAPTER_THREE_CONTROLS)[number], { press: Step; befo
     press: (page) => saloon(page).getByRole("button", { name: SALOON.play }).click(),
     after: (page) => saloon(page).getByRole("button", { name: SALOON.again }).click(),
   },
+  // Show me's press turns X-ray on; turning it off again, and X-ray's outlines going, is set-up.
+  reveal: {
+    before: finish,
+    press: (page) => reveal(page).click(),
+    after: async (page) => {
+      await reveal(page).click();
+      await expect(page.locator("[data-ouro='inspector']")).toHaveCount(0);
+    },
+  },
   // Copy raises a toast: it is closed before the next press, so none arrives or leaves in a measured frame (#1484).
   handoff: {
     before: async (page) => (await page.context().grantPermissions(["clipboard-read", "clipboard-write"]), finish(page)),
@@ -101,6 +111,7 @@ const BASELINE_MEDIAN: Record<(typeof CHAPTER_THREE_CONTROLS)[number], number> =
   surface: 40,
   "saloon-code": 48,
   organ: 64,
+  reveal: 64,
   handoff: 24,
   components: 24,
   again: 56,
