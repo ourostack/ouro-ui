@@ -487,7 +487,8 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"]:not(.site-dot) {
 }
 /*
  * A dot is round, and so is its ring: the chosen one, Live included, wears a primary ring a hair outside its swatch
- * itself, from aria-pressed, which the head script sets before the page paints. Its press, hover and focus follow the circle.
+ * itself, drawn from html[data-theme] and html[data-live], which the head script sets before the page paints (the dots'
+ * aria-pressed waits for DOMContentLoaded). Its press, hover and focus follow the circle.
  */
 .site-dot {
   width: auto;
@@ -495,12 +496,24 @@ html[data-theme="cookbook"] [data-site-preset="cookbook"]:not(.site-dot) {
   border-radius: 9999px;
   corner-shape: round;
 }
-.site-dot[aria-pressed="true"] [data-theme] {
+html[data-live] .site-dot[data-site-preset="live"] [data-theme],
+html[data-theme="pearl"]:not([data-live]) .site-dot[data-site-preset="pearl"] [data-theme],
+html[data-theme="abyss"] .site-dot[data-site-preset="abyss"] [data-theme],
+html[data-theme="brass"] .site-dot[data-site-preset="brass"] [data-theme],
+html[data-theme="chart"] .site-dot[data-site-preset="chart"] [data-theme],
+html[data-theme="coral"] .site-dot[data-site-preset="coral"] [data-theme],
+html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 @media (forced-colors: active) {
-  .site-dot[aria-pressed="true"] [data-theme] {
+  html[data-live] .site-dot[data-site-preset="live"] [data-theme],
+  html[data-theme="pearl"]:not([data-live]) .site-dot[data-site-preset="pearl"] [data-theme],
+  html[data-theme="abyss"] .site-dot[data-site-preset="abyss"] [data-theme],
+  html[data-theme="brass"] .site-dot[data-site-preset="brass"] [data-theme],
+  html[data-theme="chart"] .site-dot[data-site-preset="chart"] [data-theme],
+  html[data-theme="coral"] .site-dot[data-site-preset="coral"] [data-theme],
+  html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] {
     outline: 3px solid Highlight;
   }
   html[data-theme="pearl"]:not([data-live]) [data-site-preset="pearl"],

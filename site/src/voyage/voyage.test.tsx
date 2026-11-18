@@ -213,6 +213,12 @@ describe("the header and the theme section", () => {
       await expect.poll(() => dots().filter((dot) => swatch(dot).outlineStyle === "solid").map((dot) => dot.getAttribute("aria-label"))).toEqual([name]);
       expect(dots().map((dot) => getComputedStyle(dot).boxShadow)).toEqual(dots().map(() => "none"));
     }
+    // Before hydration the server's HTML marks Pearl pressed whatever the reader stored, so the ring follows the page's own
+    // theme, which the head script sets before paint, never aria-pressed.
+    root.setAttribute("data-theme", "brass");
+    root.removeAttribute("data-live");
+    for (const dot of dots()) dot.setAttribute("aria-pressed", dot.getAttribute("aria-label") === "Pearl" ? "true" : "false");
+    expect(dots().filter((dot) => swatch(dot).outlineStyle === "solid").map((dot) => dot.getAttribute("aria-label"))).toEqual(["Brass"]);
   });
 
   it("names the mixer's paint in the sample window while it is on, and the preset's again after", async () => {
