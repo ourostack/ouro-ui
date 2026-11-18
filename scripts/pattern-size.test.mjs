@@ -23,7 +23,7 @@ test("a pattern's closure is the pattern and every item it depends on, once each
   assert.deepEqual(closure(registry, "settings-page").filter((item) => ["settings-page", "color-scheme-toggle", "menu", "select"].includes(item)), ["color-scheme-toggle", "menu", "select", "settings-page"]);
 });
 
-test("a built module belongs to its registry item, its npm package or the app's entry, and the bytes add up by owner, largest first", () => {
+test("a built module belongs to the app, its registry item or its npm package, and the bytes add up by owner, largest first, leaving out the app's own", () => {
   const files = owners(fixture);
   const root = "/repo";
   assert.equal(ownerOf("/repo/registry/ouro/components/ouro/card/card.tsx", files, root), "card");
@@ -32,11 +32,14 @@ test("a built module belongs to its registry item, its npm package or the app's 
   assert.equal(ownerOf("/repo/node_modules/.pnpm/react-dom@19.3.0/node_modules/react-dom/cjs/react-dom.production.js", files, root), "react-dom");
   assert.equal(ownerOf("\0/repo/node_modules/react/jsx-runtime.js?commonjs-proxy", files, root), "react");
   assert.equal(ownerOf("/tmp/app/main.tsx", files, root), "app");
+  assert.equal(ownerOf("/repo/node_modules/.cache/pattern-size/page/main.tsx", files, root, "/repo/node_modules/.cache/pattern-size/page"), "app");
+  assert.equal(ownerOf("/repo/node_modules/.cache/pattern-size/page-two/main.tsx", files, root, "/repo/node_modules/.cache/pattern-size/page"), ".cache");
   const chunks = [
     { modules: { "/repo/registry/ouro/components/ouro/card/card.tsx": { renderedLength: 300 }, "/repo/node_modules/clsx/dist/clsx.mjs": { renderedLength: 40 } } },
     { modules: { "/repo/registry/ouro/components/ouro/button/button.tsx": { renderedLength: 300 }, "/repo/registry/ouro/lib/ouro/cn.ts": { renderedLength: 0 }, "/repo/node_modules/clsx/dist/lite.mjs": { renderedLength: 10 } } },
+    { modules: { "/tmp/app/main.tsx": { renderedLength: 400 }, "\0vite/preload-helper.js": { renderedLength: 900 } } },
   ];
-  assert.deepEqual(Object.entries(breakdown(chunks, files, root)), [["button", 300], ["card", 300], ["clsx", 50]]);
+  assert.deepEqual(Object.entries(breakdown(chunks, files, root, "/tmp/app")), [["button", 300], ["card", 300], ["clsx", 50]]);
 });
 
 test("a pattern over its ceiling fails naming what grew since the ceiling was set, one within it passes, and one with no ceiling fails with the fix", () => {

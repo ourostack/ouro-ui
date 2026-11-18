@@ -60,9 +60,11 @@ export function owners(registry) {
   return new Map(registry.items.flatMap((item) => (item.files ?? []).map((file) => [file.path, item.name])));
 }
 
-/** Who a built module belongs to: its registry item, its npm package, or the app's own entry. */
-export function ownerOf(id, files, root = repo) {
+/** Who a built module belongs to: the app's own (its folder, `app`), its registry item, or its npm package. */
+export function ownerOf(id, files, root = repo, app = null) {
   const path = id.replace(/^\0/, "").split("?")[0];
+  // The app's folder first: --record builds it inside node_modules/.cache.
+  if (app && path.startsWith(`${app}/`)) return "app";
   const inModules = path.lastIndexOf("/node_modules/");
   if (inModules >= 0) {
     const [scope, name] = path.slice(inModules + "/node_modules/".length).split("/");
@@ -71,12 +73,16 @@ export function ownerOf(id, files, root = repo) {
   return files.get(relative(root, path)) ?? "app";
 }
 
-/** The rendered bytes of a build's JavaScript by owner, largest first. */
-export function breakdown(chunks, files, root = repo) {
+/**
+ * The rendered bytes of a build's JavaScript by owner, largest first, leaving out the app's own entry and Vite's helpers:
+ * no pattern grows them, and their size moves with the folder the app is built in.
+ */
+export function breakdown(chunks, files, root = repo, app = null) {
   const bytes = {};
   for (const chunk of chunks) {
     for (const [id, module] of Object.entries(chunk.modules)) {
-      const owner = ownerOf(id, files, root);
+      const owner = ownerOf(id, files, root, app);
+      if (owner === "app") continue;
       bytes[owner] = (bytes[owner] ?? 0) + module.renderedLength;
     }
   }
@@ -144,7 +150,7 @@ export async function buildApp({ dir: where, entry, sources, files }) {
   return {
     js: chunks.reduce((sum, chunk) => sum + gzipSync(chunk.code).byteLength, 0),
     css: css.reduce((sum, sheet) => sum + gzipSync(sheet.source).byteLength, 0),
-    modules: breakdown(chunks, files),
+    modules: breakdown(chunks, files, repo, dir),
   };
 }
 
