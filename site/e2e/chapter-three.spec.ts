@@ -129,7 +129,7 @@ test.describe("each control in Chapter III", () => {
     await dialog(page).getByRole("button", { name: ENCOUNTER.hope }).click();
     await expect(dialog(page)).toBeHidden();
     await expect(scene(page)).toHaveAttribute("data-surfaced", "");
-    await expect(scene(page).locator(".ph-sky")).toHaveCSS("opacity", "1");
+    await expect(scene(page).locator(".ph-surface")).toHaveCSS("opacity", "1");
     await expect(crew(page)).toContainText(FIGHT.surface.text);
     await alarm(page).click();
     await dialog(page).getByRole("button", { name: ORDERS.feathers }).click();
@@ -185,7 +185,7 @@ test.describe("each control in Chapter III", () => {
     await expect(status(page)).toContainText(ENCOUNTER.feathersReady);
   });
 
-  test("control: organ waits for the fight, then plays: the notes rise, the log gets its line, and the way on is offered, with focus kept on Play", async ({ page }) => {
+  test("control: organ waits for the fight, then plays: the pipes glow, the log gets its line, and the way on is offered, with focus kept on Play", async ({ page }) => {
     await open(page);
     await expect(playButton(page)).toBeDisabled();
     await expect(saloon(page).locator("[data-chapter-organ-hint]")).toHaveText(SALOON.playHint);
@@ -197,7 +197,8 @@ test.describe("each control in Chapter III", () => {
     await playButton(page).click();
     await expect(saloon(page).locator("[data-chapter-log] li").last()).toHaveText(new RegExp(SALOON.logPlayed));
     await expect(scene(page)).toHaveAttribute("data-squid", "listening");
-    await expect(saloon(page).locator(".site-organ .or-note").first()).toHaveCSS("opacity", "1");
+    await expect(saloon(page).locator(".site-organ")).toHaveAttribute("data-played", "");
+    await expect.poll(() => saloon(page).locator(".site-organ .or-playing").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
     await expect(page.getByRole("list", { name: BATTLE.label })).toContainText(BATTLE.organDone);
     await expect(saloon(page).locator("[data-chapter-next]")).toBeVisible();
     // Play keeps focus and the page stays put: the way on shows below without taking either.
@@ -269,7 +270,7 @@ test("Chapter III is in the server HTML, and its code loads only as it nears the
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: CHAPTER_THREE.title })).toBeAttached();
-  await expect(page.locator(".site-porthole .sq-eye")).toBeAttached();
+  await expect(page.locator(".site-porthole picture[data-brand-scene='nautilus-porthole'] img")).toBeAttached();
   await expect(page.locator("#chapter-three")).not.toHaveAttribute("data-chapter-ready", "");
   expect(chunks).toEqual([]);
   await page.locator("#chapter-three").scrollIntoViewIfNeeded();
@@ -277,7 +278,7 @@ test("Chapter III is in the server HTML, and its code loads only as it nears the
   expect(chunks).toHaveLength(1);
 });
 
-test("before its island, the porthole is the sea in its brass ring: their colours are in the server HTML", async ({ browser }) => {
+test("before its island, the porthole is the squid's painting in its brass ring: the ring's colours are in the server HTML", async ({ browser }) => {
   // No script at all: the page as the server sends it, before any island hydrates.
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 }, baseURL: test.info().project.use.baseURL! });
   const page = await context.newPage();
@@ -285,6 +286,14 @@ test("before its island, the porthole is the sea in its brass ring: their colour
   const porthole = page.locator(".site-porthole");
   const paint = (selector: string, property: string) => porthole.locator(selector).first().evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);
   expect(await paint(".ph-sea", "fill")).not.toBe("none");
+  // The squid's painting is in the page as the server sends it, and the sea it leaves is under it, hidden.
+  await expect(porthole.locator(".ph-squid picture[data-brand-scene='nautilus-porthole'] img")).toHaveAttribute("src", /nautilus-porthole\.webp$/);
+  expect(await porthole.locator(".ph-squid").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
+  // Each painting fills the glass edge to edge, the sea it leaves too, so no band of the plain sea shows below it.
+  for (const name of ["nautilus-porthole", "nautilus-porthole-free"]) {
+    const [glass, img] = await Promise.all([porthole.boundingBox(), porthole.locator(`picture[data-brand-scene='${name}'] img`).boundingBox()]);
+    expect(img!.height, name).toBeGreaterThanOrEqual(glass!.height - 1);
+  }
   expect(await paint(".ph-ring", "stroke")).not.toBe("none");
   expect(await paint(".ph-bolts circle", "fill")).not.toBe("none");
   expect(await paint(".ph-bolts circle", "stroke")).not.toBe("none");
@@ -334,27 +343,35 @@ test("under reduced motion, the fight and the organ change only colour and opaci
   await playButton(page).click();
   await page.waitForTimeout(600);
   expect(await moved()).toEqual([]);
-  // The squid still comes back to listen, and the notes still show: they fade.
+  // The squid still comes back to listen, and the organ's pipes still glow: they fade.
   await expect(scene(page)).toHaveAttribute("data-squid", "listening");
-  await expect(scene(page).locator(".ph-squid")).toHaveCSS("opacity", "1");
+  await expect.poll(() => scene(page).locator(".ph-squid").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
   await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "none");
-  await expect(saloon(page).locator(".or-note").first()).toHaveCSS("opacity", "1");
+  await expect(scene(page).locator(".ph-squid")).toHaveCSS("animation-name", "none");
+  await expect.poll(() => saloon(page).locator(".or-playing").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
 });
 
-test("without reduced motion, the squid sinks back into the deep behind its ink and the notes rise", async ({ page }) => {
+test("without reduced motion, the squid clings, lets go and drifts off into the deep over its ink, and swims back for the organ", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
+  // Clinging: it breathes against the glass.
+  await expect(scene(page).locator(".ph-squid")).toHaveCSS("animation-name", "sq-hold");
   await win(page);
-  await expect(scene(page).locator(".ph-squid")).toHaveCSS("translate", "-25% 32.5%");
-  await expect(scene(page).locator(".sq-ink")).toHaveCSS("animation-name", "sq-ink");
+  // Its painting is feathered at the glass's edge, so as it shrinks away no square edge shows inside the glass.
+  await expect(scene(page).locator(".ph-squid")).toHaveCSS("mask-image", /radial-gradient/);
+  // It lets go and drifts off, smaller and fading, over the painting of the sea it leaves, inked.
+  await expect.poll(() => scene(page).locator(".ph-squid").evaluate((layer) => getComputedStyle(layer).translate)).toBe("6% 22%");
+  await expect.poll(() => scene(page).locator(".ph-squid").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("0");
+  await expect(scene(page).locator(".ph-free picture[data-brand-scene='nautilus-porthole-free'] img")).toBeAttached();
   // The whole crew turns out and hops, with the shared frame's styles, whether or not Chapter I has loaded.
   await expect(crew(page).locator("[data-chapter-cheer] > *").first()).toHaveCSS("animation-name", "site-hop");
   await playButton(page).click();
-  await expect(saloon(page).locator(".or-note").first()).toHaveCSS("animation-name", "or-rise");
-  // The squid swims back, small, to listen, and sways to the tune.
+  await expect.poll(() => saloon(page).locator(".or-playing").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
+  // The squid swims back up to the glass to listen.
   await expect(scene(page)).toHaveAttribute("data-squid", "listening");
-  await expect(scene(page).locator(".ph-squid")).toHaveCSS("animation-name", "sq-sway");
+  await expect.poll(() => scene(page).locator(".ph-squid").evaluate((layer) => getComputedStyle(layer).translate)).toBe("none");
+  await expect.poll(() => scene(page).locator(".ph-squid").evaluate((layer) => getComputedStyle(layer).opacity)).toBe("1");
 });
 
 test("an order paints its control first, and the porthole only in a later frame", async ({ page }) => {
