@@ -240,13 +240,22 @@ function install(): OuroFeel {
   let wheelInputs = 0;
   let quietFrames = 0;
 
+  // The loop runs only while there is something to do (a case watching, or a paint someone waits for), so a page with the probe
+  // loaded and nothing watched asks for no frames, and idles as it would without it.
+  let looping = false;
+  function loop(): void {
+    if (looping) return;
+    looping = true;
+    lastFrameAt = 0;
+    requestAnimationFrame(frame);
+  }
   function frame(at: number): void {
     if (lastFrameAt > 0 && watching !== undefined) longestFrame = Math.max(longestFrame, at - lastFrameAt);
     lastFrameAt = at;
     afterPaint.port2.postMessage(null);
-    requestAnimationFrame(frame);
+    if (watching !== undefined || paintWaiters.length > 0) requestAnimationFrame(frame);
+    else looping = false;
   }
-  requestAnimationFrame(frame);
 
   afterPaint.port1.onmessage = () => {
     // Everything written before this frame was laid out to paint it.
@@ -372,12 +381,15 @@ function install(): OuroFeel {
       anchorTop = start?.[1] ?? 0;
       writePending();
       pending = false;
+      loop();
     },
     inputMoved(px) {
       inputSinceSample += px;
     },
     painted() {
-      return new Promise((resolve) => paintWaiters.push(resolve));
+      const done = new Promise<void>((resolve) => paintWaiters.push(resolve));
+      loop();
+      return done;
     },
     async rest(frameCount = 30, timeoutMs = 15_000) {
       const deadline = performance.now() + timeoutMs;
@@ -426,6 +438,12 @@ function install(): OuroFeel {
   return feel;
 }
 
+/**
+ * The least time between two polls that found no command. A service that answers at once when it has none would otherwise have
+ * the page ask again without pause, which keeps the page busy and changes what it measures.
+ */
+const POLL_FLOOR_MS = 1000;
+
 /** A command from the runner, by long-poll. */
 type Command = { id: number; type: "run"; case: string } | { id: number; type: "title"; title: string };
 
@@ -436,8 +454,13 @@ async function bridge(feel: OuroFeel, base: string): Promise<void> {
   for (;;) {
     let command: Command;
     try {
+      const asked = performance.now();
       const response = await fetch(new URL("next", base), { cache: "no-store" });
-      if (response.status === 204) continue;
+      if (response.status === 204) {
+        const waited = performance.now() - asked;
+        if (waited < POLL_FLOOR_MS) await new Promise((resume) => setTimeout(resume, POLL_FLOOR_MS - waited));
+        continue;
+      }
       if (!response.ok) return;
       command = (await response.json()) as Command;
     } catch {
