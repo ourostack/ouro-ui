@@ -164,13 +164,12 @@ Record today's findings once, then let CI hold the line: `node scripts/ouro/ax/s
 
 ## A doctor
 
-When an app misbehaves, the person's agent should ask the app what's wrong instead of the person relaying screenshots. A doctor answers that: one command says what runs, what's wrong and the next step, and an optional bundle writes a file the agent can read or attach. Build it from four items:
+When an app misbehaves, the person's agent should ask the app what's wrong instead of the person relaying screenshots. A doctor answers that: one command says what runs, what's wrong and the next step. Build it from these items:
 
 - `ax-doctor`: declare the checks with `defineChecks` (ax-checks), run them, and pass the report with what the tool saw to `doctorReport(checks, state, Date.now())`. `state` is sections of facts (`Processes`, `Versions`, `Sign-in`), each line a label, a value in words, and optionally since when and a part's state: `up`, `starting`, `stuck`, `down` or `absent`.[^doctor-report] A command that returns the report prints the verdict, then the state, then the problems and their fixes, and `--json` carries the same facts.[^doctor-text]
 - `ax-probe`: `probeHttp(url, { timeoutMs })` tells up, stuck and down apart, so the doctor answers when the app is down or hangs, and `pidAlive(pid)` says whether a process runs.[^doctor-probe]
-- `ax-redact` and `ax-bundle`: `writeBundle({ facts, logs }, { dir, prefix, at, home })` writes the bundle, redacted, and refuses it when anything shaped like a secret is left; `tailLines(file, 300)` reads a log's last lines.
 
-A doctor keeps to these rules. Every problem names its next step as a command that runs or an action by hand, never the doctor itself (`defineChecks` refuses that).[^doctor-fix] It works whatever state the app is in, so it reads files and probes from outside before it asks the app. Its bundle is for categories, counts, times and versions, so test it with made-up secrets of the shapes your app logs. A tool that already uses the findings code for something else passes its exit table to `defineChecks`, as the section above says.
+A doctor keeps to these rules. Every problem names its next step as a command that runs or an action by hand, never the doctor itself (`defineChecks` refuses that).[^doctor-fix] It works whatever state the app is in, so it reads files and probes from outside before it asks the app.
 
 ## A voice
 

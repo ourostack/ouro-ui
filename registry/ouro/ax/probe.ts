@@ -18,7 +18,7 @@ import type { PartState } from "./doctor.ts";
  */
 interface Probe {
   state: Extract<PartState, "up" | "stuck" | "down">;
-  /** The HTTP status, when it answered. */
+  /** The HTTP status, when it answered, even if only its headers came. */
   status?: number;
   /** The answer's JSON, when it answered with JSON. */
   body?: unknown;
@@ -38,8 +38,9 @@ interface ProbeOptions {
 
 /**
  * GETs `url` with a time limit: "up" with its status, and its JSON when the answer is JSON; "stuck" when no answer came
- * in `timeoutMs`; "down" when the request failed without an answer, as when nothing listens on the port. On a local
- * port, stuck means the process took the connection and never answered.
+ * in `timeoutMs`, or the headers came and the rest of the answer didn't; "down" when the request failed without an
+ * answer, as when nothing listens on the port. On a local port, stuck means the process took the connection and never
+ * answered.
  *
  * @claim "when no answer came in `timeoutMs`" registry/ouro/ax/probe.test.mts verify:testExists(registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets)
  * @claim "stuck means the process took the connection and never answered" registry/ouro/ax/probe.test.mts verify:testExists(registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets)
@@ -50,12 +51,27 @@ interface ProbeOptions {
 async function probeHttp(url: string, { timeoutMs = 1500, fetchImpl = fetch, headers = {} }: ProbeOptions = {}): Promise<Probe> {
   try {
     const res = await fetchImpl(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
-    const body: unknown = await res.json().catch(() => undefined);
-    return { state: "up", status: res.status, ...(body === undefined ? {} : { body }) };
+    let text: string;
+    try {
+      text = await res.text();
+    } catch (error) {
+      // Headers came and the rest never did: a process that hangs mid-answer is stuck, not up.
+      return timedOut(error) ? { state: "stuck", status: res.status } : { state: "up", status: res.status };
+    }
+    try {
+      return { state: "up", status: res.status, body: JSON.parse(text) as unknown };
+    } catch {
+      return { state: "up", status: res.status };
+    }
   } catch (error) {
-    const name = (error as { name?: unknown } | null)?.name;
-    return { state: name === "TimeoutError" || name === "AbortError" ? "stuck" : "down" };
+    return { state: timedOut(error) ? "stuck" : "down" };
   }
+}
+
+/** Whether a request ended because its time ran out (or it was aborted), rather than because it failed. */
+function timedOut(error: unknown): boolean {
+  const name = (error as { name?: unknown } | null)?.name;
+  return name === "TimeoutError" || name === "AbortError";
 }
 
 /**

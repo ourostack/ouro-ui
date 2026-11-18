@@ -47,7 +47,7 @@ const service = await probeHttp("http://127.0.0.1:5180/health", { timeoutMs: 150
 
 ### `probeHttp`
 
-GETs `url` with a time limit: "up" with its status, and its JSON when the answer is JSON; "stuck" when no answer came in `timeoutMs`; "down" when the request failed without an answer, as when nothing listens on the port. On a local port, stuck means the process took the connection and never answered.
+GETs `url` with a time limit: "up" with its status, and its JSON when the answer is JSON; "stuck" when no answer came in `timeoutMs`, or the headers came and the rest of the answer didn't; "down" when the request failed without an answer, as when nothing listens on the port. On a local port, stuck means the process took the connection and never answered.
 
 ```ts
 function probeHttp(url: string, { timeoutMs, fetchImpl, headers }?: ProbeOptions): Promise<Probe>

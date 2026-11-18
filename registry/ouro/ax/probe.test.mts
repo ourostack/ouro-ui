@@ -27,6 +27,8 @@ test("probeHttp tells up, stuck and down apart on real local sockets", async () 
   // Takes the connection and never answers, as a process that hangs does.
   const silent = await listen(createNetServer((socket) => void sockets.push(socket)));
   assert.deepEqual(await probeHttp(`http://127.0.0.1:${silent}/health`, { timeoutMs: 300 }), { state: "stuck" });
+  const halfway = await listen(createHttpServer((_req, res) => void res.writeHead(200, { "content-type": "application/json" }).write('{"ok":')));
+  assert.deepEqual(await probeHttp(`http://127.0.0.1:${halfway}/health`, { timeoutMs: 1000 }), { state: "stuck", status: 200 }, "headers, then nothing: stuck");
   const closed = createNetServer();
   const port = await listen(closed);
   await new Promise((done) => closed.close(done));
@@ -39,6 +41,8 @@ test("probeHttp reads an aborted request as stuck and any other failure as down"
   assert.deepEqual(await probeHttp("http://x/", { fetchImpl: failing(new TypeError("fetch failed")) }), { state: "down" });
   assert.deepEqual(await probeHttp("http://x/", { fetchImpl: failing(null) }), { state: "down" });
   assert.deepEqual(await probeHttp("http://x/", { fetchImpl: (() => Promise.resolve(Response.json(false))) as typeof fetch }), { state: "up", status: 200, body: false }, "a JSON false is a body");
+  const broken = new Response(new ReadableStream({ start: (c) => c.error(new TypeError("terminated")) }), { status: 502 });
+  assert.deepEqual(await probeHttp("http://x/", { fetchImpl: (() => Promise.resolve(broken)) as typeof fetch }), { state: "up", status: 502 }, "an answer cut off by a failure, not the time limit, is still an answer");
 });
 
 test("pidAlive is true for a running process, one of another user's, and false for no process or no pid", () => {

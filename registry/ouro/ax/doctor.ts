@@ -58,8 +58,10 @@ function doctorReport(checks: ChecksReport, state: StateSection[], at: number): 
 }
 
 /**
- * Whether a value is a doctor report, such as the answer of an app's own doctor endpoint.
+ * Whether a value is a doctor report, such as the answer of an app's own doctor endpoint, with sections and lines
+ * `doctorText` can print.
  *
+ * @claim "with sections and lines `doctorText` can print" registry/ouro/ax/doctor.test.mts verify:testExists(registry/ouro/ax/doctor.test.mts::a doctor report is the checks report with the state it judged, and still a checks report)
  * @example
  * const asked = await probeHttp(`${serviceUrl}/api/doctor`);
  * if (asked.state === "up" && isDoctorReport(asked.body)) return asked.body;
@@ -67,7 +69,14 @@ function doctorReport(checks: ChecksReport, state: StateSection[], at: number): 
 function isDoctorReport(value: unknown): value is DoctorReport {
   if (!isChecksReport(value)) return false;
   const v = value as Partial<DoctorReport>;
-  return v.doctor === DOCTOR_VERSION && typeof v.at === "number" && Array.isArray(v.state);
+  return v.doctor === DOCTOR_VERSION && typeof v.at === "number" && Array.isArray(v.state) && v.state.every(isSection);
+}
+
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
+
+/** A section `doctorText` can print: a label and lines that each have a label and a value in words. */
+function isSection(s: unknown): boolean {
+  return isObject(s) && typeof s["label"] === "string" && Array.isArray(s["lines"]) && s["lines"].every((l) => isObject(l) && typeof l["label"] === "string" && typeof l["value"] === "string");
 }
 
 /**

@@ -37,7 +37,7 @@ test("a doctor report is the checks report with the state it judged, and still a
   assert.ok(isChecksReport(report) && isDoctorReport(report));
   assert.ok(isDoctorReport(JSON.parse(JSON.stringify(report))), "it survives JSON, as an app's doctor endpoint sends it");
   assert.equal(isDoctorReport(checks), false, "a checks report alone is not a doctor's");
-  for (const broken of [{ ...report, doctor: "doctor/2" }, { ...report, at: "now" }, { ...report, state: {} }, null, "doctor/1"]) assert.equal(isDoctorReport(broken), false, JSON.stringify(broken));
+  for (const broken of [{ ...report, doctor: "doctor/2" }, { ...report, at: "now" }, { ...report, state: {} }, { ...report, state: [{ id: "a", label: "A" }] }, { ...report, state: [{ id: "a", lines: [] }] }, { ...report, state: [null] }, { ...report, state: [{ id: "a", label: "A", lines: [{ label: "B" }] }] }, { ...report, state: [{ id: "a", label: "A", lines: [{ value: "up" }] }] }, { ...report, state: [{ id: "a", label: "A", lines: [7] }] }, null, "doctor/1"]) assert.equal(isDoctorReport(broken), false, JSON.stringify(broken));
 });
 
 test("agoText says how long ago in a person's words, at each step's edges", () => {

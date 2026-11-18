@@ -76,7 +76,7 @@ stdout.write(`${doctorText(report, terminalStyle(stdout, env), { command: "notes
 
 ### `isDoctorReport`
 
-Whether a value is a doctor report, such as the answer of an app's own doctor endpoint.
+Whether a value is a doctor report, such as the answer of an app's own doctor endpoint, with sections and lines `doctorText` can print.
 
 ```ts
 function isDoctorReport(value: unknown): value is DoctorReport
