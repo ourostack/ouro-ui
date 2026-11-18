@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: Menu items, checkbox and radio items and submenu triggers [draw the theme's focus ring when the keyboard focuses them](registry/ouro/components/ouro/menu/menu.test.tsx "verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu focus ring > draws the ring on the item the keyboard focuses, while the item at rest has none)"), so a focus the highlight doesn't follow still shows.
