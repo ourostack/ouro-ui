@@ -36,6 +36,7 @@ test("redactText replaces each shape with its category and keeps the words aroun
     [`x-api-key=${SECRETS.stripe}`, "x-api-key=[redacted]"],
     ["X-Auth-Token: abc 123 and the rest", "X-Auth-Token: [redacted]"],
     ["Cookie : a=1 b", "Cookie : [redacted]"],
+    ["Cookie:a=1 b", "Cookie:[redacted]"],
     ["sent Bearer  QWxhZGRpbjpvcGVu", "sent Bearer [token]"],
     ["key sk-abcdefghij12", "key [token]"],
     ["GET http://example.com/a?x=1 and ws://example.com/live", "GET http://example.com/… and ws://example.com/…"],
