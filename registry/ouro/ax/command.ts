@@ -70,6 +70,7 @@ interface ArgSpec {
    * word itself as its fix. The input schema gives the argument these as its `enum`. A rest argument's text
    * (`rest: true`) is one string, so its values stay hints, unchecked: use `rest: "list"` to check each word.
    *
+   * @claim "A rest argument's text" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a list argument checks each of its words, and a free-text rest argument keeps its values as unchecked hints)
    * @claim "a word outside them is refused with the usage exit" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::a word outside a required argument's values is refused with the usage exit, naming the word and the values, and the fix names the closest value)
    * @claim "gets the word itself as its fix" registry/ouro/ax/command.test.mts verify:testExists(registry/ouro/ax/command.test.mts::an unknown flag that is one of an argument's words gets that word as its fix)
    */
