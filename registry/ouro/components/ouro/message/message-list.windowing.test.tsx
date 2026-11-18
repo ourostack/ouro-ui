@@ -999,6 +999,15 @@ describe("MessageList windowing", () => {
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    // In one task, the last message shrinks, something reads the layout, and it grows back, as a placeholder swapped for its
+    // picture: the hold on the range, which came up with the content, keeps the list at its end.
+    const picture = document.getElementById("m19")!.querySelector<HTMLElement>('div[style*="height: 150px"]')!;
+    picture.style.height = "0px";
+    void scroller.scrollHeight;
+    picture.style.height = "150px";
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
     // The next message is followed.
     await rerender(<Chat items={[...conversation(20).map((item) => ({ ...item, tall: item.id === 0 ? 20 : 150 })), { id: 20, text: "Message 20" }]} springy={false} />);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
