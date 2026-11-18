@@ -19,7 +19,7 @@ import { useSheetPresentation } from "@/registry/ouro/lib/ouro/use-sheet-present
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
-import { SheetFrame } from "@/registry/ouro/components/ouro/sheet/sheet";
+import { SheetFrame, type SheetSnapPoint } from "@/registry/ouro/components/ouro/sheet/sheet";
 import { UnreadDot } from "@/registry/ouro/components/ouro/unread-dot/unread-dot";
 import {
   DialogBackdrop,
@@ -397,7 +397,8 @@ function SearchIcon(): JSX.Element {
  * label starts with the search come first, then those that hold it, then those a slip away. The arrow keys
  * move the highlight, and Enter runs the highlighted command. Commands come in labelled
  * groups and show their shortcuts with `Kbd`; when nothing matches it says so. Below 640px
- * it is a full-height bottom sheet, whose search input stays put while the results filter.
+ * it is a bottom sheet, sized to its commands when they all fit on the screen and full height otherwise (and always for
+ * a server's search), whose search input stays put while the results filter.
  * Above it, the dialog fits the commands it opens with, from 32rem up to 40rem, and keeps that
  * width while they filter and while a server's results arrive, so nothing in it moves sideways;
  * a longer result is cut with an ellipsis.
@@ -453,7 +454,10 @@ function SearchIcon(): JSX.Element {
  * @claim "Above it, the dialog fits" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command width > keeps the width it opened at while a server search's results change, and cuts a longer result with an ellipsis)
  * @claim "so nothing in it moves sideways" registry/ouro/e2e/ouro/command.spec.ts verify:testExists(registry/ouro/e2e/ouro/command.spec.ts::on a desktop > keeps the palette and its rows still while a server's longer results arrive)
  * @claim "A command can lead with an" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command media > shows an avatar from a picture or an element, and a muted icon, before the label)
- * @claim "Below 640px it is a full-height" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > is a full-height bottom sheet below 640px, whose search input stays put while results filter)
+ * @claim "sized to its commands when they all fit on the screen" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > sizes a short palette's sheet to its commands below 640px, not full height)
+ * @claim "full height otherwise" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > opens a palette whose commands overflow the phone's screen at full height)
+ * @claim "always for a server's search" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > opens a server-searched palette at full height below 640px)
+ * @claim "whose search input stays put while the results filter" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command presentation > keeps the sheet's height and the search input's place while the results filter below 640px)
  * @claim "A command palette: a searchable list" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command > opens a dialog named by its title, with the search input focused and every group listed)
  * @claim "It never fires while an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:testExists(registry/ouro/lib/ouro/use-command-shortcut.test.tsx::useCommandShortcut > does not fire while an input method is composing text)
  * @claim "It never fires while an input" registry/ouro/lib/ouro/use-command-shortcut.test.tsx verify:fileLine(registry/ouro/lib/ouro/use-command-shortcut.test.tsx, /never\stakes\sa\sshortcut\swithout\smod,\smeta\sor\sctrl\sfrom\styping\sin/)
@@ -543,6 +547,21 @@ export function Command(props: CommandProps): JSX.Element {
   const isOpenNow = controlled ? open : ownOpen;
   const setOpen = controlled ? onOpenChange! : setOwnOpen;
   const sheet = useSheetPresentation("auto");
+  // A phone sheet is sized to its palette once, as it opens. Until it is measured it fits its content (no snap points);
+  // then its one snap point holds that size, so filtering never moves the search input. The size is kept on close, so
+  // the sheet does not change height while it slides away. The snap point is held by the caller (a controlled Drawer),
+  // because Base UI warns when an uncontrolled one's snap points change after it opens.
+  const [phone, setPhone] = useState<{ open: boolean; snapPoints?: SheetSnapPoint[] | undefined }>({ open: false });
+  if (phone.open !== isOpenNow) setPhone({ open: isOpenNow, snapPoints: isOpenNow ? undefined : phone.snapPoints });
+  const measuring = phone.open && phone.snapPoints === undefined && onQueryChange === undefined;
+  const sizePhone = useCallback(
+    (palette: HTMLDivElement | null) => {
+      if (palette && measuring) setPhone({ open: true, snapPoints: [fitSnapPoint(palette)] });
+    },
+    [measuring],
+  );
+  // A server's search can bring any number of results, so its sheet is always full height.
+  const phoneSnapPoints = onQueryChange !== undefined ? fullSheet : phone.snapPoints;
 
   const triggerRef = useRef<HTMLElement>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
@@ -720,7 +739,7 @@ export function Command(props: CommandProps): JSX.Element {
         if (onQueryChange) search(next);
       }}
     >
-      <div data-ouro="command" className="flex min-h-0 flex-1 flex-col">
+      <div data-ouro="command" ref={inSheet ? sizePhone : undefined} className="flex min-h-0 flex-1 flex-col">
         <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
           <Autocomplete.Input ref={searchInputRef} aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
@@ -819,9 +838,10 @@ export function Command(props: CommandProps): JSX.Element {
           hideTitle
           closeLabel={closeLabel}
           side="bottom"
-          // One tall snap point: the sheet keeps its height as results filter, so the search
-          // input stays where the thumb left it.
-          snapPoints={[1]}
+          // Sized to the commands it opens with, or full height (see `phone`): the sheet keeps that height as results filter,
+          // so the search input stays where the thumb left it.
+          snapPoints={phoneSnapPoints}
+          snapPoint={phoneSnapPoints?.[0] ?? 1}
           open={isOpenNow}
           onOpenChange={setOpen}
           presentation="sheet"
@@ -870,6 +890,21 @@ export function Command(props: CommandProps): JSX.Element {
       )}
     </>
   );
+}
+
+/** The snap point of a full-height phone sheet. */
+const fullSheet: SheetSnapPoint[] = [1];
+
+/**
+ * The snap point that sizes a phone sheet to its palette, read as it opens: the sheet's height as a share of the viewport,
+ * or full height when its body has to scroll to show its commands.
+ */
+function fitSnapPoint(palette: HTMLElement): SheetSnapPoint {
+  const body = palette.closest<HTMLElement>("[data-ouro-sheet-content]")!;
+  if (body.scrollHeight > body.clientHeight) return 1;
+  const sheet = body.closest<HTMLElement>('[data-ouro="sheet"]')!;
+  // Base UI resolves a snap point against the viewport the sheet sits in, which is the sheet's parent.
+  return sheet.offsetHeight / sheet.parentElement!.offsetHeight;
 }
 
 /** A text with its ranges marked; a range past the text's end is cut to it, and one with nothing left is dropped. */

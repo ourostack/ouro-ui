@@ -53,7 +53,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Type to filter, the arrow keys to move, Enter to run. Below 640px it is a full-height sheet. */
+/** Type to filter, the arrow keys to move, Enter to run. Below 640px it is a bottom sheet, sized to its commands when they fit. */
 export const Playground: Story = {
   parameters: { screenshot: { name: "command-open", open: true } },
 };
