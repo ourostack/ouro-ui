@@ -1,15 +1,15 @@
 {
   "about": "Byte-for-byte copies of the storybook brand (ourostack/.github, brand/), served at /brand/storybook/<same path>. Never re-encoded, resized or optimised: the brand audit compares each file's sha256 with the canonical brand/provenance.json. site/scripts/brand.test.mjs holds every file here to its checksum.",
-  "origin": "ourostack/.github@26435ef5bf2813ca1cea7172a4a96feb88bf2784:brand/",
+  "origin": "ourostack/.github@97f96f95dec15167eac80f3556ddafd738e67a06:brand/",
   "canonical": "https://github.com/ourostack/.github/blob/main/brand/provenance.json",
   "files": [
     {
       "file": "headers/ouro-hx-dark.webp",
-      "sha256": "edef5bec8ca6147e28b6aca4296751f3aa2df95990006c59117b94ce07ddc842"
+      "sha256": "f18021a9c60d1e69019cdfa9324b673e20e6b9b74cd559927c28996876f22a99"
     },
     {
       "file": "headers/ouro-hx.webp",
-      "sha256": "cec815cd8d1b40fca67882a46fb0fe434720e8acee829f9a9eb52b0353ee07c8"
+      "sha256": "7dfb26ee86da3c666e6a5fb2bb99988ed853e6bba9c482803620f88c9df735e7"
     },
     {
       "file": "headers/ouro-ui-apple-dark.webp",
@@ -69,7 +69,7 @@
     },
     {
       "file": "og/ouro-hx.jpg",
-      "sha256": "0c996632a3757d14265cd4ec5105ba49f067e7c82f8210618b6a0f72adec6797"
+      "sha256": "56b2f77c2b1b1b7c077eb0956758ae57759c72a19ab7d922a04a3fe79cb184e0"
     },
     {
       "file": "og/ouro-ui-apple.jpg",
@@ -89,67 +89,67 @@
     },
     {
       "file": "phone/ouro-hx-1152.avif",
-      "sha256": "be68cb326a1e4be90b7f48c582a881777bdce1a4911f99c84f9702a223fb9087"
+      "sha256": "84f798063e3c75c6575fc743428e6c7d9244beeb8b41bc0f286f90ccdcd0b8e0"
     },
     {
       "file": "phone/ouro-hx-1152.webp",
-      "sha256": "a3fd7d03c2d4b808de765e0f49fe7d5b965724ca408a53cc5e1d7a017fe9d5e3"
+      "sha256": "d3b3780de7ea47ce2f0e44efa8a9dff92f42e97b62a8a9cce5aed6571c9592dd"
     },
     {
       "file": "phone/ouro-hx-1536.avif",
-      "sha256": "51efca090b3134247f9bee19e0c54b4eb7db8c5aed399364f5cf04e71913aa6c"
+      "sha256": "d9f3bf77015743a5b93d2c8edc957cc6dd23e8e431b75765723e602373c459bf"
     },
     {
       "file": "phone/ouro-hx-1536.webp",
-      "sha256": "5018f475217dcc09ba8ba0cb037d0a972e8b2f363787fef4d69fa0d950d31df7"
+      "sha256": "5cde8ae8fe850a90092fb0af21dd86cea6ff624f44c61b1f2491222a35163d8f"
     },
     {
       "file": "phone/ouro-hx-384.avif",
-      "sha256": "01b72b711c27aa259b8e08c20fabc89428729d21176e2708c0036e751ce058c8"
+      "sha256": "32af79e2e9ddf6fa2d4e5a53bdcb3997021f2b528819b1bacd29f964ed647d7c"
     },
     {
       "file": "phone/ouro-hx-384.webp",
-      "sha256": "4cd7ca185e73fc2857c0c70336ec3c0c3b675f7a6570a45be536163ad6923612"
+      "sha256": "a5a133bdaacfdb3caf8ef8f37b656c19f1b106f74f2f3db1c0d780b5d174d19f"
     },
     {
       "file": "phone/ouro-hx-768.avif",
-      "sha256": "b5471d05c51d2901c56dba1e2a12b17d9241ef958507a474a6e098b9376fa7b1"
+      "sha256": "05fa5e16b77f1ca3129bd1fe9827f79cace94328004b5028a38619a44e2b5752"
     },
     {
       "file": "phone/ouro-hx-768.webp",
-      "sha256": "5d8b8b8f60a05de68dfdb34dd32fab7de1606ca31aa7ea38423de12323d0c790"
+      "sha256": "9e302a175e6c868acbccbb42eedebafdecf3c3191a24e244a5a0bb6c9af8e9c0"
     },
     {
       "file": "phone/ouro-hx-dark-1152.avif",
-      "sha256": "49f8b6fe10e8abf62200376c4eb3af1e573d6c80fd16c0c9f3ecbe86eabdaf8a"
+      "sha256": "ce73a263645d6d481a9677cb0c862a93d919fe11f83b677e26d24babb6550215"
     },
     {
       "file": "phone/ouro-hx-dark-1152.webp",
-      "sha256": "642362a7835a600430fd0b0c86b74475ebab0431226a377232540a755328bbde"
+      "sha256": "8cde999921f27414bd6bd506325b72545472d8d080b19ef7a1862f146c56ab02"
     },
     {
       "file": "phone/ouro-hx-dark-1536.avif",
-      "sha256": "56ac0262908590df8db03c04b33ba25c60179abb639b5a76627f505d1fd24638"
+      "sha256": "e6e03a047275351bfc84414c848a3e314b63bbeddc0d4e6e092535082d58b7d8"
     },
     {
       "file": "phone/ouro-hx-dark-1536.webp",
-      "sha256": "07d70f1201e31b36849754be2c4d4b0bb4451ee9e1abaea958d455c34fbda70f"
+      "sha256": "c11527991110398730a718650f4d8eaf682b00a29ca114c72f096dd51c9248b9"
     },
     {
       "file": "phone/ouro-hx-dark-384.avif",
-      "sha256": "b7de70b8271b24b1ed49a120341e0fba8ecd1885f8ea3adff8fbaaebcb16637c"
+      "sha256": "cc90fb05f85fbf3a66271f66440c07ffbd304e8fcf4f5ea8a8d17070dc1d4469"
     },
     {
       "file": "phone/ouro-hx-dark-384.webp",
-      "sha256": "6cc400f08c9518946efd0c6ccf87effd68016c1b128819db6b8c848f0dd7c130"
+      "sha256": "ccf49f5170769938502edb6421932f1c5ff7c6faae2ba1be0850b053b264c897"
     },
     {
       "file": "phone/ouro-hx-dark-768.avif",
-      "sha256": "3b55a25fad03359251e6d002d56b787547bdf6706ec505e827de57d64c08fbdc"
+      "sha256": "e78d775c221a5ea56407b7a8291dcb0f26a501cc23ce4cc81828b341405f32ef"
     },
     {
       "file": "phone/ouro-hx-dark-768.webp",
-      "sha256": "4945d621af149b0f253c8eed67e729f2b8516230bb2fd5bbc0d6f4fe511db140"
+      "sha256": "03af97eb245bc0ad5f88f113d980e451042aae579b6a6a576928728bc28f0bed"
     },
     {
       "file": "phone/ouro-ui-apple-1152.avif",
@@ -473,59 +473,59 @@
     },
     {
       "file": "scenes/ouro-hx-1536.avif",
-      "sha256": "fb7982400b1196a9b79c7e4955872ca3da24b0e0dfec270de82cb127950f5947"
+      "sha256": "1b4cdf1da68aa8cf963512000f47dbc880b9dc2c68386d7e0dff949f55103db3"
     },
     {
       "file": "scenes/ouro-hx-3072.avif",
-      "sha256": "7de148ca136b5a3d09fe88c37ff1a07f477e93b2b90aeaeee8903ddc2505449c"
+      "sha256": "8876cd61ee7a7a7a1496999bceae47ac7b5a5f450f3965146ff5f07ceaa5fb20"
     },
     {
       "file": "scenes/ouro-hx-3072.webp",
-      "sha256": "150526a8ed359fd54671b1febcea98b64ed5ce3ee1ee16d242c796f385821a01"
+      "sha256": "9e1fafc92151bd9c81fd6f9faa2b83d90cc5786bc43feb7358b5358d3f14fa42"
     },
     {
       "file": "scenes/ouro-hx-640.avif",
-      "sha256": "00982364391809138f321fa4c1fae427aef6cf7be5120d1f56147f13e3add675"
+      "sha256": "7fc39f9573ca9f3eece28ff41575a7d33b2062003519f9e20af43efdb6adda75"
     },
     {
       "file": "scenes/ouro-hx-640.webp",
-      "sha256": "c10b935a59f283a34dca0f02fb25e32ec8c5f5db8259a486bc5182bdb7b26c72"
+      "sha256": "5aada50bed62aec4e531ee75f69ba2c2e84fbece07033200ab11f05026975502"
     },
     {
       "file": "scenes/ouro-hx-960.avif",
-      "sha256": "d1cd4d7535e7673c5a14e9d0fae4807659552ebcb0ceccb4944c132bba35f6bc"
+      "sha256": "ff508f1ebe6bf8cbaa389c53d2ef5e0941f9c86b7aa49f4b1731027c31b371f2"
     },
     {
       "file": "scenes/ouro-hx-960.webp",
-      "sha256": "4f5cc00c0c0ed067d185c8afb4730129bc0d38bdfaad98db4375c7997ff56f79"
+      "sha256": "436ad58d27fe5b29fa8a48bfbb836d58fecceede18d5df352cb828adbd741e4e"
     },
     {
       "file": "scenes/ouro-hx-dark-1536.avif",
-      "sha256": "295dd0eb19e3fc80222b97cd7bc971919d4c6993201f0c3ac3d3d563d27fb2bf"
+      "sha256": "bea7eb238d696b2eca533878953111076b0f8f8ae0bea497b91ca6b7c78b12d9"
     },
     {
       "file": "scenes/ouro-hx-dark-3072.avif",
-      "sha256": "eb333b77bbdf19599aafa3136343cf565847ca42abdf7202a7b8906ce2340093"
+      "sha256": "72cb617e4685fd831445f64ff33c0ab9522ec7d5cdf2a98dec67370307a0e658"
     },
     {
       "file": "scenes/ouro-hx-dark-3072.webp",
-      "sha256": "c768ab1333ec2d0d084151515c3a826e290810a2ccd0241120502123e82f2bdd"
+      "sha256": "4e2c84c915158b89a039445498c70880fc76d043527596fee3047dc2f9bf615c"
     },
     {
       "file": "scenes/ouro-hx-dark-640.avif",
-      "sha256": "609095121b57b594d8ec2ea77e2d421c52ab0a8a1bbd55ab7120be58c337d473"
+      "sha256": "f611cbca8042885f22e2f0740617619e04ae6e03687598db2e11be2af6e5841a"
     },
     {
       "file": "scenes/ouro-hx-dark-640.webp",
-      "sha256": "87494f76f7c7f0f02acc415991fbefca707752616092ad0437355d11c880f4c9"
+      "sha256": "c4b81ec599ba7b38611fcb1b8482f2186042e083578fa487612f1045f32d1e79"
     },
     {
       "file": "scenes/ouro-hx-dark-960.avif",
-      "sha256": "1b3fc6faab8a6830c6345a0cbef31e96efa819cc05303b3c091f7a287d811c9d"
+      "sha256": "0fad7adc5b73c16219a22b95011cf4e94a40b8e4b627d0e09079c6b9f2a5311f"
     },
     {
       "file": "scenes/ouro-hx-dark-960.webp",
-      "sha256": "f086c8bc9b8af19505939536a3b53177e58df45819bca4d2311046ba7a3a5f35"
+      "sha256": "eae658bf653f99232f92a4b76fb3463cd02e1c2b3a43e4a41892c7648d137f8b"
     },
     {
       "file": "scenes/ouro-ui-apple-1536.avif",
