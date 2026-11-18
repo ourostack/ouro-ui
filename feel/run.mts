@@ -131,9 +131,9 @@ async function runOnce(spec: FeelCaseSpec, service: ProbeService, shot: string):
     await hello;
     const reply = await service.send({ type: "run", case: spec.name });
     if (!reply.ok) throw new Error(`${spec.name} failed in the page: ${reply.error}`);
-    const { settled, measures, userAgent } = reply.result!;
+    const { settled, measures, unmeasured, userAgent } = reply.result!;
     await opened.shoot(shot);
-    return { settled, measures, userAgent, engineVersion: opened.engineVersion, os: opened.os, shot };
+    return { settled, measures, ...(unmeasured === undefined ? {} : { unmeasured }), userAgent, engineVersion: opened.engineVersion, os: opened.os, shot };
   } finally {
     await opened.close();
   }

@@ -32,6 +32,11 @@ export interface RunResult {
   /** Whether the case came to rest before its time ran out. */
   settled: boolean;
   measures: Measures;
+  /**
+   * The measures whose source saw nothing, checked against a second source, and why: they are left out of `measures` rather than
+   * read as 0. Left out when every source saw something.
+   */
+  unmeasured?: Record<string, string>;
   /** The engine's own name for itself. */
   userAgent: string;
 }
@@ -133,6 +138,10 @@ interface Seen {
 
 /** A chat app's frame meter's placeholders: one in view makes a `blankFramesInset` frame. */
 const PLACEHOLDERS = "[data-ouro='skeleton'], [aria-busy='true'] [data-ouro='skeleton']";
+/** The measures from wheel input, from the reader's row, and from frames, for the cross-checks at stop. */
+const INPUT_MEASURES = ["deadInput", "inputAtEdge", "inputNeverMoved", "inputToMotionP95Ms", "inputToMotionMaxMs", "inputToMotionP95Frames", "inputToMotionMaxFrames"];
+const ANCHOR_MEASURES = ["jumps", "jumpMaxPx", "jumpsStrict", "jumpStrictMaxPx", "shifts", "anchorShiftPx", "anchorMovePx"];
+const FRAME_MEASURES = ["blankFrames", "blankFramesInset", ...ANCHOR_MEASURES];
 /** A move of the list under this many px between two frames is none, as the frame meter counts. */
 const MOVE_PX = 0.5;
 
@@ -253,11 +262,23 @@ function install(): OuroFeel {
       const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : page);
       inputSinceSample += deltaY;
       wheelInputs += 1;
-      // The event's own time, or when it was seen where an engine gives none or one in the future.
+      // The event's own time, or when it was seen where an engine gives none or one in the future; a millisecond ahead is a clock
+      // rounded coarser than the event's (WebKit's), as the frame meter takes it.
       const now = performance.now();
-      const at = event.timeStamp > 0 && event.timeStamp <= now ? event.timeStamp : now;
+      const at = event.timeStamp > 0 && event.timeStamp <= now + 1 ? event.timeStamp : now;
       wheels.push({ at, deltaY });
       if (deltaY !== 0) turns.push({ at, direction: Math.sign(deltaY) });
+    },
+    { capture: true, passive: true },
+  );
+  // A second source for the list's movement, to check the frames' against: its scroll events, which read no layout.
+  addEventListener(
+    "scroll",
+    (event) => {
+      const target = event.target;
+      // From the first frame sampled on: a scroll the page made before watching fires in that frame, and is no move it missed.
+      if (watching === undefined || frames === 0 || !(target instanceof Element)) return;
+      if (typeof watching.scroller === "string" ? target.matches(watching.scroller) : target === watching.scroller) listScrolls += 1;
     },
     { capture: true, passive: true },
   );
@@ -285,6 +306,10 @@ function install(): OuroFeel {
   let blankFramesInset = 0;
   let wheelInputs = 0;
   let quietFrames = 0;
+  /** For the cross-checks at stop: the list's scroll events, frames that held a row, and frames that followed the reader's row. */
+  let listScrolls = 0;
+  let rowFrames = 0;
+  let anchored = 0;
   /** The gaps between frames while watching, and how long each wheel event took to move the list, in ms and in frames. */
   const gaps: number[] = [];
 
@@ -303,12 +328,13 @@ function install(): OuroFeel {
       gaps.push(at - lastFrameAt);
     }
     lastFrameAt = at;
-    afterPaint.port2.postMessage(null);
+    // The frame's own time goes with it: after a long task the next frame may begin before this one's sample runs.
+    afterPaint.port2.postMessage(at);
     if (watching !== undefined || paintWaiters.length > 0) requestAnimationFrame(frame);
     else looping = false;
   }
 
-  afterPaint.port1.onmessage = () => {
+  afterPaint.port1.onmessage = (event: MessageEvent<number>) => {
     // Everything written before this frame was laid out to paint it.
     writePending();
     pending = false;
@@ -320,7 +346,7 @@ function install(): OuroFeel {
       frames += 1;
       mostReadsInAFrame = Math.max(mostReadsInAFrame, readsThisFrame);
       readsThisFrame = 0;
-      moved = quietly(() => sample(options));
+      moved = quietly(() => sample(options, event.data));
     }
     quietFrames = changed || moved ? 0 : quietFrames + 1;
     for (const resolve of paintWaiters.splice(0)) resolve();
@@ -386,11 +412,11 @@ function install(): OuroFeel {
   }
 
   /** Measures the frame just painted; true when the reader's row moved. A frame with no list in the page is a blank one. */
-  function sample(options: WatchOptions): boolean {
+  function sample(options: WatchOptions, frameAt: number): boolean {
     const list = listOf(options);
     if (list === null) {
       blankFramesInset += 1;
-      seen.push({ at: lastFrameAt, top: 0, max: 0 });
+      seen.push({ at: frameAt, top: 0, max: 0 });
       // As the meter does, the list that comes back is followed from its first frame: no reader's row, and no input, carry over.
       anchor = undefined;
       inputSinceSample = 0;
@@ -398,6 +424,7 @@ function install(): OuroFeel {
     }
     const box = list.getBoundingClientRect();
     const rows = rowBoxes(list, options.rows, box);
+    if (rows.length > 0) rowFrames += 1;
     const boxOf = new Map(rows);
     const now = performance.now();
     const recent = wheels.filter((wheel) => now - wheel.at <= INPUT_WINDOW_MS);
@@ -416,6 +443,7 @@ function install(): OuroFeel {
         ? (rows.find(([row]) => sameName(row))?.[0] ?? Array.from(list.querySelectorAll(options.rows)).find(sameName))
         : undefined;
     if (followed !== undefined) {
+      anchored += 1;
       const move = (boxOf.get(followed) ?? followed.getBoundingClientRect()).top - box.top - anchorTop;
       moved = move !== 0;
       // Scrolling down (a positive delta) moves content up the screen.
@@ -441,7 +469,7 @@ function install(): OuroFeel {
     anchor = next?.[0];
     anchorTop = next?.[1] ?? 0;
 
-    seen.push({ at: lastFrameAt, top: list.scrollTop, max: list.scrollHeight - list.clientHeight });
+    seen.push({ at: frameAt, top: list.scrollTop, max: list.scrollHeight - list.clientHeight });
     const keep = wheels.filter((wheel) => now - wheel.at <= INPUT_WINDOW_MS);
     wheels.length = 0;
     wheels.push(...keep);
@@ -493,7 +521,7 @@ function install(): OuroFeel {
    * in none, and one at the end of the list it turned toward, in the frame before, counts only as `inputAtEdge`. Dead input
    * moved the list 100 ms or more after it came, or never.
    */
-  function inputToMotion(): [Measures, number] {
+  function inputToMotion(): [Measures, number, number] {
     const ms: number[] = [];
     const counted: number[] = [];
     let inputAtEdge = 0;
@@ -519,12 +547,34 @@ function install(): OuroFeel {
       if (moved < 0 || took >= DEAD_INPUT_MS) dead += 1;
     }
     const measures: Measures = { inputNeverMoved, inputAtEdge };
-    if (ms.length === 0) return [measures, dead];
+    if (ms.length === 0) return [measures, dead, inputAtEdge];
     measures.inputToMotionP95Ms = Math.round(p95(ms));
     measures.inputToMotionMaxMs = Math.round(Math.max(...ms));
     if (p95(counted) !== Infinity) measures.inputToMotionP95Frames = p95(counted);
     if (Math.max(...counted) !== Infinity) measures.inputToMotionMaxFrames = Math.max(...counted);
-    return [measures, dead];
+    return [measures, dead, ms.length + inputAtEdge];
+  }
+
+  /**
+   * The measures whose source saw nothing, checked against a second source, with why: each is left out of the measures and named
+   * here, so a source that sees nothing reads as unmeasured, never as 0. The wheel measures need a wheel event a frame began after,
+   * and frames that read the list move when its scroll events say it did; the jump measures need the reader's row followed from one
+   * frame to the next; the first gate's blank frames need a frame that held a row; and every frame measure needs a frame.
+   */
+  function blindSources(judged: number): Record<string, string> {
+    const unmeasured: Record<string, string> = {};
+    const mark = (names: readonly string[], why: string) => {
+      for (const name of names) unmeasured[name] ??= why;
+    };
+    if (frames === 0) mark(FRAME_MEASURES, "no frame was sampled");
+    const moved = seen.some((frame, index) => index > 0 && Math.abs(frame.top - seen[index - 1]!.top) >= MOVE_PX);
+    if (turns.length === 0) {
+      mark(INPUT_MEASURES, `no wheel event reached the probe${listScrolls > 0 ? `, though the list scrolled (${listScrolls} scroll events)` : ""}`);
+    } else if (judged === 0) mark(INPUT_MEASURES, "no frame began after a wheel event");
+    else if (listScrolls > 0 && !moved) mark(INPUT_MEASURES, `the list scrolled (${listScrolls} scroll events), but no frame the probe sampled read it move`);
+    if (anchored === 0) mark(ANCHOR_MEASURES, "the reader's row was never followed from one frame to the next: rows matched no row in view");
+    if (rowFrames === 0) mark(["blankFrames"], "no frame held a row that rows matched");
+    return unmeasured;
   }
 
   const feel: OuroFeel = {
@@ -536,6 +586,7 @@ function install(): OuroFeel {
       blankFrames = blankFramesInset = wheelInputs = frames = added = 0;
       longestFrame = 0;
       gaps.length = turns.length = 0;
+      listScrolls = rowFrames = anchored = 0;
       inputSinceSample = 0;
       wheels.length = 0;
       const list = listOf(options);
@@ -572,7 +623,7 @@ function install(): OuroFeel {
       return true;
     },
     stop(settled) {
-      const [motion, deadInput] = inputToMotion();
+      const [motion, deadInput, judged] = inputToMotion();
       const result: RunResult = {
         case: watching?.case ?? "",
         settled,
@@ -599,6 +650,9 @@ function install(): OuroFeel {
         },
         userAgent: navigator.userAgent,
       };
+      const unmeasured = blindSources(judged);
+      for (const name of Object.keys(unmeasured)) delete result.measures[name];
+      if (Object.keys(unmeasured).length > 0) result.unmeasured = unmeasured;
       watching = undefined;
       return result;
     },

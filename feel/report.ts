@@ -27,6 +27,8 @@ export interface MeasureEntry {
   limit?: number;
   /** Whether it is within its limit; left out with no limit, or with no run that reported it (no verdict). */
   pass?: boolean;
+  /** Why a run left it unmeasured, its probe finding the source blind (`RunResult.unmeasured`): never read as 0, and with a limit, a fail. */
+  unmeasured?: string;
 }
 
 /** One case in one engine: the shape of each entry in feel-report.json. */
@@ -67,17 +69,22 @@ export function median(values: number[]): number {
 export function judge(spec: FeelCaseSpec, engine: Engine, runs: Run[]): ReportEntry {
   if (runs.length === 0) throw new Error(`${spec.name} has no runs to judge.`);
   const reported = [...new Set(runs.flatMap((run) => Object.keys(run.measures)))];
-  const missing = Object.keys(spec.limits).filter((name) => !reported.includes(name) && !OCCASIONAL.has(name));
+  const blind = new Map(runs.flatMap((run) => Object.entries(run.unmeasured ?? {})).reverse());
+  const missing = Object.keys(spec.limits).filter((name) => !reported.includes(name) && !OCCASIONAL.has(name) && !blind.has(name));
   if (missing.length > 0) throw new Error(`${spec.name} has a limit on ${missing.join(", ")}, which the probe did not measure.`);
-  const names = [...new Set([...reported, ...Object.keys(spec.limits)])];
+  const names = [...new Set([...reported, ...Object.keys(spec.limits), ...blind.keys()])];
   const measures: Record<string, MeasureEntry> = {};
   for (const name of names) {
     const values = runs.flatMap((run) => (run.measures[name] === undefined ? [] : [run.measures[name]]));
     const entry: MeasureEntry = values.length === 0 ? { unit: unitOf(name), runs: values } : { unit: unitOf(name), runs: values, median: median(values), spread: [Math.min(...values), Math.max(...values)] };
+    const unmeasured = runs.find((run) => run.unmeasured?.[name] !== undefined)?.unmeasured![name];
+    if (unmeasured !== undefined) entry.unmeasured = unmeasured;
     const limit = spec.limits[name];
     if (limit !== undefined) {
       entry.limit = limit;
-      if (values.length > 0) entry.pass = isTime(name) ? entry.median! <= limit : values.every((value) => value <= limit);
+      // A limit holds on every run: one that a run left unmeasured fails, so a gate never passes on what it did not see.
+      if (unmeasured !== undefined) entry.pass = false;
+      else if (values.length > 0) entry.pass = isTime(name) ? entry.median! <= limit : values.every((value) => value <= limit);
     }
     measures[name] = entry;
   }
@@ -146,7 +153,9 @@ export function passLine(entry: ReportEntry): string {
   if (entry.pass) return `✓ Pass: ${where}. Every judged measure is within its limit.`;
   const over = Object.entries(entry.measures)
     .filter(([, measure]) => measure.pass === false)
-    .map(([name, measure]) => `${name} ${value(measure, isTime(name) ? measure.median : measure.spread![1])} (limit ${value(measure, measure.limit)})`);
+    .map(([name, measure]) =>
+      measure.unmeasured !== undefined ? `${name} unmeasured (${measure.unmeasured})` : `${name} ${value(measure, isTime(name) ? measure.median : measure.spread![1])} (limit ${value(measure, measure.limit)})`,
+    );
   return `✗ Fail: ${where}. ${[entry.settled ? "" : "It never came to rest", ...over].filter(Boolean).join("; ")}.`;
 }
 
@@ -156,11 +165,11 @@ function caption(entry: ReportEntry, does: string | undefined): string {
 
 /** Whether a judged measure passed, was over, or had no run to judge. */
 function result(entry: MeasureEntry): string {
-  return entry.pass === undefined ? "no verdict" : entry.pass ? "✓ pass" : "✗ over";
+  return entry.pass === undefined ? "no verdict" : entry.pass ? "✓ pass" : entry.unmeasured !== undefined ? "✗ unmeasured" : "✗ over";
 }
 
 function shown(entry: MeasureEntry): string {
-  if (entry.runs.length === 0) return "not measured";
+  if (entry.runs.length === 0) return entry.unmeasured === undefined ? "not measured" : `unmeasured: ${entry.unmeasured}`;
   const [min, max] = entry.spread!;
   return entry.runs.length > 1 ? `${value(entry)} [${min}–${max}]` : value(entry);
 }
