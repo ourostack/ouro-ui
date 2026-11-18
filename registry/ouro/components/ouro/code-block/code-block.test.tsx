@@ -320,6 +320,7 @@ describe("CodeBlock development messages", () => {
     ["filename", { filename: "a.ts" }, "filename is not a prop", '<CodeBlock title="a.ts" />'],
     ["filename", { filename: true }, "filename is not a prop", '<CodeBlock title="app.tsx" />'],
     ["showCopyButton", { showCopyButton: true }, "showCopyButton is not a prop; the copy button shows by default", "<CodeBlock code={source} copy={false} />"],
+    ["escape codes outside ansi", { code: "\x1b[2mthinking\x1b[0m", language: "text" }, "the code holds terminal escape codes, which show as raw characters", '<CodeBlock language="ansi" code={output} />'],
   ])("explains %s with the fix", async (_name, extra, problem, fix) => {
     const props = { code: "x", ...extra } as unknown as Parameters<typeof CodeBlock>[0];
     const { block } = await render(<CodeBlock {...props} />);
@@ -413,5 +414,118 @@ describe("CodeBlock emoji", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("CodeBlock terminal output", () => {
+  const esc = "\x1b";
+  /** A CSS color as sRGB channels from 0 to 255, read back from a canvas pixel. */
+  function rgb(color: string): [number, number, number] {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true })!;
+    context.fillStyle = color;
+    context.fillRect(0, 0, 1, 1);
+    const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+    return [r!, g!, b!];
+  }
+  function luminance(color: string): number {
+    const [r, g, b] = rgb(color).map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  }
+  function contrast(a: string, b: string): number {
+    const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (light! + 0.05) / (dark! + 0.05);
+  }
+  const span = (host: HTMLElement, text: string) => [...host.querySelectorAll<HTMLElement>("[data-ouro-ansi]")].find((element) => element.textContent === text)!;
+
+  it("styles bold, dim, italic, underline, strikethrough and the basic and bright colors from SGR codes, and drops the codes", async () => {
+    const code =
+      `${esc}[;1mbold${esc}[22m plain ${esc}[2mdim${esc}[0m ${esc}[3mitalic${esc}[23m ${esc}[4munder${esc}[24m ${esc}[9mstruck${esc}[29m ` +
+      `${esc}[31mred${esc}[39m ${esc}[91mbright${esc}[0m ${esc}[1;32mboldgreen${esc}[m ${esc}[38;5;2mtable${esc}[0m ` +
+      `${esc}[38;5;200mfar${esc}[0m ${esc}[38;2;255;0;0mtrue${esc}[0m ${esc}[42;48;5;1;48;2;1;2;3;38;7mback${esc}[0m ${esc}[K${esc}]8;;https://example.com${esc}\\link${esc}]8;;${esc}\\ ${esc}=${esc}(Bend${esc}P1$r${esc}\\${esc}`;
+    const { host, pre, block } = await render(<CodeBlock language="ansi" code={code} />);
+    const text = "bold plain dim italic under struck red bright boldgreen table far true back link end";
+    expect(pre.querySelector("code")!.textContent).toBe(text);
+    expect(block.getAttribute("data-language")).toBe("ansi");
+    const foreground = getComputedStyle(pre).color;
+    const style = (name: string) => getComputedStyle(span(host, name));
+    expect(style("bold").fontWeight).toBe("700");
+    expect(style("dim").color).not.toBe(foreground);
+    expect(style("italic").fontStyle).toBe("italic");
+    expect(style("under").textDecorationLine).toBe("underline");
+    expect(style("struck").textDecorationLine).toBe("line-through");
+    expect(style("red").color).not.toBe(foreground);
+    expect(style("bright").color).not.toBe(style("red").color);
+    expect(style("boldgreen").fontWeight).toBe("700");
+    // 38;5 with one of the table's first 16 is that basic color; any other keeps the theme's own.
+    expect(style("table").color).toBe(style("boldgreen").color);
+    // Plain text and the colors that keep the theme's own are no span at all.
+    expect([...host.querySelectorAll("[data-ouro-ansi]")].map((element) => element.textContent)).toEqual(["bold", "dim", "italic", "under", "struck", "red", "bright", "boldgreen", "table"]);
+  });
+
+  it("keeps every color and dim at 4.5:1 on the block in light and dark, with dim text muted beside the rest", async () => {
+    const colors = [...Array.from({ length: 8 }, (_, index) => 30 + index), ...Array.from({ length: 8 }, (_, index) => 90 + index)];
+    const code = ["plain", `${esc}[2mdim${esc}[0m`, ...colors.flatMap((color) => [`${esc}[${color}mc${color}${esc}[0m`, `${esc}[2;${color}md${color}${esc}[0m`])].join("\n");
+    const { host, pre, block } = await render(<CodeBlock language="ansi" code={code} />);
+    try {
+      for (const scheme of ["light", "dark"]) {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const surface = getComputedStyle(block).backgroundColor;
+        const plain = contrast(getComputedStyle(pre).color, surface);
+        const dim = contrast(getComputedStyle(span(host, "dim")).color, surface);
+        expect(dim, `${scheme} dim`).toBeGreaterThanOrEqual(4.5);
+        expect(dim, `${scheme} dim beside plain at ${plain.toFixed(2)}:1`).toBeLessThan(plain / 1.5);
+        for (const color of colors) {
+          for (const name of [`c${color}`, `d${color}`]) {
+            expect(contrast(getComputedStyle(span(host, name)).color, surface), `${scheme} ${name}`).toBeGreaterThanOrEqual(4.5);
+          }
+        }
+      }
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
+  });
+
+  it("copies the output without its escape codes", async () => {
+    // As in the copy test above: the page's timers stand still, so Copied cannot end before the check.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await render(<CodeBlock language="ansi" code={`${esc}[2mthinking${esc}[0m\n${esc}[1;97mreply${esc}[0m${esc}[K`} />);
+      await userEvent.click(page.getByRole("button", { name: "Copy code" }));
+      const deadline = performance.now() + 5000;
+      while (clipboard.length === 0 && performance.now() < deadline) await new Promise((resolve) => requestAnimationFrame(resolve));
+      expect(clipboard).toEqual(["thinking\nreply"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("renders the styled output to a string, with no escape codes in it", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const html = renderToString(<CodeBlock language="ansi" code={`${esc}[2mthinking${esc}[0m reply`} />);
+    expect(html).not.toContain(esc);
+    expect(html).toMatch(/<span data-ouro-ansi="" class="[^"]*muted-foreground[^"]*">thinking<\/span> reply/);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("draws a catalogue's emoji inside styled output", async () => {
+    const catalogue: EmojiCatalogue = {
+      categories: [{ id: "symbols", label: "Symbols", items: [{ id: "rocket", name: "Rocket", text: "🚀", src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" }] }],
+    };
+    const { host, pre } = await render(<CodeBlock language="ansi" catalogue={catalogue} code={`${esc}[32mshipped 🚀${esc}[0m and 🚀`} />);
+    expect(pre.querySelector("code")!.textContent).toBe("shipped 🚀 and 🚀");
+    expect(span(host, "shipped 🚀").querySelector("[data-ouro-code-emoji]")).not.toBeNull();
+    expect(host.querySelectorAll("[data-ouro-code-emoji]")).toHaveLength(2);
+  });
+
+  it("leaves code in any other language as given, escape codes and all", async () => {
+    const code = `${esc}[2mthinking${esc}[0m`;
+    const { pre, host } = await render(<CodeBlock language="text" code={code} />);
+    expect(pre.querySelector("code")!.textContent).toBe(code);
+    expect(host.querySelector("[data-ouro-ansi]")).toBeNull();
   });
 });
