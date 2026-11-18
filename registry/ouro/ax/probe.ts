@@ -84,9 +84,9 @@ function timedOut(error: unknown): boolean {
  * pidAlive(Number(readFileSync(pidFile, "utf8"))); // true while it runs
  */
 function pidAlive(pid: unknown, kill: (pid: number, signal: 0) => unknown = (p, s) => process.kill(p, s)): boolean {
-  if (typeof pid !== "number" || !Number.isSafeInteger(pid) || pid <= 0) return false;
+  if (!Number.isSafeInteger(pid) || (pid as number) <= 0) return false;
   try {
-    kill(pid, 0);
+    kill(pid as number, 0);
     return true;
   } catch (error) {
     return (error as { code?: unknown } | null)?.code === "EPERM";

@@ -72,11 +72,13 @@ function isDoctorReport(value: unknown): value is DoctorReport {
   return v.doctor === DOCTOR_VERSION && typeof v.at === "number" && Array.isArray(v.state) && v.state.every(isSection);
 }
 
-const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
+/** A field of a value that may not be an object: undefined when it isn't one. */
+const field = (v: unknown, key: string): unknown => (v as Record<string, unknown> | null | undefined)?.[key];
 
 /** A section `doctorText` can print: a label, and lines with a label and a value in words. */
 function isSection(s: unknown): boolean {
-  return isObject(s) && typeof s["label"] === "string" && Array.isArray(s["lines"]) && s["lines"].every((l) => isObject(l) && typeof l["label"] === "string" && typeof l["value"] === "string");
+  const lines = field(s, "lines");
+  return typeof field(s, "label") === "string" && Array.isArray(lines) && lines.every((l) => typeof field(l, "label") === "string" && typeof field(l, "value") === "string");
 }
 
 /**
