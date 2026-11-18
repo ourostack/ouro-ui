@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanupStories, renderStoryFirstCommit, selectedStories, settle } from "./stories.tsx";
+import { cleanupStories, renderStoryFirstCommit, selectedStories, settle, stories } from "./stories.tsx";
 
 // The first frame. Content that is ready when it mounts is drawn at full opacity from its first frame: an arrival or an
 // entrance fades only what comes in after mount (Moment's art, #1985). Each story's first commit is read before any
@@ -40,11 +40,14 @@ describe("first frame guard", () => {
   });
 });
 
-const momentStories = selectedStories.filter((entry) => entry.id.startsWith("Moment/"));
+// Every Moment story exists in every run; a pull request's reduced run renders only the selected folders' stories
+// (selectedStories), which may leave Moment out (#2021).
+const isMoment = (entry: { id: string }) => entry.id.startsWith("Moment/");
+const momentStories = selectedStories.filter(isMoment);
 
 describe("first frame, Moment's stories", () => {
   it("finds Moment's stories to hold to it", () => {
-    expect(momentStories.length).toBeGreaterThan(0);
+    expect(stories.filter(isMoment).length).toBeGreaterThan(0);
   });
 
   it.each(momentStories)("$id draws its content at full opacity from its first frame", async ({ Story }) => {
