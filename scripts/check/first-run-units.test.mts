@@ -535,12 +535,15 @@ describe("first-run harness: the eyes", () => {
     const eyes = new Eyes(bin, machine().sys);
     try {
       assert.deepEqual(await eyes.key("tab"), { ok: true, line: "key tab" });
-      const stdin = (eyes as unknown as { proc: { stdin: { write: () => void } } }).proc.stdin;
+      const stdin = (eyes as unknown as { proc: { stdin: { write: (line: string) => void } } }).proc.stdin;
+      const write = stdin.write;
       stdin.write = () => {
         throw new Error("the eyes are gone");
       };
       await assert.rejects(eyes.ask("key escape", 20), /the eyes are gone/);
       await pause(40);
+      stdin.write = write;
+      assert.deepEqual(await eyes.key("return"), { ok: true, line: "key return" }, "the next request gets its own answer");
     } finally {
       eyes.stop();
     }

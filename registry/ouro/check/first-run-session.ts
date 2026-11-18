@@ -157,14 +157,28 @@ export class FirstRunSession {
   private n = { states: 0, fails: 0, kept: 0 };
   readonly app: AppConfig;
   readonly eyes: Eyes;
+  /**
+   * The app's report, through which the session counts each step that failed, its detours' too.
+   * @claim "The app's report, through which the" scripts/check/first-run-session.test.mts verify:testExists(scripts/check/first-run-session.test.mts::first-run harness: the session's path to signed in and synced > fails a path that never reaches synced within its limit, naming where it stopped)
+   */
   readonly report: Report;
+  /** The steps that failed, by name. */
+  readonly failed: string[] = [];
   /** The machine the session runs on: commands, the Dock's open, and waiting. */
   readonly sys: System;
   constructor(o: { out: string; eyes: Eyes; app: AppConfig; report: Report; limits?: Partial<Limits>; system?: System }) {
     this.sys = o.system ?? system;
     this.app = o.app;
     this.eyes = o.eyes;
-    this.report = o.report;
+    this.report = {
+      step: (name, ok, evidence) => {
+        if (!ok) this.failed.push(name);
+        o.report.step(name, ok, evidence);
+      },
+      note: (event, detail) => o.report.note(event, detail),
+      log: (msg) => o.report.log(msg),
+      at: () => o.report.at(),
+    };
     this.limits = { ...LIMITS, ...o.limits };
     this.dir = path.join(o.out, "gate");
     fs.mkdirSync(path.join(this.dir, "states"), { recursive: true });
@@ -260,7 +274,7 @@ export class FirstRunSession {
     if (this.probed.has(`${method}|${label}`)) return;
     this.probed.add(`${method}|${label}`);
     const pid = await this.app.pid();
-    const win = mainWindow(s)!;
+    const win = mainWindow(s);
     const behind = mainRect(s);
     if (method === "escape") this.app.activate();
     const t0 = this.report.at();
@@ -279,10 +293,12 @@ export class FirstRunSession {
       await this.eyes.press(pid, c);
     } else {
       // A dialog on screen has a size (judges' `visible`); only its place can be missing.
-      const p = outsidePoint({ x: top.node.x ?? 0, y: top.node.y ?? 0, w: top.node.w!, h: top.node.h! }, win);
+      // An alert with no main window behind it has nowhere outside it to click, as one that fills the window has.
+      const p = win ? outsidePoint({ x: top.node.x ?? 0, y: top.node.y ?? 0, w: top.node.w!, h: top.node.h! }, win) : null;
       if (!p) {
-        this.dismissals.push({ method, dialog: label, ok: true, dismissed: false, evidence: "fills the window", ms: 0 });
-        return this.step(name, true, `"${label}" fills the window, so there is nowhere outside it to click`);
+        const why = win ? "fills the window" : "has no window behind it";
+        this.dismissals.push({ method, dialog: label, ok: true, dismissed: false, evidence: why, ms: 0 });
+        return this.step(name, true, `"${label}" ${why}, so there is nowhere outside it to click`);
       }
       how = `a click outside it at ${p.x},${p.y}`;
       await this.eyes.click(p.x, p.y);
@@ -504,7 +520,10 @@ export class FirstRunSession {
     });
   }
 
-  /** The session's own checks from what the watch saw, and gate.json. */
+  /**
+   * The session's own checks from what the watch saw, and gate.json. True only when no step failed and the watch saw no violation.
+   * @claim "True only when no step failed" scripts/check/first-run-session.test.mts verify:testExists(scripts/check/first-run-session.test.mts::first-run harness: the session's path to signed in and synced > fails a path that never reaches synced within its limit, naming where it stopped) verify:testExists(scripts/check/first-run-session.test.mts::first-run harness: a detour's whole session, and the report > reports each rule the watch caught, with its first time, and each timing over its limit)
+   */
   finish(scenario: string): boolean {
     this.releaseSync("the session ended");
     const by = (rule: Violation["rule"]) => this.watch.violations.filter((x) => x.rule === rule);
@@ -518,6 +537,6 @@ export class FirstRunSession {
     fs.writeFileSync(path.join(this.dir, "gate.json"), JSON.stringify({ scenario, limits: this.limits, violations: this.watch.violations, dismissals: this.dismissals, timings: this.timings, states: this.watch.timeline(this.report.at()) }, null, 1));
     for (const f of ["now.png", "sample.png"]) fs.rmSync(path.join(this.dir, f), { force: true });
     this.eyes.stop();
-    return this.watch.violations.length === 0;
+    return this.failed.length === 0;
   }
 }

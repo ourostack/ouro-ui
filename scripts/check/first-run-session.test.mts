@@ -225,6 +225,8 @@ describe("first-run harness: the session's path to signed in and synced", () => 
     assert.equal(await s.toGoal("signed-in", { limitMs: 5000 }), false);
     assert.match(step("signed-in")!.evidence, /^not signed in and synced within 5 s \(signed in: false; synced: false\); last: sign-in: email; Sign in; ways forward: Sign in$/);
     assert.equal(s.timings[0]!.ok, false);
+    assert.equal(s.finish("signed-in"), false, "a failed step fails the session, though the watch saw no violation");
+    assert.deepEqual(s.watch.violations, []);
   });
 
   test("names the last state with no heading and no way forward, and an unknown sign-in when it never looked", async () => {
@@ -398,6 +400,10 @@ describe("first-run harness: dialogs pushed away", () => {
     w.screen = { rows: [[0, "AXWindow", "Alert", { x: 0, y: 0, w: 150, h: 100, subrole: "AXDialog" }], [1, "AXStaticText", "Quit?"]], signedIn: null };
     await s.probe((await s.look())!, "escape");
     assert.equal(s.dismissals[0]!.dialog, "Alert");
+    w.screen = { rows: [[0, "AXWindow", "Delete?", { x: 0, y: 0, w: 150, h: 100, subrole: "AXDialog" }], [1, "AXStaticText", "Delete?"]], signedIn: null };
+    await s.probe((await s.look())!, "outside");
+    assert.equal(steps.at(-1)!.evidence, `"Delete?" has no window behind it, so there is nowhere outside it to click`);
+    assert.ok(!w.calls.some((c) => c.startsWith("click")));
   });
 
   test("holds the sync from signed in until the first dismissal is judged, once, and lets it go when no dialog comes", async () => {
@@ -420,17 +426,20 @@ describe("first-run harness: dialogs pushed away", () => {
   test("holds the sync at the app's own checkpoint, and releases it when the dismissal is judged", async () => {
     const w = new World();
     w.screen = welcome();
+    w.screen.signedIn = false;
     w.screen.cp = "sign-in: last";
     w.onKey = () => (w.screen = inbox());
-    const { s, notes } = session(w, { syncNetwork: network, holdSyncAt: (cp) => cp === "sign-in: last" });
+    const { s, notes, step } = session(w, { syncNetwork: network, holdSyncAt: (cp) => cp === "sign-in: last" });
     s.dismiss = "escape";
     await s.observe(0);
+    assert.equal(step("sync-held")!.ok, true, "held at the app's checkpoint, though not yet signed in");
     assert.deepEqual(notes, ["sync released"]);
-    const other = session(new World(), { syncNetwork: network, holdSyncAt: () => false });
-    other.s.dismiss = "escape";
     const ow = new World();
-    void ow;
-    assert.equal(other.step("sync-held"), undefined);
+    ow.screen = inbox(false);
+    const other = session(ow, { syncNetwork: network, holdSyncAt: () => false });
+    other.s.dismiss = "escape";
+    await other.s.look();
+    assert.equal(other.step("sync-held"), undefined, "signed in, but not at the app's checkpoint");
   });
 });
 
@@ -804,12 +813,16 @@ describe("first-run harness: the detours", () => {
     const w = new World();
     w.screen = screen([[0, "AXHeading", "You're offline"], [0, "AXButton", "Try again"]], { signedIn: false });
     const d = detour("offline");
-    const { s, step, notes } = session(w, { network }, { offlineMs: 3000, strandedSettleMs: 1000 });
+    const offlineScreen = w.screen;
+    const { s, step, notes } = session(w, { network, spaces: [{ name: "Inbox", act: async () => void (w.screen = offlineScreen) }] }, { offlineMs: 3000, strandedSettleMs: 1000 });
     const lift = await d.before!(s);
     assert.match(step("offline")!.evidence, /^offline: everything the app reaches unreachable \(1 address ranges refused\)/);
     await d.start!(s);
+    assert.equal(step("offline-inbox")!.ok, true, "offline, the window's Try again is its way forward");
     assert.ok(notes.includes("network back"));
-    assert.equal(typeof lift, "function");
+    assert.ok(!w.calls.includes("run sudo -n pfctl -a com.apple/ouro-first-run -F all"));
+    (lift as () => void)();
+    assert.ok(w.calls.includes("run sudo -n pfctl -a com.apple/ouro-first-run -F all"));
     const whole = session(w);
     await d.before!(whole.s);
     assert.match(whole.step("offline")!.evidence, /^offline: https:\/\/login\.example\.test\/health can't be reached$/);
