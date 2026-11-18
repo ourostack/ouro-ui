@@ -242,7 +242,7 @@
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "On a meadow hillside at dawn, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
+      "sentence": "On a meadow hillside at dawn, two faceless glass friends wrapped in plaid throws share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
       "reason": "the storybook brand: what the scene's picture shows, its alt text, a description of a painting"
     },
     {
@@ -252,7 +252,7 @@
     },
     {
       "file": "site/src/storybook.ts",
-      "sentence": "On a meadow hillside at night, two faceless glass people share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
+      "sentence": "On a meadow hillside at night, two faceless glass friends wrapped in plaid throws share a picnic while a jade robot pours their tea and an amber robot lifts a loaf from the hamper, and Ouro, a smiling emerald snake curled into an O, dozes on a quilt beside them.",
       "reason": "the storybook brand: what the scene's night picture shows, its alt text, a description of a painting"
     }
   ],
