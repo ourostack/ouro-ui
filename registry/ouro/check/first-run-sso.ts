@@ -271,6 +271,8 @@ export async function ssoExtension(o: SsoExtension, dir: string, at: () => numbe
   const name = `Ouro first-run SSO stand-in ${process.pid}-${Date.now()}`;
   const made = makeCerts(dir, o.hosts, name, sys);
   if (!made.ok) return none(`openssl couldn't make its certificates (${made.why})`);
+  // The authority's SHA-1, which names the one certificate to take out of the System keychain when the hold lifts.
+  const sha1 = sh("openssl", ["x509", "-noout", "-fingerprint", "-sha1", "-in", f("ca.pem")]).stdout.replace(/^[^=]*=|[:\s]/g, "");
   // Where each host really is, read before the hosts point at the stand-in.
   const upstream: Record<string, string[]> = { ...m.upstream };
   for (const h of o.hosts) upstream[h] ??= (await dns.promises.lookup(h, { all: true }).catch(() => [])).map((a) => a.address);
@@ -330,7 +332,7 @@ export async function ssoExtension(o: SsoExtension, dir: string, at: () => numbe
     if (mapped) sudo(["tee", HOSTS], before);
     flush();
     sudo(["security", "remove-trusted-cert", "-d", f("ca.pem")]);
-    sudo(["security", "delete-certificate", "-c", name, "/Library/Keychains/System.keychain"]);
+    sudo(["security", "delete-certificate", "-Z", sha1, "-t", "/Library/Keychains/System.keychain"]);
     child.kill();
     for (const k of ["ca.key", "leaf.key"]) fs.rmSync(f(k), { force: true });
   };

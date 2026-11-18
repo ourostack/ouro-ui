@@ -53,7 +53,8 @@ if (standIn.ok) {
   standIn.lift();
   const judged = judgeHeld(standIn.events(), hold, 20_000);
   expect("judged", judged.ok, judged.evidence);
-  const trusted = spawnSync("security", ["find-certificate", "-a", "-c", "Ouro first-run SSO stand-in", "/Library/Keychains/System.keychain"], { encoding: "utf8" });
+  const trusted = spawnSync("security", ["find-certificate", "-a", "-Z", "-c", "Ouro first-run SSO stand-in", "/Library/Keychains/System.keychain"], { encoding: "utf8" });
+  if (trusted.status === 0) console.log(trusted.stdout);
   expect("put back", fs.readFileSync("/etc/hosts", "utf8") === hostsBefore && trusted.status !== 0 && !fs.existsSync(path.join(dir, "ca.key")) && !fs.existsSync(path.join(dir, "leaf.key")), `/etc/hosts as before: ${fs.readFileSync("/etc/hosts", "utf8") === hostsBefore}; its authority still in the System keychain: ${trusted.status === 0}; keys left: ${["ca.key", "leaf.key"].filter((k) => fs.existsSync(path.join(dir, k))).join(", ") || "none"}`);
 }
 

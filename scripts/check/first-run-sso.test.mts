@@ -238,7 +238,7 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       }
       assert.equal(fs.readFileSync(hostsFile, "utf8"), "127.0.0.1 localhost");
       assert.ok(!fs.existsSync(path.join(dir, "ca.key")) && !fs.existsSync(path.join(dir, "leaf.key")), "its keys are gone");
-      assert.ok(ran.some((r) => r.startsWith("sudo -n security remove-trusted-cert -d ")) && ran.some((r) => r.startsWith("sudo -n security delete-certificate -c Ouro first-run SSO stand-in ")));
+      assert.ok(ran.some((r) => r.startsWith("sudo -n security remove-trusted-cert -d ")) && ran.some((r) => /^sudo -n security delete-certificate -Z [0-9A-F]{40} -t \/Library\/Keychains\/System\.keychain$/.test(r)));
       assert.ok(ran.includes("sudo -n dscacheutil -flushcache") && ran.includes("sudo -n killall -HUP mDNSResponder"));
       let stopped = "";
       for (let i = 0; i < 50 && !stopped.includes("ECONNREFUSED"); i++) stopped = await ask(port, "/");
