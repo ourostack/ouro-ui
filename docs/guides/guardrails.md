@@ -483,7 +483,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.292
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.294
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
