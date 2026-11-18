@@ -15,6 +15,8 @@ export const uncommitted = [
   "site/src/docs/page-index.json",
   "test/generated/control-matrix.json",
   "test/generated/motion-matrix.json",
+  // Ouro Feel's probe, built from feel/probe/probe.ts: committed, any change to probe.ts that merged beside it could leave it stale.
+  "registry/ouro/feel/ouro-feel-probe.js",
 ];
 
 /** The hand-written llms.txt, whose `## Items` list `pnpm registry` fills in to make site/public/llms.txt. */
