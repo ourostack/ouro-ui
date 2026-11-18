@@ -98,33 +98,33 @@ export function describeScene(state: { band: Band; dived: boolean; lights: boole
 }
 
 export const OPENING_LOG: readonly LogLine[] = [
-  { name: "Captain Nemo", text: "Welcome aboard my secret sub! Fill three tanks to dive." },
+  { name: "Captain Nemo", text: "Welcome aboard. Fill all three tanks, and we dive." },
 ];
 
 export const LOG = {
   band: {
     sunlit: { name: "Conseil", text: "Sunlit water. Sardines. Many sardines." },
-    twilight: { name: "Professor Aronnax", text: "The light is going blue. A ray just flew by!" },
-    midnight: { name: "Ned Land", text: "Too dark to see a thing. Turn on the floodlights!" },
+    twilight: { name: "Professor Aronnax", text: "The light is going blue. A ray just glided past." },
+    midnight: { name: "Ned Land", text: "Too dark to see a thing. Try the floodlights." },
   },
   tankFull: (noun: string, full: number): LogLine => ({
     name: "Conseil",
     text: full === 1 ? `${noun} is full. Two more to go.` : `${noun} is full. One more to go.`,
   }),
   tankEmpty: (noun: string): LogLine => ({ name: "Conseil", text: `${noun} is empty again.` }),
-  allFull: { name: "Captain Nemo", text: "All three tanks are full. Press Dive!" },
-  dive: { name: "Captain Nemo", text: "Down we go! Light the lamps when it gets dark." },
-  surface: { name: "Captain Nemo", text: "Blow the tanks. Up we go!" },
+  allFull: { name: "Captain Nemo", text: "All three tanks are full. Ready to dive." },
+  dive: { name: "Captain Nemo", text: "Down we go. Light the lamps when it gets dark." },
+  surface: { name: "Captain Nemo", text: "Blow the tanks. Up we go." },
   lightsOnDeep: { name: "Ned Land", text: "Something down there just smiled at me." },
-  lightsOn: { name: "Professor Aronnax", text: "Lantern on! Dive deep to see who lives there." },
+  lightsOn: { name: "Professor Aronnax", text: "Lantern on. Dive deep to see who lives there." },
   lightsOff: { name: "Conseil", text: "Lights off. The fish can rest." },
   speed: {
     stop: { name: "Captain Nemo", text: "All stop. Let the sea be still." },
     half: { name: "Captain Nemo", text: "Half speed ahead." },
-    full: { name: "Ned Land", text: "Full speed! Now we are sailing!" },
+    full: { name: "Ned Land", text: "Full speed. Now she is really moving." },
   },
   bell: { name: "Conseil", text: "The bell rang. I counted it. One." },
-  stillWater: { name: "Captain Nemo", text: "Slow screen, so the fish rest. Press Half to sail on!" },
+  stillWater: { name: "Captain Nemo", text: "Slow screen, so the fish rest. Press Half to sail on." },
 } as const satisfies Record<string, unknown>;
 
 /** What the crew says when the bell rings, in turn. */

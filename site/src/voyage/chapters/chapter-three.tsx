@@ -83,7 +83,7 @@ function giveOrder(store: FightStore, order: Order): void {
     case "surface":
       if (fight.surfaced) say(FIGHT.surfaceAgain);
       else if (fight.feathers && !fight.won) win({ surfaced: true });
-      else say(fight.won ? FIGHT.lightsOn : FIGHT.surface, { surfaced: true });
+      else say(fight.won ? FIGHT.surfaceFree : FIGHT.surface, { surfaced: true });
       break;
     case "dive":
       if (!fight.won) say(FIGHT.diveHeld);
@@ -341,7 +341,7 @@ function Encounter(): JSX.Element {
     { label: ORDERS.surface, onSelect: () => order("surface"), keywords: ["up", "rise"] },
     { label: ORDERS.dive, onSelect: () => order("dive"), keywords: ["down", "sink"] },
     { label: ORDERS.lights, onSelect: () => order("lights"), keywords: ["lamp", "light"] },
-    { label: ORDERS.feathers, onSelect: () => order("feathers"), keywords: ["fight", "feather", "harpoon"] },
+    { label: ORDERS.feathers, onSelect: () => order("feathers"), keywords: ["coax", "squid", "lantern"] },
     { label: ORDERS.organ, onSelect: () => order("organ"), keywords: ["music"] },
   ];
   return (
@@ -509,7 +509,9 @@ function Saloon(): JSX.Element {
         </div>
         {shown ? (
           <div ref={next} className="grid gap-3 border-t border-border/70 pt-5" data-chapter-next="">
-            <p className="m-0 font-medium">{SALOON.next}</p>
+            <p className="m-0 font-medium">
+              {SALOON.next} {SALOON.build}
+            </p>
             <div className="flex flex-wrap gap-3">
               <span data-chapter-control="install">
                 <Button href={href("/docs/installing/")}>{SALOON.install}</Button>

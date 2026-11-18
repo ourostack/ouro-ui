@@ -34,3 +34,19 @@ export function fleschKincaid(lines: readonly string[]): Readability {
   const grade = 0.39 * (words / sentences) + 11.8 * (count / words) - 15.59;
   return { words, sentences, syllables: count, grade: Math.round(grade * 10) / 10 };
 }
+
+/**
+ * The words that made the Nautilus read as a toy (Ari, 2026-11-17: "reads more like 'toy' than
+ * 'professional'"): a squid that hugs, giggles and is tickled loose with feathers. The chapters keep
+ * their warmth and wit; a premium film's crew doesn't talk like a nursery book.
+ */
+export const NURSERY_WORDS = /\b(hugs?|hugging|giggl\w*|tickl\w*|feathers?|fluffy|blub|hee hee|big friend|fun fact|love a good)\b/i;
+
+/** How a set of lines sounds: the lines that shout (end a sentence on "!"), the nursery words, and any emoji drawn as text. */
+export function voice(lines: readonly string[]): { shouts: string[]; nursery: string[]; emoji: string[] } {
+  return {
+    shouts: lines.filter((line) => line.includes("!")),
+    nursery: lines.filter((line) => NURSERY_WORDS.test(line)),
+    emoji: lines.filter((line) => /\p{Extended_Pictographic}/u.test(line)),
+  };
+}

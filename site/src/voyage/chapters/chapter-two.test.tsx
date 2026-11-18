@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
-import { fleschKincaid } from "../../../test/readability";
+import { fleschKincaid, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CLASSING, FINDS, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
@@ -34,6 +34,13 @@ describe("Chapter II's words", () => {
     const reading = fleschKincaid(allChapterTwoText({ day: writeDay(START_DAY), leagues: writeLeagues(routeLeagues(START_ROUTE)), more: writeLeagues(routeLeagues(START_ROUTE) - SHORTEST) }));
     expect(reading.words).toBeGreaterThan(300);
     expect(reading.grade).toBeLessThanOrEqual(6);
+  });
+
+  it("sound like a crew, not a nursery: no toy words or emoji, and at most one line shouts", () => {
+    const heard = voice(allChapterTwoText({ day: writeDay(START_DAY), leagues: writeLeagues(routeLeagues(START_ROUTE)), more: writeLeagues(routeLeagues(START_ROUTE) - SHORTEST) }));
+    expect(heard.nursery).toEqual([]);
+    expect(heard.emoji).toEqual([]);
+    expect(heard.shouts.length).toBeLessThanOrEqual(1);
   });
 });
 
@@ -133,7 +140,7 @@ describe("the ship's radio", () => {
     await userEvent.click(box);
     await userEvent.keyboard("Hello there{Enter}");
     await expect.element(radio.getByText("Hello there")).toBeInTheDocument();
-    await expect.element(radio.getByText("Ahoy there! Glad to have you aboard.")).toBeInTheDocument();
+    await expect.element(radio.getByText("Good day, and welcome aboard.")).toBeInTheDocument();
     // The captain waved at your message, on top of nobody else.
     const yours = () => [...document.querySelectorAll("[data-composition='radio'] [data-ouro='message']")].find((message) => message.textContent?.includes("Hello there"));
     await expect.poll(() => JSON.stringify(yours()?.querySelector("[data-ouro='reaction-bar']")?.textContent)).toContain("Wave, 1");

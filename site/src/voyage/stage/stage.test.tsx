@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import proof from "virtual:site-proof";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
-import { fleschKincaid, syllables } from "../../../test/readability";
+import { fleschKincaid, syllables, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { EYEBROW, RELEASE_HREF } from "../hero";
@@ -57,6 +57,13 @@ describe("the stage's words", () => {
     const reading = fleschKincaid(allStageText());
     expect(reading.words).toBeGreaterThan(150);
     expect(reading.grade).toBeLessThanOrEqual(6);
+  });
+
+  it("sound like a crew, not a nursery: no toy words or emoji, and at most one line shouts", () => {
+    const heard = voice(allStageText());
+    expect(heard.nursery).toEqual([]);
+    expect(heard.emoji).toEqual([]);
+    expect(heard.shouts.length).toBeLessThanOrEqual(1);
   });
 
   it("describe the picture for a screen reader", () => {

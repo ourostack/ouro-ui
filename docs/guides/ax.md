@@ -9,8 +9,8 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 ## Install
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.283         # the kit and the X-ray
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.283   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.285         # the kit and the X-ray
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.285   # with their node:test tests
 ```
 
 The shadcn CLI copies the shared files into `lib/ouro/ax/` under your lib alias. The X-ray, the flow runner, the surfaces check and their tests go to `scripts/ouro/ax/`, outside your TypeScript project, so `tsc -b` never reads their Node imports.[^ax-outside] Node runs them as they are: they are TypeScript that imports its siblings as `./<file>.ts`, and the shared files as `#ouro-ax/<file>`, which package.json names once: `npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*"`, with `src/lib` as your lib folder. Node strips the types.[^node] Add single items by name (`ax-command`, `ax-xray`) when you need only some of them; each brings the items it imports.[^deps]
@@ -107,6 +107,8 @@ A tool can also define `command` beside `commands`. That default [runs when no c
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
 | [`ax-checks`](../ax/ax-checks.md) | A doctor or self-check declared once: progress while it runs, the verdict first, the fix beside a problem, the same facts in `--json`, and the findings exit code. |
+| [`ax-doctor`](../ax/ax-doctor.md) | A doctor: the checks' report with what the tool saw (each process and since when, the versions, the last attempts), printed under the verdict and carried in `--json`.[^doctor-text] |
+| [`ax-probe`](../ax/ax-probe.md) | Tells a local process's state from outside it: an endpoint that answers is up, one that never answers is stuck, one that refuses is down; and whether a pid runs.[^doctor-probe] |
 | [`ax-redact`](../ax/ax-redact.md) | Redacts text, log lines and JSON before they leave the computer: tokens, cookies, ids, email addresses, user folders and what anyone wrote become their category, and `leaks` finds any left. |
 | [`ax-bundle`](../ax/ax-bundle.md) | A doctor's diagnostics file, for an agent to read or attach: the tool's facts and its logs' last lines, redacted, and refused when anything shaped like a secret is left. |
 | [`ax-terminal`](../ax/ax-terminal.md) | Colour, status marks, times, next steps and a progress line for a person at a terminal, with plain words in a pipe, in CI or under `NO_COLOR`. |
@@ -121,6 +123,8 @@ An action returns an outcome rather than a bare "ok". Its `state` says what beca
 A wait takes a reference the agent already holds, such as a conversation id from a list, and waits inside the tool. `waitFor()` reads the source as often as it must and returns what happened, or, when the time limit passes, the cursor and the exact command that resumes the wait. The agent makes one call instead of writing a polling loop.
 
 A command that returns data, such as a list or a report, prints it as it is under `--json`. Its `exit` names the exit code by its name in the tool's table, such as `unavailable`, and a name the table does not have is refused.[^data-exit] Without `exit`, the exit code is 0.[^data-exit]
+
+A check command (`defineChecks`, a doctor or a self-check) exits 0 when nothing failed, with `findings` (3) when a check found a problem, and with `error` (1) when a check threw.[^checks-exits] A tool whose table already gives 3 another meaning, such as "not running", passes its own table as `exits` with a `findings` code after its own codes (`{ ...FINDINGS_EXIT_CODE, code: 4 }`), and a finding exits with that code.[^checks-exits] `defineChecks` refuses a table without a `findings` code and names the code that took 3, so a finding never exits with a code that means something else.[^checks-exits-refused]
 
 ## Say precisely why it failed
 
@@ -161,6 +165,16 @@ A read, such as a snapshot, follows nothing: it reports the launch and the optio
 A repository that has not adopted the kit can still hold its agent-facing words to Ouro AX. `ax-surfaces` reads a manifest of them, `{ "ax": "surfaces/1", "tool": "notes", "errors": [...], "tools": [...], "replies": [...], "texts": [...] }`, and finds an error that does not open with what to do, an error with no stable `code`, a tool description that does not say when to use the tool or runs past 600 characters, an action reply with no field that says what happened, and any message that sends the agent to run a script.[^surfaces-checks] `node scripts/ouro/ax/surfaces.ts extract src --tool notes --out surfaces.json` writes a first manifest from JavaScript or TypeScript source, as a start to edit.
 
 Record today's findings once, then let CI hold the line: `node scripts/ouro/ax/surfaces.ts check surfaces.json --baseline surfaces-baseline.json --init` writes the baseline, and every later `check` with `--baseline` exits 3 on a finding the baseline does not list, and on a listed finding that is fixed, so the pull request that fixes one lowers its count (`--update`) and the count only goes down. The baseline counts findings per check and file, so rewording an error does not change it.[^surfaces-ratchet]
+
+## A doctor
+
+When an app misbehaves, the person's agent should ask the app what's wrong instead of the person relaying screenshots. A doctor answers that: one command says what runs, what's wrong and the next step, and an optional bundle writes a file the agent can read or attach. Build it from these items:
+
+- `ax-doctor`: declare the checks with `defineChecks` (ax-checks), run them, and pass the report with what the tool saw to `doctorReport(checks, state, Date.now())`. `state` is sections of facts (`Processes`, `Versions`, `Sign-in`), each line a label, a value in words, and optionally since when and a part's state: `up`, `starting`, `stuck`, `down` or `absent`.[^doctor-report] A command that returns the report prints the verdict, then the state, then the problems and their fixes, and `--json` carries the same facts.[^doctor-text]
+- `ax-probe`: `probeHttp(url, { timeoutMs })` tells up, stuck and down apart, so the doctor answers when the app is down or hangs, and `pidAlive(pid)` says whether a process runs.[^doctor-probe]
+- `ax-redact` and `ax-bundle`: `writeBundle({ facts, logs }, { dir, prefix, at, home })` writes a diagnostics file the agent can read or attach, redacted, and refuses it when anything shaped like a secret is left.[^doctor-bundle] `tailLines(file, 300)` reads a log's last lines.
+
+A doctor keeps to these rules. Every problem names its next step as a command that runs or an action by hand, never the doctor itself (`defineChecks` refuses that).[^doctor-fix] It works whatever state the app is in, so it reads files and probes from outside before it asks the app. A tool that already uses the findings code for something else passes its own exit table to `defineChecks`, as [Outcomes and waits](#outcomes-and-waits) says. Its bundle is for categories, counts, times and versions, so test it with made-up secrets of the shapes your app logs.
 
 ## A voice
 
@@ -306,6 +320,13 @@ Declare one command at a time. A command declared `loose` passes its flags throu
 [^dry-run]: test:registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted verify:testExists(registry/ouro/ax/cli.test.mts::--dry-run runs the plan, never run(): a planned outcome, exit 0, nothing posted)
 [^outcome-exit]: test:registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table verify:testExists(registry/ouro/ax/outcome.test.mts::outcomeExit: a refusal's own exit, else the state's name in the tool's table)
 [^data-exit]: test:registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged verify:testExists(registry/ouro/ax/cli.test.mts::a data result exits with the code its command names in the tool's table, and --json prints the data unchanged)
+[^doctor-text]: test:registry/ouro/ax/cli.test.mts::a command that returns a doctor report prints the doctor's text, with the state under the verdict, and the report as --json verify:testExists(registry/ouro/ax/cli.test.mts::a command that returns a doctor report prints the doctor's text, with the state under the verdict, and the report as --json)
+[^doctor-probe]: test:registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets verify:testExists(registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets)
+[^doctor-report]: test:registry/ouro/ax/doctor.test.mts::a doctor report is the checks report with the state it judged, and still a checks report verify:testExists(registry/ouro/ax/doctor.test.mts::a doctor report is the checks report with the state it judged, and still a checks report)
+[^doctor-fix]: test:registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run verify:testExists(registry/ouro/ax/checks.test.mts::a warning or failure without a fix, or with the command just run as its fix, fails the run)
+[^doctor-bundle]: test:registry/ouro/ax/bundle.test.mts::a bundle that still holds a secret's shape after redaction is refused, and nothing is written verify:testExists(registry/ouro/ax/bundle.test.mts::a bundle that still holds a secret's shape after redaction is refused, and nothing is written)
+[^checks-exits]: test:registry/ouro/ax/checks.test.mts::a tool's own exit table gives a finding its findings code, wherever the table puts it verify:testExists(registry/ouro/ax/checks.test.mts::a tool's own exit table gives a finding its findings code, wherever the table puts it)
+[^checks-exits-refused]: test:registry/ouro/ax/checks.test.mts::a tool's exit table without a findings code is refused, naming the code that took 3 verify:testExists(registry/ouro/ax/checks.test.mts::a tool's exit table without a findings code is refused, naming the code that took 3)
 [^voice]: test:registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error verify:testExists(registry/ouro/ax/cli.test.mts::the voice speaks only on a terminal: never under --json, --quiet, CI or a pipe, and never in an error)
 [^voice-line]: test:registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built verify:testExists(registry/ouro/ax/voice.test.mts::a line is one line of plain ASCII, at most 72 characters, checked when the tool is built)
 [^voice-order]: test:registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most; test:registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs verify:testExists(registry/ouro/ax/cli.test.mts::a voice line follows the fact it adds to: a done outcome, an empty list, the summary, and one celebration at most) verify:testExists(registry/ouro/ax/cli.test.mts::voice variants rotate from the memory a tool keeps between runs)

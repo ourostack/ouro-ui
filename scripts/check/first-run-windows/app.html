@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ouro Example</title>
+    <style>
+      body { font: 20px system-ui, sans-serif; margin: 0; background: #fff; color: #111; }
+      main { padding: 40px; min-height: 70vh; }
+      dialog { padding: 32px; border: 1px solid #888; }
+      button { font: inherit; padding: 8px 20px; }
+    </style>
+  </head>
+  <!-- The first-run harness's Windows proof (proof.mts) opens this page as an app: a sign-in page, a welcome dialog over
+       it, and an inbox once signed in. With ?fault=blank, putting the welcome away leaves the page blank, which the
+       harness must fail. -->
+  <body data-ouro-session="signed-out">
+    <main></main>
+    <dialog aria-labelledby="welcome-title">
+      <h2 id="welcome-title">Welcome to Ouro Example</h2>
+      <p>Your messages from every account, in one place.</p>
+      <button type="button">Continue</button>
+    </dialog>
+    <script>
+      const fault = new URLSearchParams(location.search).get("fault");
+      const main = document.querySelector("main");
+      const welcome = document.querySelector("dialog");
+      const tell = (what) => fetch(`/${what}`, { method: "POST" });
+      main.innerHTML = "<h1>Sign in to Ouro Example</h1><p>Sign in to see your messages.</p><button type='button'>Sign in</button>";
+      main.querySelector("button").onclick = async () => {
+        main.innerHTML = "<p>Signing in…</p>";
+        await new Promise((r) => setTimeout(r, 800));
+        await tell("signed-in");
+        document.body.dataset.ouroSession = "signed-in";
+        main.innerHTML = "<h1>Inbox</h1><ul><li>Ada: Lunch on Friday?</li><li>Grace: The build is green</li><li>Alan: Notes from the review</li></ul>";
+        await tell("synced");
+      };
+      welcome.querySelector("button").onclick = () => welcome.close();
+      welcome.addEventListener("close", () => fault === "blank" && main.replaceChildren());
+      setTimeout(() => welcome.showModal(), 600);
+    </script>
+  </body>
+</html>

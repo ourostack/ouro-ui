@@ -2,6 +2,7 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { defineChecks } from "#ouro-ax/checks.ts";
+import { doctorReport } from "#ouro-ax/doctor.ts";
 import { dispatch, isEmptyResult, printResult, quietPipes, runCli } from "#ouro-ax/cli.ts";
 import { checkOwner, defineCli, defineCommand, parse, type Cli, type Input, type Parsed, type RunContext } from "#ouro-ax/command.ts";
 import { commandManifest } from "#ouro-ax/help.ts";
@@ -598,4 +599,35 @@ test("a tool with a default command runs it for a bare target, and a command wor
   assert.deepEqual(JSON.parse((await runTool(tool, ["site", "--ready", "a", "--ready=b", "--json"])).out), { ran: "check", input: { target: ["site"], ready: ["a", "b"], json: true } });
   assert.deepEqual(JSON.parse((await runTool(tool, ["merge", "--json"])).out), { ran: "merge" });
   assert.deepEqual(JSON.parse((await runTool(tool, ["--json", "--", "merge"])).out), { ran: "check", input: { target: ["merge"], json: true } });
+});
+
+test("a command that returns a doctor report prints the doctor's text, with the state under the verdict, and the report as --json", async () => {
+  const at = Date.UTC(2026, 10, 17, 20, 0, 0);
+  const checks = defineChecks<null>({ command: "kit doctor", checks: [{ id: "service", label: "Service", run: () => ({ state: "failed", detail: "the service took the connection and never answered", fix: { command: "kit restart", why: "Restart it" } }) }] });
+  const kit = defineCli({
+    name: "kit",
+    about: ["kit: a doctor built from the kit."],
+    commands: [
+      defineCommand({
+        name: "doctor",
+        summary: "Says what runs and what is wrong.",
+        effect: "private",
+        readOnly: true,
+        output: "{ ax, doctor, at, state, verdict, summary, counts, rows, next, exitCode }",
+        examples: ["kit doctor"],
+        run: async () => doctorReport(await checks.run(null), [{ id: "processes", label: "Processes", lines: [{ label: "Service", value: "stuck", state: "stuck", since: at - 120_000 }] }], at),
+      }),
+    ],
+  });
+  const call = async (argv: string[]) => {
+    let out = "";
+    const code = await runCli(kit, argv, { stdout: { write: (s) => (out += s) }, stderr: { write: () => {} } }, { env: {} });
+    return { code, out };
+  };
+  const text = await call(["doctor"]);
+  assert.equal(text.code, 3);
+  assert.equal(text.out.split("\n").slice(0, 5).join("\n"), "FAIL The check failed: Service, in under 0.1s.\n\nProcesses\n  Service  stuck, since 2 min ago\n");
+  const json = await call(["doctor", "--json"]);
+  assert.equal(json.code, 3);
+  assert.deepEqual(JSON.parse(json.out).state[0].lines[0], { label: "Service", value: "stuck", state: "stuck", since: at - 120_000 });
 });

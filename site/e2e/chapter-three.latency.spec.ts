@@ -29,7 +29,7 @@ async function giveOrder(page: Page, name: string): Promise<void> {
 }
 
 /**
- * Up, the feathers, and the organ: the saloon offers the way on. The win and the organ raise toasts that
+ * Up, the deck lamp, and the organ: the saloon offers the way on. The win and the organ raise toasts that
  * last 5 s, so a later press would pay for one leaving (its exit, and Base UI's observers redrawing the
  * stack) in its own frame (#1484). They are closed here, and gone, before the press is measured.
  */

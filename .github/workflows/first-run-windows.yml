@@ -1,0 +1,41 @@
+name: First run on Windows
+# Ouro check's first-run harness on a fresh GitHub-hosted Windows runner, through its Windows System and eyes
+# (registry/ouro/check/first-run-windows.ts, first-run-uia-tree.cs): scripts/check/first-run-windows/proof.mts. Unit tests
+# read the Windows answers on any host; only a Windows machine proves the eyes build, see and press, and the firewall holds.
+on:
+  pull_request:
+    paths:
+      - registry/ouro/check/first-run*
+      - scripts/check/first-run-windows/**
+      - .github/workflows/first-run-windows.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+# A push to a pull request cancels that pull request's run in progress; a dispatched run is never cancelled. It runs on no
+# push to main, where it isn't a required check: the pull request's run gated the change.
+concurrency:
+  group: first-run-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: The harness drives a Windows app through a detour, and fails it when it leaves a blank page
+        run: node scripts/check/first-run-windows/proof.mts "$RUNNER_TEMP/first-run-windows"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: first-run-windows
+          path: ${{ runner.temp }}/first-run-windows
+          if-no-files-found: ignore
+          retention-days: 14

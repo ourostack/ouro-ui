@@ -5,7 +5,7 @@ import { A2UISurface, type A2UIActionMessage, type A2UIHandoff, type A2UIProblem
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { ComposedSurface, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
 import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
-import { functionCallProblem, loadCatalog, validateTree, type ComposedNode, type LoadedCatalog, type TreeProblem } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { functionCallProblem, loadCatalog, validateTree, type ComposedNode, type LoadedCatalog, type Obj, type TreeProblem } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { connectMcpApp, MCP_APPS_PROTOCOL, McpAppError, windowHostLink, type McpAppConnection, type McpAppHostLink } from "@/registry/ouro/lib/ouro/mcp-app";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -47,8 +47,8 @@ interface Status {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** The card a tool result carries: Ouro's composed tree, or A2UI messages. */
-type CardContent = { tree: unknown; catalogId: unknown } | { messages: unknown[] };
+/** The card a tool result carries: Ouro's composed tree with the data model its fields start from, or A2UI messages. */
+type CardContent = { tree: unknown; catalogId: unknown; data: Obj | undefined } | { messages: unknown[] };
 
 /**
  * The card in a tool result: `structuredContent.ouro`, as core's `mcpAppTreeResult` puts it, else
@@ -57,7 +57,7 @@ type CardContent = { tree: unknown; catalogId: unknown } | { messages: unknown[]
 function cardOf(result: Record<string, unknown>): CardContent | undefined {
   const content = isRecord(result.structuredContent) ? result.structuredContent : {};
   const { ouro, a2ui } = content;
-  if (isRecord(ouro) && "tree" in ouro) return { tree: ouro.tree, catalogId: ouro.catalogId };
+  if (isRecord(ouro) && "tree" in ouro) return { tree: ouro.tree, catalogId: ouro.catalogId, data: isRecord(ouro.data) ? (ouro.data as Obj) : undefined };
   return isRecord(a2ui) && Array.isArray(a2ui.messages) ? { messages: a2ui.messages } : undefined;
 }
 
@@ -94,7 +94,7 @@ function applyTheme(context: unknown): void {
 /**
  * The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it,
  * and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface,
- * once it passes core's `validateTree` against the catalog, or A2UI messages in `structuredContent.a2ui` with
+ * once it passes core's `validateTree` against the catalog, its fields starting from `structuredContent.ouro.data`, or A2UI messages in `structuredContent.a2ui` with
  * {@link A2UISurface}. Read and write buttons call
  * their action's own tool through the host, a consequential one only after the person confirms, and a person-only
  * one takes the person to your app's screen. It follows the host's light or dark theme and tells the host its size.
@@ -231,7 +231,7 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
         ) : problems.length ? (
           <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
         ) : (
-          <ComposedSurface tree={card.tree as ComposedNode} onPress={pressTree} onHandoff={handOff} />
+          <ComposedSurface tree={card.tree as ComposedNode} data={card.data} onPress={pressTree} onHandoff={handOff} />
         )
       ) : status ? null : (
         <Spinner label="Waiting for the card" />

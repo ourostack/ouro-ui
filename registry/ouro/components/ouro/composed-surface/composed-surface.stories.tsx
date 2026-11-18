@@ -62,3 +62,34 @@ type Story = StoryObj<typeof meta>;
 
 /** A recipe card as a composed tree: a photo, the recipe and its facts, and one button per consent class. */
 export const RecipeCard: Story = {};
+
+/** A plan for tonight: fields the person fills in, and buttons whose input is bound to them. */
+const plan = node("root", "Card", {}, [
+  node("name", "Heading", { text: "Plan tonight's orzo", level: 2 }),
+  node("servings", "TextField", { label: "Servings", value: "/servings", hint: "How many people you're cooking for.", type: "number", multiline: false }),
+  node("vegetarian", "Checkbox", { label: "Make it vegetarian", value: "/vegetarian" }),
+  node("oven", "Select", { label: "Oven", value: "/oven", options: ["Fan", "Conventional", "Grill"] }),
+  node("with", "TextField", { label: "Send to", value: "/share/with", hint: "An email address.", type: "text", multiline: false }),
+  node("buttons", "Stack", { direction: "horizontal", gap: "small" }, [
+    node("shop", "ActionButton", { action: "add_recipe_to_shopping_list", label: "Add ingredients to list", consent: "write", press: "run", input: { recipe: "rcp_lemon_orzo", servings: { "@path": "/servings" } }, emphasis: "primary" }),
+    node("share", "ActionButton", {
+      action: "share_recipe",
+      label: "Share recipe",
+      consent: "consequential",
+      press: "confirm",
+      input: { recipe: "rcp_lemon_orzo", with: { "@path": "/share/with" } },
+      confirm: {
+        title: "Share recipe",
+        description: "Send this recipe to someone.",
+        fields: [
+          { label: "Recipe", value: "Charred Lemon Orzo", raw: "rcp_lemon_orzo" },
+          { label: "Send to", value: "", bind: "/share/with" },
+        ],
+      },
+      emphasis: "secondary",
+    }),
+  ]),
+]);
+
+/** Fields the person fills in, starting from the data model: the share button's confirm sheet shows what they typed. */
+export const Fields: Story = { args: { tree: plan, data: { servings: 4, vegetarian: false, oven: "Fan", share: { with: "sam@example.com" } } } };
