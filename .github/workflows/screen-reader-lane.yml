@@ -33,14 +33,16 @@ permissions:
 jobs:
   lane:
     # VoiceOver on macos-26, what current users run, and NVDA gate the run. VoiceOver on macos-15 runs
-    # beside them so main's runs show what older macOS's users hear, but it is advisory: its failure does
-    # not fail the run, which release.yml reads. macOS runners are the scarce pool, so it runs only on a
-    # push to main and nightly, not for a dispatch or a pull request, where it would gate nothing either.
+    # beside them nightly so main shows what older macOS's users hear, but it is advisory: its failure
+    # does not fail the run, which release.yml reads, and the nightly run files or updates one issue for
+    # it (screen-reader.yml). macOS runners are the scarce pool, shared with the organisation's other
+    # repositories, so it runs only nightly: not on each push to main, where it doubled the lane's macOS
+    # demand and queued releases behind it (#2097), nor for a dispatch or a pull request.
     strategy:
       fail-fast: false
       max-parallel: 3
       matrix:
-        include: ${{ fromJSON((github.event_name == 'push' || github.event_name == 'schedule') && '[{"os":"macos-26","project":"voiceover","advisory":false},{"os":"macos-15","project":"voiceover","advisory":true},{"os":"windows-2025","project":"nvda","advisory":false}]' || '[{"os":"macos-26","project":"voiceover","advisory":false},{"os":"windows-2025","project":"nvda","advisory":false}]') }}
+        include: ${{ fromJSON(github.event_name == 'schedule' && '[{"os":"macos-26","project":"voiceover","advisory":false},{"os":"macos-15","project":"voiceover","advisory":true},{"os":"windows-2025","project":"nvda","advisory":false}]' || '[{"os":"macos-26","project":"voiceover","advisory":false},{"os":"windows-2025","project":"nvda","advisory":false}]') }}
     name: ${{ matrix.project }} (${{ matrix.os }})${{ matrix.advisory && ', advisory' || '' }}
     continue-on-error: ${{ matrix.advisory }}
     runs-on: ${{ matrix.os }}

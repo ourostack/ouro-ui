@@ -1,7 +1,7 @@
 // Yield to main's screen-reader lane (.github/workflows/ci.yml, the sr-yield job, which runs before a
 // pull request's screen-reader job calls screen-reader-lane.yml). The lane's jobs that run on macOS draw
 // on the organisation's five macOS runners, and main's push runs, nightly runs and release
-// dispatches take two each (VoiceOver on macos-26, and macos-15 on a push and nightly). So while any
+// dispatches take one or two each (VoiceOver on macos-26, and macos-15 nightly). So while any
 // of those runs has a macOS job queued or running, a pull request's lane waits, so its specs take
 // the runners after them. Like scripts/ci-yield.mjs, it reads once a minute, starts the lane at a
 // deadline, and fails open: it starts the lane when nothing waits, after DEADLINE_MS, when the API
