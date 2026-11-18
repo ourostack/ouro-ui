@@ -162,7 +162,7 @@ const namedButUnread = {
 };
 
 test("no reader of a target names a path its list says that target never reads, unless the exception says why", () => {
-  const tracked = spawnSync("git", ["ls-files"], { cwd: root, encoding: "utf8" }).stdout.split("\n").filter(Boolean);
+  const tracked = spawnSync("git", ["ls-files"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).stdout.split("\n").filter(Boolean);
   for (const [target, { readers, unread }] of Object.entries(targets)) {
     const found = new Set();
     for (const file of tracked.filter((path) => readers.some((reader) => reader.test(path)) && !unread.some(([pattern]) => pattern.test(path)))) {

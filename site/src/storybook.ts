@@ -158,7 +158,7 @@ export const SCENES: Record<SceneName, Scene> = {
     band: 50,
     night: {
       phoneHeight: 512,
-      alt: "In the Nautilus's great saloon at night, lit by two brass wall lamps, a softly glowing giant squid rests one huge, gentle eye against the oval window, while a small coral robot in a yellow raincoat stands on the sofa's back with its mitten on the glass, a faceless glass person in a navy coat watches calmly from behind the sofa, and Ouro, a smiling emerald snake curled into an O, looks on from the sofa's arm.",
+      alt: "In the Nautilus's great saloon at night, lit by its brass wall lamps, a softly glowing giant squid rests one huge, gentle eye against the oval window, while a small coral robot in a yellow raincoat stands on the sofa's back with its mitten on the glass, a faceless glass person in a navy coat watches calmly from behind the sofa, and Ouro, a smiling emerald snake curled into an O, looks on from the sofa's arm.",
     },
   },
 };

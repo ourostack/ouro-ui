@@ -11,7 +11,7 @@ import { scratchDir } from "./scratch.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(root, "scripts/pin-only.mjs");
 
-const git = (dir, args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
+const git = (dir, args) => execFileSync("git", args, { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).trim();
 
 /** A repository whose commits are written by `commit`, each a set of files at their new text. */
 function repository() {
