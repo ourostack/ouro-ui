@@ -39,7 +39,7 @@ test("a step ticked out of order says which comes first, and turns done once it 
   await expect(leaves).toHaveAccessibleDescription("Boil the water comes first");
   await page.getByRole("checkbox", { name: "Boil the water" }).press("Space");
   await expect(leaves).toHaveAccessibleDescription("Warm the pot comes first");
-  await page.getByText("Warm the pot").click();
+  await page.getByText("Warm the pot", { exact: true }).click();
   await expect(leaves).not.toHaveAccessibleDescription(/comes first/);
   await expect(page.getByText("comes first")).toHaveCount(0);
 });
