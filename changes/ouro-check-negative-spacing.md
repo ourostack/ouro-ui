@@ -1,0 +1,1 @@
+- Fixed: Ouro check's off-scale rule keeps going on an app with a negative or hairline spacing such as `margin: -1px` or `padding: 3px 8px`, where it used to stop with "Cannot read properties of undefined".

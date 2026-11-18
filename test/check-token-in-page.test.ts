@@ -134,6 +134,18 @@ describe("findOffThemeIssues: off-scale", () => {
     ]);
   });
 
+  it("measures a negative or small length the same way each time, so a hairline never reaches the suggestion", () => {
+    render(`<style>
+      .h-a { margin: -1px; }
+      .h-b { padding: 3px 8px; }
+      .h-c { margin: -24px 0; }
+    </style><div class="h-a">A</div><div class="h-b">B</div><div class="h-c">C</div>`);
+    expect(mine()).toEqual([
+      ["off-scale", 'div.h-b "B"', ".h-b sets padding: 3px 8px, a fixed spacing; use calc(var(--spacing) * 1) (p-1)"],
+      ["off-scale", 'div.h-c "C"', ".h-c sets margin: -24px 0px, a fixed spacing; use calc(var(--spacing) * 6) (m-6)"],
+    ]);
+  });
+
   it("passes the step, em, fluid spacing, a hairline, zero and auto", () => {
     render(`<style>
       .q-a { padding: calc(var(--spacing) * 4); margin: auto; }
