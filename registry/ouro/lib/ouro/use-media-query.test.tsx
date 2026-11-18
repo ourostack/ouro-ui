@@ -70,4 +70,36 @@ describe("useMediaQuery", () => {
     expect(container.textContent).toBe("false");
     await act(async () => root.unmount());
   });
+
+  it("calls matchMedia once for a query, however many components read it and however often they render", async () => {
+    await page.viewport(1000, 800);
+    // A query no other test asks, so no list for it is kept from before.
+    const query = "(min-width: 641px)";
+    const matchMedia = vi.spyOn(window, "matchMedia");
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    const probes = (n: number) => Array.from({ length: n }, (_, at) => <Probe key={at} query={query} serverDefault={false} />);
+    await act(async () => root.render(<>{probes(5)}</>));
+    await act(async () => root.render(<>{probes(8)}</>));
+    expect(container.textContent).toBe("true".repeat(8));
+    await page.viewport(400, 800);
+    await vi.waitFor(() => expect(container.textContent).toBe("false".repeat(8)), { timeout: 10_000 });
+    await act(async () => root.unmount());
+    expect(matchMedia.mock.calls.filter(([asked]) => asked === query)).toHaveLength(1);
+  });
+
+  it("reads a matchMedia swapped in after the real one made a list for the same query, as a test's stub is", async () => {
+    await page.viewport(1000, 800);
+    const query = "(min-width: 642px)";
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe query={query} serverDefault={false} />));
+    expect(container.textContent).toBe("true");
+    await act(async () => root.unmount());
+    vi.stubGlobal("matchMedia", (asked: string) => ({ matches: false, media: asked, addEventListener() {}, removeEventListener() {} }));
+    const again = createRoot(container);
+    await act(async () => again.render(<Probe query={query} serverDefault />));
+    expect(container.textContent).toBe("false");
+    await act(async () => again.unmount());
+  });
 });
