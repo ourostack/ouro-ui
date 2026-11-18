@@ -521,8 +521,10 @@ describe("Checklist", () => {
   });
 
   it("describes a row by its description and value", async () => {
-    await render(<Host items={[{ id: "oats", label: "rolled oats", description: "or quick oats", value: "1 cup", checked: false }]} />);
+    const { row } = await render(<Host items={[{ id: "oats", label: "rolled oats", description: "or quick oats", value: "1 cup", checked: false }, { id: "salt", label: "salt", value: "a pinch", checked: false }]} />);
     await expect.element(page.getByRole("checkbox", { name: "rolled oats" })).toHaveAccessibleDescription("or quick oats 1 cup");
+    // A row names only the parts it has.
+    expect(partOf(row("salt"), "box")).toHaveAttribute("aria-describedby", partOf(row("salt"), "value").id);
   });
 
   it("forwards ref to the group and keeps layout classes", async () => {
@@ -558,8 +560,11 @@ describe("Checklist ordered", () => {
       await expect.poll(() => running(leaves).length).toBe(0);
       // The box's tick colour changes too where the theme's two foregrounds differ (Ouro's dark scheme).
       const recolours = themeColor("--primary-foreground") !== themeColor("--warning-foreground");
+      expect(box).not.toHaveAttribute("aria-describedby");
       flushSync(() => box.click());
       const note = partOf(leaves, "note");
+      // Only the note describes a row with no description or value.
+      expect(box).toHaveAttribute("aria-describedby", note.id);
       await Promise.all([
         expectMotion(box, { stem: "checklist", state: "data-out-of-order", properties: { "background-color": fast, "border-color": fast, ...(recolours ? { color: fast } : {}) }, reduced }),
         expectMotion(tick, { stem: "checklist", state: "data-out-of-order", properties: reduced ? { opacity: fast } : { "stroke-dashoffset": draw }, reduced }),

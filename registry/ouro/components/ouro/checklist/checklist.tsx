@@ -136,6 +136,7 @@ function keepLeaving(notes: Map<string, string>, before: Map<string, string>, en
   const next = new Map(notes);
   for (const entry of entries) {
     const kept = before.get(entry.key);
+    // Stryker disable next-line ConditionalExpression: a leaving row stored with no note reads the same as one not stored
     if (entry.phase === "leaving" && kept !== undefined) next.set(entry.key, kept);
   }
   return next;
