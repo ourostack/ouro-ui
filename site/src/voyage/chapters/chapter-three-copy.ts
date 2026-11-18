@@ -16,7 +16,7 @@ import type { CrewLine } from "./copy";
  * operates each in a test named "control: <id>" and asserts what it changes;
  * site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const CHAPTER_THREE_CONTROLS = ["encounter-code", "alarm", "orders", "palette", "feathers", "surface", "saloon-code", "organ", "handoff", "components", "again"] as const;
+export const CHAPTER_THREE_CONTROLS = ["encounter-code", "alarm", "orders", "palette", "feathers", "surface", "saloon-code", "organ", "reveal", "handoff", "components", "again"] as const;
 export type ChapterThreeControl = (typeof CHAPTER_THREE_CONTROLS)[number];
 
 export const CHAPTER_THREE = {
@@ -112,6 +112,8 @@ export const SALOON = {
   logPlayed: "Music in the saloon. The squid came back to listen.",
   next: claim("Every control on this voyage is a real Ouro HX part.", { source: [{ test: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { test: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { test: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }], verify: [{ testExists: "site/e2e/chapter-one.spec.ts::every operable element in Chapter I is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-two.spec.ts::every operable element in Chapter II is one of its listed controls, in page order" }, { testExists: "site/e2e/chapter-three.spec.ts::every operable element in Chapter III is one of its listed controls, in page order" }] }),
   build: "Now build yours.",
+  /** Beside the line above: it turns X-ray on, the same X-ray as the header's switch, so each part shows its name. */
+  reveal: "Show me",
   components: "Browse components",
   again: "Sail again",
 } as const;
@@ -152,14 +154,15 @@ export const CODE_SHEETS_THREE = {
   },
   saloon: {
     title: "How the saloon is built",
-    description: "Ouro HX does the buttons and the toast. The site does the organ, its tune and the log.",
+    description: "Ouro HX does the buttons, the toggle and the toast. The site does the organ, its tune and the log.",
     hx: [
       { text: "Button: the press, and Play kept off until the ship is free.", code: `<Button disabled={!free} onClick={play}>Play the organ</Button>` },
       { text: "Button and Toast: Copy puts the line for your agent on the clipboard, and a toast says so.", code: `<Button onClick={copy}>Copy</Button>\ntoast("Copied. Paste it to your agent.", { tone: "success" })` },
+      { text: "Toggle: Show me turns X-ray on and off, and says if it is on.", code: `<Toggle label="Show me" pressed={xray} onPressedChange={setXray} />` },
       { text: "Button as a link: the way into the docs.", code: `<Button href="/docs/">Browse components</Button>` },
     ],
     site: ["The organ, its tune, and the notes that rise from it.", "The squid that comes back to listen.", "The log, and what goes in it."],
-    uses: ["Button", "Toast"],
+    uses: ["Button", "Toggle", "Toast"],
   },
 } as const;
 

@@ -4,6 +4,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator } from "@/registry/ouro/components/ouro/menu/menu";
+import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { href } from "../../paths";
 import { SCENES, STORYBOOK, sceneSources, type SceneName } from "../../storybook";
@@ -13,6 +14,7 @@ import type { CrewLine } from "./copy";
 import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, type Order } from "./chapter-three-copy";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { HandOff } from "../handoff";
+import { setXray, useXray } from "../xray-store";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (the squid letting go, the organ's notes): it comes
 // inside this island's script and goes into the page as the island hydrates.
@@ -510,6 +512,7 @@ function Saloon(): JSX.Element {
   const { won, played } = useFight();
   // The hint beside Play says why it is off, and Play is described by it, so a screen reader says why too.
   const hint = useId();
+  const nextLine = useId();
   // Play answers at once (the button and its hint); the organ, the log's line and the way on follow in a render of their own.
   const shown = useAfterPaint(played);
   const [rounds, setRounds] = useState(0);
@@ -562,9 +565,14 @@ function Saloon(): JSX.Element {
       </div>
       {shown ? (
         <div className="grid gap-4 border-t border-border pt-5" data-chapter-next="">
-          <p className="m-0 font-medium">
-            {SALOON.next} {SALOON.build}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <p id={nextLine} className="m-0 font-medium">
+              {SALOON.next} {SALOON.build}
+            </p>
+            <span data-chapter-control="reveal">
+              <Reveal describedBy={nextLine} />
+            </span>
+          </div>
           <span className="grid" data-chapter-control="handoff">
             <HandOff id="saloon-handoff-label" full={false} />
           </span>
@@ -584,4 +592,14 @@ function Saloon(): JSX.Element {
       ) : null}
     </div>
   );
+}
+
+/**
+ * Show me: X-ray on and off from the end of the voyage, so every control the reader has just used
+ * wears its Ouro HX name. It is the header's switch's own state (xray-store.ts), so the two always
+ * agree, and only this toggle re-renders when it changes. The reader's place stays put: X-ray opens
+ * over the page without scrolling or taking focus.
+ */
+function Reveal({ describedBy }: { describedBy: string }): JSX.Element {
+  return <Toggle label={SALOON.reveal} variant="outline" size="sm" pressed={useXray()} onPressedChange={setXray} aria-describedby={describedBy} />;
 }

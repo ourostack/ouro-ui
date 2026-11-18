@@ -70,9 +70,9 @@ describe("Chapter III", () => {
     // Each chapter is an island that loads on its own, so the one before may come second.
     await expect.poll(() => document.querySelector("#chapter-two")).not.toBeNull();
     expect(document.querySelector("#chapter-two")!.compareDocumentPosition(document.querySelector("#chapter-three")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The dialog's choices are in the dialog; the hand-off, components and again show once the organ plays.
+    // The dialog's choices are in the dialog; Show me, the hand-off, components and again show once the organ plays.
     const marked = [...document.querySelectorAll("#chapter-three [data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control"));
-    expect(marked).toEqual(CHAPTER_THREE_CONTROLS.filter((id) => !["feathers", "surface", "handoff", "components", "again"].includes(id)));
+    expect(marked).toEqual(CHAPTER_THREE_CONTROLS.filter((id) => !["feathers", "surface", "reveal", "handoff", "components", "again"].includes(id)));
   });
 
   it("keeps the squid on until the crew is up and armed, then lets the organ play", async () => {
