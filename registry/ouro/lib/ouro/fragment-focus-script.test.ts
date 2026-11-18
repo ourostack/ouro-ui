@@ -182,8 +182,8 @@ describe("fragmentFocusScript", () => {
   it("sets aside a stylesheet still loading as parsing ends, then puts it back to apply as it arrives, and leaves a loaded one alone", async () => {
     const { sheet: done, loaded: doneLoaded } = stylesheet();
     await doneLoaded;
-    // Served, so it loads in a later task in every engine (a data: stylesheet has its sheet at once in Chromium).
-    const { sheet, loaded } = stylesheet({ href: "/registry/ouro/theme/ouro-base.css?ff-aside" });
+    // From a blob, so it loads in a later task in every engine (a data: stylesheet has its sheet at once in Chromium).
+    const { sheet, loaded } = stylesheet({ href: URL.createObjectURL(new Blob(["html{--ff-aside:1}"], { type: "text/css" })) });
     parsed();
     expect(sheet.disabled).toBe(true);
     expect(done.disabled).toBe(false);
