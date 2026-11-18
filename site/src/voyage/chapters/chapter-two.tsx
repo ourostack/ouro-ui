@@ -37,9 +37,11 @@ import {
   type PortId,
   type Specimen,
   type SpecimenClass,
+  type CatalogueLive,
+  type ChartRoomLive,
 } from "./chapter-two-copy";
 import { Radio } from "./chapter-two-radio";
-import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, useLiveCode, type Step } from "./frame";
 import { writeLog } from "./logbook";
 import { arrivals, chartPoint, DAY_LOCALE, isBook, isShortest, legs, portNamed, routeLeagues, routePath, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 // What only changes once the chapter answers (the route drawing in, a port's number): it comes
@@ -265,6 +267,7 @@ function ChartRoom(): JSX.Element {
   const store = usePlanStore();
   const [route, setRoute] = useState<readonly PortId[]>(START_ROUTE);
   const [day, setDay] = useState(START_DAY);
+  useLiveCode<ChartRoomLive>({ day });
   const [line, setLine] = useState<CrewLine>(ROUTE.opening);
   // Whether the reader has planned the course (moved a port or picked the day): only then does the ship's log sail it.
   const [planned, setPlanned] = useState(false);
@@ -442,6 +445,7 @@ function Catalogue(): JSX.Element {
   const box = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<Sort>("name");
   const [show, setShow] = useState("all");
+  useLiveCode<CatalogueLive>({ sort, show });
   const [found, setFound] = useState<readonly string[]>([]);
   const [guess, setGuess] = useState<string | null>(null);
   const [line, setLine] = useState<CrewLine>(CLASSING.opening);

@@ -10,11 +10,11 @@ import { SCENES, STORYBOOK, sceneSources, type SceneName } from "../../storybook
 import { keepClearOfToasts } from "../clear-of-toasts";
 import { Container } from "../layout";
 import type { CrewLine } from "./copy";
-import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, voyageLog, type Order } from "./chapter-three-copy";
+import { BATTLE, CHAPTER_THREE, CODE_SHEETS_THREE, describeEncounter, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS, voyageLog, type EncounterLive, type Order, type SaloonLive } from "./chapter-three-copy";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { HandOff } from "../handoff";
 import { setXray, useXray } from "../xray-store";
-import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, useLiveCode, type Step } from "./frame";
 import { firstName, useLogbook } from "./logbook";
 import { playTune, TUNES, tuneFor } from "./organ";
 // What only changes once the chapter answers (the squid letting go, the organ's glow): it comes
@@ -356,6 +356,7 @@ function Encounter(): JSX.Element {
   const store = useFightStore();
   const box = useRef<HTMLDivElement>(null);
   const { surfaced, lights, feathers, won, line } = useFight();
+  useLiveCode<EncounterLive>({ free: won, lights });
   // Once you have signed on in Chapter I, the crew know you: Ned's line at the win names you, and you cheer with them.
   const you = useLogbook((log) => log.you);
   const said = line === FIGHT.win && you ? FIGHT.winWith(firstName(you.name)) : line;
@@ -491,6 +492,7 @@ function Encounter(): JSX.Element {
 function Saloon(): JSX.Element {
   const store = useFightStore();
   const { won, played, plays } = useFight();
+  useLiveCode<SaloonLive>({ free: won, played });
   // The hint beside Play says why it is off, and Play is described by it, so a screen reader says why too.
   const hint = useId();
   const nextLine = useId();
@@ -595,6 +597,7 @@ function Saloon(): JSX.Element {
  */
 function Reveal({ describedBy }: { describedBy: string }): JSX.Element {
   const on = useXray();
+  useLiveCode<SaloonLive>({ xray: on });
   return (
     <Button size="sm" variant={on ? "soft" : "outline"} tone={on ? "primary" : "secondary"} aria-pressed={on} aria-describedby={describedBy} onClick={() => setXray(!on)}>
       {SALOON.reveal}

@@ -7,10 +7,45 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
  */
 import type { CrewName } from "../stage/copy";
 
-/** One thing Ouro HX does in an exhibit, and the line of the exhibit that asks it to. */
-export interface SheetLine {
+/**
+ * One thing Ouro HX does in an exhibit, and the line of the exhibit that asks it to: as written, or
+ * written from the exhibit's live values (`S`), so the line reads `value={60}` once three jobs are done.
+ */
+export interface SheetLine<S = never> {
   text: string;
-  code: string;
+  code: string | ((live: S) => string);
+}
+
+/**
+ * A composition's Code sheet: what HX does, line by line, and what the site does. `start` is how the
+ * exhibit's live values stand before anyone touches it; the exhibit reports them as they change
+ * (`useLiveCode` in frame.tsx), and the sheet reads them as it opens.
+ */
+export interface SheetCopy<S> {
+  title: string;
+  description: string;
+  hx: readonly SheetLine<S>[];
+  site: readonly string[];
+  /** The Ouro HX components the composition is built from, named under its window. */
+  uses: readonly string[];
+  start: S;
+}
+
+/** A sheet's lines of code, written from the exhibit's live values (as they start, unless given). */
+export function codeLines<S>(sheet: SheetCopy<S>, live: S = sheet.start): string[] {
+  return sheet.hx.map((line) => (typeof line.code === "string" ? line.code : line.code(live)));
+}
+
+/** What the shipyard's Code sheet writes from the yard: the bar's value, and Launch's label and whether it is off. */
+export interface ShipyardLive {
+  progress: number;
+  launch: string;
+  launchOff: boolean;
+}
+
+/** What the articles' Code sheet writes from them: the name you signed on with, if you have. */
+export interface ArticlesLive {
+  name: string | null;
 }
 
 /**
@@ -194,13 +229,14 @@ export const CODE_SHEETS = {
     hx: [
       { text: "Reorderable: the drag, the moves by key and by menu, and what screen readers hear.", code: `<Reorderable label="Order of work" items={plan} onReorder={reorder} />` },
       { text: claim("Checklist: the ticks, the line through each done job, the day on each row, and a job ticked out of turn in the warning tone.", { source: { test: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, verify: [{ testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, { testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > describes a row by its description and value" }, { testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist ordered > marks a step ticked before the one that comes first, names that step, and announces it" }] }), code: `<Checklist label="Jobs" items={jobs} ordered={rule} onCheckedChange={tick} />` },
-      { text: "Progress: the bar, and the number screen readers read.", code: `<Progress label="Ship built" value={built * 20} showValue />` },
-      { text: "Button: the press, and Launch kept off until the work is done.", code: `<Button disabled={left > 0} onClick={launch}>Launch</Button>` },
+      { text: "Progress: the bar, and the number screen readers read.", code: ({ progress }: ShipyardLive) => `<Progress label="${SHIPYARD.progress}" value={${progress}} showValue />` },
+      { text: "Button: the press, and Launch kept off until the work is done.", code: ({ launch, launchOff }: ShipyardLive) => `<Button disabled={${launchOff}} onClick={launch}>${launch}</Button>` },
       { text: "Link: the way on to the next chapter once she floats, big enough for a thumb on a phone.", code: `<Link href="#chapter-two">Plan the voyage</Link>` },
       { text: "Sheet: this panel.", code: `<Sheet title="How the shipyard is built" side="right" open={open} onOpenChange={setOpen}>` },
     ],
     site: ["The plan of the ship, the parts it draws, and the ghost of a part out of turn.", "The rule for a good order, and what the crew says.", "The launch."],
     uses: ["Reorderable", "Checklist", "Progress", "Button", "Link", "Sheet"],
+    start: { progress: 0, launch: SHIPYARD.launch, launchOff: true } as ShipyardLive,
   },
   articles: {
     title: "How the articles are built",
@@ -209,10 +245,11 @@ export const CODE_SHEETS = {
       { text: claim("Form: it checks each field when you sign, puts each note under its field, and takes you to the first.", { source: { test: "registry/ouro/components/ouro/form/form.test.tsx::Form > validates with the browser's constraints and focuses the first invalid control" }, verify: [{ testExists: "registry/ouro/components/ouro/form/form.test.tsx::Form > validates with the browser's constraints and focuses the first invalid control" }, { testExists: "registry/ouro/components/ouro/form/form.test.tsx::Form > shows each error on the field with that name, linked and marked invalid" }] }), code: `<Form errors={formErrors(answer, answer?.errors)} onSubmit={sign}>` },
       { text: "TextField, Select and Checkbox: the labels, the marks on what you must fill in, and the notes.", code: `<TextField label="Your name" name="name" required />\n<Select label="Your trade" name="trade" options={trades} required />\n<Checkbox label="I will keep the Nautilus a secret." name="oath" required />` },
       { text: "ItemGroup, Item, Avatar and Badge: the crew list.", code: `<ItemGroup aria-label="Crew list">\n  <Item media={<Avatar name={name} />} title={name} actions={<Badge>{trade}</Badge>} />\n</ItemGroup>` },
-      { text: "Toast: the note when you sign on.", code: `toast(\`\${name} signed on\`, { tone: "success" })` },
+      { text: "Toast: the note when you sign on.", code: ({ name }: ArticlesLive) => (name === null ? `toast(\`\${name} signed on\`, { tone: "success" })` : `toast(${JSON.stringify(ARTICLES.signed(name))}, { tone: "success" })`) },
     ],
     site: ["Who is aboard already.", "The list of names, and you on it.", "What Conseil says when the articles are not done."],
     uses: ["Form", "TextField", "Select", "Checkbox", "ItemGroup", "Avatar", "Toast", "Link"],
+    start: { name: null } as ArticlesLive,
   },
   builtWith: "Built with",
   hxHeading: "Ouro HX does",

@@ -4,7 +4,7 @@ import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, railStaysInView, watchMotion } from "./chapters";
 import { watchToasts } from "./toasts";
 import { HANDOFF } from "../src/copy";
-import { ARTICLES, CREW, PARTS } from "../src/voyage/chapters/copy";
+import { ARTICLES, CHAPTER_ONE, CREW, PARTS } from "../src/voyage/chapters/copy";
 import { CATALOGUE, FINDS } from "../src/voyage/chapters/chapter-two-copy";
 import { SHORTEST, writeLeagues } from "../src/voyage/chapters/route";
 
@@ -114,6 +114,15 @@ test.describe("each control in Chapter III", () => {
 
   test("control: saloon-code opens the saloon's Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
     await opensCodeSheet(page, "chapter-three", saloon(page), CODE_SHEETS_THREE.saloon);
+  });
+
+  test("the encounter's Code sheet shows the orders as they stand: with the floodlights on, it reads checked={true}", async ({ page }) => {
+    await open(page);
+    await order(page, ORDERS.lights);
+    await expect(scene(page)).toHaveAttribute("data-lights", "");
+    await encounter(page).getByRole("button", { name: CHAPTER_ONE.code }).click();
+    const sheet = page.getByRole("dialog", { name: CODE_SHEETS_THREE.encounter.title });
+    await expect(sheet.locator("[data-chapter-code]", { hasText: "<Menu " })).toContainText(`<MenuCheckboxItem checked={true} onCheckedChange={setLights}>${ORDERS.lights}</MenuCheckboxItem>`);
   });
 
   test("control: alarm opens the dialog, and the crew turns out", async ({ page }) => {
