@@ -2148,14 +2148,14 @@ test("a pull request calls only the read-only lane: ci.yml's job grants contents
   assert.doesNotMatch(workflow("ci.yml"), /issues: write/);
 });
 
-test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory on main's pushes and nightly, at the commit it was given", () => {
+test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory nightly, at the commit it was given", () => {
   const lane = srJobs().lane;
-  // The matrix for an event: a push to main and the nightly run add the advisory macos-15 job; a dispatch and a pull request's call run the two that gate.
+  // The matrix for an event: the nightly run adds the advisory macos-15 job; a push to main, a dispatch and a pull request's call run the two that gate (#2097).
   const include = lane.match(/include: \$\{\{ (fromJSON\(.*\)) \}\}\n/)[1];
   const matrix = (event_name) => runInNewContext(include.replace(/github\.event_name/g, JSON.stringify(event_name)).replace(/'/g, "`"), { fromJSON: JSON.parse });
   const gate = [{ os: "macos-26", project: "voiceover", advisory: false }, { os: "windows-2025", project: "nvda", advisory: false }];
   const advisory = { os: "macos-15", project: "voiceover", advisory: true };
-  assert.deepEqual(matrix("push"), [gate[0], advisory, gate[1]]);
+  assert.deepEqual(matrix("push"), gate);
   assert.deepEqual(matrix("schedule"), [gate[0], advisory, gate[1]]);
   assert.deepEqual(matrix("workflow_dispatch"), gate);
   assert.deepEqual(matrix("pull_request"), gate);
@@ -2163,7 +2163,8 @@ test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-
   assert.match(lane, /^ {4}continue-on-error: \$\{\{ matrix\.advisory \}\}$/m);
   assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}\n/);
   // At most two macOS runners at once.
-  assert.equal(matrix("push").filter((job) => job.os.startsWith("macos-")).length, 2);
+  assert.equal(matrix("schedule").filter((job) => job.os.startsWith("macos-")).length, 2);
+  assert.equal(matrix("push").filter((job) => job.os.startsWith("macos-")).length, 1);
   assert.match(lane, /^ {4}runs-on: \$\{\{ matrix\.os \}\}$/m);
   assert.match(lane, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}ref: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}\n {10}persist-credentials: false\n/);
   assert.match(lane, /^ {6}SOURCE_SHA: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}$/m);
@@ -2983,4 +2984,13 @@ test("the factory check runs the Ouro check of the release factory has installed
   assert.match(check, /\[\[ "\$tag" =~ \^v\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$ \]\]/);
   assert.match(check, /^ {10}ref: \$\{\{ steps\.installed\.outputs\.tag \}\}$/m);
   assert.doesNotMatch(check, /^ {10}ref: main$/m);
+});
+
+test("the nightly run opens or comments on one issue when its advisory VoiceOver on macos-15 fails, and no other run does", () => {
+  const advisory = callerJobs().advisory;
+  assert.match(advisory, /^ {4}needs: \[lane\]$/m);
+  assert.match(advisory, /^ {4}if: always\(\) && github\.event_name == 'schedule'$/m);
+  assert.match(advisory, /^ {6}actions: read\n {6}contents: read\n {6}issues: write$/m);
+  assert.match(advisory, /select\(\(\.name \| test\("macos-15"\)\) and \(\.name \| test\("advisory"\)\)\)/);
+  assert.match(advisory, /scripts\/scheduled-failure\.sh "\$RUN_URL" "Screen-reader lane: the advisory VoiceOver on macOS 15 failed"/);
 });
