@@ -223,10 +223,10 @@ async function commitFiles(gh, repo, parent, baseTree, files, message, existing)
 /** What every commit Ouro Current writes says after its title, so a commit someone else pushed is told apart. */
 const MARK = "\n\nOuro Current: ";
 
-/** The bot's branch, if it exists: its commit, that commit's tree and first parent, and whether Ouro Current wrote it. */
 /**
- * The update branch's head, and whether it is still Ouro Current's own: its commit, or that commit with only merges of
- * the default branch on top ("Update branch", or an agent keeping it current, as ourostack/ouroboros#1389 had three of).
+ * The bot's branch, if it exists: its commit, that commit's tree and first parent, and whether it is still Ouro
+ * Current's own: its commit, or that commit with only merges of the default branch on top ("Update branch", or an agent
+ * keeping it current, as ourostack/ouroboros#1389 had three of).
  * Such a merge brings in nothing but the default branch, which the next update is built on anyway, so it is replaced;
  * any other commit on top is someone's fix, and is left to them.
  */
