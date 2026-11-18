@@ -36,6 +36,8 @@ export interface Look {
   pictured: boolean;
   size: string;
   behind: string;
+  /** Its own attributes as it was described, so a picture taken after it changed is not judged by this look. */
+  attributes: string;
 }
 
 export interface Described {
@@ -223,7 +225,8 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const pictureKey = `${key}|${size}|${behind}`;
     const pictured = isCrop && behind !== "translucent" && !seenPictured.has(pictureKey);
     if (pictured) seenPictured.add(pictureKey);
-    looks.push({ index, key, sig, pictured, size, behind });
+    const attributes = [...el.attributes].filter((a) => !a.name.startsWith("data-sweep-")).map((a) => `${a.name}=${a.value}`).sort().join(" ");
+    looks.push({ index, key, sig, pictured, size, behind, attributes });
 
     if ((el.getAttribute("role") === "switch" && el.dataset["ouroPart"] === "track") || el.dataset["ouroPart"] === "circle") {
       for (const child of el.children) {
@@ -276,7 +279,7 @@ export function routeGuard(context: BrowserContext, first: Page, ms = 60_000) {
   return { visit, skipped };
 }
 
-export async function picture(page: Page, index: number): Promise<Crop | null> {
+export async function picture(page: Page, index: number, attributes?: string): Promise<Crop | null> {
   const target = page.locator(`[data-sweep-look="${index}"]`);
   // The page can change between describing and picturing; an element that is gone has no picture.
   const handle = await target.elementHandle({ timeout: 2_000 }).catch(() => null);
@@ -301,6 +304,12 @@ export async function picture(page: Page, index: number): Promise<Crop | null> {
   if (!clear) return null;
   const png = await handle.screenshot({ animations: "disabled", caret: "hide", timeout: 15_000 }).catch(() => null);
   if (!png) return null;
+  // Scrolling it into view can wake the part of the page it is in (an island hydrates and an avatar's picture loads), so a
+  // picture of an element whose attributes changed since it was described shows another state than its look's.
+  if (attributes !== undefined) {
+    const now = await handle.evaluate((el) => [...el.attributes].filter((a) => !a.name.startsWith("data-sweep-")).map((a) => `${a.name}=${a.value}`).sort().join(" ")).catch(() => null);
+    if (now !== attributes) return null;
+  }
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const scale = await page.evaluate(() => devicePixelRatio).catch(() => 1);
   return { data, width: info.width, height: info.height, scale };

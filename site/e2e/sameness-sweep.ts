@@ -26,7 +26,7 @@ export function samenessSweep(mode: "light" | "dark", engine: "chromium" | "webk
         await quiet(page);
         const { looks: found, escapes: out } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
         escapes.push(...out.map((e) => `${path}: ${e}`));
-        for (const look of found) looks.add(path, look, look.pictured && looks.wants(look) ? await picture(page, look.index) : null);
+        for (const look of found) looks.add(path, look, look.pictured && looks.wants(look) ? await picture(page, look.index, look.attributes) : null);
       });
     }
     console.log(`${browserName} ${mode}: ${looks.keys} component states, ${looks.crops} pictures, over ${pages.length} pages`);
