@@ -42,7 +42,7 @@ interface NodeFiles {
   join(...parts: string[]): string;
 }
 
-/** Node's own modules, read when a bundle is written: the kit's items import no `node:` module, so a web app can install them. */
+/** Node's own modules, read when a bundle is written rather than imported, so a web app can install this item. */
 function node(): NodeFiles {
   const proc = (globalThis as unknown as { process: { getBuiltinModule(id: string): unknown } }).process;
   return { fs: proc.getBuiltinModule("node:fs") as NodeFiles["fs"], join: (proc.getBuiltinModule("node:path") as { join: NodeFiles["join"] }).join };

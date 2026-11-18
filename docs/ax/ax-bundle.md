@@ -66,7 +66,7 @@ function tailLines(file: string, n: number, maxBytes?: number): string[]
 Example:
 
 ```ts
-tailLines(path.join(logsDir, "service.log"), 300); // the service log's last 300 lines
+tailLines(`${logsDir}/service.log`, 300); // the service log's last 300 lines
 ```
 
 ### `writeBundle`
