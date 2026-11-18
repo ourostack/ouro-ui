@@ -12,7 +12,8 @@
 //   version: the next patch, or for a prerelease such as `0.1.0-alpha.1183` the next number, `0.1.0-alpha.1184`. A
 //   file may be named more than once, with a pattern for each place it carries the version.
 // changelog: a fragment the update adds. {releases} is the releases it moves to ("Ouro UI v1.3.204"), {version} the
-//   newest release's tag without the `v`. With "json": "versions", the path is instead a JSON changelog whose
+//   newest release's tag without the `v`, {versionSlug} the same with dashes for dots (`1-3-204`), for a repository
+//   whose fragment names allow only letters, digits and dashes (ourostack/gatefold's changelog.d/). With "json": "versions", the path is instead a JSON changelog whose
 //   `versions` array starts with the newest version (ourostack/ouroboros's changelog.json): the text is added to the
 //   entry for the app's version, which is put first when it is not there yet.
 // ignore: pin files to leave alone, each a path or a folder ending in `/`.
@@ -78,7 +79,7 @@ export async function applyRules(rules, { read, latestRelease, releases, newest 
     }
   }
   if (rules.changelog?.path && typeof rules.changelog.text === "string") {
-    const values = { releases, version: String(newest).replace(/^v/, "") };
+    const values = { releases, version: String(newest).replace(/^v/, ""), versionSlug: String(newest).replace(/^v/, "").replace(/[^A-Za-z0-9]+/g, "-").toLowerCase() };
     const path = fill(rules.changelog.path, values);
     const text = fill(rules.changelog.text, values);
     if (rules.changelog.json === "versions") {

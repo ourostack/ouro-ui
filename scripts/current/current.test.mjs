@@ -1547,3 +1547,11 @@ test("an update pull request with only merges of main on top of Ouro Current's c
   assert.equal(left.pr.edited, true);
   assert.equal(other.refs.get(BRANCH), fake.sha);
 });
+
+test("a fragment name can carry the version with dashes for dots (ourostack/gatefold)", async () => {
+  const rules = { changelog: { path: "changelog.d/ouro-ui-{versionSlug}.md", text: "---\ntitle: New parts\n---\nUses {releases}.\n" } };
+  const repo = fakeRepo({ "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify(rules) });
+  const result = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(result.state, "pr");
+  assert.equal(repo.fileAt(BRANCH, "changelog.d/ouro-ui-0-9-0.md"), "---\ntitle: New parts\n---\nUses Ouro UI for Apple v0.9.0.\n");
+});
