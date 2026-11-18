@@ -1,0 +1,1 @@
+- Fixed: Ouro check's `clipped-text` [leaves out text while it fades out to nothing](test/check-in-page.test.ts "verify:testExists(test/check-in-page.test.ts::findSizeIssues: clipped-text, fading out > leaves out text cut while it fades out to nothing, and still reports it when it fades in or holds)"), such as Porthole's previous line when the words change while the check runs.
