@@ -1888,7 +1888,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const budget = useRef(0);
   const dripping = useRef(0);
   const drip = () => {
-    // Stryker disable next-line ConditionalExpression: a second request in the same frame draws the same rows, as the window finds them drawn.
+    // One request a frame: a second would spend a second chunk on rows the first has not committed yet.
     if (dripping.current !== 0) return;
     dripping.current = requestAnimationFrame(() => {
       dripping.current = 0;
