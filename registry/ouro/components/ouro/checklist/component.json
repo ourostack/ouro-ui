@@ -126,6 +126,42 @@
             "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text"
           ]
         },
+        "data-out-of-order": {
+          "kind": "motion",
+          "parts": {
+            "box": {
+              "properties": [
+                "background-color",
+                "border-color",
+                "color"
+              ],
+              "reduced": [
+                "background-color",
+                "border-color",
+                "color"
+              ]
+            },
+            "tick": {
+              "properties": [
+                "stroke-dashoffset"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            },
+            "note": {
+              "properties": [
+                "opacity"
+              ],
+              "reduced": [
+                "opacity"
+              ]
+            }
+          },
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist ordered > marks a step ticked before the one that comes first, names that step, and announces it"
+          ]
+        },
         "data-disabled": {
           "kind": "motion",
           "parts": {
@@ -184,6 +220,14 @@
           "interrupt": true,
           "tests": [
             "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > ends in the last state when toggled twice during its animation"
+          ]
+        },
+        {
+          "from": "data-out-of-order",
+          "to": "data-checked",
+          "interrupt": false,
+          "tests": [
+            "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist ordered > reads a step as done on its own once the steps before it are ticked"
           ]
         }
       ]

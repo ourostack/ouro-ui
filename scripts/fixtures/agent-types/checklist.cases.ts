@@ -17,7 +17,8 @@ export const agentCases: AgentCase[] = [
     names: ["tsc", "dev"],
   },
   { id: "checklist03", habit: "CheckboxGroup's legend for a checklist's name", tsc: [hint("string", 'Use <Checklist label="Ingredients">')], dev: '<Checklist label="Ingredients">', names: ["tsc", "dev"] },
+  { id: "checklist04", habit: "a sequential flag for steps done in order", tsc: [hint("boolean", "Use <Checklist ordered>")], dev: "<Checklist ordered>", names: ["tsc", "dev"] },
 ];
 
 /** Valid checklist snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["checklistOk01"];
+export const validSnippets: string[] = ["checklistOk01", "checklistOk02"];

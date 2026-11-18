@@ -1,0 +1,1 @@
+- New: `Checklist` takes `ordered` (`true`, or the ids in order) for steps done in order: a step ticked before an earlier one turns the warning tone instead of done, names the step that comes first in a note it announces, and reads as done on its own once the earlier steps are ticked; `outOfOrderLabel` translates the note.
