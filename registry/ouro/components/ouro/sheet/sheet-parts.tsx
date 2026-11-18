@@ -305,7 +305,7 @@ export function SheetScrim({
 }: Omit<Drawer.Backdrop.Props, "className" | "forceRender"> & { ref?: Ref<HTMLDivElement> | undefined }): JSX.Element {
   useSheetPart("SheetScrim", "…");
   const anchorRef = useBackdropAnchor(ref);
-  return <Drawer.Backdrop {...props} forceRender ref={anchorRef} aria-hidden="true" data-ouro="sheet-scrim" className={scrimClass} />;
+  return <Drawer.Backdrop {...props} forceRender ref={anchorRef} aria-hidden="true" data-ouro="sheet-scrim-backdrop" className={scrimClass} />;
 }
 
 /**

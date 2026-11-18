@@ -921,7 +921,7 @@ describe("non-modal sheet", () => {
     const onOpenChange = vi.fn();
     await render(<Preview onPage={onPage} onOpenChange={onOpenChange} closeOnOutsidePress scrim />);
     await settled();
-    const scrim = document.querySelector<HTMLElement>('[data-ouro="sheet-scrim"]')!;
+    const scrim = document.querySelector<HTMLElement>('[data-ouro="sheet-scrim-backdrop"]')!;
     expect(scrim).not.toBeNull();
     expect(backdrop()).toBeNull();
     const style = getComputedStyle(scrim);
@@ -940,14 +940,14 @@ describe("non-modal sheet", () => {
     await page.viewport(1280, 800);
     await render(<Preview />);
     await settled();
-    expect(document.querySelector('[data-ouro="sheet-scrim"]')).toBeNull();
+    expect(document.querySelector('[data-ouro="sheet-scrim-backdrop"]')).toBeNull();
     await render(
       <Sheet title="Modal" open onOpenChange={() => {}} scrim>
         <Body />
       </Sheet>,
     );
     await settled();
-    expect(document.querySelector('[data-ouro="sheet-scrim"]')).toBeNull();
+    expect(document.querySelector('[data-ouro="sheet-scrim-backdrop"]')).toBeNull();
     expect(backdrop()).not.toBeNull();
   });
 
