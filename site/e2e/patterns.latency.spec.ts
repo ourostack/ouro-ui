@@ -52,7 +52,9 @@ interface Baseline {
  * was lower there, so these, the higher ratios, are the baselines.
  */
 const BASELINES: Record<string, { paint: Baseline | null; plot?: Baseline | null }> = {
-  "dashboard-page": { paint: { median: 502, bare: 152 }, plot: { median: 793, bare: 152 } },
+  // Lowered 2026-11-18 from run 44299455600 (pull request #2126), once Chart loaded Recharts after the first paint: its
+  // first paint went from 3.30 to 2.61 times the bare app's, and its chart from 5.22 to 4.79.
+  "dashboard-page": { paint: { median: 438, bare: 168 }, plot: { median: 804, bare: 168 } },
   "list-detail-page": { paint: { median: 326, bare: 148 } },
   "settings-page": { paint: { median: 402, bare: 152 } },
 };
@@ -213,3 +215,43 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
     if (chart) judge(`${name} chart drawn`, plots, baselines.plot ? ceilingFor(baselines.plot, bare) : null, baselines.plot ? against(baselines.plot) : `the bare app ${bare} ms now`);
   });
 }
+
+test("dashboard-page paints its frame, the chart's title and the room for its plot before Recharts has loaded", async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  // Every script but the page's entry waits until the page has painted: Chart loads Recharts in a chunk of its own after
+  // the first paint, so the page paints without it.
+  const held: string[] = [];
+  let release!: () => void;
+  const released = new Promise<void>((done) => (release = done));
+  await page.route(/\/dashboard-page\/dist\/assets\/(?!index\.js$)[^/]+\.js$/, async (route) => {
+    held.push(new URL(route.request().url()).pathname);
+    await released;
+    await route.continue();
+  });
+  try {
+    await page.goto("dashboard-page/dist/");
+    const paint = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          new PerformanceObserver((list) => {
+            const entry = list.getEntriesByName("first-contentful-paint")[0];
+            if (entry) resolve(entry.startTime);
+          }).observe({ type: "paint", buffered: true });
+        }),
+    );
+    expect(paint).toBeGreaterThan(0);
+    const chart = page.locator('[data-ouro="chart"]');
+    await expect(chart.locator("figcaption")).toBeVisible();
+    await expect.poll(() => held.length, { message: "Recharts is asked for in a chunk of its own, once the page has painted" }).toBeGreaterThan(0);
+    expect(await chart.locator("svg.recharts-surface").count(), "nothing drew the plot without Recharts").toBe(0);
+    // What is under the plot stays where it is when the plot arrives.
+    const before = await chart.locator("[data-ouro-chart-plot]").boundingBox();
+    const tableTop = (await page.locator('[data-ouro="table"]').first().boundingBox())?.y;
+    release();
+    await expect(chart.locator("[data-ouro-chart-plot] svg.recharts-surface")).toBeVisible();
+    expect(await chart.locator("[data-ouro-chart-plot]").boundingBox()).toEqual(before);
+    expect((await page.locator('[data-ouro="table"]').first().boundingBox())?.y).toBe(tableTop);
+  } finally {
+    release();
+  }
+});
