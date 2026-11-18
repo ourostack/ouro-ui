@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Changed: the Apple pages and the Platforms pages [name Apple's 1.1.0](site/src/apple/kit.json "verify:equals(site/src/apple/kit.json#release)=1.1.0"), and the parity table lists [each view a Swift file declares](scripts/parity-matrix.test.mjs "verify:fileLine(scripts/parity-matrix.test.mjs, /counts each, and not its support types/)"), so `OuroSkeleton`, `OuroSpinner` and `OuroProgress` all show.
+- Fixed: Ouro Feel [follows the reader's row by its `id`, or the attribute `watch` names in `rowId` (`data-message-id`), where the page draws it again as a new element](scripts/feel.test.mjs "verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe follows the reader's row by its id, or the attribute watch names, so a row drawn again as a new element that moved is still a jump)"), so a row re-keyed or a list drawn again that moved the reader still counts as a jump.
