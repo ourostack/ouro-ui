@@ -141,6 +141,8 @@ interface ChartState {
   formatValue: (value: number, series: string) => string;
   /** The element a `ChartLegend` portals its list into, below the plot; `null` until it mounts. */
   legendTarget: HTMLElement | null;
+  /** One key per Chart for its parts' development messages, so Chart's early check and a part's own say each once. */
+  warnKey: object;
 }
 
 const ChartContext = createContext<ChartState | null>(null);
@@ -152,12 +154,12 @@ const toneNames = Object.keys(chartTones);
 const partShape = (part: string) => `<Chart title="Cooking" data={rows} categoryKey="month" config={config}><BarChart><${part} /></BarChart></Chart>`;
 
 /**
- * In development, says once that a ChartTooltip or ChartLegend was given `content`, which it draws from config instead.
- * Keyed by the part's props, so Chart's early check and the part's own say it once between them.
+ * In development, says once per Chart that a ChartTooltip or ChartLegend was given `content`, which it draws from config
+ * instead. Chart's early check and the part's own share the Chart's key, so they say it once between them.
  */
-function checkPartContent(type: unknown, props: { content?: unknown }): void {
+function checkPartContent(type: unknown, props: { content?: unknown }, key: object): void {
   const part = type === ChartTooltip ? "ChartTooltip" : type === ChartLegend ? "ChartLegend" : undefined;
-  if (part && props.content !== undefined) devWarn(part, `content is not a prop; ${part} draws its content from config`, `<${part} />`, props);
+  if (part && props.content !== undefined) devWarn(part, `content is not a prop; ${part} draws its content from config`, `<${part} />`, key);
 }
 
 function useChartPart(part: string): ChartState {
@@ -293,12 +295,12 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   // The plot draws after the first paint, and its parts with it, so Chart checks the parts it can see now: their messages
-  // come with the page, not a frame later. Each is keyed by the part's own props, as the part keys its own check, so the
-  // part says nothing more once it renders.
+  // come with the page, not a frame later. Chart and its parts share one key, so a part says nothing more once it renders.
   const child = Children.toArray(children).find(isValidElement) as ReactElement<{ data?: unknown }> | undefined;
+  const [warnKey] = useState(() => ({}));
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
-    if (process.env.NODE_ENV !== "production") for (const part of child ? partsOf(child) : []) checkPartContent(part.type, part.props as { content?: unknown });
+    if (process.env.NODE_ENV !== "production" && child) for (const part of partsOf(child)) checkPartContent(part.type, part.props as { content?: unknown }, warnKey);
   });
   const id = useId();
   const summaryId = `${id}-summary`;
@@ -326,8 +328,8 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   );
   // Indexed once per series and formatter, not on every render (a tooltip's move renders the chart).
   const state = useMemo<ChartState>(
-    () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget }),
-    [series, formatValue, legendTarget],
+    () => ({ byKey: new Map(series.map((item) => [item.key, item])), formatValue, legendTarget, warnKey }),
+    [series, formatValue, legendTarget, warnKey],
   );
   const colors = useMemo(() => Object.fromEntries(series.map((item) => [`--color-${item.key}`, item.color])) as CSSProperties, [series]);
   // Recharts makes the plot a tab stop (role "application"), so it carries the control marker.
@@ -613,11 +615,11 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  * @claim "The tooltip for a recharts chart" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
  */
 export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
-  useChartPart("ChartTooltip");
+  const { warnKey } = useChartPart("ChartTooltip");
   useDevWarnings("ChartTooltip", process.env.NODE_ENV !== "production" ? () => [] : /* istanbul ignore next @preserve -- production only */ undefined);
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
-    if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props);
+    if (process.env.NODE_ENV !== "production") checkPartContent(ChartTooltip, props, warnKey);
   });
   return <Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
 }
@@ -647,11 +649,11 @@ export function ChartTooltip(props: ChartTooltipProps): JSX.Element {
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws lines with a different point shape per series)
  */
 export function ChartLegend(props: ChartLegendProps): JSX.Element | null {
-  const { legendTarget } = useChartPart("ChartLegend");
+  const { legendTarget, warnKey } = useChartPart("ChartLegend");
   useDevWarnings("ChartLegend", process.env.NODE_ENV !== "production" ? () => [] : /* istanbul ignore next @preserve -- production only */ undefined);
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
-    if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props);
+    if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props, warnKey);
   });
   // Recharts measures the plot before it renders its children, by which time the slot is mounted. A null
   // target would make Legend fall back to the list inside the chart's own wrapper, so render nothing then.

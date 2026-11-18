@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { Line, LineChart, XAxis } from "recharts";
+import { Line, LineChart, Tooltip, XAxis } from "recharts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Chart, ChartContainer, ChartLegend, ChartTooltip, type ChartConfig } from "@/registry/ouro/components/ouro/chart/chart";
@@ -609,20 +609,35 @@ describe("Chart development messages", () => {
   ])("warns when %s gets shadcn's content prop, with the page and before the plot draws, once", async (part, problem, fix) => {
     const Part = (part === "ChartTooltip" ? ChartTooltip : ChartLegend) as (props: { content: unknown }) => ReactNode;
     const message = `[ouro-ui] ${part}: ${problem}. Fix: ${fix}.`;
-    const { chart } = await render(
+    const tree = () => (
       <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
         <LineChart>
           <Line dataKey="cooked" />
           <Part content={<div />} />
         </LineChart>
-      </Chart>,
+      </Chart>
     );
+    const { chart, rerender } = await render(tree());
     // Chart checks the parts it can see while the plot waits for the first paint, so the message comes with the page.
     expect(chart.querySelector(".recharts-surface")).toBeNull();
     expect(warn.mock.calls.filter((call: unknown[]) => call[0] === message)).toHaveLength(1);
-    // The part, rendered with the plot, knows Chart checked it and says nothing more.
+    // The part, rendered with the plot, knows Chart checked it and says nothing more, nor does a render with new elements.
     await drawn(chart);
+    await rerender(tree());
     expect(warn.mock.calls.filter((call: unknown[]) => call[0] === message)).toHaveLength(1);
+  });
+
+  it("names nothing for a part of recharts' own that takes content, beside the series", async () => {
+    const { chart } = await render(
+      <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+        <LineChart>
+          <Line dataKey="cooked" />
+          <Tooltip content={<div />} />
+        </LineChart>
+      </Chart>,
+    );
+    await drawn(chart);
+    expect(warn.mock.calls.filter((call: unknown[]) => String(call[0]).startsWith("[ouro-ui] Chart"))).toEqual([]);
   });
 
   it.each([
