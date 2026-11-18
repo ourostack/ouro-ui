@@ -15,6 +15,8 @@ export const LATENCY_SHARDS = [
   { files: ["chapter-one.latency.spec.ts", "stage.latency.spec.ts"], seconds: 290 },
   { files: ["chapter-two.latency.spec.ts", "site-menu.latency.spec.ts", "squircle-polyfill.latency.spec.ts"], seconds: 260 },
   { files: ["chapter-three.latency.spec.ts", "stage-switch.latency.spec.ts"], seconds: 236 },
+  // The page patterns' first paint, a shard of its own: 75 seconds in run 44286124531, the latency step with its build.
+  { files: ["patterns.latency.spec.ts"], seconds: 75 },
 ];
 
 /** The spec files on disk, as the latency config matches them. */
