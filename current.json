@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-18T09:56:49.663Z",
+  "generatedAt": "2026-11-18T10:26:22.978Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -58,27 +58,24 @@
     },
     {
       "repo": "ourostack/desk",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "plugins/desk/mcp/src/lib/ouro-actions/dist-manifest.json",
           "follows": "core",
-          "current": "v0.18.2",
+          "current": "v0.18.3",
           "latest": "v0.18.3",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit f805df8",
+          "current": "commit d0c7fed",
           "latest": "v1.3.292",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1208,
-        "url": "https://github.com/ourostack/desk/pull/1208"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/factory",
@@ -204,27 +201,24 @@
     },
     {
       "repo": "ourostack/m365crawl",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit f805df8",
+          "current": "commit d0c7fed",
           "latest": "v1.3.292",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "core",
-          "current": "commit 621ee82",
+          "current": "commit 23fa17d",
           "latest": "v0.18.3",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 389,
-        "url": "https://github.com/ourostack/m365crawl/pull/389"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-md",
@@ -259,20 +253,17 @@
     },
     {
       "repo": "ourostack/ouro-native-apple-app-shell",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "Package.swift",
           "follows": "apple",
-          "current": "1.0.0",
+          "current": "1.1.0",
           "latest": "v1.1.0",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 50,
-        "url": "https://github.com/ourostack/ouro-native-apple-app-shell/pull/50"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-work-substrate",
@@ -304,34 +295,31 @@
     },
     {
       "repo": "ourostack/ouroboros",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.291",
+          "current": "v1.3.292",
           "latest": "v1.3.292",
-          "behind": true
+          "behind": false
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
           "follows": "core",
-          "current": "v0.18.2",
+          "current": "v0.18.3",
           "latest": "v0.18.3",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit f805df8",
+          "current": "commit d0c7fed",
           "latest": "v1.3.292",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1403,
-        "url": "https://github.com/ourostack/ouroboros/pull/1403"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouroboros-website",
@@ -399,7 +387,7 @@
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.290",
+          "current": "v1.3.291",
           "latest": "v1.3.292",
           "behind": true
         },
@@ -412,8 +400,8 @@
         }
       ],
       "pr": {
-        "number": 763,
-        "url": "https://github.com/spoonjoy/spoonjoy-v2/pull/763"
+        "number": 764,
+        "url": "https://github.com/spoonjoy/spoonjoy-v2/pull/764"
       }
     }
   ]
