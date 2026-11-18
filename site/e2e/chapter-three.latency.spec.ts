@@ -101,9 +101,7 @@ const BASELINE_MEDIAN: Record<(typeof CHAPTER_THREE_CONTROLS)[number], number> =
   surface: 40,
   "saloon-code": 48,
   organ: 64,
-  // Not yet measured on CI: the Copy press of the hand-off that replaced Install (24), set to the saloon-code press it
-  // most resembles (a press that opens a layer) until this spec's first CI run prints its samples.
-  handoff: 48,
+  handoff: 24,
   components: 24,
   again: 56,
 };

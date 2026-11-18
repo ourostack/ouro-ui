@@ -239,8 +239,22 @@ const BOLTS = Array.from({ length: 12 }, (_, index) => {
 /** The sea's surface across the porthole, when we are up: a line of gentle waves. */
 const WAVE = `M0 150 ${Array.from({ length: 10 }, (_, index) => `Q${index * 40 + 20} ${index % 2 ? 158 : 142} ${index * 40 + 40} 150`).join(" ")} V164 H0 Z`;
 
-/** The sea behind the glass, and its surface when we are up. */
+/** The sea behind the glass, and its surface when we are up: lit near the top, deepening below, as the stage's is. */
 const SEA = "color-mix(in oklab, var(--primary) 55%, oklch(0.24 0.045 250))";
+const SEA_TOP = "color-mix(in oklab, var(--primary) 40%, oklch(0.46 0.08 220))";
+const SEA_DEEP = "color-mix(in oklab, var(--primary) 20%, oklch(0.14 0.035 250))";
+/**
+ * The ring's brass: turned metal, lit from the upper left and shadowed lower right with a glint on the far edge, as
+ * the home page's porthole is. Brass is brass in every look, as in the chapter's picture, so it is not mixed from the
+ * theme's chart colours (in some looks those are a signal yellow); at night it sits a little darker.
+ */
+const BRASS = "color-mix(in oklab, oklch(0.7 0.1 78) 88%, var(--background))";
+const METAL = [
+  { offset: 0, color: `color-mix(in oklab, ${BRASS} 55%, white)` },
+  { offset: 0.45, color: BRASS },
+  { offset: 0.8, color: `color-mix(in oklab, ${BRASS} 62%, oklch(0.22 0.03 60))` },
+  { offset: 1, color: `color-mix(in oklab, ${BRASS} 78%, white)` },
+] as const;
 
 /**
  * The porthole: the sea, the squid at the glass (or swimming off), the floodlights, and the surface.
@@ -272,9 +286,30 @@ function Porthole(): JSX.Element {
             <stop offset="0" className="ph-beam-core" />
             <stop offset="1" className="ph-beam-edge" />
           </radialGradient>
+          <linearGradient id="porthole-sea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: SEA_TOP }} />
+            <stop offset="1" style={{ stopColor: SEA_DEEP }} />
+          </linearGradient>
+          <linearGradient id="porthole-metal" x1="0.15" y1="0" x2="0.85" y2="1">
+            {METAL.map((stop) => (
+              <stop key={stop.offset} offset={stop.offset} style={{ stopColor: stop.color }} />
+            ))}
+          </linearGradient>
+          <radialGradient id="porthole-vignette" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0.7" style={{ stopColor: SEA_DEEP, stopOpacity: 0 }} />
+            <stop offset="1" style={{ stopColor: SEA_DEEP, stopOpacity: 0.55 }} />
+          </radialGradient>
+          <linearGradient id="porthole-sheen" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" style={{ stopColor: "white", stopOpacity: 0.28 }} />
+            <stop offset="0.55" style={{ stopColor: "white", stopOpacity: 0 }} />
+          </linearGradient>
+          <radialGradient id="porthole-squid" cx="0.42" cy="0.32" r="0.75">
+            <stop offset="0" className="ph-squid-lit" />
+            <stop offset="1" className="ph-squid-shade" />
+          </radialGradient>
         </defs>
         <g clipPath="url(#porthole-glass)">
-          <rect className="ph-sea" width="400" height="400" style={{ fill: SEA }} />
+          <rect className="ph-sea" width="400" height="400" style={{ fill: "url(#porthole-sea)" }} />
           <g className="ph-sky" opacity={0}>
             <rect width="400" height="150" />
             <circle className="ph-sun" cx="292" cy="84" r="20" />
@@ -302,9 +337,12 @@ function Porthole(): JSX.Element {
           <circle cx="300" cy="330" r="3.5" />
           <circle cx="320" cy="300" r="2" />
         </g>
+        <circle cx="200" cy="200" r="176" fill="url(#porthole-vignette)" />
+        <circle className="ph-sheen" cx="200" cy="200" r="176" fill="url(#porthole-sheen)" />
         <circle className="ph-glass" cx="200" cy="200" r="176" stroke="white" strokeOpacity={0.3} strokeWidth={3} />
-        <circle className="ph-ring" cx="200" cy="200" r="186" style={{ stroke: "var(--chart-3)", strokeWidth: "18" }} />
-        <g className="ph-bolts" style={{ fill: "color-mix(in oklab, var(--chart-3) 55%, var(--background))", stroke: "color-mix(in oklab, var(--chart-3) 40%, var(--foreground))", strokeWidth: "1.2" }}>
+        <circle className="ph-ring" cx="200" cy="200" r="186" style={{ stroke: "url(#porthole-metal)", strokeWidth: "18" }} />
+        <circle cx="200" cy="200" r="177" style={{ stroke: `color-mix(in oklab, ${BRASS} 45%, oklch(0.2 0.02 60))`, strokeWidth: "2", strokeOpacity: 0.6 }} />
+        <g className="ph-bolts" style={{ fill: `color-mix(in oklab, ${BRASS} 70%, oklch(0.3 0.03 60))`, stroke: `color-mix(in oklab, ${BRASS} 40%, oklch(0.18 0.02 60))`, strokeWidth: "1.2" }}>
           {BOLTS.map((bolt, index) => (
             <circle key={index} cx={bolt.x} cy={bolt.y} r="4.5" />
           ))}
