@@ -370,6 +370,9 @@ describe("docs", () => {
       expect(pages).toContain(went[0]);
       // It stops on the one it opens.
       expect(roll.element().textContent).toBe(` → ${SURPRISES[pages.indexOf(went[0]!)]!.title}`);
+      // A load that never happens (stopped, or this test) leaves the link working.
+      await userEvent.click(link);
+      await expect.poll(() => went.length).toBe(2);
       // With reduced motion nothing rolls: the link goes straight there.
       await commands.emulateMedia({ reducedMotion: "reduce" });
       await renderPage("/docs/");
@@ -382,7 +385,7 @@ describe("docs", () => {
       await userEvent.click(still);
       expect(pages).toContain(opened);
       expect(document.querySelector("[data-site-surprise]")).toBeNull();
-      expect(went).toHaveLength(1);
+      expect(went).toHaveLength(2);
     } finally {
       surpriseNav.go = go;
       await commands.emulateMedia({ reducedMotion: "no-preference" });

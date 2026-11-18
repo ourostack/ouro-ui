@@ -26,13 +26,21 @@ function pick(): { name: string; title: string } {
 export function SurpriseMe(): JSX.Element {
   const [rolling, setRolling] = useState<string | undefined>(undefined);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // True while the names roll, until it leaves.
+  const busy = useRef(false);
   useEffect(() => {
-    // Back from the page it opened, the browser may restore this one as it left it: ready to roll again.
-    const reset = () => setRolling(undefined);
-    addEventListener("pageshow", reset);
+    // Leaving mid-roll stops it, so a page the browser keeps and later restores never leaves on its own; it comes back ready to roll again.
+    const stop = () => {
+      clearTimeout(timer.current);
+      busy.current = false;
+      setRolling(undefined);
+    };
+    addEventListener("pagehide", stop);
+    addEventListener("pageshow", stop);
     return () => {
       clearTimeout(timer.current);
-      removeEventListener("pageshow", reset);
+      removeEventListener("pagehide", stop);
+      removeEventListener("pageshow", stop);
     };
   }, []);
 
@@ -43,19 +51,24 @@ export function SurpriseMe(): JSX.Element {
   };
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (rolling !== undefined) {
+    const newTab = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
+    if (!newTab && busy.current) {
       event.preventDefault();
       return;
     }
     const choice = aim(event);
-    const newTab = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
     if (newTab || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     event.preventDefault();
+    busy.current = true;
     const url = event.currentTarget.href;
     const roll = (step: number) => {
       if (step === STEPS) {
         setRolling(choice.title);
-        timer.current = setTimeout(() => surpriseNav.go(url), STEP_MS * 2);
+        timer.current = setTimeout(() => {
+          // A stopped load leaves the link working.
+          busy.current = false;
+          surpriseNav.go(url);
+        }, STEP_MS * 2);
         return;
       }
       setRolling(pick().title);
