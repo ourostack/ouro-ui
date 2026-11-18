@@ -205,14 +205,14 @@ export const SCENES: Record<SceneName, Scene> = {
   },
   // The encounter's porthole: the sea outside the glass, of which the page shows the centre circle inside its brass ring.
   "nautilus-porthole": {
-    alt: "Through the porthole glass, a giant rose-coloured squid holds fast to the hull, one big, gentle eye peering in and two tentacle tips curled against the glass, in clear blue-green water with shafts of light from above.",
+    alt: "Through the porthole glass, a giant rose-coloured squid holds fast to the hull, its big, gentle eye peering in and its tentacle tips curled against the glass, in clear blue-green water with shafts of light from above.",
     sky: ["#0e809d", "#63e1ee", "#6f85a2", "#2e6b94", "#036685"],
     height: 1024,
     phoneHeight: 512,
     band: 50,
     night: {
       phoneHeight: 512,
-      alt: "Through the porthole glass at night, a giant rose-coloured squid holds fast to the hull, lit warm by the ship's lamps, one big, gentle eye peering in and two tentacle tips curled against the glass, in the dark night sea.",
+      alt: "Through the porthole glass at night, a giant rose-coloured squid holds fast to the hull, lit warm by the ship's lamps, its big, gentle eye peering in and its tentacle tips curled against the glass, in the dark night sea.",
     },
   },
   "nautilus-porthole-free": {
