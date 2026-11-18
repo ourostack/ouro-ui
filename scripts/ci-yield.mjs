@@ -65,10 +65,10 @@ export function waiting(open, now) {
   return { count, runs };
 }
 
-class RateLimit extends Error {}
+export class RateLimit extends Error {}
 
 /** One page through `gh api --include`: its body, after checking the requests left. */
-function read(gh, url) {
+export function read(gh, url) {
   const output = gh(["api", "--include", url]);
   const at = output.search(/\r?\n\r?\n/);
   const left = requestsLeft(output.slice(0, at));

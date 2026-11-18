@@ -61,6 +61,15 @@ const stepSeconds = (job, patterns) => (job.steps ?? []).filter((step) => patter
 const self = "ci-budget";
 /** tree-proof (scripts/ci-proof.mjs), which only names the tree a full run passed, beside this job. */
 const proof = "tree-proof";
+/**
+ * The screen-reader lane (ci.yml's screen-reader job, which calls screen-reader.yml) and the wait
+ * before it (sr-yield). The lane runs only on a pull request whose change reaches a spec, and on
+ * macOS runners that its own cap queues, so its time is not judged as the critical path: the wall
+ * time and the runner time still count it, and scripts/sr-lane-timings.mjs reports what it adds.
+ */
+export const offPath = ["screen-reader", "sr-yield"];
+/** A job of the lane, which the job graph's screen-reader job names with its caller's id. */
+const laneJob = (name) => name.startsWith("screen-reader / ");
 
 /** ci.yml's jobs: each one's id, the name its jobs report as a pattern, and the ids it needs. */
 export function jobGraph(text) {
@@ -100,19 +109,21 @@ export function heldSeconds(job) {
  * its seconds and its jobs, each the slowest instance of its id. A job no API job matches (skipped,
  * or not in this run) adds nothing. This job is left out, and so is fail-fast, which only watches
  * the run: it runs from the start until every other job is done, queues included, so on congested
- * runners its wait would be the path. With `work`, each job counts its work time, setup left out
- * (`workSeconds`).
+ * runners its wait would be the path. The screen-reader lane and its yield are left out too
+ * (`offPath`). With `work`, each job counts its work time, setup left out (`workSeconds`).
  */
 export function criticalPath(jobs, graph, { work = false } = {}) {
   // tree-proof runs beside this job on what it waits on, after the work is done: it is on no path a developer waits on.
-  const nodes = graph.filter((node) => node.id !== self && node.id !== watcher && node.id !== proof);
+  const nodes = graph.filter((node) => node.id !== self && node.id !== watcher && node.id !== proof && !offPath.includes(node.id));
   const slowest = new Map();
   const unmatched = [];
+  const outside = new Set([self, watcher, proof, ...offPath]);
   for (const job of jobs) {
+    if (laneJob(job.name)) continue;
     // A matrix job its `if` skipped reports once, under its name with the expressions unexpanded.
     const node = nodes.find((candidate) => candidate.pattern.test(job.name) || candidate.template === job.name);
     if (!node) {
-      if (!graph.some((candidate) => (candidate.id === self || candidate.id === watcher || candidate.id === proof) && candidate.pattern.test(job.name))) unmatched.push(job.name);
+      if (!graph.some((candidate) => outside.has(candidate.id) && candidate.pattern.test(job.name))) unmatched.push(job.name);
       continue;
     }
     const duration = job.conclusion === "skipped" ? 0 : work ? workSeconds(job) : heldSeconds(job);

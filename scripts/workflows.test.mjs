@@ -184,11 +184,13 @@ test("every pnpm setup and dependency install in a workflow that reports a requi
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
   assert.ok(workflows.length >= 4);
   const ownActions = new Set(actions.map(({ file }) => `./.github/${file.replace(/\/action\.yml$/, "")}`));
+  // A reusable workflow of this repository is called by its path: it is this commit's own file, not another repository's.
+  const ownWorkflows = new Set(workflows.map(({ file }) => `./.github/workflows/${file}`));
   const unpinned = [...workflows, ...actions].flatMap(({ file, text }) =>
     text
       .split("\n")
       .filter((line) => /^\s*(- )?uses: /.test(line))
-      .filter((line) => !/uses: [\w.-]+\/[\w.-]+(\/[\w.-]+)*@[0-9a-f]{40} # v\d+\.\d+\.\d+$/.test(line) && !ownActions.has(line.replace(/^\s*(- )?uses: /, "").trim()))
+      .filter((line) => !/uses: [\w.-]+\/[\w.-]+(\/[\w.-]+)*@[0-9a-f]{40} # v\d+\.\d+\.\d+$/.test(line) && !ownActions.has(line.replace(/^\s*(- )?uses: /, "").trim()) && !ownWorkflows.has(line.replace(/^\s*(- )?uses: /, "").trim()))
       .map((line) => `${file}: ${line.trim()}`),
   );
   assert.deepEqual(unpinned, [], "Pin with owner/repo@<40-character SHA> # vX.Y.Z, or use one of .github/actions.");
@@ -277,7 +279,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   // The script tests that drive a browser run in the image; the others need none.
   assert.doesNotMatch(jobs.scripts, /container:|playwright-browsers/);
   assert.match(jobs["scripts-browser"], /\$\(node scripts\/shard\.mjs scripts-browser "\$SHARD"\)/);
-  assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback\]/);
+  assert.match(jobs.ci, /needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]/);
   assert.match(jobs.ci, /"design=\$DESIGN"/);
   assert.match(jobs.ci, /"scripts-browser=\$SCRIPTS_BROWSER"/);
 });
@@ -1256,7 +1258,7 @@ test("a push to main whose tree already passed runs only install-github", () => 
   // requests only) and tree-proof skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
-  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns].includes(condition(jobs[id])));
+  const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns, laneRuns].includes(condition(jobs[id])));
   assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[ci\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
@@ -1353,6 +1355,9 @@ const designRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && n
 /** The mutation shards': they also skip when the plan counts none (no changed path is runtime source). */
 const mutationRuns = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.mutation-plan.outputs.count != '0' }}";
 
+/** The screen-reader lane (sr-yield and screen-reader): a pull request from this repository whose change reaches a spec, which the plan's screen_reader names. */
+const laneRuns = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}";
+
 /** The checks the main ruleset requires (ruleset 24881709, .github/required-checks.json). */
 const requiredChecks = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
 
@@ -1373,7 +1378,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs whenever ci passed, as after a run whose fallback shards were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.ci.result == 'success' }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1545,7 +1550,7 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
   // The ci check counts their skip as a pass only when the plan asked for it.
   assert.match(jobs.ci, /^ {6}DESIGN_RUN: \$\{\{ needs\.plan\.outputs\.design != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "skipped", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "skipped", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, DESIGN_RUN: "false" }).status, 0);
   for (const [run, result] of [["true", "skipped"], ["false", "failure"], ["false", "cancelled"]]) assert.equal(runStep(parts, { ...ok, DESIGN_RUN: run, DESIGN: result }).status, 1, `${run} ${result}`);
   // Each waiver gives its reason.
@@ -1557,13 +1562,12 @@ test("the design shards run Ouro check on the site at a phone's, a laptop's and 
 test("the ci check passes only when its parts passed and the browser shards' merged coverage reaches 100%, or the full suite decides", () => {
   const jobs = ciJobs();
   const block = jobs.ci;
-  assert.match(block, /^ {4}needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback\]$/m);
+  assert.match(block, /^ {4}needs: \[plan, checks, attribution, design, browser, scripts, scripts-browser, coverage, browser-fallback, screen-reader\]$/m);
   const parts = stepScript(block, "Every part passed");
-  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "false" };
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
   assert.equal(runStep(parts, passed).status, 0);
   assert.equal(runStep(parts, { ...passed, FALLBACK: "true", BROWSER_FALLBACK: "success" }).status, 0);
-  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { DESIGN: "failure" }, { DESIGN: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {
-    const result = runStep(parts, { ...passed, ...failed });
+  for (const failed of [{ BROWSER: "failure" }, { CHECKS: "cancelled" }, { ATTRIBUTION: "failure" }, { ATTRIBUTION: "skipped" }, { DESIGN: "failure" }, { DESIGN: "skipped" }, { SCRIPTS: "skipped" }, { SCRIPTS_BROWSER: "failure" }, { COVERAGE: "failure" }, { SCREEN_READER: "failure" }, { SCREEN_READER_RUN: "true", SCREEN_READER: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "failure" }, { FALLBACK: "true", BROWSER_FALLBACK: "skipped" }, { FALLBACK: "true", BROWSER_FALLBACK: "cancelled" }]) {    const result = runStep(parts, { ...passed, ...failed });
     assert.equal(result.status, 1, JSON.stringify(failed));
     assert.match(result.stdout, /^::error::The [\w-]+ jobs did not pass/m);
   }
@@ -1830,6 +1834,8 @@ test("every job of a workflow that runs on pull requests or in the merge queue e
     const jobs = text.split(/^jobs:\n/m)[1].split(/\n(?= {2}[\w-]+:\n)/);
     for (const job of jobs) {
       const id = job.match(/^ {2}([\w-]+):/)[1];
+      // A job that calls a reusable workflow takes no limit of its own: the called workflow's jobs keep theirs (the lane's is 60 minutes).
+      if (/^ {4}uses: /m.test(job)) continue;
       // A limit is a number, or `${{ github.event_name == 'pull_request' && <a> || <b> }}`: then both must be within the hour.
       const line = job.match(/^ {4}timeout-minutes: (.+)$/m)?.[1] ?? "";
       const byEvent = /^\$\{\{ github\.event_name == '[a-z_]+' && (\d+) \|\| (\d+) \}\}$/.exec(line);
@@ -2042,13 +2048,55 @@ const srJobs = () =>
       .map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]),
   );
 
-test("the screen-reader lane runs on every push to main, nightly and on dispatch with a required source_sha, never for a pull request", () => {
+test("the screen-reader lane runs on every push to main, nightly, on dispatch with a required source_sha, and when ci.yml calls it, and never for a fork's pull request", () => {
   const text = screenReader();
   const on = text.split("\non:\n")[1].split(/\n(?=\S)/)[0];
-  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["push", "schedule", "workflow_dispatch"]);
+  assert.deepEqual([...on.matchAll(/^ {2}(\w+):/gm)].map((match) => match[1]), ["push", "schedule", "workflow_dispatch", "workflow_call"]);
   assert.match(on, /^ {4}- cron: "[^"]+"$/m);
   assert.match(on, /^ {6}source_sha:\n {8}description: .+\n {8}required: true$/m);
-  assert.doesNotMatch(text, /pull_request/);
+  // ci.yml passes the pull request's head commit and the specs its change reaches; both are required.
+  assert.match(on, /^ {2}workflow_call:\n {4}inputs:\n {6}source_sha:\n {8}description: .+\n {8}required: true\n {8}type: string\n {6}specs:\n {8}description: .+\n {8}required: true\n {8}type: string\n {6}head_repo:\n {8}description: .+\n {8}required: true\n {8}type: string$/m);
+  // A pull request reaches the lane only through ci.yml's call, whose condition refuses a fork.
+  assert.doesNotMatch(on, /pull_request/);
+});
+
+test("ci.yml calls the lane for a pull request from this repository only, with its head commit and the specs its change reaches, after yielding to main's lane", () => {
+  const ci = ciJobs();
+  const same = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.plan.outputs.screen_reader != 'none' }}";
+  assert.equal(ci["sr-yield"].match(/^ {4}if: (.+)$/m)[1], same);
+  assert.equal(ci["screen-reader"].match(/^ {4}if: (.+)$/m)[1], same);
+  assert.match(ci["sr-yield"], /^ {4}needs: \[plan\]$/m);
+  assert.match(ci["sr-yield"], /^ {8}run: node scripts\/sr-yield\.mjs$/m);
+  assert.match(ci["screen-reader"], /^ {4}needs: \[plan, sr-yield\]$/m);
+  assert.match(ci["screen-reader"], /^ {4}uses: \.\/\.github\/workflows\/screen-reader\.yml$/m);
+  assert.match(ci["screen-reader"], /^ {6}source_sha: \$\{\{ github\.event\.pull_request\.head\.sha \}\}$/m);
+  assert.match(ci["screen-reader"], /^ {6}head_repo: \$\{\{ github\.event\.pull_request\.head\.repo\.full_name \}\}$/m);
+  // The lane's guard reads that input, not the event payload a called workflow may not see, and refuses any other head repository.
+  assert.match(srJobs().lane, /^ {10}HEAD_REPO: \$\{\{ inputs\.head_repo \}\}$/m);
+  assert.match(ci["screen-reader"], /^ {6}specs: \$\{\{ needs\.plan\.outputs\.screen_reader_specs \}\}$/m);
+  // The caller grants what the lane needs, and no secret reaches it.
+  assert.match(ci["screen-reader"], /^ {4}permissions:\n {6}contents: read\n?$/m);
+  assert.doesNotMatch(ci["screen-reader"], /secrets/);
+  // The plan's lane step selects specs for a pull request from this repository and nothing for any other event or fork.
+  const lane = stepScript(ci.plan, "Which screen-reader specs can the change reach?");
+  const fork = runStep(lane, { EVENT: "pull_request", HEAD_REPO: "someone/fork", REPO: "ourostack/ouro-ui" });
+  assert.equal(fork.status, 0, fork.stdout + fork.stderr);
+  assert.doesNotMatch(fork.calls, /sr-impact/);
+  assert.equal(fork.output.screen_reader, "none");
+  const pushed = runStep(lane, { EVENT: "push", HEAD_REPO: "", REPO: "ourostack/ouro-ui" });
+  assert.doesNotMatch(pushed.calls, /sr-impact/);
+  assert.equal(pushed.output.screen_reader, "none");
+  const sameRepo = runStep(lane, { EVENT: "pull_request", HEAD_REPO: "ourostack/ouro-ui", REPO: "ourostack/ouro-ui" });
+  assert.match(sameRepo.calls, /^CALL node scripts\/sr-impact\.mjs plan HEAD\^1 HEAD$/m);
+  // The ci check passes the lane's skip only when the plan selected no spec, and counts every other result.
+  const parts = stepScript(ci.ci, "Every part passed");
+  const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };
+  assert.match(ci.ci, /^ {6}SCREEN_READER_RUN: \$\{\{ needs\.plan\.outputs\.screen_reader != 'none' \}\}$/m);
+  assert.equal(runStep(parts, passing).status, 0);
+  assert.equal(runStep(parts, { ...passing, SCREEN_READER_RUN: "true" }).status, 1, "a selected lane that was skipped fails ci");
+  assert.equal(runStep(parts, { ...passing, SCREEN_READER_RUN: "true", SCREEN_READER: "success" }).status, 0);
+  assert.equal(runStep(parts, { ...passing, SCREEN_READER: "failure" }).status, 1, "a lane that failed fails ci");
+  assert.equal(runStep(parts, { ...passing, SCREEN_READER: "cancelled", SCREEN_READER_RUN: "true" }).status, 1);
 });
 
 test("the screen-reader lane reads the repository and nothing more, and holds no secret", () => {
@@ -2067,7 +2115,7 @@ test("the screen-reader lane reads the repository and nothing more, and holds no
 
 test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory on main's pushes and nightly, at the commit it was given", () => {
   const lane = srJobs().lane;
-  // The matrix for an event: a push to main and the nightly run add the advisory macos-15 job; a dispatch runs the two that gate.
+  // The matrix for an event: a push to main and the nightly run add the advisory macos-15 job; a dispatch and a pull request's call run the two that gate.
   const include = lane.match(/include: \$\{\{ (fromJSON\(.*\)) \}\}\n/)[1];
   const matrix = (event_name) => runInNewContext(include.replace(/github\.event_name/g, JSON.stringify(event_name)).replace(/'/g, "`"), { fromJSON: JSON.parse });
   const gate = [{ os: "macos-26", project: "voiceover", advisory: false }, { os: "windows-2025", project: "nvda", advisory: false }];
@@ -2075,6 +2123,7 @@ test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-
   assert.deepEqual(matrix("push"), [gate[0], advisory, gate[1]]);
   assert.deepEqual(matrix("schedule"), [gate[0], advisory, gate[1]]);
   assert.deepEqual(matrix("workflow_dispatch"), gate);
+  assert.deepEqual(matrix("pull_request"), gate);
   // An advisory job's failure does not fail the run, whose conclusion release.yml reads; each job keeps its own artifact.
   assert.match(lane, /^ {4}continue-on-error: \$\{\{ matrix\.advisory \}\}$/m);
   assert.match(lane, /name: screen-reader-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.os \}\}\n/);
@@ -2094,18 +2143,31 @@ for (const [name, env, ok] of [
   ["a SHA that is not the dispatched branch's tip", { SOURCE_SHA: sha, EVENT: "workflow_dispatch", DISPATCHED_SHA: "b".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha }, false],
   ["a checkout of another commit", { SOURCE_SHA: sha, EVENT: "workflow_dispatch", DISPATCHED_SHA: sha, RUNNER_KIND: "github-hosted", HEAD: "c".repeat(40) }, false],
   ["a self-hosted runner", { SOURCE_SHA: sha, EVENT: "workflow_dispatch", DISPATCHED_SHA: sha, RUNNER_KIND: "self-hosted", HEAD: sha }, false],
+  ["a pull request from this repository on a hosted runner", { SOURCE_SHA: sha, EVENT: "pull_request", HEAD_REPO: "o/r", DISPATCHED_SHA: "c".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha }, true],
+  ["a pull request whose head repository was deleted", { SOURCE_SHA: sha, EVENT: "pull_request", HEAD_REPO: "", DISPATCHED_SHA: "c".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha }, false],
+  ["the spec files a change reaches", { SOURCE_SHA: sha, EVENT: "pull_request", HEAD_REPO: "o/r", DISPATCHED_SHA: "c".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha, SPECS: "registry/ouro/e2e/screen-reader/button.sr.spec.ts registry/ouro/e2e/screen-reader/dialog.sr.spec.ts" }, true],
+  ["a spec file outside the lane", { SOURCE_SHA: sha, EVENT: "pull_request", HEAD_REPO: "o/r", DISPATCHED_SHA: "c".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha, SPECS: "registry/ouro/e2e/ouro/button.spec.ts" }, false],
+  ["a command smuggled into the spec list", { SOURCE_SHA: sha, EVENT: "pull_request", HEAD_REPO: "o/r", DISPATCHED_SHA: "c".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha, SPECS: "registry/ouro/e2e/screen-reader/button.sr.spec.ts; rm -rf ." }, false],
 ]) {
   test(`the screen-reader lane's guard ${ok ? "lets through" : "stops"} ${name}`, () => {
     const guard = stepScript(srJobs().lane, "Check the commit and the runner");
-    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `git() { echo "$HEAD"; }\n${guard}`], { encoding: "utf8", env: sandboxEnv({ ...env, PROJECT: "voiceover" }) });
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `git() { echo "$HEAD"; }\n${guard}`], { encoding: "utf8", env: sandboxEnv({ REPO: "o/r", SPECS: "all", ...env, PROJECT: "voiceover" }) });
     assert.equal(result.status === 0, ok, result.stdout + result.stderr);
     if (!ok) assert.match(result.stdout, /::error::/);
   });
 }
 
+test("the screen-reader lane's guard stops a pull request from a fork", () => {
+  const guard = stepScript(srJobs().lane, "Check the commit and the runner");
+  const env = { SOURCE_SHA: sha, EVENT: "pull_request", HEAD_REPO: "someone/fork", DISPATCHED_SHA: "c".repeat(40), RUNNER_KIND: "github-hosted", HEAD: sha };
+  const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `git() { echo "$HEAD"; }\n${guard}`], { encoding: "utf8", env: sandboxEnv({ REPO: "o/r", SPECS: "all", ...env, PROJECT: "voiceover" }) });
+  assert.notEqual(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /::error::A pull request from a fork \(someone\/fork\) never runs the screen-reader lane\./);
+});
+
 test("the screen-reader lane sets up Guidepup in two phases, setup --ci then install, through the bin its package declares", () => {
   const lane = srJobs().lane;
-  const order = ["- run: pnpm i --frozen-lockfile", "- run: pnpm exec playwright install --with-deps webkit chromium", "name: Find Guidepup's setup command", 'run: pnpm exec "$GUIDEPUP" setup --ci', 'run: pnpm exec "$GUIDEPUP" install', 'pnpm test:sr --project "$PROJECT"', "node scripts/sr-classify.mjs"];
+  const order = ["- run: pnpm i --frozen-lockfile", "- run: pnpm exec playwright install --with-deps webkit chromium", "name: Find Guidepup's setup command", 'run: pnpm exec "$GUIDEPUP" setup --ci', 'run: pnpm exec "$GUIDEPUP" install', 'pnpm test:sr "${specs[@]}" --project "$PROJECT"', "node scripts/sr-classify.mjs"];
   const at = order.map((line) => lane.indexOf(line));
   assert.ok(at.every((index) => index > 0), order.filter((_, index) => at[index] <= 0).join(", "));
   assert.deepEqual([...at].sort((a, b) => a - b), at, "in this order");
@@ -2114,6 +2176,18 @@ test("the screen-reader lane sets up Guidepup in two phases, setup --ci then ins
   assert.deepEqual(Object.keys(setup.bin), ["guidepup"]);
   // The classification runs whatever failed before it, except the guard, and fails the job unless the lane passed.
   assert.match(lane, /^ {8}if: always\(\) && steps\.guard\.outcome == 'success'$/m);
+});
+
+test("the lane runs the specs its input names before --project, or every spec when there are none, within its own hour", () => {
+  const lane = srJobs().lane;
+  assert.match(lane, /^ {6}SPECS: \$\{\{ inputs\.specs \|\| 'all' \}\}$/m);
+  assert.match(lane, /if \[ "\$SPECS" != all \]; then read -r -a specs <<< "\$SPECS"; fi\n/);
+  // A pull request's call and its dispatch and push share one limit: the budget job reads it from here for the called lane.
+  assert.match(lane, /^ {4}timeout-minutes: 60$/m);
+});
+
+test("release reads only screen-reader.yml's push runs, which a pull request's call never is", () => {
+  for (const file of ["release.yml", "release-auto.yml"]) assert.match(workflow(file), /gh run list --workflow screen-reader\.yml --commit "\$sha" --event push/, file);
 });
 
 test("the screen-reader packages are pinned exactly, and test:sr runs its own config", () => {
@@ -2324,7 +2398,7 @@ test("a pull request that changes nothing the browser tests read skips the brows
   assert.match(jobs.ci, /^ {6}browser: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   assert.match(jobs.ci, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' \}\}$/m);
   const parts = stepScript(jobs.ci, "Every part passed");
-  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "" };
+  const ok = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "skipped", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "" };
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false" }).status, 0);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "true" }).status, 1);
   assert.equal(runStep(parts, { ...ok, BROWSER_RUN: "false", BROWSER: "failure" }).status, 1);

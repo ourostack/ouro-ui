@@ -122,6 +122,49 @@ test("the critical path and the wall time leave out tree-proof, which runs besid
   assert.equal(wallTime(jobs, graph), 9 * 60);
 });
 
+test("the critical path leaves out the screen-reader lane and its yield, which are no unmatched job, while the wall time and runner time count the lane", () => {
+  const graph = jobGraph(`name: CI
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+  sr-yield:
+    name: Screen-reader yield
+    needs: [plan]
+    runs-on: ubuntu-latest
+  screen-reader:
+    needs: [plan, sr-yield]
+    uses: ./.github/workflows/screen-reader.yml
+  browser:
+    needs: [plan]
+    name: browser (\${{ matrix.shard }}/2)
+    strategy:
+      matrix:
+        shard: [1, 2]
+  ci:
+    needs: [plan, browser, screen-reader]
+  ci-budget:
+    needs: [ci]
+`);
+  // The lane's macOS job ran 21 minutes after the yield: ci waits for it, but the path does not count it.
+  const jobs = [
+    job("plan", 0, 0, 1),
+    job("Screen-reader yield", 1, 1, 9),
+    job("screen-reader / voiceover (macos-26)", 1, 9, 30),
+    job("screen-reader / nvda (windows-2025)", 1, 9, 22),
+    job("browser (1/2)", 1, 1, 6),
+    job("browser (2/2)", 1, 1, 5),
+    job("ci", 30, 30, 31),
+    job("ci-budget", 31, 31, null),
+  ];
+  for (const work of [false, true]) {
+    const path = criticalPath(jobs, graph, { work });
+    assert.deepEqual(path.jobs.map((entry) => entry.name), ["plan", "browser (1/2)", "ci"]);
+    assert.equal(path.seconds, 7 * 60);
+    assert.deepEqual(path.unmatched, []);
+  }
+  assert.equal(wallTime(jobs, graph), 31 * 60);
+});
+
 test("a skipped job adds nothing, and a job no name matches is reported", () => {
   const path = criticalPath([job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 9, "skipped"), job("lint", 0, 0, 3), job("mystery", 0, 0, 30)], jobGraph(workflow));
   assert.equal(path.seconds, 3 * 60);

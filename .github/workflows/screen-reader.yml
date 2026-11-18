@@ -1,15 +1,16 @@
 name: Screen reader
 # Real screen readers read the components: VoiceOver on macOS (WebKit) and NVDA on Windows
 # (Chromium), through Guidepup (playwright.screen-reader.config.ts, registry/ouro/e2e/screen-reader/).
-# On every push to main, nightly, and by dispatch. release.yml tags a commit of main only when this
-# passed on a push of that exact commit. scripts/sr-classify.mjs sorts a failure into accessibility (an
-# utterance missing or wrong: it blocks a release) and infrastructure (the runner could not drive
-# its screen reader: a release retries once, and a nightly run or a push to main opens or updates one
-# `screen-reader-infra` issue), and harness (Playwright refused the lane's own command: no retry,
-# no issue). Guidepup's setup rewrites VoiceOver and TCC settings, so the lane
-# runs only on GitHub's ephemeral hosted runners, with read-only contents and no secrets, and never
-# for a pull request: a dispatch needs write access and tests only the tip of the dispatched branch
-# (docs/guides/screen-reader-lane.md).
+# On every push to main, nightly, by dispatch, and when ci.yml calls it for a pull request from this
+# repository whose change reaches a spec (scripts/sr-impact.mjs names the specs). release.yml tags a
+# commit of main only when this passed on a push of that exact commit. scripts/sr-classify.mjs sorts a
+# failure into accessibility (an utterance missing or wrong: it blocks a release) and infrastructure (the
+# runner could not drive its screen reader: a release retries once, and a nightly run or a push to main opens or updates one
+# `screen-reader-infra` issue), and harness (Playwright refused the lane's own command: no retry, no
+# issue). Guidepup's setup rewrites VoiceOver and TCC settings, which die with the ephemeral runner, so the
+# lane runs only on GitHub's hosted runners, with read-only contents and no secret. A fork's pull request
+# never runs it: ci.yml calls it only for a pull request whose head repository is this one. A dispatch
+# needs write access and tests only the tip of the dispatched branch (docs/guides/screen-reader-lane.md).
 on:
   push:
     branches: [main]
@@ -20,6 +21,20 @@ on:
       source_sha:
         description: "The commit to test: the full SHA of the dispatched branch's tip (release.yml passes its release commit)"
         required: true
+  workflow_call:
+    inputs:
+      source_sha:
+        description: "The pull request's head commit: its full SHA"
+        required: true
+        type: string
+      specs:
+        description: "The spec files to run, separated by spaces (registry/ouro/e2e/screen-reader/*.sr.spec.ts), or all"
+        required: true
+        type: string
+      head_repo:
+        description: "The pull request's head repository, owner/name: the lane refuses any other"
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -30,7 +45,7 @@ jobs:
     # VoiceOver on macos-26, what current users run, and NVDA gate the run. VoiceOver on macos-15 runs
     # beside them so main's runs show what older macOS's users hear, but it is advisory: its failure does
     # not fail the run, which release.yml reads. macOS runners are the scarce pool, so it runs only on a
-    # push to main and nightly, not for a dispatch, where it would gate nothing either.
+    # push to main and nightly, not for a dispatch or a pull request, where it would gate nothing either.
     strategy:
       fail-fast: false
       max-parallel: 3
@@ -46,6 +61,7 @@ jobs:
     env:
       SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
       PROJECT: ${{ matrix.project }}
+      SPECS: ${{ inputs.specs || 'all' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,15 +73,22 @@ jobs:
           EVENT: ${{ github.event_name }}
           DISPATCHED_SHA: ${{ github.sha }}
           RUNNER_KIND: ${{ runner.environment }}
+          HEAD_REPO: ${{ inputs.head_repo }}
+          REPO: ${{ github.repository }}
         run: |
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::source_sha must be a full 40-character commit SHA in lower case, not '$SOURCE_SHA'."; exit 1; }
           # Only the dispatched branch's own tip: never another commit fetched by SHA, such as a fork's.
           [ "$EVENT" != workflow_dispatch ] || [ "$SOURCE_SHA" = "$DISPATCHED_SHA" ] || { echo "::error::source_sha $SOURCE_SHA is not the tip of the dispatched branch ($DISPATCHED_SHA)."; exit 1; }
+          # A pull request runs the lane only from this repository: a fork's code is not this repository's branch.
+          [ "$EVENT" != pull_request ] || [ "$HEAD_REPO" = "$REPO" ] || { echo "::error::A pull request from a fork ($HEAD_REPO) never runs the screen-reader lane."; exit 1; }
+          [ -z "$HEAD_REPO" ] || [ "$HEAD_REPO" = "$REPO" ] || { echo "::error::The head repository $HEAD_REPO is not $REPO: the screen-reader lane never runs for a fork."; exit 1; }
+          # The specs are all, or spec files of this lane and nothing else: they become arguments of pnpm test:sr.
+          [ "$SPECS" = all ] || [[ "$SPECS" =~ ^registry/ouro/e2e/screen-reader/[a-z0-9-]+\.sr\.spec\.ts([[:space:]]+registry/ouro/e2e/screen-reader/[a-z0-9-]+\.sr\.spec\.ts)*$ ]] || { echo "::error::specs must be all, or spec files of registry/ouro/e2e/screen-reader, not '$SPECS'."; exit 1; }
           head=$(git rev-parse HEAD)
           [ "$head" = "$SOURCE_SHA" ] || { echo "::error::Checked out $head, not $SOURCE_SHA."; exit 1; }
           # Guidepup's setup rewrites VoiceOver and TCC settings: only on a throwaway hosted runner.
           [ "$RUNNER_KIND" = github-hosted ] || { echo "::error::The screen-reader lane runs only on GitHub-hosted runners, not '$RUNNER_KIND'."; exit 1; }
-          echo "Testing $SOURCE_SHA with $PROJECT on a GitHub-hosted runner."
+          echo "Testing $SOURCE_SHA with $PROJECT on a GitHub-hosted runner: $SPECS."
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -106,7 +129,10 @@ jobs:
         name: Screen-reader tests
         run: |
           set +e
-          pnpm test:sr --project "$PROJECT" 2>&1 | tee "$RUNNER_TEMP/sr.log"
+          # The specs the change reaches (or every spec). Spec paths come before --project, which takes several names.
+          specs=()
+          if [ "$SPECS" != all ]; then read -r -a specs <<< "$SPECS"; fi
+          pnpm test:sr "${specs[@]}" --project "$PROJECT" 2>&1 | tee "$RUNNER_TEMP/sr.log"
           echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       # Runs whatever failed before it (but not a failed guard): no log means the tests never ran.
       - id: classify
