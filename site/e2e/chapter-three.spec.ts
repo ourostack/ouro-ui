@@ -122,6 +122,7 @@ test.describe("each control in Chapter III", () => {
     await expect(scene(page)).toHaveAttribute("data-lights", "");
     await encounter(page).getByRole("button", { name: CHAPTER_ONE.code }).click();
     const sheet = page.getByRole("dialog", { name: CODE_SHEETS_THREE.encounter.title });
+    // real clock: the Code sheet, which stays open until it is closed.
     await expect(sheet.locator("[data-chapter-code]", { hasText: "<Menu " })).toContainText(`<MenuCheckboxItem checked={true} onCheckedChange={setLights}>${ORDERS.lights}</MenuCheckboxItem>`);
   });
 

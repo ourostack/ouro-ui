@@ -66,6 +66,7 @@ test.describe("each control in Chapter II", () => {
     await expect(roomCrew(page)).toContainText(ROUTE.day("1 Mar 1868").text);
     await room(page).getByRole("button", { name: CHAPTER_ONE.code }).click();
     const sheet = page.getByRole("dialog", { name: CODE_SHEETS_TWO.chartRoom.title });
+    // real clock: the Code sheet, which stays open until it is closed.
     await expect(sheet.locator("[data-chapter-code]", { hasText: "<DatePicker" })).toHaveText(`<DatePicker label="${CHART_ROOM.departure}" value="1868-03-01" onValueChange={setDay} />`);
   });
 

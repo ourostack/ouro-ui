@@ -131,6 +131,7 @@ test.describe("each control in Chapter I", () => {
     await expect(shipyard(page).getByRole("progressbar", { name: SHIPYARD.progress })).toHaveAttribute("aria-valuenow", "60");
     await shipyard(page).getByRole("button", { name: CHAPTER_ONE.code }).click();
     const sheet = page.getByRole("dialog", { name: CODE_SHEETS.shipyard.title });
+    // real clock: the Code sheet, which stays open until it is closed.
     await expect(sheet.locator("[data-chapter-code]", { hasText: "<Progress" })).toHaveText(`<Progress label="${SHIPYARD.progress}" value={60} showValue />`);
   });
 
