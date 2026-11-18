@@ -11,7 +11,9 @@ import { describe, LOOK_SELECTOR, Looks, picture, quiet, routeGuard, routes, set
 // geometry, and a picture of it) is the one the other pages give it in the same state.
 
 const SAMPLES = 2;
-const CONTROL = "[data-ouro-control]:not(a):not([href]):not([disabled]):not([aria-hidden=true]):not([data-ouro-part=hidden-input]):not([data-ouro-part=input])";
+// The looks under a docs demo (components/demo-looks.tsx) are left out: a press repaints the whole page, so every control
+// read after it on that page would wear another look, and their own states are those of a plain Button the sweep reads.
+const CONTROL = "[data-ouro-control]:not(a):not([href]):not([disabled]):not([aria-hidden=true]):not([data-ouro-part=hidden-input]):not([data-ouro-part=input]):not([data-site-demo-looks] *)";
 
 async function broken(page: Page, selector: string, index: number): Promise<string[]> {
   return page.evaluate(
