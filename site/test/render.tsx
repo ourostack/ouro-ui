@@ -25,7 +25,8 @@ export async function renderPage(path: string): Promise<HTMLElement> {
   const host = await renderFixture(<App path={path} Page={Page} />);
   // The header is an island on the docs pages: the server's HTML has it, but a client render shows
   // it once its chunk loads, and it pushes the page down then. Wait for it, so nothing moves mid-test.
-  await expect.poll(() => host.querySelector("[data-site-brand]")).not.toBeNull();
+  // The demo-only page (/docs/demo/, for a docs demo's phone frame) has no header: its own root stands for it.
+  await expect.poll(() => host.querySelector("[data-site-brand], [data-site-demo-page]")).not.toBeNull();
   // The voyage pages' islands (voyage/chapters/island.tsx: the home page's themes and reference, the Ouro AX page's
   // body and exhibit, the Nautilus's chapters): a client render shows each once its chunk loads, in any order, which
   // adds its section and its headings. Wait for every one, so a scan never sees the page change under it.
