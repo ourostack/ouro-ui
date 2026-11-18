@@ -6,14 +6,19 @@ import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
+import { Checkbox } from "@/registry/ouro/components/ouro/checkbox/checkbox";
 import { DescriptionList } from "@/registry/ouro/components/ouro/description-list/description-list";
 import { ConfirmDialog } from "@/registry/ouro/components/ouro/dialog/confirm-dialog";
+import { NumberField } from "@/registry/ouro/components/ouro/number-field/number-field";
+import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
 import { Row } from "@/registry/ouro/components/ouro/stack/row";
 import { Stack } from "@/registry/ouro/components/ouro/stack/stack";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
-import { personPress, type ComposedNode, type PersonPress } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
+import { asText, getPointer, personPress, resolveButton, setPointer, type ComposedNode, type Json, type Obj, type PersonPress } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { ALERT_TONES, ASPECTS, BADGE_TONES, FIELD_CLASS, FIELD_LABEL_CLASS, GAPS, LIST_CLASS, RAW_CLASS } from "@/registry/ouro/components/ouro/composed-surface/composed-surface-styles";
@@ -43,16 +48,33 @@ export interface ComposedSurfaceProps {
    * @claim "A person-only button never runs" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > hands a person-only action to the app's own screen and never presses it)
    */
   onHandoff: (handoff: ComposedHandoff) => void;
+  /**
+   * The data model the tree's fields start from, such as an MCP tool result's `structuredContent.ouro.data`. A
+   * TextField, Checkbox or Select shows what it holds at the field's `value` pointer and writes the person's answer
+   * there. A button input bound to that pointer (`{"@path": "/servings"}`) sends the answer when the person presses,
+   * and a consequential button's confirm sheet shows it. A new `data` or `tree` starts the fields over from `data`.
+   *
+   * @claim "sends the answer when the person presses" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface fields > presses a bound button with what the person typed, ticked and chose)
+   * @claim "a consequential button's confirm sheet shows it" registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface fields > shows what the person typed on a consequential button's confirm sheet, and sends it on confirm)
+   * @default {}
+   */
+  data?: Obj | undefined;
   /** Layout only: margins, width (`max-w-md`). */
   className?: string | undefined;
 
   /** Not a prop. A pressed button calls `onPress`, or `onHandoff` for a person-only one: `<ComposedSurface onPress={run} onHandoff={openApp}>`. */
   onAction?: { "Use onPress={run} onHandoff={openApp}": never };
+  /** Not a prop. The fields' data model is `data`: `<ComposedSurface data={structuredContent.ouro.data}>`. */
+  dataModel?: { "Use data={structuredContent.ouro.data}": never };
 }
 
 interface Context {
   onPress: ComposedSurfaceProps["onPress"];
   onHandoff: ComposedSurfaceProps["onHandoff"];
+  /** The data model as the person has filled it in so far. */
+  data: Json;
+  /** Writes the person's answer at a pointer. */
+  write: (pointer: string, value: Json) => void;
 }
 
 /** A resolved prop the resolver gives as text (core's `asText`), typed as one. */
@@ -62,7 +84,8 @@ const text = (v: unknown): string => v as string;
  * Draws Ouro's composed tree with Ouro HX, whatever format it came in: core's `ComposedNode`, from A2UI messages, an
  * MCP tool result's `structuredContent.ouro`, or your own code. Every button is one of your app's declared actions:
  * read and write run, a consequential one asks the person to confirm what the agent prepared, and a person-only one
- * takes them to your app's own screen.
+ * takes them to your app's own screen. Its fields (TextField, Checkbox, Select) fill in `data`, and a button bound to
+ * a field sends what the person entered.
  *
  * Use A2UISurface instead for A2UI messages, and HX's components directly when your own code, not an agent, decides
  * the layout.
@@ -77,33 +100,51 @@ const text = (v: unknown): string => v as string;
  * @example
  * <ComposedSurface
  *   tree={result.structuredContent.ouro.tree}
+ *   data={result.structuredContent.ouro.data}
  *   onPress={(press) => callTool(press.action, press.input)}
  *   onHandoff={({ action }) => navigate(`/recipes/${id}?do=${action}`)}
  * />
  */
 export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
-  const { tree, onPress, onHandoff, className, onAction } = props;
+  const { tree, data, onPress, onHandoff, className, onAction, dataModel } = props;
   useDevWarnings(
     "ComposedSurface",
     process.env.NODE_ENV !== "production"
-      ? () => [onAction !== undefined && ["onAction is not a prop; a pressed button calls onPress, or onHandoff for a person-only one", "<ComposedSurface onPress={run} onHandoff={openApp} />"]]
+      ? () => [
+          onAction !== undefined && ["onAction is not a prop; a pressed button calls onPress, or onHandoff for a person-only one", "<ComposedSurface onPress={run} onHandoff={openApp} />"],
+          dataModel !== undefined && ["dataModel is not a prop; the fields' data model is data", "<ComposedSurface data={structuredContent.ouro.data} />"],
+        ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
     <div data-ouro="composed-surface" className={cn("min-w-0", className)}>
-      <ComposedTree tree={tree} onPress={onPress} onHandoff={onHandoff} />
+      <ComposedTree tree={tree} data={data} onPress={onPress} onHandoff={onHandoff} />
     </div>
   );
 }
 
+/** Props for {@link ComposedTree}. @internal */
+export interface ComposedTreeProps extends Pick<ComposedSurfaceProps, "tree" | "onPress" | "onHandoff"> {
+  /** The data model the fields start from: an object, or undefined for none. */
+  data: Json | undefined;
+}
+
 /**
- * The tree's components, drawn straight into the parent: the body of ComposedSurface and of A2UISurface.
+ * The tree's components, drawn straight into the parent: the body of ComposedSurface and of A2UISurface. It holds the
+ * data model as the person fills it in, and starts over from `data` when `tree` or `data` changes.
  *
  * @internal
  */
-export function ComposedTree({ tree, onPress, onHandoff }: Pick<ComposedSurfaceProps, "tree" | "onPress" | "onHandoff">): ReactNode {
+export function ComposedTree({ tree, data, onPress, onHandoff }: ComposedTreeProps): ReactNode {
+  const [held, setHeld] = useState<{ tree: ComposedNode; data: Json | undefined; current: Json }>(() => ({ tree, data, current: data ?? {} }));
+  let current = held.current;
+  if (held.tree !== tree || held.data !== data) {
+    current = data ?? {};
+    setHeld({ tree, data, current });
+  }
+  const write = (pointer: string, value: Json) => setHeld((h) => ({ ...h, current: setPointer(h.current, pointer, value) }));
   // Stryker disable next-line StringLiteral: the root's key only prefixes its descendants' keys, which are unique under any prefix.
-  return renderNode(tree, { onPress, onHandoff }, "root");
+  return renderNode(tree, { onPress, onHandoff, data: current, write }, "root");
 }
 
 function renderNode(node: ComposedNode, ctx: Context, key: string): ReactNode {
@@ -168,6 +209,10 @@ function renderNode(node: ComposedNode, ctx: Context, key: string): ReactNode {
       return <Separator key={key} />;
     case "Alert":
       return <Alert key={key} tone={ALERT_TONES[text(p.tone)]} title={text(p.title)} description={p.text as string | undefined} />;
+    case "TextField":
+    case "Checkbox":
+    case "Select":
+      return field(node, ctx, key);
     default:
       return <ActionButton key={key} node={node} ctx={ctx} />;
   }
@@ -179,6 +224,31 @@ function image(node: ComposedNode, key: string): JSX.Element {
       <img src={text(node.props.url)} alt={text(node.props.description)} />
     </AspectRatio>
   );
+}
+
+/** A field the person fills in: it shows what the data model holds at its `value` pointer and writes their answer there. */
+function field(node: ComposedNode, ctx: Context, key: string): JSX.Element {
+  const p = node.props as { label: string; value: string; hint?: string; type?: string; multiline?: boolean; options?: string[] };
+  const held = getPointer(ctx.data, p.value);
+  const write = (value: Json) => ctx.write(p.value, value);
+  if (node.component === "Checkbox") return <Checkbox key={key} label={p.label} description={p.hint} checked={held === true} onCheckedChange={write} />;
+  if (node.component === "Select") {
+    const options = p.options!;
+    return (
+      <Select
+        key={key}
+        label={p.label}
+        description={p.hint}
+        options={options.map((option) => ({ value: option, label: option }))}
+        value={typeof held === "string" && options.includes(held) ? held : null}
+        onValueChange={write}
+      />
+    );
+  }
+  // A number field writes a number, or null (which removes the value) when the person empties it.
+  if (p.type === "number") return <NumberField key={key} label={p.label} description={p.hint} value={typeof held === "number" ? held : null} onValueChange={write} />;
+  if (p.multiline === true) return <TextArea key={key} label={p.label} description={p.hint} value={asText(held)} onValueChange={(value) => write(value)} />;
+  return <TextField key={key} label={p.label} description={p.hint} value={asText(held)} onChange={(event) => write(event.currentTarget.value)} />;
 }
 
 /** An arrow out to the app's own screen, on a person-only action's button. */
@@ -194,11 +264,13 @@ function HandoffIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
 const SECONDARY = { tone: "secondary", variant: "soft" } as const;
 
 function ActionButton({ node, ctx }: { node: ComposedNode; ctx: Context }): JSX.Element {
-  const p = node.props as { label: string; press: "run" | "confirm" | "handoff"; action: string; emphasis?: string; handoff?: string; confirm?: { description: string; fields: { label: string; value: string; raw?: string }[] } };
+  // The button as it stands now: each input bound to a field reads what the person entered, and so does its confirm sheet.
+  const live = resolveButton(node, ctx.data);
+  const p = live.props as { label: string; press: "run" | "confirm" | "handoff"; action: string; emphasis?: string; handoff?: string; confirm?: { description: string; fields: { label: string; value: string; raw?: string }[] } };
   const [pending, setPending] = useState(false);
   const [open, setOpen] = useState(false);
   const primary = p.emphasis === "primary";
-  const send = (confirmed?: true) => ctx.onPress(personPress(node, confirmed), node);
+  const send = (confirmed?: true) => ctx.onPress(personPress(node, confirmed, ctx.data), live);
   const button = (onClick: () => void, end?: typeof HandoffIcon) => (
     // A primary button is Button's default, solid in the primary tone.
     <Button {...(primary ? {} : SECONDARY)} loading={pending} endIcon={end} onClick={onClick} data-action={p.action}>

@@ -17,7 +17,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 const field = (label: string, kind = "string", optional = false) => ({ label, kind, optional });
 const catalog = {
   catalogId: "https://example.com/a2ui/catalog.json",
-  components: Object.fromEntries(["Card", "Stack", "Heading", "Text", "Image", "Badge", "List", "DescriptionList", "Separator", "Alert", "ActionButton"].map((n) => [n, {}])),
+  components: Object.fromEntries(["Card", "Stack", "Heading", "Text", "Image", "Badge", "List", "DescriptionList", "Separator", "Alert", "TextField", "Checkbox", "Select", "ActionButton"].map((n) => [n, {}])),
   metadata: {
     extensions: {
       bot_ouroboros_hx: {
@@ -367,5 +367,35 @@ describe("A2UISurface", () => {
     await act(async () => root.render(<A2UISurface {...props({ onProblems, messages: surface([{ id: "root", component: "Button" }]) })} />));
     await act(async () => root.render(<A2UISurface {...props({ onProblems, messages: surface([{ id: "root", component: "Link" }]) })} />));
     expect(onProblems).toHaveBeenCalledTimes(2);
+  });
+
+  it("starts its fields from the surface's data model, and sends what the person entered in a bound field", async () => {
+    const onAction = vi.fn();
+    const messages = [
+      ...surface(
+        [
+          { id: "root", component: "Card", children: ["servings", "with", "shop", "share"] },
+          { id: "servings", component: "TextField", label: "Servings", value: { "@path": "/servings" }, type: "number" },
+          { id: "with", component: "TextField", label: "Send to", value: { "@path": "/share/with" } },
+          { id: "shop", component: "ActionButton", action: "add_recipe_to_shopping_list", input: { recipe: { "@path": "/id" }, servings: { "@path": "/servings" } } },
+          { id: "share", component: "ActionButton", action: "share_recipe", input: { recipe: { "@path": "/id" }, with: { "@path": "/share/with" } } },
+        ],
+        { id: "rcp_1", servings: 4, share: { with: "" } },
+      ),
+      { version: "1.0", updateDataModel: { surfaceId: "card", path: "/share/with", value: "sam@example.com" } },
+    ];
+    await render(<A2UISurface {...props({ messages, onAction })} />);
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("4");
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("sam@example.com");
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
+    await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
+    expect((onAction.mock.calls[0]![0] as A2UIActionMessage).action).toMatchObject({ name: "add_recipe_to_shopping_list", sourceComponentId: "shop", context: { recipe: "rcp_1", servings: 6 } });
+    await userEvent.fill(page.getByRole("textbox", { name: "Send to" }), "kim@example.com");
+    await userEvent.click(page.getByRole("button", { name: "Share recipe" }));
+    const dialog = page.getByRole("alertdialog", { name: "Share recipe?" });
+    await expect.element(dialog).toBeVisible();
+    expect(dialog.element().textContent).toContain("kim@example.com");
+    await userEvent.click(dialog.getByRole("button", { name: "Share recipe" }));
+    expect((onAction.mock.calls[1]![0] as A2UIActionMessage).action).toMatchObject({ name: "share_recipe", context: { recipe: "rcp_1", with: "kim@example.com" }, metadata: { extensions: { bot_ouroboros_action: { consent: "consequential", by: "person", confirmed: true } } } });
   });
 });
