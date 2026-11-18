@@ -152,6 +152,47 @@ describe("findSizeIssues: clipped-text", () => {
   });
 });
 
+describe("findSizeIssues: clipped-text, fading out", () => {
+  const cut = `display:block;width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+
+  it("leaves out text cut while it fades out to nothing, and still reports it when it fades in or holds", async () => {
+    render(`<span id="out" aria-hidden="true" style="${cut}">The line on its way out</span><span id="in" aria-hidden="true" style="${cut}">The line on its way in</span>`);
+    const fade = (id: string, from: number, to: number) => document.getElementById(id)!.animate([{ opacity: from }, { opacity: to }], { duration: 60_000 });
+    const out = fade("out", 1, 0);
+    const into = fade("in", 0.5, 1);
+    try {
+      expect((await findSizeIssues()).map((issue) => issue.element)).toEqual(['span#in "The line on its way in"']);
+    } finally {
+      out.cancel();
+      into.cancel();
+    }
+    expect(rules(await findSizeIssues())).toEqual(["clipped-text", "clipped-text"]);
+  });
+
+  it("still reports text whose fade out is paused, or that moves without fading", async () => {
+    render(`<span id="paused" aria-hidden="true" style="${cut}">A fade held part way</span><span id="moving" aria-hidden="true" style="${cut}">A line that slides</span>`);
+    const paused = document.getElementById("paused")!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 60_000 });
+    paused.pause();
+    const moving = document.getElementById("moving")!.animate([{ translate: "0 0" }, { translate: "4px 0" }], { duration: 60_000 });
+    try {
+      expect(rules(await findSizeIssues())).toEqual(["clipped-text", "clipped-text"]);
+    } finally {
+      paused.cancel();
+      moving.cancel();
+    }
+  });
+
+  it("leaves out text inside an element that fades out to nothing", async () => {
+    render(`<div id="leaving"><span aria-hidden="true" style="${cut}">A line inside a fading box</span></div>`);
+    const out = document.getElementById("leaving")!.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 60_000 });
+    try {
+      expect(await findSizeIssues()).toEqual([]);
+    } finally {
+      out.cancel();
+    }
+  });
+});
+
 describe("findSizeIssues: clipped-text, cut by an ancestor's box", () => {
   const card = (inner: string) => `<article style="position:relative;overflow:hidden;width:240px;height:150px;padding:0 16px;border:1px solid #c9d3df">${inner}</article>`;
   const title = (margin: string) => `<h3 style="margin:${margin};height:26px;font:600 20px/26px system-ui">Card title</h3>`;
