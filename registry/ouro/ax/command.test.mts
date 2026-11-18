@@ -424,6 +424,8 @@ test("an argument's values are its input schema's enum, and an MCP call outside 
   };
   assert.deepEqual(refused({ action: "nope" }), { code: "bad-value", exit: 2, thing: "gate", problem: '"action" is one of check, wait, not "nope"', fix: '{"action":"check"}' });
   assert.deepEqual(refused({ action: "wait", days: ["tues"] }), { code: "bad-value", exit: 2, thing: "gate", problem: '"days" is one of mon, tue, not "tues"', fix: '{"action":"wait","days":["tue"]}' });
+  // A list keeps its valid words, and a word with no close value takes the first.
+  assert.deepEqual(refused({ action: "wait", days: ["mon", "zzzz"] }), { code: "bad-value", exit: 2, thing: "gate", problem: '"days" is one of mon, tue, not "zzzz"', fix: '{"action":"wait","days":["mon","mon"]}' });
 });
 
 test("a tool with a voice takes --quiet, which stays out of the input schema and argv", () => {
