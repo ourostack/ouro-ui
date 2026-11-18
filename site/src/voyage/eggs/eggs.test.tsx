@@ -10,6 +10,13 @@ await Promise.all([loadPageCode("/"), loadPageCode("/nautilus/")]);
 
 const nemo = () => document.querySelector<HTMLElement>('[data-egg="nemo"]');
 const leagues = () => document.querySelector<HTMLElement>('[data-egg="leagues"]');
+/** The ship that sails across: the painted cut-out's picture. */
+const ship = () => nemo()?.querySelector<HTMLImageElement>(".egg-ship img") ?? null;
+/** Waits until the ship's picture has loaded, then says which cut-out it is and at which widths. */
+const sailing = async () => {
+  await expect.poll(() => Boolean(ship()?.complete && ship()!.naturalWidth > 0)).toBe(true);
+  return { src: new URL(ship()!.src).pathname, srcset: ship()!.getAttribute("srcset"), alt: ship()!.alt, drawn: nemo()!.querySelector(".egg-ship svg") };
+};
 /** Waits for a toast with this title. */
 const toasted = (title: string) => expect.poll(() => document.querySelector('[data-ouro="toaster"]')?.textContent ?? "").toContain(title);
 
@@ -79,7 +86,7 @@ describe.each(["/", "/nautilus/"])("Captain Nemo on %s", (path) => {
     expect(nemo()!.getAttribute("aria-hidden")).toBe("true");
     expect(getComputedStyle(nemo()!).pointerEvents).toBe("none");
     expect(nemo()!.querySelectorAll(".egg-bubble").length).toBeGreaterThan(10);
-    expect(nemo()!.querySelector(".egg-ship svg")).not.toBeNull();
+    expect(await sailing()).toEqual({ src: "/eggs/nautilus-day-420.webp", srcset: "/eggs/nautilus-day-420.webp 1x, /eggs/nautilus-day-840.webp 2x", alt: "", drawn: null });
     await toasted("Captain Nemo waves hello!");
     // Moving: the ship sails and the bubbles rise.
     expect(document.getAnimations().some((animation) => (animation as CSSAnimation).animationName === "egg-sail")).toBe(true);
@@ -89,6 +96,20 @@ describe.each(["/", "/nautilus/"])("Captain Nemo on %s", (path) => {
     await userEvent.keyboard("nemo");
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(nemo()).toBeNull();
+  });
+});
+
+describe("Captain Nemo after dark", () => {
+  it("sails the painted Nautilus by night in dark mode", async () => {
+    await renderPage("/nautilus/");
+    document.documentElement.classList.add("dark");
+    try {
+      await userEvent.keyboard("nemo");
+      await expect.poll(nemo, { timeout: 10_000 }).not.toBeNull();
+      expect(await sailing()).toEqual({ src: "/eggs/nautilus-night-420.webp", srcset: "/eggs/nautilus-night-420.webp 1x, /eggs/nautilus-night-840.webp 2x", alt: "", drawn: null });
+    } finally {
+      document.documentElement.classList.remove("dark");
+    }
   });
 });
 

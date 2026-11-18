@@ -2,11 +2,6 @@
 
 /* Captain Nemo's visit: bubbles rise and the Nautilus sails across, over the page and taking none of it. */
 .egg-nemo {
-  --hull: color-mix(in oklab, var(--primary) 28%, oklch(0.34 0.025 250));
-  --hull-trim: color-mix(in oklab, var(--primary) 22%, oklch(0.42 0.025 250));
-  --metal: color-mix(in oklab, var(--chart-3) 70%, var(--hull-trim));
-  --sea-ink: var(--primary);
-  --glow: var(--chart-3);
   position: fixed;
   inset: 0;
   z-index: calc(var(--ouro-layer, 50) + 2);
@@ -39,50 +34,22 @@
   width: min(70vw, 420px);
   translate: -50% 0;
 }
-.egg-ship svg {
+.egg-ship img {
   display: block;
   width: 100%;
   height: auto;
 }
-.egg-ship .n-hull {
-  fill: var(--hull);
-}
-.egg-ship .n-platform,
-.egg-ship .n-cage,
-.egg-ship .n-cage-cap,
-.egg-ship .n-rudder,
-.egg-ship .n-spur-collar {
-  fill: var(--hull-trim);
-}
-.egg-ship .n-plates,
-.egg-ship .n-deck-edge,
-.egg-ship .n-highlight,
-.egg-ship .n-keel-light {
-  fill: none;
-  stroke: color-mix(in oklab, var(--background) 30%, transparent);
-}
-.egg-ship .n-screw,
-.egg-ship .n-spur {
-  fill: var(--metal);
-  stroke: var(--metal);
-}
-.egg-ship .n-lights circle,
-.egg-ship .n-lantern {
-  fill: color-mix(in oklab, var(--glow) 80%, white);
-}
-.egg-ship .n-hull-sheen-top {
-  stop-color: white;
-  stop-opacity: 0.4;
-}
-.egg-ship .n-hull-sheen-mid {
-  stop-opacity: 0;
-}
-.egg-ship .n-hull-sheen-bottom {
-  stop-color: black;
-  stop-opacity: 0.45;
-}
-.egg-ship .n-hull-sheen-keel {
-  stop-opacity: 0;
+/* Her lit portholes, which flash hello as she passes: a glow over them that only changes its opacity. */
+.egg-ship-light {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 12%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklab, white 70%, var(--chart-3)), color-mix(in oklab, var(--chart-3) 40%, transparent) 55%, transparent);
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -93,14 +60,12 @@
   .egg-ship {
     left: 0;
     translate: -100% 0;
-    animation: egg-sail 6.2s cubic-bezier(0.45, 0, 0.55, 1) both;
+    /* She sails on translate and bobs on transform, two properties, so the picture and its lights move as one. */
+    animation:
+      egg-sail 6.2s cubic-bezier(0.45, 0, 0.55, 1) both,
+      egg-bob 1.6s ease-in-out infinite alternate;
   }
-  .egg-ship svg {
-    animation: egg-bob 1.6s ease-in-out infinite alternate;
-  }
-  /* The lantern flashes hello as she passes. */
-  .egg-ship .n-lantern,
-  .egg-ship .n-lights circle {
+  .egg-ship-light {
     animation: egg-wave 0.5s ease-in-out 2s 6 alternate;
   }
 }
@@ -135,8 +100,7 @@
 }
 @keyframes egg-wave {
   to {
-    fill: white;
-    opacity: 0.2;
+    opacity: 0.9;
   }
 }
 

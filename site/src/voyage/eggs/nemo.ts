@@ -1,6 +1,6 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
-import nautilus from "../../nautilus/art/nautilus.svg?raw";
+import { nemoShip } from "./nemo-ship";
 import "./eggs.css";
 
 /** How long Captain Nemo's visit lasts, unless dismissed: the ship's crossing, or a still moment with reduced motion. */
@@ -22,8 +22,8 @@ export const BUBBLES = Array.from({ length: 28 }, (_, index) => ({
 let playing: (() => void) | null = null;
 
 /**
- * Captain Nemo waves hello: bubbles fill the screen and the Nautilus sails across it, its lantern
- * flashing a hello, then a toast says who he is. The drawing takes no pointer and no focus, so the
+ * Captain Nemo waves hello: bubbles fill the screen and the Nautilus sails across it, the painted
+ * ship from the shipyard scene (by night on a dark page), her portholes flashing a hello, then a toast says who he is. The drawing takes no pointer and no focus, so the
  * page stays usable; a press, a tap or Escape ends it early. With reduced motion nothing moves:
  * the bubbles and the ship fade in still, and out again.
  */
@@ -40,8 +40,14 @@ export function playNemo(): () => void {
   }
   const ship = layer.appendChild(document.createElement("div"));
   ship.className = "egg-ship";
-  // Its own gradient id, so the drawing never shares one with the porthole's Nautilus.
-  ship.innerHTML = nautilus.replace(/<title>[\s\S]*?<\/title>/, "").replaceAll("nautilus-sheen", "egg-nautilus-sheen");
+  // The cut-out's hull thins out over its last few rows, where she sits in the sea this layer tints up from the bottom of
+  // the screen, so no wake or water comes with her (site/scripts/nemo-ship.mts).
+  const picture = nemoShip(document.documentElement.classList.contains("dark"));
+  const image = ship.appendChild(document.createElement("img"));
+  Object.assign(image, { src: picture.src, srcset: picture.srcset, width: picture.width, height: picture.height, alt: "", draggable: false, decoding: "async" });
+  const light = ship.appendChild(document.createElement("span"));
+  light.className = "egg-ship-light";
+  light.style.cssText = `--x:${picture.light.x * 100}%;--y:${picture.light.y * 100}%`;
   document.body.append(layer);
   requestAnimationFrame(() => layer.setAttribute("data-open", ""));
 
