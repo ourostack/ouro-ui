@@ -71,6 +71,7 @@ export const FULL_RUN = "ouro-current-full-run";
 export function createSources(publicGh, { unzip = defaultUnzip, liveCheck = runLiveCheck } = {}) {
   const tarballs = new Map();
   const zips = new Map();
+  let published = null;
   const assetZip = (follows, tag, assetName) => {
     const key = `${follows}@${tag}/${assetName}`;
     if (!zips.has(key)) {
@@ -157,6 +158,17 @@ export function createSources(publicGh, { unzip = defaultUnzip, liveCheck = runL
      * run. Only an update of a live-checked repository that brings a rule calls it.
      */
     liveCheck,
+    /**
+     * A repository's live check record from the last run, as the published current.json (adoption-data) holds it, or
+     * null: none when the file cannot be read, so the check runs rather than being held back on a guess.
+     */
+    async publishedLive(repo) {
+      published ??= publicGh
+        .get(`repos/${REPOS.web}/contents/current.json?ref=adoption-data`)
+        .then((file) => JSON.parse(Buffer.from(file.content, "base64").toString("utf8")))
+        .catch(() => ({ repos: [] }));
+      return (await published).repos?.find((item) => item.repo === repo)?.live ?? null;
+    },
     /** Several files from one release asset, downloaded once: a Map of path to bytes, without the paths it lacks. */
     async assetFiles(follows, tag, assetName, paths) {
       const zip = await assetZip(follows, tag, assetName);
@@ -244,7 +256,7 @@ async function branchState(gh, repo, base) {
     for (let hops = 0; hops < 20 && !String(walk.message ?? "").includes(MARK) && (await mergesBase(gh, repo, walk, base)); hops += 1) {
       walk = await gh.get(`repos/${repo}/git/commits/${walk.parents[0].sha}`);
     }
-    return { sha: commit.sha, tree: commit.tree.sha, parent: commit.parents[0]?.sha ?? null, ours: String(walk.message ?? "").includes(MARK) };
+    return { sha: commit.sha, tree: commit.tree.sha, parent: commit.parents[0]?.sha ?? null, ours: String(walk.message ?? "").includes(MARK), moves: String(walk.message ?? "") };
   } catch (error) {
     if (error.status === 404) return null;
     throw error;
@@ -307,7 +319,7 @@ const workflowNote = (paths) =>
   `Leaves ${paths.map((path) => `\`${path}\``).join(", ")} alone: ${WORKFLOWS_PERMISSION}. Keep the Ouro UI version in a file the workflow reads at run time, such as \`.github/ouro-hx-installed.json\`.`;
 
 /** One repository: current, or updated through the bot's one pull request. */
-export async function keepRepo(gh, repo, releases, sources, { dryRun = false, live = liveFor(repo) } = {}) {
+export async function keepRepo(gh, repo, releases, sources, { dryRun = false, live = liveFor(repo), now = () => new Date() } = {}) {
   const info = await gh.get(`repos/${repo}`);
   const base = info.default_branch;
   const head = (await gh.get(`repos/${repo}/git/ref/heads/${encodeURIComponent(base)}`)).object.sha;
@@ -429,16 +441,21 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   let seed = null;
   const seeding = !live && Boolean(existing?.ours && sources.ciReports && bringsCheck(files));
   if (live && (brought.rules.length || brought.notes.length)) {
+    // The update's branch records its findings only when it is Ouro Current's and for this release: an earlier run's
+    // check of another release says nothing about this one.
+    const sameRelease = Boolean(existing?.ours) && (existing.moves.includes(` to ${releases.web.tag}.`) || existing.moves.includes(` to ${releases.web.tag};`));
     const gate = await gateLive({
       live,
       tag: releases.web.tag,
       rules: brought.rules.map((rule) => rule.rule),
       unreadable: brought.notes,
       base: await read(CHECK_CONFIG),
-      branch: existing ? await readAt(existing.sha, CHECK_CONFIG) : null,
+      branch: sameRelease ? await readAt(existing.sha, CHECK_CONFIG) : null,
       liveCheck: sources.liveCheck,
+      previous: async () => sources.publishedLive?.(repo) ?? null,
+      now: now(),
     });
-    if (gate.held) return { ...result, state: "skipped", reason: gate.held, pr: null };
+    if (gate.held) return { ...result, state: "skipped", reason: gate.held, pr: null, ...(gate.live ? { live: gate.live } : {}) };
     seed = gate.seed ?? null;
     if (seed?.file) files[CHECK_CONFIG] = seed.file;
   } else if (seeding) {
@@ -534,7 +551,7 @@ export async function keepCurrent({ appId, privateKey, makeGitHub = createGitHub
     for (const item of list) {
       if (item.archived || UPSTREAM.has(item.full_name) || (only && !only.includes(item.full_name))) continue;
       try {
-        const kept = await keepRepo(gh, item.full_name, releases, sources);
+        const kept = await keepRepo(gh, item.full_name, releases, sources, { now });
         if (!item.private) log(`${item.full_name}: ${kept.state}${kept.reason ? `: ${kept.reason}` : ""}${kept.pr ? ` ${kept.pr.url}` : ""}`);
         repos.push(kept);
       } catch (error) {
@@ -557,7 +574,7 @@ export function publicView(report) {
     privateRepos: report.repos.length - shown.length,
     repos: shown
       .filter((repo) => repo.state !== "no-pins")
-      .map((repo) => ({ repo: repo.repo, state: repo.state, pins: repo.pins.map(({ file, follows, current, latest, behind }) => ({ file, follows, current, latest, behind })), pr: repo.pr ? { number: repo.pr.number, url: repo.pr.url } : null }))
+      .map((repo) => ({ repo: repo.repo, state: repo.state, pins: repo.pins.map(({ file, follows, current, latest, behind }) => ({ file, follows, current, latest, behind })), pr: repo.pr ? { number: repo.pr.number, url: repo.pr.url } : null, ...(repo.live ? { live: repo.live } : {}) }))
       .sort((a, b) => a.repo.localeCompare(b.repo)),
   };
 }

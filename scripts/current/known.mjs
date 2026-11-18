@@ -30,8 +30,9 @@ const parse = (text) => {
 
 /**
  * ouro-check.json (base) with `found`, the keys to record by rule, added to its "known", and the keys the update's
- * branch recorded for a rule `brings` names kept too. `file` is the new text, or null when nothing is added; `counts`
- * is how many each rule has afterwards. null when base is not a readable config.
+ * branch recorded for a rule `brings` names kept too. A rule with no key still gets its list (empty), which records
+ * that its check ran and found none. `file` is the new text, or null when nothing changes; `counts` is how many each
+ * rule has afterwards. null when base is not a readable config.
  */
 export function recordKnown({ base, branch, found, brings }) {
   const config = parse(base);
@@ -42,15 +43,22 @@ export function recordKnown({ base, branch, found, brings }) {
     for (const key of keys) all.set(rule, (all.get(rule) ?? new Set()).add(key));
   }
   const known = { ...(config.known ?? {}) };
-  let added = 0;
+  let changed = false;
   for (const [rule, keys] of [...all].sort(([a], [b]) => a.localeCompare(b))) {
     const had = new Set(known[rule] ?? []);
     const both = [...new Set([...had, ...keys])].sort();
-    added += both.length - had.size;
-    if (both.length) known[rule] = both;
+    if (!(rule in known) || both.length !== had.size) changed = true;
+    known[rule] = both;
   }
-  return { file: added ? `${JSON.stringify({ ...config, known }, null, 2)}\n` : null, counts: Object.fromEntries([...all.keys()].map((rule) => [rule, known[rule]?.length ?? 0])) };
+  return { file: changed ? `${JSON.stringify({ ...config, known }, null, 2)}\n` : null, counts: Object.fromEntries([...all.keys()].map((rule) => [rule, known[rule].length])) };
 }
+
+/** Whether a branch's ouro-check.json already lists known findings for every rule given, empty lists included. */
+export function recordsEvery(branch, rules) {
+  const known = parse(branch)?.known ?? {};
+  return rules.every((rule) => Array.isArray(known[rule]));
+}
+
 
 /**
  * ouro-check.json with the findings of the rules this update brings in recorded as known, and how many each rule has;

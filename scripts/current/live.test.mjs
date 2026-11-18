@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { lintMarkdown } from "../../registry/ouro/lib/ouro/claims-check.mjs";
-import { BRANCH, keepRepo } from "./current.mjs";
+import { BRANCH, createSources, keepRepo, publicView } from "./current.mjs";
 import { fakeRepo } from "./fake-github.mjs";
 import { gateLive, liveConfig, liveFor, runLiveCheck } from "./live.mjs";
 import { scratchDir } from "../scratch.mjs";
@@ -110,16 +110,17 @@ test("live: an update that brings no rule runs nothing, and a rule file that can
   assert.match(broken.held, /ouro-check\.json cannot be read, so the Ouro check cannot run on the live site/);
 });
 
-test("live: the findings of a rule the release brings are recorded as known with the branch's keys for it, and a finding of another rule that is not gated is left out", async () => {
+test("live: the findings of the rules a release brings are recorded as known with the branch's keys for them, and a finding of another rule that is not gated is left out", async () => {
   const base = JSON.stringify({ waive: {}, known: { "off-theme": [".old sets color: red, a fixed colour"] } });
+  // The branch lists off-theme but not reveal-reflow, so the rules are not all recorded and the live check runs.
   const branch = JSON.stringify({ known: { "off-theme": [".earlier sets color: blue, a fixed colour"], overlap: ["not brought by this release"] } });
   const liveCheck = async () => ({ findings: [FINDING, finding("overlap", "/app/", "two controls overlap", false)] });
-  const gate = await gateLive({ live: LIVE, tag: "v1.3.187", rules: ["off-theme"], base, branch, liveCheck });
+  const gate = await gateLive({ live: LIVE, tag: "v1.3.187", rules: ["off-theme", "reveal-reflow"], base, branch, liveCheck });
   assert.deepEqual(JSON.parse(gate.seed.file), {
     waive: {},
-    known: { "off-theme": [".earlier sets color: blue, a fixed colour", ".hero sets color: #333, a fixed colour", ".old sets color: red, a fixed colour"] },
+    known: { "off-theme": [".earlier sets color: blue, a fixed colour", ".hero sets color: #333, a fixed colour", ".old sets color: red, a fixed colour"], "reveal-reflow": [] },
   });
-  assert.deepEqual(gate.seed.counts, { "off-theme": 3 });
+  assert.deepEqual(gate.seed.counts, { "off-theme": 3, "reveal-reflow": 0 });
   const none = await gateLive({ live: LIVE, tag: "v1.3.187", rules: ["off-theme"], base, branch: null, liveCheck: async () => ({ findings: [] }) });
   assert.equal(none.seed.file, null, "a live site with no finding of the rule changes nothing, and the count is none");
   assert.deepEqual(none.seed.counts, { "off-theme": 1 }, "the rule's one recorded finding is the base's, and the live site has no more");
@@ -166,6 +167,97 @@ test("live: an update for a live-checked app whose live site has a finding of an
   assert.equal(repo.refs.has(BRANCH), false, "and nothing is written to the update's branch");
 });
 
+test("live: a second run whose update branch already lists the new rule's findings runs no live check, and keeps that record", async () => {
+  const { repo, sources, calls } = liveApp({ findings: [FINDING, finding("off-theme", "/app/evidence.html", ".cta sets color: #333, a fixed colour; use var(--ink) (text-ink)")] });
+  await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE });
+  const recorded = repo.fileAt(BRANCH, "ouro-check.json");
+  const head = repo.refs.get(BRANCH);
+  const again = await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE });
+  assert.equal(calls.length, 1, "the branch already records the rule, so the second run checks nothing");
+  assert.equal(again.state, "pr");
+  assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), recorded, "the record is kept as the branch has it");
+  assert.equal(repo.refs.get(BRANCH), head, "and nothing new is pushed");
+  assert.match(repo.pulls[0].body, /`2` findings this app already has are recorded/, "the pull request still names the counts");
+});
+
+test("live: a live check that finds nothing records the new rule with an empty list, so the next run does not check again", async () => {
+  const { repo, sources, calls } = liveApp({ findings: [] });
+  await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE });
+  assert.deepEqual(JSON.parse(repo.fileAt(BRANCH, "ouro-check.json")).known, { "off-theme": [] });
+  assert.match(repo.pulls[0].body, /This app's live site has no finding of it, so none is recorded/);
+  await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE });
+  assert.equal(calls.length, 1);
+});
+
+test("live: a branch recorded for another release is not reused, and this release is checked", async () => {
+  const { repo, sources, calls } = liveApp({ findings: [FINDING] });
+  await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE });
+  const later = { ...RELEASES, web: { ...RELEASES.web, tag: "v1.3.200", sha: "f".repeat(40) } };
+  const result = await keepRepo(repo.gh, "o/r", later, sources, { live: LIVE });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].tag, "v1.3.200");
+  assert.equal(result.state, "pr");
+  assert.match(repo.pulls[0].title, /v1\.3\.200/);
+});
+
+test("live: a hold-back checked under six hours ago holds its release back again, with the earlier reason and times, and the check runs after six hours", async () => {
+  const held = "held back: the Ouro check of v1.3.187 finds 1 finding of existing rules on the live site: off-scale on /app/: .row sets gap: 1rem, a fixed spacing.";
+  const published = { repos: [{ repo: "o/r", state: "skipped", pins: [], pr: null, live: { tag: "v1.3.187", at: "2026-11-18T01:00:00Z", held } }] };
+  const { repo, sources, calls } = liveApp({ findings: [FINDING] });
+  sources.publishedLive = async (name) => published.repos.find((item) => item.repo === name)?.live ?? null;
+  const again = await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE, now: () => new Date("2026-11-18T03:00:00Z") });
+  assert.equal(again.state, "skipped");
+  assert.equal(again.reason, "held back: the Ouro check of v1.3.187 finds 1 finding of existing rules on the live site: off-scale on /app/: .row sets gap: 1rem, a fixed spacing (checked at 2026-11-18T01:00:00Z; next check after 2026-11-18T07:00:00Z).");
+  assert.deepEqual(again.live, published.repos[0].live, "the record keeps its first check time");
+  assert.deepEqual(calls, [], "no live check runs within the six hours");
+  assert.equal(repo.pulls.length, 0);
+  const after = await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE, now: () => new Date("2026-11-18T07:00:00Z") });
+  assert.equal(calls.length, 1, "after six hours it checks again");
+  assert.equal(after.state, "pr");
+});
+
+test("live: a live check that cannot run is recorded with its reason, so the hold-back stands for six hours", async () => {
+  const { repo, sources } = liveApp();
+  sources.liveCheck = async () => {
+    throw new Error("the check stopped (exit 1): no Chromium");
+  };
+  const now = new Date("2026-11-18T01:00:00Z");
+  const result = await keepRepo(repo.gh, "o/r", RELEASES, sources, { live: LIVE, now: () => now });
+  assert.deepEqual(result.live, { tag: "v1.3.187", at: "2026-11-18T01:00:00.000Z", held: result.reason });
+});
+
+test("live: the last hold-back is read from the published current.json on adoption-data, and a file that cannot be read gives none", async () => {
+  const file = (value) => ({ content: Buffer.from(JSON.stringify(value)).toString("base64") });
+  const paths = [];
+  const record = { tag: "v1.3.187", at: "2026-11-18T01:00:00Z", held: "held back: x." };
+  const readable = createSources({
+    get: async (path) => {
+      paths.push(path);
+      return file({ repos: [{ repo: "ourostack/factory", state: "skipped", live: record }] });
+    },
+  });
+  assert.deepEqual(await readable.publishedLive("ourostack/factory"), record);
+  assert.equal(await readable.publishedLive("ourostack/other"), null);
+  assert.deepEqual(paths, ["repos/ourostack/ouro-ui/contents/current.json?ref=adoption-data"], "read once per run");
+  const missing = createSources({
+    get: async () => {
+      throw new Error("Not Found");
+    },
+  });
+  assert.equal(await missing.publishedLive("ourostack/factory"), null, "without the file, the check runs");
+});
+
+test("live: the published current.json keeps a live check's hold-back and when it ran, beside the repository's state", () => {
+  const live = { tag: "v1.3.187", at: "2026-11-18T01:00:00Z", held: "held back: x." };
+  const view = publicView({ generatedAt: "2026-11-18T01:00:00Z", releases: RELEASES, installations: 1, repos: [{ repo: "ourostack/factory", private: false, state: "skipped", pins: [], pr: null, live }] });
+  assert.deepEqual(view.repos[0].live, live);
+});
+
+  const unchanged = liveApp({ before: JSON.stringify([OFF_SCALE, OFF_THEME]), after: JSON.stringify([OFF_SCALE, OFF_THEME]), findings: [finding("off-scale", "/app/", ".row sets gap: 1rem, a fixed spacing")] });
+  const kept = await keepRepo(unchanged.repo.gh, "o/r", RELEASES, unchanged.sources, { live: LIVE });
+  assert.equal(kept.state, "pr");
+  assert.deepEqual(unchanged.calls, []);
+  assert.equal(unchanged.repo.fileAt(BRANCH, "ouro-check.json"), '{\n  "waive": {\n    "/": {\n      "overlap": "a reason"\n    }\n  }\n}\n', "nothing is recorded");
 test("live: an update that brings no rule runs no live check, and a repository without a live check is updated without one", async () => {
   const unchanged = liveApp({ before: JSON.stringify([OFF_SCALE, OFF_THEME]), after: JSON.stringify([OFF_SCALE, OFF_THEME]), findings: [finding("off-scale", "/app/", ".row sets gap: 1rem, a fixed spacing")] });
   const kept = await keepRepo(unchanged.repo.gh, "o/r", RELEASES, unchanged.sources, { live: LIVE });

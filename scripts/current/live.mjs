@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CONFIG as CHECK_CONFIG, knownKey, recordKnown } from "./known.mjs";
+import { CONFIG as CHECK_CONFIG, knownKey, recordKnown, recordsEvery } from "./known.mjs";
 import { REPOS } from "./pins.mjs";
 
 /**
@@ -41,16 +41,26 @@ function heldFor(tag, existing) {
   return `held back: the Ouro check of ${tag} finds ${existing.length} ${existing.length === 1 ? "finding" : "findings"} of existing rules on the live site: ${shown.join("; ")}${rest > 0 ? `, and ${rest} more` : ""}.`;
 }
 
+/** A hold-back stands for this long before the check runs again for the same repository and release. */
+export const HOLD_HOURS = 6;
+const HOLD_MS = HOLD_HOURS * 60 * 60 * 1000;
+const stamp = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+
 /**
  * Checks an update against its repository's live site, when the update brings Ouro check rules (`rules`, by name) or
  * cannot say which it brings (`unreadable`, the notes of the rules' file). Without either it runs nothing and returns no
- * seed. `held` is the reason the update waits, with no pull request. Otherwise `seed` is what recordKnown made of the
- * findings of the new rules, its `file` null when none change, and its `counts` are what the pull request names.
+ * seed. Otherwise the outcome is one of:
+ * - `held`: the reason the update waits, with no pull request, and `live`, the record a later run reads (tag, when the
+ *   check ran, and the reason): the same release is held back without a check for HOLD_HOURS;
+ * - `seed`: what recordKnown made of the findings of the new rules, its `file` null when none change, and its `counts`,
+ *   which the pull request names. A branch that already lists known findings for every new rule (an earlier run's check
+ *   of this release) gives its seed with no check.
  *
  * base and branch: ouro-check.json on the default branch and on the update's branch, as text or null. liveCheck({ tag,
- * targets, config }) returns the report's findings, as runLiveCheck does.
+ * targets, config }) returns the report's findings, as runLiveCheck does. previous() is the repository's last hold-back
+ * record from the published current.json, or null; now is a Date.
  */
-export async function gateLive({ live, tag, rules, unreadable = [], base, branch, liveCheck }) {
+export async function gateLive({ live, tag, rules, unreadable = [], base, branch, liveCheck, previous = async () => null, now = new Date() }) {
   if (!rules.length && !unreadable.length) return { seed: null };
   if (unreadable.length) return { held: `held back: the Ouro check rules of ${tag} cannot be read, so the live check cannot tell the new rules from the existing ones: ${unreadable.join(" ")}` };
   let config;
@@ -59,23 +69,31 @@ export async function gateLive({ live, tag, rules, unreadable = [], base, branch
   } catch {
     return { held: `held back: ${CHECK_CONFIG} cannot be read, so the Ouro check cannot run on the live site.` };
   }
+  const listed = new Set(rules);
+  const brings = (rule) => listed.has(rule);
+  if (recordsEvery(branch, rules)) return { seed: recordKnown({ base, branch, found: new Map(rules.map((rule) => [rule, new Set()])), brings }) };
+  const last = await previous();
+  if (last?.tag === tag && last.held && now.getTime() - Date.parse(last.at) < HOLD_MS) {
+    const checked = Date.parse(last.at);
+    return { held: `${last.held.replace(/\.$/, "")} (checked at ${stamp(checked)}; next check after ${stamp(checked + HOLD_MS)}).`, live: last };
+  }
+  const held = (reason) => ({ held: reason, live: { tag, at: now.toISOString(), held: reason } });
   let findings;
   try {
     const report = await liveCheck({ tag, targets: live.targets, config });
     if (!Array.isArray(report?.findings)) throw new Error("the report has no findings");
     findings = report.findings;
   } catch (error) {
-    return { held: `held back: the Ouro check of ${tag} could not run on the live site: ${error.message}` };
+    return held(`held back: the Ouro check of ${tag} could not run on the live site: ${error.message}`);
   }
-  const listed = new Set(rules);
   const found = new Map(rules.map((rule) => [rule, new Set()]));
   const existing = [];
   for (const finding of findings) {
-    if (listed.has(finding.rule)) found.get(finding.rule).add(knownKey(finding.detail));
+    if (brings(finding.rule)) found.get(finding.rule).add(knownKey(finding.detail));
     else if (finding.gated) existing.push(finding);
   }
-  if (existing.length) return { held: heldFor(tag, existing) };
-  return { seed: recordKnown({ base, branch, found, brings: (rule) => listed.has(rule) }) };
+  if (existing.length) return held(heldFor(tag, existing));
+  return { seed: recordKnown({ base, branch, found, brings }) };
 }
 
 /** Runs a command to its end, in `cwd`: its status and output. A command that cannot start throws. */
