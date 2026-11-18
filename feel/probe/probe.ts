@@ -14,6 +14,11 @@ export interface WatchOptions {
   scroller: Element | string;
   /** What counts as a row in the list, for the anchor, blank frames and rows mounted. */
   rows: string;
+  /**
+   * The attribute that names a row, such as `data-message-id`: the reader's row is followed by it where the page draws the row
+   * again as a new element. @default "id"
+   */
+  rowId?: string | undefined;
   /** What a loading placeholder is: one in view makes a `blankFramesInset` frame. @default '[data-ouro="skeleton"]' */
   skeleton?: string | undefined;
 }
@@ -385,7 +390,9 @@ function install(): OuroFeel {
 
     // The anchor: the row at the middle of the view, followed into this frame by element, or by its id where the page drew it again
     // as a new element (a row re-keyed, or the list drawn again).
-    const followed = anchor?.isConnected ? anchor : anchor?.id ? rows.find(([row]) => row.id === anchor!.id)?.[0] : undefined;
+    const name = options.rowId ?? "id";
+    const named = anchor?.getAttribute(name);
+    const followed = anchor?.isConnected ? anchor : named ? rows.find(([row]) => row.getAttribute(name) === named)?.[0] : undefined;
     if (followed !== undefined) {
       const move = (boxOf.get(followed) ?? followed.getBoundingClientRect()).top - box.top - anchorTop;
       moved = move !== 0;
