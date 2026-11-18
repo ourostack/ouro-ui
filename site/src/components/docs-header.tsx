@@ -5,7 +5,7 @@ import { VoyageHeader } from "../voyage/header";
 import { guideLabel, MenuPages, PageLink, SITE_SECTIONS, SiteMenu } from "../voyage/site-menu";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { comparisons, componentGroups, guides, helpers, isAxPart, platforms, startPages, type DocsLink } from "./docs-sections";
+import { comparisons, componentGroups, guides, rankedComponents, helpers, isAxPart, platforms, startPages, type DocsLink } from "./docs-sections";
 import { setXray, useXray } from "../voyage/xray-store";
 
 // The docs pages' header: the same one the home page and the Nautilus have. docs-shell.tsx loads
@@ -219,7 +219,7 @@ function findDocs(query: string): Array<{ label: string; links: Array<{ label: s
     .map(({ label, href }) => ({ label, href }));
   return [
     { label: "Around the site", links: site },
-    { label: "Components", links: componentGroups(query, true).flatMap((group) => group.links).map(asPage) },
+    { label: "Components", links: rankedComponents(query).map(asPage) },
     {
       label: "Guides",
       links: [...guides.map((link) => ({ ...link, label: guideLabel(link.label) })), ...comparisons].filter((link) => holds(link.label, slug(link.path))).map(asPage),

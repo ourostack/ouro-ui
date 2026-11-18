@@ -10,7 +10,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
-import { docsSections } from "./components/docs-sections";
+import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
+import { bare, otherNames } from "./components/other-names";
 import { guessedAddresses, href, redirects, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, KIT, VOYAGE_HERO, WORKS_WITH } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
@@ -471,6 +472,58 @@ describe("docs", () => {
     // Three letters must be exact.
     await userEvent.fill(filter, "dlg");
     expect(nav.getByRole("link").elements()).toHaveLength(0);
+  });
+
+  it("finds a component by the name another kit gives it, and says what it is called here", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const filter = nav.getByRole("searchbox", { name: "Filter components" });
+    const found = () => nav.getByRole("link").elements().map((link) => link.textContent);
+    await userEvent.fill(filter, "modal");
+    expect(found()).toEqual(["Dialog"]);
+    await expect.element(nav.getByRole("status")).toHaveTextContent("Looking for a modal? Here it's Dialog.");
+    // Half a word is enough, and a name two components share names both.
+    await userEvent.fill(filter, "dropd");
+    expect(found()).toEqual(["Select", "Menu"]);
+    await expect.element(nav.getByRole("status")).toHaveTextContent("Looking for a dropdown? Here it's Select or Menu.");
+    // A later word of another name finds it too, after the components whose own name holds the filter.
+    await userEvent.fill(filter, "picker");
+    expect(found()).toEqual(expect.arrayContaining(["DatePicker", "Select", "ColorField", "EmojiPicker"]));
+    expect(found().indexOf("DatePicker")).toBeLessThan(found().indexOf("Select"));
+    // A component's own name wins: no line sends you past Select to another kit's "multi-select".
+    for (const own of ["picker", "select", "button"]) {
+      await userEvent.fill(filter, own);
+      await expect.element(nav.getByRole("status")).not.toBeInTheDocument();
+    }
+    // An export's name (ResizablePanel) is not in the sidebar, so it doesn't hide the line.
+    await userEvent.fill(filter, "panel");
+    await expect.element(nav.getByRole("status")).toHaveTextContent("Looking for a panel? Here it's Card.");
+    // Never from the middle of a word: "own" is in "dropdown", but nobody means Menu by it.
+    await userEvent.fill(filter, "own");
+    expect(found()).not.toContain("Menu");
+  });
+
+  it("lists the components whose own name holds the search first in the header's search, whatever their group", () => {
+    const labels = rankedComponents("list").map((link) => link.label);
+    // Select is a listbox elsewhere, but Enter should open a list.
+    expect(labels.slice(0, 2)).not.toContain("Select");
+    expect(labels).toContain("Select");
+    expect(labels.indexOf("Select")).toBeGreaterThan(labels.indexOf("ConversationList"));
+  });
+
+  it("names only components that exist by another name, and none by a name that already finds it", () => {
+    const names = new Set(docsItems.map((item) => item.name));
+    for (const [name, phrases] of Object.entries(otherNames)) {
+      expect(names.has(name), `${name} is a component`).toBe(true);
+      const item = docsItems.find((entry) => entry.name === name)!;
+      for (const phrase of phrases) {
+        expect(componentGroups(bare(phrase)).flatMap((group) => group.links).map((link) => link.label), `"${phrase}" finds ${item.title}`).toContain(item.title);
+        // The line names it, unless another page's own name holds the phrase ("picker" is DatePicker's), when no line shows.
+        const hint = filterHint(bare(phrase));
+        if (hint !== undefined) expect(hint, `"${phrase}"'s line`).toContain(item.title);
+      }
+    }
   });
 
   it("sends the addresses agents guess on to the page they meant, an export's own name included", () => {

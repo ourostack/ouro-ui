@@ -2,8 +2,11 @@ import type { JSX } from "react";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 
-/** The filter above the docs' links, in the sidebar and in the header's menu. It narrows the components as you type. */
-export function DocsFilter({ value, onChange, empty }: { value: string; onChange: (value: string) => void; empty: boolean }): JSX.Element {
+/**
+ * The filter above the docs' links, in the sidebar. It narrows the components as you type, and `hint` says which
+ * component another kit's name found ("Looking for a modal? Here it's Dialog.").
+ */
+export function DocsFilter({ value, onChange, empty, hint }: { value: string; onChange: (value: string) => void; empty: boolean; hint?: string | undefined }): JSX.Element {
   return (
     <div className="grid w-full gap-1 py-1">
       <TextField
@@ -15,12 +18,14 @@ export function DocsFilter({ value, onChange, empty }: { value: string; onChange
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
       />
-      {empty && (
+      {(empty || hint !== undefined) && (
         <p role="status" className="m-0 text-sm text-muted-foreground">
-          {claim("No component is called that.", {
-            source: { file: "site/src/components/docs-filter.tsx" },
-            verify: { testExists: "site/src/site.test.tsx::docs > narrows the sidebar to the components a filter names, and says when none is called that" },
-          })}
+          {empty
+            ? claim("No component is called that.", {
+                source: { file: "site/src/components/docs-filter.tsx" },
+                verify: { testExists: "site/src/site.test.tsx::docs > narrows the sidebar to the components a filter names, and says when none is called that" },
+              })
+            : hint}
         </p>
       )}
     </div>
