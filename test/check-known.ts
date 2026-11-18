@@ -126,7 +126,7 @@ export const knownFindings: KnownFinding[] = [
     rule: "overlap",
     issue: 1957,
     reason:
-      "On Linux, a thumbs-up reaction (3px by 3px where it meets the text) overlaps the end of the message's text at this width; the reaction chip hangs over its bubble's edge. It shows on some CI runs and not others with no change to Message (#1957).",
+      "The list's hover bar, whose Like button is a thumbs-up, shows over the first message's text on some CI runs at this width, as though a pointer rested on that row. A stale pointer position was one cause, fixed; the failure record names what was hovered and focused, for the other (#1957).",
     sometimes: true,
   },
   {
@@ -134,7 +134,7 @@ export const knownFindings: KnownFinding[] = [
     rule: "overlap",
     issue: 1957,
     reason:
-      "The same conversation as Message/Chat with raised bubbles, so the same thumbs-up reaction overlaps the end of the message's text on some Linux CI runs (2px by 4px) and not others, with no change to Message (#1957).",
+      "The same conversation as Message/Chat with raised bubbles, so the same hover bar shows over the first message on some CI runs (#1957).",
     sometimes: true,
   },
   {
