@@ -358,6 +358,12 @@ function aboard(name: string): CrewName | undefined {
   return CREW.find((member) => member.name.toLowerCase() === asked || member.name.split(" ").at(-1)!.toLowerCase() === asked)?.name;
 }
 
+/** What the crew says to a name from another book they know (SIGN.known), by its last word ("Jules Verne"). */
+function knownLine(name: string): CrewLine | undefined {
+  const last = name.toLowerCase().split(/[^\p{L}]+/u).filter(Boolean).at(-1);
+  return SIGN.known.find((known) => (known.names as readonly string[]).includes(last ?? ""))?.line;
+}
+
 /**
  * The ship's articles: an HX Form (name, trade and the oath, each required) signs you on to the crew
  * list beside Nemo, Aronnax, Conseil and Ned. The browser's own checks run first, and Conseil, who
@@ -428,7 +434,7 @@ function Articles(): JSX.Element {
     setAnswer({ errors: undefined });
     setPending(null);
     setYou({ name, trade });
-    setLine(SIGN.welcome(name, trade));
+    setLine(knownLine(name) ?? SIGN.welcome(name, trade));
     // The new, empty form and the toast follow once the press has painted, as the bell's toast
     // does: making the form's fields again is most of a signing's work, and the toast stack measures
     // and re-lays itself out, so both wait for the press's own paint (your row on the list) rather

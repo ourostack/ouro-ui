@@ -172,6 +172,16 @@
     },
     {
       "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "No whales here.",
+      "reason": "the Nautilus story: Ned Land's joke to a reader who signs the articles as Ishmael"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
+      "sentence": "You told the Cyclops your name was No One.",
+      "reason": "the Nautilus story: Captain Nemo's joke to a reader who signs the articles as Ulysses"
+    },
+    {
+      "file": "site/src/voyage/chapters/copy.ts",
       "sentence": "Two hulls, one in the other.",
       "reason": "the Nautilus story: Ned Land on the hull, after Verne"
     },

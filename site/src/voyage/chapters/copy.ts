@@ -166,6 +166,18 @@ export const SIGN = {
   waiting: (wants: readonly ("trade" | "oath")[]) => (wants.length === 2 ? "Waiting for your trade and the oath." : wants[0] === "trade" ? "Waiting for your trade." : "Waiting for the oath."),
   /** The one aboard with that name, when you sign as them. */
   mine: (name: CrewName): CrewLine => ({ name, text: "That name is taken, I am afraid. By me." }),
+  /**
+   * Names from other books the crew knows: signing as one still signs you on, and the one who knows
+   * it answers in place of Conseil's welcome. A name counts by its last word, in any case ("Jules
+   * Verne", "verne", "Mr. Fogg"), so a plain first name ("Jules") does not.
+   */
+  known: [
+    { names: ["verne"], line: { name: "Professor Aronnax", text: "The author himself? Then you know how this ends." } },
+    { names: ["ishmael"], line: { name: "Ned Land", text: "Wrong ship, friend. No whales here. Only one very large squid." } },
+    { names: ["ahab"], line: { name: "Captain Nemo", text: "One captain with a grudge is enough for this ship." } },
+    { names: ["fogg"], line: { name: "Conseil", text: "Forgive me, Mr. Fogg. We go under the world, not around it. It takes longer." } },
+    { names: ["ulysses", "odysseus"], line: { name: "Captain Nemo", text: "You told the Cyclops your name was No One. So is mine, in Latin." } },
+  ] as const satisfies readonly { names: readonly string[]; line: CrewLine }[],
 } as const satisfies Record<string, unknown>;
 
 /** What each composition's Code sheet says: which part is Ouro HX's and which is this site's own. */
@@ -251,6 +263,7 @@ export function allChapterOneText(): string[] {
     SIGN.waiting(["trade"]),
     SIGN.waiting(["oath"]),
     SIGN.mine("Ned Land").text,
+    ...SIGN.known.map((known) => known.line.text),
     ...[CODE_SHEETS.shipyard, CODE_SHEETS.articles].flatMap((sheet) => [sheet.title, sheet.description, ...sheet.hx.map((line) => line.text), ...sheet.site]),
     CODE_SHEETS.builtWith,
     CODE_SHEETS.hxHeading,
