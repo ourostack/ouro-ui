@@ -123,8 +123,8 @@ export const KIT = {
       line: claim("Components for the web with focus, touch and motion done for you, and native kits growing on Apple, Windows and Android.", {
         source: [{ file: "docs/platforms/README.md" }, { test: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" }, { file: "registry/ouro/lib/ouro/touch-target.tsx" }],
         verify: [
-          { fileLine: "docs/platforms/README.md", pattern: "is a WinUI kit at its latest release" },
-          { fileLine: "docs/platforms/README.md", pattern: "is a Compose kit at its first release" },
+          { fileLine: "docs/platforms/README.md", pattern: "is a WinUI kit, at the release the table below names" },
+          { fileLine: "docs/platforms/README.md", pattern: "is a Compose kit, at the release the table below names" },
           { testExists: "test/conformance/interactions.test.tsx::actions at $width px > $id keeps focus in the page and announces each message once after every action" },
           { fileLine: "registry/ouro/lib/ouro/touch-target.tsx", pattern: "pointer-coarse" },
         ],
