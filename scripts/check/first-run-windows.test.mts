@@ -55,8 +55,8 @@ describe("first-run harness on Windows", () => {
     withEnv({ WINDIR: "D:\\Win" }, () => assert.equal(buildWindowsEyes(out, m.base), out));
     const fw = join("D:\\Win", "Microsoft.NET", "Framework64", "v4.0.30319");
     assert.equal(m.last().cmd, join(fw, "csc.exe"));
-    assert.deepEqual(m.last().args.slice(0, 4), ["/nologo", "/optimize+", "/target:exe", `/out:${out}`]);
-    for (const dll of ["UIAutomationClient.dll", "UIAutomationTypes.dll", "WindowsBase.dll"]) assert.ok(m.last().args.includes(`/r:${join(fw, "WPF", dll)}`), dll);
+    const wpf = ["UIAutomationClient.dll", "UIAutomationTypes.dll", "WindowsBase.dll"].map((dll) => `/r:${join(fw, "WPF", dll)}`);
+    assert.deepEqual(m.last().args.slice(0, -1), ["/nologo", "/optimize+", "/target:exe", `/out:${out}`, ...wpf, "/r:System.Drawing.dll", "/r:System.Web.Extensions.dll"]);
     assert.match(m.last().args.at(-1)!, /registry[/\\]ouro[/\\]check[/\\]first-run-uia-tree\.cs$/);
     assert.equal(m.last().o?.timeout, 300_000);
 
@@ -64,24 +64,30 @@ describe("first-run harness on Windows", () => {
     withEnv({ WINDIR: undefined }, () => assert.throws(() => buildWindowsEyes(out, failed.base), /first-run-uia-tree\.cs did not build with C:\\Windows.*csc\.exe: error CS0246/));
     const said = machine(() => ({ status: 1, stdout: "csc said this", stderr: "" }));
     assert.throws(() => buildWindowsEyes(out, said.base), /: csc said this$/);
+    const long = machine(() => ({ status: 1, stdout: `${"x".repeat(600)}never shown`, stderr: "" }));
+    assert.throws(() => buildWindowsEyes(out, long.base), (e: Error) => e.message.endsWith(`: ${"x".repeat(600)}`));
   });
 
   test("answers screencapture, pgrep, pkill, curl, dscacheutil and defaults as Windows does", () => {
     const m = machine((cmd, args) => {
       const script = args.at(-1) ?? "";
-      if (cmd === "powershell.exe" && script.startsWith("(Get-Process")) return { stdout: script.includes("'Example'") ? "12 34\r\n" : "\r\n" };
-      if (cmd === "powershell.exe" && script.startsWith("(Resolve-DnsName")) return { stdout: "93.184.215.14 2606:2800:21f:cb07::1\r\n" };
+      if (cmd === "powershell.exe" && script.startsWith("(Get-Process")) return { stdout: script.includes("'Example'") ? " 12  34\r\n" : "\r\n" };
+      if (cmd === "powershell.exe" && script.startsWith("(Resolve-DnsName")) return { stdout: script.includes("'example.com'") ? " 93.184.215.14  2606:2800:21f:cb07::1\r\n" : "\r\n" };
       return {};
     });
     const sys = windowsSystem({ eyes: "C:\\eyes.exe" }, m.base);
 
     sys.run("screencapture", ["-x", "-R", "10,20,300,400", "C:\\s.png"], { timeout: 5000 });
     assert.deepEqual([m.last().cmd, m.last().args, m.last().o], ["C:\\eyes.exe", ["--shot", "C:\\s.png", "10", "20", "300", "400"], { timeout: 5000 }]);
+    sys.run("screencapture", ["-R", "1,2,3,4", "C:\\r.png"]);
+    assert.deepEqual(m.last().args, ["--shot", "C:\\r.png", "1", "2", "3", "4"]);
     sys.run("screencapture", ["-x", "C:\\whole.png"]);
     assert.deepEqual([m.last().args, m.last().o], [["--shot", "C:\\whole.png"], { timeout: 20_000 }]);
 
     assert.deepEqual(sys.run("pgrep", ["-x", "Example"]), { status: 0, stdout: "12\n34", stderr: "" });
+    assert.deepEqual([m.last().args.slice(0, -1), m.last().o], [["-NoProfile", "-NonInteractive", "-Command"], { timeout: 60_000 }]);
     assert.match(m.script(), /^\(Get-Process -Name 'Example' -ErrorAction SilentlyContinue\)\.Id -join ' '$/);
+    assert.equal(sys.run("pgrep", ["Example"]).stdout, "12\n34");
     assert.equal(sys.run("pgrep", ["-x", "Other"]).status, 1);
 
     sys.run("pkill", ["-9", "-f", "C:\\Program Files\\Ada's App"]);
@@ -94,6 +100,7 @@ describe("first-run harness on Windows", () => {
     assert.deepEqual(sys.run("dscacheutil", ["-q", "host", "-a", "name", "example.com"]), { status: 0, stdout: "ip_address: 93.184.215.14\nipv6_address: 2606:2800:21f:cb07::1", stderr: "" });
     assert.match(m.script(), /Resolve-DnsName -Name 'example\.com'/);
     assert.deepEqual(m.last().o, { timeout: 30_000 });
+    assert.deepEqual(sys.run("dscacheutil", ["-q", "host", "-a", "name", "nowhere.invalid"]).stdout, "");
 
     const before = m.ran.length;
     assert.deepEqual(sys.run("defaults", ["delete", "Example"]), { status: 0, stdout: "", stderr: "" });
@@ -130,20 +137,34 @@ describe("first-run harness on Windows", () => {
     block.lift();
     assert.equal(rule, false);
     assert.deepEqual(scripts().slice(-2), ["Remove-NetFirewallRule -DisplayName 'ouro-first-run' -ErrorAction SilentlyContinue; exit 0", "Set-NetFirewallProfile -Profile Domain,Public -Enabled False"]);
+    const lifted = scripts().length;
+    sys.run("sudo", ["-n", "pfctl", "-X", "1"]);
+    assert.equal(scripts().length, lifted, "the firewall is put back once");
 
     // Offline is everything but loopback; a firewall already on is left as it was.
     firewallOff = "";
-    const count = m.ran.length;
+    const count = scripts().length;
     const all = offline("https://example.com", sys);
     assert.equal(all.ok, true, all.evidence);
     assert.ok(scripts().includes("New-NetFirewallRule -DisplayName 'ouro-first-run' -Direction Outbound -Action Block -RemoteAddress '0.0.0.0-126.255.255.255','128.0.0.0-255.255.255.255','::2-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff' | Out-Null"));
     all.lift();
     assert.ok(!scripts().slice(count).some((s) => s.startsWith("Set-NetFirewallProfile")), "the firewall was on, so nothing turned it on or off");
+    // Putting the firewall back happens once: a second -X, or one before any -E, has nothing to put back.
+    const fresh = machine();
+    const other = windowsSystem({ eyes: "e" }, fresh.base);
+    other.run("sudo", ["-n", "pfctl", "-X", "1"]);
+    assert.deepEqual(fresh.ran, []);
 
     // Rules with no address hold nothing, and the system ruleset is nothing to load.
     assert.deepEqual(sys.run("sudo", ["-n", "pfctl", "-a", "com.apple/ouro-first-run", "-f", "-"], { input: "block return out quick inet proto tcp\n" }), { status: 1, stdout: "", stderr: "no addresses in the rules" });
     assert.deepEqual(sys.run("sudo", ["-n", "pfctl", "-a", "com.apple/ouro-first-run", "-f", "-"]), { status: 1, stdout: "", stderr: "no addresses in the rules" });
     assert.deepEqual(sys.run("sudo", ["-n", "pfctl", "-f", "/etc/pf.conf"]), { status: 0, stdout: "", stderr: "" });
+    const asked = scripts().length;
+    for (const args of [["-s", "x", "-F", "all"], ["-s", "x", "-f", "-"], ["-a", "x", "-s", "rules"]]) assert.deepEqual(sys.run("sudo", ["-n", "pfctl", ...args], { input: "block return out quick inet proto tcp to { 10.0.0.1 }\n" }), { status: 0, stdout: "", stderr: "" });
+    assert.equal(scripts().length, asked, "only an anchor's flush and load touch the firewall");
+    // Only block rules count, and only a rule for all traffic takes everything.
+    sys.run("sudo", ["-n", "pfctl", "-a", "com.apple/ouro-first-run", "-f", "-"], { input: "pass out quick inet to { 9.9.9.9 }\n# block drop out quick inet to { 8.8.8.8 }\nblock drop out quick allow-listed to { 10.0.0.1 }\n" });
+    assert.match(scripts().at(-1)!, / -RemoteAddress '10\.0\.0\.1' \| Out-Null$/);
     assert.deepEqual(sys.run("sudo", ["-n", "pfctl", "-X", "1"]), { status: 0, stdout: "", stderr: "" });
   });
 
@@ -154,17 +175,20 @@ describe("first-run harness on Windows", () => {
     writeFileSync(join(startup, "Example.lnk"), "");
     const m = machine((cmd, args) => {
       if (cmd === "reg" && args[1]!.startsWith("HKCU")) return { stdout: "\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\r\n    Example    REG_SZ    C:\\Example\\Example.exe --background\r\n\r\n" };
-      if (cmd === "reg") return { status: 1, stderr: "ERROR: The system was unable to find the specified registry key or value." };
+      if (cmd === "reg" && args[1]!.startsWith("HKLM")) return { stdout: "\nHKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\n    Updater    REG_EXPAND_SZ    C:\\Updater.exe\n    Agent    REG_SZ    C:\\Agent.exe\n" };
       if (cmd === "sudo") return { status: 0, stdout: "passed through" };
       return {};
     });
     const sys = windowsSystem({ eyes: "e" }, m.base);
     withEnv({ APPDATA: appdata }, () => {
       const dump = sys.run("sudo", ["-n", "sfltool", "dumpbtm"]).stdout;
-      assert.equal(dump, `\n #1:\n Name: Example    REG_SZ    C:\\Example\\Example.exe --background\n Disposition: [enabled, allowed, visible]\n\n #2:\n Name: ${join(startup, "Example.lnk")}\n Disposition: [enabled, allowed, visible]\n`);
+      assert.deepEqual(m.ran.map((r) => [r.cmd, ...r.args]), [["reg", "query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"], ["reg", "query", "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"]]);
+      const entry = (i: number, name: string) => `\n #${i}:\n Name: ${name}\n Disposition: [enabled, allowed, visible]\n`;
+      assert.equal(dump, [entry(1, "Example    REG_SZ    C:\\Example\\Example.exe --background"), entry(2, "Updater    REG_EXPAND_SZ    C:\\Updater.exe"), entry(3, "Agent    REG_SZ    C:\\Agent.exe"), entry(4, join(startup, "Example.lnk"))].join(""));
       assert.deepEqual(leftovers({ bundle: join(scratch, "nowhere"), id: "Example" }, { home: scratch, sys }), [`a login item turned on: Example    REG_SZ    C:\\Example\\Example.exe --background, ${join(startup, "Example.lnk")}`]);
     });
-    withEnv({ APPDATA: undefined }, () => assert.equal(sys.run("sudo", ["-n", "sfltool", "dumpbtm"]).stdout.match(/#\d+:/g)?.length, 1));
+    withEnv({ APPDATA: undefined }, () => assert.equal(sys.run("sudo", ["-n", "sfltool", "dumpbtm"]).stdout.match(/#\d+:/g)?.length, 3));
+    withEnv({ APPDATA: join(scratch, "no-startup-folder") }, () => assert.equal(sys.run("sudo", ["-n", "sfltool", "dumpbtm"]).stdout.match(/#\d+:/g)?.length, 3));
     // Any other tool under sudo runs as it is.
     assert.equal(sys.run("sudo", ["-n", "whoami"]).stdout, "");
     assert.deepEqual([m.last().cmd, m.last().args], ["whoami", []]);
@@ -180,10 +204,12 @@ describe("first-run harness on Windows", () => {
     assert.equal(sys.run("git", ["status"]).stdout, "ran");
     await sys.sleep(250);
     assert.deepEqual(m.slept, [250]);
-    // With no open of the app's own, the shell opens it; on a host with no cmd.exe the start fails quietly, as `open` does.
-    const shell = windowsSystem({ eyes: "e" });
-    shell.start("open", ["C:\\nowhere.lnk"]);
-    await shell.sleep(50);
+    // With no open of the app's own, the shell opens it.
+    const shell = machine();
+    windowsSystem({ eyes: "e" }, shell.base).start("open", ["-a", "C:\\Start Menu\\Example.lnk"]);
+    assert.deepEqual(shell.started, [["cmd.exe", "/c", "start", "", "C:\\Start Menu\\Example.lnk"]]);
+    // On this machine by default.
+    await windowsSystem({ eyes: "e" }).sleep(1);
   });
 
   test("names the app's local and roaming data folders and its Start menu shortcut", () => {

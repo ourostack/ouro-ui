@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { system, type System } from "./first-run-system.ts";
@@ -95,12 +94,13 @@ export function windowsSystem(o: WindowsOptions, base: System = system): System 
   const loginItems = (): Result => {
     const keys = ["HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"];
     const runs = keys.flatMap((k) => base.run("reg", ["query", k]).stdout.split(/\r?\n/).map((l) => l.trim()).filter((l) => /\sREG_\w+\s/.test(l)));
-    const startup = path.join(process.env.APPDATA ?? "", "Microsoft", "Windows", "Start Menu", "Programs", "Startup");
-    const links = fs.existsSync(startup) ? fs.readdirSync(startup).map((f) => path.join(startup, f)) : [];
+    const roaming = process.env.APPDATA;
+    const startup = roaming && path.join(roaming, "Microsoft", "Windows", "Start Menu", "Programs", "Startup");
+    const links = startup && fs.existsSync(startup) ? fs.readdirSync(startup).map((f) => path.join(startup, f)) : [];
     return answer(0, [...runs, ...links].map((entry, i) => `\n #${i + 1}:\n Name: ${entry}\n Disposition: [enabled, allowed, visible]\n`).join(""));
   };
 
-  const pids = (name: string) => (o.pgrep ? o.pgrep(name) : ps(`(Get-Process -Name ${quote(name)} -ErrorAction SilentlyContinue).Id -join ' '`).stdout.trim().split(/\s+/).filter(Boolean).map(Number));
+  const pids = (name: string) => (o.pgrep ? o.pgrep(name) : ps(`(Get-Process -Name ${quote(name)} -ErrorAction SilentlyContinue).Id -join ' '`).stdout.match(/\d+/g) ?? []).map(Number);
 
   return {
     run(cmd, args, opts = {}) {
@@ -125,7 +125,7 @@ export function windowsSystem(o: WindowsOptions, base: System = system): System 
           return base.run("curl.exe", args.map((a) => (a === "/dev/null" ? "NUL" : a)), opts);
         case "dscacheutil": {
           const name = args.at(-1)!;
-          const ips = ps(`(Resolve-DnsName -Name ${quote(name)} -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress } | ForEach-Object IPAddress) -join ' '`, 30_000).stdout.trim().split(/\s+/).filter(Boolean);
+          const ips = ps(`(Resolve-DnsName -Name ${quote(name)} -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress } | ForEach-Object IPAddress) -join ' '`, 30_000).stdout.match(/\S+/g) ?? [];
           return answer(0, ips.map((ip) => `${ip.includes(":") ? "ipv6_address" : "ip_address"}: ${ip}`).join("\n"));
         }
         case "defaults":
@@ -144,7 +144,7 @@ export function windowsSystem(o: WindowsOptions, base: System = system): System 
       if (cmd !== "open") return base.start(cmd, args);
       const target = args.at(-1)!;
       if (o.open) o.open(target);
-      else spawn("cmd.exe", ["/c", "start", "", target], { stdio: "ignore", detached: true }).on("error", () => {}).unref();
+      else base.start("cmd.exe", ["/c", "start", "", target]);
     },
     sleep: (ms) => base.sleep(ms),
   };
