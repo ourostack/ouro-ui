@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type SVGProps } from "react";
+import { useLayoutEffect, useRef, useState, type SVGProps } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ColorSchemeToggle } from "@/registry/ouro/components/ouro/color-scheme-toggle/color-scheme-toggle";
 import { Empty } from "@/registry/ouro/components/ouro/empty/empty";
@@ -109,18 +109,26 @@ export function ListDetailPage({
   // Beside the list (md and wider) the chosen entry always shows; on a phone, only in the list's place.
   const wide = useMediaQuery("(min-width: 48rem)", true);
   const showing = wide || inPlace ? open : undefined;
+  // Where focus goes once the press's change is in the page. It moves in the same task as the commit, before the
+  // browser's own fix-up: the focused row or Back button is hidden by that commit, and a browser that put focus on
+  // the page in between would have a screen reader start reading the page, cut off by the move that follows.
+  const focusNext = useRef<"heading" | "row" | null>(null);
+  useLayoutEffect(() => {
+    const target = focusNext.current;
+    focusNext.current = null;
+    // Where the detail took the list's place (a phone, or text set large), focus follows it there.
+    if (target === "heading" && list.current?.checkVisibility() === false) heading.current?.focus();
+    // Back to the row, or to the search when a search has left the row out.
+    if (target === "row") (rows.current.get(open!.id) ?? search.current)?.focus();
+  });
   const choose = (id: string) => {
+    focusNext.current = "heading";
     setOpenId(id);
     setReading(true);
-    // Where the detail took the list's place (a phone, or text set large), focus follows it there.
-    requestAnimationFrame(() => {
-      if (list.current?.checkVisibility() === false) heading.current?.focus();
-    });
   };
   const back = () => {
+    focusNext.current = "row";
     setReading(false);
-    // Back to the row, or to the search when a search has left the row out.
-    requestAnimationFrame(() => (rows.current.get(open!.id) ?? search.current)?.focus());
   };
 
   return (
