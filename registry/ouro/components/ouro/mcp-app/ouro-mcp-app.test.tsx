@@ -7,7 +7,7 @@ import { A2UISurface } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-s
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { ComposedSurface } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
 import { Spinner } from "@/registry/ouro/components/ouro/spinner/spinner";
-import { actionButtonProps, loadCatalog, mcpAppTreeResult, type ComposedNode, type Obj } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { actionButtonProps, loadCatalog, mcpAppTreeResult, mcpAppTreeUpdateResult, type ComposedNode, type Obj } from "@/registry/ouro/lib/ouro/a2ui-core";
 import type { McpAppHostLink, McpAppMessage } from "@/registry/ouro/lib/ouro/mcp-app";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -478,5 +478,80 @@ describe("OuroMcpApp", () => {
     await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
     await expect.element(page.getByText("Added.")).toBeInTheDocument();
     expect(host.requests("tools/call")).toEqual([{ name: "add_recipe_to_shopping_list", arguments: { recipe: "rcp_1", servings: 6 } }]);
+  });
+
+  it("applies an update in structuredContent.ouro to the tree it shows, keeping what the person typed where the update left it", async () => {
+    const replies = [{ result: mcpAppTreeUpdateResult({ text: "Added.", catalog: loadCatalog(catalog), update: { nodes: [node("name", "Heading", { text: "On your list", level: 1 })] } }) }];
+    const host = testHost({ replies: { "tools/call": () => replies.shift()! } });
+    await open(host);
+    const fields = node("root", "Card", {}, [
+      node("name", "Heading", { text: "Charred Lemon Orzo", level: 1 }),
+      node("servings", "TextField", { label: "Servings", value: "/servings", type: "number", multiline: false }),
+      node("with", "TextField", { label: "Send to", value: "/with", type: "text", multiline: false }),
+      button("shop", "add_recipe_to_shopping_list", { recipe: "rcp_1", servings: { "@path": "/servings" } }),
+    ]);
+    await host.deliver({ method: "ui/notifications/tool-result", params: mcpAppTreeResult({ text: "Here is the recipe.", catalog: loadCatalog(catalog), tree: fields, data: { servings: 4, with: "" } }) });
+    await userEvent.fill(page.getByRole("textbox", { name: "Servings" }), "6");
+    await userEvent.fill(page.getByRole("textbox", { name: "Send to" }), "kim@example.com");
+    const update = mcpAppTreeUpdateResult({ text: "Renamed.", catalog: loadCatalog(catalog), update: { nodes: [node("name", "Heading", { text: "Lemon orzo for six", level: 1 })], data: [{ path: "/with", value: "sam@example.com" }] } });
+    await host.deliver({ method: "ui/notifications/tool-result", params: update });
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Lemon orzo for six");
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("6");
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("sam@example.com");
+    // A press's result can carry an update too.
+    await userEvent.click(page.getByRole("button", { name: "Add ingredients to list" }));
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("On your list");
+    await expect.element(page.getByText("Added.")).toBeInTheDocument();
+    expect(host.requests("tools/call")).toEqual([{ name: "add_recipe_to_shopping_list", arguments: { recipe: "rcp_1", servings: 6 } }]);
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("6");
+    expect(host.requests("ui/update-model-context")).toEqual([]);
+    // An update that can't apply hides the card and keeps what the person typed for the corrected one.
+    await host.deliver({ method: "ui/notifications/tool-result", params: { structuredContent: { ouro: { version: "1", catalogId: catalog.catalogId, update: { nodes: [node("name", "Text", { text: "x", colour: "red" })] } } } } });
+    await expect.element(page.getByText("This card can't be shown")).toBeInTheDocument();
+    expect(page.getByRole("textbox").elements()).toEqual([]);
+    expect(page.getByRole("button").elements()).toEqual([]);
+    await host.deliver({ method: "ui/notifications/tool-result", params: mcpAppTreeUpdateResult({ text: "", catalog: loadCatalog(catalog), update: { nodes: [node("name", "Heading", { text: "Fixed", level: 1 })] } }) });
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Fixed");
+    expect(page.getByText("This card can't be shown").query()).toBeNull();
+    expect(page.getByRole("textbox", { name: "Servings" }).element()).toHaveValue("6");
+  });
+
+  it("tells the agent why an update can't apply, shows the person the short alert, and applies a corrected one to the last tree", async () => {
+    const host = testHost();
+    const { container } = await open(host);
+    const relabel = (label: string) => ({ structuredContent: { ouro: { version: "1", catalogId: catalog.catalogId, update: { nodes: [{ ...tree("x").children[1]!, props: { ...tree("x").children[1]!.props, label } }] } } } });
+    // An update before any tree, or after an A2UI card, has no tree to change.
+    const early = mcpAppTreeUpdateResult({ text: "", catalog: loadCatalog(catalog), update: { nodes: [node("name", "Heading", { text: "Early", level: 1 })] } });
+    const noTree = { path: "/update", message: "An update changes the composed tree the view shows, and it shows none yet; send the whole tree first, in structuredContent.ouro.tree." };
+    await host.deliver({ method: "ui/notifications/tool-result", params: early });
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(1), { timeout: 10_000 });
+    await host.deliver({ method: "ui/notifications/tool-result", params: { ...early, structuredContent: { ouro: { ...early.structuredContent.ouro } } } });
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(2), { timeout: 10_000 });
+    await host.deliver({ method: "ui/notifications/tool-result", params: toolResult(card("Charred Lemon Orzo")) });
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Charred Lemon Orzo");
+    await host.deliver({ method: "ui/notifications/tool-result", params: early });
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(3), { timeout: 10_000 });
+    expect((host.requests("ui/update-model-context") as { structuredContent: { ouroProblems: unknown[] } }[]).map((u) => u.structuredContent.ouroProblems)).toEqual([[noTree], [noTree], [noTree]]);
+    await host.deliver({ method: "ui/notifications/tool-result", params: treeResult("Charred Lemon Orzo") });
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Charred Lemon Orzo");
+    await host.deliver({ method: "ui/notifications/tool-result", params: relabel("Buy now") });
+    const alert = await rendered(<Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />);
+    expect(container.querySelector('[data-ouro="alert"]')!.outerHTML).toBe(alert.innerHTML);
+    expect(page.getByRole("button").elements()).toEqual([]);
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(4), { timeout: 10_000 });
+    const refused = host.requests("ui/update-model-context")[3] as { structuredContent: { ouroProblems: { path: string; message: string }[] } };
+    expect(refused.structuredContent.ouroProblems.map((p) => p.path)).toEqual(["/nodes/0/props/label"]);
+    // An update for another catalog, or to an id the tree lacks, is refused the same way.
+    await host.deliver({ method: "ui/notifications/tool-result", params: { structuredContent: { ouro: { version: "1", catalogId: "https://example.com/other.json", update: { nodes: [node("name", "Heading", { text: "Other", level: 1 })] } } } } });
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(5), { timeout: 10_000 });
+    await host.deliver({ method: "ui/notifications/tool-result", params: mcpAppTreeUpdateResult({ text: "", catalog: loadCatalog(catalog), update: { nodes: [node("subtitle", "Text", { text: "Serves four", tone: "muted" })] } }) });
+    await vi.waitFor(() => expect(host.requests("ui/update-model-context")).toHaveLength(6), { timeout: 10_000 });
+    const paths = (host.requests("ui/update-model-context") as { structuredContent: { ouroProblems: { path: string }[] } }[]).slice(4).map((u) => u.structuredContent.ouroProblems.map((p) => p.path));
+    expect(paths).toEqual([["/catalogId"], ["/nodes/0/id"]]);
+    expect(page.getByRole("button").elements()).toEqual([]);
+    // The corrected update applies to the last tree that drew.
+    await host.deliver({ method: "ui/notifications/tool-result", params: mcpAppTreeUpdateResult({ text: "", catalog: loadCatalog(catalog), update: { nodes: [node("name", "Heading", { text: "Lemon orzo", level: 1 })] } }) });
+    await expect.element(page.getByRole("heading", { level: 1 })).toHaveTextContent("Lemon orzo");
+    expect(page.getByRole("button", { name: "Add ingredients to list" }).element()).toBeTruthy();
   });
 });

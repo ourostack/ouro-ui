@@ -3,7 +3,7 @@
 import { type JSX, useEffect, useMemo } from "react";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { ComposedTree, type ComposedSurfaceProps } from "@/registry/ouro/components/ouro/composed-surface/composed-surface";
-import { actionMessage, applyMessages, resolveMessages, type LabelContext, type Problem } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { actionMessage, applyMessages, isObj, resolveMessages, type LabelContext, type Problem } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -118,6 +118,9 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
   // the messages alone, so a new label function keeps what the person entered.
   const valid = problems === null;
   const data = useMemo(() => (valid ? applyMessages(messages).get(id!)?.data : undefined), [valid, messages, id]);
+  // Which surface the fields belong to: the message that created it, so a surface deleted and created again, or another
+  // surface, starts its fields over, and the person's answers stay across the messages that update it.
+  const created = useMemo(() => messages.findLastIndex((m) => isObj(m) && isObj(m.createSurface) && m.createSurface.surfaceId === id), [messages, id]);
   // A press, as the A2UI action message it names: the button is its source component.
   const onComposedPress: ComposedSurfaceProps["onPress"] = (press, button) =>
     onAction(actionMessage({ surfaceId: id!, sourceComponentId: button.id, button, timestamp: now(), confirmed: press.confirmed === true }) as unknown as A2UIActionMessage);
@@ -138,7 +141,7 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
       {problems ? (
         <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
       ) : tree ? (
-        <ComposedTree tree={tree} data={data} origin={messages} onPress={onComposedPress} onHandoff={onHandoff} />
+        <ComposedTree tree={tree} data={data} origin={created} onPress={onComposedPress} onHandoff={onHandoff} />
       ) : null}
     </div>
   );
