@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `Checklist` takes `variant="outline"` for rows as cards with a round tick at their end, filled with the primary tone when ticked and the warning tone while out of order, and items take `media`, an icon in a soft tile at the start of the row.
