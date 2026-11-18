@@ -458,6 +458,8 @@ test("the page's headline is derived from the latest review and says so honestly
   assert.equal(tally(second).barMet, false);
   const page = renderPage([baseline, retry, rerun]);
   assert.match(page, /^# Which toolkit models choose\n\nOuro UI is not yet the models' choice: 2 of 4 models chose it; 2 chose A2UI\./);
+  // At a glance, under the headline: every model's pick and its own reason, one line each, before the method.
+  assert.match(page, /chose A2UI\.\n\n- \*\*A\*\* chose Ouro UI: "Ouro UI because reasons"\n- \*\*B\*\* chose Ouro UI: "Ouro UI because reasons"\n- \*\*C\*\* chose A2UI: "A2UI because reasons"\n- \*\*D\*\* chose A2UI: "A2UI because reasons"\n\nOn 2026-11-14,/);
   assert.match(page, /counting only the 3 models that answered both times: 1 chose Ouro UI then and 2 now\. Changed: B \(A2UI to Ouro UI\)\./);
   assert.match(page, /\| D \| A2UI \| 2 of 3 \| 4 \| \[d\]\(https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\/scripts\/model-reviews\/results\/2026-11-14-rerun--run-1\/transcripts\/d\.json\) \|/);
   assert.match(page, /### D, who chose A2UI\n\nOuro UI — d on Ouro UI \[src\]\(https:\/\/x\.test\/a\)\n\nWhy it chose A2UI: "A2UI because reasons"/);
@@ -472,6 +474,7 @@ test("the page's headline is derived from the latest review and says so honestly
   const partial = renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI")], [{ provider: "z", error: "Session compacted" }])]);
   assert.match(partial, /^# Which toolkit models choose\n\n1 of 1 models chose Ouro UI\./);
   assert.match(partial, /\| z \| no verdict \(Session compacted; 1 attempt\) \| n\/a \|/);
+  assert.match(partial, /\n- \*\*z\*\* gave no verdict\.\n/);
 });
 
 test("the page refuses a second verdict from one model in a series, an unfinished record and a misnamed folder", async () => {
