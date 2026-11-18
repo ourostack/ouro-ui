@@ -18,8 +18,13 @@
 // - infrastructure: VoiceOver or NVDA did not start or could not be controlled, a TCC prompt
 //   appeared, a test timed out before the screen reader said anything, the Storybook server never
 //   became ready, the runner image was broken, or the browser failed to open or close a test's
-//   context while nothing else failed (a test body's failure always decides first). The nightly run opens or updates one
-//   `screen-reader-infra` issue; a release retries once.
+//   context while nothing else failed (a test body's failure always decides first). The nightly run
+//   and a push to main open or update one `screen-reader-infra` issue; a release retries once.
+//
+// A VoiceOver start that failed and was tried once more
+// (registry/ouro/e2e/screen-reader/voiceover-start.ts) logs a `[sr] start retry:` line. Those lines
+// are no finding and no reason, so they are left out of the classification; the run summary says how
+// many there were.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -60,26 +65,39 @@ function onlyBrowserLifecycleFailed(log) {
   return errors.length > 0 && errors.every((line) => browserLifecycleError.test(line)) && !/Test timeout of \d+ms exceeded/.test(log);
 }
 
+/** A VoiceOver start retried before a test ran (registry/ouro/e2e/screen-reader/voiceover-start.ts, RETRY_PREFIX). */
+const retryLine = /^\s*\[sr\] start retry:/;
+
+/** The log without its start-retry lines: a start a retry recovered is no finding, and its error is no reason. */
+const withoutRetries = (log) => log.split(/\r?\n/).filter((line) => !retryLine.test(line)).join("\n");
+
+/** How many VoiceOver starts were retried before a test ran. */
+export const startRetries = (log) => log.split(/\r?\n/).filter((line) => retryLine.test(line)).length;
+
 /** The lane's class for a log and `pnpm test:sr`'s exit code (null when it never ran). */
 export function classify(log, exitCode) {
   if (exitCode === 0) return "pass";
   if (exitCode === null || exitCode === undefined || log.trim() === "") return "infrastructure";
-  if (assertion.test(log)) return "accessibility";
-  if (harness.test(log)) return "harness";
-  if (onlyBrowserLifecycleFailed(log)) return "infrastructure";
-  if (infrastructure.some(([pattern]) => pattern.test(log))) return "infrastructure";
+  const findings = withoutRetries(log);
+  if (findings.trim() === "") return "infrastructure";
+  if (assertion.test(findings)) return "accessibility";
+  if (harness.test(findings)) return "harness";
+  if (onlyBrowserLifecycleFailed(findings)) return "infrastructure";
+  if (infrastructure.some(([pattern]) => pattern.test(findings))) return "infrastructure";
   // A timeout before the screen reader said anything: it never started speaking.
-  if (/Test timeout of \d+ms exceeded/.test(log) && !/\[sr\] first utterance:/.test(log)) return "infrastructure";
+  if (/Test timeout of \d+ms exceeded/.test(findings) && !/\[sr\] first utterance:/.test(findings)) return "infrastructure";
   return "accessibility";
 }
 
 /** Why a log is infrastructure, for the summary. */
-export const why = (log) =>
-  log.trim() === ""
+export const why = (log) => {
+  const findings = withoutRetries(log);
+  return findings.trim() === ""
     ? "the tests never ran"
-    : onlyBrowserLifecycleFailed(log)
+    : onlyBrowserLifecycleFailed(findings)
       ? "the browser failed to open or close a test's context, outside any assertion"
-      : (infrastructure.find(([pattern]) => pattern.test(log))?.[1] ?? "a timeout before the first utterance");
+      : (infrastructure.find(([pattern]) => pattern.test(findings))?.[1] ?? "a timeout before the first utterance");
+};
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [file, code] = process.argv.slice(2);
@@ -87,9 +105,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const exit = code === undefined || code === "" ? null : Number(code);
   const result = classify(log, log === "" ? null : exit);
   const detail = { pass: "every utterance was as expected", accessibility: "an expected utterance was missing or wrong, or a story is missing: this blocks a release", infrastructure: `${why(log)}: not a finding about the components`, harness: "Playwright refused the lane's own command, so no test ran: fix the command in the workflow, not the components" }[result];
+  const retries = startRetries(log);
+  const retried = retries ? `VoiceOver's start was retried ${retries} time${retries === 1 ? "" : "s"} before a test ran (the \`[sr] start retry:\` lines in the log).` : "";
   console.log(`SR_CLASS=${result}`);
   console.log(`Screen-reader lane: ${result} (${detail}).`);
+  if (retried) console.log(retried);
   if (process.env["GITHUB_OUTPUT"]) appendFileSync(process.env["GITHUB_OUTPUT"], `class=${result}\n`);
-  if (process.env["GITHUB_STEP_SUMMARY"]) appendFileSync(process.env["GITHUB_STEP_SUMMARY"], `Screen-reader lane: **${result}** (${detail}).\n`);
+  if (process.env["GITHUB_STEP_SUMMARY"]) appendFileSync(process.env["GITHUB_STEP_SUMMARY"], `Screen-reader lane: **${result}** (${detail}).\n${retried ? `\n${retried}\n` : ""}`);
   process.exitCode = result === "pass" ? 0 : 1;
 }

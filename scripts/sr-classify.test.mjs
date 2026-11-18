@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -116,6 +116,35 @@ test("the CLI prints SR_CLASS, writes the class as a step output and fails unles
   assert.equal(refused.status, 1);
   assert.match(refused.stdout, /^SR_CLASS=harness$/m);
   assert.match(refused.stdout, /no test ran: fix the command in the workflow/);
+});
+
+test("the run summary counts the VoiceOver starts retried before a test ran, and names none when there were none", () => {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const dir = mkdtempSync(join(root, ".tmp/sr-classify-summary-"));
+  try {
+    const retry = "[sr] start retry: VoiceOver's start failed on try 1 of 2 (VoiceOver cannot be started); trying again once its process has exited.";
+    const run = (log, exit) => {
+      const file = join(dir, `${Math.random()}.log`);
+      writeFileSync(file, log);
+      const summary = join(dir, `${Math.random()}.md`);
+      writeFileSync(summary, "");
+      const result = spawnSync("node", [join(root, "scripts/sr-classify.mjs"), file, exit], { encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: "", GITHUB_STEP_SUMMARY: summary } });
+      return { ...result, summary: readFileSync(summary, "utf8") };
+    };
+    const once = run(`${retry}\n  5 passed (3.4m)`, "0");
+    assert.equal(once.status, 0);
+    assert.match(once.stdout, /^SR_CLASS=pass$/m);
+    assert.match(once.stdout, /^VoiceOver's start was retried 1 time before a test ran/m);
+    assert.match(once.summary, /^Screen-reader lane: \*\*pass\*\*/m);
+    assert.match(once.summary, /^VoiceOver's start was retried 1 time before a test ran/m);
+    const twice = run(`${retry}\n${retry}\n  5 passed (3.4m)`, "0");
+    assert.match(twice.summary, /^VoiceOver's start was retried 2 times before a test ran/m);
+    const none = run(logs.pass, "0");
+    assert.equal(none.status, 0);
+    assert.doesNotMatch(none.stdout + none.summary, /retried/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 // Recorded runs (scripts/fixtures/sr-logs/): the lane's log on main, run 39235687123, where NVDA's

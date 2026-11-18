@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Reports a screen-reader lane run that could not drive its screen reader (scripts/sr-classify.mjs:
 # infrastructure) in one issue labelled `screen-reader-infra`: opens it, or comments on it when one
-# is already open, and prints its URL. The nightly lane (screen-reader.yml) and the release gate
-# (release.yml, after a second infrastructure failure) run it.
+# is already open, and prints its URL. The lane's report job (screen-reader.yml) runs it after a
+# nightly run or a push to main, and the release gate (release.yml, after a second infrastructure
+# failure) runs it too.
 #
 #   scripts/sr-infra-issue.sh <run-url> <context>
 #
