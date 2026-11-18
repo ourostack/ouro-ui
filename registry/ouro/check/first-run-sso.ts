@@ -184,7 +184,7 @@ export function serve(c: Serve, emit: (e: StandInEvent) => void): Promise<{ port
 
   // macOS lets a process that isn't root take port 443 only on every address (not on 127.0.0.1 alone), so it listens on
   // all of them and serves only this machine's own connections.
-  const server = net.createServer((socket) => (/^(::1|127\.|::ffff:127\.)/.test(socket.remoteAddress ?? "") ? onConnection(socket) : socket.destroy()));
+  const server = net.createServer((socket) => (/^(::1|127\.|::ffff:127\.)/.test(String(socket.remoteAddress)) ? onConnection(socket) : socket.destroy()));
   return new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen({ host: "::", port: c.port }, () => {

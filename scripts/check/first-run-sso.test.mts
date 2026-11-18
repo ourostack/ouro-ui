@@ -210,8 +210,8 @@ describe("first-run harness: a managed Mac's SSO extension", () => {
       // A held request whose body keeps coming: the stand-in stops reading it rather than buffer it all.
       const big = https.request({ host: "127.0.0.1", port: s.port, servername: HOST, method: "POST", path: "/common/oauth2/v2.0/authorize?prompt=none", agent: false, ca: fs.readFileSync(path.join(certs.mine, "ca.pem")), ALPNProtocols: ["http/1.1"] } as https.RequestOptions);
       big.on("error", () => {});
-      for (let i = 0; i < 64; i++) big.write(Buffer.alloc(64 * 1024, 1));
-      await new Promise((r) => setTimeout(r, 500));
+      for (let i = 0; i < 256; i++) big.write(Buffer.alloc(64 * 1024, 1));
+      await new Promise((r) => setTimeout(r, 1500));
       big.destroy();
       // A record that claims to be a hello but grows past 64 KB without ending is passed through rather than waited on.
       const huge = net.connect({ host: "127.0.0.1", port: u.port });
