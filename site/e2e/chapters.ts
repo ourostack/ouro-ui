@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { CHAPTER_ONE, CODE_SHEETS } from "../src/voyage/chapters/copy";
+import { CHAPTER_ONE, CODE_SHEETS, codeLines, type SheetCopy } from "../src/voyage/chapters/copy";
 import { diagnostics } from "./diagnostics";
 
 // What the chapters' end-to-end specs share: opening the voyage at a chapter once it has hydrated,
@@ -13,17 +13,12 @@ export async function openChapter(page: Page, id: string): Promise<void> {
   await expect(page.locator(`#${id}[data-chapter-ready]`)).toBeAttached();
 }
 
-export interface Sheet {
-  title: string;
-  hx: readonly { text: string; code: string }[];
-  site: readonly string[];
-}
-
 /**
- * Opens a composition's Code sheet: each thing HX does over its line of code, the site's part, the
- * source, and focus back on close. No line of code runs off the panel's edge.
+ * Opens a composition's Code sheet: each thing HX does over its line of code (written from the
+ * exhibit as it starts), the site's part, the source, and focus back on close. No line of code runs
+ * off the panel's edge.
  */
-export async function opensCodeSheet(page: Page, chapter: string, composition: Locator, sheet: Sheet): Promise<void> {
+export async function opensCodeSheet<S>(page: Page, chapter: string, composition: Locator, sheet: SheetCopy<S>): Promise<void> {
   const errors = diagnostics(page);
   await openChapter(page, chapter);
   const button = composition.getByRole("button", { name: CHAPTER_ONE.code });
@@ -33,7 +28,7 @@ export async function opensCodeSheet(page: Page, chapter: string, composition: L
   await expect(dialog.getByRole("heading", { name: CODE_SHEETS.hxHeading })).toBeVisible();
   for (const line of [...sheet.hx.map((each) => each.text), ...sheet.site]) await expect(dialog.getByText(line, { exact: true })).toBeVisible();
   const code = dialog.locator("[data-chapter-code]");
-  expect(await code.allTextContents()).toEqual(sheet.hx.map((each) => each.code));
+  expect(await code.allTextContents()).toEqual(codeLines(sheet));
   for (const line of await code.all()) {
     await expect(line).toBeVisible();
     expect(await line.evaluate((element) => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= element.closest("[role='dialog']")!.getBoundingClientRect().right)).toBe(true);

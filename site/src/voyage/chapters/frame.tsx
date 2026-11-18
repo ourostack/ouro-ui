@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type JSX, type ReactNode, type RefObject } from "react";
+import { createContext, use, useEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode, type RefObject } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
@@ -9,7 +9,7 @@ import { ScenePicture } from "../../components/story-world";
 import { GITHUB } from "../../paths";
 import type { SceneName } from "../../storybook";
 import { Container } from "../layout";
-import { CHAPTER_ONE, CODE_SHEETS, CREW, type CrewLine, type SheetLine } from "./copy";
+import { CHAPTER_ONE, CODE_SHEETS, codeLines, CREW, type CrewLine, type SheetCopy } from "./copy";
 import { crewFace } from "./crew-faces";
 import frameStyles from "./frame.css?inline";
 
@@ -164,13 +164,19 @@ export function PhoneMarker({ chapter, title, steps }: { chapter: string; title:
   );
 }
 
-interface SheetCopy {
-  title: string;
-  description: string;
-  hx: readonly SheetLine[];
-  site: readonly string[];
-  /** The Ouro HX components the composition is built from, named under its window. */
-  uses: readonly string[];
+/** Where a composition's exhibit sets its live values aside, for the Code sheet to read as it opens. */
+const LiveCode = createContext<RefObject<object> | null>(null);
+
+/**
+ * Sets an exhibit's live values aside for its composition's Code sheet (`S` is the sheet's), after
+ * each of the exhibit's own renders. It renders nothing again: the sheet reads them only as it opens,
+ * so a line reads `value={60}` with no cost to a press.
+ */
+export function useLiveCode<S extends object>(values: Partial<S>): void {
+  const live = use(LiveCode);
+  useEffect(() => {
+    if (live) Object.assign(live.current, values);
+  });
 }
 
 /**
@@ -178,10 +184,18 @@ interface SheetCopy {
  * itself, with the file it lives in and a Code button in its title bar, the working controls inside,
  * and the Ouro HX components it is built from along its foot. The window is the card surface and its
  * edge is a real border, so it holds in forced colours. The Code sheet puts each thing HX does over
- * the line of the exhibit that asks it to (wrapped, never cut off at the panel's edge).
+ * the line of the exhibit that asks it to (wrapped, never cut off at the panel's edge), written with
+ * the exhibit's values as they stood when the sheet opened (useLiveCode).
  */
-export function Composition({ id, title, intro, file, sheet, children }: { id: string; title: string; intro: string; file: string; sheet: SheetCopy; children: ReactNode }): JSX.Element {
+export function Composition<S extends object>({ id, title, intro, file, sheet, children }: { id: string; title: string; intro: string; file: string; sheet: SheetCopy<S>; children: ReactNode }): JSX.Element {
   const [open, setOpen] = useState(false);
+  const live = useRef<Partial<S>>({});
+  // The lines are written as the sheet opens, and only then.
+  const [code, setCode] = useState<readonly string[]>([]);
+  const show = () => {
+    setCode(codeLines(sheet, { ...sheet.start, ...live.current }));
+    setOpen(true);
+  };
   return (
     <article aria-labelledby={`${id}-title`} data-composition={id}>
       <h3 id={`${id}-title`} className="site-h3">
@@ -192,13 +206,13 @@ export function Composition({ id, title, intro, file, sheet, children }: { id: s
         <div className="flex min-h-11 items-center gap-3 border-b border-border bg-muted ps-4 pe-2" data-composition-bar="">
           <span className="site-mono truncate text-xs text-muted-foreground">{file}</span>
           <span className="ms-auto" data-chapter-control={`${id}-code`}>
-            <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+            <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={show}>
               {CHAPTER_ONE.code}
             </Button>
           </span>
         </div>
         <div className="px-4 sm:px-6" data-composition-body="">
-          {children}
+          <LiveCode value={live}>{children}</LiveCode>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-4 py-3 sm:px-6" data-composition-uses="">
           <span className="me-1 text-xs text-muted-foreground">{CODE_SHEETS.builtWith}</span>
@@ -216,11 +230,11 @@ export function Composition({ id, title, intro, file, sheet, children }: { id: s
               {CODE_SHEETS.hxHeading}
             </h4>
             <ul className="m-0 grid list-none gap-4 p-0">
-              {sheet.hx.map((line) => (
+              {sheet.hx.map((line, index) => (
                 <li key={line.text} className="grid gap-1.5">
                   <span>{line.text}</span>
                   <pre className="site-mono site-code-line m-0 rounded-lg bg-muted px-3 py-2" data-chapter-code="">
-                    <code>{line.code}</code>
+                    <code>{code[index]}</code>
                   </pre>
                 </li>
               ))}

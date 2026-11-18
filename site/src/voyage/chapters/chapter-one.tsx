@@ -22,9 +22,9 @@ import { Container } from "../layout";
 import { useStable } from "../use-stable";
 import { parseArt } from "../stage/art";
 import type { CrewName } from "../stage/copy";
-import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
+import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type ArticlesLive, type CrewLine, type PartId, type ShipyardLive } from "./copy";
 import { crewFace } from "./crew-faces";
-import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
+import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, useLiveCode, type Step } from "./frame";
 import { writeLog } from "./logbook";
 // What only changes once the chapter answers (each part drawn in, the launch, the yard's picture,
 // the crew's cheer): it comes inside this island's script and goes into the page as the island
@@ -271,6 +271,10 @@ function Shipyard(): JSX.Element {
   const left = PARTS.length - built.size;
   const placed = built.size - held.size;
   const ready = left === 0 && !launched && !emptying;
+  const progress = (placed / PARTS.length) * 100;
+  const launchOff = emptying || (!launched && (left > 0 || held.size > 0));
+  const launchLabel = launched || emptying ? SHIPYARD.again : SHIPYARD.launch;
+  useLiveCode<ShipyardLive>({ progress, launch: launchLabel, launchOff });
   // The plan follows the controls a frame later: a press repaints its own control first, then the
   // drawing (a deferred render), so no press waits on the plan's repaint.
   const plan = useDeferredValue(useMemo(() => ({ built, ghosts: held, launched }), [built, held, launched]));
@@ -347,7 +351,7 @@ function Shipyard(): JSX.Element {
         </div>
       </div>
       <div className="grid gap-4 border-t border-border/70 py-4 sm:py-6">
-        <Progress label={SHIPYARD.progress} value={(placed / PARTS.length) * 100} showValue />
+        <Progress label={SHIPYARD.progress} value={progress} showValue />
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* The crew turns out with the plan, a frame after the press: the press paints Launch's own change first (#2067). */}
           <Crew line={line} cheer={plan.launched} />
@@ -355,8 +359,8 @@ function Shipyard(): JSX.Element {
             <span id={hint} className="text-sm text-muted-foreground" data-chapter-launch-hint="">
               {launched ? SHIPYARD.launched : first && !emptying ? SHIPYARD.outOfOrder(partNamed(first).job) : SHIPYARD.launchHint(emptying ? PARTS.length : left)}
             </span>
-            <Button size="md" disabled={emptying || (!launched && (left > 0 || held.size > 0))} aria-describedby={hint} variant={ready ? "solid" : "outline"} tone={ready ? "primary" : "secondary"} onClick={launch}>
-              {launched || emptying ? SHIPYARD.again : SHIPYARD.launch}
+            <Button size="md" disabled={launchOff} aria-describedby={hint} variant={ready ? "solid" : "outline"} tone={ready ? "primary" : "secondary"} onClick={launch}>
+              {launchLabel}
             </Button>
           </div>
         </div>
@@ -423,6 +427,7 @@ function Articles(): JSX.Element {
   const [line, setLine] = useState<CrewLine>(SIGN.opening);
   const [pending, setPending] = useState<{ name: string; wants: readonly Want[] } | null>(null);
   useEffect(() => voyage.set({ you }), [voyage, you]);
+  useLiveCode<ArticlesLive>({ name: you?.name ?? null });
   // The crew in later chapters know you by name; leaving the crew takes it back.
   useEffect(() => writeLog({ you }), [you]);
   // The new, empty form a signing asks for (its key, and the cancel of its wait for the paint) until

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CHAPTER_TWO } from "../src/voyage/chapters/chapter-two-copy";
-import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "../src/voyage/chapters/copy";
+import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, codeLines, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD, type PartId, type SheetCopy } from "../src/voyage/chapters/copy";
 import { railStaysInView } from "./chapters";
 import { diagnostics } from "./diagnostics";
 import { watchToasts } from "./toasts";
@@ -43,10 +43,11 @@ async function goesToChapterTwo(page: Page, link: ReturnType<typeof onward>): Pr
 }
 
 /**
- * Opens a composition's Code sheet: each thing HX does over its line of code, the site's part, the
- * source, and focus back on close. No line of code runs off the panel's edge.
+ * Opens a composition's Code sheet: each thing HX does over its line of code (written from the
+ * exhibit as it starts), the site's part, the source, and focus back on close. No line of code runs
+ * off the panel's edge.
  */
-async function opensCodeSheet(page: Page, composition: (page: Page) => ReturnType<typeof shipyard>, sheet: { title: string; hx: readonly { text: string; code: string }[]; site: readonly string[] }): Promise<void> {
+async function opensCodeSheet<S>(page: Page, composition: (page: Page) => ReturnType<typeof shipyard>, sheet: SheetCopy<S>): Promise<void> {
   const errors = diagnostics(page);
   await open(page);
   const button = composition(page).getByRole("button", { name: CHAPTER_ONE.code });
@@ -56,7 +57,7 @@ async function opensCodeSheet(page: Page, composition: (page: Page) => ReturnTyp
   await expect(dialog.getByRole("heading", { name: CODE_SHEETS.hxHeading })).toBeVisible();
   for (const line of [...sheet.hx.map((each) => each.text), ...sheet.site]) await expect(dialog.getByText(line, { exact: true })).toBeVisible();
   const code = dialog.locator("[data-chapter-code]");
-  expect(await code.allTextContents()).toEqual(sheet.hx.map((each) => each.code));
+  expect(await code.allTextContents()).toEqual(codeLines(sheet));
   for (const line of await code.all()) {
     await expect(line).toBeVisible();
     expect(await line.evaluate((element) => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= element.closest("[role='dialog']")!.getBoundingClientRect().right)).toBe(true);
@@ -122,6 +123,16 @@ test.describe("each control in Chapter I", () => {
 
   test("control: articles-code opens the articles' Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
     await opensCodeSheet(page, articles, CODE_SHEETS.articles);
+  });
+
+  test("the shipyard's Code sheet shows the yard as it stands: three jobs done, and its bar reads value={60}", async ({ page }) => {
+    await open(page);
+    for (const id of (["hull", ...START_ORDER.filter((id) => id !== "hull")] satisfies PartId[]).slice(0, 3)) await job(page, id).click();
+    await expect(shipyard(page).getByRole("progressbar", { name: SHIPYARD.progress })).toHaveAttribute("aria-valuenow", "60");
+    await shipyard(page).getByRole("button", { name: CHAPTER_ONE.code }).click();
+    const sheet = page.getByRole("dialog", { name: CODE_SHEETS.shipyard.title });
+    // real clock: the Code sheet, which stays open until it is closed.
+    await expect(sheet.locator("[data-chapter-code]", { hasText: "<Progress" })).toHaveText(`<Progress label="${SHIPYARD.progress}" value={60} showValue />`);
   });
 
   test("control: order moves a job, the days follow, and Conseil judges the plan", async ({ page }) => {

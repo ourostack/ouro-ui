@@ -2,6 +2,19 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 import type { CrewLine } from "./copy";
 import type { Logbook } from "./logbook";
 
+/** What the encounter's Code sheet writes from the fight: whether the ship is free, and the floodlights. */
+export interface EncounterLive {
+  free: boolean;
+  lights: boolean;
+}
+
+/** What the saloon's Code sheet writes from it: whether the ship is free, whether the organ has played, and whether X-ray is on. */
+export interface SaloonLive {
+  free: boolean;
+  played: boolean;
+  xray: boolean;
+}
+
 /**
  * Every word Chapter III says ("Face the squid", site-design.md): the encounter at the porthole,
  * the orders you give by dialog, menu and palette, and the organ at the end. In one place so the
@@ -171,24 +184,26 @@ export const CODE_SHEETS_THREE = {
         }),
         code: `<Dialog title="A giant squid has the propeller" open={open} onOpenChange={setOpen} footer={<Button onClick={lightLamp}>Light the deck lamp</Button>}>`,
       },
-      { text: "Menu: the list of orders, the arrow keys, the tick by the floodlights, and Dive kept off until the ship is free.", code: `<Menu trigger={<Button>Orders</Button>}>\n  <MenuItem onClick={surface}>Surface</MenuItem>\n  <MenuItem disabled={!free} onClick={dive}>Dive</MenuItem>\n  <MenuCheckboxItem checked={lights} onCheckedChange={setLights}>Floodlights</MenuCheckboxItem>\n</Menu>` },
+      { text: "Menu: the list of orders, the arrow keys, the tick by the floodlights, and Dive kept off until the ship is free.", code: ({ free, lights }: EncounterLive) => `<Menu trigger={<Button>${ENCOUNTER.orders}</Button>}>\n  <MenuItem onClick={surface}>${ORDERS.surface}</MenuItem>\n  <MenuItem disabled={${!free}} onClick={dive}>${ORDERS.dive}</MenuItem>\n  <MenuCheckboxItem checked={${lights}} onCheckedChange={setLights}>${ORDERS.lights}</MenuCheckboxItem>\n</Menu>` },
       { text: "Command: the palette, its search, and the order you pick.", code: `<Command title="Orders for the crew" placeholder="Search orders…" trigger={<Button>Give an order</Button>} items={orders} />` },
       { text: "Badge and Toast: how the ship stands, and the news when the squid lets go.", code: `<Badge tone="success">Ship is free</Badge>\ntoast("The propeller is free", { tone: "success" })` },
     ],
     site: ["The porthole, the squid, and the sea.", "What an order does, and when the ship is free.", "What the crew says."],
     uses: ["Dialog", "Menu", "Command", "Badge", "Toast"],
+    start: { free: false, lights: false } as EncounterLive,
   },
   saloon: {
     title: "How the saloon is built",
     description: "Ouro HX does the buttons and the toast. The site does the organ, its tune and the log.",
     hx: [
-      { text: "Button: the press, and Play kept off until the ship is free.", code: `<Button disabled={!free} onClick={play}>Play the organ</Button>` },
+      { text: "Button: the press, and Play kept off until the ship is free.", code: ({ free, played }: SaloonLive) => `<Button disabled={${!free}} onClick={play}>${played ? SALOON.playAgain : SALOON.play}</Button>` },
       { text: "Button and Toast: Copy puts the line for your agent on the clipboard, and a toast says so.", code: `<Button onClick={copy}>Copy</Button>\ntoast("Copied. Paste it to your agent.", { tone: "success" })` },
-      { text: "Button as a toggle: Show me turns X-ray on and off, and says if it is on.", code: `<Button aria-pressed={xray} onClick={() => setXray(!xray)}>Show me</Button>` },
+      { text: "Button as a toggle: Show me turns X-ray on and off, and says if it is on.", code: ({ xray }: SaloonLive) => `<Button aria-pressed={${xray}} onClick={() => setXray(!xray)}>${SALOON.reveal}</Button>` },
       { text: "Button as a link: the way into the docs.", code: `<Button href="/docs/">Browse components</Button>` },
     ],
     site: ["The organ, its tunes, and its pipes that glow as he plays.", "The squid that comes back to listen, and stays to sleep.", "The log, and what goes in it."],
     uses: ["Button", "Toast"],
+    start: { free: false, played: false, xray: false } as SaloonLive,
   },
 } as const;
 

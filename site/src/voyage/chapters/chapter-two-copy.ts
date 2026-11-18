@@ -1,6 +1,23 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import type { CrewLine, SheetLine } from "./copy";
 
+/** What the chart room's Code sheet writes from it: the day we sail. */
+export interface ChartRoomLive {
+  day: string;
+}
+
+/** What the specimen book's Code sheet writes from it: the sort and the filter. */
+export interface CatalogueLive {
+  sort: string;
+  show: string;
+}
+
+/** What the radio's Code sheet writes from it: who you are calling. */
+export interface RadioLive {
+  channel: string;
+}
+
+
 /**
  * Every word Chapter II says ("Plan the voyage", site-design.md): the chart room, where you plan the
  * route, the specimen book, where you sort the sea's creatures, and the ship's radio, where you chat
@@ -209,31 +226,33 @@ export const CODE_SHEETS_TWO = {
     description: "Ouro HX does the controls and the chart. The site does the map and the maths.",
     hx: [
       { text: "Reorderable: the drag, the moves by key and by menu, and what screen readers hear.", code: `<Reorderable label="Ports of call" items={ports} onReorder={plan} />` },
-      { text: "DatePicker: typing a day or picking it, and the phone's own picker on a phone.", code: `<DatePicker label="Day we sail" value={day} onValueChange={setDay} />` },
+      { text: "DatePicker: typing a day or picking it, and the phone's own picker on a phone.", code: ({ day }: ChartRoomLive) => `<DatePicker label="${CHART_ROOM.departure}" value="${day}" onValueChange={setDay} />` },
       { text: "Chart: the bars in the theme's colours, the table screen readers read, and the arrow keys.", code: `<Chart title="Leagues per leg" type="bar" data={legs} categoryKey="port" config={config} />` },
       { text: "Sheet: this panel.", code: `<Sheet title="How the chart room is built" side="right" open={open} onOpenChange={setOpen}>` },
     ],
     site: ["The map, and the route drawn on it.", "The leagues from port to port, and the days.", "The shortest way, and what the crew says."],
     uses: ["Reorderable", "DatePicker", "Chart", "Sheet"],
+    start: { day: START_DAY } as ChartRoomLive,
   },
   catalogue: {
     title: "How the specimen book is built",
     description: "Ouro HX shows the table. The site sorts it and checks your answers.",
     hx: [
       { text: "Table: the rows and headers, read in order, and its own scroll on a phone.", code: `<Table caption="Creatures" columns={columns} rows={sorted} />` },
-      { text: "SegmentedControl and Select: the sort and the filter.", code: `<SegmentedControl label="Sort by" items={sorts} value={sort} onValueChange={setSort} />\n<Select label="Show" options={groups} value={show} onValueChange={setShow} />` },
+      { text: "SegmentedControl and Select: the sort and the filter.", code: ({ sort, show }: CatalogueLive) => `<SegmentedControl label="${CATALOGUE.sort}" items={sorts} value="${sort}" onValueChange={setSort} />\n<Select label="${CATALOGUE.filter}" options={groups} value="${show}" onValueChange={setShow} />` },
       { text: "HoverCard and Link: a note when you point at a name, and the link when you tap it.", code: `<HoverCard trigger={<Link href={href} external>{name}</Link>}>{note}</HoverCard>` },
       { text: "Combobox: the list of groups, filtered as you type.", code: `<Combobox label="Which group?" items={groups} value={guess} onValueChange={check} />` },
       { text: "Toast and Sheet: the news when a find is sorted, and the museum.", code: `toast("Sorted: Mollusc", { tone: "success" })\n<Sheet title="Captain Nemo's museum" trigger={<Button>Visit the museum</Button>}>` },
     ],
     site: ["The order of the rows, and which ones show.", "The right group for a find.", "The museum's treasures."],
     uses: ["Table", "SegmentedControl", "Select", "HoverCard", "Combobox", "Toast", "Sheet"],
+    start: { sort: "name", show: "all" } as CatalogueLive,
   },
   radio: {
     title: "How the radio is built",
     description: `Ouro HX does the chat. ${claim("The site writes the crew's replies from a script, with no network and no AI.", { source: { file: "site/src/voyage/chapters/chapter-two-copy.ts" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > answers from a script: the squid makes someone new call, a greeting gets a wave, and the crew take turns" } })}`,
     hx: [
-      { text: "ConversationList: who you can call, with a dot for news, and one Tab stop.", code: `<ConversationList label="Who to call" items={channels} selectedId={channel} onSelect={setChannel} />` },
+      { text: "ConversationList: who you can call, with a dot for news, and one Tab stop.", code: ({ channel }: RadioLive) => `<ConversationList label="${RADIO.channels}" items={channels} selectedId="${channel}" onSelect={setChannel} />` },
       { text: `MessageList and Message: the chat, which keeps up with new lines and reads them out. ${claim("Each line shows its writer's dot.", { source: { file: "site/src/voyage/chapters/chapter-two-radio.tsx" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > shows the crew's presence on their lines, as in the list of who is on the air" } })}`, code: `<MessageList label="Radio: The whole crew">\n  <Message role="assistant" name="Ned Land" presence="away" presenceLabel="Napping">Ha. Good one.</Message>\n</MessageList>` },
       { text: "Composer: the box you write in. Enter sends, and Shift and Enter start a new line.", code: `<Composer label="Message" sendOn="enter" onSend={send} />` },
       { text: "ReactionBar: the emoji under a line. Press one to add yours, and again to take it back.", code: `<ReactionBar reactions={line.reactions} quick={quick} onReact={react} />` },
@@ -241,6 +260,7 @@ export const CODE_SHEETS_TWO = {
     ],
     site: ["What the crew says back, and who says it.", "When someone new calls."],
     uses: ["ConversationList", "MessageList", "Message", "Composer", "ReactionBar", "Avatar"],
+    start: { channel: "crew" } as RadioLive,
   },
 } as const;
 

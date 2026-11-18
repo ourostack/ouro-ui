@@ -5,9 +5,9 @@ import { ConversationList, type ConversationListItem } from "@/registry/ouro/com
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ReactionBar, type Reaction } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
-import { RADIO, RADIO_START, REACTIONS, radioReply, type ChannelId, type RadioLine, type ReactionKey } from "./chapter-two-copy";
+import { RADIO, RADIO_START, REACTIONS, radioReply, type ChannelId, type RadioLine, type RadioLive, type ReactionKey } from "./chapter-two-copy";
 import { crewFace } from "./crew-faces";
-import { ROLES } from "./frame";
+import { ROLES, useLiveCode } from "./frame";
 import { firstName, useLogbook } from "./logbook";
 
 /** One line on the radio as it shows: who, what, the reactions on it, and whether it is still being written. */
@@ -59,6 +59,7 @@ function crewReacts(reactions: readonly Reaction[], key: ReactionKey): Reaction[
  */
 export function Radio({ planned }: { planned: boolean }): JSX.Element {
   const [channel, setChannel] = useState<ChannelId>("crew");
+  useLiveCode<RadioLive>({ channel });
   const [lines, setLines] = useState<Record<ChannelId, Line[]>>(() => ({ crew: RADIO_START.crew.map((line, index) => ({ ...toLine(line), welcome: index === 0 })), captain: RADIO_START.captain.map(toLine), caller: RADIO_START.caller.map(toLine) }));
   const [sent, setSent] = useState<Record<ChannelId, number>>({ crew: 0, captain: 0, caller: 0 });
   const [calling, setCalling] = useState(false);

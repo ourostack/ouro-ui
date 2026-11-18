@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, CODE_SHEETS_TWO, FINDS, MUSEUM, PLANNING, RADIO, RADIO_START, ROUTE, SPECIMENS, START_ROUTE } from "../src/voyage/chapters/chapter-two-copy";
-import { ARTICLES } from "../src/voyage/chapters/copy";
+import { ARTICLES, CHAPTER_ONE } from "../src/voyage/chapters/copy";
 import { arrivals, routeLeagues, SHORTEST, writeDay, writeLeagues } from "../src/voyage/chapters/route";
 import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, railStaysInView, watchMotion } from "./chapters";
@@ -57,6 +57,17 @@ test.describe("each control in Chapter II", () => {
 
   test("control: chart-room-code opens the chart room's Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
     await opensCodeSheet(page, "chapter-two", room(page), CODE_SHEETS_TWO.chartRoom);
+  });
+
+  test("the chart room's Code sheet shows the day you chose, as its DatePicker's value", async ({ page }) => {
+    await open(page);
+    await dayField(page).fill("1868-03-01");
+    await dayField(page).press("Tab");
+    await expect(roomCrew(page)).toContainText(ROUTE.day("1 Mar 1868").text);
+    await room(page).getByRole("button", { name: CHAPTER_ONE.code }).click();
+    const sheet = page.getByRole("dialog", { name: CODE_SHEETS_TWO.chartRoom.title });
+    // real clock: the Code sheet, which stays open until it is closed.
+    await expect(sheet.locator("[data-chapter-code]", { hasText: "<DatePicker" })).toHaveText(`<DatePicker label="${CHART_ROOM.departure}" value="1868-03-01" onValueChange={setDay} />`);
   });
 
   test("control: catalogue-code opens the catalogue's Code sheet, which says what is HX's and what is the site's", async ({ page }) => {
