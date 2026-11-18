@@ -935,7 +935,9 @@ describe("MessageList windowing", () => {
     return { scroller, content, clock, worst, past, items, root, style, rerender };
   }
 
-  it("holds the reader's place for a message deleted above them in the frame the space above the first message goes, before the list's own scroll is reported", async () => {
+  // PROBE (#2183): 40 runs of this test, each starting a fresh probe log that a failing run prints
+  for (let run = 0; run < 40; run++) it(`holds the reader's place for a message deleted above them in the frame the space above the first message goes, before the list's own scroll is reported, probe run ${run}`, async () => {
+    (globalThis as { __ouroProbe?: string[] }).__ouroProbe = [];
     // A short view, so the space is more than half of it.
     const { scroller, content, clock, items, root, style } = await wheelToTheTop({ height: 120 });
     await frame();
@@ -954,6 +956,8 @@ describe("MessageList windowing", () => {
       if (content.offsetTop !== 0) return;
       went = true;
       deleted.disconnect();
+      // PROBE (#2183): the test's own deletion, in the probe log before the commit that removes the message
+      (globalThis as { __ouroProbe?: string[] }).__ouroProbe?.push(`test deletes m${gone} scrollTop=${scroller.scrollTop} space=${content.offsetTop}`);
       flushSync(() => root.render(<Chat items={items.filter((item) => item.id !== gone)} springy={false} style={style} />));
     });
     deleted.observe(content, { attributes: true, attributeFilter: ["style"] });
@@ -961,7 +965,13 @@ describe("MessageList windowing", () => {
     await expect.poll(() => went).toBe(true);
     await settle(scroller);
     expect(document.getElementById(`m${gone}`)).toBeNull();
-    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    // PROBE (#2183): a drift over a pixel fails with the probe log, the last 120 entries, so the CI log shows the sequence
+    const drift = Math.abs(reading.message.getBoundingClientRect().top - reading.top);
+    if (drift > 1) {
+      const log = ((globalThis as { __ouroProbe?: string[] }).__ouroProbe ?? []).slice(-120);
+      throw new Error(`PROBE (#2183) drift ${drift}px\n${log.join("\n")}`);
+    }
+    expect(drift).toBeLessThanOrEqual(1);
   });
 
   /** Lets the wheel rest at the top, and waits until the list has taken it: the mark that held the scroll range while it turned goes. */

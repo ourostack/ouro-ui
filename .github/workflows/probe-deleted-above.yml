@@ -1,0 +1,90 @@
+# PROBE (#2183): runs the windowing test's probe runs in CI's Linux WebKit setup, as ci.yml's browser job does. Never merged.
+name: Probe deleted-above order
+on:
+  push:
+    branches: [probe/deleted-above-order]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  GIT_HTTP_LOW_SPEED_LIMIT: 1000
+  GIT_HTTP_LOW_SPEED_TIME: 60
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: http.version
+  GIT_CONFIG_VALUE_0: HTTP/1.1
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # In Playwright's image, as the browser shards are.
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    name: probe (webkit)
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - name: actions/checkout stalled; clear it for one more try
+        if: steps.checkout.outcome == 'failure'
+        run: |
+          tail -n 60 /tmp/ouro-checkout-trace.log || true
+          tail -n 60 /tmp/ouro-checkout-packets.log || true
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - name: actions/checkout stalled again; clear it for a last try
+        if: steps.checkout-again.outcome == 'failure'
+        run: |
+          tail -n 60 /tmp/ouro-checkout-trace.log || true
+          tail -n 60 /tmp/ouro-checkout-packets.log || true
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - if: steps.checkout-again.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - name: pnpm setup failed; trying it once more
+        if: steps.pnpm.outcome == 'failure'
+        run: echo "::warning title=pnpm setup failed::pnpm/action-setup could not install pnpm; setting it up once more."
+      - if: steps.pnpm.outcome == 'failure'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - name: pnpm install failed; trying it once more
+        if: steps.install.outcome == 'failure'
+        run: echo "::warning title=pnpm install failed::pnpm i failed; installing once more."
+      - if: steps.install.outcome == 'failure'
+        run: pnpm i --frozen-lockfile
+      - name: Probe runs (WebKit)
+        run: pnpm exec vitest run registry/ouro/components/ouro/message/message-list.windowing.test.tsx --project ouro-webkit -t "probe run"

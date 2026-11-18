@@ -16,6 +16,13 @@ import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useKeyboardScrollable } from "@/registry/ouro/lib/ouro/use-keyboard-scrollable";
 import { useOuro, type OuroMotion } from "@/registry/ouro/lib/ouro/use-ouro";
 
+// PROBE (#2183): temporary instrumentation for the CI flake probe; never merged. Uses the real clock, since a test mocks performance.now.
+const realNow = performance.now.bind(performance);
+const probe = (line: string) => {
+  const probed = globalThis as { __ouroProbe?: string[] };
+  (probed.__ouroProbe ??= []).push(`${Math.round(realNow())} ${line}`);
+};
+
 /** The props MessageList adds to the `<div>` attributes it passes through. */
 export interface MessageListOwnProps {
   /** What the conversation is, for screen readers: "Conversation with Ouro". Required, so the region has a name. */
@@ -1675,6 +1682,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
     const setSlack = (px: number) => {
+      // PROBE (#2183)
+      probe(`setSlack ${slack}->${px}`);
       slack = px;
       content.style.marginBlockStart = `${px}px`;
       placeFloor();
@@ -1685,12 +1694,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
       scroller.scrollTop += by;
       ownTop.current = scroller.scrollTop;
       const applied = scroller.scrollTop - before;
+      // PROBE (#2183)
+      probe(`scrollOwn by=${by} ${before}->${scroller.scrollTop}`);
       springsRef.current?.moved(applied);
       return applied;
     };
     // Lets the space go once the reader has scrolled past it and the wheel rests: the content moves up by it as the scroll
     // position does, so nothing on screen moves.
     const release = () => {
+      // PROBE (#2183)
+      probe(`release slack=${slack} scrollTop=${scroller.scrollTop} turning=${turning()}`);
       // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
       if (slack === 0 || turning() || scroller.scrollTop < slack) return;
       // Scrolled while the space still holds the scroll range, then the space goes.
@@ -1757,7 +1770,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: passive only tells the browser the listener never cancels the wheel; no test can observe it.
     scroller.addEventListener("wheel", onWheel, { passive: true });
-    const hold = () => {
+    const holdAt = () => {
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
@@ -1808,7 +1821,17 @@ export function MessageList(props: MessageListProps): JSX.Element {
       } else owed = 0;
       keepAnchor();
     };
-    const follow = new ResizeObserver(hold);
+    // PROBE (#2183): what each hold does to the anchors, the scroll position and the place they hold
+    const hold = (from = "call") => {
+      const anchorTops = () => anchors.slice(0, 2).map(({ node, at }) => `${(node as Element).id}@${at.toFixed(1)}:${node.getBoundingClientRect().top.toFixed(1)}`).join(" ");
+      const top = scroller.scrollTop;
+      const taken0 = taken;
+      const end0 = end;
+      const tops0 = anchorTops();
+      holdAt();
+      probe(`hold(${from}) scrollTop ${top}->${scroller.scrollTop} taken ${taken0}->${taken} end ${end0}->${end} owed=${owed} anchors [${tops0}] -> [${anchorTops()}]`);
+    };
+    const follow = new ResizeObserver(() => hold("resize"));
     follow.observe(content);
     follow.observe(scroller);
     // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: while
@@ -1820,6 +1843,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const moves = new MutationObserver((all) => {
       const records = all.filter((record) => !barOnly(record));
       if (records.length === 0) return;
+      // PROBE (#2183): the commit that removes messages, as the list hears of it
+      const removed = records.flatMap((record) => [...record.removedNodes]).map((node) => (node as Element).id).filter(Boolean);
+      if (removed.length > 0) probe(`moves removed=${removed.join(",")} scrollTop=${scroller.scrollTop} taken=${taken} end=${end} pinned=${pinned.current}`);
       const touched = records.some(movesItems);
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
@@ -1827,7 +1853,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression,ArrowFunction: not equivalent; "drops the room at once when hasOlder ends" (message-list.test.tsx) fails on both mutants, but per-test coverage attributes this observer callback to another test, so the shard never runs it.
       const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
-      if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
+      if (pinned.current ? farthest() !== end || floorMoved() : touched) hold("moves");
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
@@ -1835,6 +1861,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // within WHEEL_START, which a loaded machine may take to begin it; judged by time alone, never by the frame the wheel turned
       // in, as a scroll the page makes in that frame (a scrollbar, a jump) is none of the wheel's, and with no scrollend after it
       // would keep the place held by drawing for good. The list's own write is none of the wheel's, and leaves the turn's start.
+      // PROBE (#2183): the scroll as the handler first sees it
+      const probeTop = scroller.scrollTop;
+      const probeOwn = scroller.scrollTop === ownTop.current;
       if (scroller.scrollTop !== ownTop.current) {
         if (event.isTrusted && "onscrollend" in scroller && wheelStarts && performance.now() - wheelAt < WHEEL_START) wheelScrolling = true;
         wheelStarts = false;
@@ -1845,7 +1874,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (nearEnd()) pay();
       release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
-      if (farthest() === end) keepAnchor();
+      // PROBE (#2183): whether this scroll retakes the anchors
+      const probeRetake = farthest() === end;
+      if (probeRetake) keepAnchor();
+      probe(`scroll top=${probeTop} own=${probeOwn} retake=${probeRetake} end=${end} taken=${taken}`);
       setShowJump(!pinned.current);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
