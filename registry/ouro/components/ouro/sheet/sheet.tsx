@@ -88,7 +88,7 @@ export interface SheetBaseProps {
    * With `modal={false}`, draws a light dimming layer over the page behind the sheet, so the
    * sheet stays set apart from the page it sits beside. The page stays readable and in reach:
    * the layer passes presses through, so a press on the page still reaches it and, with
-   * `closeOnOutsidePress`, closes the sheet. Its color and strength are `--ouro-scrim-color` and
+   * `closeOnOutsidePress`, closes the sheet. Its color is `--ouro-backdrop-color` and its strength is
    * `--ouro-scrim-max`. A modal sheet has its backdrop already, so this does nothing there.
    * @default false
    * @claim "With `modal={false}`, draws a light dimming" registry/ouro/components/ouro/sheet/sheet.test.tsx verify:testExists(registry/ouro/components/ouro/sheet/sheet.test.tsx::non-modal sheet > with scrim, tints the page lightly, takes no presses, and a press on the page still closes it)

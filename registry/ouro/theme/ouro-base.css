@@ -28,7 +28,7 @@
  *   scroll fade drawn with no script.
  * - The shadow under each side of a sheet, --ouro-shadow-sheet-<side>, which shadcn's
  *   --shadow-* scale has no upward or sideways step for, with a hairline on the open edge.
- * - The light scrim of a non-modal sheet, --ouro-scrim-color and --ouro-scrim-max.
+ * - The light scrim of a non-modal sheet, --ouro-scrim-max.
  * Ouro's states as classes for markup that is not an Ouro component are in ouro-plain.css, which
  * only an app with such markup adds.
  *
@@ -105,7 +105,6 @@
   --ouro-backdrop-color: #18181b;
   --ouro-backdrop-max: 0.4;
   /* The lighter layer a non-modal sheet's scrim draws over the page, which stays readable beneath it. */
-  --ouro-scrim-color: var(--ouro-backdrop-color);
   --ouro-scrim-max: 0.1;
   /* The shadow under a sheet, by the side it comes from: a hairline on its open edge and a soft shadow. */
   --ouro-shadow-sheet-bottom: 0 -1px 0 var(--border), 0 -8px 32px rgb(0 0 0 / 0.12);
