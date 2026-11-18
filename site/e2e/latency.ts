@@ -294,8 +294,35 @@ async function openProbe(page: Page): Promise<Page> {
   return probe;
 }
 
+/**
+ * One round of the calibration probe's presses (openProbe), in its own page at the throttle, the first a warm-up: each
+ * press's click-to-paint time in ms. Focus goes back to `page` after, settled.
+ */
+export async function probeRound(page: Page, throttle: number = LATENCY.throttle): Promise<number[]> {
+  const probe = await openProbe(page);
+  const durations: number[] = [];
+  try {
+    const probeCdp = await page.context().newCDPSession(probe);
+    await probeCdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
+    const settleProbe = () => probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
+    for (let index = 0; index < PROBE_PRESSES; index++) {
+      await probe.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
+      await settleProbe();
+      await probe.locator("[data-latency-probe-press]").click();
+      await probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
+      const entries = await probe.evaluate(() => (window as unknown as { __latency: number[][] }).__latency);
+      if (index > 0) durations.push(entries.length > 0 ? Math.max(...entries.map(([duration]) => duration!)) : 16);
+    }
+  } finally {
+    await probe.close();
+  }
+  await page.bringToFront();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
+  return durations;
+}
+
 /** The median of a list of numbers. */
-function median(values: readonly number[]): number {
+export function median(values: readonly number[]): number {
   const sorted = values.toSorted((a, b) => a - b);
   const middle = sorted.length / 2;
   return sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
@@ -368,30 +395,7 @@ export async function measure(
   console.log(`latency-runner ${runnerLine}`);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
   if (prepare) await unthrottled(prepare);
-  // The calibration probe's presses, at the same throttle as the control's: the first of each round is a warm-up.
-  const probeRound = async (): Promise<number[]> => {
-    const probe = await openProbe(page);
-    const durations: number[] = [];
-    try {
-      const probeCdp = await page.context().newCDPSession(probe);
-      await probeCdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
-      const settleProbe = () => probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
-      for (let index = 0; index < PROBE_PRESSES; index++) {
-        await probe.evaluate(() => ((window as unknown as { __latency: unknown[] }).__latency.length = 0));
-        await settleProbe();
-        await probe.locator("[data-latency-probe-press]").click();
-        await probe.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
-        const entries = await probe.evaluate(() => (window as unknown as { __latency: number[][] }).__latency);
-        if (index > 0) durations.push(entries.length > 0 ? Math.max(...entries.map(([duration]) => duration!)) : 16);
-      }
-    } finally {
-      await probe.close();
-    }
-    await page.bringToFront();
-    await settle();
-    return durations;
-  };
-  const probeBefore = await probeRound();
+  const probeBefore = await probeRound(page, throttle);
   const samples: number[] = [];
   // Only the latency run's own projects: the rules spec's slow pages count presses by index from the usual warm-ups.
   const warmUps = !browserWarmed && test.info().project.name.startsWith("site-latency") ? LATENCY.firstWarmUps : LATENCY.warmUps;
@@ -437,7 +441,7 @@ export async function measure(
     }
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   }
-  const probeAfter = await probeRound();
+  const probeAfter = await probeRound(page, throttle);
   const probe = [...probeBefore, ...probeAfter];
   const factor = runnerFactor(probe);
   const line = `${label}: median ${median(probe)} ms (quiet ${LATENCY.probeQuiet}), factor ${factor}; before ${probeBefore.join(", ")}; after ${probeAfter.join(", ")}`;
