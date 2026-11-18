@@ -12,6 +12,8 @@ A platform gets its own repository and pins a release of [Ouro UI core](https://
 - [Ouro HX & AX for Android](android.md) is a Compose kit at its first release, v0.1.0, with AppFunctions as its agent door, checked on emulators because nobody here owns an Android device.[^android-release]
 - [Ouro HX & AX for your platform](your-platform.md) is the door we left open for whatever comes next.
 
+The kits are written in their platforms' own toolkits, and there is no Flutter, React Native or other cross-platform kit, on purpose, and none is planned: agents now write each platform's native app, so sharing one implementation no longer pays for the compromise in how it feels ([the decision](https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md)).[^native] Agents compose interfaces for these kits in Ouro's [composed tree](../guides/composed-ui.md), which web and Apple draw today.
+
 ## Which core they meet
 
 | Ouro HX & AX | Release checked | The core it meets | How we know |
@@ -37,6 +39,7 @@ Start with the [guide for platform builders](contributing.md): the contract a pl
 [^core-today]: https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md)
 [^web-home]: https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md verify:urlOk(https://github.com/ourostack/ouro-ui/blob/d20002696a60ce07f234d12b542cbd457b84e4b0/docs/guides/ax-conformance.md)
 [^parity-matrix]: scripts/parity-matrix.test.mjs verify:testExists(scripts/parity-matrix.test.mjs::the parity page shows what its data renders)
+[^native]: https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md)
 [^web-release]: https://github.com/ourostack/ouro-ui/releases/tag/v1.3.24 verify:urlOk(https://github.com/ourostack/ouro-ui/releases/tag/v1.3.24) verify:equals(scripts/parity-data/parity.json#webTag)=v1.3.24
 [^web-core]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/parity.json; https://github.com/ourostack/ouro-ui-core/releases/tag/v0.17.7 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/parity.json) verify:urlOk(https://github.com/ourostack/ouro-ui-core/releases/tag/v0.17.7) verify:equals(scripts/parity-data/parity.json#webTag)=v1.3.24 verify:equals(scripts/parity-data/provenance.json#coreTag)=v0.17.7
 [^apple-release]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.0.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.0.0) verify:equals(scripts/parity-data/versions.json#apple.tag)=v1.0.0

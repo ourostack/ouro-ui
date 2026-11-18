@@ -223,7 +223,7 @@ export function OuroAx(): JSX.Element {
           </Figure>
         </ul>
         <p className="mt-12 mb-0 text-sm text-muted-foreground" data-site-works-with="">
-          <strong className="font-medium text-foreground">{WORKS_WITH.label}</strong>{" "}
+          <strong className="font-medium text-foreground">{WORKS_WITH.label}</strong> {WORKS_WITH.lede} {WORKS_WITH.speaks}{" "}
           {WORKS_WITH.formats.map((format, index) => (
             <span key={format.href}>
               {index > 0 ? " and " : null}
@@ -232,7 +232,10 @@ export function OuroAx(): JSX.Element {
               </Link>
             </span>
           ))}
-          , the formats agents compose interfaces in. {WORKS_WITH.lede}
+          , as formats of that tree.{" "}
+          <Link href={href(WORKS_WITH.guide.href)} tone="secondary" inline>
+            {WORKS_WITH.guide.label}
+          </Link>
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button href={href("/ax/#be-the-agent")}>{"Be the agent"}</Button>

@@ -85,23 +85,34 @@ export const HANDOFF = {
 } as const;
 
 /**
- * The formats agents compose interfaces in that Ouro UI works with, said below the fold in the Ouro AX section
- * (home-reference.tsx), never as the hero's opening: what is Ouro's own leads (decision 2026-11-14-composed-ui-own-tree in
- * ourostack/ouro-ui-core). MCP Apps comes first because the most hosts render it. Each format links to its renderer's docs.
+ * Composed UI, said in the Ouro AX section (home-reference.tsx): agents compose interfaces as data in Ouro's own tree,
+ * Ouro HX draws it with each button's consent, and MCP Apps and A2UI are formats the tree speaks, never the format Ouro
+ * composes in (decision 2026-11-17-composed-tree-leads in ourostack/ouro-ui-core). MCP Apps comes first because the most
+ * hosts render it. Each format links to its renderer's docs, and `guide` to the composed UI guide.
  */
 export const WORKS_WITH = {
-  label: claim("Works with", {
-    source: [{ test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { test: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card" }],
-    verify: [{ testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { testExists: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows HX's spinner until the tool's result arrives, then the card" }],
+  label: "Composed UI.",
+  lede: claim("Agents compose interfaces as validated data in Ouro's own tree, and Ouro HX draws it on the web and in SwiftUI, with every button following its action's consent class.", {
+    source: [
+      { test: "registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components" },
+      { test: "registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > asks the person to confirm a consequential action with what the agent prepared, and presses it only on confirm" },
+      { spec: "https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift" },
+    ],
+    verify: [
+      { testExists: "registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components" },
+      { testExists: "registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > asks the person to confirm a consequential action with what the agent prepared, and presses it only on confirm" },
+      { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift" },
+    ],
   }),
-  lede: claim("When an agent composes a card for a person, Ouro HX draws it and every button follows its action's consent class.", {
-    source: [{ test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
-    verify: [{ testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }, { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > asks the person to confirm a consequential action with what the agent prepared, and sends it only on confirm" }],
+  speaks: claim("It speaks", {
+    source: [{ test: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface" }, { test: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }],
+    verify: [{ testExists: "registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface" }, { testExists: "registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated" }],
   }),
   formats: [
     { label: "MCP Apps", href: "/docs/ouro-mcp-app/" },
     { label: "A2UI", href: "/docs/a2ui-surface/" },
   ],
+  guide: { label: "How composed UI works", href: "/docs/composed-ui/" },
 } as const;
 
 export const SHADCN_BADGE = claim("Works with shadcn/ui", {

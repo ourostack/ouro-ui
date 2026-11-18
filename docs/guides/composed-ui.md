@@ -1,0 +1,69 @@
+# Composed UI
+
+Composed UI is the interface an agent composes for a person, drawn natively, with consent. When an agent shows a person something, a recipe card, an order to confirm or a summary to act on, it composes it as data in Ouro's composed tree, and Ouro HX draws it. The tree is interface as validated data: each node names one of Ouro HX's components, every prop is checked against the catalog, and every button is one of your app's declared actions, pressed with that action's consent.[^validate] A sender can't relabel a button, loosen its consent or add a component the catalog lacks: the validator refuses the tree and says which node and why.[^forged]
+
+The tree is Ouro's own. MCP Apps and A2UI are formats it speaks, not formats it depends on: an agent can send the tree itself, or send A2UI messages that the A2UI adapter turns into the same tree.[^formats]
+
+## What a tree is
+
+```json
+{
+  "id": "card",
+  "component": "Card",
+  "props": {},
+  "children": [
+    { "id": "title", "component": "Heading", "props": { "text": "Lemon orzo", "level": 1 }, "children": [] },
+    { "id": "time", "component": "DescriptionList", "props": { "items": [{ "term": "Time", "detail": "25 min" }] }, "children": [] },
+    {
+      "id": "save",
+      "component": "ActionButton",
+      "props": { "action": "save_recipe", "label": "Save recipe", "consent": "write", "press": "run", "input": { "recipe": "rcp_lemon_orzo" }, "emphasis": "primary" },
+      "children": []
+    }
+  ]
+}
+```
+
+The components are Ouro HX's: `Card`, `Stack`, `Heading`, `Text`, `Image`, `Badge`, `List`, `DescriptionList`, `Separator` and `Alert`, plus `ActionButton` when your catalog has actions.[^components] A component joins the catalog only when web and Apple both draw it and a conformance case covers it.[^joins]
+
+## What a button does
+
+An `ActionButton` names one of your actions and the input the agent prepared. Its label, consent class and what pressing it does come from your action's declaration, never from the agent ([the one action model](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md)):[^button]
+
+- **read** and **write** run when the person presses.[^run]
+- **consequential** asks the person to confirm, on a sheet that shows each value the agent prepared under the field's own label, and runs only once they do.[^confirm]
+- **person-only** takes the person to your app's own screen; it carries no input and sends nothing.[^handoff]
+
+A press says the person made it (`by: "person"`).[^by-person] An agent never presses a button through the screen: it calls the action through its own door, its MCP tool or CLI command, and a person-only action answers it with a typed refusal.[^agent-press]
+
+## How a tree reaches the screen
+
+| The agent sends | Web draws it with | Apple draws it with |
+| --- | --- | --- |
+| The tree, from your own code or server | [ComposedSurface](../ComposedSurface.md) | Not yet: on Apple a tree comes from `A2UI.resolve` |
+| The tree, in an MCP tool result's `structuredContent.ouro` | [OuroMcpApp](../OuroMcpApp.md), inside any MCP Apps host | |
+| A2UI messages | [A2UISurface](../A2UISurface.md) | `OuroA2UI`, which draws the tree with `ComposedSurface` |
+
+Each draws the same tree with the same components and the same consent.[^draws] Core holds the tree, its validator and the adapters (`ouro-composed.mts`, `ouro-mcp-app.mts`, `ouro-a2ui.mts`), which your app vendors from a core release; [core's guide](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/a2ui.md) says how, and how to generate your catalog from your actions.[^vendor]
+
+## Which platforms draw it
+
+Web and Apple draw the tree natively today. The Windows and Android kits don't draw it yet. Every renderer passes the same conformance cases from core, so a card looks and behaves alike wherever it is drawn.[^platforms]
+
+Ouro's kits are written in their platforms' own toolkits: React on the web, SwiftUI on Apple, WinUI 3 on Windows and Compose on Android.[^native] There is no Flutter, React Native or other cross-platform kit, on purpose: agents now write each platform's native app, so sharing one implementation no longer pays for the compromise in how it feels.[^native]
+
+[^validate]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts; test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts) verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components)
+[^forged]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L34-L66 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L34-L66) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > tells the agent what to correct when a composed tree fails the checks, and shows the person the same short alert)
+[^formats]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L81-L98 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L81-L98) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface)
+[^components]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130)
+[^joins]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/AGENTS.md#agent-composed-ui verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/AGENTS.md#agent-composed-ui)
+[^button]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L74-L80 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L74-L80)
+[^run]: test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > presses a write button with the prepared input, pressed by the person verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > presses a write button with the prepared input, pressed by the person)
+[^confirm]: test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > asks the person to confirm a consequential action with what the agent prepared, and presses it only on confirm verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > asks the person to confirm a consequential action with what the agent prepared, and presses it only on confirm) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > shows the app's own name for an id on the confirm sheet, with the id beside it)
+[^handoff]: test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > hands a person-only action to the app's own screen and never presses it verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > hands a person-only action to the app's own screen and never presses it)
+[^by-person]: test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > presses a write button with the prepared input, pressed by the person verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > presses a write button with the prepared input, pressed by the person) verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L67-L73)
+[^agent-press]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/a2ui.test.mts#L85-L92 verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/a2ui.test.mts#L85-L92) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > refuses an agent's attempt to press a button through the screen with the catalog's INVALID_FUNCTION_CALL)
+[^draws]: https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Tests/OuroA2UITests/ComposedTests.swift verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Tests/OuroA2UITests/ComposedTests.swift) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface) verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components)
+[^vendor]: https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md#1-vendor-the-files verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/guides/a2ui.md#1-vendor-the-files)
+[^platforms]: https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift; https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/decisions/2026-11-14-android-kit.md verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Sources/OuroA2UI/ComposedSurface.swift) verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/docs/decisions/2026-11-14-android-kit.md)
+[^native]: https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md)
