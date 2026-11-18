@@ -18,13 +18,14 @@ export interface Run extends Omit<RunResult, "case"> {
 /** One measure across a case's runs. */
 export interface MeasureEntry {
   unit: "px" | "ms" | "count";
-  /** Every run's value, in run order, so an app's gate can take its own medians and bands. */
+  /** The value of every run that reported it, in run order, so an app's gate can take its own medians and bands. */
   runs: number[];
-  /** The median of the runs. */
-  median: number;
-  /** The smallest and largest run. */
-  spread: [number, number];
+  /** The median of the runs; left out when no run reported it. */
+  median?: number;
+  /** The smallest and largest run; left out when no run reported it. */
+  spread?: [number, number];
   limit?: number;
+  /** Whether it is within its limit; left out with no limit, or with no run that reported it (no verdict). */
   pass?: boolean;
 }
 
@@ -40,6 +41,12 @@ export interface ReportEntry {
   pass: boolean;
   shots: string[];
 }
+
+/**
+ * Measures the probe reports only when a run gives it something to measure: the refresh and late frames need 30 gaps between
+ * frames, and the input-to-motion measures a wheel event that moved the list. A limit on one that no run reported has no verdict.
+ */
+export const OCCASIONAL = new Set(["refreshMs", "lateFrames", "inputToMotionP95Ms", "inputToMotionMaxMs", "inputToMotionP95Frames", "inputToMotionMaxFrames"]);
 
 /** A time measure, judged on the median of its runs; every other measure is a count or a distance, judged on every run. */
 export function isTime(name: string): boolean {
@@ -59,17 +66,18 @@ export function median(values: number[]): number {
 /** Judges a case's runs: a count or distance passes when no run is over its limit, a time when the median is not. */
 export function judge(spec: FeelCaseSpec, engine: Engine, runs: Run[]): ReportEntry {
   if (runs.length === 0) throw new Error(`${spec.name} has no runs to judge.`);
-  const names = [...new Set(runs.flatMap((run) => Object.keys(run.measures)))];
-  const missing = Object.keys(spec.limits).filter((name) => !names.includes(name));
+  const reported = [...new Set(runs.flatMap((run) => Object.keys(run.measures)))];
+  const missing = Object.keys(spec.limits).filter((name) => !reported.includes(name) && !OCCASIONAL.has(name));
   if (missing.length > 0) throw new Error(`${spec.name} has a limit on ${missing.join(", ")}, which the probe did not measure.`);
+  const names = [...new Set([...reported, ...Object.keys(spec.limits)])];
   const measures: Record<string, MeasureEntry> = {};
   for (const name of names) {
-    const values = runs.map((run) => run.measures[name] ?? Number.NaN);
-    const entry: MeasureEntry = { unit: unitOf(name), runs: values, median: median(values), spread: [Math.min(...values), Math.max(...values)] };
+    const values = runs.flatMap((run) => (run.measures[name] === undefined ? [] : [run.measures[name]]));
+    const entry: MeasureEntry = values.length === 0 ? { unit: unitOf(name), runs: values } : { unit: unitOf(name), runs: values, median: median(values), spread: [Math.min(...values), Math.max(...values)] };
     const limit = spec.limits[name];
     if (limit !== undefined) {
       entry.limit = limit;
-      entry.pass = isTime(name) ? entry.median <= limit : values.every((value) => value <= limit);
+      if (values.length > 0) entry.pass = isTime(name) ? entry.median! <= limit : values.every((value) => value <= limit);
     }
     measures[name] = entry;
   }
@@ -106,6 +114,15 @@ export const LABELS: Record<string, string> = {
   layoutReadsPerFrame: "Layout reads in the busiest frame",
   rowsMounted: "Rows added to the page",
   longestFrameMs: "The longest frame",
+  refreshMs: "The display's refresh: the median gap between frames",
+  lateFrames: "Late frames: gaps of 1.5 refreshes or more",
+  longFrames: "Long frames: gaps over 50 ms",
+  over16Share: "The share of gaps over 16.7 ms",
+  inputToMotionP95Ms: "From a wheel event to the frame that moved, 95th percentile",
+  inputToMotionMaxMs: "From a wheel event to the frame that moved, at most",
+  inputToMotionP95Frames: "Frames from a wheel event to the one that moved, 95th percentile",
+  inputToMotionMaxFrames: "Frames from a wheel event to the one that moved, at most",
+  inputNeverMoved: "Wheel events the list never moved for",
 };
 
 const ENGINES: Record<Engine, string> = { wkwebview: "WKWebView", webkit: "Playwright's WebKit", chromium: "Playwright's Chromium" };
@@ -115,7 +132,7 @@ export function engineLine(entry: ReportEntry): string {
   return `${ENGINES[entry.engine]} ${entry.engineVersion}, ${entry.os}`;
 }
 
-function value(measure: MeasureEntry, at = measure.median): string {
+function value(measure: MeasureEntry, at = measure.median!): string {
   return `${at}${measure.unit === "count" ? "" : ` ${measure.unit}`}`;
 }
 
@@ -123,10 +140,12 @@ function value(measure: MeasureEntry, at = measure.median): string {
 export function passLine(entry: ReportEntry): string {
   const runs = Object.values(entry.measures)[0]?.runs.length ?? 0;
   const where = `${entry.case} in ${engineLine(entry)}, ${runs} run${runs === 1 ? "" : "s"}`;
+  const unjudged = Object.entries(entry.measures).filter(([, measure]) => measure.limit !== undefined && measure.pass === undefined).map(([name]) => name);
+  if (entry.pass && unjudged.length > 0) return `✓ Pass: ${where}. Every measure a run reported is within its limit; no run measured ${unjudged.join(", ")}, so ${unjudged.length === 1 ? "it has" : "they have"} no verdict.`;
   if (entry.pass) return `✓ Pass: ${where}. Every judged measure is within its limit.`;
   const over = Object.entries(entry.measures)
     .filter(([, measure]) => measure.pass === false)
-    .map(([name, measure]) => `${name} ${value(measure, isTime(name) ? measure.median : measure.spread[1])} (limit ${value(measure, measure.limit)})`);
+    .map(([name, measure]) => `${name} ${value(measure, isTime(name) ? measure.median : measure.spread![1])} (limit ${value(measure, measure.limit)})`);
   return `✗ Fail: ${where}. ${[entry.settled ? "" : "It never came to rest", ...over].filter(Boolean).join("; ")}.`;
 }
 
@@ -134,8 +153,14 @@ function caption(entry: ReportEntry, does: string | undefined): string {
   return `${ENGINES[entry.engine]} at the end of run ${entry.shots.length}.${does ? ` ${does}` : ""}`;
 }
 
+/** Whether a judged measure passed, was over, or had no run to judge. */
+function result(entry: MeasureEntry): string {
+  return entry.pass === undefined ? "no verdict" : entry.pass ? "✓ pass" : "✗ over";
+}
+
 function shown(entry: MeasureEntry): string {
-  const [min, max] = entry.spread;
+  if (entry.runs.length === 0) return "not measured";
+  const [min, max] = entry.spread!;
   return entry.runs.length > 1 ? `${value(entry)} [${min}–${max}]` : value(entry);
 }
 
@@ -154,7 +179,7 @@ export function markdown(entries: ReportEntry[], does: Record<string, string> = 
     lines.push(
       "| Judged | Measure | Value | Limit | Result |",
       "| --- | --- | --- | --- | --- |",
-      ...judged.map(([name, measure]) => `| ${LABELS[name] ?? name} | \`${name}\` | ${shown(measure)} | ${value(measure, measure.limit)} | ${measure.pass ? "✓ pass" : "✗ over"} |`),
+      ...judged.map(([name, measure]) => `| ${LABELS[name] ?? name} | \`${name}\` | ${shown(measure)} | ${value(measure, measure.limit)} | ${result(measure)} |`),
       "",
       ...(reported.length ? ["| Reported | Measure | Value |", "| --- | --- | --- |", ...reported.map(([name, measure]) => `| ${LABELS[name] ?? name} | \`${name}\` | ${shown(measure)} |`), ""] : []),
       `Values are the median of the runs, with the range in brackets. A count or a distance fails if any run is over its limit; a time, on the median.`,
@@ -172,7 +197,7 @@ function escape(text: string): string {
 export function html(entries: ReportEntry[], does: Record<string, string> = {}): string {
   const row = ([name, measure]: [string, MeasureEntry]) =>
     `<tr class="${measure.pass === false ? "over" : ""}"><td>${escape(LABELS[name] ?? name)}<br><code>${escape(name)}</code></td><td>${escape(shown(measure))}</td>${
-      measure.limit === undefined ? "" : `<td>${escape(value(measure, measure.limit))}</td><td>${measure.pass ? "✓ pass" : "✗ over"}</td>`
+      measure.limit === undefined ? "" : `<td>${escape(value(measure, measure.limit))}</td><td>${result(measure)}</td>`
     }</tr>`;
   const sections = entries.map((entry) => {
     const [judged, reported] = split(entry);

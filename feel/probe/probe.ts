@@ -72,6 +72,12 @@ const INPUT_WINDOW_MS = 300;
 const BLANK_INSET_PX = 40;
 /** A wheel event that has moved nothing after this long, away from the list's ends, is dead input. */
 const DEAD_INPUT_MS = 100;
+// A chat app's frame meter's definitions, under its names. `lateFrames`: gaps between frames of 1.5 refreshes or more, where the
+// refresh is the median gap, given at least 30 gaps. `longFrames`: gaps over 50 ms. `over16Share`: the share of gaps over 16.7 ms.
+const LATE_REFRESHES = 1.5;
+const REFRESH_GAPS = 30;
+const LONG_FRAME_MS = 50;
+const FRAME_60HZ_MS = 16.7;
 
 /**
  * The properties and methods that make the engine lay out (Paul Irish's list,
@@ -107,6 +113,20 @@ interface Wheel {
   deltaY: number;
   scrollTop: number;
   resolved: boolean;
+}
+
+/** A wheel event waiting for the list to move its way: when it came, how many frames had been sampled then, and where the list was. */
+interface Motion {
+  at: number;
+  frame: number;
+  deltaY: number;
+  scrollTop: number;
+}
+
+/** The value at the 95th percentile of `values`, which are not empty. */
+function p95(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.ceil(sorted.length * 0.95) - 1]!;
 }
 
 function install(): OuroFeel {
@@ -201,6 +221,7 @@ function install(): OuroFeel {
 
   // Input the probe can see: trusted wheel events, from the OS or the DevTools Input domain alike.
   const wheels: Wheel[] = [];
+  const motions: Motion[] = [];
   addEventListener(
     "wheel",
     (event) => {
@@ -210,7 +231,14 @@ function install(): OuroFeel {
       const deltaY = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? quietly(() => list.clientHeight) : 1);
       inputSinceSample += deltaY;
       wheelInputs += 1;
-      wheels.push({ at: event.timeStamp, deltaY, scrollTop: quietly(() => list.scrollTop), resolved: false });
+      // The event's own time, or when it was seen where an engine gives none or one in the future.
+      const now = performance.now();
+      const at = event.timeStamp > 0 && event.timeStamp <= now ? event.timeStamp : now;
+      // Where the list was in the last frame sampled, before this input: an engine that scrolls off the main thread may have
+      // moved it already by the time the event is dispatched.
+      const scrollTop = sampledScrollTop ?? quietly(() => list.scrollTop);
+      wheels.push({ at, deltaY, scrollTop, resolved: false });
+      if (deltaY !== 0) motions.push({ at, frame: frames, deltaY, scrollTop });
     },
     { capture: true, passive: true },
   );
@@ -239,6 +267,12 @@ function install(): OuroFeel {
   let deadInput = 0;
   let wheelInputs = 0;
   let quietFrames = 0;
+  /** The gaps between frames while watching, and how long each wheel event took to move the list, in ms and in frames. */
+  const gaps: number[] = [];
+  /** Where the list was in the last frame sampled: what a wheel event's movement is measured from. */
+  let sampledScrollTop: number | undefined;
+  const toMotionMs: number[] = [];
+  const toMotionFrames: number[] = [];
 
   // The loop runs only while there is something to do (a case watching, or a paint someone waits for), so a page with the probe
   // loaded and nothing watched asks for no frames, and idles as it would without it.
@@ -250,7 +284,10 @@ function install(): OuroFeel {
     requestAnimationFrame(frame);
   }
   function frame(at: number): void {
-    if (lastFrameAt > 0 && watching !== undefined) longestFrame = Math.max(longestFrame, at - lastFrameAt);
+    if (lastFrameAt > 0 && watching !== undefined) {
+      longestFrame = Math.max(longestFrame, at - lastFrameAt);
+      gaps.push(at - lastFrameAt);
+    }
     lastFrameAt = at;
     afterPaint.port2.postMessage(null);
     if (watching !== undefined || paintWaiters.length > 0) requestAnimationFrame(frame);
@@ -332,8 +369,17 @@ function install(): OuroFeel {
     anchor = next?.[0];
     anchorTop = next?.[1] ?? 0;
 
-    // Dead input: a wheel event that has moved nothing for 100 ms, away from the list's ends.
+    // Input to motion: from a wheel event to the start of the first frame whose scroll moved its way.
     const scrollTop = list.scrollTop;
+    for (let index = motions.length - 1; index >= 0; index--) {
+      const motion = motions[index]!;
+      if (Math.sign(scrollTop - motion.scrollTop) !== Math.sign(motion.deltaY)) continue;
+      toMotionMs.push(Math.max(0, lastFrameAt - motion.at));
+      toMotionFrames.push(frames - motion.frame);
+      motions.splice(index, 1);
+    }
+
+    // Dead input: a wheel event that has moved nothing for 100 ms, away from the list's ends.
     const atEnd = scrollTop <= 0 || scrollTop >= list.scrollHeight - list.clientHeight - 1;
     for (const wheel of wheels) {
       if (wheel.resolved) continue;
@@ -346,6 +392,7 @@ function install(): OuroFeel {
     const keep = wheels.filter((wheel) => !wheel.resolved || now - wheel.at <= INPUT_WINDOW_MS);
     wheels.length = 0;
     wheels.push(...keep);
+    sampledScrollTop = scrollTop;
 
     // Blank frames, only while the list holds rows. Read from the rows' boxes, not hit testing: a list that turns off
     // pointer events while it scrolls still shows its rows.
@@ -365,6 +412,31 @@ function install(): OuroFeel {
     return moved;
   }
 
+  /** The frame meter's late and long frames; the refresh and late frames only once there are enough gaps to tell the refresh. */
+  function frameTimes(): Measures {
+    const measures: Measures = {
+      longFrames: gaps.filter((gap) => gap > LONG_FRAME_MS).length,
+      over16Share: gaps.length === 0 ? 0 : Math.round((gaps.filter((gap) => gap > FRAME_60HZ_MS).length / gaps.length) * 1000) / 1000,
+    };
+    if (gaps.length >= REFRESH_GAPS) {
+      const refresh = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)]!;
+      measures.refreshMs = Math.round(refresh * 10) / 10;
+      measures.lateFrames = gaps.filter((gap) => gap >= LATE_REFRESHES * refresh).length;
+    }
+    return measures;
+  }
+
+  /** How long wheel events took to move the list, at the 95th percentile and at most, and how many never moved it. */
+  function inputToMotion(): Measures {
+    const measures: Measures = { inputNeverMoved: motions.length };
+    if (toMotionMs.length === 0) return measures;
+    measures.inputToMotionP95Ms = Math.round(p95(toMotionMs));
+    measures.inputToMotionMaxMs = Math.round(Math.max(...toMotionMs));
+    measures.inputToMotionP95Frames = p95(toMotionFrames);
+    measures.inputToMotionMaxFrames = Math.max(...toMotionFrames);
+    return measures;
+  }
+
   const feel: OuroFeel = {
     version: 1,
     watch(options) {
@@ -373,10 +445,13 @@ function install(): OuroFeel {
       jumps = jumpMaxPx = jumpsStrict = jumpStrictMaxPx = shifts = anchorShiftPx = drift = anchorMovePx = 0;
       blankFrames = blankFramesInset = deadInput = wheelInputs = frames = added = 0;
       longestFrame = 0;
+      gaps.length = motions.length = toMotionMs.length = toMotionFrames.length = 0;
       inputSinceSample = 0;
       wheels.length = 0;
       const list = listOf(options);
       const start = list === null ? undefined : quietly(() => middleRow(rowBoxes(list, options.rows), list.getBoundingClientRect()));
+      // The first wheel event's movement is measured from where the list is now, before any frame is sampled.
+      sampledScrollTop = list === null ? undefined : quietly(() => list.scrollTop);
       anchor = start?.[0];
       anchorTop = start?.[1] ?? 0;
       writePending();
@@ -422,6 +497,8 @@ function install(): OuroFeel {
           layoutReadsPerFrame: mostReadsInAFrame,
           rowsMounted: added,
           longestFrameMs: Math.round(longestFrame),
+          ...frameTimes(),
+          ...inputToMotion(),
         },
         userAgent: navigator.userAgent,
       };
