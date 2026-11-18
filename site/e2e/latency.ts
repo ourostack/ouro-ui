@@ -513,11 +513,16 @@ process.once("exit", () => {
 export async function expectPressesWithinBudget(page: Page, label: string, presses: Presses, baseline: number): Promise<void> {
   const more = (first: readonly number[], before: number) => morePresses(first, baseline, before);
   measured += 1;
+  const began = Date.now();
   let result = await measure(page, label, presses, LATENCY.throttle, more);
+  // How long one measurement took here: each re-measure adds that, half again, and the wait to the test's time limit, so
+  // the retries a loaded runner needs never run the test out of time (ourostack/ouro-ui#1735).
+  const took = Date.now() - began;
   const reads = [median(result.probe)];
   // Each measurement's presses carry on from the last index of the ones before it.
   let pressed = result.presses;
   while (pastCap(result.probe) && reads.length < LATENCY.loadTries) {
+    test.info().setTimeout(test.info().timeout + LATENCY.loadWaitMs + Math.ceil(took * 1.5));
     await page.waitForTimeout(LATENCY.loadWaitMs);
     result = await measure(page, `${label} (again)`, presses, LATENCY.throttle, more, pressed);
     pressed += result.presses;
