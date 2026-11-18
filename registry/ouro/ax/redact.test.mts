@@ -34,6 +34,13 @@ test("redactText replaces each shape with its category and keeps the words aroun
     [`curl -H "Cookie: ESTSAUTH=${SECRETS.cookieValue}; sid=${SECRETS.sessionValue}"`, `curl -H "[text]`],
     [`Set-Cookie: session=${SECRETS.sessionValue}; HttpOnly; Secure`, "Set-Cookie: [redacted]"],
     [`x-api-key=${SECRETS.stripe}`, "x-api-key=[redacted]"],
+    ["X-Auth-Token: abc 123 and the rest", "X-Auth-Token: [redacted]"],
+    ["Cookie : a=1 b", "Cookie : [redacted]"],
+    ["sent Bearer  QWxhZGRpbjpvcGVu", "sent Bearer [token]"],
+    ["key sk-abcdefghij12", "key [token]"],
+    ["GET http://example.com/a?x=1 and ws://example.com/live", "GET http://example.com/… and ws://example.com/…"],
+    ['tokenId=abc123 and password="two words"', "tokenId=[redacted] and password=[redacted]"],
+    ["'see you at noon', she said", "'[text]', she said"],
     [`sent with bearer ${SECRETS.bearer} at 19:57`, "sent with bearer [token] at 19:57"],
     [`token ${SECRETS.jwt} expired`, "token [token] expired"],
     [`pushed with ${SECRETS.githubPat} and ${SECRETS.githubFineGrained}`, "pushed with [token] and [token]"],
@@ -66,7 +73,8 @@ test("redactText replaces each shape with its category and keeps the words aroun
 
 test("redactText turns the person's home folder into ~, and runs an app's own rules first", () => {
   assert.equal(redactText(`/Users/${SECRETS.macUser}/Library/Logs/app.log`, { home: `/Users/${SECRETS.macUser}` }), "~/Library/Logs/app.log");
-  assert.equal(redactText("~ stays as it is", { home: "/" }), "~ stays as it is", "a home of one character is not a home");
+  assert.equal(redactText("~ and a/b stay as they are", { home: "/" }), "~ and a/b stay as they are", "a home of one character is not a home");
+  assert.equal(redactText("/Users/jordan.lee/x", { home: "/Users//jordan.lee" }), "~/x", "a home written with a doubled slash");
   assert.equal(redactText("c:/users/jordan lee/AppData and C:\\\\Users\\\\Jordan Lee\\\\x", { home: "C:\\Users\\Jordan Lee" }), "~/AppData and ~\\\\x", "any letter case, either slash, doubled or not");
   const chatIds: RedactRule = { name: "chat-id", re: /\b19:[A-Za-z0-9_-]+@thread\.v2/g, to: "[chat]" };
   assert.equal(redactText("posted in 19:a1b2c3_d4@thread.v2", { rules: [chatIds] }), "posted in [chat]", "the app's rule wins over the built-in email rule");
@@ -98,6 +106,10 @@ test("redactValue keeps keys, numbers, times and codes, and drops secrets and wh
     [SECRETS.guid]: { ok: true },
     [SECRETS.email]: 1,
     [SECRETS.otherEmail]: 2,
+    "kim@example.org": 3,
+    context: "home",
+    namespace: "ouro",
+    loginHint: "jlee",
   };
   assert.deepEqual(redactValue(line), {
     level: "warn",
@@ -123,6 +135,10 @@ test("redactValue keeps keys, numbers, times and codes, and drops secrets and wh
     "[id]": { ok: true },
     "[email]": 1,
     "[email] 2": 2,
+    "[email] 3": 3,
+    context: "home",
+    namespace: "ouro",
+    loginHint: "[text]",
   });
   assert.equal(redactValue(`contact ${SECRETS.email}`), "[text]");
   assert.equal(redactValue(SECRETS.email), "[email]", "one word the rules redact comes back redacted");
@@ -132,6 +148,7 @@ test("redactValue keeps keys, numbers, times and codes, and drops secrets and wh
 test("redactLine reads a JSON line by its values and any other line as text", () => {
   assert.equal(redactLine(`  {"level":"info","event":"sign-in","email":"${SECRETS.email}"}  `), '{"level":"info","event":"sign-in","email":"[text]"}');
   assert.equal(redactLine(`{not json, ${SECRETS.email}}`), "{not json, [email]}");
+  assert.equal(redactLine('["jordan", 3]'), '["jordan",3]', "an array line is JSON too");
   assert.equal(redactLine(`19:57:02 sign-in for ${SECRETS.email} took 3 s`, { home: "/Users/jordan" }), "19:57:02 sign-in for [email] took 3 s");
 });
 
@@ -152,10 +169,13 @@ test("leaks names each shape left in a text, an app's own included, and nothing 
     "-----BEGIN PRIVATE KEY-----\nabc",
     `password: ${SECRETS.password}`,
     "postgres://app:hunter2@localhost/db",
+    "C:\\Users\\JLee\\AppData",
   ].join("\n");
   assert.deepEqual(leaks(raw).sort(), ["bearer", "email", "guid", "header", "jwt", "opaque", "private-key", "secret", "secret-colon", "secret-field", "service-token", "url", "user-path", "userinfo"]);
   assert.deepEqual(leaks(redactText(raw)), []);
-  assert.deepEqual(leaks("all clear: 8 checks passed in 0.4s, https://example.com/… and /Users/[user]/Library"), []);
+  assert.deepEqual(leaks(`all clear: 8 checks passed in 0.4s, https://example.com/… and /Users/[user]/Library, ${"abcdefghij".repeat(4)}`), []);
+  assert.deepEqual(leaks("authorization: foo=[redacted]"), ["header"], "a header's value must itself be redacted");
+  assert.deepEqual(leaks("password: /Users/[user]"), ["secret-colon"], "a secret whose value is a cleaned path is still a secret");
   const chatIds: RedactRule = { name: "chat-id", re: /\b19:[A-Za-z0-9_-]+@thread\.v2/g, to: "[chat]" };
   assert.deepEqual(leaks("in 19:abc@thread.v2", { rules: [chatIds] }), ["chat-id", "email"]);
   assert.deepEqual(leaks("in [chat]", { rules: [{ ...chatIds, re: /\[chat\]|19:\w+/g }] }), [], "what the app's rule leaves is clean");
@@ -194,5 +214,6 @@ test("a huge line is cut before the rules read it, at a space, so redaction stay
   assert.equal(redactText(`${"word ".repeat(1000)}\nshort ${SECRETS.email}`).split("\n")[1], "short [email]", "each line is cut on its own");
   const long = `${"z".repeat(4000)}`;
   assert.equal(redactText(long), long, "a line at the limit is read whole");
+  assert.equal(redactText(` ${"a".repeat(5000)}`), "[5001 characters]", "a space only at the start is no place to cut");
   assert.ok(performance.now() - started < 5000, `took ${Math.round(performance.now() - started)} ms`);
 });

@@ -45,9 +45,7 @@ function textDeep(v: unknown, opts: BundleOptions, key: string): unknown {
 /** The keys and strings in a JSON value, unescaped, for `leaks` to read as they are. */
 function stringsOf(v: unknown): string[] {
   if (typeof v === "string") return [v];
-  if (Array.isArray(v)) return v.flatMap(stringsOf);
-  if (v && typeof v === "object") return Object.entries(v).flatMap(([k, x]) => [k, ...stringsOf(x)]);
-  return [];
+  return Object.entries(v ?? {}).flatMap(([k, x]) => [k, ...stringsOf(x)]);
 }
 
 /**

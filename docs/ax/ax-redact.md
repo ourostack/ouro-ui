@@ -81,7 +81,7 @@ redactEntries({ "jordan@contoso.com": 3, "sam@contoso.com": 1 }, (n) => n); // {
 
 ### `redactLine`
 
-A log line: a JSON object line by its values (`redactValue`), any other line as text (`redactText`).
+A log line: a JSON line by its values (`redactValue`), any other line as text (`redactText`).
 
 ```ts
 function redactLine(line: string, opts?: RedactOptions): string

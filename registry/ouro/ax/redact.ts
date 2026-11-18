@@ -39,7 +39,7 @@ const SAFE_VALUE = /^[a-z0-9._:/+=-]{0,40}$/;
 /** Keys whose values are what someone wrote, whatever they hold. */
 const CONTENT_KEYS = /^(title|text|body|content|preview|subject|summary|message|msg|topic|from|to|who)$/i;
 /** Keys whose values say who someone is: a name, an address, a sign-in, an account, by the key's last word. */
-const PERSON_KEY = /(name|e_?mail|mail|upn|userprincipalname|login|login_?hint|handle|phone|address|account|user|user_?id|owner|author)$/i;
+const PERSON_KEY = /(name|mail|upn|userprincipalname|login|login_?hint|handle|phone|address|account|user|user_?id|owner|author)$/i;
 /** Keys whose values are secrets, whatever they hold. */
 const SECRET_WORDS = "token|secret|passw(?:or)?d|pwd|cookie|session|credential|api_?key|private_?key|access_?key|account_?key|signature|assertion|authorization|bearer";
 const SECRET_KEY = new RegExp(`^(sid|pass|pw|[A-Za-z_-]*(${SECRET_WORDS})[A-Za-z_-]*)$`, "i");
@@ -151,6 +151,7 @@ function homePattern(home: string): RegExp {
  * redactText(`signed in as jordan@contoso.com from /Users/jordan/Library`, { home: "/Users/jordan" });
  * // "signed in as [email] from ~/Library"
  */
+// Stryker disable next-line ArrayDeclaration: no rules and an empty list of rules redact the same.
 function redactText(s: string, { home, rules = [] }: RedactOptions = {}): string {
   let out = s.split("\n").map(cutLine).join("\n");
   if (home && home.length > 1) out = out.replace(homePattern(home), "~");
@@ -201,31 +202,26 @@ function redactEntries(v: object, value: (x: unknown, key: string) => unknown, o
 }
 
 /**
- * A log line: a JSON object line by its values (`redactValue`), any other line as text (`redactText`).
+ * A log line: a JSON line by its values (`redactValue`), any other line as text (`redactText`).
  *
- * @claim "a JSON object line by its values" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::redactLine reads a JSON line by its values and any other line as text)
+ * @claim "a JSON line by its values" registry/ouro/ax/redact.test.mts verify:testExists(registry/ouro/ax/redact.test.mts::redactLine reads a JSON line by its values and any other line as text)
  * @example
  * redactLine(`{"level":"info","event":"sign-in","email":"jordan@contoso.com"}`);
  * // '{"level":"info","event":"sign-in","email":"[text]"}'
  */
 function redactLine(line: string, opts: RedactOptions = {}): string {
-  const t = line.trim();
-  if (t.startsWith("{") && t.endsWith("}")) {
-    try {
-      return JSON.stringify(redactValue(JSON.parse(t), opts));
-    } catch {
-      // Not JSON after all: redacted as text.
-    }
+  try {
+    return JSON.stringify(redactValue(JSON.parse(line), opts));
+  } catch {
+    return redactText(line, opts);
   }
-  return redactText(line, opts);
 }
 
 /** What a rule leaves behind, which is clean: a header or key with [redacted], a URL cut to its host, a user folder as [user]. */
 function leftByRule(name: string, said: string): boolean {
   if (name === "header" || name === "secret") return /^[^:=]*[:=]\s*\[redacted\]/.test(said);
-  if (name === "userinfo") return said.endsWith("://[redacted]@");
   if (name === "url") {
-    const rest = said.replace(/^[a-z]+:\/\//i, "");
+    const rest = said.slice(said.indexOf("://") + 3);
     return !rest.includes("@") && !/\/[^…]/.test(rest);
   }
   if (name === "opaque") return !isOpaque(said);

@@ -65,11 +65,12 @@ test("a bundle that still holds a secret's shape after redaction is refused, and
   // A rule that leaves its match as it is, as a rule with a mistake would: the safety net still catches it.
   const forgetful: RedactRule = { name: "ticket", re: /\bTKT-\d+/g, to: (m) => m };
   const anyId: RedactRule = { ...forgetful, to: "[ticket]" };
-  const leaky = { facts: { ticket: "TKT-0" }, logs: { service: ["opened TKT-0", '{"ticket":"TKT-0"}'] } };
-  assert.throws(() => bundleText(leaky, { rules: [forgetful] }), {
-    message: "bundle: the facts still held ticket; the service log still held ticket after redaction, so the bundle was not written. Fix: leave that out of the bundle, or pass a rule for its shape in rules.",
+  const order: RedactRule = { name: "order", re: /\bORD-\d+/g, to: (m) => m };
+  const leaky = { facts: { ticket: "TKT-0", orders: ["ORD-1"] }, logs: { service: ["opened TKT-0"], engine: ['{"ticket":"TKT-0"}'] } };
+  assert.throws(() => bundleText(leaky, { rules: [forgetful, order] }), {
+    message: "bundle: the facts still held ticket, order; the service log still held ticket; the engine log still held ticket after redaction, so the bundle was not written. Fix: leave that out of the bundle, or pass a rule for its shape in rules.",
   });
-  assert.doesNotThrow(() => bundleText(leaky, { rules: [anyId] }), "what the app's rule leaves is clean");
+  assert.doesNotThrow(() => bundleText(leaky, { rules: [anyId, { ...order, to: "[order]" }] }), "what the app's rules leave is clean");
   const dir = join(scratch(), "doctor");
   assert.throws(() => writeBundle(leaky, { dir, prefix: "chat-doctor", at: 0, rules: [forgetful] }), /still held ticket/);
   assert.equal(existsSync(dir), false, "not even its folder");
