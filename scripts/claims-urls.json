@@ -427,6 +427,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.18.0": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
   "https://github.com/ourostack/ouro-ui-windows/blob/55639374c1e097e649194ba2d8dbfef847f68534/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
@@ -452,10 +456,6 @@
     "checked": "2026-11-14"
   },
   "https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.1.1": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
-  "https://github.com/ourostack/ouro-ui/blob/07ad896380205e7f3a00cf0c0f3451b71fe49245/test/fixtures/a2ui/core.json": {
     "status": 200,
     "checked": "2026-11-18"
   },

@@ -398,4 +398,19 @@ describe("A2UISurface", () => {
     await userEvent.click(dialog.getByRole("button", { name: "Share recipe" }));
     expect((onAction.mock.calls[1]![0] as A2UIActionMessage).action).toMatchObject({ name: "share_recipe", context: { recipe: "rcp_1", with: "kim@example.com" }, metadata: { extensions: { bot_ouroboros_action: { consent: "consequential", by: "person", confirmed: true } } } });
   });
+
+  it("keeps what the person entered when it renders again with a new label function, and starts over from new messages", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const messages = surface([{ id: "root", component: "TextField", label: "Send to", value: { "@path": "/with" } }], { with: "sam@example.com" });
+    await act(async () => root.render(<A2UISurface {...props({ messages, label: () => undefined })} />));
+    await userEvent.fill(page.getByRole("textbox", { name: "Send to" }), "kim@example.com");
+    await act(async () => root.render(<A2UISurface {...props({ messages, label: () => undefined })} />));
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("kim@example.com");
+    await act(async () => root.render(<A2UISurface {...props({ messages: [...messages, { version: "1.0", updateDataModel: { surfaceId: "card", path: "/with", value: "lee@example.com" } }] })} />));
+    expect(page.getByRole("textbox", { name: "Send to" }).element()).toHaveValue("lee@example.com");
+  });
 });

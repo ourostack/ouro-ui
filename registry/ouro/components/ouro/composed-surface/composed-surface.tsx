@@ -118,7 +118,7 @@ export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
   );
   return (
     <div data-ouro="composed-surface" className={cn("min-w-0", className)}>
-      <ComposedTree tree={tree} data={data} onPress={onPress} onHandoff={onHandoff} />
+      <ComposedTree tree={tree} data={data} origin={tree} onPress={onPress} onHandoff={onHandoff} />
     </div>
   );
 }
@@ -127,20 +127,22 @@ export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
 export interface ComposedTreeProps extends Pick<ComposedSurfaceProps, "tree" | "onPress" | "onHandoff"> {
   /** The data model the fields start from, when the tree has one. */
   data: Json | undefined;
+  /** What the tree came from: a new one starts the fields over from `data`, and so does a new `data`. */
+  origin: unknown;
 }
 
 /**
  * The tree's components, drawn straight into the parent: the body of ComposedSurface and of A2UISurface. It holds the
- * data model as the person fills it in, and starts over from `data` when `tree` or `data` changes.
+ * data model as the person fills it in, and starts over from `data` when `origin` or `data` changes.
  *
  * @internal
  */
-export function ComposedTree({ tree, data, onPress, onHandoff }: ComposedTreeProps): ReactNode {
-  const [held, setHeld] = useState<{ tree: ComposedNode; data: Json | undefined; current: Json }>(() => ({ tree, data, current: data ?? {} }));
+export function ComposedTree({ tree, data, origin, onPress, onHandoff }: ComposedTreeProps): ReactNode {
+  const [held, setHeld] = useState<{ origin: unknown; data: Json | undefined; current: Json }>(() => ({ origin, data, current: data ?? {} }));
   let current = held.current;
-  if (held.tree !== tree || held.data !== data) {
+  if (held.origin !== origin || held.data !== data) {
     current = data ?? {};
-    setHeld({ tree, data, current });
+    setHeld({ origin, data, current });
   }
   const write = (pointer: string, value: Json) => setHeld((h) => ({ ...h, current: setPointer(h.current, pointer, value) }));
   // Stryker disable next-line StringLiteral: the root's key only prefixes its descendants' keys, which are unique under any prefix.
