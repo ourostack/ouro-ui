@@ -122,6 +122,9 @@ export function statesSweep(mode: "light" | "dark", chunk: number) {
             const label = await control.evaluate((el) => (el.getAttribute("aria-label") || el.closest("label, [data-ouro]")?.textContent || "").trim().slice(0, 40));
             looks.add(path, tagged, tagged.pictured && looks.wants(tagged) ? await picture(page, i) : null, label);
           };
+          // Nothing keeps focus into the hover and press reads: a control focused before (by the page, or by the last
+          // control's press handing focus to a sibling) would read its focus ring as part of the hover (#2235).
+          await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
           await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
           await record("hover", ":hover");
           await page.mouse.down();
