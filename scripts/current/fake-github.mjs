@@ -79,6 +79,18 @@ export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = nul
       return ok({ sha, truncated: false, tree: [...trees.get(sha)].map(([p, s]) => ({ path: p, type: "blob", sha: s })) });
     }
     if ((match = /^repos\/o\/r\/git\/blobs\/(.+)$/.exec(path)) && method === "GET") return ok({ content: blobs.get(match[1]).toString("base64") });
+    if ((match = /^repos\/o\/r\/compare\/([0-9a-f]+)\.\.\.(.+)$/.exec(path))) {
+      const head = refs.get(decodeURIComponent(match[2])) ?? match[2];
+      const seen = new Set();
+      const walk = [head];
+      while (walk.length) {
+        const sha = walk.pop();
+        if (seen.has(sha)) continue;
+        seen.add(sha);
+        walk.push(...(commits.get(sha)?.parents ?? []));
+      }
+      return ok({ status: match[1] === head ? "identical" : seen.has(match[1]) ? "ahead" : "diverged" });
+    }
     if ((match = /^repos\/o\/r\/git\/commits\/(.+)$/.exec(path)) && method === "GET") {
       const commit = commits.get(match[1]);
       return ok({ sha: match[1], message: commit.message, tree: { sha: commit.tree }, parents: commit.parents.map((sha) => ({ sha })) });

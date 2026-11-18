@@ -8,9 +8,13 @@
 //   }
 //
 // version: files that carry the app's version, each with a pattern whose first group is the version. When the
-//   repository has a published release at or past that version, the update moves every one of them to the next patch.
+//   repository has a published release at or past that version, the update moves every one of them to the next
+//   version: the next patch, or for a prerelease such as `0.1.0-alpha.1183` the next number, `0.1.0-alpha.1184`. A
+//   file may be named more than once, with a pattern for each place it carries the version.
 // changelog: a fragment the update adds. {releases} is the releases it moves to ("Ouro UI v1.3.204"), {version} the
-//   newest release's tag without the `v`.
+//   newest release's tag without the `v`. With "json": "versions", the path is instead a JSON changelog whose
+//   `versions` array starts with the newest version (ourostack/ouroboros's changelog.json): the text is added to the
+//   entry for the app's version, which is put first when it is not there yet.
 // ignore: pin files to leave alone, each a path or a folder ending in `/`.
 
 export const RULES_PATH = ".github/ouro-current.json";
@@ -29,6 +33,11 @@ export const nextPatch = (version) => {
   const [major = 0, minor = 0, patch = 0] = parts(version);
   return `${major}.${minor}.${patch + 1}`;
 };
+/** The version after `version`: the next prerelease number (`0.1.0-alpha.1183` to `0.1.0-alpha.1184`), else the next patch. */
+export const nextVersion = (version) => {
+  const pre = /^v?(\d+\.\d+\.\d+-[0-9A-Za-z-]+\.)(\d+)$/.exec(String(version));
+  return pre ? `${pre[1]}${Number(pre[2]) + 1}` : nextPatch(version);
+};
 
 const fill = (template, values) => template.replace(/\{(\w+)\}/g, (all, key) => (key in values ? values[key] : all));
 
@@ -40,6 +49,7 @@ const fill = (template, values) => template.replace(/\{(\w+)\}/g, (all, key) => 
 export async function applyRules(rules, { read, latestRelease, releases, newest }) {
   const files = {};
   const notes = [];
+  let version = null;
   if (!rules) return { files, notes };
   if (Array.isArray(rules.version) && rules.version.length) {
     const texts = [];
@@ -49,13 +59,18 @@ export async function applyRules(rules, { read, latestRelease, releases, newest 
       const pattern = new RegExp(entry.pattern, "m");
       const match = pattern.exec(text);
       if (!match || match[1] === undefined) throw new Error(`${RULES_PATH}: ${entry.path} has no version matching ${entry.pattern}`);
-      texts.push({ entry, text, pattern, match });
+      texts.push({ entry, pattern, match });
     }
     const current = texts[0].match[1];
+    version = current;
     const latest = await latestRelease();
     if (latest && !isAfter(current, latest)) {
-      const next = nextPatch(isAfter(latest, current) ? latest : current);
-      for (const { entry, text, match } of texts) {
+      const next = nextVersion(isAfter(latest, current) ? latest : current);
+      version = next;
+      // Each entry is applied to the file as the entries before it left it, so one file can carry the version twice.
+      for (const { entry, pattern } of texts) {
+        const text = files[entry.path] ?? (await read(entry.path));
+        const match = pattern.exec(text);
         const start = match.index + match[0].indexOf(match[1]);
         files[entry.path] = text.slice(0, start) + next + text.slice(start + match[1].length);
       }
@@ -65,8 +80,22 @@ export async function applyRules(rules, { read, latestRelease, releases, newest 
   if (rules.changelog?.path && typeof rules.changelog.text === "string") {
     const values = { releases, version: String(newest).replace(/^v/, "") };
     const path = fill(rules.changelog.path, values);
-    files[path] = fill(rules.changelog.text, values);
-    notes.push(`It adds the changelog fragment \`${path}\` this repository asks for.`);
+    const text = fill(rules.changelog.text, values);
+    if (rules.changelog.json === "versions") {
+      if (!version) throw new Error(`${RULES_PATH}: a "json" changelog needs "version" files to say which version it is for`);
+      const changelog = JSON.parse((await read(path)) ?? "null");
+      if (!Array.isArray(changelog?.versions)) throw new Error(`${RULES_PATH}: ${path} has no versions array`);
+      const top = changelog.versions[0]?.version === version ? changelog.versions[0] : null;
+      const entry = top ?? { version, changes: [] };
+      if (!top) changelog.versions.unshift(entry);
+      if (!Array.isArray(entry.changes)) entry.changes = [];
+      if (!entry.changes.includes(text)) entry.changes.push(text);
+      files[path] = `${JSON.stringify(changelog, null, 2)}\n`;
+      notes.push(`It adds what it changes to \`${version}\` in \`${path}\`, as this repository asks.`);
+    } else {
+      files[path] = text;
+      notes.push(`It adds the changelog fragment \`${path}\` this repository asks for.`);
+    }
   }
   return { files, notes };
 }

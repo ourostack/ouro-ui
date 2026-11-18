@@ -223,15 +223,37 @@ async function commitFiles(gh, repo, parent, baseTree, files, message, existing)
 /** What every commit Ouro Current writes says after its title, so a commit someone else pushed is told apart. */
 const MARK = "\n\nOuro Current: ";
 
-/** The bot's branch, if it exists: its commit, that commit's tree and first parent, and whether Ouro Current wrote it. */
-async function branchState(gh, repo) {
+/**
+ * The bot's branch, if it exists: its commit, that commit's tree and first parent, and whether it is still Ouro
+ * Current's own: its commit, or that commit with only merges of the default branch on top ("Update branch", or an agent
+ * keeping it current, as ourostack/ouroboros#1389 had three of).
+ * Such a merge brings in nothing but the default branch, which the next update is built on anyway, so it is replaced;
+ * any other commit on top is someone's fix, and is left to them.
+ */
+async function branchState(gh, repo, base) {
   try {
     const ref = await gh.get(`repos/${repo}/git/ref/heads/${BRANCH}`);
     const commit = await gh.get(`repos/${repo}/git/commits/${ref.object.sha}`);
-    return { sha: commit.sha, tree: commit.tree.sha, parent: commit.parents[0]?.sha ?? null, ours: String(commit.message ?? "").includes(MARK) };
+    let walk = commit;
+    for (let hops = 0; hops < 20 && !String(walk.message ?? "").includes(MARK) && (await mergesBase(gh, repo, walk, base)); hops += 1) {
+      walk = await gh.get(`repos/${repo}/git/commits/${walk.parents[0].sha}`);
+    }
+    return { sha: commit.sha, tree: commit.tree.sha, parent: commit.parents[0]?.sha ?? null, ours: String(walk.message ?? "").includes(MARK) };
   } catch (error) {
     if (error.status === 404) return null;
     throw error;
+  }
+}
+
+/** Whether a commit is a merge of the default branch into the update branch: two parents, the second on `base`. */
+async function mergesBase(gh, repo, commit, base) {
+  if (!base || commit.parents?.length !== 2) return false;
+  if (!new RegExp(`^Merge (remote-tracking )?branch '(origin/)?${base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'`).test(String(commit.message ?? ""))) return false;
+  try {
+    const { status } = await gh.get(`repos/${repo}/compare/${commit.parents[1].sha}...${encodeURIComponent(base)}`);
+    return status === "identical" || status === "ahead";
+  } catch {
+    return false;
   }
 }
 
@@ -373,7 +395,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false } =
   // Every updater held back (a set that moves together or not at all): there is nothing to propose, and the notes say why.
   if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
   if (dryRun) return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes, sections: [checkRulesSection(checkRules, null)].filter(Boolean) } };
-  const existing = await branchState(gh, repo);
+  const existing = await branchState(gh, repo, base);
   // The pull request open when this run began may have merged or closed since (GitHub deletes a merged pull request's
   // branch): main as this run read it is from before that, so nothing is written, neither a branch on the old main nor
   // a title on the merged pull request, and the next run starts from the new main (#1840).
