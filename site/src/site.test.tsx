@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderFixture, renderPage, scan, setScheme, settle } from "../test/render";
-import { App, loadPage } from "./app";
+import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../test/render";
 import { sliced } from "../../test/slice";
 import { latestRelease, upgrading } from "./release";
 import { demos } from "./docs/demos";
+import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
@@ -659,12 +659,39 @@ describe("docs", () => {
     expect(getComputedStyle(document.querySelector("[data-site-phone]")!).display).toBe("none");
   });
 
+  it("follows a look chosen in another page of the site, as the phone's frame follows the page around it", async () => {
+    const root = document.documentElement;
+    const was = localStorage.getItem(THEME_KEY);
+    const attributes = ["data-theme", "data-live", "data-sky", "data-season", "data-weather"].map((name) => [name, root.getAttribute(name)] as const);
+    const dark = root.classList.contains("dark");
+    const live = document.getElementById("ouro-live")?.textContent;
+    const stop = followSystemScheme();
+    try {
+      localStorage.setItem(THEME_KEY, JSON.stringify({ preset: "coral", mode: "dark" }));
+      dispatchEvent(new StorageEvent("storage", { key: THEME_KEY }));
+      expect([root.getAttribute("data-theme"), root.classList.contains("dark"), root.hasAttribute("data-live")]).toEqual(["coral", true, false]);
+      localStorage.setItem(THEME_KEY, JSON.stringify({ preset: "live", mode: "light" }));
+      dispatchEvent(new StorageEvent("storage", { key: THEME_KEY }));
+      expect([root.classList.contains("dark"), root.hasAttribute("data-live")]).toEqual([false, true]);
+    } finally {
+      stop();
+      if (was === null) localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, was);
+      for (const [name, value] of attributes) {
+        if (value === null) root.removeAttribute(name);
+        else root.setAttribute(name, value);
+      }
+      if (live === undefined) document.getElementById("ouro-live")?.remove();
+      else document.getElementById("ouro-live")!.textContent = live;
+      root.classList.toggle("dark", dark);
+    }
+  });
+
   it("has a page for one component's demo alone, named by the address, for the phone's frame", async () => {
     const was = location.pathname + location.search;
     history.replaceState(null, "", "/docs/demo/?name=edit-sheet");
     try {
-      // No header on this page, so not renderPage, which waits for one.
-      await renderFixture(<App path="/docs/demo/" Page={await loadPage("/docs/demo/")} />);
+      await renderPage("/docs/demo/");
       await expect.element(page.getByRole("heading", { level: 1, name: "EditSheet live demo" })).toBeInTheDocument();
       await expect.poll(() => document.querySelector('[data-site-demo="edit-sheet"]')).not.toBeNull();
       expect(document.querySelector("[data-site-brand]")).toBeNull();

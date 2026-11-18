@@ -1,4 +1,4 @@
-import { applyLive, isSouthern, LIVE_PALETTES, liveCss, localTimeZone, skyAt, WEATHERS } from "./live";
+import { applyLive, clearLive, isSouthern, LIVE_PALETTES, liveCss, localTimeZone, skyAt, WEATHERS } from "./live";
 
 /**
  * The theme a reader chose, applied before first paint. The prerendered <head> runs
@@ -82,12 +82,25 @@ const liveScript = `if(t.preset==="live"){(${applyLive.toString()})(document,new
 /** The inline script for <head>: the functions above, called on the page. */
 export const prepaintScript = `try{var s=(function(){try{return localStorage}catch(e){return null}})();var t=(${applyStoredTheme.toString()})(s,document.documentElement,matchMedia("(prefers-color-scheme: dark)").matches,${JSON.stringify(PRESET_NAMES)});${liveScript}document.addEventListener("DOMContentLoaded",function(){(${pressStoredPreset.toString()})(document,t.preset)})}catch(e){}`;
 
-/** While the page is open, `.dark` follows the OS, unless the reader chose a mode. */
-export function followSystemScheme(): void {
+/**
+ * While the page is open, `.dark` follows the OS, unless the reader chose a mode, and the look follows a choice made in
+ * another page of the site: another tab, or the page around a docs demo's phone frame (components/phone-demo.tsx).
+ */
+export function followSystemScheme(): () => void {
   const media = matchMedia("(prefers-color-scheme: dark)");
   const apply = () => applyStoredTheme(safeStorage(), document.documentElement, media.matches, PRESET_NAMES);
   apply();
   media.addEventListener("change", apply);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== THEME_KEY) return;
+    if (apply().preset !== "live") clearLive(document);
+    else applyLive(document, new Date(), localTimeZone(), storedWeather(safeStorage(), WEATHERS), LIVE_PALETTES, skyAt, isSouthern, liveCss);
+  };
+  addEventListener("storage", onStorage);
+  return () => {
+    media.removeEventListener("change", apply);
+    removeEventListener("storage", onStorage);
+  };
 }
 
 /** localStorage, or null where the browser refuses it (a sandboxed frame, some private modes). */
