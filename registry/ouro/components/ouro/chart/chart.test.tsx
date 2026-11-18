@@ -618,18 +618,16 @@ describe("Chart development messages", () => {
       </Chart>
     );
     const said = () => warn.mock.calls.filter((call: unknown[]) => call[0] === message).length;
-    // How often the message had been said when the plot's surface first reached the page.
-    let atPlot: number | undefined;
-    const observer = new MutationObserver(() => {
-      if (atPlot === undefined && document.querySelector('[data-ouro="chart"] .recharts-surface')) atPlot = said();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+    // With the frame the plot waits for held, the plot never draws, so only Chart can have said it: with the page.
+    const frames = vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 0);
+    const held = await render(tree());
+    expect(held.chart.querySelector(".recharts-surface")).toBeNull();
+    expect(said()).toBe(1);
+    frames.mockRestore();
+    // The part, rendered with the plot, knows Chart checked it and says nothing more, nor does a render with new elements.
+    warn.mockClear();
     const { chart, rerender } = await render(tree());
     await drawn(chart);
-    observer.disconnect();
-    // Chart checks the parts it can see while the plot waits for the first paint, so the message came with the page.
-    expect(atPlot).toBe(1);
-    // The part, rendered with the plot, knows Chart checked it and says nothing more, nor does a render with new elements.
     await rerender(tree());
     expect(said()).toBe(1);
   });
