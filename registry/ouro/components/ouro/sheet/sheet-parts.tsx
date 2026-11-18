@@ -294,9 +294,9 @@ export function SheetBackdrop({
 }
 
 /**
- * Part: a light dimming layer for a `modal={false}` sheet, which has no backdrop. It tints the
+ * Part: a light dimming layer for a `modal={false}` sheet (a modal sheet draws its own backdrop). It tints the
  * page behind the sheet with `--ouro-scrim-color` at `--ouro-scrim-max` (a few percent), so the
- * page stays easy to read, and it takes no presses: a press on the page reaches the page, and
+ * page stays easy to read, and it passes presses through: a press on the page reaches the page, and
  * closes the sheet when it closes on an outside press. A `ref` reaches its element.
  */
 export function SheetScrim({
