@@ -1,3 +1,4 @@
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -109,6 +110,30 @@ describe("useMediaQuery", () => {
     await act(async () => again.render(<Probe query={query} serverDefault />));
     expect(container.textContent).toBe("false");
     await act(async () => again.unmount());
+  });
+
+  it("reads the answer a change reports in the task a render read the query in, as a stub that calls its listeners does", async () => {
+    const query = "(min-width: 646px)";
+    let matches = false;
+    const listeners = new Set<() => void>();
+    vi.stubGlobal("matchMedia", (asked: string) => ({
+      matches,
+      media: asked,
+      addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+    }));
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe query={query} serverDefault />));
+    expect(container.textContent).toBe("false");
+    await act(async () => {
+      // A render reads the query, and the media changes, in one task.
+      flushSync(() => root.render(<Probe query={query} serverDefault={false} />));
+      matches = true;
+      for (const listener of listeners) listener();
+    });
+    expect(container.textContent).toBe("true");
+    await act(async () => root.unmount());
   });
 
   it("reads a change of the media in the next task, before the browser has drawn a frame, as WebKit's lists made earlier do not", async () => {
