@@ -182,7 +182,7 @@ export const CODE_SHEETS_THREE = {
       { text: "Button as a toggle: Show me turns X-ray on and off, and says if it is on.", code: `<Button aria-pressed={xray} onClick={() => setXray(!xray)}>Show me</Button>` },
       { text: "Button as a link: the way into the docs.", code: `<Button href="/docs/">Browse components</Button>` },
     ],
-    site: ["The organ, its tune, and the notes that rise from it.", "The squid that comes back to listen.", "The log, and what goes in it."],
+    site: ["The organ, its tune, and its pipes that glow as he plays.", "The squid that comes back to listen.", "The log, and what goes in it."],
     uses: ["Button", "Toast"],
   },
 } as const;

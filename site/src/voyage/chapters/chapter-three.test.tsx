@@ -270,6 +270,11 @@ describe("the squid and the organ", () => {
     expect(getComputedStyle(organ.querySelector(".or-playing")!).opacity).toBe("0");
     expect(organ.getAttribute("role")).toBe("img");
   });
+  it("are told in the saloon's Code sheet as the painting shows them: the organ's pipes glow, and no notes rise", () => {
+    const site = CODE_SHEETS_THREE.saloon.site.join(" ");
+    expect(site).not.toMatch(/\bnotes?\b|\bris(e|es|ing)\b/i);
+    expect(site).toMatch(/\bglow/);
+  });
 });
 
 describe("the crew's cheer", () => {

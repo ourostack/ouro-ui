@@ -150,7 +150,7 @@ function usePlanning(): Step[] {
   const { route, day, classed } = useSyncExternalStore(store.subscribe, store.get, store.get);
   return [
     { label: PLANNING.route, done: isShortest(route), status: isShortest(route) ? PLANNING.routeDone : PLANNING.routeLeft(writeLeagues(routeLeagues(route))) },
-    { label: PLANNING.sail, done: day !== null, status: day ? PLANNING.sailOn(sayDay(day)) : PLANNING.sailNot },
+    { label: PLANNING.sail, done: day !== null, status: day ? PLANNING.sailOn(sayDay(day)) : PLANNING.sailFor(sayDay(START_DAY)) },
     { label: PLANNING.classes, done: classed === FINDS.length, status: PLANNING.classed(classed, FINDS.length) },
   ];
 }
