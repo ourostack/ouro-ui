@@ -18,13 +18,19 @@ export interface SheetLine {
  * site/e2e/chapter-one.spec.ts operates each in a test named "control: <id>" and asserts what it
  * changes; site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const CHAPTER_ONE_CONTROLS = ["shipyard-code", "order", "jobs", "launch", "articles-code", "name", "trade", "oath", "sign", "leave"] as const;
+export const CHAPTER_ONE_CONTROLS = ["shipyard-code", "next", "order", "jobs", "launch", "articles-code", "name", "trade", "oath", "sign", "signed-next", "leave"] as const;
 export type ChapterOneControl = (typeof CHAPTER_ONE_CONTROLS)[number];
 
 export interface CrewLine {
   name: CrewName;
   text: string;
 }
+
+/** The way on to Chapter II: under the plan once she floats, and in the articles once you have signed. */
+export const ONWARD = {
+  href: "#chapter-two",
+  label: "Plan the voyage",
+} as const;
 
 export const CHAPTER_ONE = {
   number: "Chapter I",
@@ -74,8 +80,8 @@ export const SHIPYARD = {
   again: "Build her again",
   launchHint: (left: number) => (left === 0 ? "All done. She is ready." : left === 1 ? "One job left." : `${left} jobs left.`),
   launched: "She is afloat.",
-  /** Under the plan once she floats: what is done, and where the voyage goes next. */
-  afloat: "Built and afloat. Next, we plan the voyage.",
+  /** Under the plan once she floats: what is done, before the way on (ONWARD). */
+  afloat: "Built and afloat.",
 } as const;
 
 /** What the crew says as the work goes on. */
@@ -139,6 +145,10 @@ export const ARTICLES = {
   pending: "Not signed yet",
   signed: (name: string) => `${name} signed on`,
   onList: "Your name is on the crew list now.",
+  /** In place of the form once you have signed, over the way on (ONWARD). */
+  welcomeAboard: (name: string) => `You are aboard, ${name}.`,
+  /** How to sign as someone else: the form comes back when you leave. */
+  signAgain: "To sign as someone else, leave the crew first.",
 } as const;
 
 export const SIGN = {
@@ -168,10 +178,11 @@ export const CODE_SHEETS = {
       { text: claim("Checklist: the ticks, the line through each done job, and the day on each row.", { source: { test: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, verify: [{ testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > draws the tick, then the strike, and softens the text" }, { testExists: "registry/ouro/components/ouro/checklist/checklist.test.tsx::Checklist > describes a row by its description and value" }] }), code: `<Checklist label="Jobs" items={jobs} onCheckedChange={tick} />` },
       { text: "Progress: the bar, and the number screen readers read.", code: `<Progress label="Ship built" value={built * 20} showValue />` },
       { text: "Button: the press, and Launch kept off until the work is done.", code: `<Button disabled={left > 0} onClick={launch}>Launch</Button>` },
+      { text: "Link: the way on to the next chapter once she floats, big enough for a thumb on a phone.", code: `<Link href="#chapter-two">Plan the voyage</Link>` },
       { text: "Sheet: this panel.", code: `<Sheet title="How the shipyard is built" side="right" open={open} onOpenChange={setOpen}>` },
     ],
     site: ["The plan of the ship, and the parts it draws.", "The rule for a good order, and what the crew says.", "The launch."],
-    uses: ["Reorderable", "Checklist", "Progress", "Button", "Sheet"],
+    uses: ["Reorderable", "Checklist", "Progress", "Button", "Link", "Sheet"],
   },
   articles: {
     title: "How the articles are built",
@@ -183,7 +194,7 @@ export const CODE_SHEETS = {
       { text: "Toast: the note when you sign on.", code: `toast(\`\${name} signed on\`, { tone: "success" })` },
     ],
     site: ["Who is aboard already.", "The list of names, and you on it.", "What Conseil says when the articles are not done."],
-    uses: ["Form", "TextField", "Select", "Checkbox", "ItemGroup", "Avatar", "Toast"],
+    uses: ["Form", "TextField", "Select", "Checkbox", "ItemGroup", "Avatar", "Toast", "Link"],
   },
   builtWith: "Built with",
   hxHeading: "Ouro HX does",
@@ -227,6 +238,8 @@ export function allChapterOneText(): string[] {
     ARTICLES.aboard(5),
     ARTICLES.taken("Ned Land"),
     ARTICLES.signed("Ana"),
+    ARTICLES.welcomeAboard("Ana"),
+    ONWARD.label,
     SIGN.welcome("Ana", "Cook").text,
     SIGN.opening.text,
     SIGN.left.text,

@@ -7,6 +7,7 @@ import { Checklist } from "@/registry/ouro/components/ouro/checklist/checklist";
 import { Form, type FormErrors } from "@/registry/ouro/components/ouro/form/form";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
 import { ItemGroup } from "@/registry/ouro/components/ouro/item/item-group";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Progress } from "@/registry/ouro/components/ouro/progress/progress";
 import { Reorderable } from "@/registry/ouro/components/ouro/reorderable/reorderable";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
@@ -20,7 +21,7 @@ import { Container } from "../layout";
 import { useStable } from "../use-stable";
 import { parseArt } from "../stage/art";
 import type { CrewName } from "../stage/copy";
-import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
+import { ARTICLES, CHAPTER_ONE, CODE_SHEETS, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, TRADES, YARD, type CrewLine, type PartId } from "./copy";
 import { ChapterPicture, Composition, Crew, Handoff, PhoneMarker, Steps, useChapterReady, type Step } from "./frame";
 // What only changes once the chapter answers (each part drawn in, the launch, the yard's picture,
 // the crew's cheer): it comes inside this island's script and goes into the page as the island
@@ -132,7 +133,16 @@ function ExpeditionMarker(): JSX.Element {
   return <PhoneMarker chapter={CHAPTER_ONE.number} title={CHAPTER_ONE.title} steps={useExpedition().steps} />;
 }
 
-/** The engraved plan: each built part drawn in, and the finished ship in the sea once launched. */
+/** The way on to Chapter II, once she floats and once you have signed: a jump down the page to its heading. */
+function Onward({ control }: { control: "next" | "signed-next" }): JSX.Element {
+  return (
+    <span data-chapter-control={control}>
+      <Link href={ONWARD.href}>{ONWARD.label}</Link>
+    </span>
+  );
+}
+
+/** The engraved plan: each built part drawn in, and the finished ship in the sea once launched, with the way on. */
 const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<PartId>; launched: boolean; ref: Ref<HTMLElement> }): JSX.Element {
   return (
     <figure ref={ref} className="relative m-0 -mx-4 border-b border-border sm:-mx-6" style={{ scrollMarginTop: "5rem" }}>
@@ -151,7 +161,8 @@ const Plan = memo(function Plan({ built, launched, ref }: { built: ReadonlySet<P
       />
       {launched ? (
         <figcaption className="site-afloat" data-chapter-afloat="">
-          {SHIPYARD.afloat}
+          <span>{SHIPYARD.afloat}</span>
+          <Onward control="next" />
         </figcaption>
       ) : null}
     </figure>
@@ -327,8 +338,8 @@ function Articles(): JSX.Element {
     if (emptyForm.current && signings >= emptyForm.current.key) emptyForm.current = null;
   }, [signings]);
   // Focus moves in the press's own commit, before the browser paints, so it never rests on the page:
-  // signing on, to your row's Leave (the new, empty form follows later and takes Sign away); leaving,
-  // to the name field of the form that commit shows.
+  // signing on, to your row's Leave (the articles step aside, and a new, empty form follows later,
+  // hidden); leaving, to the name field of the form that commit shows.
   useLayoutEffect(() => {
     if (you) box.current?.querySelector<HTMLElement>("[data-chapter-control='leave'] button")?.focus();
     else if (toName.current) box.current?.querySelector<HTMLElement>("input[name='name']")?.focus();
@@ -398,23 +409,33 @@ function Articles(): JSX.Element {
   const count = CREW.length + (you ? 1 : 0);
   return (
     <div ref={box} className="grid gap-8 py-4 sm:py-6 md:grid-cols-2">
-      {/* A new Form for each signing, so the fields start empty again. */}
-      <Form key={signings} aria-label={ARTICLES.form} errors={formErrors(answer, answer?.errors)} onSubmit={sign}>
-        <div data-chapter-control="name">
-          <TextField label={ARTICLES.name} name="name" description={ARTICLES.nameHint} autoComplete="off" required />
+      {/* Once you have signed, the articles step aside for you aboard and the way on; Leave brings them back. They stay
+          mounted, hidden, so Sign and Leave only show or hide them, and a new Form for each signing starts them empty. */}
+      <div hidden={you !== null}>
+        <Form key={signings} aria-label={ARTICLES.form} errors={formErrors(answer, answer?.errors)} onSubmit={sign}>
+          <div data-chapter-control="name">
+            <TextField label={ARTICLES.name} name="name" description={ARTICLES.nameHint} autoComplete="off" required />
+          </div>
+          <div data-chapter-control="trade">
+            <Select label={ARTICLES.trade} name="trade" placeholder={ARTICLES.tradePlaceholder} options={TRADES} required />
+          </div>
+          <div data-chapter-control="oath">
+            <Checkbox label={ARTICLES.oath} name="oath" required />
+          </div>
+          <div data-chapter-control="sign">
+            <Button type="submit" onClick={check}>
+              {ARTICLES.sign}
+            </Button>
+          </div>
+        </Form>
+      </div>
+      {you ? (
+        <div className="grid content-start justify-items-start gap-2" data-chapter-signed="">
+          <p className="m-0 font-medium">{ARTICLES.welcomeAboard(you.name)}</p>
+          <p className="m-0 text-sm text-muted-foreground">{ARTICLES.signAgain}</p>
+          <Onward control="signed-next" />
         </div>
-        <div data-chapter-control="trade">
-          <Select label={ARTICLES.trade} name="trade" placeholder={ARTICLES.tradePlaceholder} options={TRADES} required />
-        </div>
-        <div data-chapter-control="oath">
-          <Checkbox label={ARTICLES.oath} name="oath" required />
-        </div>
-        <div data-chapter-control="sign">
-          <Button type="submit" onClick={check}>
-            {ARTICLES.sign}
-          </Button>
-        </div>
-      </Form>
+      ) : null}
       <div>
         <div className="flex items-baseline justify-between gap-4">
           <p className="site-eyebrow" aria-hidden="true">

@@ -4,7 +4,7 @@ import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/
 import { fleschKincaid, voice } from "../../../test/readability";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
-import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "./copy";
+import { ARTICLES, allChapterOneText, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CREW, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD } from "./copy";
 
 await loadPageCode("/nautilus/");
 
@@ -53,9 +53,9 @@ describe("Chapter I", () => {
     await renderPage("/nautilus/");
     await expect.element(page.getByRole("heading", { name: CHAPTER_ONE.title })).toBeInTheDocument();
     expect(document.querySelector("[data-site-chapter-ready]")!.compareDocumentPosition(document.querySelector("#chapter-one")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // "leave" shows once you have signed.
+    // "next" shows once she floats, and "signed-next" and "leave" once you have signed.
     const marked = () => [...document.querySelectorAll("#chapter-one [data-chapter-control]")].map((element) => element.getAttribute("data-chapter-control"));
-    expect(marked()).toEqual(CHAPTER_ONE_CONTROLS.filter((id) => id !== "leave"));
+    expect(marked()).toEqual(CHAPTER_ONE_CONTROLS.filter((id) => !["next", "signed-next", "leave"].includes(id)));
   });
 
   it("labels the plan in plain words, with no Latin for readers who never read the book", async () => {
@@ -112,6 +112,38 @@ describe("Chapter I", () => {
     } finally {
       listen.disconnect();
     }
+  });
+
+  it("once she floats, the way on is a link to Chapter II under the plan", async () => {
+    await renderPage("/nautilus/");
+    const way = () => document.querySelector<HTMLAnchorElement>("#chapter-one [data-chapter-afloat] [data-chapter-control='next'] a");
+    expect(way()).toBeNull();
+    for (const part of PARTS) await userEvent.click(page.getByRole("checkbox", { name: part.job }));
+    await userEvent.click(page.getByRole("button", { name: "Launch", exact: true }));
+    await expect.poll(() => way()?.textContent).toBe(ONWARD.label);
+    expect(way()!.getAttribute("href")).toBe("#chapter-two");
+    expect(document.querySelector(way()!.getAttribute("href")!)).not.toBeNull();
+  });
+
+  it("once you sign on, the articles show you aboard with the way on, not an empty form to sign again", async () => {
+    await renderPage("/nautilus/");
+    const articles = page.elementLocator(document.querySelector("[data-composition='articles']")!);
+    await userEvent.fill(page.getByRole("textbox", { name: ARTICLES.name }), "Ana");
+    await userEvent.click(page.getByRole("combobox", { name: ARTICLES.trade }));
+    await userEvent.click(page.getByRole("option", { name: "Cook" }));
+    await userEvent.click(page.getByRole("checkbox", { name: ARTICLES.oath }));
+    await userEvent.click(page.getByRole("button", { name: ARTICLES.sign }));
+    await expect.element(articles.getByText(ARTICLES.welcomeAboard("Ana"))).toBeVisible();
+    await expect.element(articles.getByText(ARTICLES.signAgain)).toBeVisible();
+    await expect.element(articles.getByRole("link", { name: ONWARD.label })).toHaveAttribute("href", "#chapter-two");
+    // No live form waits to be signed a second time.
+    expect(articles.getByRole("form", { name: ARTICLES.form }).query()).toBeNull();
+    expect(articles.getByRole("textbox", { name: ARTICLES.name }).query()).toBeNull();
+    expect(articles.getByRole("button", { name: ARTICLES.sign }).query()).toBeNull();
+    // Leaving brings the articles back, empty, to sign as someone else.
+    await userEvent.click(page.getByRole("button", { name: ARTICLES.leave }));
+    await expect.element(page.getByRole("textbox", { name: ARTICLES.name })).toHaveValue("");
+    expect(articles.getByText(ARTICLES.welcomeAboard("Ana")).query()).toBeNull();
   });
 
   it("refuses a name already aboard, through the form's own errors", async () => {
