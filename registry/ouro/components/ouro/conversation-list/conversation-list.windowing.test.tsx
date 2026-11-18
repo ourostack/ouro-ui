@@ -409,7 +409,8 @@ describe("ConversationList windowing", () => {
       else expect(Math.abs(box.bottom - pane.getBoundingClientRect().bottom)).toBeLessThan(1);
     }
     // The pane's scroll events land after the last key, and the window follows them.
-    await expect.poll(() => { try { expectBand(pane, ["c0"]); return true; } catch { return false; } }).toBe(true);
+    // The poll returns the failing band check's message, so a timeout's diff names which check the window never met.
+    await expect.poll(() => { try { expectBand(pane, ["c0"]); return "ok"; } catch (error) { return (error as Error).message; } }).toBe("ok");
   });
 
   it("moves on from a row with focus that the pane scrolled away from, showing the next row at the nearest edge", async () => {
