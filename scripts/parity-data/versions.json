@@ -13,9 +13,9 @@
     "treeCoreTag": "v0.19.0"
   },
   "android": {
-    "tag": "v0.2.2",
-    "commit": "1ff3aea830b2c8c48f08cb79b9f213432fbe3d70",
-    "coreTag": "v0.18.2",
-    "treeCoreTag": "v0.18.2"
+    "tag": "v0.3.0",
+    "commit": "8ba5196a9e9062e495dde8c23f136913094cbdf4",
+    "coreTag": "v0.19.0",
+    "treeCoreTag": "v0.19.0"
   }
 }
