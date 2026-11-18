@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { LATENCY, expectPressesWithinBudget, medianCeiling } from "./latency";
 
 // Typing with the squircle polyfill running. Playwright's engines draw corner-shape natively, so the polyfill's
-// fallback never runs in them and its cost went unseen: in an engine without it (Tandem's WKWebView) typing took
+// fallback never runs in them and its cost went unseen: in an engine without it (an app's WKWebView) typing took
 // 192 ms at the 95th percentile with it registered and 38 ms without. This hides native support before the page
 // loads, registers the vendored engine (registry/ouro/lib/ouro/squircle/) as an app that opts in does, and types into a docs demo's field on a CPU throttled
 // LATENCY.throttle×, held to latency.ts's budget.
