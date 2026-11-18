@@ -1170,6 +1170,8 @@ function runStep(script, env, { nodeStatus = 0 } = {}) {
   const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `
     pnpm() { printf 'CALL pnpm %s\\n' "$*" >&2; printf 'OURO_STORIES=%s\\n' "\${OURO_STORIES-unset}" >&2; }
     node() {
+      # Reads its input as node would, so a step that pipes into node never loses its writer to SIGPIPE under pipefail (#2175).
+      cat > /dev/null
       printf 'CALL node %s\\n' "$*" >&2
       case "$2" in
         stories) echo checkbox ;;
@@ -1597,7 +1599,10 @@ test("the attribution job fails a pull request whose title, body or commits name
   // The guard's two files come from ourostack/.github's main; curl stands in here, so no test reads the network.
   const run = (env, nodeStatus = 0) => runStep(`curl() { printf 'CALL curl %s\\n' "$*" >&2; }\n${script}`, { RUNNER_TEMP: "/tmp", ...env }, { nodeStatus });
   const pull = run({ EVENT: "pull_request", BASE_REF: "main", PR_HEAD: "abc", PR_TITLE: "t", PR_BODY: "b" });
-  assert.equal(pull.status, 0);
+  assert.equal(pull.status, 0, pull.calls);
+  // The title and body reach node through a pipe: a writer slower than the reader still passes.
+  const late = runStep(`curl() { :; }\nprintf() { [ "$1" != '%s\\n\\n%s\\n' ] || sleep 0.2; builtin printf "$@"; }\n${script}`, { RUNNER_TEMP: "/tmp", EVENT: "pull_request", BASE_REF: "main", PR_HEAD: "abc", PR_TITLE: "t", PR_BODY: "b" });
+  assert.equal(late.status, 0, late.calls);
   assert.match(pull.calls, /CALL curl .*raw\.githubusercontent\.com\/ourostack\/\.github\/main\/tools\/internal-names\/check\.mjs$/m);
   assert.match(pull.calls, /CALL curl .*\/tools\/internal-names\/hashes\.txt$/m);
   assert.match(pull.calls, /^CALL node \/tmp\/internal-names\/check\.mjs --text$/m);
