@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type JSX } from "react";
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { href } from "../routes";
 import { DocsFilter } from "./docs-filter";
-import { docsSections } from "./docs-sections";
+import { docsSections, filterHint } from "./docs-sections";
 
 // The docs sidebar. docs-shell.tsx loads it as an island, so its code stays out of the docs pages' first load.
 
@@ -49,7 +49,7 @@ export default function DocsSidebar({ current }: { current: string }): JSX.Eleme
         // Narrower from 640px to 768px, with the page's column (docs-shell.tsx): a tablet's page is no narrower than a phone's.
         className="[--ouro-sidebar-w:12rem] md:[--ouro-sidebar-w:16rem]"
         currentPath={href(current)}
-        header={<DocsFilter value={filter} onChange={setFilter} empty={sections.length === 0} />}
+        header={<DocsFilter value={filter} onChange={setFilter} empty={sections.length === 0} hint={filterHint(filter)} />}
         sections={sections.length > 0 ? sections : [{ items: [] }]}
       />
     </div>

@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { Command, type CommandEntry } from "@/registry/ouro/components/ouro/command/command";
 import { comparisons, componentGroups, guides, platforms } from "../components/docs-sections";
+import { bare, otherNames } from "../components/other-names";
 import { href } from "../paths";
 import { choiceList } from "./presets";
 import { guideLabel, sectionHref, SITE_SECTIONS } from "./site-menu";
@@ -37,7 +38,13 @@ export default function SitePalette({ open, onOpenChange }: { open: boolean; onO
     {
       label: "Components",
       items: componentGroups("", true).flatMap((group) =>
-        group.links.map((link) => ({ label: link.label, description: group.label, onSelect: go(href(link.path)) })),
+        group.links.map((link) => ({
+          label: link.label,
+          description: group.label,
+          onSelect: go(href(link.path)),
+          // "modal" finds Dialog, as in the docs' filter.
+          keywords: (otherNames[link.path.replace(/^\/docs\/|\/$/g, "")] ?? []).map(bare),
+        })),
       ),
     },
     {

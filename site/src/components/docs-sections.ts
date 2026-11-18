@@ -4,6 +4,7 @@ import { siteGroups } from "../../../scripts/catalog-groups.mts";
 import { docsItems } from "../docs/items";
 import pageIndex from "../docs/page-index.json";
 import { href } from "../paths";
+import { otherNameHint, otherNamesFor } from "./other-names";
 
 // The docs' pages in sections, without the Sidebar: the sidebar island and the header's menu (voyage/site-menu.tsx) both read them.
 
@@ -29,25 +30,27 @@ export interface DocsLink {
   label: string;
 }
 
+/** A filter's rank for a page's names: 0, the name holds it; 1, one slip from the name; undefined, no match. */
+function nameRank(filter: string, ...texts: string[]): 0 | 1 | undefined {
+  const wanted = searchable(filter);
+  const names = texts.map(searchable);
+  if (names.some((name) => name.includes(wanted))) return 0;
+  // A filter of five letters or more may be a slip of a name's start ("dialg" finds Dialog); a shorter one only of a whole name.
+  const starts = (name: string) => (wanted.length >= 5 ? [name.slice(0, wanted.length - 1), name.slice(0, wanted.length), name.slice(0, wanted.length + 1)] : []);
+  const near = (name: string) => [name, ...starts(name)].some((part) => oneEditApart(wanted, part));
+  return wanted.length >= 4 && names.some(near) ? 1 : undefined;
+}
+
 /**
- * Each catalog group's components, by name. With a filter, only the components whose name matches remain. With
- * `exports`, each group's helpers, hooks and parts follow its components (`Radio` after the forms, `useTimer` in Feedback).
+ * Each catalog group's components, by name. With a filter, only the components whose name matches remain: the names
+ * that hold it, then the names one slip from it, then the components another kit calls by it ("modal" finds Dialog).
+ * With `exports`, each group's helpers, hooks and parts follow its components (`Radio` after the forms, `useTimer` in Feedback).
  */
 export function componentGroups(filter = "", exports = false): Array<{ label: string; links: DocsLink[] }> {
   const wanted = searchable(filter);
-  // 0: the name holds the filter; 1: a filter of four letters or more is one slip from the name, or one of five or
-  // more from its start ("dialg" finds Dialog); undefined: no match. Slips come after the names that hold the filter.
-  const rank = (...texts: string[]): 0 | 1 | undefined => {
-    const names = texts.map(searchable);
-    if (names.some((name) => name.includes(wanted))) return 0;
-    // A filter of five letters or more may be a slip of a name's start; a shorter one only of a whole name.
-    const starts = (name: string) => (wanted.length >= 5 ? [name.slice(0, wanted.length - 1), name.slice(0, wanted.length), name.slice(0, wanted.length + 1)] : []);
-    const near = (name: string) => [name, ...starts(name)].some((part) => oneEditApart(wanted, part));
-    return wanted.length >= 4 && names.some(near) ? 1 : undefined;
-  };
-  const ranked = <T,>(pages: T[], name: (page: T) => [string, string], path: (page: T) => string): DocsLink[] =>
+  const ranked = <T,>(pages: T[], name: (page: T) => [string, string], path: (page: T) => string, other: (page: T) => boolean = () => false): DocsLink[] =>
     pages
-      .map((page) => ({ page, at: rank(...name(page)) }))
+      .map((page) => ({ page, at: nameRank(filter, ...name(page)) ?? (other(page) ? 2 : undefined) }))
       .filter((entry) => entry.at !== undefined)
       .sort((a, b) => a.at! - b.at!)
       .map(({ page }) => ({ path: path(page), label: name(page)[0] }));
@@ -55,11 +58,27 @@ export function componentGroups(filter = "", exports = false): Array<{ label: st
     .map((group) => ({
       label: group,
       links: [
-        ...ranked(docsItems.filter((item) => item.group === group), (item) => [item.title, item.name], (item) => `/docs/${item.name}/`),
+        ...ranked(
+          docsItems.filter((item) => item.group === group),
+          (item) => [item.title, item.name],
+          (item) => `/docs/${item.name}/`,
+          (item) => otherNamesFor(item.name, wanted).length > 0,
+        ),
         ...(exports ? ranked(exportPages.filter((page) => page.group === group), (page) => [page.title, page.name], (page) => `/docs/${page.name}/`) : []),
       ],
     }))
     .filter((group) => group.links.length > 0);
+}
+
+/** The line under the filter when it finds components only by another kit's name ("Looking for a modal? Here it's Dialog."); undefined otherwise. */
+export function filterHint(filter: string): string | undefined {
+  const wanted = searchable(filter);
+  return otherNameHint(
+    docsItems
+      .filter((item) => nameRank(filter, item.title, item.name) === undefined)
+      .map((item) => ({ title: item.title, names: otherNamesFor(item.name, wanted) }))
+      .filter((entry) => entry.names.length > 0),
+  );
 }
 
 /** The pages for the helpers and hooks a component exports (`canShare`, `useTimer`), named as code names them. */

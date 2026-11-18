@@ -10,7 +10,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags } from "./head";
 import { headerPath } from "./components/docs-header";
-import { docsSections } from "./components/docs-sections";
+import { componentGroups, docsSections, filterHint } from "./components/docs-sections";
+import { bare, otherNames } from "./components/other-names";
 import { guessedAddresses, href, redirects, routes } from "./routes";
 import { AX_SECTION, HERO_SUBLINE, HERO_TITLE, KIT, VOYAGE_HERO, WORKS_WITH } from "./copy";
 import { TWO_SHIPS } from "./voyage/copy";
@@ -471,6 +472,41 @@ describe("docs", () => {
     // Three letters must be exact.
     await userEvent.fill(filter, "dlg");
     expect(nav.getByRole("link").elements()).toHaveLength(0);
+  });
+
+  it("finds a component by the name another kit gives it, and says what it is called here", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    const filter = nav.getByRole("searchbox", { name: "Filter components" });
+    const found = () => nav.getByRole("link").elements().map((link) => link.textContent);
+    await userEvent.fill(filter, "modal");
+    expect(found()).toEqual(["Dialog"]);
+    await expect.element(nav.getByRole("status")).toHaveTextContent("Looking for a modal? Here it's Dialog.");
+    // Half a word is enough, and a name two components share names both.
+    await userEvent.fill(filter, "dropd");
+    expect(found()).toEqual(["Select", "Menu"]);
+    await expect.element(nav.getByRole("status")).toHaveTextContent("Looking for a dropdown? Here it's Select or Menu.");
+    // A later word of the name finds it too, and a component's own name still comes first.
+    await userEvent.fill(filter, "sheet");
+    expect(found()[0]).toBe("Sheet");
+    expect(found()).toContain("EditSheet");
+    await expect.element(nav.getByRole("status")).not.toBeInTheDocument();
+    // Never from the middle of a word: "own" is in "dropdown", but nobody means Menu by it.
+    await userEvent.fill(filter, "own");
+    expect(found()).not.toContain("Menu");
+  });
+
+  it("names only components that exist by another name, and none by a name that already finds it", () => {
+    const names = new Set(docsItems.map((item) => item.name));
+    for (const [name, phrases] of Object.entries(otherNames)) {
+      expect(names.has(name), `${name} is a component`).toBe(true);
+      const item = docsItems.find((entry) => entry.name === name)!;
+      for (const phrase of phrases) {
+        expect(componentGroups(bare(phrase)).flatMap((group) => group.links).map((link) => link.label), `"${phrase}" finds ${item.title}`).toContain(item.title);
+        expect(filterHint(bare(phrase)), `"${phrase}" is another name, not ${item.title}'s own`).toContain(item.title);
+      }
+    }
   });
 
   it("sends the addresses agents guess on to the page they meant, an export's own name included", () => {

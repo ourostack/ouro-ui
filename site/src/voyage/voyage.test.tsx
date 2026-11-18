@@ -299,6 +299,14 @@ describe("the header and the theme section", () => {
     await userEvent.keyboard("{Enter}");
     expect(root.getAttribute("data-theme")).toBe("coral");
   });
+
+  it("finds a component in the command palette by the name another kit gives it", async () => {
+    await renderPage("/");
+    await userEvent.keyboard(/Mac|iPhone|iPad/.test(navigator.platform) ? "{Meta>}k{/Meta}" : "{Control>}k{/Control}");
+    const search = page.getByRole("combobox", { name: "Search commands" });
+    await userEvent.type(search, "drawer");
+    await expect.element(page.getByRole("option", { name: /^Sheet/ })).toBeVisible();
+  });
 });
 
 describe("the Nautilus's page", () => {
