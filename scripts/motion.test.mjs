@@ -186,6 +186,8 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "checklist data-starting-style row",
       "checklist data-ending-style row",
       "inspector data-starting-style layer",
+      "inspector data-starting-style outlines",
+      "inspector data-starting-style scan",
       "tab-bar data-closed bar",
       "tab-bar data-open bar",
       "route-progress data-open bar",

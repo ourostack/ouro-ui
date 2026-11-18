@@ -16,9 +16,14 @@
         "data-starting-style": {
           "kind": "motion",
           "parts": {
-            "layer": {"properties": ["opacity"], "reduced": []}
+            "layer": {"properties": ["opacity"], "reduced": []},
+            "outlines": {"properties": ["clip-path"], "reduced": []},
+            "scan": {"properties": ["translate"], "reduced": []}
           },
-          "tests": ["registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion"]
+          "tests": [
+            "registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > fades in when it opens, and appears at once with reduced motion",
+            "registry/ouro/components/ouro/inspector/inspector.test.tsx::Inspector > opens with a scan down the screen that shows the outlines as it passes, and at once with reduced motion"
+          ]
         }
       }
     }
