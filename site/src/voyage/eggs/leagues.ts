@@ -2,6 +2,7 @@ import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchXray } from "../xray-store";
 import { firstFind } from "./listen";
+import { LEAGUES_TITLE } from "../copy";
 import "./eggs.css";
 
 /** The leagues in the book's title, where the log stops. */
@@ -47,7 +48,7 @@ export function startLeagues(): () => void {
     log.toggleAttribute("data-done", done);
     words.textContent = done ? "leagues: a distance, not a depth!" : "leagues traveled";
     if (done && firstFind("leagues")) {
-      toast(claim("Twenty thousand leagues!", { source: { spec: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" } }), {
+      toast(LEAGUES_TITLE, {
         description: claim(
           "That's the distance in the book's title, Twenty Thousand Leagues Under the Seas: how far the Nautilus sails, about 80,000 km, nearly twice around the Earth. No sea is that deep.",
           { source: { spec: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" }, verify: { urlOk: "https://en.wikipedia.org/wiki/Twenty_Thousand_Leagues_Under_the_Seas" } },

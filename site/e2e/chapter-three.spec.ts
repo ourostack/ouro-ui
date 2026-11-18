@@ -4,6 +4,7 @@ import { diagnostics } from "./diagnostics";
 import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
 import { watchToasts } from "./toasts";
 import { HANDOFF } from "../src/copy";
+import { LEAGUES_TITLE } from "../src/voyage/copy";
 
 // Chapter III, "Face the squid", against the production build (site-design.md, "Verification in
 // CI"): each control in CHAPTER_THREE_CONTROLS has a test named "control: <id>" that operates it
@@ -191,8 +192,9 @@ test.describe("each control in Chapter III", () => {
     // Play keeps focus and the page stays put: the way on shows below without taking either.
     await expect(saloon(page).getByRole("button", { name: SALOON.playAgain })).toBeFocused();
     expect(await page.evaluate(() => scrollY)).toBe(top);
-    // The end raises no toast of its own: the log and the porthole say it.
-    expect((await toasts.titles()).filter((title) => title !== TOASTS.win)).toEqual([]);
+    // The end raises no toast of its own: the log and the porthole say it. (The win's toast came before, and the leagues
+    // egg's comes as the page's end scrolls in.)
+    expect((await toasts.titles()).filter((title) => title !== TOASTS.win && title !== LEAGUES_TITLE)).toEqual([]);
   });
 
   test("control: handoff copies the line for a coding agent, and says so", async ({ page, browserName }) => {
