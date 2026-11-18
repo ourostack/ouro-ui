@@ -1,6 +1,6 @@
 export const COMPOSED_VERSION = "1";
 
-// Vendored from ourostack/ouro-ui-core 2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5: src/composed.mts, src/mcp-app.mts, src/a2ui.mts, joined into one file by scripts/core-bundle.mts
+// Vendored from ourostack/ouro-ui-core v0.18.0: src/composed.mts, src/mcp-app.mts, src/a2ui.mts, joined into one file by scripts/core-bundle.mts
 // with the imports between them taken out. Never edit it: run `node scripts/core-bundle.mts --update <tag>`.
 
 // COMPOSED_VERSION above is the version of Ouro's composed-UI tree. (No comment goes before the first statement:

@@ -719,7 +719,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Display
 
-- **A2UISurface** — Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, and sends a press as A2UI's action message. [Docs](docs/A2UISurface.md)
+- **A2UISurface** — Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, its fields starting from the surface's data model, and sends a press as A2UI's action message, with what the person entered in a field a button's input is bound to. [Docs](docs/A2UISurface.md)
 - **Alert** — An inline message in the page: something saved, something failed, something to know before going on. [Docs](docs/Alert.md)
 - **Avatar** — A person's picture, or their initials until it loads or when it fails, in a color picked from the name. [Docs](docs/Avatar.md)
 - **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
@@ -734,7 +734,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Lightbox** — Thumbnails that open a full-screen image viewer. [Docs](docs/Lightbox.md)
 - **LiveCaptions** — A caption band for a live call or video: what people are saying, as they say it. [Docs](docs/LiveCaptions.md)
 - **MediaTile** — A tile for one live picture in a call: a person's camera, their photo when the camera is off, or a shared screen. [Docs](docs/MediaTile.md)
-- **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
+- **OuroMcpApp** — The view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredContent.ouro` with ComposedSurface, once it passes core's `validateTree` against the catalog, its fields starting from `structuredContent.ouro.data`, or A2UI messages in `structuredContent.a2ui` with `A2UISurface`. [Docs](docs/OuroMcpApp.md)
 - **Separator** — A thin line in the theme's border color between groups of content, horizontal or vertical. [Docs](docs/Separator.md)
 - **Skeleton** — A placeholder that breathes after a second in the shape and size of content that is still loading, so the content takes its place without moving anything. [Docs](docs/Skeleton.md)
 - **UnreadDot** — The dot that marks something unread: a small round dot in the theme's primary color, with a spoken label. [Docs](docs/UnreadDot.md)

@@ -125,7 +125,7 @@ export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
 
 /** Props for {@link ComposedTree}. @internal */
 export interface ComposedTreeProps extends Pick<ComposedSurfaceProps, "tree" | "onPress" | "onHandoff"> {
-  /** The data model the fields start from: an object, or undefined for none. */
+  /** The data model the fields start from, when the tree has one. */
   data: Json | undefined;
 }
 

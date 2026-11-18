@@ -1,6 +1,6 @@
 {
   "repository": "ourostack/ouro-ui-core",
-  "coreTag": "2e8069b82fbcf88ae7fa01f7c409af5c4ae2a5a5",
+  "coreTag": "v0.18.0",
   "note": "Copied from ouro-ui-core at coreTag, byte for byte. Never edit them: take a new release and update this file.",
   "files": {
     "registry/ouro/lib/ouro/a2ui-core.ts": {
@@ -10,7 +10,7 @@
         "src/mcp-app.mts": "8ed86804ce5c923af9a9249eca898882b9a347d6f6f44d6f0e03b2949f25a5e7",
         "src/a2ui.mts": "cb429e21610ffd4318bfaf9b9807a8ea436fc28994db087785937180534cee85"
       },
-      "sha256": "82703f97c428f7fe63983323bf9ffed341ac2a2e49446d04deaa12f2c1ac431a"
+      "sha256": "63619e3325b90281b60bfbaeca8f52ba464fdb71a5e428d903a2236c323bbf45"
     },
     "test/fixtures/a2ui/catalog.json": {
       "from": "standard/hx/a2ui/catalog.json",

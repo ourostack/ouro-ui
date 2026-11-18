@@ -2,7 +2,7 @@
 
 # A2UISurface
 
-Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, and sends a press as A2UI's action message. Every button is one of your app's declared actions: read and write run, a consequential one asks the person to confirm what the agent prepared, and a person-only one takes them to your app's own screen. Messages that fail core's validator show a short alert, and `onProblems` gets the details for the agent.
+Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, its fields starting from the surface's data model, and sends a press as A2UI's action message, with what the person entered in a field a button's input is bound to. Every button is one of your app's declared actions: read and write run, a consequential one asks the person to confirm what the agent prepared, and a person-only one takes them to your app's own screen. Messages that fail core's validator show a short alert, and `onProblems` gets the details for the agent.
 
 ```tsx
 import { A2UISurface } from "@/registry/ouro/components/ouro/a2ui-surface/a2ui-surface";
