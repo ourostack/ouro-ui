@@ -200,7 +200,9 @@ export function describe(arg: { selector: string; only?: number }): Described {
           `corner ${rounded ? corner : "square"}`,
           `radius ${radii.map((r) => px(r)).join(" ")}`,
           `border ${cs.borderTopWidth} ${cs.borderTopStyle} ${named ? "" : rgb(cs.borderTopColor)}`,
-          `outline ${cs.outlineStyle} ${cs.outlineWidth} ${named ? "" : rgb(cs.outlineColor)}`,
+          // An outline of style none draws nothing, but its width still computes (3px at rest, a focus rule's 1px once the element
+          // has focus, #2230), so only a drawn outline's width and colour are part of the look.
+          cs.outlineStyle === "none" ? "outline none" : `outline ${cs.outlineStyle} ${cs.outlineWidth} ${named ? "" : rgb(cs.outlineColor)}`,
           `padding ${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`,
           `gap ${cs.rowGap} ${cs.columnGap}`,
           named ? "" : `background ${rgb(cs.backgroundColor)} ${cs.backgroundImage === "none" ? "" : "image"}`,
