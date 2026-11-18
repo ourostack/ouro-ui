@@ -27,7 +27,7 @@
    */
   .site-porthole .ph-squid {
     transform-origin: 62% 40%;
-    mask-image: radial-gradient(closest-side, black 88%, transparent 100%);
+    mask-image: radial-gradient(closest-side, black 88%, transparent 100%); /* fade-ok: the squid melts into the painted sea under it, inside the glass, never into the page; at rest the feather lies outside the glass clip */
     transition:
       opacity 1.2s ease,
       translate 1.8s var(--ouro-ease-in-out),
