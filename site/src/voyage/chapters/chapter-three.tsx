@@ -4,7 +4,6 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Command } from "@/registry/ouro/components/ouro/command/command";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator } from "@/registry/ouro/components/ouro/menu/menu";
-import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { href } from "../../paths";
 import { SCENES, STORYBOOK, sceneSources, type SceneName } from "../../storybook";
@@ -596,10 +595,16 @@ function Saloon(): JSX.Element {
 
 /**
  * Show me: X-ray on and off from the end of the voyage, so every control the reader has just used
- * wears its Ouro HX name. It is the header's switch's own state (xray-store.ts), so the two always
+ * wears its Ouro HX name. A Button with `aria-pressed`, not HX's Toggle: Button's styles are already
+ * in the voyage's CSS, and Toggle's would take the page over its CSS budget. It is the header's switch's own state (xray-store.ts), so the two always
  * agree, and only this toggle re-renders when it changes. The reader's place stays put: X-ray opens
  * over the page without scrolling or taking focus.
  */
 function Reveal({ describedBy }: { describedBy: string }): JSX.Element {
-  return <Toggle label={SALOON.reveal} variant="outline" size="sm" pressed={useXray()} onPressedChange={setXray} aria-describedby={describedBy} />;
+  const on = useXray();
+  return (
+    <Button size="sm" variant={on ? "soft" : "outline"} tone={on ? "primary" : "secondary"} aria-pressed={on} aria-describedby={describedBy} onClick={() => setXray(!on)}>
+      {SALOON.reveal}
+    </Button>
+  );
 }

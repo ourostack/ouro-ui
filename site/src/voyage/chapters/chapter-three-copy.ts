@@ -154,15 +154,15 @@ export const CODE_SHEETS_THREE = {
   },
   saloon: {
     title: "How the saloon is built",
-    description: "Ouro HX does the buttons, the toggle and the toast. The site does the organ, its tune and the log.",
+    description: "Ouro HX does the buttons and the toast. The site does the organ, its tune and the log.",
     hx: [
       { text: "Button: the press, and Play kept off until the ship is free.", code: `<Button disabled={!free} onClick={play}>Play the organ</Button>` },
       { text: "Button and Toast: Copy puts the line for your agent on the clipboard, and a toast says so.", code: `<Button onClick={copy}>Copy</Button>\ntoast("Copied. Paste it to your agent.", { tone: "success" })` },
-      { text: "Toggle: Show me turns X-ray on and off, and says if it is on.", code: `<Toggle label="Show me" pressed={xray} onPressedChange={setXray} />` },
+      { text: "Button as a toggle: Show me turns X-ray on and off, and says if it is on.", code: `<Button aria-pressed={xray} onClick={() => setXray(!xray)}>Show me</Button>` },
       { text: "Button as a link: the way into the docs.", code: `<Button href="/docs/">Browse components</Button>` },
     ],
     site: ["The organ, its tune, and the notes that rise from it.", "The squid that comes back to listen.", "The log, and what goes in it."],
-    uses: ["Button", "Toggle", "Toast"],
+    uses: ["Button", "Toast"],
   },
 } as const;
 
