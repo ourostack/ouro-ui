@@ -1,4 +1,4 @@
-export { NAVIGATION_HUNG, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, NAVIGATION_TRIES, navigateWithRetry, waitUntil };
+export { NAVIGATION_HUNG, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, NAVIGATION_TRIES, navigateWithRetry, voiceOverGone, waitUntil };
 
 /**
  * The start of each retry's log line. scripts/sr-classify.mjs counts these and reads them as no finding.
@@ -37,24 +37,40 @@ interface NavigationAttempts {
 const firstLine = (error: unknown): string => (error instanceof Error ? error.message : String(error)).split("\n")[0] ?? "";
 
 /**
- * Navigates. A navigation that is not done within `timeoutMs` has hung: VoiceOver is stopped,
- * settled, and started again, and the navigation is tried once more. A navigation that fails
- * outright is not retried, and the error reaches the test as it was thrown.
+ * Whether an error says VoiceOver itself was gone: AppleScript's "Application isn't running" (-600),
+ * which Guidepup's key presses meet when VoiceOver quit between tests (#2084). Any other error is the test's.
+ */
+const voiceOverGone = (error: unknown): boolean => /Application isn.t running|\(-600\)/.test(error instanceof Error ? error.message : String(error));
+
+/**
+ * Navigates. A navigation that is not done within `timeoutMs` has hung, and one that fails because
+ * VoiceOver had quit (voiceOverGone) found no VoiceOver to drive: either way VoiceOver is stopped,
+ * settled, and started again, and the navigation is tried once more. A navigation that fails any
+ * other way is not retried, and the error reaches the test as it was thrown.
  */
 async function navigateWithRetry({ navigate, stop, start, settle, log, timeoutMs = NAVIGATION_TIMEOUT_MS, tries = NAVIGATION_TRIES }: NavigationAttempts): Promise<void> {
   for (let attempt = 1; ; attempt++) {
     const attempting = navigate();
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let gone = "";
     const outcome = await Promise.race([
-      attempting.then(() => "done" as const),
+      attempting.then(
+        () => "done" as const,
+        (error: unknown) => {
+          if (!voiceOverGone(error)) throw error;
+          gone = firstLine(error);
+          return "gone" as const;
+        },
+      ),
       new Promise<"hung">((resolve) => {
         timer = setTimeout(() => resolve("hung"), timeoutMs);
       }),
     ]).finally(() => clearTimeout(timer));
     if (outcome === "done") return;
-    if (attempt >= tries) throw new Error(`${NAVIGATION_HUNG}: its navigation hung on ${tries} tries of ${timeoutMs / 1000} s each`);
+    const what = outcome === "gone" ? `VoiceOver had quit (${gone})` : `VoiceOver's navigation hung for ${timeoutMs / 1000} s`;
+    if (attempt >= tries) throw new Error(outcome === "gone" ? `${NAVIGATION_HUNG}: ${what} on try ${attempt} of ${tries}` : `${NAVIGATION_HUNG}: its navigation hung on ${tries} tries of ${timeoutMs / 1000} s each`);
     const stopped = await stop().then(() => "", (error: unknown) => ` (stop failed: ${firstLine(error)})`);
-    log(`${NAVIGATION_RETRY_PREFIX} VoiceOver's navigation hung for ${timeoutMs / 1000} s on try ${attempt} of ${tries}${stopped}; waiting for it to settle, then starting it again.`);
+    log(`${NAVIGATION_RETRY_PREFIX} ${what} on try ${attempt} of ${tries}${stopped}; waiting for it to settle, then starting it again.`);
     await settle(attempting.then(() => undefined, () => undefined));
     await start();
   }

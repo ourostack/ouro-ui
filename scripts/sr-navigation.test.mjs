@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { NAVIGATION_HUNG, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, navigateWithRetry, waitUntil } from "../registry/ouro/e2e/screen-reader/navigation.ts";
+import { NAVIGATION_HUNG, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, navigateWithRetry, voiceOverGone, waitUntil } from "../registry/ouro/e2e/screen-reader/navigation.ts";
 import { classify, navigationSummary, why } from "./sr-classify.mjs";
 
 // The bounded navigation to the page (registry/ouro/e2e/screen-reader/navigation.ts), with VoiceOver
@@ -32,6 +32,8 @@ function fakeVoiceOver(...navigations) {
           throw new Error("VoiceOver not running");
         });
       if (step === "fail") return Promise.reject(new Error("locator.focus: element is detached"));
+      // As Guidepup throws when VoiceOver quit between tests (#2084).
+      if (step === "gone") return Promise.reject(new Error("Unable to send keys: to application: VoiceOver\nCommand failed: /usr/bin/osascript\n60:71: execution error: System Events got an error: Application isn’t running. (-600)"));
       return Promise.resolve();
     },
     stop: async () => void order.push("stop"),
@@ -81,6 +83,34 @@ test("navigateWithRetry: a navigation that fails outright is not retried, and it
   const voiceOver = fakeVoiceOver("fail");
   await assert.rejects(navigateWithRetry({ ...voiceOver, timeoutMs: 20 }), /locator\.focus: element is detached/);
   assert.deepEqual(voiceOver.order, ["navigate"]);
+});
+
+test("navigateWithRetry: a navigation that finds VoiceOver gone (-600) starts it again and navigates once more, logged as a retry", async () => {
+  const voiceOver = fakeVoiceOver("gone", "ok");
+  await navigateWithRetry({ ...voiceOver, timeoutMs: 20 });
+  assert.deepEqual(voiceOver.order, ["navigate", "stop", "settle", "start", "navigate"]);
+  assert.equal(voiceOver.lines.length, 1);
+  assert.match(voiceOver.lines[0], /^\[sr\] navigation retry: VoiceOver had quit \(Unable to send keys: to application: VoiceOver\) on try 1 of 2; /);
+  assert.equal(navigationSummary(`${voiceOver.lines[0]}\n  ✓   1 [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:8:1 › Dialog (1.0s)`), "VoiceOver navigation: 1 retry in 1 tests that ran (1 in 1). Too few tests to judge against 1 in 50 alone: #2014 counts the rate across runs.");
+});
+
+test("navigateWithRetry: VoiceOver gone on both tries fails as infrastructure, and is not started a third time", async () => {
+  const voiceOver = fakeVoiceOver("gone", "gone");
+  const error = await navigateWithRetry({ ...voiceOver, timeoutMs: 20 }).then(
+    () => assert.fail("two quits must throw"),
+    (caught) => caught,
+  );
+  assert.match(error.message, new RegExp(`^${NAVIGATION_HUNG}: VoiceOver had quit \\(.+\\) on try 2 of 2$`));
+  assert.deepEqual(voiceOver.order, ["navigate", "stop", "settle", "start", "navigate"]);
+  const log = `${voiceOver.lines[0]}\n  ✘   8 [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:8:1 › Dialog\n    Error: ${error.message}\n  1 failed`;
+  assert.equal(classify(log, 1), "infrastructure");
+});
+
+test("voiceOverGone: AppleScript's -600 is VoiceOver gone; a test's own error is not", () => {
+  assert.equal(voiceOverGone(new Error("System Events got an error: Application isn’t running. (-600)")), true);
+  assert.equal(voiceOverGone(new Error("Application isn't running")), true);
+  assert.equal(voiceOverGone(new Error("locator.focus: element is detached")), false);
+  assert.equal(voiceOverGone("(-600)"), true);
 });
 
 test("navigateWithRetry: a stop that fails is logged, and VoiceOver still starts again", async () => {
