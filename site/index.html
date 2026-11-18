@@ -9,7 +9,7 @@
     <!-- Waits for the stylesheets before the page is parsed. A link straight to a place on the page (#chapter-three) that
          the browser reaches while a stylesheet is still on its way makes Safari jump to that place again every time a
          later stylesheet loads, and the jump takes focus from wherever the reader had it: out of an open menu, say. An
-         inline script waits for the stylesheets above it, so the page finishes parsing with them in and Safari jumps once. -->
+         inline script waits for the stylesheets above it, so the page finishes parsing with them in, and Safari jumps there only once as the page loads. -->
     <script>;</script>
     <div id="root"><!--app--></div>
     <script type="module" src="/src/entry-client.tsx"></script>
