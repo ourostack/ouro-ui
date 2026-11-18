@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
-import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate } from "./pins.mjs";
+import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, appleRequirement, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate, ourostackPackages, takes } from "./pins.mjs";
 import { CONFIG as CHECK_CONFIG, bringsCheck, checkRulesSection, seedKnown } from "./known.mjs";
 import { gateLive, liveFor, runLiveCheck } from "./live.mjs";
 import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
@@ -313,6 +313,31 @@ async function disarm(gh, pr) {
   }
 }
 
+/** The ourostack packages a repository resolves whose manifest, at that revision, does not take ouro-ui-apple's release. */
+async function appleHolds(gh, pins, texts, release) {
+  const out = [];
+  for (const pin of pins.filter((pin) => pin.kind === "swiftpm-resolved")) {
+    for (const dependency of ourostackPackages(texts[pin.file])) {
+      let manifest;
+      try {
+        manifest = Buffer.from((await gh.get(`repos/${dependency.repo}/contents/Package.swift?ref=${dependency.revision}`)).content, "base64").toString("utf8");
+      } catch (error) {
+        if (error.status === 404) continue;
+        throw error;
+      }
+      const requirement = appleRequirement(manifest);
+      if (requirement && !takes(requirement, release.tag)) out.push({ ...dependency, requirement });
+    }
+  }
+  return out;
+}
+
+const RANGE = { exact: (v) => `exactly ${v}`, minor: (v) => `${v} up to the next minor`, major: (v) => `${v} up to the next major` };
+const holdNote = (holds, release) =>
+  `${NAMES.apple} stays where it is for now: ${holds
+    .map(({ repo, revision, requirement }) => `${repo} at ${revision.slice(0, 7)} takes ${RANGE[requirement.rule](requirement.version)}`)
+    .join(", and ")}, so moving only this repository to ${release.tag} would leave its Swift packages unable to resolve. It moves once a revision of that package it resolves takes ${release.tag}.`;
+
 /** Whether a path is a workflow, which an app writes only with the `workflows` permission. */
 export const inWorkflows = (path) => /^\.github\/workflows\//.test(path);
 const workflowNote = (paths) =>
@@ -365,9 +390,15 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   for (const pin of pins) {
     if (pin.kind === "hx-installed" && !isBehind(pin, releases.web) && (await hxStylesheetBehind(pin, texts[pin.file], releases.web, ctx))) pin.stylesheet = true;
   }
-  const behind = pins.filter((pin) => pin.stylesheet || isBehind(pin, releases[pin.follows]));
+  let behind = pins.filter((pin) => pin.stylesheet || isBehind(pin, releases[pin.follows]));
+  // An app that also builds an ourostack package which takes ouro-ui-apple itself (Ouro MD and its app shell) resolves
+  // only when both take the same version. Ouro UI for Apple waits until each such package, at the revision the app
+  // resolves, takes the new release: moving the app alone left ouro-md#194 unable to resolve its packages.
+  const swiftHolds = behind.some((pin) => pin.follows === "apple") ? await appleHolds(gh, pins, texts, releases.apple) : [];
+  if (swiftHolds.length) behind = behind.filter((pin) => pin.follows !== "apple");
   const result = { repo, private: Boolean(info.private), pins: pins.map((pin) => ({ kind: pin.kind, file: pin.file, follows: pin.follows, current: pin.current, latest: releases[pin.follows].tag, behind: behind.includes(pin) })) };
   const existingPr = dryRun ? null : await openPr(gh, repo, info.owner.login);
+  if (swiftHolds.length && behind.length === 0) return { ...result, state: "skipped", reason: holdNote(swiftHolds, releases.apple), pr: null };
   if (pins.length === 0 || behind.length === 0) {
     if (existingPr) {
       await gh.post(`repos/${repo}/issues/${existingPr.number}/comments`, { body: "This repository is already on the newest Ouro UI releases, so this pull request is no longer needed." });
@@ -377,7 +408,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   }
   // Each file's pins apply in turn to its text, so two pins in one file (two vendored sources) both land.
   const files = {};
-  const notes = [];
+  const notes = swiftHolds.length ? [holdNote(swiftHolds, releases.apple)] : [];
   // The Ouro check rules the release adds, which the body lists under their own heading, after the notes. A live-checked
   // repository lists every rule its release brings (`brought`), vendored Ouro check or not; the others only those it vendors.
   const checkRules = [];
