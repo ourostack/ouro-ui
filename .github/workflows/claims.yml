@@ -56,6 +56,24 @@ jobs:
             export PR_TITLE="$title" PR_BODY="$body"
           fi
           pnpm claims:lint --pr
+      # No internal app, repository or organization named in the title or body, checked again when they're edited
+      # (ci.yml's attribution job checks them and the commits as a required check; ourostack/.github's tools/internal-names).
+      - name: No internal names in the title and body
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if title=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json title --jq .title) && body=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body --jq .body); then
+            PR_TITLE="$title" PR_BODY="$body"
+          fi
+          guard="$RUNNER_TEMP/internal-names"
+          mkdir -p "$guard"
+          for file in check.mjs hashes.txt; do
+            curl -fsSL --retry 3 --retry-all-errors -o "$guard/$file" "https://raw.githubusercontent.com/ourostack/.github/main/tools/internal-names/$file"
+          done
+          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" | node "$guard/check.mjs" --text
       # The exemptions in claims.config.json against the base's: a new one needs its reason and a
       # mention in the description, so it runs again when the description is edited. So does a
       # file that gains a `// real clock:` escape (scripts/real-clock-ratchet.mjs).

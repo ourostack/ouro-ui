@@ -1061,6 +1061,34 @@ jobs:
             # A push to main and a dispatched run add no commit the queue did not check.
             *) echo "::notice::No commits to check on $EVENT: the pull request and the merge queue checked them." ;;
           esac
+      # This repository is public: no title, body or commit message names an internal app, repository or organization.
+      # ourostack/.github's guard (tools/internal-names) keeps the one list, as hashes, and is read from its main, so a
+      # word added there applies here at once.
+      - name: No internal names
+        if: ${{ !cancelled() }}
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+          QUEUE_HEAD: ${{ github.event.merge_group.head_sha }}
+        run: |
+          case "$EVENT" in pull_request|merge_group) ;; *) echo "::notice::No pull request text or commits to check on $EVENT."; exit 0 ;; esac
+          guard="$RUNNER_TEMP/internal-names"
+          mkdir -p "$guard"
+          for file in check.mjs hashes.txt; do
+            curl -fsSL --retry 3 --retry-all-errors -o "$guard/$file" "https://raw.githubusercontent.com/ourostack/.github/main/tools/internal-names/$file"
+          done
+          status=0
+          case "$EVENT" in
+            pull_request)
+              printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" | node "$guard/check.mjs" --text || status=1
+              node "$guard/check.mjs" "origin/$BASE_REF..$PR_HEAD" || status=1 ;;
+            merge_group) node "$guard/check.mjs" "$QUEUE_BASE..$QUEUE_HEAD" || status=1 ;;
+          esac
+          exit "$status"
   design:
     # Ouro check (registry/ouro/check/, through .github/actions/check) on the site as it builds, at a
     # phone's, a laptop's and a 4K screen's size, light and dark, in shards side by side: the design
