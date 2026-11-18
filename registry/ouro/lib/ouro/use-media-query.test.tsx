@@ -106,7 +106,7 @@ describe("useMediaQuery", () => {
   it("asks a stub that answers with plain objects again on each read, so a mock that changes its answer is followed", async () => {
     const query = "(min-width: 643px)";
     const answer = (matches: boolean) => ({ matches, media: query, addEventListener() {}, removeEventListener() {} }) as unknown as MediaQueryList;
-    const stub = vi.fn((_asked: string) => answer(false));
+    const stub = vi.fn<(asked: string) => MediaQueryList>(() => answer(false));
     vi.stubGlobal("matchMedia", stub);
     const container = document.body.appendChild(document.createElement("div"));
     const root = createRoot(container);
