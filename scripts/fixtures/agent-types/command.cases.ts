@@ -13,7 +13,8 @@ export const agentCases: AgentCase[] = [
     names: ["tsc", "dev"],
   },
   { id: "command03", habit: "isOpen for the open state", tsc: [notAssignable("boolean", `{ "Use <Command open={open} onOpenChange={setOpen}>": never; }`)], dev: "<Command open={open} onOpenChange={setOpen}>", names: ["tsc", "dev"] },
+  { id: "command04", habit: "cmdk's forceMount for a row shown whatever the search", tsc: [notAssignable("boolean", `{ "Use alwaysShown: true": never; }`)], dev: '{ label: "Jump to chat", onSelect: run, alwaysShown: true }', names: ["tsc", "dev"] },
 ];
 
 /** Valid command snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["commandOk01"];
+export const validSnippets: string[] = ["commandOk01", "commandOk02"];

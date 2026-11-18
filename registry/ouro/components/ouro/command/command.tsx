@@ -34,6 +34,7 @@ import {
   commandCloseClass,
   commandEmptyClass,
   commandEmptyRoomClass,
+  commandNoMatchClass,
   commandGroupLabelClass,
   commandInputClass,
   commandItemClass,
@@ -142,6 +143,20 @@ export interface CommandItem {
   mark?: ReactNode;
   /** Listed, but cannot be run. */
   disabled?: boolean | undefined;
+  /**
+   * Shown whatever the search is, after the commands that match: a row that acts on the words typed,
+   * such as a "Jump to" row, `{ label: jumpLabel, onSelect: jump, alwaysShown: true }`. When a search matches
+   * only rows like it, the empty state (`empty` or `emptyLabel`) shows above them, and screen readers
+   * hear it politely, once. The result count leaves them out.
+   * @claim "Shown whatever the search is" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows a row marked alwaysShown whatever the search, after the matches, and the empty state above it, said politely once, when only such rows match)
+   * @claim "When a search matches only rows" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows a row marked alwaysShown whatever the search, after the matches, and the empty state above it, said politely once, when only such rows match)
+   * @claim "When a search matches only rows" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows the empty state among a server's always-shown rows, and leaves those rows out of the result count)
+   * @claim "The result count leaves them" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows the empty state among a server's always-shown rows, and leaves those rows out of the result count)
+   */
+  alwaysShown?: boolean | undefined;
+
+  /** Not a prop. A row shown whatever the search is says `alwaysShown`: `{ label: "Jump to chat", onSelect: jump, alwaysShown: true }`. */
+  forceMount?: { "Use alwaysShown: true": never };
 
   /** Not a prop. A command runs `onSelect`: `{ label: "New recipe", onSelect: create }`. (A `MenuItem` is the one that takes `onClick`.) */
   onClick?: { 'Use onSelect: { label: "New recipe", onSelect: create }': never };
@@ -502,6 +517,14 @@ export function Command(props: CommandProps): JSX.Element {
           ),
           ...groups.flatMap((group) =>
             group.items
+              .filter((item) => item.forceMount !== undefined)
+              .map(
+                (item) =>
+                  [`the item "${item.label}" has forceMount; a row shown whatever the search is says alwaysShown`, `{ label: "${item.label}", onSelect: run, alwaysShown: true }`] as const,
+              ),
+          ),
+          ...groups.flatMap((group) =>
+            group.items
               .filter((item) => item.avatar !== undefined && shown(item.icon))
               .map(
                 (item) =>
@@ -683,7 +706,7 @@ export function Command(props: CommandProps): JSX.Element {
       autoHighlight="always"
       keepHighlight
       // A server search filters on the server: the items are already the results.
-      filter={onQueryChange ? null : (item: CommandItem, text: string) => matchesQuery(item.label, searchedWords(item), text)}
+      filter={onQueryChange ? null : (item: CommandItem, text: string) => item.alwaysShown === true || matchesQuery(item.label, searchedWords(item), text)}
       value={query}
       inputRef={markInput}
       onItemHighlighted={(item: CommandItem | undefined) => {
@@ -714,6 +737,7 @@ export function Command(props: CommandProps): JSX.Element {
               {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
             </div>
           </Autocomplete.Empty>
+          <NoMatchNote query={query}>{empty ?? emptyLabel}</NoMatchNote>
           <CommandList
             className={inSheet ? "outline-none" : commandListboxClass}
             // While results are on their way, rows in their shape hold their place under the ones already shown, scrolling with them.
@@ -909,7 +933,8 @@ function KeepHighlight({
  */
 function ResultCount({ query, loading, label }: { query: string; loading: boolean; label: (count: number) => string }): JSX.Element {
   const filtered = Autocomplete.useFilteredItems() as readonly Group[];
-  const count = filtered.reduce((sum, group) => sum + group.items.length, 0);
+  // Rows shown whatever the search is are no results of it.
+  const count = filtered.reduce((sum, group) => sum + group.items.filter((item) => item.alwaysShown !== true).length, 0);
   const [said, setSaid] = useState("");
   useEffect(() => {
     if (loading || query === "") return undefined;
@@ -934,6 +959,21 @@ function SearchingLabel({ label }: { label: string }): JSX.Element | null {
     <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
       {label}
     </span>
+  );
+}
+
+/**
+ * The empty state among rows shown whatever the search is, when a search matches only those: a polite
+ * live region that is always there, so screen readers hear the note once each time it comes.
+ * @claim "The empty state among rows" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command rows shown whatever the search > shows a row marked alwaysShown whatever the search, after the matches, and the empty state above it, said politely once, when only such rows match)
+ */
+function NoMatchNote({ query, children }: { query: string; children: ReactNode }): JSX.Element {
+  const rows = (Autocomplete.useFilteredItems() as readonly Group[]).flatMap((group) => group.items);
+  const only = query !== "" && rows.length > 0 && rows.every((item) => item.alwaysShown === true);
+  return (
+    <div data-ouro-command-no-match="" role="status" aria-live="polite" aria-atomic="true" className={commandNoMatchClass}>
+      {only && children}
+    </div>
   );
 }
 

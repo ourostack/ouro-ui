@@ -692,6 +692,76 @@ describe("Command results that stream in", () => {
   });
 });
 
+describe("Command rows shown whatever the search", () => {
+  const run = () => {};
+  const note = () => document.querySelector<HTMLElement>("[data-ouro-command-no-match]")!;
+
+  it("shows a row marked alwaysShown whatever the search, after the matches, and the empty state above it, said politely once, when only such rows match", async () => {
+    const said = watchAnnouncements();
+    try {
+      const items = [
+        { label: "Settings", onSelect: run },
+        { label: "Help center search", onSelect: run, alwaysShown: true },
+        { label: "Profile", onSelect: run },
+      ];
+      await render(<Command title="Commands" open onOpenChange={() => {}} items={items} emptyLabel="No commands match." />);
+      await settled();
+      expect(note().textContent).toBe("");
+      await userEvent.type(input(), "pro");
+      await expect.poll(options).toEqual(["Profile", "Help center search"]);
+      expect(note().textContent).toBe("");
+      await userEvent.type(input(), "zq");
+      await expect.poll(options).toEqual(["Help center search"]);
+      await expect.poll(() => note().textContent).toBe("No commands match.");
+      expect(note().getAttribute("role")).toBe("status");
+      expect(note().getAttribute("aria-live")).toBe("polite");
+      // Typing on while only that row matches leaves the note as it was: it is said once.
+      await userEvent.type(input(), "x");
+      await act(async () => {});
+      expect(said.count("No commands match.")).toBe(1);
+      // With no such row, nothing matching is the empty state's to say, not the note's.
+      await act(async () => roots[0]!.render(<Command title="Commands" open onOpenChange={() => {}} items={items.filter((item) => !item.alwaysShown)} emptyLabel="No commands match." />));
+      await expect.poll(() => document.querySelector("[data-ouro-command-empty]")?.textContent).toBe("No commands match.");
+      expect(note().textContent).toBe("");
+    } finally {
+      said.stop();
+    }
+  });
+
+  it("shows the empty state among a server's always-shown rows, and leaves those rows out of the result count", async () => {
+    const said = watchAnnouncements();
+    try {
+      const empty = <strong>No chats by that name.</strong>;
+      const palette = (labels: string[]) => (
+        <Command
+          title="Jump to a chat"
+          open
+          onOpenChange={() => {}}
+          onQueryChange={() => {}}
+          empty={empty}
+          items={[...labels.map((label) => ({ label, onSelect: run })), { label: "Jump to a chat by its address", onSelect: run, alwaysShown: true }]}
+        />
+      );
+      // The empty search's list is the palette's own, though it holds only that row: no note.
+      await render(palette([]));
+      await settled();
+      expect(note().textContent).toBe("");
+      await userEvent.type(input(), "zq");
+      await expect.poll(() => note().querySelector("strong")?.textContent).toBe("No chats by that name.");
+      await expect.poll(() => said.count("No chats by that name.")).toBe(1);
+      expect(document.querySelector("[data-ouro-command-empty]")).toBeNull();
+      // real clock: the count is said 400ms after results settle; this waits past that to show none comes.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect(document.querySelector("[data-ouro-command-results]")!.textContent).toBe("");
+      await act(async () => roots[0]!.render(palette(["Zq launch", "Zq review"])));
+      await expect.poll(() => note().textContent).toBe("");
+      await expect.poll(() => document.querySelector("[data-ouro-command-results]")!.textContent).toBe("2 results");
+    } finally {
+      said.stop();
+    }
+  });
+});
+
 describe("Command match highlighting", () => {
   const run = () => {};
   const recipes: CommandEntry[] = [
@@ -1796,13 +1866,13 @@ describe("Command dev messages", () => {
     expect(warnings()).toEqual(['[ouro-ui] Command: title is required; it names the palette for screen readers. Fix: <Command title="Command palette">.']);
   });
 
-  it("warns once about guessed props, and about an item's onClick", async () => {
+  it("warns once about guessed props, and about an item's onClick or forceMount", async () => {
     await openPalette({
       isOpen: true,
       onClose: () => {},
       children: "x",
       commands: [],
-      items: [{ label: "Home", onClick: () => {} }],
+      items: [{ label: "Home", onClick: () => {} }, { label: "Jump to chat", onSelect: () => {}, forceMount: true }],
     } as object);
     expect(warnings()).toEqual([
       "[ouro-ui] Command: isOpen is not a prop. Fix: <Command open={open} onOpenChange={setOpen}>.",
@@ -1810,6 +1880,7 @@ describe("Command dev messages", () => {
       '[ouro-ui] Command: children is not a prop; the commands are items. Fix: <Command items={[{ label: "New recipe", onSelect: create }]}>.',
       '[ouro-ui] Command: commands is not a prop; the commands are items. Fix: <Command items={[{ label: "New recipe", onSelect: create }]}>.',
       '[ouro-ui] Command: the item "Home" has onClick; a command runs onSelect. Fix: { label: "Home", onSelect: run }.',
+      '[ouro-ui] Command: the item "Jump to chat" has forceMount; a row shown whatever the search is says alwaysShown. Fix: { label: "Jump to chat", onSelect: run, alwaysShown: true }.',
     ]);
   });
 
