@@ -119,4 +119,14 @@ describe("useMediaQuery", () => {
     expect(container.textContent).toBe("true");
     await act(async () => again.unmount());
   });
+
+  it("reads a mocked matchMedia where MediaQueryList is not defined, as in jsdom", async () => {
+    vi.stubGlobal("MediaQueryList", undefined);
+    vi.stubGlobal("matchMedia", (asked: string) => ({ matches: true, media: asked, addEventListener() {}, removeEventListener() {} }));
+    const container = document.body.appendChild(document.createElement("div"));
+    const root = createRoot(container);
+    await act(async () => root.render(<Probe query="(min-width: 644px)" serverDefault={false} />));
+    expect(container.textContent).toBe("true");
+    await act(async () => root.unmount());
+  });
 });
