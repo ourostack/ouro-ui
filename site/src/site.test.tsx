@@ -8,6 +8,7 @@ import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
 import { finishReveal } from "./voyage/theme-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
+import { SURPRISES, surpriseNav } from "./components/surprise-me";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
 import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
@@ -348,6 +349,47 @@ describe("docs", () => {
   it("sends a newcomer from the components index to the installing guide's first steps", async () => {
     await renderPage("/docs/");
     await expect.element(page.getByRole("link", { name: "Start a new app", exact: true })).toHaveAttribute("href", "/docs/installing/#start-a-new-app");
+  });
+
+  it("opens a random component with a trick to try from the docs index, rolling the names past first", async () => {
+    await renderPage("/docs/");
+    const link = page.getByRole("link", { name: "Surprise me", exact: true });
+    // Without script it opens the first one.
+    await expect.element(link).toHaveAttribute("href", href(`/docs/${SURPRISES[0]!.name}/`));
+    expect(SURPRISES.length).toBeGreaterThan(5);
+    for (const item of SURPRISES) expect(tries, item.name).toHaveProperty(item.name);
+    const pages = SURPRISES.map((item) => href(`/docs/${item.name}/`));
+    const went: string[] = [];
+    const go = surpriseNav.go;
+    surpriseNav.go = (url) => void went.push(new URL(url).pathname);
+    try {
+      await userEvent.click(link);
+      const roll = page.getByText(/^ → /);
+      await expect.element(roll).toBeInTheDocument();
+      await expect.poll(() => went.length).toBe(1);
+      expect(pages).toContain(went[0]);
+      // It stops on the one it opens.
+      expect(roll.element().textContent).toBe(` → ${SURPRISES[pages.indexOf(went[0]!)]!.title}`);
+      // A load that never happens (stopped, or this test) leaves the link working.
+      await userEvent.click(link);
+      await expect.poll(() => went.length).toBe(2);
+      // With reduced motion nothing rolls: the link goes straight there.
+      await commands.emulateMedia({ reducedMotion: "reduce" });
+      await renderPage("/docs/");
+      const still = page.getByRole("link", { name: "Surprise me", exact: true });
+      let opened = "";
+      still.element().ownerDocument.addEventListener("click", (event) => {
+        opened = (event.target as Element).closest("a")!.pathname;
+        event.preventDefault();
+      }, { once: true });
+      await userEvent.click(still);
+      expect(pages).toContain(opened);
+      expect(document.querySelector("[data-site-surprise]")).toBeNull();
+      expect(went).toHaveLength(2);
+    } finally {
+      surpriseNav.go = go;
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
   });
 
   it("keeps linked guide summaries as text inside their catalog links", async () => {
