@@ -68,8 +68,9 @@ export function recordsEvery(branch, rules) {
  * keeps no check there (a run.ts of its own). reports: the
  * pull request's own Ouro check reports. base and branch: ouro-check.json on the default branch and on the update's
  * branch, as text or null; the branch's keeps what an earlier run recorded while the newest commit's checks still run.
+ * widened: the rules whose reach the release widened (new-rules.json's `widened`), recorded as a new rule's are.
  */
-export async function seedKnown({ files, oldCheck, reports, base, branch }) {
+export async function seedKnown({ files, oldCheck, reports, base, branch, widened = [] }) {
   const folders = checkFolders(files);
   if (!folders.length) return null;
   const config = parse(base);
@@ -80,7 +81,8 @@ export async function seedKnown({ files, oldCheck, reports, base, branch }) {
   // A repository with no check yet takes every rule at once, as it does any new tool.
   if (!old) return null;
   const fresh = folders.flatMap((folder) => Object.entries(files).filter(([path]) => path.startsWith(folder)).map(([, text]) => String(text))).join("\n");
-  const brings = (rule) => !old.includes(`"${rule}"`) && fresh.includes(`"${rule}"`);
+  // A rule the release widened finds what the app wrote before, as a new rule does, so its findings are recorded too.
+  const brings = (rule) => widened.includes(rule) || (!old.includes(`"${rule}"`) && fresh.includes(`"${rule}"`));
   const found = new Map();
   for (const finding of reports.flatMap((report) => report?.findings ?? [])) {
     if (!finding?.rule || !brings(finding.rule)) continue;
@@ -111,7 +113,7 @@ export function checkRulesSection(listed, seed) {
   return [
     "### New Ouro check rules",
     "",
-    ...[...rules.values()].map((rule) => `- \`${rule.rule}\`: ${rule.summary ? `${rule.summary.replace(/\s+/g, " ").trim()}[^${id(rule.rule)}] ` : ""}${recorded(rule.rule)}`),
+    ...[...rules.values()].map((rule) => `- \`${rule.rule}\`${rule.widened ? `, which now also finds ${rule.widened.replace(/\s+/g, " ").trim()}` : ""}: ${rule.summary ? `${rule.summary.replace(/\s+/g, " ").trim()}[^${id(rule.rule)}] ` : ""}${recorded(rule.rule)}`),
     "",
     "Move the recorded findings onto the theme in a pull request of their own.",
     ...(cited.length ? ["", ...cited.map((rule) => `[^${id(rule.rule)}]: ${rule.source} verify:urlOk(${rule.source})`)] : []),

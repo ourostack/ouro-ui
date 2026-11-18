@@ -499,6 +499,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
       reports: await sources.ciReports(gh, repo, existing.sha),
       base: await read(CHECK_CONFIG),
       branch: await readAt(existing.sha, CHECK_CONFIG),
+      widened: named.filter((rule) => rule.widened).map((rule) => rule.rule),
     });
     if (seed) files[CHECK_CONFIG] = seed.file;
   }

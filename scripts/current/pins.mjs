@@ -743,14 +743,17 @@ function readNewRules(tarball) {
     // The parser's own message names positions, which a repository's claims lint reads as numbers to cite.
     throw new Error("it is not JSON");
   }
-  const valid = (rule) => rule && typeof rule.rule === "string" && (rule.summary === undefined || typeof rule.summary === "string");
-  if (!Array.isArray(rules) || !rules.every(valid)) throw new Error("it is not a list of { rule, summary }");
+  const text = (value) => value === undefined || typeof value === "string";
+  const valid = (rule) => rule && typeof rule.rule === "string" && text(rule.summary) && text(rule.widened);
+  if (!Array.isArray(rules) || !rules.every(valid)) throw new Error("it is not a list of { rule, summary, widened }");
   return rules;
 }
 
 /**
  * The Ouro check rules new to an app between two releases: in the new tag's `new-rules.json` and not in the old's, by
  * name, each with its summary and the release's file to cite it to, since a repository may lint the body for claims.
+ * An entry with `widened` names an existing rule whose reach the release widened (`"widened": "negative lengths"`), which
+ * finds what the app wrote before as a new rule would; it is new to the app by its rule and `widened` together.
  * The update pull request lists them with the findings it records as known for each (known.mjs).
  */
 export function newCheckRules(previous, next, from, release) {
@@ -766,9 +769,11 @@ export function newCheckRules(previous, next, from, release) {
   } catch (error) {
     return { rules: [], notes: [`Leaves the new Ouro check rules out of this list: \`${NEW_RULES}\` at \`${release.tag}\` could not be read (${error.message}). The release notes name them.`] };
   }
-  const listed = new Set(before.map((rule) => rule.rule));
+  const entry = (rule) => `${rule.rule}\n${rule.widened ?? ""}`;
+  const listed = new Set(before.map(entry));
   const source = `https://github.com/${release.repo ?? REPOS.web}/blob/${release.tag}/${NEW_RULES}`;
-  return { rules: after.filter((rule) => !listed.has(rule.rule)).map((rule) => ({ rule: rule.rule, summary: rule.summary, source })), notes: [] };
+  const brought = after.filter((rule) => !listed.has(entry(rule)));
+  return { rules: brought.map((rule) => ({ rule: rule.rule, summary: rule.summary, ...(rule.widened ? { widened: rule.widened } : {}), source })), notes: [] };
 }
 
 /** The release asset that holds ouro-ui-core's built `dist/`, which the repository does not commit. */
@@ -933,6 +938,10 @@ async function updateVendorLock(pin, text, release, ctx) {
     files[file.generatedPath] = bytes;
   }
   if (missing.length) throw new Error(`${pin.file}: ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not in ${REPOS[pin.follows]} ${release.tag}${asset ? ` (${asset})` : ""}`);
+  // A vendored Ouro check reads the rules this release adds or widens from new-rules.json, as an install record does:
+  // the old side is the commit the lock had.
+  const checking = !asset && source.files.some((file) => CHECK_SOURCE.test(file.sourcePath));
+  const brought = checking ? newCheckRules(await ctx.tarball(pin.follows, pin.commit), await ctx.tarball(pin.follows, release.tag), pin.current, release) : { rules: [], notes: [] };
   // A vendored file that now imports a file beside it (`xray.ts` importing `./xray.kit.mts`) needs that file too: it is
   // vendored beside it, and so is what it imports in turn.
   const added = asset ? [] : followImports(source.files, files, read);
@@ -954,8 +963,12 @@ async function updateVendorLock(pin, text, release, ctx) {
   notes.push(...axFix.notes);
   // The entry added above resolves the vendored files' `#ouro-ax/*`; otherwise the pull request says what is missing.
   if (Object.keys(axFix.files).length === 0) notes.push(...(await unresolvedAxImports(source.files, files, ctx)));
-  return { files, notes };
+  notes.push(...brought.notes);
+  return { files, notes, checkRules: brought.rules, newRules: brought };
 }
+
+/** A source file of Ouro check, which a lock that vendors it follows the release's new-rules.json for. */
+const CHECK_SOURCE = /^registry\/ouro\/check\/[^/]+\.ts$/;
 
 /**
  * Vendored files that import the shared Ouro AX files as `#ouro-ax/*` resolve them through the `imports` of the nearest
