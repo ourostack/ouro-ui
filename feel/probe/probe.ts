@@ -441,8 +441,12 @@ function install(): OuroFeel {
     const delta = scrollTop - (sampled?.[0] ?? scrollTop);
     for (let index = motions.length - 1; index >= 0; index--) {
       const motion = motions[index]!;
-      // As the meter does, a wheel waits for a frame that began after it.
-      if (motion.at > lastFrameAt || Math.sign(delta) !== motion.direction || Math.abs(delta) < MOVE_PX) continue;
+      // As the meter does, a wheel waits for a frame that began after it, and counts its frames from that one.
+      if (motion.at > lastFrameAt) {
+        motion.frame = frames;
+        continue;
+      }
+      if (Math.sign(delta) !== motion.direction || Math.abs(delta) < MOVE_PX) continue;
       const ms = Math.max(0, lastFrameAt - motion.at);
       toMotionMs.push(ms);
       toMotionFrames.push(frames - motion.frame);
