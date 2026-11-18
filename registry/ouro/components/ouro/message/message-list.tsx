@@ -151,7 +151,12 @@ export interface MessageListOwnProps {
    * view's top by more than a pixel. A wheel that takes the reader to the top faster than the rows above them came in moves
    * nothing either: where those rows came in shorter than the space kept for them and the top stops the scroll position, the
    * difference stays as space above the first message, until the reader has scrolled past it and the wheel rests.
+   * A page of older messages that lands in a window already drawn commits once in the task it lands in, holding the reader's
+   * row; its rows near the view but out of it draw in the frames after, 20 at most a frame, nearest the view first, and those
+   * the view shows draw at once.
    * @default true
+   * @claim "and those the view shows draw at once" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws, in the task a page of older messages lands in, the rows of it the view shows, so no space kept for a row shows)
+   * @claim "A page of older messages that lands in a window" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > commits once in the task a page of older messages lands in, holding the reader's row, and draws the page's rows the overscan reaches in later frames, a chunk at most a frame) verify:fileLine(registry/ouro/components/ouro/message/message-list-styles.ts, /const OLDER_CHUNK = 20;/)
    * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message)
    * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests) verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the reader is in it once the wheel rests, and lets it go without moving anything as they scroll past it)
    * @claim "renders no more than 20 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
@@ -1877,6 +1882,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
       });
     });
   };
+  // The keys of children that came into a window already drawn and wait to draw out of view, a chunk a frame (see the band):
+  // how many of them the window draws now, OLDER_CHUNK in the frame it draws them in, else none, and that frame's request.
+  const arriving = useRef(new Set<string>());
+  const budget = useRef(0);
+  const dripping = useRef(0);
+  const drip = () => {
+    // Stryker disable next-line ConditionalExpression: a second request in the same frame draws the same rows, as the window finds them drawn.
+    if (dripping.current !== 0) return;
+    dripping.current = requestAnimationFrame(() => {
+      dripping.current = 0;
+      budget.current = OLDER_CHUNK;
+      windowSync.current!(true);
+      budget.current = 0;
+    });
+  };
   // The reader's own scrolling: when they last gave input, whether a scroll of theirs is going on, and whether they hold the
   // scrollbar. A scroll made by code (find in page, a screen reader, a test tool, the app) is none of these.
   // `code` is whether the last scroll was neither theirs nor the list's own (`ownTop`, where it last put the scroll position).
@@ -2054,17 +2074,49 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const meets = !code || (drawnFrom <= to + 1 && drawnTo >= from - 1);
       if (meets && drawnFrom >= keepFrom) from = Math.min(from, drawnFrom);
       if (meets && drawnTo <= keepTo) to = Math.max(to, drawnTo);
-      const inBand = keys.slice(from, to + 1);
+      let inBand = keys.slice(from, to + 1);
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: with none waiting, the rows filtered below are none; this only spares reading which are drawn.
+      if (arriving.current.size > 0) {
+        // Rows that came with the children (a page of older messages landing among the rows drawn) and that the band reaches
+        // out of view draw in later frames, OLDER_CHUNK a frame, those nearest the view first: the task they land in only
+        // holds the reader's place, and lays out none of them. Those the view shows draw at once, and those drawn stay.
+        const drawn = new Set([...content.children].map((node) => node.getAttribute(SLOT)));
+        const off = (index: number) => Math.max(viewTop - starts[index]! - extent(index), starts[index]! - viewBottom);
+        const later = inBand
+          .map((key, at) => ({ key, off: off(from + at) }))
+          // Under a pixel in view is none of a row: the reader's place, held in WebKit's whole pixels, leaves the row beside it that much in.
+          // Stryker disable next-line EqualityOperator,UnaryOperator: a row exactly a pixel in view shows a pixel of its gap, drawn now or a frame later.
+          .filter(({ key, off }) => arriving.current.has(key) && !drawn.has(key) && off > -1)
+          .sort((a, b) => a.off - b.off)
+          .slice(budget.current)
+          .map(({ key }) => key);
+        arriving.current = new Set(later);
+        // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: with none to wait, the filter takes none out and the frame asked for draws none; a band whose every row waits is one the view shows none of, which a window with rows never has.
+        if (later.length > 0 && later.length < inBand.length) {
+          inBand = inBand.filter((key) => !arriving.current.has(key));
+          from = indexes.get(inBand[0]!)!;
+          to = indexes.get(inBand.at(-1)!)!;
+          drip();
+        }
+      }
       // Stryker disable next-line StringLiteral: keys joined with no separator tell two bands apart too, but for keys that run into each other.
       const id = inBand.join("\n");
-      // The same band again changes nothing.
-      setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
+      // The same band as drawn asks for no render: a state set to what it holds still renders the list again, in the same task
+      // when set from a layout effect.
+      if (band?.id !== id) setBand((now) => (now?.id === id ? now : { id, from: keys[from]!, to: keys[to]!, held: new Set(inBand) }));
     };
     const now = viewRef.current;
     const last = synced.current;
     synced.current = now;
     // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,MethodExpression,OptionalChaining,ArrowFunction: this only spares reading the layout on a render that changed nothing the window reads, as the app draws again while someone types.
     if (last?.windowed === now.windowed && last.band === now.band && last.measured === now.measured && last.reach === now.reach && last.keys.length === now.keys.length && last.keys.every((key, index) => key === now.keys[index])) return;
+    // Children that came since the window last looked, which the band waits to draw where the view does not show them. A list
+    // that opens another conversation draws its view first, which leaves none of them waiting, then the rest at once.
+    if (last !== null) {
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: a list drawn whole draws every child and never reads which came, and the same keys hold none that came; this only keeps keys from piling up, and spares looking.
+      const before = now.windowed && last.keys !== now.keys ? new Set(last.keys) : null;
+      if (before !== null) for (const key of now.keys) if (!before.has(key)) arriving.current.add(key);
+    }
     windowSync.current(false);
   });
   useLayoutEffect(() => {
@@ -2101,7 +2153,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     resized.observe(scroller);
     resized.observe(content);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer));
+    return () => (resized.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("scrollend", onScrollEnd), reading.forEach((type) => scroller.removeEventListener(type, byReader)), scroller.removeEventListener("pointerdown", press), doc.removeEventListener("pointerup", release, true), doc.removeEventListener("pointercancel", release, true), cancelAnimationFrame(widening.current?.frame ?? 0), clearTimeout(widening.current?.timer), cancelAnimationFrame(dripping.current));
   },
   // Stryker disable next-line ArrayDeclaration: any list that never changes runs it once, as this one does.
   []);

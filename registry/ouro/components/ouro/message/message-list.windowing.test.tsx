@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
+import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 
@@ -128,6 +129,51 @@ async function scrollTo(scroller: HTMLElement, top: number) {
   if (scroller.scrollTop !== before) await taken;
   await act(async () => void document.dispatchEvent(new PointerEvent("pointerup", { pointerType: "mouse" })));
   await settle(scroller);
+}
+
+/**
+ * Runs `land` in a task of its own, as an app's fetch callback does, and `ended` at that task's end: in the first frame
+ * callback after it, or the next task, whichever comes first, so before anything the task left for later runs.
+ */
+function landInATask(land: () => void, ended: () => void) {
+  return new Promise<void>((resolve) => {
+    const start = new MessageChannel();
+    start.port1.onmessage = () => {
+      start.port1.close();
+      const after = new MessageChannel();
+      let frame = 0;
+      let over = false;
+      const end = () => {
+        if (over) return;
+        over = true;
+        after.port1.close();
+        cancelAnimationFrame(frame);
+        ended();
+        resolve();
+      };
+      after.port1.onmessage = end;
+      after.port2.postMessage(null);
+      frame = requestAnimationFrame(end);
+      land();
+    };
+    start.port2.postMessage(null);
+  });
+}
+
+/** The numbers from `from`, `count` of them. */
+const span = (from: number, count: number) => Array.from({ length: count }, (_, at) => from + at);
+
+/** A list of rows 8 to 16px tall, so the overscan around its 400px view reaches more rows than a chunk. */
+function ShortRows({ ids, keyOf = String, hasOlder, conversation }: { ids: number[]; keyOf?: (id: number) => string; hasOlder?: boolean; conversation?: string }) {
+  return (
+    <MessageList label="Conversation" style={{ height: 400, width: 360 }} hasOlder={hasOlder} conversation={conversation}>
+      {ids.map((id) => (
+        <Message key={keyOf(id)} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 8 + ((((id * 37) % 9) + 9) % 9), boxSizing: "border-box" }}>
+          {`Message ${id}`}
+        </Message>
+      ))}
+    </MessageList>
+  );
 }
 
 /** Scrolls the list in code alone, as find in page, a screen reader or a test tool does, and waits for it to settle. */
@@ -1344,6 +1390,119 @@ describe("MessageList windowing", () => {
     // Put in at once, as space: a page draws no more messages than the view needs.
     expect(messages(scroller).length).toBeLessThan(60);
     expect(document.getElementById("m-300")).toBeNull();
+  });
+
+  it("commits once in the task a page of older messages lands in, holding the reader's row, and draws the page's rows the overscan reaches in later frames, a chunk at most a frame", async () => {
+    let commits = 0;
+    const list = (from: number, count: number) => (
+      <Profiler id="list" onRender={() => void commits++}>
+        <ShortRows ids={span(from, count)} />
+      </Profiler>
+    );
+    const { root, scroller } = await render(list(0, 200));
+    await scrollTo(scroller, 0);
+    const reading = firstVisible(scroller);
+    const older = () => ids(scroller).filter((id) => id < 0);
+    let moved = 0;
+    const watch = () => (moved = Math.max(moved, Math.abs(reading.message.getBoundingClientRect().top - reading.top)));
+    // The older rows drawn by the end of each frame, from the end of the task the page lands in, and whether each frame's are
+    // those nearest the reader.
+    const drawnByFrame: number[] = [];
+    let nearestFirst = true;
+    let watching = true;
+    const tick = () => {
+      watch();
+      const drawn = older();
+      drawnByFrame.push(drawn.length);
+      nearestFirst &&= drawn.every((id, at) => id === at - drawn.length);
+      if (watching) requestAnimationFrame(tick);
+    };
+    commits = 0;
+    let landing = { commits: 0, older: -1 };
+    await landInATask(
+      () => flushSync(() => root.render(list(-200, 400))),
+      () => {
+        landing = { commits, older: older().length };
+        watch();
+        requestAnimationFrame(tick);
+      },
+    );
+    await settle(scroller);
+    watching = false;
+    watch();
+    expect(landing).toEqual({ commits: 1, older: 0 });
+    // Every row of the page the overscan reaches is drawn in the end, more than a chunk of them, in frames after the one it landed in.
+    expectBand(scroller, [199]);
+    expect(older().length).toBeGreaterThan(OLDER_CHUNK);
+    const added = drawnByFrame.map((count, frame) => count - (drawnByFrame[frame - 1] ?? 0));
+    expect(Math.max(...added)).toBeLessThanOrEqual(OLDER_CHUNK);
+    expect(nearestFirst).toBe(true);
+    expect(moved).toBeLessThanOrEqual(1);
+  });
+
+  it("draws, in the task a page of older messages lands in, the rows of it the view shows, so no space kept for a row shows", async () => {
+    const { root, scroller } = await render(<ShortRows ids={span(0, 200)} hasOlder />);
+    // At the top, the view shows the room kept above the first message, where the page's newest rows land.
+    await scrollTo(scroller, 0);
+    const reading = firstVisible(scroller);
+    let landing = { older: 0, spaceShown: true, moved: Infinity };
+    await landInATask(
+      () => flushSync(() => root.render(<ShortRows ids={span(-200, 400)} hasOlder />)),
+      () => {
+        const view = scroller.getBoundingClientRect();
+        const shown = (space: Element) => {
+          const box = space.getBoundingClientRect();
+          return box.bottom > view.top + 1 && box.top < view.bottom - 1;
+        };
+        landing = {
+          older: ids(scroller).filter((id) => id < 0).length,
+          spaceShown: [...scroller.querySelectorAll("[data-ouro-message-list-space]")].some(shown),
+          moved: Math.abs(reading.message.getBoundingClientRect().top - reading.top),
+        };
+      },
+    );
+    expect(landing.older).toBeGreaterThan(0);
+    expect(landing.spaceShown).toBe(false);
+    expect(landing.moved).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps a message whose key changes in place out of view drawn through the task it changes in", async () => {
+    const { root, scroller } = await render(<ShortRows ids={span(0, 200)} />);
+    await scrollTo(scroller, scroller.scrollHeight / 2);
+    const top = scroller.getBoundingClientRect().top;
+    // One between the band's edges: a key that changes at an edge leaves the band to find itself again.
+    const above = ids(scroller).filter((each) => document.getElementById(`m${each}`)!.getBoundingClientRect().bottom < top - 100);
+    const id = above[Math.floor(above.length / 2)]!;
+    let drawn = false;
+    await landInATask(
+      // A temporary id swapped for the server's, as a sent message's is.
+      () => flushSync(() => root.render(<ShortRows ids={span(0, 200)} keyOf={(each) => (each === id ? `server-${each}` : String(each))} />)),
+      () => (drawn = document.getElementById(`m${id}`) !== null),
+    );
+    expect(drawn).toBe(true);
+  });
+
+  it("draws the rows past the view's edges of another conversation it opens all at once after its first frame, not a chunk a frame", async () => {
+    const { root, scroller } = await render(<ShortRows ids={span(0, 300)} conversation="ana" keyOf={(id) => `ana-${id}`} />);
+    await act(async () => root.render(<ShortRows ids={span(0, 300)} conversation="theo" keyOf={(id) => `theo-${id}`} />));
+    // The messages added in each frame after the commit that opened it.
+    let added = 0;
+    const observer = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) added += node.querySelectorAll('[data-ouro="message"]').length + Number(node.matches('[data-ouro="message"]'));
+    });
+    observer.observe(scroller, { childList: true, subtree: true });
+    const perFrame: number[] = [];
+    let watching = true;
+    const tick = () => {
+      perFrame.push(added);
+      added = 0;
+      if (watching) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    await settle(scroller);
+    watching = false;
+    observer.disconnect();
+    expect(Math.max(...perFrame)).toBeGreaterThan(OLDER_CHUNK);
   });
 
   it("moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px", async () => {
