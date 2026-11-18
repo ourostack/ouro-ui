@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BATTLE, CHAPTER_THREE, CHAPTER_THREE_CONTROLS, CODE_SHEETS_THREE, ENCOUNTER, FIGHT, ORDERS, SALOON, TOASTS } from "../src/voyage/chapters/chapter-three-copy";
 import { diagnostics } from "./diagnostics";
-import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
+import { openChapter, opensCodeSheet, operable, railStaysInView, watchMotion } from "./chapters";
 import { watchToasts } from "./toasts";
 import { HANDOFF } from "../src/copy";
 import { ARTICLES, CREW, PARTS } from "../src/voyage/chapters/copy";
@@ -653,4 +653,8 @@ test.describe("the ship's log remembers your voyage", () => {
     await expect(log(page)).toHaveText([SALOON.logHeld, SALOON.logFree, SALOON.logPlayed].map((line, index) => `0${index + 1}${line}`));
     await expect(saloon(page).locator("[data-chapter-log]")).not.toContainText(/signed on|leagues|Built/);
   });
+});
+
+test("on a laptop's screen, however short, Chapter III's rail keeps its picture and steps in view to the chapter's end", async ({ page }) => {
+  await railStaysInView(page, "chapter-three", "data-chapter-battle");
 });

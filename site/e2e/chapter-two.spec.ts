@@ -3,7 +3,7 @@ import { CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, COD
 import { ARTICLES } from "../src/voyage/chapters/copy";
 import { arrivals, routeLeagues, SHORTEST, writeDay, writeLeagues } from "../src/voyage/chapters/route";
 import { diagnostics } from "./diagnostics";
-import { openChapter, opensCodeSheet, operable, watchMotion } from "./chapters";
+import { openChapter, opensCodeSheet, operable, railStaysInView, watchMotion } from "./chapters";
 import { watchToasts } from "./toasts";
 
 // Chapter II, "Plan the voyage", against the production build (site-design.md, "Verification in
@@ -403,4 +403,8 @@ test.describe("by keyboard alone", () => {
     await page.keyboard.press("Enter");
     await expect(catalogueCrew(page)).toContainText(CLASSING.right(FINDS[0].name, "Crustacean").text);
   });
+});
+
+test("on a laptop's screen, however short, Chapter II's rail keeps its picture and steps in view to the chapter's end", async ({ page }) => {
+  await railStaysInView(page, "chapter-two", "data-chapter-planning");
 });

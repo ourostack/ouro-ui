@@ -143,7 +143,7 @@ export default function ChapterThree(): JSX.Element {
       <FightContext value={fight}>
         <BattleMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
-          <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
+          <header className="lg:col-span-4">
             <SaloonPicture className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_THREE.number}</p>
             <h2 id="chapter-three-title" className="site-h2 mt-3">
@@ -179,7 +179,7 @@ function useBattle(): Step[] {
 function Battle(): JSX.Element {
   const steps = useBattle();
   return (
-    <div className="mt-10 hidden lg:block" data-chapter-battle="">
+    <div className="mt-10 hidden lg:block" data-chapter-rail="" data-chapter-battle="">
       <SaloonPicture />
       <Steps label={BATTLE.label} steps={steps} />
     </div>

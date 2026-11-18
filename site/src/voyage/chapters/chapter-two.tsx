@@ -118,7 +118,7 @@ export default function ChapterTwo(): JSX.Element {
       <PlanContext value={plan}>
         <PlanningMarker />
         <Container className="grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-12 lg:grid-cols-12">
-          <header className="lg:top-24 lg:col-span-4 lg:self-start lg:[@media(min-height:56rem)]:sticky">
+          <header className="lg:col-span-4">
             <LibraryPicture className="mb-8 lg:hidden" />
             <p className="site-eyebrow">{CHAPTER_TWO.number}</p>
             <h2 id="chapter-two-title" className="site-h2 mt-3">
@@ -159,7 +159,7 @@ function usePlanning(): Step[] {
 function Planning(): JSX.Element {
   const steps = usePlanning();
   return (
-    <div className="mt-10 hidden lg:block" data-chapter-planning="">
+    <div className="mt-10 hidden lg:block" data-chapter-rail="" data-chapter-planning="">
       <LibraryPicture />
       <Steps label={PLANNING.label} steps={steps} />
     </div>
