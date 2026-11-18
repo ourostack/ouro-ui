@@ -512,6 +512,33 @@ assert.ok(session.finish(process.env.DETOUR!));
 
 An app's own detour is one more entry: `[...DETOURS, { id: "switch-account", title: "a second account added during the welcome", at: (cp) => cp === "welcome", run: async (s) => { … } }]`. Each finding names the rule, the state, how long and from when: `dismiss-escape-1: Escape on "Welcome, Ada": escape took "Welcome, Ada" away, and what it left fails: …`.[^first-run-dismiss]
 
+### On Windows
+
+The same harness runs a Windows app's first run, unchanged, through `first-run-windows.ts`. `buildWindowsEyes` builds the eyes from `first-run-uia-tree.cs` with the .NET Framework's own `csc`, which every Windows has; they read the app through UI Automation and give each element the role the judges read.[^first-run-windows-eyes] `windowsSystem` is the machine the session takes, and it answers each macOS command the harness asks the way Windows does:[^first-run-windows]
+
+| The harness asks | Windows answers |
+| --- | --- |
+| `screencapture` | the eyes' one-shot picture |
+| `open` | the app's own `open`, else the shell's `start` on the shortcut or program |
+| `pgrep`, `pkill` | the app's own, else the processes with that image name, or whose command line holds the pattern |
+| `curl`, `dscacheutil` | `curl.exe`, and `Resolve-DnsName` |
+| `sudo -n pfctl` | Windows Firewall's outbound block rules named `ouro-first-run`, with the firewall turned on for the hold if it was off and put back after. Windows refuses at once, so a `hang` hold refuses too.[^first-run-windows-firewall] |
+| `sudo -n sfltool dumpbtm` | the Run keys and the Startup folder, as login items[^first-run-windows-login] |
+
+The runner must be an administrator, as a GitHub-hosted Windows runner is, so the firewall takes the rules. `windowsDataPaths` names what Windows keeps beyond a Mac's Library, the app data folders and the Start menu shortcut, for `leftovers`. The eyes find the app's notification-area icon (Windows' menu bar item) by the name `extra-menu` gives, else `OURO_TRAY_NAME`, else the app's window title.
+
+```ts
+import { buildWindowsEyes, DETOURS, Eyes, FirstRunSession, leftovers, windowsDataPaths, windowsSystem, type AppConfig } from "./scripts/ouro/check/first-run.ts";
+
+const exe = buildWindowsEyes(".tmp/uia-tree.exe");
+const sys = windowsSystem({ eyes: exe, pgrep: (name) => (name === "Example" ? examplePids() : []) });
+assert.deepEqual(leftovers({ bundle: installDir, id: "Example", extraPaths: windowsDataPaths({ folder: "Vendor\\Example", shortcut: "Example" }) }, { sys }), []);
+const app: AppConfig = { bundle: shortcut /* what open opens */, processName: "Example", menuBarItem: 0 /* its notification-area icon */ /* , … */ };
+const session = new FirstRunSession({ out: ".tmp/first-run", eyes: new Eyes(exe, sys), app, report, system: sys });
+```
+
+A control's shortcut reads the same on both, since the eyes send Ctrl where a Mac's is ⌘.[^first-run-windows-keys] CI's First run on Windows workflow proves it on a fresh `windows-latest` runner: it drives a page opened in Edge as an app through the `dismiss-escape` detour, which must pass, and again with the page left blank once its welcome dialog goes, which must fail on that dismissal.[^first-run-windows-proof]
+
 [^ratchets]: test:scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a baseline that raises a state's unmarked count without --allow-regression; test:scripts/kits/source-rules.test.mjs::main > refuses to write a baseline that adds an offender verify:testExists(scripts/kits/census-update.test.mjs::the unmarked ratchet > refuses a baseline that raises a state's unmarked count without --allow-regression) verify:testExists(scripts/kits/source-rules.test.mjs::main > refuses to write a baseline that adds an offender)
 [^baselines]: test:scripts/kits/census-update.test.mjs::census-update.mjs > refuses a regression, writing nothing, and accepts it with a recorded reason; test:scripts/kits/source-rules.test.mjs::main > writes a larger baseline only with a stated reason verify:testExists(scripts/kits/census-update.test.mjs::census-update.mjs > refuses a regression, writing nothing, and accepts it with a recorded reason) verify:testExists(scripts/kits/source-rules.test.mjs::main > writes a larger baseline only with a stated reason)
 [^census-axe]: registry/ouro/lib/ouro/testing/axe-version.ts verify:fileLine(registry/ouro/lib/ouro/testing/axe-version.ts, /^const axeMinimum = "4\.13\.0";$/) verify:testExists(scripts/kits/census-page.test.mjs::collectCensus > refuses an axe-core older than the kit's minimum before it loads axe into the page, naming the version it found)
@@ -658,3 +685,9 @@ An app's own detour is one more entry: `[...DETOURS, { id: "switch-account", tit
 [^first-run-machine]: registry/ouro/check/first-run-machine.ts verify:fileLine(registry/ouro/check/first-run-machine.ts, /^export function leftovers\(/) verify:fileLine(registry/ouro/check/first-run-machine.ts, /^export function reset\(/)
 [^first-run-network]: registry/ouro/check/first-run-network.ts verify:fileLine(registry/ouro/check/first-run-network.ts, /"sudo", \["-n", \.\.\.args\]/)
 [^first-run-dismiss]: test:scripts/check/first-run-session.test.mts::first-run harness: dialogs pushed away > fails a dismissal that leaves a blank page, and one whose pixels were one shade past the bar, with the reads verify:testExists(scripts/check/first-run-session.test.mts::first-run harness: dialogs pushed away > fails a dismissal that leaves a blank page, and one whose pixels were one shade past the bar, with the reads)
+[^first-run-windows]: test:scripts/check/first-run-windows.test.mts::first-run harness on Windows > answers screencapture, pgrep, pkill, curl, dscacheutil and defaults as Windows does verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > answers screencapture, pgrep, pkill, curl, dscacheutil and defaults as Windows does)
+[^first-run-windows-eyes]: test:scripts/check/first-run-windows.test.mts::first-run harness on Windows > builds the eyes with the .NET Framework's csc against UI Automation, and names the compiler when it fails; registry/ouro/check/first-run-uia-tree.cs verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > builds the eyes with the .NET Framework's csc against UI Automation, and names the compiler when it fails) verify:fileLine(registry/ouro/check/first-run-uia-tree.cs, /if \(ct == ControlType\.Button\) return "AXButton";/)
+[^first-run-windows-keys]: registry/ouro/check/first-run-uia-tree.cs verify:fileLine(registry/ouro/check/first-run-uia-tree.cs, /if \(pieces\.Contains\("cmd"\) \|\| pieces\.Contains\("ctrl"\)\) mods\.Add\(0x11\);/)
+[^first-run-windows-firewall]: test:scripts/check/first-run-windows.test.mts::first-run harness on Windows > holds the network with Windows Firewall's outbound rules, turns the firewall on for the hold, and puts it back verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > holds the network with Windows Firewall's outbound rules, turns the firewall on for the hold, and puts it back)
+[^first-run-windows-login]: test:scripts/check/first-run-windows.test.mts::first-run harness on Windows > lists the Run keys and the Startup folder as login items, which leftovers reads verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > lists the Run keys and the Startup folder as login items, which leftovers reads)
+[^first-run-windows-proof]: .github/workflows/first-run-windows.yml; scripts/check/first-run-windows/proof.mts verify:fileLine(.github/workflows/first-run-windows.yml, /^    runs-on: windows-latest$/) verify:fileLine(scripts/check/first-run-windows/proof.mts, /expect\("blank after dismiss", !blank\.ok && caught\?\.ok === false/)
