@@ -14,6 +14,11 @@ export interface WatchOptions {
   scroller: Element | string;
   /** What counts as a row in the list, for the anchor, blank frames and rows mounted. */
   rows: string;
+  /**
+   * The attribute that names a row, such as `data-message-id`: the reader's row is followed by it where the page draws the row
+   * again as a new element. @default "id"
+   */
+  rowId?: string | undefined;
   /** What a loading placeholder is: one in view makes a `blankFramesInset` frame. @default '[data-ouro="skeleton"]' */
   skeleton?: string | undefined;
 }
@@ -383,9 +388,19 @@ function install(): OuroFeel {
     const recentInput = recent.reduce((sum, wheel) => sum + wheel.deltaY, 0);
     let moved = false;
 
-    // The anchor: the row at the middle of the view, followed into this frame by element.
-    if (anchor?.isConnected) {
-      const move = (boxOf.get(anchor) ?? anchor.getBoundingClientRect()).top - box.top - anchorTop;
+    // The anchor: the row at the middle of the view, followed into this frame by element, or by its id where the page drew it again
+    // as a new element (a row re-keyed, or the list drawn again). One that moved out of view is found among all the list's rows,
+    // which reads no layout but its own box.
+    const name = options.rowId ?? "id";
+    const named = anchor?.getAttribute(name);
+    const sameName = (row: Element) => row.getAttribute(name) === named;
+    const followed = anchor?.isConnected
+      ? anchor
+      : named
+        ? (rows.find(([row]) => sameName(row))?.[0] ?? Array.from(list.querySelectorAll(options.rows)).find(sameName))
+        : undefined;
+    if (followed !== undefined) {
+      const move = (boxOf.get(followed) ?? followed.getBoundingClientRect()).top - box.top - anchorTop;
       moved = move !== 0;
       // Scrolling down (a positive delta) moves content up the screen.
       const net = move + inputSinceSample;
