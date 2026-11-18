@@ -617,14 +617,21 @@ describe("Chart development messages", () => {
         </LineChart>
       </Chart>
     );
+    const said = () => warn.mock.calls.filter((call: unknown[]) => call[0] === message).length;
+    // How often the message had been said when the plot's surface first reached the page.
+    let atPlot: number | undefined;
+    const observer = new MutationObserver(() => {
+      if (atPlot === undefined && document.querySelector('[data-ouro="chart"] .recharts-surface')) atPlot = said();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
     const { chart, rerender } = await render(tree());
-    // Chart checks the parts it can see while the plot waits for the first paint, so the message comes with the page.
-    expect(chart.querySelector(".recharts-surface")).toBeNull();
-    expect(warn.mock.calls.filter((call: unknown[]) => call[0] === message)).toHaveLength(1);
-    // The part, rendered with the plot, knows Chart checked it and says nothing more, nor does a render with new elements.
     await drawn(chart);
+    observer.disconnect();
+    // Chart checks the parts it can see while the plot waits for the first paint, so the message came with the page.
+    expect(atPlot).toBe(1);
+    // The part, rendered with the plot, knows Chart checked it and says nothing more, nor does a render with new elements.
     await rerender(tree());
-    expect(warn.mock.calls.filter((call: unknown[]) => call[0] === message)).toHaveLength(1);
+    expect(said()).toBe(1);
   });
 
   it("names nothing for a part of recharts' own that takes content, nor for its own parts without it", async () => {
