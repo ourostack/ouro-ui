@@ -20,10 +20,10 @@ export interface MeasureEntry {
   unit: "px" | "ms" | "count";
   /** The value of every run that reported it, in run order, so an app's gate can take its own medians and bands. */
   runs: number[];
-  /** The median of the runs. */
-  median: number;
-  /** The smallest and largest run. */
-  spread: [number, number];
+  /** The median of the runs; left out when no run reported it. */
+  median?: number;
+  /** The smallest and largest run; left out when no run reported it. */
+  spread?: [number, number];
   limit?: number;
   /** Whether it is within its limit; left out with no limit, or with no run that reported it (no verdict). */
   pass?: boolean;
@@ -73,11 +73,11 @@ export function judge(spec: FeelCaseSpec, engine: Engine, runs: Run[]): ReportEn
   const measures: Record<string, MeasureEntry> = {};
   for (const name of names) {
     const values = runs.flatMap((run) => (run.measures[name] === undefined ? [] : [run.measures[name]]));
-    const entry: MeasureEntry = { unit: unitOf(name), runs: values, median: median(values), spread: [Math.min(...values), Math.max(...values)] };
+    const entry: MeasureEntry = values.length === 0 ? { unit: unitOf(name), runs: values } : { unit: unitOf(name), runs: values, median: median(values), spread: [Math.min(...values), Math.max(...values)] };
     const limit = spec.limits[name];
     if (limit !== undefined) {
       entry.limit = limit;
-      if (values.length > 0) entry.pass = isTime(name) ? entry.median <= limit : values.every((value) => value <= limit);
+      if (values.length > 0) entry.pass = isTime(name) ? entry.median! <= limit : values.every((value) => value <= limit);
     }
     measures[name] = entry;
   }
@@ -132,7 +132,7 @@ export function engineLine(entry: ReportEntry): string {
   return `${ENGINES[entry.engine]} ${entry.engineVersion}, ${entry.os}`;
 }
 
-function value(measure: MeasureEntry, at = measure.median): string {
+function value(measure: MeasureEntry, at = measure.median!): string {
   return `${at}${measure.unit === "count" ? "" : ` ${measure.unit}`}`;
 }
 
@@ -140,10 +140,12 @@ function value(measure: MeasureEntry, at = measure.median): string {
 export function passLine(entry: ReportEntry): string {
   const runs = Object.values(entry.measures)[0]?.runs.length ?? 0;
   const where = `${entry.case} in ${engineLine(entry)}, ${runs} run${runs === 1 ? "" : "s"}`;
+  const unjudged = Object.entries(entry.measures).filter(([, measure]) => measure.limit !== undefined && measure.pass === undefined).map(([name]) => name);
+  if (entry.pass && unjudged.length > 0) return `✓ Pass: ${where}. Every measure a run reported is within its limit; no run measured ${unjudged.join(", ")}, so ${unjudged.length === 1 ? "it has" : "they have"} no verdict.`;
   if (entry.pass) return `✓ Pass: ${where}. Every judged measure is within its limit.`;
   const over = Object.entries(entry.measures)
     .filter(([, measure]) => measure.pass === false)
-    .map(([name, measure]) => `${name} ${value(measure, isTime(name) ? measure.median : measure.spread[1])} (limit ${value(measure, measure.limit)})`);
+    .map(([name, measure]) => `${name} ${value(measure, isTime(name) ? measure.median : measure.spread![1])} (limit ${value(measure, measure.limit)})`);
   return `✗ Fail: ${where}. ${[entry.settled ? "" : "It never came to rest", ...over].filter(Boolean).join("; ")}.`;
 }
 
@@ -158,7 +160,7 @@ function result(entry: MeasureEntry): string {
 
 function shown(entry: MeasureEntry): string {
   if (entry.runs.length === 0) return "not measured";
-  const [min, max] = entry.spread;
+  const [min, max] = entry.spread!;
   return entry.runs.length > 1 ? `${value(entry)} [${min}–${max}]` : value(entry);
 }
 

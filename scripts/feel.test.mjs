@@ -34,6 +34,8 @@ test("Ouro Feel judges a measure the probe reports only sometimes on the runs th
   assert.equal(none.measures.lateFrames.pass, undefined);
   assert.equal(none.pass, true);
   assert.match(markdown([none]), /\| `lateFrames` \| not measured \| 0 \| no verdict \|/);
+  assert.equal(none.measures.lateFrames.median, undefined, "no median for a gate to read as a pass");
+  assert.match(passLine(none), /no run measured lateFrames, inputToMotionP95Ms, so they have no verdict\.$/);
 });
 
 test("Ouro Feel fails a case that never came to rest, and a limit on a measure the probe does not take", () => {

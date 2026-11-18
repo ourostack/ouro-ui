@@ -12,7 +12,7 @@ Ouro Feel measures how an Ouro app feels in real use: whether the reader's messa
 
 ## The measures
 
-A count or a distance fails when any one run is over its limit. A time, whose name ends in `Ms`, is judged on the median of the runs, and the report shows their spread.[^judge]
+A count or a distance fails when any one run is over its limit. A time, whose name ends in `Ms`, is judged on the median of the runs, and the report shows their spread.[^judge] A measure the probe reports only when a run gives it something to measure (late frames need 30 frames, input to motion a wheel event that moved the list) is judged on the runs that reported it, and has no verdict when none did.[^occasional]
 
 | Measure | What it counts |
 | --- | --- |
@@ -57,7 +57,7 @@ The WKWebView leg runs nightly and by hand in [the Feel workflow](../.github/wor
 
 ## Adding Ouro Feel to an app
 
-An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.js` first in the page's `<head>`, with `data-ouro-feel-bridge` naming where the page polls for commands. `watch` takes the list as an element, or as a selector that the probe looks up again each frame, so an app that puts a new list in the old one's place (another conversation opened) is measured in the new list.[^watch-selector] Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run, so the app can take its own medians and bands.[^runs]
+An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.js` first in the page's `<head>`, with `data-ouro-feel-bridge` naming where the page polls for commands. `watch` takes the list as an element, or as a selector that the probe looks up again each frame, so an app that puts a new list in the old one's place (another conversation opened) is measured in the new list.[^watch-selector] Its own driver sends real input from outside the page, and calls `window.ouroFeel` from its own cases. An entry in `feel-report.json` carries the value of a measure in each run that reported it, so the app can take its own medians and bands.[^runs]
 
 [^seed]: test:scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up verify:testExists(scripts/feel.test.mjs::Ouro Feel's data is the same for the same seed, and made up)
 [^service]: test:scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe service puts the probe first in the page's head and drives the page by long-poll, page after page)
@@ -77,3 +77,4 @@ An app keeps its own cases and limits. Its probe service puts `ouro-feel-probe.j
 [^poll]: test:scripts/feel.test.mjs::Ouro Feel's probe waits before polling again when its bridge answers at once with no command verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe waits before polling again when its bridge answers at once with no command)
 [^late]: test:scripts/feel.test.mjs::Ouro Feel's probe counts late frames against the refresh it measures, as a chat app's frame meter does, and long ones over 50 ms verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe counts late frames against the refresh it measures, as a chat app's frame meter does, and long ones over 50 ms) verify:fileLine(feel/probe/probe.ts, /^const LATE_REFRESHES = 1\.5;$/) verify:fileLine(feel/probe/probe.ts, /^const REFRESH_GAPS = 30;$/) verify:fileLine(feel/probe/probe.ts, /^const LONG_FRAME_MS = 50;$/) verify:fileLine(feel/probe/probe.ts, /^const FRAME_60HZ_MS = 16\.7;$/)
 [^motion]: test:scripts/feel.test.mjs::Ouro Feel's probe times each wheel event to the first frame that moved the list its way, and counts those it never moved verify:testExists(scripts/feel.test.mjs::Ouro Feel's probe times each wheel event to the first frame that moved the list its way, and counts those it never moved)
+[^occasional]: test:scripts/feel.test.mjs::Ouro Feel judges a measure the probe reports only sometimes on the runs that reported it, and gives no verdict when none did verify:testExists(scripts/feel.test.mjs::Ouro Feel judges a measure the probe reports only sometimes on the runs that reported it, and gives no verdict when none did)
