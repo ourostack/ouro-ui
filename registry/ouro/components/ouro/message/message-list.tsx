@@ -148,8 +148,12 @@ export interface MessageListOwnProps {
    * A list the reader scrolled up in that takes older and newer messages in one commit renders no more than 20 of the
    * children it drew before, and the 20 newest, before it finds the view; scrolling up through rows never drawn moves
    * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving the row at the
-   * view's top by more than a pixel.
+   * view's top by more than a pixel. A wheel that takes the reader to the top faster than the rows above them came in moves
+   * nothing either: where those rows came in shorter than the space kept for them and the top stops the scroll position, the
+   * difference stays as space above the first message, until the reader has scrolled past it and the wheel rests.
    * @default true
+   * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message)
+   * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests) verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the reader is in it once the wheel rests, and lets it go without moving anything as they scroll past it)
    * @claim "renders no more than 20 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
    * @claim "moves what the reader looks at by under a pixel" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px)
    * @claim "opens at its end with no frame moving the row" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the row at the view's top by no more than a pixel in any frame)
@@ -163,10 +167,24 @@ export interface MessageListOwnProps {
    * A map the list writes the heights of its children into, under a child's key and the list's width in CSS pixels, rounded
    * to a multiple of `BUCKET`, and reads before it measures. Keep one in your app, by conversation, and hand it to each list that shows the conversation:
    * a list that mounts again with it is as tall, from its first commit, as the list before it was, so it opens
-   * with no row moving. Leave it out and the list keeps its own for as long as it lives.
+   * with no row moving. It keeps the height the list took for a row not measured yet too, which the next list opens with, unless
+   * it is given `estimatedItemHeight`. Leave it out and the list keeps its own for as long as it lives.
+   * @claim "It keeps the height the list took" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens with the estimate a heightCache kept from the list before it, for the rows neither measured)
    * @claim "a list that mounts again with it is" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was)
    */
   heightCache?: Map<string, number> | undefined;
+  /**
+   * The height, in CSS pixels with its margins, the list takes for a row it has not measured yet, from its first commit: the
+   * usual height of your rows. Give it when they are much shorter or taller than 96, the list's own first guess, so the first
+   * commit draws as many rows as fill the view, and no more, and the space kept for the rows not drawn is about as tall as they
+   * are. Left out, the list starts at 96, or at what a `heightCache` kept from the list before it, and then takes the average of
+   * the first rows it measures.
+   * @claim "and no more" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the rows that fill the view in the first commit, given their estimatedItemHeight, where the built-in estimate would draw more)
+   * @claim "the list takes for a row it has not measured yet" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space for the rows not drawn at estimatedItemHeight each, not the average of the rows measured)
+   * @claim "so the first commit draws as many rows as fill the view" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws as many short rows as fill the view in the first commit, given their estimatedItemHeight)
+   * @claim "Left out, the list starts at 96" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const ESTIMATE = 96;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /: averageOf\(heights\)/)
+   */
+  estimatedItemHeight?: number | undefined;
   /**
    * Gets the list's actions: `reveal(id)` brings a message into view, drawing it first if it is not
    * drawn, for a quote, a link to a message, or find in chat; `jumpToNewest()` goes to the end and
@@ -184,6 +202,12 @@ export interface MessageListOwnProps {
   autoScroll?: { 'Not a prop: the list follows new messages at the bottom. Use <MessageList label="Conversation">': never };
   /** Not a prop. The list follows new messages while the reader is at the bottom, and stops when they scroll up. */
   stickToBottom?: { 'Not a prop: the list follows new messages at the bottom. Use <MessageList label="Conversation">': never };
+  /** Not a prop. The usual height of a row, for those the list has not measured yet, is `estimatedItemHeight`. */
+  estimateSize?: { 'Not a prop. Use <MessageList estimatedItemHeight={56}>': never };
+  /** Not a prop. The usual height of a row, for those the list has not measured yet, is `estimatedItemHeight`. */
+  itemHeight?: { 'Not a prop. Use <MessageList estimatedItemHeight={56}>': never };
+  /** Not a prop. The usual height of a row, for those the list has not measured yet, is `estimatedItemHeight`. */
+  defaultItemHeight?: { 'Not a prop. Use <MessageList estimatedItemHeight={56}>': never };
 }
 
 /** Props for {@link MessageList}: its own props and the `<div>` attributes it passes through. */
@@ -404,6 +428,9 @@ interface Measured {
 /** The entry of a `heightCache` that holds the width the heights in it were last measured at. */
 // Stryker disable next-line StringLiteral: the entry only has to differ from the `<key>\0<width>` ones, as an empty string does.
 const CACHED_WIDTH = "\0width";
+/** The entry of a `heightCache` that holds the height the list last took for a row not measured yet: the next list opens with it. */
+// Stryker disable next-line StringLiteral: the entry only has to differ from the others, as an empty string does.
+const CACHED_ESTIMATE = "\0estimate";
 /**
  * The width, in CSS pixels, rounded to a multiple of this, that a height is cached for.
  */
@@ -1023,13 +1050,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
     maxWidth,
     windowing = true,
     heightCache,
+    estimatedItemHeight,
     actionsRef,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
     stickToBottom,
+    estimateSize,
+    itemHeight,
+    defaultItemHeight,
     ...rest
   } = props;
+  // The height an app gives for a row not measured yet, where it is a positive number of pixels.
+  const estimate = Number.isFinite(estimatedItemHeight) && estimatedItemHeight! > 0 ? estimatedItemHeight : undefined;
   useAppearanceClassNameCheck(
     "MessageList",
     className,
@@ -1046,6 +1079,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
             `${autoScroll !== undefined ? "autoScroll" : "stickToBottom"} is not a prop; the list follows new messages while the reader is at the bottom`,
             '<MessageList label="Conversation">',
           ],
+          (estimateSize !== undefined || itemHeight !== undefined || defaultItemHeight !== undefined) && [
+            `${estimateSize !== undefined ? "estimateSize" : itemHeight !== undefined ? "itemHeight" : "defaultItemHeight"} is not a prop; the usual height of a row the list has not measured is estimatedItemHeight`,
+            "<MessageList estimatedItemHeight={56}>",
+          ],
+          estimatedItemHeight !== undefined &&
+            estimate === undefined && [
+              `estimatedItemHeight is ${String(estimatedItemHeight)}, not a positive number of pixels, so the list estimates its rows itself`,
+              "<MessageList estimatedItemHeight={56}>",
+            ],
           Children.toArray(children).some((child) => !isValidElement(child)) && [
             "MessageList holds Messages",
             '<MessageList label="Conversation"><Message role="user" name="Ana">Hi</Message></MessageList>',
@@ -1110,7 +1152,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The heights of every child measured, by key and width, kept for the life of the list or by the app (`heightCache`).
   const [ownCache] = useState(() => new Map<string, number>());
   const cache = heightCache ?? ownCache;
-  const [measured, setMeasured] = useState<Measured>(() => ({ heights: new Map(), gap: 16, estimate: ESTIMATE, bucket: cache.get(CACHED_WIDTH) ?? null }));
+  const [measured, setMeasured] = useState<Measured>(() => ({ heights: new Map(), gap: 16, estimate: cache.get(CACHED_ESTIMATE) ?? ESTIMATE, bucket: cache.get(CACHED_WIDTH) ?? null }));
   const cacheRef = useRef(cache);
   useLayoutEffect(() => {
     cacheRef.current = cache;
@@ -1143,7 +1185,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [focusKey, setFocusKey] = useState<string | null>(null);
   // Each child's height, read again only when the children or the heights measured change: the window reads every child's on
   // every scroll, and a cached height's key is text built from the child's key and the width.
-  const sizes = useMemo(() => keys.map((key) => measured.heights.get(key) ?? cache.get(`${key}\0${measured.bucket}`) ?? measured.estimate), [keys, measured, cache]);
+  const sizes = useMemo(
+    () => keys.map((key) => measured.heights.get(key) ?? cache.get(`${key}\0${measured.bucket}`) ?? estimate ?? measured.estimate),
+    [keys, measured, cache, estimate],
+  );
   const sizeOf = (index: number) => sizes[index]!;
   // Each child's index by its key, built when the keys change, not on every render (the keys are text, so they compare by what they say).
   const indexes = useIndexByKey(keys);
@@ -1507,13 +1552,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // the browser's pull, like any scroll position written, ends WebKit's wheel.
     const floorMark = floorRef.current!;
     let floor = 0;
+    // Space kept above the first message, in px (see setSlack).
+    let slack = 0;
     const setFloor = (px: number) => {
       // Stryker disable next-line ConditionalExpression: only spares writing the values the mark already holds.
       if (px === floor) return;
       floor = px;
       // Out of the layout when it holds nothing, so moving it never stops the browser's own scroll anchoring.
       floorMark.style.display = px > 0 ? "block" : "";
-      floorMark.style.top = `${Math.max(0, px - 1)}px`;
+      placeFloor();
+    };
+    // The mark sits at the content's height below the content's top, which the space kept above the first message moves down.
+    const placeFloor = () => void (floorMark.style.top = `${Math.max(0, floor - 1 + slack)}px`);
+    // Sets the mark between the anchors being taken and held: the range it holds changes with no change of the messages, so the
+    // anchors' range moves with it, and the reader's own scrolling, which takes the anchors again only while the range is the
+    // one they were taken with, still does.
+    const moveFloor = (px: number) => {
+      const range = farthest();
+      setFloor(px);
+      end += farthest() - range;
     };
     const followEnd = () => {
       const height = content.offsetHeight;
@@ -1562,6 +1619,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     reopen.current = () => {
       // Stryker disable next-line BooleanLiteral: a switch adds messages, so the observer holds in the microtask after the commit, before any frame or event, and a hold with the list at its end pins it again.
       pinned.current = true;
+      // Another conversation opens at its end: space the one before kept above its first message goes with it.
+      setSlack(0);
       followEnd();
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
       keepAnchor();
@@ -1606,21 +1665,57 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
       return space || (heading <= 0 && top < edge()) || (heading >= 0 && top > last - edge());
     };
-    const pay = () => {
-      // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
-      clearTimeout(resting);
-      const by = carriedRef.current;
-      // Once the wheel rests, the end the list is not following is held no more: what was carried goes first, so nothing is pulled.
-      const letGo = () => void (!pinned.current && !turning() && setFloor(0));
-      // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
-      if (by === 0) return letGo();
-      carriedRef.current = 0;
-      content.style.removeProperty("translate");
+    // Space kept above the first message, in px: the part of what was carried down that the scroll position could not take, as the
+    // list's start stopped it. A reader whose wheel brings them to the top faster than the rows above were paid (a slowed page
+    // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
+    // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
+    const setSlack = (px: number) => {
+      slack = px;
+      content.style.marginBlockStart = `${px}px`;
+      placeFloor();
+    };
+    // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
+    const scrollOwn = (by: number) => {
       const before = scroller.scrollTop;
       scroller.scrollTop += by;
       ownTop.current = scroller.scrollTop;
       const applied = scroller.scrollTop - before;
       springsRef.current?.moved(applied);
+      return applied;
+    };
+    // Lets the space go once the reader has scrolled past it and the wheel rests: the content moves up by it as the scroll
+    // position does, so nothing on screen moves.
+    const release = () => {
+      // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
+      if (slack === 0 || turning() || scroller.scrollTop < slack) return;
+      // Scrolled while the space still holds the scroll range, then the space goes.
+      const range = farthest();
+      const gone = slack;
+      const applied = scrollOwn(-gone);
+      setSlack(0);
+      // The anchors sit in the content, which the space going does not move: only the list's own scroll and the range it took
+      // away are left out, so a change waiting for the resize observer is still held.
+      taken += applied;
+      end += farthest() - range;
+    };
+    const pay = () => {
+      // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
+      clearTimeout(resting);
+      const by = carriedRef.current;
+      // Once the wheel rests, the end the list is not following is held no more: what was carried goes first, so nothing is pulled.
+      const letGo = () => {
+        if (!pinned.current && !turning()) moveFloor(0);
+        release();
+      };
+      // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
+      if (by === 0) return letGo();
+      carriedRef.current = 0;
+      content.style.removeProperty("translate");
+      const before = scroller.scrollTop;
+      const applied = scrollOwn(by);
+      // What the list's start stops, the part of the move past it, goes above the content instead, so the content stays where the
+      // reader sees it.
+      setSlack(slack + Math.max(0, -(before + by)));
       // The anchors sit where they did in the content, which a scroll does not move: only the list's own scroll since they were
       // taken is left out of the reader's, so a change waiting for the resize observer is still held.
       taken += applied;
@@ -1743,6 +1838,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       pinned.current = atBottom();
       // What is carried goes into the scroll position before the reader reaches an end, so it never stops them there.
       if (nearEnd()) pay();
+      release();
       // Messages changed since the anchors were taken: leave them for the resize observer, which comes next.
       if (farthest() === end) keepAnchor();
       setShowJump(!pinned.current);
@@ -1751,7 +1847,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const onScrollEnd = () => void (wheelScrolling = false);
     scroller.addEventListener("scrollend", onScrollEnd);
     // Stryker disable next-line all: once the list is gone, nothing reads what these would change; disconnecting frees memory only.
-    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
@@ -1851,7 +1947,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // changes only with the font size, which changes the heights too.
           // The estimate is the average of the rows the list first draws past its view: those it opened with, and those drawn
           // after, as the view alone may hold a few.
-          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate: estimated.current ? measured.estimate : averageOf(heights), bucket });
+          const estimate = estimated.current ? measured.estimate : averageOf(heights);
+          // Kept for the next list handed the cache, which opens with it.
+          cacheRef.current.set(CACHED_ESTIMATE, estimate);
+          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate, bucket });
           estimated.current = wide.current;
           return;
         }

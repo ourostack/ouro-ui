@@ -4,5 +4,8 @@ import { MessageList } from "@/registry/ouro/components/ouro/message/message-lis
 
 export const messageList01 = <MessageList label="Conversation" autoScroll><Message role="user" name="Ana">Hi</Message></MessageList>;
 export const messageList02 = <MessageList><Message role="user" name="Ana">Hi</Message></MessageList>;
+export const messageList03 = <MessageList label="Conversation" itemHeight={56}><Message role="user" name="Ana">Hi</Message></MessageList>;
+export const messageList04 = <MessageList label="Conversation" estimateSize={() => 56}><Message role="user" name="Ana">Hi</Message></MessageList>;
 export const messageListOk01 = <MessageList label="Conversation" maxWidth={960} jumpLabel="Jump to latest" newMessageLabel={(author, text) => `${author}: ${text}`}><Message role="user" name="Ana">Hi</Message></MessageList>;
 export const messageListOk02 = <MessageList label="Team chat" onMessageKeyDown={(message, event) => { if (event.key === "1") message.dataset.reacted = "true"; }}><Message role="user" name="Ana" id="m1">Hi</Message></MessageList>;
+export const messageListOk03 = <MessageList label="Conversation" estimatedItemHeight={56}><Message role="user" name="Ana">Hi</Message></MessageList>;

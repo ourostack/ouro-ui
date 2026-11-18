@@ -2692,6 +2692,11 @@ describe("MessageList development messages", () => {
   it.each([
     ["autoScroll", { autoScroll: true }, "autoScroll is not a prop; the list follows new messages while the reader is at the bottom", '<MessageList label="Conversation">'],
     ["stickToBottom", { stickToBottom: true }, "stickToBottom is not a prop; the list follows new messages while the reader is at the bottom", '<MessageList label="Conversation">'],
+    ["estimateSize", { estimateSize: () => 56 }, "estimateSize is not a prop; the usual height of a row the list has not measured is estimatedItemHeight", "<MessageList estimatedItemHeight={56}>"],
+    ["itemHeight", { itemHeight: 56 }, "itemHeight is not a prop; the usual height of a row the list has not measured is estimatedItemHeight", "<MessageList estimatedItemHeight={56}>"],
+    ["defaultItemHeight", { defaultItemHeight: 56 }, "defaultItemHeight is not a prop; the usual height of a row the list has not measured is estimatedItemHeight", "<MessageList estimatedItemHeight={56}>"],
+    ["an estimatedItemHeight of 0", { estimatedItemHeight: 0 }, "estimatedItemHeight is 0, not a positive number of pixels, so the list estimates its rows itself", "<MessageList estimatedItemHeight={56}>"],
+    ["an estimatedItemHeight of Infinity", { estimatedItemHeight: Infinity }, "estimatedItemHeight is Infinity, not a positive number of pixels, so the list estimates its rows itself", "<MessageList estimatedItemHeight={56}>"],
     ["loose text", { children: "Hi" }, "MessageList holds Messages", '<MessageList label="Conversation"><Message role="user" name="Ana">Hi</Message></MessageList>'],
   ])("warns for %s with the fix", async (_name, extra, problem, fix) => {
     const props = { label: "Conversation", children: <Message role="user" name="Ana">Hi</Message>, ...extra } as unknown as Parameters<typeof MessageList>[0];
