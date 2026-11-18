@@ -2,16 +2,22 @@ import { Suspense, type JSX } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it } from "vitest";
-import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
+import { watchLayoutReads, type LayoutRead } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { itemFor } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 // Mounting a component must not make the browser lay the page out: inside the commit, each read
 // (getComputedStyle, getBoundingClientRect, offset*, client*, scroll*) forces style and layout before
 // the first paint, and a screen of many components pays for each. Every component's docs demo mounts
 // here, in each engine, and may read nothing, except for a demo in `waivers` with the reason.
+//
+// The page patterns an app installs whole (registry/ouro/patterns) have no docs demo, so each mounts here too, and may
+// read only what its waived components do: a read counts as a component's when the innermost root (`data-ouro`) around
+// what it reads is that component's, and anything else is the pattern's own.
 
 const modules = import.meta.glob<{ default: () => JSX.Element }>("../site/src/docs/demos/*.demo.tsx");
+const patterns = import.meta.glob<Record<string, unknown>>(["../registry/ouro/patterns/*/*.tsx", "!../registry/ouro/patterns/**/*.{test,stories}.tsx"]);
 
 /** Demos whose mount reads layout, by item name, each with what it reads and why it stays. A waiver that stops reading fails, so it goes with the fix. */
 const waivers: Record<string, string> = {
@@ -39,6 +45,9 @@ const webkitWaivers: Record<string, string> = {
   "autocomplete": "WebKit cannot size a text box by its content, so the text box measures its scroll height before the first paint, or the first frame would show one line and then jump",
   "text-area": "WebKit cannot size a text box by its content, so it measures its scroll height before the first paint, or the first frame would show one line and then jump",
 };
+
+/** The page patterns, by folder name. */
+const patternNames = [...new Set(Object.keys(patterns).map((path) => path.replace(/^.*\/patterns\/([^/]+)\/.*$/, "$1")))].toSorted();
 
 const names = Object.keys(modules)
   .map((path) => path.replace(/^.*\/(.+)\.demo\.tsx$/, "$1"))
@@ -83,5 +92,78 @@ describe("mounting a docs demo", () => {
       else expect(found, `${name} reads layout in Chromium (${detail}): read it after paint`).toEqual([]);
     } else if (waivers[name]) expect(found.length, `${name} is waived (${waivers[name]}) but reads nothing: remove the waiver`).toBeGreaterThan(0);
     else expect(found, `${name}'s mount reads layout (${detail}): read it on first use or after paint, or waive it with a reason in test/mount-reads.test.tsx`).toEqual([]);
+  });
+});
+
+/**
+ * The registry item that made a read: the item of the innermost `data-ouro` root around what it read, or null for the
+ * page's own. Only that root counts, so a waived component does not cover a component inside it. The page can't tell a
+ * component's own elements from plain markup the pattern passes into it, so a waived component covers a read of the
+ * pattern's plain children; none of the patterns renders a waived component today. A read of the window or the document
+ * finds no root and counts as the page's own, so a pattern that adopts a component waived for one (Navbar, TabBar)
+ * fails here until the test can tell that read apart.
+ */
+function readerOf(read: LayoutRead): string | null {
+  const { target } = read;
+  const node = target instanceof Node ? target : target instanceof Range ? target.commonAncestorContainer : null;
+  const root = (node instanceof Element ? node : node?.parentElement)?.closest("[data-ouro]");
+  return root ? itemFor(root.getAttribute("data-ouro")!) : null;
+}
+
+/** The reads no waiver covers: a read in a component with no waiver, and every read of the page's own. */
+function unwaived(reads: readonly LayoutRead[], webkit: boolean): string[] {
+  return reads.flatMap((read) => {
+    const item = readerOf(read);
+    if (item && (waivers[item] || (webkit && webkitWaivers[item]))) return [];
+    const where = read.target instanceof Element ? `<${read.target.localName}${read.target.getAttribute("data-ouro") ? ` data-ouro="${read.target.getAttribute("data-ouro")}"` : ""}>` : String(read.target);
+    return [`${read.name} on ${where}, ${item ? `in ${item}, which has no waiver` : "the page's own"}`];
+  });
+}
+
+describe("mounting a page pattern", () => {
+  it("counts a read in a waived component as that component's, and fails one in a component with no waiver or the page's own", () => {
+    const screen = document.createElement("main");
+    screen.innerHTML = '<div data-ouro="tabs"><i>Tab</i><span data-ouro="card"></span><p>Pane</p></div><div data-ouro="radio-group"><b data-ouro="radio"></b></div><div data-ouro="sheet-portal"></div>';
+    const [tabs, radios, portal] = [...screen.children];
+    const tabText = document.createRange();
+    tabText.selectNodeContents(tabs!.querySelector("i")!.firstChild!);
+    // Tabs, and a radio whose root names radio-group's item, are waived.
+    expect(unwaived([{ name: "offsetHeight", target: tabs!.querySelector("i") }, { name: "getBoundingClientRect", target: tabText }, { name: "scrollIntoView", target: radios!.firstElementChild }], false)).toEqual([]);
+    // Inside Tabs, a component with no waiver is held all the same.
+    expect(unwaived([{ name: "offsetWidth", target: tabs!.querySelector("span") }], false)).toEqual(['offsetWidth on <span data-ouro="card">, in card, which has no waiver']);
+    // Plain markup passed into Tabs reads as Tabs' own: the gap readerOf's comment names.
+    expect(unwaived([{ name: "offsetHeight", target: tabs!.querySelector("p") }], false)).toEqual([]);
+    expect(unwaived([{ name: "getComputedStyle", target: screen }, { name: "clientWidth", target: portal }, { name: "innerWidth", target: window }], false)).toEqual([
+      "getComputedStyle on <main>, the page's own",
+      'clientWidth on <div data-ouro="sheet-portal">, the page\'s own',
+      "innerWidth on [object Window], the page's own",
+    ]);
+    const field = document.createElement("div");
+    field.setAttribute("data-ouro", "text-area");
+    expect(unwaived([{ name: "scrollHeight", target: field }], true)).toEqual([]);
+    expect(unwaived([{ name: "scrollHeight", target: field }], false)).toEqual(['scrollHeight on <div data-ouro="text-area">, in text-area, which has no waiver']);
+  });
+
+  it("finds every page pattern", () => {
+    expect(patternNames).toEqual(expect.arrayContaining(["dashboard-page", "list-detail-page", "settings-page"]));
+  });
+
+  it.each(patternNames)("reads only what its waived components do: %s", async (name) => {
+    const path = `../registry/ouro/patterns/${name}/${name}.tsx`;
+    const pages = Object.entries(await patterns[path]!()).filter(([name, value]) => /Page$/.test(name) && typeof value === "function");
+    expect(pages, `${path} exports one page`).toHaveLength(1);
+    const Page = pages[0]![1] as () => JSX.Element;
+    await mount(Page)();
+    const watch = watchLayoutReads();
+    let unmount: (() => Promise<void>) | undefined;
+    try {
+      unmount = mount(Page);
+    } finally {
+      watch.stop();
+    }
+    // Read who read what before unmounting, while the elements are still in their roots.
+    const found = unwaived(watch.reads, !/Chrome/.test(navigator.userAgent));
+    await unmount?.();
+    expect(found, `${name}'s mount reads layout no waiver covers: read it on first use or after paint`).toEqual([]);
   });
 });
