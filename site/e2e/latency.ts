@@ -92,6 +92,15 @@ export const LATENCY = {
   probeQuiet: 52,
   /** The most a slow runner's factor stretches the bounds: a runner slower than this is still judged at this. */
   maxFactor: 1.5,
+  /**
+   * Measurements in all of a control whose probe reads the runner past the cap: the runner's load is a precondition of
+   * judging it, so a loaded runner is waited on and the control measured again, never judged on the reading alone
+   * (ourostack/ouro-ui#2142). Each re-measure is logged and counted in the job's summary, and a control still past the
+   * cap after these fails as too loaded to judge.
+   */
+  loadTries: 3,
+  /** How long a loaded runner is given before the control is measured again, in ms. */
+  loadWaitMs: 10_000,
 } as const;
 
 /** One control's presses. Indexes run from 0, the first warm-up, to warmUps + samples - 1, or warmUps + samples + more - 1 when 20 more are pressed. */
@@ -473,8 +482,13 @@ export function pastCap(probe: readonly number[]): boolean {
   return median(probe) / LATENCY.probeQuiet > LATENCY.maxFactor;
 }
 
-/** Re-measures in this worker, for the count in the job summary. */
-let remeasures = 0;
+/** Whether more than 1 in 20 of a job's controls needed a re-measure: a sign the runners or the probe need fixing (ourostack/ouro-ui#2142). */
+export function manyRemeasured(remeasured: number, measured: number): boolean {
+  return remeasured * 20 > measured;
+}
+
+/** Controls re-measured in this worker, for the count in the job summary. */
+let remeasured = 0;
 let measured = 0;
 /** The controls whose quiet-runner p95 was within 10% of its bound (thinMargin), as `label p95/bound`, for the job summary. */
 const thinMargins: string[] = [];
@@ -484,31 +498,38 @@ function summary(line: string): void {
   if (file) appendFileSync(file, `${line}\n`);
 }
 process.once("exit", () => {
-  if (measured > 0) summary(`Latency: ${remeasures} of ${measured} controls re-measured on a runner the probe read past ${LATENCY.maxFactor}× slower.`);
+  if (measured > 0) summary(`Latency: ${remeasured} of ${measured} controls re-measured on a runner the probe read past ${LATENCY.maxFactor}× slower.`);
+  if (manyRemeasured(remeasured, measured)) summary(`Latency: more than 1 in 20 controls needed a re-measure. The runner pool, or the probe's 8 ms quantum, needs fixing, not more retries.`);
   if (measured > 0) summary(thinMargins.length > 0 ? `Latency: thin margins on a quiet runner (p95 within 10% of its bound): ${thinMargins.join(", ")}.` : "Latency: no thin margins on a quiet runner.");
 });
 
 /**
  * Measures a control (with LATENCY.more presses more when its first samples call for them) and holds it to the budget,
- * at the runner's factor. When the probe reads the runner past the cap (pastCap), the control is measured again, pass
- * or fail, and the second measurement alone is judged; when that probe is past the cap too, the control fails as
- * too loaded to judge, so an overloaded runner never passes a control unmeasured. Each re-measure goes to the job
- * summary with both probes' readings.
+ * at the runner's factor. When the probe reads the runner past the cap (pastCap), the runner is given LATENCY.loadWaitMs
+ * and the control measured again, pass or fail, up to LATENCY.loadTries measurements in all, and the last alone is
+ * judged; when its probe is past the cap too, the control fails as too loaded to judge, so an overloaded runner never
+ * passes a control unmeasured. Each re-measured control goes to the job summary with every probe reading.
  */
 export async function expectPressesWithinBudget(page: Page, label: string, presses: Presses, baseline: number): Promise<void> {
   const more = (first: readonly number[], before: number) => morePresses(first, baseline, before);
   measured += 1;
   let result = await measure(page, label, presses, LATENCY.throttle, more);
-  if (pastCap(result.probe)) {
-    remeasures += 1;
-    const first = median(result.probe);
-    result = await measure(page, `${label} (again)`, presses, LATENCY.throttle, more, result.presses);
-    const second = median(result.probe);
-    const line = `${label}: re-measured, the probe read ${first} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms); again ${second} ms`;
+  const reads = [median(result.probe)];
+  // Each measurement's presses carry on from the last index of the ones before it.
+  let pressed = result.presses;
+  while (pastCap(result.probe) && reads.length < LATENCY.loadTries) {
+    await page.waitForTimeout(LATENCY.loadWaitMs);
+    result = await measure(page, `${label} (again)`, presses, LATENCY.throttle, more, pressed);
+    pressed += result.presses;
+    reads.push(median(result.probe));
+  }
+  if (reads.length > 1) {
+    remeasured += 1;
+    const line = `${label}: re-measured ${reads.length - 1} ${reads.length === 2 ? "time" : "times"}, the probe read ${reads.join(" ms, then ")} ms against ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms)`;
     test.info().annotations.push({ type: "latency-remeasure", description: line });
     console.log(`latency-remeasure ${line}`);
     summary(`- ${line}`);
-    expect(pastCap(result.probe), `${label}: runner too loaded to judge: probe ${second} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), twice`).toBe(false);
+    expect(pastCap(result.probe), `${label}: runner too loaded to judge: probe ${reads.join(" ms, then ")} ms, past ${LATENCY.maxFactor}× quiet (${LATENCY.probeQuiet} ms), ${reads.length} times`).toBe(false);
   }
   const { p95 } = summarise(result.samples, baseline, result.factor);
   summary(`- ${label}: p95 ${p95} ms, bound ${p95Bound(result.factor)} ms (${LATENCY.p95 * result.factor} raw, rounded to Event Timing's 8 ms step)`);
