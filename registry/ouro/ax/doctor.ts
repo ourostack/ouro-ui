@@ -74,7 +74,7 @@ function isDoctorReport(value: unknown): value is DoctorReport {
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
-/** A section `doctorText` can print: a label and lines that each have a label and a value in words. */
+/** A section `doctorText` can print: a label, and lines with a label and a value in words. */
 function isSection(s: unknown): boolean {
   return isObject(s) && typeof s["label"] === "string" && Array.isArray(s["lines"]) && s["lines"].every((l) => isObject(l) && typeof l["label"] === "string" && typeof l["value"] === "string");
 }

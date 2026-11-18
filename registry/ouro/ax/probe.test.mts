@@ -1,5 +1,6 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer, type Server } from "node:http";
 import { createServer as createNetServer, type Socket } from "node:net";
 import type { AddressInfo } from "node:net";
@@ -58,5 +59,11 @@ test("pidAlive is true for a running process, one of another user's, and false f
     }),
     false,
   );
-  for (const pid of [0, -1, 1.5, Number.NaN, 2 ** 60, "4200", null, undefined]) assert.equal(pidAlive(pid, () => assert.fail(`asked about ${String(pid)}`)), false, String(pid));
+  const asked: number[] = [];
+  for (const pid of [0, -1, 1.5, Number.NaN, 2 ** 60, "4200", null, undefined]) assert.equal(pidAlive(pid, (p) => void asked.push(p)), false, String(pid));
+  assert.deepEqual(asked, [], "the system is never asked about a pid that can't be one");
+  assert.equal(pidAlive(1, (p) => void asked.push(p)), true);
+  assert.deepEqual(asked, [1], "1 is a pid");
+  const ended = spawnSync(process.execPath, ["-e", ""]).pid;
+  assert.equal(pidAlive(ended), false, "a process that has ended");
 });
