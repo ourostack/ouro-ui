@@ -158,6 +158,8 @@ describe("an island", () => {
     await expect.poll(() => host.querySelector("[data-island-failed]")).not.toBeNull();
     const fallback = host.querySelector("[data-island-failed]")!;
     expect(fallback.id).toBe("test-island");
+    // The cause stays on the page, so a capture of the fallback says what failed (#2059).
+    expect(fallback.getAttribute("data-island-failed")).toBe("TypeError: Importing a module script failed.");
     expect(waitingIslands(), "a failed island waits for nothing more").toEqual([]);
     expect(fallback.textContent).toBe(`${ISLAND_FALLBACK.text} ${ISLAND_FALLBACK.reload}`);
     expect(fallback.querySelector("a")?.getAttribute("href")).toBe("");

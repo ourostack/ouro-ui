@@ -47,11 +47,12 @@ function Hydrated({ onHydrated }: { onHydrated: () => void }): null {
 /**
  * What an island shows when its chunk won't load: a line saying so, with a way to reload (a reload
  * starts the page's module loading afresh), in a section with the island's own id, so links to it
- * still land.
+ * still land. `data-island-failed` keeps the error's name and message, so a screenshot or a saved page
+ * says whether a chunk failed to fetch or the island's own code threw (#2059).
  */
-export function IslandFallback({ id }: { id: string }): JSX.Element {
+export function IslandFallback({ id, error = "" }: { id: string; error?: string }): JSX.Element {
   return (
-    <section id={id} data-island-failed="">
+    <section id={id} data-island-failed={error}>
       <Container className="py-10 text-muted-foreground">
         <p className="m-0">
           {ISLAND_FALLBACK.text} <Link href="">{ISLAND_FALLBACK.reload}</Link>
@@ -65,8 +66,8 @@ export function IslandFallback({ id }: { id: string }): JSX.Element {
  * Keeps an island's failure to itself: the rest of the page stays hydrated and answers, and the page
  * still marks itself ready (app.tsx), while the island shows its fallback.
  */
-export class IslandBoundary extends Component<{ id: string; children: ReactNode }, { failed: boolean }> {
-  override state = { failed: false };
+export class IslandBoundary extends Component<{ id: string; children: ReactNode }, { failed: boolean; error: string }> {
+  override state = { failed: false, error: "" };
 
   override componentDidMount(): void {
     if (!this.state.failed) waiting.add(this.props.id);
@@ -76,8 +77,9 @@ export class IslandBoundary extends Component<{ id: string; children: ReactNode 
     waiting.delete(this.props.id);
   }
 
-  static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true };
+  static getDerivedStateFromError(error: unknown): { failed: boolean; error: string } {
+    const { name, message } = error instanceof Error ? error : { name: "Error", message: String(error) };
+    return { failed: true, error: `${name}: ${message}`.slice(0, 300) };
   }
 
   override componentDidCatch(error: unknown, info: ErrorInfo): void {
@@ -86,7 +88,7 @@ export class IslandBoundary extends Component<{ id: string; children: ReactNode 
   }
 
   override render(): ReactNode {
-    return this.state.failed ? <IslandFallback id={this.props.id} /> : this.props.children;
+    return this.state.failed ? <IslandFallback id={this.props.id} error={this.state.error} /> : this.props.children;
   }
 }
 
