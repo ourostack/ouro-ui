@@ -74,7 +74,13 @@ const catalog = {
               "recipe": {
                 "label": "Recipe",
                 "kind": "string",
-                "optional": false
+                "optional": false,
+                "shownAs": "recipeTitle"
+              },
+              "recipeTitle": {
+                "label": "Recipe title",
+                "kind": "string",
+                "optional": true
               },
               "with": {
                 "label": "Send to",
