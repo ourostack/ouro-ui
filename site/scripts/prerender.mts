@@ -17,7 +17,7 @@ interface Route {
   title: string;
   description: string;
 }
-const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, headTags, showsMono, pageKind, sitemap, SITE } = (await import(pathToFileURL(server).href)) as {
+const { render, routes, redirects, redirectPage, docsItems, docsPages, publishedMarkdown, withInstall, latestRelease, headTags, showsMono, pageKind, sitemap, SITE } = (await import(pathToFileURL(server).href)) as {
   sitemap: (routes: Route[]) => string;
   SITE: string;
   render: (path: string) => Promise<string>;
@@ -30,6 +30,8 @@ const { render, routes, redirects, redirectPage, docsItems, docsPages, published
   docsItems: Array<{ name: string; title: string }>;
   docsPages: Array<{ name: string; title: string; file: string }>;
   publishedMarkdown: (markdown: string, from: string) => string;
+  withInstall: (markdown: string, name: string, release: string) => string;
+  latestRelease: string;
 };
 
 const template = readFileSync(join(dist, "index.html"), "utf8");
@@ -136,10 +138,11 @@ writeFileSync(join(dist, "sitemap.xml"), sitemap(routes));
 writeFileSync(join(dist, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 // The published Markdown shows installed paths (`@/components/ouro/...`), as the HTML pages
 // do, and parts.md is published beside it so each page's link to it resolves.
-// A link to another docs file names that file's published page (`Form.md` is `form.md`).
+// A link to another docs file names that file's published page (`Form.md` is `form.md`). A component's page also says how
+// to install it, as its HTML page does, since the hand-off on that page tells an agent to follow it (docs/agent-prompt.ts).
 for (const item of docsItems) {
   const from = `docs/${item.title}.md`;
-  writeFileSync(join(dist, "docs", `${item.name}.md`), publishedMarkdown(readFileSync(join(repo, from), "utf8"), from));
+  writeFileSync(join(dist, "docs", `${item.name}.md`), withInstall(publishedMarkdown(readFileSync(join(repo, from), "utf8"), from), item.name, latestRelease));
 }
 // The guides (docs/guides) and the exports with no item of their own (Radio, OuroProvider).
 for (const page of docsPages) writeFileSync(join(dist, "docs", `${page.name}.md`), publishedMarkdown(readFileSync(join(repo, page.file), "utf8"), page.file));

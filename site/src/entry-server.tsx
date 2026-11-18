@@ -7,6 +7,8 @@ export { redirects, routes, routeFor } from "./routes";
 export { pageKind } from "./paths";
 export { docsItems, installedPaths } from "./docs/items";
 export { docsPages, publishedMarkdown } from "./docs/pages";
+export { withInstall } from "./docs/agent-prompt";
+export { latestRelease } from "./latest-release";
 
 /** The HTML for one route, for site/scripts/prerender.mts. */
 export async function render(path: string): Promise<string> {

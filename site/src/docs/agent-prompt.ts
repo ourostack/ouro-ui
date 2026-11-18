@@ -8,3 +8,28 @@ export const PROMPT_SITE = "https://ui.ouroboros.bot";
 export function componentPrompt(title: string, name: string): string {
   return `Add ${title} from Ouro UI to this app. Read ${PROMPT_SITE}/docs/${name}.md first and follow it.`;
 }
+
+/**
+ * A component's published Markdown (/docs/<name>.md) with its install steps, the commands its HTML page shows, put before
+ * the import line, so an agent that follows the page installs the component before it imports it.
+ */
+export function withInstall(markdown: string, name: string, release: string): string {
+  const steps = [
+    "## Install",
+    "",
+    "Once per app, with Tailwind CSS v4 and an `@/*` path alias (skip `init` in an existing shadcn app), then the component:",
+    "",
+    "```sh",
+    "npx shadcn@latest init --base base --preset nova --yes --no-monorepo",
+    `npx shadcn@latest add ourostack/ouro-ui/ouro-base#${release}`,
+    `npx shadcn@latest add ourostack/ouro-ui/${name}#${release}`,
+    "```",
+    "",
+    `More: [Installing](${PROMPT_SITE}/docs/installing.md).`,
+    "",
+    "",
+  ].join("\n");
+  const at = markdown.indexOf("```tsx\nimport ");
+  if (at === -1) throw new Error(`The published Markdown for ${name} has no import line to put its install steps before.`);
+  return markdown.slice(0, at) + steps + markdown.slice(at);
+}

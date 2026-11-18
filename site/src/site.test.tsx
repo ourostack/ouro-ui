@@ -15,7 +15,7 @@ import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags, SITE } from "./head";
-import { componentPrompt, PROMPT_SITE } from "./docs/agent-prompt";
+import { componentPrompt, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
 import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
 import { bare, otherNames } from "./components/other-names";
@@ -760,6 +760,9 @@ describe("docs", () => {
     // The address is the site's, and every component's Markdown is published there (site/scripts/prerender.mts).
     expect(PROMPT_SITE).toBe(SITE);
     for (const item of docsItems) expect(componentPrompt(item.title, item.name)).toContain(`${SITE}/docs/${item.name}.md `);
+    // The page it follows says how to install the component, before it imports it.
+    const published = withInstall(publishedMarkdown(itemMarkdown(docsItems.find((item) => item.name === "dialog")!), "docs/Dialog.md"), "dialog", "v9.9.9");
+    expect(published).toMatch(/## Install[\s\S]*ouro-ui\/ouro-base#v9\.9\.9[\s\S]*ouro-ui\/dialog#v9\.9\.9[\s\S]*```tsx\nimport \{ Dialog \}/);
   });
 
   it("has a page for every registry item at docs/<name>", () => {
