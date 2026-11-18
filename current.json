@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-18T03:18:42.918Z",
+  "generatedAt": "2026-11-18T03:28:16.083Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -201,14 +201,14 @@
     },
     {
       "repo": "ourostack/m365crawl",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit 1b97ace",
+          "current": "commit 8f8c452",
           "latest": "v1.3.281",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
@@ -218,10 +218,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 381,
-        "url": "https://github.com/ourostack/m365crawl/pull/381"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-md",
@@ -295,34 +292,31 @@
     },
     {
       "repo": "ourostack/ouroboros",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.266",
+          "current": "v1.3.281",
           "latest": "v1.3.281",
-          "behind": true
+          "behind": false
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
           "follows": "core",
-          "current": "v0.17.6",
+          "current": "v0.17.7",
           "latest": "v0.17.7",
-          "behind": true
+          "behind": false
         },
         {
           "file": "upstream-sources.lock.json",
           "follows": "web",
-          "current": "commit e1f7b22",
+          "current": "commit 8f8c452",
           "latest": "v1.3.281",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 1389,
-        "url": "https://github.com/ourostack/ouroboros/pull/1389"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouroboros-website",
@@ -382,27 +376,24 @@
     },
     {
       "repo": "spoonjoy/spoonjoy-v2",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": ".github/ouro-hx-installed.json",
           "follows": "web",
-          "current": "v1.3.274",
+          "current": "v1.3.281",
           "latest": "v1.3.281",
-          "behind": true
+          "behind": false
         },
         {
           "file": "vendor/ouro-ui-core/pin.json",
           "follows": "core",
-          "current": "v0.17.6",
+          "current": "v0.17.7",
           "latest": "v0.17.7",
-          "behind": true
+          "behind": false
         }
       ],
-      "pr": {
-        "number": 760,
-        "url": "https://github.com/spoonjoy/spoonjoy-v2/pull/760"
-      }
+      "pr": null
     }
   ]
 }
