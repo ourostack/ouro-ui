@@ -60,11 +60,27 @@ const installFold = new RegExp(
   String.raw`^ {6}- (?:(if: .*)\n {8})?id: install\n {8}run: pnpm i --frozen-lockfile\n {8}continue-on-error: true\n(?: {6}#.*\n)* {6}- name: pnpm install failed; trying it once more \(#1914\)\n {8}if: steps\.install\.outcome == 'failure'\n {8}run: .*\n(?: {6}#.*\n)* {6}- if: steps\.install\.outcome == 'failure'\n {8}run: pnpm i --frozen-lockfile\n`,
   "gm",
 );
+// A setup-node that restores the pnpm cache: its first try, warning and retry (#2194), folded back into the one step.
+const nodeFold = new RegExp(
+  String.raw`^ {6}- (?:(if: .*)\n {8})?id: node\n {8}uses: (\S+ # v[\d.]+)\n {8}timeout-minutes: 3\n {8}continue-on-error: true\n((?: {8}with:\n(?: {10}.*\n)+)?) {6}- name: setup-node stalled; setting it up once more without the cache \(#2194\)\n {8}if: steps\.node\.outcome == 'failure'\n {8}run: .*\n {6}- if: steps\.node\.outcome == 'failure'\n {8}uses: \S+ # v[\d.]+\n(?: {8}with:\n(?: {10}.*\n)+)`,
+  "gm",
+);
+const foldNode = (text) => text.replace(nodeFold, (_, condition, uses, withBlock) => `${condition ? `      - ${condition}\n        uses: ${uses}\n` : `      - uses: ${uses}\n`}${withBlock}`);
 const foldPnpm = (text) =>
   expandPnpmAliases(text)
     .replace(pnpmFold, (_, condition, uses) => (condition ? `      - ${condition}\n        uses: ${uses}\n` : `      - uses: ${uses}\n`))
     .replace(installFold, (_, condition) => (condition ? `      - ${condition}\n        run: pnpm i --frozen-lockfile\n` : `      - run: pnpm i --frozen-lockfile\n`));
-const unguarded = (text) => foldPnpm(text).replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
+// ci.yml's setup-node anchors (#2194), expanded as GitHub reads them, as expandPnpmAliases does for pnpm's.
+const expandNodeAliases = (text) => {
+  const anchors = new Map([...text.matchAll(/^ {6}- &(node-[\w-]+)\n((?: {8}.*\n)+)/gm)].map((match) => [match[1], match[2]]));
+  return text
+    .replace(/^ {6}- \*(node-[\w-]+)\n/gm, (_, name) => {
+      assert.ok(anchors.has(name), `*${name} has no anchor`);
+      return `      - ${anchors.get(name).slice(8)}`;
+    })
+    .replace(/^( {6}- )&node-[\w-]+\n {8}/gm, "$1");
+};
+const unguarded = (text) => foldPnpm(foldNode(expandNodeAliases(text))).replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
 const rawWorkflows = readdirSync(dir)
   .filter((file) => file.endsWith(".yml"))
   .map((file) => ({ file, text: readFileSync(join(dir, file), "utf8") }));
@@ -179,6 +195,33 @@ test("every pnpm setup and dependency install in a workflow that reports a requi
     assert.equal((text.match(/uses: pnpm\/action-setup@/g) ?? []).length, 2 * setupJobs, `${file}: every pnpm setup is a first try or its one retry`);
     assert.equal((text.match(/run: pnpm i --frozen-lockfile$/gm) ?? []).length, 2 * installJobs, `${file}: every pnpm i is a first try or its one retry`);
   }
+});
+
+/**
+ * A setup-node step that restores the pnpm cache can stall once the account is over its egress limit (#2194). Each job
+ * that restores it tries it with a three-minute limit, warns, and sets node up once more without the cache.
+ */
+test("every setup-node that restores the pnpm cache in ci.yml has a time limit and is tried once more without the cache (#2194)", () => {
+  const text = expandNodeAliases(rawWorkflows.find((entry) => entry.file === "ci.yml").text);
+  const setupNode = /uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+/;
+  const restores = (step) => setupNode.test(step) && /^ {10}cache: pnpm$/m.test(step);
+  let restoreJobs = 0;
+  for (const job of text.split(/\n(?= {2}[\w-]+:\n)/)) {
+    const steps = job.split(/\n(?= {6}- )/);
+    const count = steps.filter(restores).length;
+    if (count === 0) continue;
+    restoreJobs += 1;
+    assert.equal(count, 1, `a job restores the pnpm cache once:\n${job}`);
+    const index = steps.findIndex(restores);
+    const [attempt, warning, retry] = steps.slice(index, index + 3);
+    assert.match(attempt, /^ {6}- (?:if: .*\n {8})?id: node\n/, `the first try has id: node:\n${attempt}`);
+    assert.match(attempt, /^ {8}timeout-minutes: 3$/m, `the first try has a three-minute limit:\n${attempt}`);
+    assert.match(attempt, /^ {8}continue-on-error: true$/m, `the first try must not fail the job:\n${attempt}`);
+    assert.match(warning, /^ {6}- name: setup-node stalled; setting it up once more without the cache \(#2194\)\n {8}if: steps\.node\.outcome == 'failure'\n {8}run: echo "::warning title=setup-node stalled::/, `the warning before the retry:\n${warning}`);
+    assert.match(retry, /^ {6}- if: steps\.node\.outcome == 'failure'\n {8}uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}node-version: 24\n {10}cache: ""$/m, `the retry runs only after a failed first try, without the cache:\n${retry}`);
+    assert.equal(retry.match(setupNode)[0], attempt.match(setupNode)[0], `the retry sets up the same node as the first try:\n${job}`);
+  }
+  assert.ok(restoreJobs > 0, "ci.yml restores the pnpm cache in some job");
 });
 
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {

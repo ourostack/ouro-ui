@@ -157,10 +157,25 @@ jobs:
       - &pnpm-retry
         if: steps.pnpm.outcome == 'failure'
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      # actions/setup-node restores the pnpm cache, and that restore can stall the step once the account is over its egress limit (ourostack/ouro-ui#2194).
+      # A setup that fails or runs past 3 minutes is set up once more without the cache, as pnpm/action-setup is (#1911). Every job repeats these three steps.
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - &node-stalled
+        name: setup-node stalled; setting it up once more without the cache (#2194)
+        if: steps.node.outcome == 'failure'
+        run: echo "::warning title=setup-node stalled::setup-node ran past 3 minutes or failed, often after its pnpm cache restore hit the account's egress limit (ourostack/ouro-ui#2194); setting it up once more without the cache."
+      - &node-retry
+        if: steps.node.outcome == 'failure'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
       # The tree this run tests (a pull request's: GitHub's merge of it into its base), which tree-proof names.
       - id: tree
         name: The tree this run tests
@@ -415,10 +430,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -658,10 +678,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -850,10 +875,15 @@ jobs:
       - *pnpm-stalled
       - *pnpm-retry
       - if: env.BROWSER_RUN == 'true'
+        id: node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - if: env.BROWSER_RUN == 'true'
         id: install
         run: pnpm i --frozen-lockfile
@@ -1294,10 +1324,15 @@ jobs:
       - *pnpm-stalled
       - *pnpm-retry
       - if: env.FALLBACK == 'true'
+        id: node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - if: env.FALLBACK == 'true'
         id: install
         run: pnpm i --frozen-lockfile
@@ -1379,10 +1414,15 @@ jobs:
       - *pnpm-stalled
       - *pnpm-retry
       - if: env.BROWSER_RUN == 'true'
+        id: node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - if: env.BROWSER_RUN == 'true'
         id: install
         run: pnpm i --frozen-lockfile
@@ -1986,10 +2026,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -2058,10 +2103,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -2521,10 +2571,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -3017,10 +3072,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - if: needs.plan.outputs.installs != 'skip'
         id: install
         run: pnpm i --frozen-lockfile
@@ -3148,10 +3208,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -3214,10 +3279,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -3279,10 +3349,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - id: install
         run: pnpm i --frozen-lockfile
         continue-on-error: true
@@ -3349,10 +3424,15 @@ jobs:
         continue-on-error: true
       - *pnpm-stalled
       - *pnpm-retry
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - id: node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
           cache: pnpm
+      - *node-stalled
+      - *node-retry
       - name: Fetch main, merge it, check, and read main again
         run: >-
           node scripts/fresh-main.mjs --branch "${{ github.base_ref }}" --
