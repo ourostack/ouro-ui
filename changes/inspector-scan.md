@@ -1,0 +1,1 @@
+- Inspector: X-ray opens with a scan. A band sweeps down the screen and the outlines show as it passes; with reduced motion they show at once, as before.
