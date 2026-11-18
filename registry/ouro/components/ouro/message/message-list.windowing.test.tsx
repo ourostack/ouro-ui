@@ -850,8 +850,10 @@ describe("MessageList windowing", () => {
   /**
    * Turns the wheel up from the end of a conversation whose 60 newest rows are tall and whose 240 older ones are short, 300px a
    * step, as a slowed page hands a wheel's scroll over, with the wheel never resting: the rows above come in far shorter than the
-   * estimate the tall ones set, and what that moves is carried, never paid, until the reader nears the top. One step then takes
-   * them past it. Returns how far the reader's row moved, beyond their own scroll, in the worst step.
+   * estimate the tall ones set, and what that moves is carried, never paid, until the reader nears the top. The step that brings
+   * them within reach of it lands 100px short of what is carried, whatever the rows' heights and the runner's timing: past what the
+   * scroll position can take when the list pays it. Returns how far the reader's row moved, beyond their own scroll, in the worst
+   * step, and what was carried as that step began.
    */
   async function wheelToTheTop({ height = 400 } = {}) {
     const items = conversation(300).map((item) => ({ ...item, tall: item.id >= 240 ? 160 : 20 }));
@@ -865,20 +867,26 @@ describe("MessageList windowing", () => {
       const centre = (view.top + view.bottom) / 2;
       return messages(scroller).find((node) => node.getBoundingClientRect().bottom > centre)!;
     };
+    // How far the content is drawn down, holding the reader's place, in px: what is carried.
+    const carried = () => Number(/(-?[\d.]+)px$/.exec(content.style.translate)?.[1] ?? 0);
     let worst = 0;
+    let past = 0;
     // About 90 steps reach the top; a list that never lets the reader get there fails here, not at the test's timeout.
     for (let step = 0; step < 150 && scroller.scrollTop > 0; step++) {
       const row = middle();
       const before = row.getBoundingClientRect().top;
       const top = scroller.scrollTop;
+      // The list pays what it carries once the reader is within a quarter of the view of it, past the top.
+      const within = top - 300 < carried() + scroller.clientHeight / 4;
+      if (within && past === 0) past = carried();
       scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -300 }));
-      scroller.scrollTop = top - 300;
+      scroller.scrollTop = within ? Math.max(0, Math.min(top - 300, carried() - 100)) : top - 300;
       const reader = top - scroller.scrollTop;
       await frame();
       worst = Math.max(worst, Math.abs(row.getBoundingClientRect().top - (before + reader)));
     }
     expect(scroller.scrollTop).toBe(0);
-    return { scroller, content, clock, worst, items, root, style, rerender };
+    return { scroller, content, clock, worst, past, items, root, style, rerender };
   }
 
   it("holds the reader's place for a message deleted above them in the frame the space above the first message goes, before the list's own scroll is reported", async () => {
@@ -923,11 +931,40 @@ describe("MessageList windowing", () => {
   }
 
   it("holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message", async () => {
-    const { content, worst } = await wheelToTheTop();
+    const { content, worst, past } = await wheelToTheTop();
+    // The premise: what was carried as the reader came within reach of the top, which their step took them 100px past.
+    expect(past).toBeGreaterThan(100);
     expect(document.getElementById("m0")).not.toBeNull();
     expect(worst).toBeLessThanOrEqual(1);
     // What the top stopped is space above the first message.
-    expect(content.offsetTop).toBeGreaterThan(1);
+    expect(content.offsetTop).toBeGreaterThanOrEqual(100);
+  });
+
+  it("holds the reader's row to the pixel and keeps no space above the first message as a wheel takes them to the top past rows already measured", async () => {
+    // Older rows far shorter than the estimate the newest set, as in wheelToTheTop, fewer of them.
+    const items = conversation(60).map((item) => ({ ...item, tall: item.id >= 40 ? 160 : 20 }));
+    const { scroller } = await render(<Chat items={items} springy={false} />);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    // Every row measured first, by the scrollbar up to the top, and back to the end.
+    while (scroller.scrollTop > 0) await scrollTo(scroller, scroller.scrollTop - 300);
+    await scrollTo(scroller, scroller.scrollHeight);
+    const clock = { now: 1_000_000 };
+    vi.spyOn(performance, "now").mockImplementation(() => clock.now);
+    let worst = 0;
+    for (let step = 0; step < 150 && scroller.scrollTop > 0; step++) {
+      const row = firstVisible(scroller).message;
+      const before = row.getBoundingClientRect().top;
+      const top = scroller.scrollTop;
+      scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -300 }));
+      scroller.scrollTop = top - 300;
+      const reader = top - scroller.scrollTop;
+      await frame();
+      worst = Math.max(worst, Math.abs(row.getBoundingClientRect().top - (before + reader)));
+    }
+    expect(scroller.scrollTop).toBe(0);
+    expect(worst).toBeLessThanOrEqual(1);
+    // Nothing was carried to the top, so nothing is kept above the first message.
+    expect(content.offsetTop).toBe(0);
   });
 
   it("keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests", async () => {
