@@ -437,6 +437,44 @@ test.describe("each control in Chapter I", () => {
   });
 });
 
+test("a job ticked before the hull is out of order: its row warns, the plan draws it as a ghost, and Launch waits until the hull is in", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  // The yard starts with the lantern first: the order is the rule, with the hull always before the rest.
+  expect((await jobRows(page))[0]).toContain(PARTS[3].job);
+  const row = (id: (typeof PARTS)[number]["id"]) => shipyard(page).locator("[data-chapter-control='jobs'] [data-ouro-part='row']").filter({ hasText: PARTS.find((part) => part.id === id)!.job });
+  const progress = shipyard(page).getByRole("progressbar", { name: SHIPYARD.progress });
+  const lantern = plan(page).locator("[data-part='lantern']");
+  const hint = shipyard(page).locator("[data-chapter-launch-hint]");
+  await job(page, "lantern").click();
+  await expect(job(page, "lantern")).toBeChecked();
+  // The row turns HX's warning tone and names the job that comes first; the box is described by it.
+  await expect(row("lantern")).toHaveAttribute("data-out-of-order", "");
+  await expect(row("lantern")).toContainText(SHIPYARD.first(PARTS[0].job));
+  await expect(job(page, "lantern")).toHaveAccessibleDescription(new RegExp(SHIPYARD.first(PARTS[0].job)));
+  // On the plan the lantern is a faint, dashed ghost, and it isn't counted as built.
+  await expect(plan(page)).toHaveAttribute("data-ghost", "lantern");
+  await expect(lantern).toHaveCSS("opacity", "0.5");
+  await expect(lantern.locator("path").first()).toHaveCSS("stroke-dasharray", "4px, 3px");
+  await expect(plan(page)).toHaveAttribute("aria-label", new RegExp(SHIPYARD.ghosts("lantern")));
+  await expect(progress).toHaveAttribute("aria-valuenow", "0");
+  // Launch stays off, and its hint says why. Conseil's line is the crew's one word on it.
+  await expect(launchButton(page)).toBeDisabled();
+  await expect(hint).toHaveText(SHIPYARD.outOfOrder(PARTS[0].job));
+  await expect(launchButton(page)).toHaveAccessibleDescription(SHIPYARD.outOfOrder(PARTS[0].job));
+  await expect(yardCrew(page)).toContainText(YARD.noHull("Lantern").text);
+  // The hull in, the lantern settles into place.
+  await job(page, "hull").click();
+  await expect(row("lantern")).not.toHaveAttribute("data-out-of-order", "");
+  await expect(row("lantern")).not.toContainText(SHIPYARD.first(PARTS[0].job));
+  await expect(plan(page)).toHaveAttribute("data-ghost", "");
+  await expect(lantern).toHaveCSS("opacity", "1");
+  await expect(lantern.locator("path").first()).toHaveCSS("stroke-dasharray", "none");
+  await expect(progress).toHaveAttribute("aria-valuenow", "40");
+  await expect(hint).toHaveText(SHIPYARD.launchHint(3));
+});
+
 test("every operable element in Chapter I is one of its listed controls, in page order", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
