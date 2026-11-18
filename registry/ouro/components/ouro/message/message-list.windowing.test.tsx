@@ -1406,12 +1406,16 @@ describe("MessageList windowing", () => {
     expect(first).toBeGreaterThanOrEqual(Math.floor(400 / 96));
   });
 
-  /** 300 rows of exactly `height` px each, the newest of which records how many messages are in the page as its layout effect runs. */
-  function shortRows(height: number, onFirst: (count: number) => void) {
+  /**
+   * 300 rows of exactly `height` px each, the newest of which reports how many messages are in the page as its layout effect runs,
+   * in the first commit, with the list's content.
+   */
+  function shortRows(height: number, onFirst: (count: number, content: HTMLElement) => void) {
     function Newest() {
       const ref = useRef<HTMLDivElement>(null);
       useLayoutEffect(() => {
-        onFirst(ref.current!.closest("[data-ouro-message-list-content]")!.querySelectorAll('[data-ouro="message"]').length);
+        const content = ref.current!.closest<HTMLElement>("[data-ouro-message-list-content]")!;
+        onFirst(content.querySelectorAll('[data-ouro="message"]').length, content);
       }, []);
       return (
         <Message id="m299" role="assistant" name="Ouro" style={{ height, boxSizing: "border-box" }}>
@@ -1436,6 +1440,51 @@ describe("MessageList windowing", () => {
     );
     // A row is 24px and the gap 16px: the 400px view, filled. The list's own first guess, 96px, would draw five.
     expect(first).toBeGreaterThanOrEqual(Math.floor(400 / 40));
+  });
+
+  it("draws only the rows that fill the view in the first commit, given their estimatedItemHeight, where the built-in estimate would draw more", async () => {
+    const { innerWidth: width, innerHeight: height } = window;
+    await page.viewport(800, 900);
+    try {
+      // A 600px view, measured, for the next list to take as its own.
+      await render(<Chat items={conversation(100)} style={{ height: 600, width: 360 }} />);
+      let first = 0;
+      await render(
+        <MessageList label="Conversation" estimatedItemHeight={130} style={{ height: 600, width: 360 }}>
+          {shortRows(130, (count) => (first = count))}
+        </MessageList>,
+      );
+      // Five 130px rows fill 600px; at 96px a row, the list would draw seven.
+      expect(first).toBe(5);
+    } finally {
+      await page.viewport(width, height);
+    }
+  });
+
+  it("opens with the estimate a heightCache kept from the list before it, for the rows neither measured", async () => {
+    const heightCache = new Map<string, number>();
+    // In the first commit, before the list measures anything: the space kept above the rows drawn, and how many rows it stands for.
+    let first = { drawn: 0, space: 0 };
+    const rows = (count: number) =>
+      shortRows(24, (_, content) => {
+        const drawn = Number(content.querySelector<HTMLElement>('[data-ouro="message"]')!.id.slice(1));
+        first = { drawn, space: content.querySelector<HTMLElement>("[data-ouro-message-list-space]")!.getBoundingClientRect().height };
+      }).slice(300 - count);
+    const { root } = await render(
+      <MessageList label="Conversation" heightCache={heightCache} style={{ height: 400, width: 360 }}>
+        {rows(100)}
+      </MessageList>,
+    );
+    await act(async () => root.unmount());
+    // The same conversation, with 200 older rows that no list has measured: they are 24px each, as the rows measured were.
+    await render(
+      <MessageList label="Conversation" heightCache={heightCache} style={{ height: 400, width: 360 }}>
+        {rows(300)}
+      </MessageList>,
+    );
+    expect(first.drawn).toBeGreaterThan(200);
+    // The rows 0 to 199 at the estimate kept, 24px; those after them, measured by the list before.
+    expect(first.space).toBeCloseTo(24 * first.drawn + 16 * (first.drawn - 1), 0);
   });
 
   it("keeps the space for the rows not drawn at estimatedItemHeight each, not the average of the rows measured", async () => {

@@ -167,15 +167,19 @@ export interface MessageListOwnProps {
    * A map the list writes the heights of its children into, under a child's key and the list's width in CSS pixels, rounded
    * to a multiple of `BUCKET`, and reads before it measures. Keep one in your app, by conversation, and hand it to each list that shows the conversation:
    * a list that mounts again with it is as tall, from its first commit, as the list before it was, so it opens
-   * with no row moving. Leave it out and the list keeps its own for as long as it lives.
+   * with no row moving. It keeps the height the list took for a row not measured yet too, which the next list opens with, unless
+   * it is given `estimatedItemHeight`. Leave it out and the list keeps its own for as long as it lives.
+   * @claim "It keeps the height the list took" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens with the estimate a heightCache kept from the list before it, for the rows neither measured)
    * @claim "a list that mounts again with it is" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the height of every row in a heightCache the app hands in, so a list that mounts again with it is as tall, in its first commit, as it was)
    */
   heightCache?: Map<string, number> | undefined;
   /**
    * The height, in CSS pixels with its margins, the list takes for a row it has not measured yet, from its first commit: the
    * usual height of your rows. Give it when they are much shorter or taller than 96, the list's own first guess, so the first
-   * commit draws as many rows as fill the view, and the space kept for the rows not drawn is about as tall as they are. Left
-   * out, the list starts at 96 and then takes the average of the first rows it measures.
+   * commit draws as many rows as fill the view, and no more, and the space kept for the rows not drawn is about as tall as they
+   * are. Left out, the list starts at 96, or at what a `heightCache` kept from the list before it, and then takes the average of
+   * the first rows it measures.
+   * @claim "and no more" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws only the rows that fill the view in the first commit, given their estimatedItemHeight, where the built-in estimate would draw more)
    * @claim "the list takes for a row it has not measured yet" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space for the rows not drawn at estimatedItemHeight each, not the average of the rows measured)
    * @claim "so the first commit draws as many rows as fill the view" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws as many short rows as fill the view in the first commit, given their estimatedItemHeight)
    * @claim "Left out, the list starts at 96" registry/ouro/components/ouro/message/message-list.tsx verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /const ESTIMATE = 96;/) verify:fileLine(registry/ouro/components/ouro/message/message-list.tsx, /: averageOf\(heights\)/)
@@ -424,6 +428,9 @@ interface Measured {
 /** The entry of a `heightCache` that holds the width the heights in it were last measured at. */
 // Stryker disable next-line StringLiteral: the entry only has to differ from the `<key>\0<width>` ones, as an empty string does.
 const CACHED_WIDTH = "\0width";
+/** The entry of a `heightCache` that holds the height the list last took for a row not measured yet: the next list opens with it. */
+// Stryker disable next-line StringLiteral: the entry only has to differ from the others, as an empty string does.
+const CACHED_ESTIMATE = "\0estimate";
 /**
  * The width, in CSS pixels, rounded to a multiple of this, that a height is cached for.
  */
@@ -1145,7 +1152,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The heights of every child measured, by key and width, kept for the life of the list or by the app (`heightCache`).
   const [ownCache] = useState(() => new Map<string, number>());
   const cache = heightCache ?? ownCache;
-  const [measured, setMeasured] = useState<Measured>(() => ({ heights: new Map(), gap: 16, estimate: ESTIMATE, bucket: cache.get(CACHED_WIDTH) ?? null }));
+  const [measured, setMeasured] = useState<Measured>(() => ({ heights: new Map(), gap: 16, estimate: cache.get(CACHED_ESTIMATE) ?? ESTIMATE, bucket: cache.get(CACHED_WIDTH) ?? null }));
   const cacheRef = useRef(cache);
   useLayoutEffect(() => {
     cacheRef.current = cache;
@@ -1933,7 +1940,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // changes only with the font size, which changes the heights too.
           // The estimate is the average of the rows the list first draws past its view: those it opened with, and those drawn
           // after, as the view alone may hold a few.
-          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate: estimated.current ? measured.estimate : averageOf(heights), bucket });
+          const estimate = estimated.current ? measured.estimate : averageOf(heights);
+          // Kept for the next list handed the cache, which opens with it.
+          cacheRef.current.set(CACHED_ESTIMATE, estimate);
+          setMeasured({ heights, gap: parseFloat(getComputedStyle(content).rowGap), estimate, bucket });
           estimated.current = wide.current;
           return;
         }
