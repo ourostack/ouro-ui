@@ -331,8 +331,10 @@ export async function ssoExtension(o: SsoExtension, dir: string, at: () => numbe
   const lift = () => {
     if (mapped) sudo(["tee", HOSTS], before);
     flush();
-    sudo(["security", "remove-trusted-cert", "-d", f("ca.pem")]);
-    sudo(["security", "delete-certificate", "-Z", sha1, "-t", "/Library/Keychains/System.keychain"]);
+    // Out of the System keychain, so nothing trusts it. Removing its admin trust setting too (remove-trusted-cert -d, or
+    // delete-certificate -t) waits for an authorization no one can give on a runner; the setting left names a certificate
+    // no keychain holds.
+    sudo(["security", "delete-certificate", "-Z", sha1, "/Library/Keychains/System.keychain"]);
     child.kill();
     for (const k of ["ca.key", "leaf.key"]) fs.rmSync(f(k), { force: true });
   };
