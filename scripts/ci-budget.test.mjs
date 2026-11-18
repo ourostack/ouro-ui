@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
 import { scratchDir } from "./scratch.mjs";
-import { ApiUnavailable, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
+import { ApiUnavailable, main, reportUnavailable, backoffSeconds, baseline, budget, get, retry, criticalPath, earlierWork, freshAttempt, heldSeconds, jobGraph, judge, judgeLane, laneCriticalPath, laneLine, passedAttempt, percentile, previousFull, previousRuns, previousRunWorkFrom, recordPassed, runnerTime, runWalls, unzipOne, waitSteps, wallTime, workSeconds } from "./ci-budget.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -165,6 +165,53 @@ jobs:
   assert.equal(wallTime(jobs, graph), 31 * 60);
 });
 
+test("the screen-reader lane's own critical path is its slowest job, leaves the yield's wait out, and is reported as not run without its jobs", () => {
+  const at = (minutes) => new Date(Date.UTC(2026, 9, 20, 12, minutes)).toISOString();
+  const yieldJob = { ...job("Screen-reader yield", 1, 1, 9), steps: [{ name: "Set up job", started_at: at(1), completed_at: at(1) }, { name: "Yield to main's screen-reader lane", started_at: at(1), completed_at: at(9) }] };
+  const jobs = [job("plan", 0, 0, 1), yieldJob, job("screen-reader / voiceover (macos-26)", 9, 9, 30), job("screen-reader / nvda (windows-2025)", 9, 9, 22), job("ci", 30, 30, 31)];
+  const lane = laneCriticalPath(jobs);
+  assert.deepEqual([lane.ran, lane.seconds, lane.job, lane.yieldSeconds], [true, 21 * 60, "screen-reader / voiceover (macos-26)", 8 * 60]);
+  assert.equal(laneCriticalPath(jobs, { work: true }).seconds, 21 * 60);
+  // A run that never reached the lane has no lane jobs: the line still says so, and nothing is judged.
+  const none = laneCriticalPath([job("plan", 0, 0, 1), job("ci", 1, 1, 2)]);
+  assert.deepEqual([none.ran, none.seconds, none.yieldSeconds], [false, 0, 0]);
+  // ci.yml names the yield's step as the lane's wait, which laneCriticalPath leaves out.
+  assert.match(readFileSync(join(root, ".github/workflows/ci.yml"), "utf8"), /^ {6}- name: Yield to main's screen-reader lane$/m);
+  assert.match(laneLine({ ran: none.ran }), /^Screen-reader lane: not run in this run/);
+  assert.match(laneLine({ ran: true, seconds: 0, workSeconds: 0, yieldSeconds: 0, verdict: { report: "no-budget" } }), /no budget yet \(set from the first 10 pull requests, #2017\)\.$/);
+});
+
+test("a null lane budget is report-only: the lane's line prints and nothing is judged", () => {
+  const verdict = judgeLane({ event: "pull_request", ran: true, criticalSeconds: 90 * 60, workSeconds: 90 * 60 });
+  assert.deepEqual(verdict, { report: "no-budget", fail: false, reason: null, warning: null });
+  assert.equal(judgeLane({ event: "pull_request", ran: false, criticalSeconds: 0, workSeconds: 0, budgetMinutes: 20 }).report, "not-run");
+});
+
+test("a set lane budget judges like the main one: within it passes, work past it warns or fails on confirmation, and earlier evidence past it confirms", () => {
+  const judgeAt = (over) => judgeLane({ event: "pull_request", ran: true, budgetMinutes: 20, criticalSeconds: 25 * 60, workSeconds: 25 * 60, ...over });
+  // The limit is the budget and its margin: 24 minutes.
+  assert.equal(judgeAt({ criticalSeconds: 20 * 60, workSeconds: 20 * 60 }).report, "within");
+  // The critical path past the limit, with work time within it: a warning, as the main path's is.
+  assert.deepEqual(judgeAt({ criticalSeconds: 30 * 60, workSeconds: 20 * 60 }), { report: "over", fail: false, reason: null, warning: "over" });
+  // Work past the limit with no earlier evidence: fail, asking for a re-run to confirm.
+  assert.deepEqual(judgeAt({}), { report: "over", fail: true, reason: "confirm", warning: null });
+  // Earlier evidence past the limit confirms the regression; earlier evidence within it does not.
+  assert.deepEqual(judgeAt({ earlierWorkSeconds: 30 * 60 }), { report: "over", fail: true, reason: "budget", warning: null });
+  assert.deepEqual(judgeAt({ earlierWorkSeconds: 10 * 60 }), { report: "over", fail: false, reason: null, warning: "unconfirmed" });
+  // Only a pull request is judged, and never a fallback run.
+  assert.equal(judgeAt({ event: "push" }).report, "not-judged");
+  assert.equal(judgeAt({ fallback: true }).report, "not-judged");
+  // The line names the budget and its judged limit once one is set.
+  assert.match(laneLine({ ran: true, seconds: 25 * 60, workSeconds: 25 * 60, yieldSeconds: 0, budgetMinutes: 20, verdict: judgeAt({}) }), /budget 20 min, judged past 24\.0 min \(its 20% margin\): past it\.$/);
+});
+
+test("the previous full run's lane work time is read with its own key, beside the main path's", () => {
+  const records = [{ full: true, fallback: false, jobs: [{ job: "plan", conclusion: "success" }], workPathSeconds: 900, laneWorkPathSeconds: 600 }];
+  assert.equal(previousFull(records), 900);
+  assert.equal(previousFull(records, "laneWorkPathSeconds"), 600);
+  assert.equal(previousFull([{ ...records[0], laneWorkPathSeconds: null }], "laneWorkPathSeconds"), null, "a run without a lane leaves no lane evidence");
+});
+
 test("a skipped job adds nothing, and a job no name matches is reported", () => {
   const path = criticalPath([job("plan", 0, 0, 1), job("browser (1/2)", 1, 1, 9, "skipped"), job("lint", 0, 0, 3), job("mystery", 0, 0, 30)], jobGraph(workflow));
   assert.equal(path.seconds, 3 * 60);
@@ -310,7 +357,7 @@ test("a pnpm i that fails is run once more: its warning and its retry are setup 
 
 test("the plan's yield to the merge queue is a wait for runners: the critical path and the work time leave it out, the runner time keeps it", () => {
   const plan = stepped("plan", [["Set up job", 0.5], ["Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", 0.5], ["Yield to the merge queue", 12], ["Run pnpm i --frozen-lockfile", 0.5], ["Plan the tests", 0.5]]);
-  assert.deepEqual(waitSteps, [/^Yield to the merge queue$/]);
+  assert.deepEqual(waitSteps.map(String), [String(/^Yield to the merge queue$/), String(/^Yield to main's screen-reader lane$/)]);
   assert.equal(heldSeconds(plan), 2 * 60);
   assert.equal(workSeconds(plan), 0.5 * 60);
   const graph = jobGraph(workflow);
@@ -553,6 +600,43 @@ test("a run GitHub will not answer for reports budget unavailable and passes; an
   assert.match(readFileSync(summary, "utf8"), /Budget unavailable/);
   assert.equal(reportUnavailable(new ApiUnavailable("y"), undefined, () => {}), 0);
   assert.throws(() => reportUnavailable(new Error("x answered 404"), summary), /404/);
+});
+
+test("the run prints the screen-reader lane's line and records it, both when the lane ran and when it did not", async () => {
+  const saved = { fetch: globalThis.fetch, log: console.log, base: retry.baseSeconds, env: { ...process.env } };
+  const at = (minutes) => new Date(Date.UTC(2026, 9, 20, 12, minutes)).toISOString();
+  const run = async (jobs) => {
+    const logged = [];
+    const out = join(scratchDir("budget-"), "record.json");
+    Object.assign(process.env, { GH_TOKEN: "t", GITHUB_REPOSITORY: "o/r", RUN_ID: "1", RUN_ATTEMPT: "1", EVENT: "pull_request", FALLBACK: "false", HEAD_REF: "" });
+    delete process.env["GITHUB_STEP_SUMMARY"];
+    console.log = (line) => logged.push(line);
+    globalThis.fetch = async (url) => {
+      const text = String(url);
+      const body = text.includes("/jobs?") ? { total_count: jobs.length, jobs } : text.includes("/artifacts") ? { artifacts: [] } : { workflow_runs: [] };
+      return new globalThis.Response(JSON.stringify(body), { status: 200 });
+    };
+    try {
+      assert.equal(await main(["--out", out]), 0);
+    } finally {
+      globalThis.fetch = saved.fetch;
+      console.log = saved.log;
+    }
+    return { logged, record: JSON.parse(readFileSync(out, "utf8")) };
+  };
+  const laneJobs = [
+    { ...job("plan", 0, 0, 1) },
+    { ...job("Screen-reader yield", 1, 1, 9), steps: [{ name: "Yield to main's screen-reader lane", started_at: at(1), completed_at: at(9) }] },
+    { ...job("screen-reader / voiceover (macos-26)", 9, 9, 30) },
+    { ...job("ci", 30, 30, 31) },
+  ];
+  retry.baseSeconds = 0;
+  const ran = await run(laneJobs);
+  assert.ok(ran.logged.includes("Screen-reader lane: critical path **21.0 min** (its jobs; the yield's wait of 8.0 min left out), work time **21.0 min**; no budget yet (set from the first 10 pull requests, #2017)."), ran.logged.join("\n"));
+  assert.deepEqual([ran.record.laneRan, ran.record.laneCriticalPathSeconds, ran.record.laneYieldSeconds, ran.record.laneBudgetMinutes], [true, 21 * 60, 8 * 60, null]);
+  const none = await run([{ ...job("plan", 0, 0, 1) }, { ...job("ci", 1, 1, 2) }]);
+  assert.ok(none.logged.some((line) => line.startsWith("Screen-reader lane: not run in this run")), none.logged.join("\n"));
+  assert.deepEqual([none.record.laneRan, none.record.laneCriticalPathSeconds, none.record.laneWorkPathSeconds], [false, null, null]);
 });
 
 test("jobs answer, then the baseline read gets 502s: the run reports budget unavailable and exits 0", async () => {

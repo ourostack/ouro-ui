@@ -5,6 +5,9 @@
 //   start to its end (the slowest of a matrix's jobs), so time spent queued for a free runner does
 //   not count, nor the plan's yield to the merge queue (`waitSteps`), and the run's load on the
 //   shared runner pool cannot fail it;
+// - the screen-reader lane's own critical path (`laneCriticalPath`), on its own summary line, judged
+//   against its own budget (`laneBudgetMinutes`; report-only while it is null), since the lane is
+//   left off the main path (`offPath`): nothing required sits outside every budget;
 // - the wall time: from the first job's creation to the last job's end, queues included, which is
 //   what a developer waits for, and the median and 90th percentile of it over the last runs of the
 //   same event (the workflow runs API);
@@ -52,7 +55,7 @@ export const setupSteps = [/^Set up job$/, /^Run actions\/checkout@/, /^actions\
  * merge queue (scripts/ci-yield.mjs). Like a queue for a free runner, their time is left out of the
  * critical path and the work time, and counted in the wall time and the runner time.
  */
-export const waitSteps = [/^Yield to the merge queue$/];
+export const waitSteps = [/^Yield to the merge queue$/, /^Yield to main's screen-reader lane$/];
 
 /** The seconds a job spent in `patterns`' steps. */
 const stepSeconds = (job, patterns) => (job.steps ?? []).filter((step) => patterns.some((pattern) => pattern.test(step.name))).reduce((total, step) => total + seconds(step.started_at, step.completed_at), 0);
@@ -174,6 +177,59 @@ export function runWalls(runs) {
 }
 
 /**
+ * The screen-reader lane's own budget, in minutes, judged against the lane's critical path (its
+ * jobs, the yield's wait left out) when a pull request ran it. `null` is report-only: the lane's line
+ * prints, and nothing is judged. It is set from the first 10 pull requests' measurements on #2017,
+ * and ratcheted down later.
+ */
+export const laneBudgetMinutes = null;
+
+/** The yield job's name in ci.yml (sr-yield): its wait for main's lane is left out of the lane's own path. */
+const laneYieldName = "Screen-reader yield";
+
+/**
+ * The screen-reader lane's own critical path: the slowest of its jobs (they run side by side), with
+ * `work` each job's setup steps left out too. The yield's wait for main's lane (sr-yield) is left out,
+ * as the plan's yield is, and reported as `yieldSeconds`. `ran` is false when no lane job ran.
+ */
+export function laneCriticalPath(jobs, { work = false } = {}) {
+  const lane = jobs.filter((job) => laneJob(job.name) && job.conclusion !== "skipped" && job.name !== "screen-reader / report");
+  const seconds = (job) => (work ? workSeconds(job) : heldSeconds(job));
+  const slowest = lane.reduce((best, job) => (seconds(job) > best.seconds ? { job: job.name, seconds: seconds(job) } : best), { job: null, seconds: 0 });
+  const yieldJob = jobs.find((job) => job.name === laneYieldName && job.conclusion !== "skipped");
+  return { ran: lane.length > 0, seconds: slowest.seconds, job: slowest.job, yieldSeconds: yieldJob ? stepSeconds(yieldJob, waitSteps) : 0 };
+}
+
+/**
+ * The lane's verdict on a run: `{ report, fail, reason, warning }`. `report` says what the line
+ * shows: `not-run`, `no-budget` (nothing is judged), `not-judged` (not a pull request, or a fallback
+ * run), `within`, or `over`. Judged like the main budget: over the budget and its margin, the work
+ * time decides (past the limit it fails when the earlier evidence was past it too, warns when not,
+ * and with none fails asking for the run to be run again).
+ */
+export function judgeLane({ event, fallback = false, ran, criticalSeconds, workSeconds: work, budgetMinutes = laneBudgetMinutes, earlierWorkSeconds = null }, { margin } = budget) {
+  if (!ran) return { report: "not-run", fail: false, reason: null, warning: null };
+  if (budgetMinutes === null) return { report: "no-budget", fail: false, reason: null, warning: null };
+  if (event !== "pull_request" || fallback) return { report: "not-judged", fail: false, reason: null, warning: null };
+  const limit = budgetMinutes * 60 * (1 + margin);
+  if (criticalSeconds <= limit) return { report: "within", fail: false, reason: null, warning: null };
+  if (work <= limit) return { report: "over", fail: false, reason: null, warning: "over" };
+  if (typeof earlierWorkSeconds !== "number") return { report: "over", fail: true, reason: "confirm", warning: null };
+  if (earlierWorkSeconds > limit) return { report: "over", fail: true, reason: "budget", warning: null };
+  return { report: "over", fail: false, reason: null, warning: "unconfirmed" };
+}
+
+/** The lane's summary line: always printed, and naming the budget or that none is set yet. */
+export function laneLine({ ran, seconds, workSeconds: work, yieldSeconds, budgetMinutes = laneBudgetMinutes, verdict }, { margin } = budget) {
+  if (!ran) return "Screen-reader lane: not run in this run (the plan selected no spec, or this is not a pull request from this repository).";
+  const path = `Screen-reader lane: critical path **${minutes(seconds)}** (its jobs; the yield's wait of ${minutes(yieldSeconds)} left out), work time **${minutes(work)}**`;
+  if (budgetMinutes === null) return `${path}; no budget yet (set from the first 10 pull requests, #2017).`;
+  const limit = budgetMinutes * 60 * (1 + margin);
+  const outcome = verdict.report === "within" ? "within it" : verdict.report === "not-judged" ? "not judged here" : "past it";
+  return `${path}; budget ${budgetMinutes} min, judged past ${minutes(limit)} (its ${margin * 100}% margin): ${outcome}.`;
+}
+
+/**
  * The budget's verdict on a run: `{ fail, reason, warning }`. A job that no ci.yml job name
  * matches (`unmatched`) fails a pull request, since its critical path would leave that job out; a
  * merge group or a push only warns, so the required check never bounces a queue entry (the pull
@@ -238,10 +294,10 @@ export function passedAttempt(jobs) {
  * (`attemptJobs(n)`), when this one ran its jobs afresh ("Re-run all jobs") and that one ran to its
  * end with every job passed (`passedAttempt`), or else the pull request's previous full run (`previous()`), or none.
  */
-export async function earlierWork({ attempt, jobs, graph, attemptJobs, previous }) {
+export async function earlierWork({ attempt, jobs, graph, attemptJobs, previous, work = (list) => criticalPath(list, graph, { work: true }).seconds }) {
   if (Number(attempt) > 1 && freshAttempt(jobs, attempt)) {
     const before = await attemptJobs(Number(attempt) - 1);
-    if (passedAttempt(before)) return { seconds: criticalPath(before, graph, { work: true }).seconds, from: `attempt ${Number(attempt) - 1} of this run` };
+    if (passedAttempt(before)) return { seconds: work(before), from: `attempt ${Number(attempt) - 1} of this run` };
   }
   const seconds = previous ? await previous() : null;
   return seconds === null ? { seconds: null, from: null } : { seconds, from: "the pull request's previous full run" };
@@ -282,9 +338,9 @@ export function baseline(runs, count = budget.baselineRuns) {
  * (a fork's pull request, a rate-limit stop, its deadline), ends its chain early, and its shorter
  * work time would excuse a real regression. Null when there is none.
  */
-export function previousFull(records) {
-  const found = records.find((record) => record && record.full === true && record.fallback !== true && typeof record.workPathSeconds === "number" && recordPassed(record));
-  return found ? found.workPathSeconds : null;
+export function previousFull(records, key = "workPathSeconds") {
+  const found = records.find((record) => record && record.full === true && record.fallback !== true && typeof record[key] === "number" && recordPassed(record));
+  return found ? found[key] : null;
 }
 
 /**
@@ -384,7 +440,7 @@ export const previousRuns = { records: 5, pages: 3, perPage: 20 };
  * fail-fast or a newer push cancelled before ci-budget ran, is passed over rather than counted, so a
  * few red pushes do not hide the full run before them; at most `previousRuns.pages` pages are read.
  */
-export async function previousRunWorkFrom({ runsPage, recordOf, runId }, { records: keep, pages } = previousRuns) {
+export async function previousRunWorkFrom({ runsPage, recordOf, runId }, { records: keep, pages } = previousRuns, key = "workPathSeconds") {
   const records = [];
   for (let page = 1; page <= pages && records.length < keep; page += 1) {
     const runs = await runsPage(page);
@@ -392,16 +448,16 @@ export async function previousRunWorkFrom({ runsPage, recordOf, runId }, { recor
       const record = await recordOf(run.id);
       if (record === null) continue;
       records.push(record);
-      if (previousFull([record]) !== null || records.length >= keep) return previousFull(records);
+      if (previousFull([record], key) !== null || records.length >= keep) return previousFull(records, key);
     }
     if (runs.length < previousRuns.perPage) break;
   }
-  return previousFull(records);
+  return previousFull(records, key);
 }
 
-async function previousRunWork({ repository, token, branch, runId }) {
+async function previousRunWork({ repository, token, branch, runId }, key = "workPathSeconds") {
   const runsPage = async (page) => (await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&branch=${encodeURIComponent(branch)}&status=completed&per_page=${previousRuns.perPage}&page=${page}`, token)).workflow_runs;
-  return previousRunWorkFrom({ runsPage, recordOf: (id) => timingsOf({ repository, token, runId: id }), runId });
+  return previousRunWorkFrom({ runsPage, recordOf: (id) => timingsOf({ repository, token, runId: id }), runId }, previousRuns, key);
 }
 
 /** How many of the latest runs the wall time's median and 90th percentile are taken over. */
@@ -441,6 +497,9 @@ async function judgeRun(argv) {
   const work = criticalPath(jobs, graph, { work: true });
   const wall = wallTime(jobs, graph);
   const runner = runnerTime(jobs, graph);
+  // The screen-reader lane's own critical path and work time (laneCriticalPath), judged apart from the main path.
+  const lane = laneCriticalPath(jobs);
+  const laneWork = laneCriticalPath(jobs, { work: true });
   // The latest completed runs of ci.yml for the same event, this one not yet among them.
   let recent = null;
   try {
@@ -477,6 +536,26 @@ async function judgeRun(argv) {
       }
     }
   }
+  // The lane's earlier evidence, read only when its work time is past its budget: this run's earlier attempt, or the previous full run's lane work time.
+  let laneEarlier = { seconds: null, from: null };
+  const laneLimit = laneBudgetMinutes === null ? null : laneBudgetMinutes * 60 * (1 + budget.margin);
+  if (lane.ran && laneLimit !== null && event === "pull_request" && !fallback && laneWork.seconds > laneLimit) {
+    try {
+      laneEarlier = await earlierWork({
+        attempt,
+        jobs,
+        graph,
+        attemptJobs: (number) => fetchJobs({ repository, runId, attempt: number, token }),
+        previous: branch ? () => previousRunWork({ repository, token, branch, runId }, "laneWorkPathSeconds") : null,
+        work: (list) => laneCriticalPath(list, { work: true }).seconds,
+      });
+    } catch (error) {
+      if (error instanceof ApiUnavailable) throw error;
+      console.log(`::warning::The lane's earlier attempt or the pull request's previous full run could not be read: ${error.message}`);
+    }
+  }
+  const laneVerdict = judgeLane({ event, fallback, ran: lane.ran, criticalSeconds: lane.seconds, workSeconds: laneWork.seconds, budgetMinutes: laneBudgetMinutes, earlierWorkSeconds: laneEarlier.seconds });
+  const laneText = laneLine({ ran: lane.ran, seconds: lane.seconds, workSeconds: laneWork.seconds, yieldSeconds: lane.yieldSeconds, budgetMinutes: laneBudgetMinutes, verdict: laneVerdict });
   const verdict = judge({ event, fallback, criticalSeconds: path.seconds, workSeconds: work.seconds, baselineWorkSeconds: mainBaseline.workSeconds, earlierWorkSeconds: earlier.seconds, unmatched: path.unmatched });
   const ceiling = ceilingSeconds(mainBaseline.workSeconds);
   const record = {
@@ -486,6 +565,12 @@ async function judgeRun(argv) {
     fallback,
     criticalPathSeconds: Math.round(path.seconds),
     workPathSeconds: Math.round(work.seconds),
+    laneRan: lane.ran,
+    laneCriticalPathSeconds: lane.ran ? Math.round(lane.seconds) : null,
+    laneWorkPathSeconds: lane.ran ? Math.round(laneWork.seconds) : null,
+    laneYieldSeconds: Math.round(lane.yieldSeconds),
+    laneBudgetMinutes,
+    laneVerdict: laneVerdict.report,
     workPath: work.jobs.map((job) => ({ job: job.name, seconds: Math.round(job.seconds) })),
     criticalPath: path.jobs.map((job) => ({ job: job.name, seconds: Math.round(job.seconds) })),
     wallSeconds: Math.round(wall),
@@ -507,8 +592,9 @@ async function judgeRun(argv) {
     `Critical path **${minutes(path.seconds)}**, work time (setup steps left out) **${minutes(work.seconds)}** (budget for a pull request: ${budget.targetMinutes} min; over ${minutes(limit)}, a work time more than ${budget.regressionMinutes} min over main's, or past ${minutes(ceiling)}, fails when the earlier attempt or the pull request's previous full run was past it too${fallback ? "; a full-suite fallback run is not judged" : ""}).`,
     mainBaseline.seconds === null ? `Main's baseline: none (no passing merge queue run read).` : `Main's baseline, the median of its latest ${mainBaseline.values.length} passing merge queue runs: ${minutes(mainBaseline.seconds)}, work time ${mainBaseline.workSeconds === null ? "not recorded" : minutes(mainBaseline.workSeconds)}.`,
     ``,
-    `Wall time **${minutes(wall)}**, queues included; runners held for **${minutes(runner)}**.`,
-    recent && recent.runs > 0
+    laneText,
+    ``,
+    `Wall time **${minutes(wall)}**, queues included; runners held for **${minutes(runner)}**.`,    recent && recent.runs > 0
       ? `Over the last ${recent.runs} completed \`${event}\` runs, wall time p50 ${minutes(recent.p50Seconds)}, p90 ${minutes(recent.p90Seconds)}.`
       : `No completed \`${event}\` run to compare with.`,
     ``,
@@ -540,6 +626,11 @@ async function judgeRun(argv) {
   }[verdict.warning];
   if (verdict.warning === "unmatched") console.log(`::warning::No ci.yml job name matches these jobs, so this run's critical path leaves them out: ${path.unmatched.join(", ")}. A pull request run fails on this; give each job a name the job graph reads (jobGraph).`);
   else if (verdict.warning) console.log(`::warning::The critical path took ${minutes(path.seconds)}, ${over}, ${because}: ${chain}.`);
+  console.log(laneText);
+  if (laneVerdict.warning === "over") console.log(`::warning::The screen-reader lane's critical path took ${minutes(lane.seconds)}, past its budget of ${laneBudgetMinutes} min and margin, but its work time (${minutes(laneWork.seconds)}) is within it: more likely a slow runner than this change.`);
+  if (laneVerdict.warning === "unconfirmed") console.log(`::warning::The screen-reader lane's work time (${minutes(laneWork.seconds)}) is past its budget of ${laneBudgetMinutes} min, but ${laneEarlier.from}'s (${minutes(laneEarlier.seconds ?? 0)}) was not: more likely a slow runner than this change.`);
+  if (laneVerdict.reason === "confirm") console.log(`::error::The screen-reader lane's work time (${minutes(laneWork.seconds)}) is past its budget of ${laneBudgetMinutes} min, with no earlier attempt or full run of this pull request to confirm it. Re-run all jobs to confirm (not only the failed ones): one slow runner does not fail a pull request, two runs past it do.`);
+  if (laneVerdict.reason === "budget") console.log(`::error::The screen-reader lane's work time (${minutes(laneWork.seconds)}) is past its budget of ${laneBudgetMinutes} min, as ${laneEarlier.from}'s was (${minutes(laneEarlier.seconds ?? 0)}). Make the lane's slowest job faster, or raise the budget in scripts/ci-budget.mjs with the reason.`);
   if (verdict.fail) {
     if (verdict.reason === "unmatched") {
       console.log(`::error::No ci.yml job name matches these jobs, so the critical path would leave them out: ${path.unmatched.join(", ")}. Give each job a name the job graph reads (jobGraph), with every matrix value it uses listed in its matrix.`);
@@ -552,7 +643,7 @@ async function judgeRun(argv) {
     console.log(`::error::The critical path took ${minutes(path.seconds)}, ${over}, and ${pastBar}, as ${earlier.from}'s was (${minutes(earlier.seconds ?? 0)}): ${chain}. ${advice}`);
     return 1;
   }
-  return 0;
+  return laneVerdict.fail ? 1 : 0;
 }
 
 /** Judges the run; a phase GitHub will not answer for reports "Budget unavailable" and passes. */
