@@ -50,7 +50,7 @@ const quote = (s: string) => `'${s.replace(/'/g, "''")}'`;
  * This Windows machine, as the harness asks a Mac. `screencapture` is the eyes' one-shot picture; `open` the app's own, else
  * the shell's `start`; `pgrep` and `pkill` the app's own, else Windows' processes; `curl` is curl.exe; `dscacheutil`
  * Resolve-DnsName; `sudo -n pfctl` Windows Firewall's outbound block rules, which refuse at once whether pf would refuse or
- * drop; `sudo -n sfltool dumpbtm` the Run keys and the Startup folder, in its form; and `defaults` nothing. Any other
+ * drop, with each profile that was off turned on for the hold and put back as it was; `sudo -n sfltool dumpbtm` the Run keys and the Startup folder, in its form; and `defaults` nothing. Any other
  * command runs as it is. The runner must be an administrator, as a GitHub-hosted Windows runner is, for the firewall.
  * @claim "This Windows machine, as the harness asks" scripts/check/first-run-windows.test.mts verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > answers screencapture, pgrep, pkill, curl, dscacheutil and defaults as Windows does)
  * @claim "`sudo -n pfctl` Windows Firewall's outbound block rules" scripts/check/first-run-windows.test.mts verify:testExists(scripts/check/first-run-windows.test.mts::first-run harness on Windows > holds the network with Windows Firewall's outbound rules, turns the firewall on for the hold, and puts it back)
@@ -61,18 +61,21 @@ const quote = (s: string) => `'${s.replace(/'/g, "''")}'`;
  */
 export function windowsSystem(o: WindowsOptions, base: System = system): System {
   const ps = (command: string, timeout = 60_000) => base.run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], { timeout });
-  let profilesOff = "";
+  /** The profiles that were off when the hold began, each with its default actions, to put back as they were. */
+  let wereOff: { name: string; inbound: string; outbound: string }[] = [];
 
   const pf = (args: string[], input = ""): Result => {
     if (args[0] === "-E") {
-      // pf's enable: the firewall on for the hold if the machine had it off; pfctl -X puts it back.
-      profilesOff = ps("(Get-NetFirewallProfile | Where-Object Enabled -eq $false | ForEach-Object Name) -join ','").stdout.trim();
-      if (profilesOff) ps("Set-NetFirewallProfile -All -Enabled True -DefaultOutboundAction Allow -DefaultInboundAction Allow");
+      // pf's enable: each profile that is off turned on for the hold, letting through what it would have; pfctl -X puts
+      // those back, off and with their own default actions. A profile that was on is left alone.
+      const read = ps("Get-NetFirewallProfile | Where-Object Enabled -eq $false | ForEach-Object { $_.Name + ':' + $_.DefaultInboundAction + ':' + $_.DefaultOutboundAction }").stdout;
+      wereOff = [...read.matchAll(/^(\w+):(\w+):(\w+)\r?$/gm)].map((m) => ({ name: m[1]!, inbound: m[2]!, outbound: m[3]! }));
+      if (wereOff.length) ps(`Set-NetFirewallProfile -Profile ${wereOff.map((p) => p.name).join(",")} -Enabled True -DefaultInboundAction Allow -DefaultOutboundAction Allow`);
       return answer(0, "Token : 1\n");
     }
     if (args[0] === "-X") {
-      if (profilesOff) ps(`Set-NetFirewallProfile -Profile ${profilesOff} -Enabled False`);
-      profilesOff = "";
+      if (wereOff.length) ps(wereOff.map((p) => `Set-NetFirewallProfile -Profile ${p.name} -Enabled False -DefaultInboundAction ${p.inbound} -DefaultOutboundAction ${p.outbound}`).join("; "));
+      wereOff = [];
       return answer(0);
     }
     if (args[0] === "-a" && args[2] === "-F") return ps(`Remove-NetFirewallRule -DisplayName ${quote(RULE)} -ErrorAction SilentlyContinue; exit 0`);
@@ -118,7 +121,7 @@ export function windowsSystem(o: WindowsOptions, base: System = system): System 
         case "pkill": {
           const pattern = args.at(-1)!;
           if (o.pkill) o.pkill(pattern);
-          else ps(`Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ${quote(`*${pattern}*`)} } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`);
+          else ps(`Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like ${quote(`*${pattern}*`)} } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`);
           return answer(0);
         }
         case "curl":

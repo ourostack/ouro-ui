@@ -92,7 +92,7 @@ describe("first-run harness on Windows", () => {
 
     sys.run("pkill", ["-9", "-f", "C:\\Program Files\\Ada's App"]);
     assert.equal(m.last().cmd, "powershell.exe");
-    assert.match(m.script(), /\$_\.CommandLine -like '\*C:\\Program Files\\Ada''s App\*' \} \| ForEach-Object \{ Stop-Process -Id \$_\.ProcessId -Force \}/);
+    assert.match(m.script(), /\$_\.ProcessId -ne \$PID -and \$_\.CommandLine -like '\*C:\\Program Files\\Ada''s App\*' \} \| ForEach-Object \{ Stop-Process -Id \$_\.ProcessId -Force \}/);
 
     sys.run("curl", ["-sS", "-o", "/dev/null", "-m", "6", "https://example.com"], { timeout: 9000 });
     assert.deepEqual([m.last().cmd, m.last().args, m.last().o], ["curl.exe", ["-sS", "-o", "NUL", "-m", "6", "https://example.com"], { timeout: 9000 }]);
@@ -117,11 +117,12 @@ describe("first-run harness on Windows", () => {
 
   test("holds the network with Windows Firewall's outbound rules, turns the firewall on for the hold, and puts it back", () => {
     let rule = false;
-    let firewallOff = "Domain,Public";
+    // Only whole lines of a profile and its actions count, ended either way.
+    let firewallOff = "Domain:Block:Allow\r\nPublic:NotConfigured:NotConfigured\nWARNING x:y:z\nPrivate:Block:Allow:more\r\n";
     const m = machine((cmd, args) => {
       const script = args.at(-1) ?? "";
       if (cmd === "curl.exe") return { status: rule ? 7 : 0 };
-      if (script.startsWith("(Get-NetFirewallProfile")) return { stdout: `${firewallOff}\r\n` };
+      if (script.startsWith("Get-NetFirewallProfile")) return { stdout: firewallOff };
       if (script.startsWith("New-NetFirewallRule")) rule = true;
       if (script.startsWith("Remove-NetFirewallRule")) rule = false;
       if (script.startsWith("(Resolve-DnsName")) return { stdout: "20.190.151.7\r\n" };
@@ -132,17 +133,17 @@ describe("first-run harness on Windows", () => {
 
     const block = unreachable({ hosts: ["login.example.com"], ranges: ["40.126.0.0/18"], probe: "https://login.example.com" }, "the sign-in unreachable", "hang", sys);
     assert.equal(block.ok, true, block.evidence);
-    assert.ok(scripts().includes("Set-NetFirewallProfile -All -Enabled True -DefaultOutboundAction Allow -DefaultInboundAction Allow"));
+    assert.ok(scripts().includes("Set-NetFirewallProfile -Profile Domain,Public -Enabled True -DefaultInboundAction Allow -DefaultOutboundAction Allow"));
     assert.ok(scripts().includes("New-NetFirewallRule -DisplayName 'ouro-first-run' -Direction Outbound -Action Block -RemoteAddress '40.126.0.0/18','20.190.151.7' | Out-Null"));
     block.lift();
     assert.equal(rule, false);
-    assert.deepEqual(scripts().slice(-2), ["Remove-NetFirewallRule -DisplayName 'ouro-first-run' -ErrorAction SilentlyContinue; exit 0", "Set-NetFirewallProfile -Profile Domain,Public -Enabled False"]);
+    assert.deepEqual(scripts().slice(-2), ["Remove-NetFirewallRule -DisplayName 'ouro-first-run' -ErrorAction SilentlyContinue; exit 0", "Set-NetFirewallProfile -Profile Domain -Enabled False -DefaultInboundAction Block -DefaultOutboundAction Allow; Set-NetFirewallProfile -Profile Public -Enabled False -DefaultInboundAction NotConfigured -DefaultOutboundAction NotConfigured"]);
     const lifted = scripts().length;
     sys.run("sudo", ["-n", "pfctl", "-X", "1"]);
     assert.equal(scripts().length, lifted, "the firewall is put back once");
 
     // Offline is everything but loopback; a firewall already on is left as it was.
-    firewallOff = "";
+    firewallOff = "\r\n";
     const count = scripts().length;
     const all = offline("https://example.com", sys);
     assert.equal(all.ok, true, all.evidence);

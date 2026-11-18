@@ -52,11 +52,19 @@ const sys = windowsSystem({ eyes: eyesExe, pgrep: (name) => (name === "msedge" &
 const shot = path.join(out, "screen.png");
 sys.run("screencapture", ["-x", shot]);
 expect("screencapture", fs.existsSync(shot) && fs.statSync(shot).size > 1000, `the eyes' one-shot picture is ${fs.existsSync(shot) ? fs.statSync(shot).size : 0} bytes`);
+// With the Public profile off first, as a machine may have it: the hold turns it on, and lifting it puts it back as it was.
+const powershell = (command: string) => spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], { encoding: "utf8" }).stdout.trim();
+const publicProfile = () => powershell("$p = Get-NetFirewallProfile -Name Public; '' + $p.Enabled + ':' + $p.DefaultInboundAction + ':' + $p.DefaultOutboundAction");
+const original = publicProfile();
+powershell("Set-NetFirewallProfile -Profile Public -Enabled False");
+const off = publicProfile();
 const before = reachable("https://example.com", sys);
 const hold = unreachable({ hosts: ["example.com"], ranges: [], probe: "https://example.com" }, "example.com unreachable", "refuse", sys);
 hold.lift();
 const back = reachable("https://example.com", sys);
-expect("firewall", before && hold.ok && back, `example.com answered: ${before}; ${hold.evidence}; answered once lifted: ${back}`);
+const after = publicProfile();
+powershell(`Set-NetFirewallProfile -Profile Public -Enabled ${original.split(":")[0]}`);
+expect("firewall", before && hold.ok && back && after === off, `example.com answered: ${before}; ${hold.evidence}; answered once lifted: ${back}; the Public profile was ${original}, off for the hold ${off}, after it ${after}`);
 const runKey = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 spawnSync("reg", ["add", runKey, "/v", "OuroFirstRunProof", "/d", "C:\\OuroFirstRunProof\\proof.exe", "/f"]);
 const login = leftovers({ bundle: "C:\\OuroFirstRunProof", id: "OuroFirstRunProof", extraPaths: windowsDataPaths({ folder: "OuroFirstRunProof", shortcut: "OuroFirstRunProof" }) }, { sys });
