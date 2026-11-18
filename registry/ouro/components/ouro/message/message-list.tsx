@@ -1651,19 +1651,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let slack = 0;
     const setSlack = (px: number) => {
       slack = px;
-      content.style.marginBlockStart = px > 0 ? `${px}px` : "";
+      content.style.marginBlockStart = `${px}px`;
+    };
+    // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
+    const scrollOwn = (by: number) => {
+      const before = scroller.scrollTop;
+      scroller.scrollTop += by;
+      ownTop.current = scroller.scrollTop;
+      const applied = scroller.scrollTop - before;
+      springsRef.current?.moved(applied);
+      return applied;
     };
     // Lets the space go once the reader has scrolled past it and the wheel rests: the content moves up by it as the scroll
     // position does, so nothing on screen moves.
     const release = () => {
+      // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
       if (slack === 0 || turning() || scroller.scrollTop < slack) return;
-      const before = scroller.scrollTop;
-      const by = slack;
+      // Scrolled while the space still holds the scroll range, then the space goes.
+      scrollOwn(-slack);
       setSlack(0);
-      // From the position read before the margin went, which a list within the space of its end would already read clamped.
-      scroller.scrollTop = before - by;
-      ownTop.current = scroller.scrollTop;
-      springsRef.current?.moved(scroller.scrollTop - before);
       keepAnchor();
     };
     const pay = () => {
@@ -1680,12 +1686,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       carriedRef.current = 0;
       content.style.removeProperty("translate");
       const before = scroller.scrollTop;
-      scroller.scrollTop += by;
-      ownTop.current = scroller.scrollTop;
-      const applied = scroller.scrollTop - before;
-      springsRef.current?.moved(applied);
-      // What the list's start stopped goes above the content instead, so the content stays where the reader sees it.
-      if (applied - by >= 0.5 && scroller.scrollTop <= 0) setSlack(slack + applied - by);
+      const applied = scrollOwn(by);
+      // What the list's start stops, the part of the move past it, goes above the content instead, so the content stays where the
+      // reader sees it.
+      setSlack(slack + Math.max(0, -(before + by)));
       // The anchors sit where they did in the content, which a scroll does not move: only the list's own scroll since they were
       // taken is left out of the reader's, so a change waiting for the resize observer is still held.
       taken += applied;
