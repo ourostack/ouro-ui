@@ -121,7 +121,8 @@ interface A2UISurfaceProps {
   onProblems?: ((problems: readonly A2UIProblem[]) => void) | undefined;
   /**
    * Names the ids in a confirm sheet's rows from the app's own data, such as a recipe's title for `rcp_lemon_orzo`.
-   * Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared,
+   * It is asked only for an id field, one whose catalog input has `shownAs`; every other row shows exactly what will
+   * be sent. Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared,
    * because the agent's text is the one thing the person can't check. Keep it stable, as `messages` is: a new function
    * on each render resolves the messages again.
    *

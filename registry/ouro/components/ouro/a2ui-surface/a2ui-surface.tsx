@@ -58,10 +58,12 @@ export interface A2UISurfaceProps {
   onProblems?: ((problems: readonly A2UIProblem[]) => void) | undefined;
   /**
    * Names the ids in a confirm sheet's rows from the app's own data, such as a recipe's title for `rcp_lemon_orzo`.
-   * Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared,
+   * It is asked only for an id field, one whose catalog input has `shownAs`; every other row shows exactly what will
+   * be sent. Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared,
    * because the agent's text is the one thing the person can't check. Keep it stable, as `messages` is: a new function
    * on each render resolves the messages again.
    *
+   * @claim "It is asked only for an id field" registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > lets the app's resolver name an id the agent prepared a name for, in a field the catalog says stands in for it) verify:fileLine(registry/ouro/lib/ouro/a2ui-core.ts, /f\.shownAs !== undefined \? \(options\.label/)
    * @claim "The name wins over what the agent prepared" registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > lets the app's resolver name an id the agent prepared a name for, in a field the catalog says stands in for it)
    * @example
    * label={({ field, value }) => (field === "recipe" ? titles[value] : undefined)}

@@ -22,7 +22,7 @@ const catalog = loadCatalog({
       bot_ouroboros_hx: {
         actions: {
           add_recipe_to_shopping_list: { consent: "write", press: "run", label: "Add ingredients to list", description: "Add this recipe's ingredients to your shopping list.", input: { recipe: field("Recipe"), servings: field("Servings", "integer", true) } },
-          share_recipe: { consent: "consequential", press: "confirm", label: "Share recipe", description: "Send this recipe to someone.", input: { recipe: field("Recipe"), with: field("With") } },
+          share_recipe: { consent: "consequential", press: "confirm", label: "Share recipe", description: "Send this recipe to someone.", input: { recipe: { ...field("Recipe"), shownAs: "recipeTitle" }, recipeTitle: field("Recipe title", "string", true), with: field("With") } },
           plan_dinner: {
             consent: "write",
             press: "run",

@@ -1,6 +1,6 @@
 export const COMPOSED_VERSION = "1";
 
-// Vendored from ourostack/ouro-ui-core v0.18.0: src/composed.mts, src/mcp-app.mts, src/a2ui.mts, joined into one file by scripts/core-bundle.mts
+// Vendored from ourostack/ouro-ui-core v0.18.3: src/composed.mts, src/mcp-app.mts, src/a2ui.mts, joined into one file by scripts/core-bundle.mts
 // with the imports between them taken out. Never edit it: run `node scripts/core-bundle.mts --update <tag>`.
 
 // COMPOSED_VERSION above is the version of Ouro's composed-UI tree. (No comment goes before the first statement:
@@ -206,7 +206,7 @@ export const componentsFor = (actions: Readonly<Record<string, CatalogAction>>):
 
 /** Why an agent can't press a button through the screen, whatever the format asked: agents use their own doors. */
 export function agentPressProblem(cat: Catalog, name: unknown): { message: string; refusal?: Refusal } {
-  const a = typeof name === "string" ? cat.actions[name] : undefined;
+  const a = typeof name === "string" ? own(cat.actions, name) : undefined;
   if (a?.personOnly) return { message: a.personOnly.refusal.summary, refusal: a.personOnly.refusal };
   if (a) return { message: `${name} is an action, and agents run actions through their own tool (MCP ${name}), not through the person's screen.` };
   return { message: `This catalog has no functions an agent may call${typeof name === "string" ? `, so ${name} is not one` : ""}.` };
@@ -219,24 +219,38 @@ export function agentPressProblem(cat: Catalog, name: unknown): { message: strin
 /** A value bound to the data model: `{ "@path": "/servings" }`. In a tree, the path is absolute. */
 export const isBinding = (v: unknown): v is { "@path": string } => isObj(v) && typeof v["@path"] === "string" && Object.keys(v).length === 1;
 
-/** Reads a JSON pointer (RFC 6901). A missing value is undefined. */
+/** A pointer segment that would reach an object's prototype instead of the data: never followed or written. */
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+const segments = (pointer: string) => pointer.replace(/^\//, "").split("/").map((k) => k.replace(/~1/g, "/").replace(/~0/g, "~"));
+
+/** Whether no segment of a pointer, absolute or relative, names an object's prototype (ouro-ui-core#91). */
+export const isSafePointer = (pointer: string): boolean => !segments(pointer).some((k) => UNSAFE_KEYS.has(k));
+
+/** Whether a pointer stays in the data: absolute, and safe. */
+export const isDataPointer = (pointer: string): boolean => pointer.startsWith("/") && isSafePointer(pointer);
+
+/** Reads a JSON pointer (RFC 6901). A missing value is undefined, and so is anything the data doesn't itself hold. */
 export function getPointer(data: Json, pointer: string): Json | undefined {
   if (pointer === "" || pointer === "/") return data;
   let cur: Json | undefined = data;
   for (const raw of pointer.replace(/^\//, "").split("/")) {
     const key = raw.replace(/~1/g, "/").replace(/~0/g, "~");
     if (Array.isArray(cur)) cur = /^\d+$/.test(key) ? cur[Number(key)] : undefined;
-    else if (cur && typeof cur === "object") cur = (cur as Obj)[key];
+    else if (cur && typeof cur === "object") cur = Object.hasOwn(cur, key) ? (cur as Obj)[key] : undefined;
     else return undefined;
     if (cur === undefined) return undefined;
   }
   return cur;
 }
 
-/** Writes a JSON pointer, creating objects on the way; null deletes. It returns a copy and leaves `data` as it was. */
+/**
+ * Writes a JSON pointer, creating objects on the way; null deletes. It returns a copy and leaves `data` as it was. A
+ * pointer with a segment that names an object's prototype writes nothing.
+ */
 export function setPointer(data: Json, pointer: string, value: Json): Json {
   if (pointer === "" || pointer === "/") return value === null ? {} : value;
-  const keys = pointer.replace(/^\//, "").split("/").map((k) => k.replace(/~1/g, "/").replace(/~0/g, "~"));
+  const keys = segments(pointer);
+  if (keys.some((k) => UNSAFE_KEYS.has(k))) return data;
   const root: Json = data && typeof data === "object" ? structuredClone(data) : {};
   let cur = root as Obj | Json[];
   keys.forEach((k, i) => {
@@ -250,7 +264,7 @@ export function setPointer(data: Json, pointer: string, value: Json): Json {
       } else (container as unknown as Record<string | number, Json>)[index] = value;
       return;
     }
-    const next = (container as unknown as Record<string | number, Json>)[index];
+    const next = Object.hasOwn(container, index) ? (container as unknown as Record<string | number, Json>)[index] : undefined;
     if (!next || typeof next !== "object") (container as unknown as Record<string | number, Json>)[index] = {};
     cur = (container as unknown as Record<string | number, Json>)[index] as Obj;
   });
@@ -265,15 +279,21 @@ export function asText(v: Json | undefined): string {
   return JSON.stringify(v);
 }
 
+/** The input fields a confirm sheet has a row for, in order: each prepared one, less a name that stands in for an id. */
+function confirmKeys(a: CatalogAction, input: Obj): string[] {
+  const names = new Set(Object.entries(a.input).filter(([k, f]) => Object.hasOwn(input, k) && f.shownAs !== undefined && Object.hasOwn(a.input, f.shownAs)).map(([, f]) => f.shownAs!));
+  return Object.keys(a.input).filter((k) => Object.hasOwn(input, k) && !names.has(k));
+}
+
 /**
  * The rows of a confirm sheet: each prepared input with the person's label. An id shows its name (the app's resolver,
  * else the sibling `shownAs` names, else the value itself), with the id as `raw` when the name replaced it; a name
- * field that stands in for an id has no row of its own.
+ * field that stands in for an id has no row of its own. Only an id field (one with `shownAs`) shows a name; every
+ * other row shows exactly what will be sent.
  */
 function confirmFields(action: string, a: CatalogAction, input: Obj, options: ResolveOptions): { label: string; value: string; raw?: string; bind?: string }[] {
-  const names = new Set(Object.entries(a.input).filter(([k, f]) => k in input && f.shownAs !== undefined && f.shownAs in a.input).map(([, f]) => f.shownAs!));
-  return Object.entries(a.input)
-    .filter(([k]) => k in input && !names.has(k))
+  return confirmKeys(a, input)
+    .map((k) => [k, a.input[k]!] as const)
     .map(([k, f]) => {
       // The person's own answer, read when they press (resolveButton): it shows as they wrote it.
       const bound = input[k];
@@ -281,7 +301,8 @@ function confirmFields(action: string, a: CatalogAction, input: Obj, options: Re
       const raw = asText(input[k]);
       const sibling = f.shownAs !== undefined ? input[f.shownAs] : undefined;
       const prepared = typeof sibling === "string" && sibling.trim() !== "" ? sibling.trim() : undefined;
-      const value = options.label?.({ action, field: k, value: raw, input }) ?? prepared ?? raw;
+      // Only an id field (one with shownAs) shows a name; every other row shows exactly what will be sent.
+      const value = (f.shownAs !== undefined ? (options.label?.({ action, field: k, value: raw, input }) ?? prepared) : undefined) ?? raw;
       return value === raw ? { label: f.label, value } : { label: f.label, value, raw };
     });
 }
@@ -299,8 +320,9 @@ export interface LabelContext {
 export interface ResolveOptions {
   /**
    * The app's own word for an id, from its own data, such as a recipe's title for `rcp_lemon_orzo`; undefined to leave it
-   * to the field's `shownAs`, then to the value itself. It is asked for each field a confirm sheet shows, and wins over
-   * what the agent prepared, since the agent's text is the one thing the person can't check.
+   * to the field's `shownAs`, then to the value itself. It is asked for each id field a confirm sheet shows (one whose
+   * catalog input has `shownAs`), and wins over what the agent prepared, since the agent's text is the one thing the
+   * person can't check. Every other row shows exactly what will be sent.
    */
   label?: (context: LabelContext) => string | undefined;
 }
@@ -337,6 +359,12 @@ export interface TreeProblem {
 
 /** A JSON object (not null, not an array). The A2UI adapter uses it too, so the modules declare no name twice. */
 export const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * A catalog entry by a name a sender chose, only when the catalog itself has it: `constructor` or `toString` is never a
+ * component, an action or an input field (ouro-ui-core#91).
+ */
+export const own = <T,>(record: Readonly<Record<string, T>>, key: string): T | undefined => (Object.hasOwn(record, key) ? record[key] : undefined);
 const BUTTON_PROPS = ["action", "label", "consent", "press", "input", "confirm", "handoff", "emphasis", "@label"];
 
 function checkProp(problems: TreeProblem[], key: string, p: Prop, v: unknown, at: string): void {
@@ -359,7 +387,7 @@ function checkProp(problems: TreeProblem[], key: string, p: Prop, v: unknown, at
       if (v !== 1 && v !== 2 && v !== 3) bad("1, 2 or 3");
       break;
     case "path":
-      if (typeof v !== "string" || !v.startsWith("/")) bad("a JSON pointer into the data model, such as /servings");
+      if (typeof v !== "string" || !isDataPointer(v)) bad("a JSON pointer into the data model, such as /servings");
       break;
     case "terms":
       if (!Array.isArray(v) || !v.every((it) => isObj(it) && typeof it.term === "string" && typeof it.detail === "string" && Object.keys(it).length === 2)) bad("a list of { term, detail } text");
@@ -369,6 +397,27 @@ function checkProp(problems: TreeProblem[], key: string, p: Prop, v: unknown, at
     case "input":
       break;
   }
+}
+
+/**
+ * A confirm sheet's rows against the rows the catalog gives for the prepared input: the same fields, in order, with the
+ * catalog's labels, and each row showing what will be sent (its `raw`, or its `value` when it has none) or, for a bound
+ * input, the same binding. Only the words shown for an id may differ, since the app's own resolver names it.
+ */
+function confirmRowProblems(problems: TreeProblem[], id: string, a: CatalogAction, input: Obj, rows: unknown[], at: string): void {
+  const expected = confirmFields(id, a, input, {});
+  const keys = confirmKeys(a, input);
+  const bad = () => problems.push({ path: at, message: `${id}'s confirm sheet shows a row for each prepared input, with its label and the value that will be sent; the catalog's rows are ${JSON.stringify(expected)}.` });
+  if (rows.length !== expected.length) return void bad();
+  rows.forEach((row, i) => {
+    const want = expected[i]!;
+    if (!isObj(row) || row.label !== want.label) return void bad();
+    if (want.bind !== undefined) {
+      if (row.bind !== want.bind || row.raw !== undefined) bad();
+    } else if (row.bind !== undefined || typeof row.value !== "string") bad();
+    // An id field may show a name, with the id beside it; any other row shows exactly what will be sent.
+    else if (a.input[keys[i]!]!.shownAs !== undefined ? (row.raw ?? row.value) !== (want.raw ?? want.value) : row.value !== want.value || row.raw !== undefined) bad();
+  });
 }
 
 /**
@@ -383,7 +432,7 @@ export function validateTree(cat: Catalog, node: unknown, path = ""): TreeProble
       problems.push({ path: at, message: "A node is { id, component, props, children }." });
       return;
     }
-    const spec = cat.components[n.component];
+    const spec = own(cat.components, n.component);
     if (!spec) {
       problems.push({ path: `${at}/component`, message: `${JSON.stringify(n.component)} is not in this catalog; use one of ${Object.keys(cat.components).join(", ")}.` });
       return;
@@ -403,7 +452,7 @@ export function validateTree(cat: Catalog, node: unknown, path = ""): TreeProble
     }
     if (n.component === "ActionButton") {
       const id = props.action;
-      const a = typeof id === "string" ? cat.actions[id] : undefined;
+      const a = typeof id === "string" ? own(cat.actions, id) : undefined;
       if (!a || typeof id !== "string") problems.push({ path: `${at}/props/action`, message: `${JSON.stringify(id)} is not one of the app's actions: ${Object.keys(cat.actions).join(", ")}.` });
       else {
         const input = props.input;
@@ -411,7 +460,9 @@ export function validateTree(cat: Catalog, node: unknown, path = ""): TreeProble
         else if (a.personOnly && Object.keys(input).length) problems.push({ path: `${at}/props/input`, message: a.personOnly.refusal.summary, refusal: a.personOnly.refusal });
         else {
           for (const [k, v] of Object.entries(input)) {
-            if (isObj(v) && "@path" in v && !(isBinding(v) && v["@path"].startsWith("/"))) problems.push({ path: `${at}/props/input/${k}`, message: `${k} is a value, or {"@path": "/..."} bound to the data model.` });
+            // A field the catalog doesn't carry would be sent without a row on the confirm sheet.
+            if (own(a.input, k) === undefined) problems.push({ path: `${at}/props/input/${k}`, message: `${id} has no input ${k}; its fields are ${Object.keys(a.input).join(", ") || "none"}.` });
+            if (isObj(v) && "@path" in v && !(isBinding(v) && isDataPointer(v["@path"]))) problems.push({ path: `${at}/props/input/${k}`, message: `${k} is a value, or {"@path": "/..."} bound to the data model.` });
           }
           const expected = actionButtonProps(cat, id, input as Obj);
           for (const key of ["label", "consent", "press", "handoff"]) {
@@ -420,6 +471,7 @@ export function validateTree(cat: Catalog, node: unknown, path = ""): TreeProble
           if (a.press === "confirm") {
             const c = props.confirm;
             if (!isObj(c) || c.title !== a.label || c.description !== a.description || !Array.isArray(c.fields)) problems.push({ path: `${at}/props/confirm`, message: `${id} confirms, with the catalog's title and description and a row per prepared input.` });
+            else confirmRowProblems(problems, id, a, input as Obj, c.fields, `${at}/props/confirm/fields`);
           } else if (props.confirm !== undefined) problems.push({ path: `${at}/props/confirm`, message: `${id} doesn't confirm; only a consequential action does.` });
         }
       }
@@ -546,7 +598,7 @@ export function loadCatalog(cat: unknown): LoadedCatalog {
   const actions = c.metadata?.extensions?.[EXTENSION]?.actions ?? {};
   const components: Record<string, ComponentSpec> = {};
   for (const name of Object.keys(c.components)) {
-    const spec = name === "ActionButton" ? ACTION_BUTTON : COMPONENTS[name];
+    const spec = name === "ActionButton" ? ACTION_BUTTON : own(COMPONENTS, name);
     if (!spec) throw new Error(`catalog ${c.catalogId}: component ${name} is not Ouro HX's. Fix: regenerate it with ouro-a2ui catalog.`);
     components[name] = spec;
   }
@@ -608,7 +660,7 @@ function checkInput(w: Walk, action: CatalogAction, id: string, input: unknown, 
   }
   const given = (input ?? {}) as Record<string, unknown>;
   for (const [name, v] of Object.entries(given)) {
-    const f = action.input[name];
+    const f = own(action.input, name);
     const at = `${path}/${name}`;
     if (!f) {
       w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: at, message: `${id} has no input ${name}; its fields are ${Object.keys(action.input).join(", ") || "none"}.` });
@@ -624,7 +676,17 @@ function checkInput(w: Walk, action: CatalogAction, id: string, input: unknown, 
   }
 }
 
+/** Every pointer a component names (a binding or a template's path) that would reach an object's prototype. */
+function unsafePointers(w: Walk, v: unknown, path: string): void {
+  if (Array.isArray(v)) return v.forEach((x, i) => unsafePointers(w, x, `${path}/${i}`));
+  if (!isObj(v)) return;
+  const pointer = isBinding(v) ? v["@path"] : typeof v.componentId === "string" && typeof v.path === "string" ? v.path : undefined;
+  if (pointer !== undefined && !isSafePointer(pointer)) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path, message: `${JSON.stringify(pointer)} points into the data model, never through __proto__, constructor or prototype.` });
+  for (const [k, x] of Object.entries(v)) unsafePointers(w, x, `${path}/${k}`);
+}
+
 function checkComponent(w: Walk, comp: unknown, path: string, refs: Map<string, string>, ids: Set<string>): void {
+  unsafePointers(w, comp, path);
   if (!isObj(comp)) {
     w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path, message: "A component is an object with id and component." });
     return;
@@ -632,7 +694,7 @@ function checkComponent(w: Walk, comp: unknown, path: string, refs: Map<string, 
   const { id, component } = comp;
   if (typeof id !== "string" || !IDENT.test(id)) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: `${path}/id`, message: `id ${JSON.stringify(id)} is not an identifier: letters, digits and _, not starting with a digit (user_card, not user-card).` });
   else ids.add(id);
-  const spec = typeof component === "string" ? w.cat.components[component] : undefined;
+  const spec = typeof component === "string" ? own(w.cat.components, component) : undefined;
   if (!spec) {
     w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: `${path}/component`, message: `${JSON.stringify(component)} is not in this catalog; use one of ${Object.keys(w.cat.components).join(", ")}.` });
     return;
@@ -640,7 +702,7 @@ function checkComponent(w: Walk, comp: unknown, path: string, refs: Map<string, 
   if ("@catalogId" in comp && comp["@catalogId"] !== w.cat.catalogId) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: `${path}/@catalogId`, message: `This renderer has only the catalog ${w.cat.catalogId}.` });
   for (const key of Object.keys(comp)) {
     if (key === "id" || key === "component" || key === "@catalogId" || key === "@metadata" || key === "@accessibility") continue;
-    if (!(key in spec.props)) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: `${path}/${key}`, message: `${component} has no ${key}${Object.keys(spec.props).length ? `; its props are ${Object.keys(spec.props).join(", ")}` : ""}.` });
+    if (!Object.hasOwn(spec.props, key)) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: `${path}/${key}`, message: `${component} has no ${key}${Object.keys(spec.props).length ? `; its props are ${Object.keys(spec.props).join(", ")}` : ""}.` });
   }
   if (isObj(comp["@accessibility"])) {
     for (const [k, v] of Object.entries(comp["@accessibility"])) {
@@ -690,13 +752,13 @@ function checkComponent(w: Walk, comp: unknown, path: string, refs: Map<string, 
         if (!isBinding(v)) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: at, message: `${key} is {"@path": "/..."}: where the person's answer goes in the data model.` });
         break;
       case "action":
-        if (typeof v !== "string" || !w.cat.actions[v]) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: at, message: `${JSON.stringify(v)} is not one of the app's actions: ${Object.keys(w.cat.actions).join(", ")}.` });
+        if (typeof v !== "string" || !own(w.cat.actions, v)) w.problems.push({ code: "VALIDATION_FAILED", surfaceId: w.surfaceId, path: at, message: `${JSON.stringify(v)} is not one of the app's actions: ${Object.keys(w.cat.actions).join(", ")}.` });
         break;
       case "input":
         break;
     }
   }
-  if (component === "ActionButton" && typeof comp.action === "string" && w.cat.actions[comp.action]) checkInput(w, w.cat.actions[comp.action]!, comp.action, comp.input, `${path}/input`);
+  if (component === "ActionButton" && typeof comp.action === "string" && own(w.cat.actions, comp.action)) checkInput(w, own(w.cat.actions, comp.action)!, comp.action, comp.input, `${path}/input`);
 }
 
 /**
@@ -756,7 +818,7 @@ export function validateMessages(catalogJson: unknown, messages: unknown): Probl
       return;
     }
     if (key === "updateDataModel") {
-      if (body.path !== undefined && (typeof body.path !== "string" || (body.path !== "" && !body.path.startsWith("/")))) problems.push({ code: "VALIDATION_FAILED", surfaceId, path: `${at}/updateDataModel/path`, message: "path is a JSON pointer starting with /." });
+      if (body.path !== undefined && (typeof body.path !== "string" || (body.path !== "" && !isDataPointer(body.path)))) problems.push({ code: "VALIDATION_FAILED", surfaceId, path: `${at}/updateDataModel/path`, message: "path is a JSON pointer starting with /." });
       if (!("value" in body)) problems.push({ code: "VALIDATION_FAILED", surfaceId, path: `${at}/updateDataModel/value`, message: "updateDataModel needs value (null deletes)." });
       return;
     }
