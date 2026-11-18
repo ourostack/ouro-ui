@@ -19,6 +19,6 @@ export const tries: Readonly<Record<string, string>> = {
   "number-field": "With a mouse, drag the Servings label sideways. The number follows your hand.",
   command: "Open it and type dark mode. It finds Switch theme by its keywords.",
   calendar: "Pick two days for a trip. Page Down jumps to the next month.",
-  "image-cropper": "Open it and drag the photo to frame it. Plus and Minus zoom in and out.",
+  "image-cropper": "Open it, press Plus to zoom in, then drag the photo to frame it.",
   "color-scheme-toggle": "Pick Dark. The whole page goes dark, not just the demo.",
 };
