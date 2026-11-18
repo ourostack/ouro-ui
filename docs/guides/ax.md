@@ -107,6 +107,8 @@ A tool can also define `command` beside `commands`. That default [runs when no c
 | [`ax-claims`](../ax/ax-claims.md) | The standard as data. |
 | [`ax-xray`](../ax/ax-xray.md) | The checker. |
 | [`ax-checks`](../ax/ax-checks.md) | A doctor or self-check declared once: progress while it runs, the verdict first, the fix beside a problem, the same facts in `--json`, and the findings exit code. |
+| [`ax-redact`](../ax/ax-redact.md) | Redacts text, log lines and JSON before they leave the computer: tokens, cookies, ids, email addresses, user folders and what anyone wrote become their category, and `leaks` finds any left. |
+| [`ax-bundle`](../ax/ax-bundle.md) | A doctor's diagnostics file, for an agent to read or attach: the tool's facts and its logs' last lines, redacted, and refused when anything shaped like a secret is left. |
 | [`ax-terminal`](../ax/ax-terminal.md) | Colour, status marks, times, next steps and a progress line for a person at a terminal, with plain words in a pipe, in CI or under `NO_COLOR`. |
 | [`ax-voice`](../ax/ax-voice.md) | An optional line of character for a person at a terminal, after the facts, kept out of what an agent parses. |
 | [`ax-flows`](../ax/ax-flows.md) | Your agent flows as data, run in CI without a model: the calls a good agent makes for a task, checked. |
