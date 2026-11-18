@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `ax-doctor` and `ax-probe`, for a doctor command that says what runs and since when, then what is wrong and the command that fixes it. `runCli` [prints a doctor report with its state under the verdict](registry/ouro/ax/cli.test.mts "verify:testExists(registry/ouro/ax/cli.test.mts::a command that returns a doctor report prints the doctor's text, with the state under the verdict, and the report as --json)"), and `probeHttp` [tells a process that is up from one that is stuck or down](registry/ouro/ax/probe.test.mts "verify:testExists(registry/ouro/ax/probe.test.mts::probeHttp tells up, stuck and down apart on real local sockets)"). Give-back from a chat app's doctor.
