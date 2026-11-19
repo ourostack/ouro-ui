@@ -725,18 +725,20 @@ describe("findSizeIssues: narrow-text", () => {
     expect(issues[0]!.detail).toContain('`style="max-width: 46rem" on div`');
   });
 
-  it("names a list item and other text by kind, and reads a percentage cap, a content-box cap and one no max-width rule names", async () => {
+  it("names a list item and other text by kind, and reads a percentage cap, a calc() cap, a content-box cap and one no max-width rule names", async () => {
     render(`<section style="width:1200px">
       <ul style="margin:0;padding:0;list-style:none"><li id="half" style="max-width:50%">${LONG} ${LONG}</li></ul>
       <blockquote id="boxed" style="margin:0;box-sizing:content-box;padding-inline:8px;max-width:40rem">${LONG} ${LONG}</blockquote>
       <dl style="margin:0"><dd id="logical" style="margin:0;max-inline-size:40rem">${LONG} ${LONG}</dd></dl>
+      <p id="mixed" style="margin:0;max-width:calc(40% + 20px)">${LONG} ${LONG}</p>
     </section>`);
     const issues = narrow(await findSizeIssues());
-    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["li#half", "blockquote#boxed", "dd#logical"]);
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["li#half", "blockquote#boxed", "dd#logical", "p#mixed"]);
     expect(issues[0]!.detail).toMatch(/^This list item wraps at 600px in a 1200px column/);
     expect(issues[0]!.detail).toContain('`style="max-width: 50%" on li#half`');
     expect(issues[1]!.detail).toMatch(/^This text wraps at 656px in a 1200px column/);
     expect(issues[2]!.detail).toContain("`max-width: 640px on dd#logical`");
+    expect(issues[3]!.detail).toMatch(/^This paragraph wraps at 500px in a 1200px column/);
   });
 
   it("passes a page column that holds more than prose, capped however narrow against a wide screen", async () => {
