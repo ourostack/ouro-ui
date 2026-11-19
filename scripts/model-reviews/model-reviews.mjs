@@ -214,7 +214,6 @@ export function runtimeEnvironment(source = process.env) {
   return environment;
 }
 
-/** Each review's transport: Copilot where its catalog lists the model (copilot-first), otherwise the vendor's API. */
 /**
  * The panel a run can reach. A model named with --models must be reachable, or the run stops; with the whole panel, a
  * model with no route (not in Copilot's catalog and no key for its own API) is left out and recorded as skipped, so a
@@ -235,6 +234,7 @@ export function reachablePanel(panel, availableModelIds, keys, inferenceMode, na
   return { selected, skipped };
 }
 
+/** Each review's transport: Copilot where its catalog lists the model (copilot-first), otherwise the vendor's API. */
 export function resolveTransports(reviews, availableModelIds, keys, inferenceMode = "direct-api") {
   return reviews.map((review) => {
     if (inferenceMode === "copilot-first" && availableModelIds.has(review.model)) return { ...review, transport: "copilot" };

@@ -187,7 +187,7 @@ export const RUN_COMMANDS = [
  * renderSystemPrompt from that model's recorded order and cutoff, and refused unless its hash is the one the record
  * keeps, so the page can never show a prompt that differs from what the models got. Then the full run's commands.
  */
-export function runItYourself(latest, subject = SUBJECT) {
+export function runItYourself(latest) {
   const row = latest.rows.find((r) => r.review?.candidateOrder && r.review.promptSha256);
   if (!row) return [];
   const candidates = row.run.candidates;
@@ -307,7 +307,7 @@ export function renderPage(runs, subject = SUBJECT, replays = searchReplays()) {
   const firstIn = (series) => series.rows.filter((row) => row.review?.candidateOrder?.[0] === subject).map((row) => row.displayName);
   if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)}${firstIn(s).length ? ` ${firstIn(s).join(", ")} saw ${subject} first, which rule 2 forbids.` : ""})`).join("; ")}`);
   out.push("");
-  const yourself = runItYourself(latest, subject);
+  const yourself = runItYourself(latest);
   if (yourself.length) out.push(...yourself, "");
   return out.join("\n");
 }
