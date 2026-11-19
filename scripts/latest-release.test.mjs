@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { unpinnedAddresses } from "./addresses.mjs";
 import { uncommitted } from "./generated-files.mjs";
-import { fillPlaceholder, latestRelease, PLACEHOLDER, releaseMismatches, withRelease } from "./latest-release.mjs";
+import { fillPlaceholder, latestRelease, PLACEHOLDER, publicDocs, releaseMismatches, staleReferences, withRelease } from "./latest-release.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { sandboxEnv } from "./sandbox.mjs";
 
@@ -42,12 +42,20 @@ test("releaseMismatches lists each literal that names another tag, by line", () 
 test("every #vX.Y.Z or @vX.Y.Z literal in the docs names package.json's ouro.latestRelease", () => {
   const tag = latestRelease();
   // The public docs. AGENTS.md is for contributors and names old tags on purpose (the upgrade test).
-  const files = [
-    ...tracked("README.md", "changes/*.md", "package.json", "docs/*.md", "site/public/*", "site/src/*.ts", "site/src/*.tsx", "site/index.html"),
-  ];
+  const files = publicDocs();
   assert.ok(files.length > 20);
   const problems = files.flatMap((path) => releaseMismatches(readFileSync(join(root, path), "utf8"), tag).map((problem) => `${path}:${problem}`));
   assert.deepEqual(problems, [], `Name ${tag} (package.json ouro.latestRelease), or run pnpm run docs.`);
+});
+
+test("staleReferences names each literal in the given files that names another tag than ouro.latestRelease", () => {
+  const dir = scratchDir("ouro-stale-references-");
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ ouro: { latestRelease: "v1.2.0" } }));
+  writeFileSync(join(dir, "README.md"), "install dialog#v1.2.0\nold dialog#v1.1.0\n");
+  writeFileSync(join(dir, "guide.md"), "no tag here\n");
+  assert.deepEqual(staleReferences(["README.md", "guide.md"], dir), ["README.md:2: #v1.1.0"]);
+  writeFileSync(join(dir, "README.md"), "install dialog#v1.2.0\n");
+  assert.deepEqual(staleReferences(["README.md", "guide.md"], dir), []);
 });
 
 test("UPGRADING.md names no tag, only the placeholder, so each place that shows it fills in the newest", () => {

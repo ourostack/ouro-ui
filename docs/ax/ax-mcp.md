@@ -2,10 +2,10 @@
 
 # ax-mcp
 
-The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. It follows [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18).
+The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. It speaks [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28), the current revision, where every request carries its version in `_meta` and `server/discover` says what the server supports, and it answers the `initialize` handshake of 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 for older clients, which one process serves side by side.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-mcp#v1.3.319
+npx shadcn@latest add ourostack/ouro-ui/ax-mcp#v1.3.323
 ```
 
 It installs `lib/ouro/ax/mcp.ts`, with `ax-cli`, `ax-command`, `ax-effects`, `ax-outcome`, `ax-output`, `ax-problem`, `ax-wait`. Its tests are `ax-mcp-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -67,10 +67,10 @@ function mcpTools(options: McpOptions): McpTool[]
 
 ### `PROTOCOL_VERSIONS`
 
-The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. It follows [the MCP specification](https://modelcontextprotocol.io/specification/2025-06-18).
+The same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run with the fix in the one error shape, effects as tool annotations, and results cut to a size an agent's context can hold. It speaks [MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28), the current revision, where every request carries its version in `_meta` and `server/discover` says what the server supports, and it answers the `initialize` handshake of 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05 for older clients, which one process serves side by side.
 
 ```ts
-const PROTOCOL_VERSIONS: readonly ["2025-06-18", "2025-03-26", "2024-11-05"]
+const PROTOCOL_VERSIONS: readonly ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 ```
 
 ### `serveMcp`
