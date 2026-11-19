@@ -725,12 +725,15 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
                   key={category}
                   data-ouro-chart-dot={item.shape}
                   data-ouro-chart-series={item.key}
-                  data-highlighted={category === index ? "" : undefined}
                   transform={`translate(${x(category)} ${y(row[item.key] as number)})`}
                   color={`var(--color-${item.key})`}
                 >
                   {/* The point under the tooltip grows, so the eye finds it; with reduced motion it changes size at once. */}
-                  <g data-ouro-part="dot" className="[transform-box:fill-box] origin-center transition-[scale] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) in-data-highlighted:scale-140 motion-reduce:transition-none">
+                  <g
+                    data-ouro-part="dot"
+                    data-highlighted={category === index ? "" : undefined}
+                    className="[transform-box:fill-box] origin-center transition-[scale] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) data-highlighted:scale-140 motion-reduce:transition-none"
+                  >
                     <MarkerPath shape={item.shape} size={9} />
                   </g>
                 </g>
