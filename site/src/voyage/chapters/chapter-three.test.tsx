@@ -251,9 +251,9 @@ describe("Chapter III", () => {
     await order(ORDERS.feathers);
     await expect.poll(() => scene().dataset.squid).toBe("gone");
     await userEvent.click(page.getByRole("button", { name: SALOON.play }));
-    await expect.poll(() => document.querySelector("#chapter-three [data-site-handoff-prompt]")).not.toBeNull();
-    const prompt = document.querySelector<HTMLElement>("#chapter-three [data-site-handoff-prompt]")!;
-    const copy = document.querySelector("#chapter-three [data-site-handoff] .site-install-copy")!;
+    await expect.poll(() => document.querySelector("#chapter-three [data-site-handoff] [data-slot='prompt']")).not.toBeNull();
+    const prompt = document.querySelector<HTMLElement>("#chapter-three [data-site-handoff] [data-slot='prompt']")!;
+    const copy = document.querySelector("#chapter-three [data-site-handoff] [data-ouro='copy-button']")!;
     expect(copy.getBoundingClientRect().top).toBeGreaterThanOrEqual(prompt.getBoundingClientRect().bottom);
     expect(renderedLines(prompt).length).toBeGreaterThan(1);
     expect(splitWords(prompt)).toEqual([]);

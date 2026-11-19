@@ -1,0 +1,9 @@
+{
+  "order": 2700,
+  "components": ["agent-handoff"],
+  "controls": {
+    "agent-handoff": [
+      {"part": "copy", "role": "button", "portal": false}
+    ]
+  }
+}
