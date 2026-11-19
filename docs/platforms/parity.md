@@ -10,11 +10,11 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 |---|---|---|---|---|
 | Kit | this repository | [ourostack/ouro-ui-apple v1.2.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.2.0") | [ourostack/ouro-ui-android v0.3.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.3.0") | [ourostack/ouro-ui-windows v0.3.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.3.0") |
 
-Components: Web has 129 of 129, Apple has 20 of 129, Android has 9 of 129, Windows has 9 of 129.[^matrix]
+Components: Web has 130 of 130, Apple has 20 of 130, Android has 9 of 130, Windows has 9 of 130.[^matrix]
 
 Claims covered: Web 7 of 13, Apple 13 of 13, Android 5 of 13, Windows 5 of 13.[^matrix]
 
-Gap cells: 371.[^matrix]
+Gap cells: 374.[^matrix]
 
 ### Components
 
@@ -149,6 +149,7 @@ Gap cells: 371.[^matrix]
 | [thread-layout](https://ui.ouroboros.bot/docs/thread-layout/) | `thread-layout` | Not yet | Not yet | Not yet |
 | [chat-header](https://ui.ouroboros.bot/docs/chat-header/) | `chat-header` | Not yet | Not yet | Not yet |
 | [typing-indicator](https://ui.ouroboros.bot/docs/typing-indicator/) | `typing-indicator` | Not yet | Not yet | Not yet |
+| [theme-picker](https://ui.ouroboros.bot/docs/theme-picker/) | `theme-picker` | Not yet | Not yet | Not yet |
 
 ### Claims
 
