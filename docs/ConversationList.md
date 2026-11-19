@@ -29,6 +29,7 @@ Type: `ConversationListProps`.
 | `density` | `"comfortable" \| "compact"` | `"comfortable"` | `compact` drops the preview line and uses a smaller avatar. |
 | `draftLabel` | `string` | `"Draft:"` | The words before a row's `draft`, for other languages. |
 | `empty` | `ReactNode` | `"Nothing here yet"` | What shows when `items` is empty. |
+| `firstViewHeight` | `number` |  | How tall the list's first view is, in pixels: a long list's first render mounts the rows that fit it. Set it when the list sits in a panel much shorter than the window; leave it out and the window's height is used, which is an upper bound. |
 | `items` (required) | `readonly ConversationListItem[]` |  | The conversations, in the order they show. |
 | `label` (required) | `string` |  | What the list is, for screen readers ("Conversations"). Required, so the list has a name. |
 | `membersLabel` | `((names: readonly string[]) => string)` | `"group chat with"` the first two names, then the rest's count ("and 2 others") | What screen readers hear after a group chat's title, from its `members`' names, for other languages. |

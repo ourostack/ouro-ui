@@ -7,6 +7,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useSyncExternalStore,
   useMemo,
   useRef,
   useState,
@@ -196,6 +197,11 @@ export interface ConversationListOwnProps {
   empty?: ReactNode;
   /** `compact` drops the preview line and uses a smaller avatar. @default "comfortable" */
   density?: ConversationListDensity | (string & { 'Use "comfortable" or "compact"': never }) | undefined;
+  /**
+   * How tall the list's first view is, in pixels: a long list's first render mounts the rows that fit it.
+   * Set it when the list sits in a panel much shorter than the window; leave it out and the window's height is used, which is an upper bound.
+   */
+  firstViewHeight?: number | undefined;
   /** What screen readers hear for an unread row's dot, and a closed section's, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
   /** The words before a row's `draft`, for other languages. @default "Draft:" */
@@ -257,8 +263,12 @@ const shown = (node: ReactNode): boolean => node !== undefined && node !== null 
 const windowAbove = 20;
 // How far past the view's top and bottom edges rows still render, in pixels, so a scroll shows rows already drawn.
 const overscan = 320;
-// How much of the list renders before the view is known, as in server HTML, in pixels; the first layout narrows it to what the view shows.
+// How much of the list renders before the view is known, as in server HTML, in pixels.
 const firstView = 1000;
+const subscribeNothing = () => () => {};
+const firstViewNow = () => firstView;
+// The window's height bounds the list's: the visual viewport's, which the browser answers without laying the page out (`innerHeight` makes it).
+const windowHeightNow = () => Math.max(1, Math.min(firstView, Math.ceil(window.visualViewport?.height ?? innerHeight)));
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
 // The shortest a row is assumed to be on the first frame, in pixels: rows shorter than the estimates still fill the view, so the window never grows once measured.
@@ -516,6 +526,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     onSelect,
     empty = "Nothing here yet",
     density: densityProp = "comfortable",
+    firstViewHeight,
     unreadLabel = "Unread",
     draftLabel = "Draft:",
     membersLabel = groupChatWith,
@@ -541,7 +552,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [measured, setMeasured] = useState<{ density: ConversationListDensity; heights: ReadonlyMap<string, number> } | null>(null);
   const [range, setRange] = useState<readonly [number, number] | null>(null);
   const [reach, setReach] = useState<string | null>(null);
-  const [firstHeight, setFirstHeight] = useState(firstView);
+  // Server HTML and a hydrating client use `firstView`; a client-only mount sizes the first frame from the window, with no layout read and no second render.
+  const windowHeight = useSyncExternalStore(subscribeNothing, windowHeightNow, firstViewNow);
+  const firstHeight = firstViewHeight === undefined ? windowHeight : Math.max(1, firstViewHeight);
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
@@ -734,19 +747,6 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     } else control.focus();
   };
 
-  // Before the first paint, narrows the first frame's rows from `firstView` to the part of the list the boxes around it show.
-  useLayoutEffect(() => {
-    if (!windowed) return;
-    const top = listRef.current!.getBoundingClientRect().top;
-    let bottom = innerHeight;
-    for (let node = listRef.current!.parentElement; node; node = node.parentElement) {
-      if (getComputedStyle(node).overflowY !== "visible") bottom = Math.min(bottom, node.getBoundingClientRect().bottom);
-    }
-    // Stryker disable next-line ArithmeticOperator: the list sits at the top of the test panes, so the offset it subtracts is zero there.
-    setFirstHeight(Math.max(1, Math.min(firstView, Math.ceil(bottom - top))));
-  },
-  // Stryker disable next-line ArrayDeclaration: the windowed flag is fixed while a list is mounted, so the effect runs once either way.
-  [windowed]);
   // The boxes that clip the list, which scroll it and whose size sets its view, and the box that scrolls it.
   // Nothing is read while the list mounts: the first rows render in flow at their estimates, and the observer's first
   // callback, which comes with the page already laid out, finds the boxes, measures the rows and sets the window.
