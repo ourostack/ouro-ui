@@ -25,6 +25,12 @@ async function render(node: ReactNode) {
   return host.querySelector<HTMLElement>('[data-ouro="skeleton"]')!;
 }
 
+/** Milliseconds into the wave: the animation's time less its delay, so a placeholder joined mid-breath reads where it is, and one still waiting reads below zero. */
+function animationPhase(el: Element): number {
+  const effect = el.getAnimations()[0]!.effect!;
+  return Number(effect.getComputedTiming().localTime) - Number(effect.getTiming().delay);
+}
+
 let warn: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -192,7 +198,8 @@ describe("Skeleton", () => {
     const skeleton = await render(<Skeleton />);
     const style = getComputedStyle(skeleton);
     expect(style.animationName).toBe("ouro-skeleton-breathe");
-    expect(style.animationDelay).toBe("1s");
+    // At most the first second: a placeholder that joins a wave begun a moment ago waits only for what remains of it.
+    expect(parseFloat(style.animationDelay)).toBeLessThanOrEqual(1);
     expect(style.animationTimingFunction).toBe("ease-in-out");
     expect(style.animationIterationCount).toBe("infinite");
     const effect = skeleton.getAnimations()[0]!.effect as KeyframeEffect;
@@ -203,6 +210,34 @@ describe("Skeleton", () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(skeleton).animationName).toBe("none");
     expect(skeleton.getAnimations({ subtree: true })).toEqual([]);
+  });
+
+  it("joins one shared phase: a placeholder mounted mid-breath, or remounted, is where the others are, and reduced motion draws none", async () => {
+    const phase = animationPhase;
+    const first = await render(<Skeleton />);
+    const root = roots.at(-1)!;
+    await expect.poll(() => phase(first)).toBeGreaterThan(1300);
+    const late = await render(<Skeleton />);
+    // Both are read in one task, so they share a frame's time.
+    const [a, b] = [phase(first), phase(late)];
+    expect(Math.abs(a - b)).toBeLessThan(150);
+    // A remount (a new key) while the others breathe keeps the phase.
+    await act(async () => root.render(<Skeleton key="again" />));
+    const again = mounted.at(-2)!.querySelector<HTMLElement>('[data-ouro="skeleton"]')!;
+    expect(Math.abs(phase(again) - phase(late))).toBeLessThan(150);
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    expect(getComputedStyle(late).animationName).toBe("none");
+    expect(late.getAnimations()).toEqual([]);
+  });
+
+  it("starts a new wave, still for its first second, once none has been mounted for a second", async () => {
+    const first = await render(<Skeleton />);
+    await expect.poll(() => animationPhase(first)).toBeGreaterThan(1300);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    // real clock: the wave's own one-second gap, which no state in the page reports.
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    const fresh = await render(<Skeleton />);
+    expect(animationPhase(fresh)).toBeLessThan(500);
   });
 
   it("breathes only the first 24 of a long list, and a later list finds the places taken", async () => {
