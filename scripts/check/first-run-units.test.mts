@@ -165,6 +165,28 @@ describe("first-run harness: the judges", () => {
     assert.equal(judgeDeadEnd(native, { vocabulary: VOCABULARY }).place, "dead-end");
   });
 
+  test("signed in, a card the person opened over the app is no dead end, since Escape puts it away; signed out or unknown it still is (#2359)", () => {
+    const card = (signedIn: boolean | null) =>
+      snap(
+        [
+          [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+          [1, "AXWebArea", undefined, { w: 1000, h: 700 }],
+          [2, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 600 }],
+          [3, "AXStaticText", "Your chats"],
+          [2, "AXGroup", undefined, { subrole: "AXApplicationDialog", x: 256, y: 100, w: 512, h: 400 }],
+          [3, "AXHeading", "Account"],
+          [3, "AXStaticText", "ari@example.com"],
+        ],
+        { signedIn },
+      );
+    const signedIn = judgeDeadEnd(card(true), { vocabulary: VOCABULARY });
+    assert.equal(signedIn.ok, true);
+    assert.equal(signedIn.place, "forward");
+    assert.equal(signedIn.evidence, 'signed in, a card over the app ("Account"), put away with Escape');
+    assert.equal(judgeDeadEnd(card(false), { vocabulary: VOCABULARY }).place, "dead-end");
+    assert.equal(judgeDeadEnd(card(null), { vocabulary: VOCABULARY }).place, "dead-end");
+  });
+
   test("words over a pane of one shade are still blank, but a sparse page is not", () => {
     const words: Spec[] = [[0, "AXStaticText", "Hello"]];
     const flat = judgeNotBlank(shell(words, { pixels: { uniform: 0.9999, mean: 240 } }), VOCABULARY);

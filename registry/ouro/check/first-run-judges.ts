@@ -240,6 +240,11 @@ export function judgeDeadEnd(s: Snapshot, o: { vocabulary?: Vocabulary; goal?: (
   const p = pane(s);
   const progress = progressOf(p.nodes, v) ?? (p.kind === "main" ? pageIndicator(s) : null);
   if (progress) return { ok: true, evidence: `under way: ${progress.slice(0, 80)}`, place: "progress", forward };
+  // Signed in, a card over the app with nothing of its own to press on (the account card the person opened, Settings) is
+  // put away with Escape or a click beside it, and the app behind it is the way on, as the session's own advance treats it
+  // (#2359). Signed out or unknown, a card with no way forward is still a dead end.
+  const top = dialogs(s).at(-1);
+  if (s.signedIn === true && top) return { ok: true, evidence: `signed in, a card over the app ("${dialogLabel(top.nodes) || "a dialog"}"), put away with Escape`, place: "forward", forward };
   const offered = (mainWindow(s)?.nodes ?? []).filter((n) => PRESSABLE.has(n.role) && n.enabled && visible(n) && n.words).map((n) => n.words!.split(" | ")[0]!);
   return { ok: false, evidence: `a dead end: no enabled control moves the person forward and nothing is under way (the controls here: ${[...new Set(offered)].slice(0, 8).join(", ") || "none"})`, place: "dead-end", forward };
 }
