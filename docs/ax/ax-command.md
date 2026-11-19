@@ -33,12 +33,13 @@ interface ArgSpec {
   source?: string;
   missing?: string;
   values?: readonly string[];
+  default?: string;
 }
 ```
 
 ### `argUsage`
 
-`<name>`, `[<name>]` or `<name...>`, as usage shows an argument.
+`<name>`, `[<name>]`, `[<name>=<value>]` for a word with a default, or `<name...>`, as usage shows an argument.
 
 ```ts
 function argUsage(a: ArgSpec): string
@@ -184,6 +185,7 @@ interface FlagSpec {
   unless?: string | readonly string[];
   sensitive?: boolean;
   repeat?: true;
+  default?: string | number | boolean;
 }
 ```
 
@@ -257,6 +259,7 @@ interface JsonSchema {
   properties?: Record<string, JsonSchema>;
   required?: string[];
   additionalProperties?: boolean;
+  default?: string | number | boolean;
 }
 ```
 

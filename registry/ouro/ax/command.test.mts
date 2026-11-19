@@ -617,6 +617,69 @@ test("defineCli refuses repeat on a flag that is not a string, or repeat: false,
   assert.doesNotThrow(() => flagged({ n: { type: "string", description: "N." } }));
 });
 
+test("a default fills the word or flag left out, and a value given still wins", () => {
+  const tool = defineCli({
+    name: "t",
+    about: [],
+    command: defineCommand({
+      name: "sizes",
+      summary: "S.",
+      effect: "private",
+      readOnly: true,
+      args: [
+        { name: "folder", description: "F.", required: true },
+        { name: "set", description: "S.", values: ["web", "print"], default: "web" },
+      ],
+      flags: {
+        quality: { type: "number", description: "Q.", min: 1, max: 100, default: 80 },
+        wide: { type: "boolean", description: "W.", default: true },
+        tag: { type: "string", description: "T.", default: "open tasks" },
+        mode: { type: "enum", description: "M.", values: ["plain", "markdown"], default: "plain" },
+      },
+      run: () => null,
+    }),
+  });
+  const defaults = { folder: "site", set: "web", quality: 80, wide: true, tag: "open tasks", mode: "plain" };
+  assert.deepEqual(run2(tool, ["site"]).input, defaults);
+  assert.deepEqual(run2(tool, ["site", "print", "--quality", "5", "--wide=false", "--tag", "x", "--mode", "markdown"]).input, { folder: "site", set: "print", quality: 5, wide: false, tag: "x", mode: "markdown" });
+  const say = defineCli({ name: "t", about: [], command: defineCommand({ name: "say", summary: "S.", effect: "private", args: [{ name: "text", description: "T.", rest: true, default: "hi" }], run: () => null }) });
+  assert.deepEqual(run2(say, []).input, { text: "hi" });
+  assert.deepEqual(run2(say, ["hello", "there"]).input, { text: "hello there" });
+  // An MCP call gets the same input: the defaults fill what the call leaves out, and a value it gives wins.
+  assert.deepEqual(checkInput(tool, tool.commands[0]!, { folder: "site" }), defaults);
+  assert.equal(checkInput(tool, tool.commands[0]!, { folder: "site", set: "print" }).set, "print");
+});
+
+test("defineCli refuses a default that does not fit its word or flag, naming the fix", () => {
+  const refusal = (args: unknown[] | undefined, flags?: Record<string, unknown>) => {
+    try {
+      defineCli({ name: "t", about: [], commands: [defineCommand({ name: "w", summary: "W.", effect: "private", args: args as never, flags: flags as never, run: () => null })] });
+    } catch (e) {
+      return (e as Error).message;
+    }
+    return null;
+  };
+  const word = (over: object) => [{ name: "x", description: "X.", ...over }];
+  const flag = (over: object) => ({ n: { type: "string", description: "N.", ...over } });
+  assert.equal(refusal(word({ required: true, default: "a" })), 't w: <x> is required, so it takes no default. Fix: remove "default", or leave out "required".');
+  assert.equal(refusal(word({ stdin: true, default: "a" })), 't w: <x> reads stdin, so it takes no default. Fix: remove "default", or leave out "stdin".');
+  assert.equal(refusal(word({ rest: "list", default: "a" })), 't w: <x> is a list of words, and its default is one string. Fix: remove "default".');
+  assert.equal(refusal(word({ default: 5 })), 't w: <x> default is 5, not a string. Fix: default: "5".');
+  assert.equal(refusal(word({ values: ["open", "closed"], default: "opn" })), 't w: <x> default "opn" is not one of open, closed. Fix: default: "open".');
+  assert.equal(refusal(word({ values: ["open", "closed"], default: "zzzzz" })), 't w: <x> default "zzzzz" is not one of open, closed. Fix: default: "open".');
+  assert.equal(refusal(undefined, flag({ required: true, default: "a" })), 't w: --n is required, so it takes no default. Fix: remove "default", or leave out "required".');
+  assert.equal(refusal(undefined, { n: { type: "list", description: "N.", default: "a" } }), "t w: --n takes a list of values, so it takes no default. Fix: remove \"default\".");
+  assert.equal(refusal(undefined, flag({ repeat: true, default: "a" })), "t w: --n takes a list of values, so it takes no default. Fix: remove \"default\".");
+  assert.equal(refusal(undefined, { n: { type: "boolean", description: "N.", default: "yes" } }), 't w: --n is a flag, so its default is true or false, not "yes". Fix: default: true or default: false.');
+  assert.equal(refusal(undefined, { n: { type: "number", description: "N.", default: "5" } }), 't w: --n takes a number, so its default is a number, not "5". Fix: default: 1.');
+  assert.equal(refusal(undefined, { n: { type: "number", description: "N.", min: 1, max: 100, default: 150 } }), "t w: --n's default 150 is outside its range. Fix: default: 100.");
+  assert.equal(refusal(undefined, { n: { type: "number", description: "N.", min: 1, max: 100, default: 0 } }), "t w: --n's default 0 is outside its range. Fix: default: 1.");
+  assert.equal(refusal(undefined, { n: { type: "enum", description: "N.", values: ["plain", "markdown"], default: "markdwn" } }), 't w: --n\'s default "markdwn" is not one of plain, markdown. Fix: default: "markdown".');
+  assert.equal(refusal(undefined, { n: { type: "enum", description: "N.", values: ["plain", "markdown"], default: 3 } }), 't w: --n\'s default 3 is not one of plain, markdown. Fix: default: "plain".');
+  assert.match(String(refusal(undefined, { n: { type: "enum", description: "N.", default: "a" } })), /^t w: --n's default "a" is not one of \. Fix: default: /);
+  assert.equal(refusal(undefined, flag({ default: 3 })), 't w: --n takes a string, so its default is a string, not 3. Fix: default: "3".');
+});
+
 test("a refused word's Fix is a command an agent can run as it stands, and the problem names the choices in plain words", () => {
   const tool = defineCli({
     name: "shepherd",

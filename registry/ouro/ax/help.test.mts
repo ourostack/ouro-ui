@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { defineCli, defineCommand, findCommand } from "#ouro-ax/command.ts";
+import { defineCli, defineCommand, findCommand, usageOf } from "#ouro-ax/command.ts";
 import { exampleCli as cli } from "#ouro-ax/example-cli.ts";
 import { helpJson, renderCommand, renderOverview, wrap } from "#ouro-ax/help.ts";
 
@@ -132,6 +132,46 @@ test("a one-command tool's overview and command help name the tool and its usage
   assert.equal("single" in helpJson(cli).commands[0]!, false);
   const poster = defineCli({ name: "ouro-post", about: ["p"], command: defineCommand({ name: "post", summary: "Post.", effect: "others", why: "required", run: () => 1 }) });
   assert.match(renderOverview(poster, { othersNote: " (asked only)", footer: ["Footer."] }), /^p\n\nOther people see these \(asked only\)\n {2}--why "<who asked you, and what they said>" \[--dry-run\]\n {34}Post\.\n\nFooter\.\n$/);
+});
+
+test("a default shows in usage as [<name>=<value>], on its flag's line as (default: 90), and in help JSON's input schema, typed", () => {
+  const tool = defineCli({
+    name: "t",
+    about: ["t: a tool."],
+    command: defineCommand({
+      name: "sizes",
+      summary: "Sizes.",
+      effect: "private",
+      readOnly: true,
+      args: [
+        { name: "folder", description: "The folder.", required: true },
+        { name: "set", description: "The widths.", values: ["web", "print"], default: "web" },
+        { name: "tag", description: "A tag.", default: "open tasks" },
+      ],
+      flags: {
+        quality: { type: "number", description: "The quality.", min: 1, max: 100, default: 90 },
+        wide: { type: "boolean", description: "The widest size.", default: false },
+        mode: { type: "enum", description: "The mode.", values: ["plain", "markdown"], default: "plain" },
+      },
+      run: () => null,
+    }),
+  });
+  const cmd = tool.commands[0]!;
+  assert.equal(usageOf(tool, cmd), '<folder> [<set>=web] [<tag>="open tasks"] [--quality <N>] [--wide] [--mode plain|markdown]');
+  const shown = renderCommand(tool, cmd);
+  assert.match(shown, /--quality <N> +The quality\. \(default: 90\)/);
+  assert.match(shown, /--wide +The widest size\. \(default: false\)/);
+  assert.match(shown, /--mode plain\|markdown +The mode\. \(default: plain\)/);
+  const schema = helpJson(tool).commands[0]!.inputSchema;
+  assert.deepEqual(schema.properties, {
+    folder: { type: "string", description: "The folder." },
+    set: { type: "string", enum: ["web", "print"], default: "web", description: "The widths." },
+    tag: { type: "string", default: "open tasks", description: "A tag." },
+    quality: { type: "number", minimum: 1, maximum: 100, default: 90, description: "The quality." },
+    wide: { type: "boolean", default: false, description: "The widest size." },
+    mode: { type: "string", enum: ["plain", "markdown"], default: "plain", description: "The mode." },
+  });
+  assert.deepEqual(schema.required, ["folder"]);
 });
 
 test("a default command is listed in the overview under its own heading, with its arguments and flags, and never as a command word", () => {
