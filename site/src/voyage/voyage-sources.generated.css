@@ -84,6 +84,7 @@
 @source not "../apple/evidence/reins-cli-run.ndjson";
 @source not "../apple/evidence/reins-xcuitest-timing.txt";
 @source not "../ax/art/manifest.json";
+@source not "../components/ask-for.tsx";
 @source not "../components/catalog-preview.tsx";
 @source not "../components/demo-looks.tsx";
 @source not "../components/docs-filter.tsx";
@@ -95,6 +96,7 @@
 @source not "../components/live-demo.tsx";
 @source not "../components/lost-at-sea.tsx";
 @source not "../components/phone-demo.tsx";
+@source not "../components/phone-status.tsx";
 @source not "../components/surprise-me.tsx";
 @source not "../docs/agent-prompt.ts";
 @source not "../docs/demos";

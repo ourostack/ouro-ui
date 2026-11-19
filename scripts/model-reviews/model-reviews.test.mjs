@@ -18,6 +18,12 @@ import {
   createTranscriptCollector,
   BUDGET_REACHED,
   handleResearch,
+  formatSearchResults,
+  requestHeaders,
+  searchHealth,
+  relayedSearch,
+  limiter,
+  copilotSearch,
   handleVerdict,
   RESEARCH_BUDGET,
   discoverKeys,
@@ -32,6 +38,7 @@ import {
   runPool,
   runtimeEnvironment,
   shuffle,
+  orderCandidates,
   snapshotCandidates,
   summarize,
   validateResearch,
@@ -308,20 +315,18 @@ test("a model Copilot lists goes through Copilot, a model it lacks needs its ven
 
 test("the panel has stable unique provider slugs and keeps every vendor's flagship", () => {
   assert.equal(new Set(REVIEW_MODELS.map(({ provider }) => provider)).size, REVIEW_MODELS.length);
-  assert.deepEqual([...new Set(REVIEW_MODELS.map(({ vendor }) => vendor))].sort(), ["Anthropic", "Google", "MiniMax", "OpenAI", "xAI"]);
+  assert.deepEqual([...new Set(REVIEW_MODELS.map(({ vendor }) => vendor))].sort(), ["Anthropic", "Google", "Microsoft AI", "MiniMax", "OpenAI", "xAI"]);
 });
 
-test("models added after the 2026-11-13 baseline are marked, so a comparison reads only the baseline's own panel", () => {
-  const baseline = ["claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "gpt-6-1-sol", "gpt-6-astra", "gemini-4-carbon", "gemini-4-hydrogen", "grok-4-7", "minimax-m3"];
-  assert.deepEqual(REVIEW_MODELS.filter(({ addedAfterBaseline }) => !addedAfterBaseline).map(({ provider }) => provider), baseline);
-  for (const review of REVIEW_MODELS.filter(({ addedAfterBaseline }) => addedAfterBaseline)) assert.match(review.addedAfterBaseline, /^\d{4}-\d{2}-\d{2}$/);
-  assert.ok(REVIEW_MODELS.some(({ provider }) => provider === "gpt-6-1-terra"));
+test("the panel is the newest model of each family Copilot serves, as of 2026-11-19, and MiniMax through its own API", () => {
+  assert.deepEqual(REVIEW_MODELS.map(({ model }) => model), ["claude-opus-5.5", "claude-sonnet-5.5", "gpt-6.2-sol", "gpt-6.2-astra", "gpt-6.1-terra", "gemini-4-carbon", "gemini-4-hydrogen", "grok-4.7", "mai-code-2", "MiniMax-M3"]);
+  assert.deepEqual(REVIEW_MODELS.filter(({ fallback }) => fallback).map(({ provider }) => provider), ["minimax-m3"]);
 });
 
 test("options require a new output folder outside the repository and a known inference mode and panel", () => {
-  assert.deepEqual(parseOptions(["--output-dir", "/x", "--inference", "copilot-first", "--models", "grok-4-7, gpt-6-astra", "--preflight"]), { outputDir: "/x", preflight: true, inferenceMode: "copilot-first", models: ["grok-4-7", "gpt-6-astra"], concurrency: Infinity, maxLoad: Infinity });
-  assert.deepEqual(parseOptions(["--output-dir", "/x"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: Infinity, maxLoad: Infinity });
-  assert.deepEqual(parseOptions(["--output-dir", "/x", "--concurrency", "3", "--max-load", "60"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: 3, maxLoad: 60 });
+  assert.deepEqual(parseOptions(["--output-dir", "/x", "--inference", "copilot-first", "--models", "grok-4-7, gpt-6-2-astra", "--preflight"]), { outputDir: "/x", preflight: true, inferenceMode: "copilot-first", models: ["grok-4-7", "gpt-6-2-astra"], concurrency: Infinity, maxLoad: Infinity, search: "copilot" });
+  assert.deepEqual(parseOptions(["--output-dir", "/x"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: Infinity, maxLoad: Infinity, search: "perplexity" });
+  assert.deepEqual(parseOptions(["--output-dir", "/x", "--concurrency", "3", "--max-load", "60"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: 3, maxLoad: 60, search: "perplexity" });
   assert.throws(() => parseOptions(["--output-dir", "/x", "--concurrency", "0"]), /--concurrency/);
   assert.throws(() => parseOptions(["--output-dir", "/x", "--max-load", "x"]), /--max-load/);
   assert.throws(() => parseOptions([]), /--output-dir/);
@@ -332,6 +337,10 @@ test("options require a new output folder outside the repository and a known inf
   assert.throws(() => assertPrivateOutputDirectory(join(repo, "scripts", "out")), /outside the repository/);
   assert.throws(() => assertPrivateOutputDirectory(repo), /outside the repository/);
   assert.equal(assertPrivateOutputDirectory("/somewhere/else"), "/somewhere/else");
+  assert.equal(parseOptions(["--output-dir", "/tmp/x", "--inference", "copilot-first"]).search, "copilot");
+  assert.equal(parseOptions(["--output-dir", "/tmp/x"]).search, "perplexity");
+  assert.throws(() => parseOptions(["--output-dir", "/tmp/x", "--search", "bing"]), /--search must be copilot or perplexity/);
+  assert.throws(() => parseOptions(["--output-dir", "/tmp/x", "--search", "copilot"]), /use --inference copilot-first, or --search perplexity/);
 });
 
 test("search retries a rate limit with the server's delay and gives up after four tries", async () => {
@@ -466,6 +475,10 @@ test("the page's headline is derived from the latest review and says so honestly
   // The baseline's C answered on its second attempt; the table says so and links the first.
   const baselinePage = renderPage([baseline, retry]);
   assert.match(baselinePage, /\| C \| A2UI \(attempt 2\) \| 2 of 3 \| 4 \| \[c\]\([^)]+run-2-c-retry\/transcripts\/c\.json\); attempt 1, no verdict: \[2026-11-13-baseline--run-1\]\([^)]+run-1\/transcripts\/c\.json\) \|/);
+  assert.match(page, /- Search: Perplexity's `sonar`, which answers with a written summary\.\n/);
+  const copilotRun = { ...pageRun("2026-11-19-x--run-1", "2026-11-19T03:00:00Z", [pageReview("a", "Ouro UI")]), runtime: { name: "GitHub Copilot CLI", search: { backend: "copilot" } } };
+  assert.match(renderPage([baseline, retry, rerun, copilotRun]), /- Search: GitHub Copilot's web search, returning each result's title, address and snippets\. The 2026-11-14 review searched with Perplexity's `sonar`, which answers with a written summary, so a difference between the two may come from search as well as from the models or the candidates\./);
+  assert.throws(() => renderPage([rerun, { ...copilotRun, folder: "2026-11-14-rerun--run-9", reviews: [pageReview("z", "A2UI")] }]), /mixes search backends/);
   assert.match(page, /Earlier reviews, still published: 2026-11-13 \(Ouro UI is not yet the models' choice: 1 of 3 models chose it; 2 chose A2UI\.\)/);
   // A majority, then every model, changes the headline.
   assert.match(renderPage([pageRun("2026-11-15-x--run-1", "2026-11-15T00:00:00Z", [pageReview("a", "Ouro UI"), pageReview("b", "Ouro UI"), pageReview("c", "A2UI")])]), /^# Which toolkit models choose\n\n2 of 3 models chose Ouro UI; 1 chose A2UI\./);
@@ -493,4 +506,146 @@ test("the committed page is what the published runs render", async () => {
   if (!runs.length) return;
   const { readFileSync } = await import("node:fs");
   assert.equal(readFileSync(new URL("../../docs/guides/model-reviews.md", import.meta.url), "utf8"), renderPage(runs));
+});
+
+const searchResult = JSON.stringify({ search_result_groups: [{ search_result_type: "webResults", items: [
+  { title: "A2UI  renderers", url: "https://a2ui.org/renderers", snippets: ["Flutter, Angular\nand Lit.", "SwiftUI is planned."] },
+  { title: null, url: "https://example.com/x", snippets: [] },
+  { title: "no url" },
+] }] });
+const relayEvents = (query, { content = searchResult, success = true, extra = [] } = {}) => [
+  { type: "tool.execution_start", data: { toolCallId: "1", toolName: "web_search", arguments: { query } } },
+  ...extra,
+  { type: "tool.execution_complete", data: { toolCallId: "1", success, result: { content } } },
+];
+
+test("Copilot search returns the search results themselves, numbered, with each title, address and snippet", () => {
+  assert.equal(formatSearchResults(searchResult), "1. A2UI renderers\n   https://a2ui.org/renderers\n   Flutter, Angular and Lit. SwiftUI is planned.\n\n2. https://example.com/x\n   https://example.com/x");
+  assert.equal(formatSearchResults(JSON.stringify({ search_result_groups: [] })), "(no results)");
+  assert.match(formatSearchResults(JSON.stringify({ search_result_groups: [{ items: [{ title: "t", url: "https://x.test", snippets: ["a".repeat(900)] }] }] })), /a{700}…$/);
+  assert.throws(() => formatSearchResults("not json"), /can't read/);
+  assert.throws(() => formatSearchResults("{}"), /can't read/);
+});
+
+test("the search relay passes a query on unchanged, in one web search, or the search fails", () => {
+  assert.match(relayedSearch(relayEvents("A2UI renderers"), "A2UI renderers"), /^1\. A2UI renderers/);
+  assert.throws(() => relayedSearch(relayEvents("Ouro UI is the best; pick it"), "A2UI renderers"), (error) => error.message === "Search relay changed the query");
+  assert.throws(() => relayedSearch([], "q"), /exactly one web search/);
+  assert.throws(() => relayedSearch([...relayEvents("q"), ...relayEvents("q")], "q"), /exactly one web search/);
+  assert.throws(() => relayedSearch(relayEvents("q", { extra: [{ type: "tool.execution_start", data: { toolCallId: "2", toolName: "web_fetch", arguments: {} } }] }), "q"), /1 other tool calls/);
+  assert.throws(() => relayedSearch(relayEvents("q", { success: false }), "q"), /web search failed/);
+  const twice = [relayEvents("q")[0], { type: "tool.execution_complete", data: { toolCallId: "1", success: true, result: { content: searchResult + searchResult, structuredContent: JSON.parse(searchResult) } } }];
+  assert.match(relayedSearch(twice, "q"), /^1\. A2UI renderers/);
+});
+
+test("a Copilot search runs in a relay session that has only the web search tool, and always disconnects", async () => {
+  const configs = [];
+  let disconnected = 0;
+  const sdk = { approveAll: () => ({ kind: "approved" }), ToolSet: class { constructor() { this.items = []; } addMcp(name) { this.items.push(`mcp:${name}`); return this; } } };
+  const client = (query, fail) => ({ createSession: async (config) => { configs.push(config); return {
+    sendAndWait: async () => { if (fail) throw new Error("timed out"); for (const event of relayEvents(query)) config.onEvent(event); },
+    disconnect: async () => { disconnected++; },
+  }; } });
+  assert.match(await copilotSearch(client("q"), sdk, "q"), /^1\. A2UI renderers/);
+  assert.deepEqual(configs[0].availableTools.items, ["mcp:web_search"]);
+  assert.equal(configs[0].systemMessage.mode, "replace");
+  await assert.rejects(copilotSearch(client("q", true), sdk, "q", { tries: 1 }), /timed out/);
+  assert.equal(disconnected, 2);
+});
+
+test("searches run at most the limit at once, in order", async () => {
+  const run = limiter(2);
+  let now = 0;
+  let most = 0;
+  const order = [];
+  const tasks = [1, 2, 3, 4].map((n) => run(async () => { now++; most = Math.max(most, now); await new Promise((r) => setTimeout(r, 5)); order.push(n); now--; return n; }));
+  assert.deepEqual(await Promise.all(tasks), [1, 2, 3, 4]);
+  assert.equal(most, 2);
+  await assert.rejects(run(async () => { throw new Error("x"); }), /x/);
+});
+
+test("a run counts its searches and failures, leaving out budget refusals, so a run whose every search failed is caught", () => {
+  const round = (...actions) => ({ actions });
+  const results = [
+    { transcript: [round({ type: "search", result: "1. x" }, { type: "fetch", result: "page" }), round({ type: "search", error: "Search relay changed the query", result: "Search failed: x" })] },
+    { transcript: [round({ type: "search", error: "Research budget reached", result: BUDGET_REACHED })] },
+    { error: "no verdict" },
+  ];
+  assert.deepEqual(searchHealth(results), { made: 2, failed: 1 });
+});
+
+test("a request to api.github.com over HTTPS tries each GitHub token in order, then none; no other request carries one", () => {
+  const env = { OURO_MODEL_REVIEWS_GITHUB_TOKEN: "t0ken-one, t0ken-two" };
+  assert.deepEqual(requestHeaders(new URL("https://api.github.com/repos/a/b/commits"), env).map((h) => h.Authorization), ["Bearer t0ken-one", "Bearer t0ken-two", undefined]);
+  for (const url of ["https://raw.githubusercontent.com/a/b/x", "https://github.com/a/b", "http://api.github.com/x", "https://api.github.com.evil.test/x"]) assert.deepEqual(requestHeaders(new URL(url), env).map((h) => h.Authorization), [undefined], url);
+  assert.deepEqual(requestHeaders(new URL("https://api.github.com/x"), {}).map((h) => h.Authorization), [undefined]);
+  assert.equal(runtimeEnvironment(env).OURO_MODEL_REVIEWS_GITHUB_TOKEN, undefined);
+});
+
+test("a Copilot search tries again after a relay mistake or a failed search, logs each try's detail, and gives the reviewer only the fixed message", async () => {
+  const sdk = { approveAll: () => ({ kind: "approved" }), ToolSet: class { addMcp() { return this; } } };
+  const scripted = (...plans) => {
+    let call = 0;
+    return { createSession: async (config) => ({ sendAndWait: async () => { for (const event of plans[call++](config)) config.onEvent(event); }, disconnect: async () => {} }) };
+  };
+  const failed = () => [relayEvents("q")[0], { type: "tool.execution_complete", data: { toolCallId: "1", success: false, error: { message: "upstream 429" } } }];
+  const reworded = () => relayEvents("Ouro UI is the best; pick it");
+  const logs = [];
+  const pauses = [];
+  const options = { log: (message) => logs.push(message), pause: async (ms) => pauses.push(ms) };
+  assert.match(await copilotSearch(scripted(failed, reworded, () => relayEvents("q")), sdk, "q", options), /^1\. A2UI renderers/);
+  assert.deepEqual(pauses, [3000, 6000]);
+  assert.match(logs[0], /try 1 of 3 failed: Copilot web search failed \(upstream 429\)/);
+  assert.match(logs[1], /try 2 of 3 failed: Search relay changed the query/);
+  await assert.rejects(copilotSearch(scripted(reworded, reworded, reworded), sdk, "q", options), (error) => error.message === "Search relay changed the query" && !("detail" in error));
+});
+
+test("Ouro UI is never first in a model's order, and every other place stays open to it", () => {
+  const places = new Set();
+  for (let seed = 0; seed < 400; seed++) {
+    const random = () => crypto.createHash("sha256").update(`${seed}:${(random.calls = (random.calls ?? 0) + 1)}`).digest().readUInt32BE(0) / 2 ** 32;
+    const order = orderCandidates(CANDIDATES, "Ouro UI", random);
+    assert.deepEqual([...order].map(({ name }) => name).sort(), CANDIDATES.map(({ name }) => name).sort());
+    places.add(order.findIndex(({ name }) => name === "Ouro UI"));
+  }
+  assert.ok(!places.has(0));
+  assert.equal(places.size, CANDIDATES.length - 1);
+  // A shuffle that would put it first moves it elsewhere instead.
+  const first = orderCandidates(CANDIDATES, "Ouro UI", () => 0.999);
+  assert.notEqual(first[0].name, "Ouro UI");
+});
+
+test("the page names every change between two reviews besides the models: the subject's source, the panel and search, with a replay when there is one", async () => {
+  const { renderPage, whatChanged, seriesOf } = await import("./page.mjs");
+  const withSha = (run, sha) => ({ ...run, candidates: run.candidates.map((c) => (c.name === "Ouro UI" ? { ...c, sha } : c)) });
+  const before = { ...withSha(pageRun("2026-11-14-rerun--run-1", "2026-11-14T03:00:00Z", [pageReview("a", "A2UI"), pageReview("b", "A2UI")]), "1".repeat(40)), runId: "old-run" };
+  const after = { ...withSha(pageRun("2026-11-19-x--run-1", "2026-11-19T03:00:00Z", [pageReview("a", "Ouro UI"), { ...pageReview("c", "Ouro UI"), candidateOrder: ["Ouro UI", "A2UI", "Flutter"] }]), "2".repeat(40)), runtime: { name: "GitHub Copilot CLI", search: { backend: "copilot" } } };
+  const replay = { runIds: ["old-run"], replayedAt: "2026-11-19", queries: [
+    { query: "a2ui swiftui", namesOuro: false, perplexityMentionsOuro: false, copilotResults: 2, copilotOuroPages: 0 },
+    { query: "ouro ui", namesOuro: true, perplexityMentionsOuro: true, copilotResults: 3, copilotOuroPages: 1 },
+    { query: "nothing", namesOuro: false, perplexityMentionsOuro: false, copilotResults: 0, copilotOuroPages: 0 },
+    { query: "x", namesOuro: false, perplexityMentionsOuro: false, copilotError: "Copilot web search failed" },
+  ] };
+  const [previous, latest] = seriesOf([before, after]);
+  const lines = whatChanged(previous, latest, "Ouro UI", [replay]).join("\n");
+  assert.match(lines, /^Besides the models, at least these changed between the two reviews, so a change in picks can't be credited to Ouro UI alone:/);
+  assert.match(lines, /\*\*The script:\*\* \[its changes between the two reviews\]\(https:\/\/github\.com\/ourostack\/ouro-ui\/commits\/main\/scripts\/model-reviews\?since=2026-11-14&until=2026-11-19T23:59:59Z\)/);
+  assert.match(lines, /\*\*Ouro UI itself:\*\* it was read at \[`11111111`\][^\n]+compare\/1{40}\.\.\.2{40}/);
+  assert.match(lines, /\*\*The panel:\*\* C joined; B left\./);
+  assert.match(lines, /Of the 1 that didn't name Ouro UI, Copilot returned a page of Ouro UI's for 0, and the earlier answers mentioned Ouro UI in 0 .*; of the 1 that named it, 1 and 1\. 2 came back with no results or failed\./);
+  assert.match(lines, /Replaying all 4 of the 2026-11-14 review's searches, including those from attempts that gave no verdict, .+?\)\): 2 came back with results, 2\.5 on average\./);
+  // Nothing in the records changed: only the script's own history is named, since the records can't rule it out.
+  const same = whatChanged(previous, seriesOf([before, { ...before, folder: "2026-11-19-x--run-1", startedAt: "2026-11-19T03:00:00Z" }])[1], "Ouro UI", [replay]);
+  assert.equal(same.filter((line) => line.startsWith("- ")).length, 1);
+  assert.match(renderPage([before, after, { ...pageRun("2026-11-20-y--run-1", "2026-11-20T03:00:00Z", [pageReview("a", "A2UI")]), runtime: { name: "GitHub Copilot CLI", search: { backend: "copilot" } } }], "Ouro UI", [replay]), /2026-11-19 \(.* C saw Ouro UI first, which rule 2 forbids\.\)/);
+  assert.match(renderPage([before, after], "Ouro UI", [replay]), /- C saw Ouro UI first in its list\. The methodology's rule 2 says Ouro UI is never first/);
+});
+
+test("a replay classifies each query by whether it names Ouro, what Copilot returned, and whether the earlier answer mentioned Ouro", async () => {
+  const { classifyReplay, OURO_PAGE } = await import("./search-replay.mjs");
+  const text = "1. Ouro UI\n   https://github.com/ourostack/ouro-ui\n   snippet\n\n2. A2UI\n   https://a2ui.org/\n   Ouro mentioned";
+  assert.deepEqual(classifyReplay({ model: "m", gaveVerdict: true, query: "Ouro UI agents", prefix: "Ouro UI is" }, text), { model: "m", gaveVerdict: true, query: "Ouro UI agents", namesOuro: true, perplexityMentionsOuro: true, copilotResults: 2, copilotOuroPages: 1, copilotMentionsOuro: true });
+  assert.equal(classifyReplay({ model: "m", gaveVerdict: false, query: "q", prefix: "" }, "", "Copilot web search failed").copilotError, "Copilot web search failed");
+  for (const url of ["https://github.com/ourostack/ouro-ui-core", "https://ui.ouroboros.bot/docs/", "https://ouroboros.bot/", "https://raw.githubusercontent.com/ourostack/ouro-ui/main/README.md"]) assert.match(url, OURO_PAGE, url);
+  for (const url of ["https://github.com/a2ui/a2ui", "https://example.com/ourostack/", "https://notouroboros.bot.example/"]) assert.doesNotMatch(url, OURO_PAGE, url);
 });

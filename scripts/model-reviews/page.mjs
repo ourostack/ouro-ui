@@ -11,7 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { REVIEW_MODELS, SUBJECT, evaluationSection } from "./model-reviews.mjs";
+import { BUDGET_REACHED, REVIEW_MODELS, SUBJECT, evaluationSection } from "./model-reviews.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = "https://github.com/ourostack/ouro-ui";
@@ -25,13 +25,25 @@ export function publishedRuns(dir = RESULTS_DIR) {
     .sort()
     .map((folder) => ({ folder, file: path.join(dir, folder, "run.json") }))
     .filter(({ file }) => fs.existsSync(file))
-    .map(({ folder, file }) => ({ folder, ...JSON.parse(fs.readFileSync(file, "utf8")) }));
+    .map(({ folder, file }) => {
+      const run = { folder, ...JSON.parse(fs.readFileSync(file, "utf8")) };
+      // Each review's research calls, by kind, from its transcript, so the page can say how much each review searched.
+      for (const review of run.reviews ?? []) {
+        const transcript = path.join(dir, folder, "transcripts", `${review.provider}.json`);
+        if (!fs.existsSync(transcript)) continue;
+        // A call the research budget refused read nothing, so it isn't counted.
+        const actions = (JSON.parse(fs.readFileSync(transcript, "utf8")).rounds ?? []).flatMap((round) => round.actions ?? []).filter((a) => a.result !== BUDGET_REACHED);
+        review.research = { searches: actions.filter((a) => a.type === "search").length, fetches: actions.filter((a) => a.type === "fetch").length };
+      }
+      return run;
+    });
 }
 
 /** The runs grouped into series, oldest first. Each series has one row per model it tried: a review, or why there is none. */
 export function seriesOf(runs) {
   const groups = new Map();
   for (const run of runs) {
+    if (run.series !== undefined) throw new Error(`${run.folder} is a run of the ${run.series} series, whose counts never mix with the model reviews'. Move it to its own series' results.`);
     const split = run.folder.indexOf("--");
     if (split <= 0) throw new Error(`${run.folder}: a results folder is named <series>--<run>`);
     if (run.status === "preflight" || run.status === "running") throw new Error(`${run.folder} is a ${run.status} record, not a finished run. Remove it from results/.`);
@@ -96,8 +108,73 @@ export function headline(series, subject = SUBJECT) {
   return `${subject} is not yet the models' choice: ${t.subjectPicks} of ${t.completed} models chose it${rest}.`;
 }
 
+/** Replays of a review's searches through another backend (search-replay.json), matched to a series by its runs' ids. */
+export function searchReplays(file = path.join(here, "search-replay.json")) {
+  return fs.existsSync(file) ? [JSON.parse(fs.readFileSync(file, "utf8"))] : [];
+}
+
+/** A series' searches and fetches, from its reviews' transcripts (publishedRuns reads them), or null when none were read. */
+export function researchCalls(series) {
+  const counted = series.rows.map((row) => row.review?.research).filter(Boolean);
+  if (!counted.length) return null;
+  return { searches: counted.reduce((sum, r) => sum + r.searches, 0), fetches: counted.reduce((sum, r) => sum + r.fetches, 0) };
+}
+
+/** The search backend a series' runs used; a run that records none is from before 2026-11-19, which used Perplexity. */
+export function searchOf(series) {
+  const backends = [...new Set(series.runs.map((run) => run.runtime?.search?.backend ?? "perplexity"))];
+  if (backends.length > 1) throw new Error(`Series ${series.id} mixes search backends (${backends.join(", ")}): a series uses one`);
+  return backends[0];
+}
+
+const SEARCH_NAMES = { copilot: "GitHub Copilot's web search, returning each result's title, address and snippets", perplexity: "Perplexity's `sonar`, which answers with a written summary" };
+
+/**
+ * What changed between two reviews besides the models' minds: Ouro UI's own source, the panel and the search backend.
+ * A change in picks can come from any of them, so the page names every one that changed, with what separates them.
+ */
+export function whatChanged(previous, latest, subject = SUBJECT, replays = []) {
+  const causes = [];
+  const sha = (series) => series.runs[0].candidates.find((c) => c.name === subject)?.sha;
+  const [then, now] = [sha(previous), sha(latest)];
+  if (then && now && then !== now) causes.push(`**${subject} itself:** it was read at [\`${then.slice(0, 8)}\`](${REPO}/tree/${then}) then and [\`${now.slice(0, 8)}\`](${REPO}/tree/${now}) now ([what changed](${REPO}/compare/${then}...${now})).`);
+  const shas = (series) => new Map(series.runs[0].candidates.filter((c) => c.sha && c.name !== subject).map((c) => [c.name, c.sha]));
+  const [othersThen, othersNow] = [shas(previous), shas(latest)];
+  const moved = [...othersNow].filter(([name, sha]) => othersThen.has(name) && othersThen.get(name) !== sha).map(([name]) => name);
+  if (moved.length) causes.push(`**The other candidates:** ${moved.length} other ${moved.length === 1 ? "candidate was" : "candidates were"} read at newer commits too: ${moved.join(", ")}.`);
+  const config = (series) => series.rows.find((row) => row.review?.configuration)?.review.configuration ?? {};
+  const [budgetThen, budgetNow] = [config(previous).researchBudget, config(latest).researchBudget];
+  if (budgetThen !== budgetNow) causes.push(`**The research budget:** ${budgetThen ? `${budgetThen.toLocaleString("en-US")} characters` : "none"} then, ${budgetNow ? `${budgetNow.toLocaleString("en-US")} characters` : "none"} now. The prompt tells each model its budget, and a session that stays inside it can finish without compacting, so a model that compacted before may give a verdict now.`);
+  const names = (series) => new Map(series.rows.map((row) => [row.provider, row.displayName]));
+  const [was, is] = [names(previous), names(latest)];
+  const joined = [...is].filter(([p]) => !was.has(p)).map(([, n]) => n);
+  const left = [...was].filter(([p]) => !is.has(p)).map(([, n]) => n);
+  if (joined.length || left.length) causes.push(`**The panel:** ${[joined.length ? `${joined.join(", ")} joined` : "", left.length ? `${left.join(", ")} left` : ""].filter(Boolean).join("; ")}. The comparison above counts only the models in both.`);
+  const [searchThen, searchNow] = [searchOf(previous), searchOf(latest)];
+  if (searchThen !== searchNow) {
+    const calls = [researchCalls(previous), researchCalls(latest)];
+    const share = calls.every(Boolean) ? ` Searches were ${calls[0].searches} of the ${calls[0].searches + calls[0].fetches} research calls then and ${calls[1].searches} of ${calls[1].searches + calls[1].fetches} now; the rest read pages directly.` : "";
+    const ids = new Set(previous.runs.map((run) => run.runId));
+    const replay = replays.find((r) => r.runIds?.some((id) => ids.has(id)));
+    let replayed = "";
+    if (replay) {
+      // Only queries that came back with results can say whether Copilot surfaces Ouro UI's pages.
+      const done = replay.queries.filter((q) => !q.copilotError && q.copilotResults > 0);
+      const plain = done.filter((q) => !q.namesOuro);
+      const named = done.filter((q) => q.namesOuro);
+      const results = done.reduce((sum, q) => sum + q.copilotResults, 0);
+      const missing = replay.queries.length - done.length;
+      replayed = ` Replaying all ${replay.queries.length} of the ${date(previous)} review's searches, including those from attempts that gave no verdict, through ${searchNow === "copilot" ? "Copilot" : searchNow} on ${replay.replayedAt} ([the record](${REPO}/blob/main/scripts/model-reviews/search-replay.json), [the script](${REPO}/blob/main/scripts/model-reviews/search-replay.mjs)): ${done.length} came back with results, ${(results / Math.max(done.length, 1)).toFixed(1)} on average. Of the ${plain.length} that didn't name ${subject}, Copilot returned a page of ${subject}'s for ${plain.filter((q) => q.copilotOuroPages > 0).length}, and the earlier answers mentioned ${subject} in ${plain.filter((q) => q.perplexityMentionsOuro).length} (judged from the first 500 characters the transcripts keep); of the ${named.length} that named it, ${named.filter((q) => q.copilotOuroPages > 0).length} and ${named.filter((q) => q.perplexityMentionsOuro).length}.${missing ? ` ${missing} came back with no results or failed.` : ""}`;
+    }
+    causes.push(`**Search:** then ${SEARCH_NAMES[searchThen]}; now ${SEARCH_NAMES[searchNow]}.${share}${replayed}`);
+  }
+  const [from, to] = [date(previous), date(latest)];
+  causes.push(`**The script:** [its changes between the two reviews](${REPO}/commits/main/scripts/model-reviews?since=${from}&until=${to}T23:59:59Z), such as how a refused verdict is explained to the model, aren't all in the records above.`);
+  return [`Besides the models, at least these changed between the two reviews, so a change in picks can't be credited to ${subject} alone:`, "", ...causes.map((cause) => `- ${cause}`)];
+}
+
 /** The page, from `runs` (publishedRuns()). */
-export function renderPage(runs, subject = SUBJECT) {
+export function renderPage(runs, subject = SUBJECT, replays = searchReplays()) {
   const all = seriesOf(runs);
   if (!all.length) throw new Error("No published run in scripts/model-reviews/results/. Run the reviews and copy the run there first.");
   const latest = all.at(-1);
@@ -133,6 +210,8 @@ export function renderPage(runs, subject = SUBJECT) {
     out.push(
       `Against the ${date(previous)} run, counting only the ${plural(shared.length, "model")} that answered both times: ${was} chose ${subject} then and ${now} now.${moved.length ? ` Changed: ${moved.map((row) => `${row.displayName} (${before.get(row.provider)} to ${row.review.verdict})`).join(", ")}.` : " No model changed its pick."}`,
     );
+    out.push("");
+    out.push(...whatChanged(previous, latest, subject, replays));
   }
   out.push("");
   out.push("## Every model's pick");
@@ -170,8 +249,14 @@ export function renderPage(runs, subject = SUBJECT) {
   out.push(`- Sources were pinned at each run's cutoff; ${subject} was read at [\`${pinned.sha.slice(0, 8)}\`](${REPO}/tree/${pinned.sha}).`);
   out.push(`- Runs in this review: ${latest.runs.map((run) => `[\`${run.folder}\`](${blob(run, "run.json")}) (cutoff ${run.asOf.slice(0, 16).replace("T", " ")} UTC)`).join(", ")}. A model that gave no verdict was run again with the same input, and the table links its earlier attempts; a verdict is never asked for twice.`);
   out.push(`- Inference: ${[...new Set(latest.runs.map((run) => run.runtime?.name).filter(Boolean))].join(", ")} for models in its catalog, and a model's own API for the rest (${[...new Set(latest.rows.filter((r) => r.review?.transport === "direct-api").map((r) => r.displayName))].join(", ") || "none"}).`);
+  const search = searchOf(latest);
+  const before = previous ? searchOf(previous) : search;
+  out.push(`- Search: ${SEARCH_NAMES[search]}.${before !== search ? ` The ${date(previous)} review searched with ${SEARCH_NAMES[before]}, so a difference between the two may come from search as well as from the models or the candidates.` : ""}`);
+  const firsts = latest.rows.filter((row) => row.review?.candidateOrder?.[0] === subject);
+  if (firsts.length) out.push(`- ${firsts.map((row) => row.displayName).join(", ")} saw ${subject} first in ${firsts.length > 1 ? "their lists" : "its list"}. The methodology's rule 2 says ${subject} is never first, but the script didn't enforce it until 2026-11-19, and does now. ${firsts.length > 1 ? "Those reviews are" : "That review is"} kept and counted, and flagged here.`);
   out.push(`- One verdict per model is a sample, not a rate. A result is about the models that ran, on that date.`);
-  if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)})`).join("; ")}`);
+  const firstIn = (series) => series.rows.filter((row) => row.review?.candidateOrder?.[0] === subject).map((row) => row.displayName);
+  if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)}${firstIn(s).length ? ` ${firstIn(s).join(", ")} saw ${subject} first, which rule 2 forbids.` : ""})`).join("; ")}`);
   out.push("");
   return out.join("\n");
 }
