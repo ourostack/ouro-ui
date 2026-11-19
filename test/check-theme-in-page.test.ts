@@ -164,6 +164,52 @@ describe("findThemeIssues: dark-miss", () => {
     expect(of("dark-miss").map((issue) => issue.element)).toEqual(['div "Under a picture, not on it"']);
   });
 
+  it("passes a fill traced to a token the theme gives a dark value, through var() chains, media queries, layers and nesting, and finds one with none", async () => {
+    dark();
+    const box = "width:200px;height:100px";
+    // Another origin's stylesheet (this server under another host name) can't be read, and is left out: its rules throw,
+    // whether or not it loaded.
+    const other = document.createElement("link");
+    other.rel = "stylesheet";
+    other.href = `${location.protocol}//${location.hostname === "localhost" ? "127.0.0.1" : "localhost"}:${location.port}/test/shadcn-stock.css`;
+    const loaded = new Promise((resolve) => {
+      other.addEventListener("load", resolve, { once: true });
+      other.addEventListener("error", resolve, { once: true });
+    });
+    document.head.append(other);
+    try {
+      await loaded;
+      render(`<style>
+        :root { --t-primary: #171717; --t-card: #e0e0e0; --t-wide: #e0e0e0; --t-loop-a: var(--t-loop-b); --t-loop-b: var(--t-loop-a); }
+        .t-scope { --t-color-primary: var(--t-primary); }
+        .dark { --t-primary: #d4d4d4; }
+        @media (prefers-color-scheme: dark) { :root { --t-muted: #e5e5e5; } }
+        @media (min-width: 1px) { :root { --t-wide: #e0e0e0; } }
+        @supports (display: grid) { @layer t-theme { .dark { --t-layered: #e5e5e5; } } }
+        .t-nest { & .dark { --t-nested: #e5e5e5; @media (min-width: 1px) { --t-deep: #e5e5e5; } } }
+        @keyframes t-fade { from { opacity: 0; } }
+        .t-primary { background-color: var(--t-color-primary); }
+        .t-card { background: var(--t-card); }
+        .t-loop { background-color: var(--t-loop-a, #e0e0e0); }
+        .t-ink { color: #121212; }
+      </style>
+      <div class="t-nest"><div class="dark t-scope">
+        <div class="t-primary t-ink" style="${box}">Through a var() chain</div>
+        <div style="background:var(--t-muted, #e5e5e5);${box}">Dark in a media query</div>
+        <div style="background:var(--t-layered);${box}">Dark in a layer</div>
+        <div style="background:var(--t-nested);${box}">Dark in a nested rule</div>
+        <div style="background:var(--t-deep);${box}">Dark in a query in a dark rule</div>
+        <div style="background:var(--t-none, #e0e0e0);${box}">A token nothing declares</div>
+        <div class="t-card t-ink" style="${box}">No dark value</div>
+        <div style="background:var(--t-wide);${box}">A media query that isn't dark</div>
+        <div class="t-loop" style="${box}">A loop with no dark value</div>
+      </div></div>`);
+      expect(of("dark-miss").map((issue) => issue.element)).toEqual(['div "A token nothing declares"', 'div.t-card.t-ink "No dark value"', 'div "A media query that isn\'t dark"', 'div.t-loop "A loop with no dark value"']);
+    } finally {
+      other.remove();
+    }
+  });
+
   it("leaves a light page alone, whatever it fills, and a page with no fill of its own is white", () => {
     render(`<div style="background:#fff;width:200px;height:100px">A white panel</div>`);
     expect(of("dark-miss")).toEqual([]);
