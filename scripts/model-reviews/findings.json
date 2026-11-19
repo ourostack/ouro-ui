@@ -659,8 +659,8 @@
         }
       ],
       "issue": 2297,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "The Windows and Android pages now say what to use on desktop and phones until the core set is native there (#2427); each kit still builds only its own set."
     },
     {
       "id": "agent-native-rival",
@@ -1430,8 +1430,8 @@
         }
       ],
       "issue": 2317,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "An app can declare components of its own in its composed-UI catalog (ourostack/ouro-ui-core#109, released in core 1.1.0), and ComposedSurface, A2UISurface and OuroMcpApp draw them with the renderers the app passes in `components`."
     },
     {
       "id": "agent-first-shortchanges-the-person",

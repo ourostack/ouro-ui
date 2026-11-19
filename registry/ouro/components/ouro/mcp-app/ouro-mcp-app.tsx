@@ -31,6 +31,8 @@ export interface OuroMcpAppProps {
   host?: McpAppHostLink | undefined;
   /** What the view calls itself in `ui/initialize`. @default { name: "Ouro HX card", version: "1.0.0" } */
   appInfo?: { name: string; version: string } | undefined;
+  /** Your app's own components, by the name your catalog declares them under. See ComposedSurface's `components`. */
+  components?: ComposedSurfaceProps["components"];
   /** Layout only: margins, width (`max-w-md`). */
   className?: string | undefined;
 
@@ -141,7 +143,7 @@ function applyTheme(context: unknown): void {
  * );
  */
 export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
-  const { catalog, handoffUrl, label, host, appInfo, className, onAction } = props;
+  const { catalog, handoffUrl, label, host, appInfo, className, onAction, components } = props;
   const actions = useMemo(() => loadCatalog(catalog), [catalog]);
   const [card, setCard] = useState<CardContent | undefined>(undefined);
   const [status, setStatus] = useState<Status | undefined>(undefined);
@@ -257,11 +259,11 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
     <div ref={root} data-ouro="ouro-mcp-app" className={cn(ROOT_CLASS, className)}>
       {card && connection ? (
         "messages" in card ? (
-          <A2UISurface catalog={catalog} messages={card.messages} label={label} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} />
+          <A2UISurface catalog={catalog} messages={card.messages} label={label} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} components={components} />
         ) : (
           <>
             {problems.length ? <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." /> : null}
-            {own.length ? null : <ComposedSurface tree={card.tree as ComposedNode} data={card.data} onPress={pressTree} onHandoff={handOff} className={problems.length ? "hidden" : undefined} />}
+            {own.length ? null : <ComposedSurface tree={card.tree as ComposedNode} data={card.data} onPress={pressTree} onHandoff={handOff} components={components} className={problems.length ? "hidden" : undefined} />}
           </>
         )
       ) : status ? null : (

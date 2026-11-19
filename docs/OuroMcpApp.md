@@ -33,6 +33,7 @@ Type: `OuroMcpAppProps`.
 | `appInfo` | `{ name: string; version: string }` | { name: "Ouro HX card", version: "1.0.0" } | What the view calls itself in `ui/initialize`. |
 | `catalog` (required) | `unknown` |  | The app's A2UI catalog, generated from its actions by core's `ouro-a2ui-catalog.mts catalog`. Tool results carry only its id. |
 | `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
+| `components` | `ComposedSurfaceProps["components"]` |  | Your app's own components, by the name your catalog declares them under. See ComposedSurface's `components`. |
 | `handoffUrl` | `((handoff: A2UIHandoff) => string \| undefined)` |  | Where a person-only button takes the person: the address of your app's own screen for that action, which the host opens with `ui/open-link`. Without one, or when the host can't open links, the view tells the person where to do it. |
 | `host` | `McpAppHostLink` | the window that framed the view, through `windowHostLink()` | The connection to the host. |
 | `label` | `A2UISurfaceProps["label"]` |  | The app's own word for an id on a confirm sheet, from its own data, in place of the agent's name. It works for a view you build in code, on an A2UI result; a composed tree's server names its ids when it builds the tree. See A2UISurface's `label`. |
@@ -130,10 +131,86 @@ interface A2UISurfaceProps {
    * label={({ field, value }) => (field === "recipe" ? titles[value] : undefined)}
    */
   label?: ((context: LabelContext) => string | undefined) | undefined;
+  /**
+   * Your app's own components, by the name your catalog declares them under: a renderer draws its component. See
+   * ComposedSurface's `components`.
+   *
+   * @default {}
+   */
+  components?: ComposedSurfaceProps["components"];
   /** Layout only: margins, width (`max-w-md`). */
   className?: string | undefined;
 
   /** Not a prop. A pressed button calls `onAction`, or `onHandoff` for a person-only one: `<A2UISurface onAction={send} onHandoff={openApp}>`. */
   onPress?: { "Use onAction={send} onHandoff={openApp}": never };
+}
+```
+
+### `ComposedHandoff`
+
+Where a person-only button takes the person: the action's id and the catalog's `how`.
+
+```ts
+interface ComposedHandoff {
+  action: string;
+  how: string;
+}
+```
+
+### `ComposedRenderer`
+
+Draws one of your app's own components, the ones your catalog declares beyond Ouro HX's: `node.props` holds its resolved props (core's `asText` text, booleans, lists) and `children` its children, already drawn.
+
+```ts
+type ComposedRenderer = (node: ComposedNode, children: ReactNode[]) => ReactNode;
+```
+
+### `ComposedSurfaceProps`
+
+Props for `ComposedSurface`.
+
+```ts
+interface ComposedSurfaceProps {
+  /**
+   * The composed tree to draw: core's `ComposedNode`, its values resolved. Check one you didn't resolve yourself
+   * with core's `validateTree` against the app's catalog first; A2UI's resolver already has.
+   */
+  tree: ComposedNode;
+  /**
+   * Runs a pressed read or write button, and a consequential one once the person confirms. `press` is core's
+   * `PersonPress` (the action, the prepared input, its consent, and that the person pressed it); `button` is the node,
+   * for a format that names its source. Return a promise to show the button loading until it settles.
+   */
+  onPress: (press: PersonPress, button: ComposedNode) => void | Promise<void>;
+  /**
+   * A person-only button never runs from composed UI: take the person to your app's own screen for it.
+   */
+  onHandoff: (handoff: ComposedHandoff) => void;
+  /**
+   * The data model the tree's fields start from, such as an MCP tool result's `structuredContent.ouro.data`. A
+   * TextField, Checkbox or Select shows what it holds at the field's `value` pointer and writes the person's answer
+   * there. A button input bound to that pointer (`{"@path": "/servings"}`) sends the answer when the person presses,
+   * and a consequential button's confirm sheet shows it. When `data` or `tree` changes, as an agent's update changes
+   * them, what the person entered stays, except at a pointer whose value the new `data` changed, or in a list item it
+   * changed: there the agent's value wins.
+   *
+   * @default {}
+   */
+  data?: Obj | undefined;
+  /**
+   * Your app's own components, by the name your catalog declares them under (the actions file's `components` export):
+   * a renderer draws its component and may use HX's components. A name left out of the map is left out of the drawing,
+   * and a development message names the fix.
+   *
+   * @default {}
+   */
+  components?: Readonly<Record<string, ComposedRenderer>> | undefined;
+  /** Layout only: margins, width (`max-w-md`). */
+  className?: string | undefined;
+
+  /** Not a prop. A pressed button calls `onPress`, or `onHandoff` for a person-only one: `<ComposedSurface onPress={run} onHandoff={openApp}>`. */
+  onAction?: { "Use onPress={run} onHandoff={openApp}": never };
+  /** Not a prop. The fields' data model is `data`: `<ComposedSurface data={structuredContent.ouro.data}>`. */
+  dataModel?: { "Use data={structuredContent.ouro.data}": never };
 }
 ```

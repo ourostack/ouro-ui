@@ -48,6 +48,14 @@ An agent changes a card it already showed by sending only what changed, not the 
 
 In A2UI, the same changes are `updateComponents` and `updateDataModel` messages: `A2UISurface` draws them when you pass it the longer list of messages.[^a2ui-update] Either way, what the person entered stays, except where the update changed the value, or the list item it is in: there the agent's value wins.[^keeps]
 
+## Your own components
+
+An app whose catalog declares a component of its own (core's `ouro-a2ui-catalog.mts` takes them as `components`) passes `components` to `ComposedSurface`, `A2UISurface` or `OuroMcpApp`: a map from the name to a function that draws the node, given its children already drawn.[^own] A name the map lacks draws nothing, and development builds say which one.[^own] A name Ouro HX has is always drawn by HX, whatever the map holds.[^own]
+
+```tsx
+<ComposedSurface tree={tree} components={{ WineCard: (node, children) => <section>{children}</section> }} />
+```
+
 ## How a tree reaches the screen
 
 | The agent sends | Web | Apple | Windows | Android |
@@ -92,3 +100,5 @@ Ouro's kits are written in their platforms' own toolkits: React on the web, Swif
 [^windows-update]: https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/README.md; https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0 verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/README.md) verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0)
 [^android-update]: https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/README.md; https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0 verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/README.md) verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0)
 [^apple-update]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0; https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md)
+
+[^own]: test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws the app's own component with its renderer, children first, and keeps HX's drawing beside it verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws the app's own component with its renderer, children first, and keeps HX's drawing beside it) verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws Ouro HX's own names with HX, whatever the map holds) verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > shows nothing for an own component with no renderer, and the message names the fix)

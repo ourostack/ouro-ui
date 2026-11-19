@@ -149,7 +149,7 @@ In all 16 open-arm sessions each model designed its own typed command registry s
 
 #### Windows and Android have only 8 components each, so models fall back to Flutter or to the web kit in a desktop shell.
 
-Signal: workaround. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2297](https://github.com/ourostack/ouro-ui/issues/2297).
+Signal: workaround. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2297](https://github.com/ourostack/ouro-ui/issues/2297). What changed: The Windows and Android pages now say what to use on desktop and phones until the core set is native there (#2427); each kit still builds only its own set.
 
 Seven models cited the 8-against-125 component gap: no message list, composer, sheets, virtualised lists or data grids natively, so 'several platforms' reads as web and iPhone. It cost Ouro the chat client, the cooking app's Android phone and the Windows review desk; Flutter won partly because its docs list Windows and Mac as stable targets, and Ouro pickers planned to wrap the web kit in Tauri or Electron, a path Ouro doesn't document. Ouro should ship a core set (navigation, sheets and dialogs, lists, forms, a composer) on all four kits, and say plainly what to use on desktop until then.
 
@@ -324,7 +324,7 @@ Models picked Flutter partly because the official a2ui_flutter renderer lets one
 
 #### A governed card catalog turns into either a ceiling or a review queue, and teams route around it.
 
-Signal: pain. Raised by 5 models: Claude Opus 5.5, Claude Sonnet 5.5, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2317](https://github.com/ourostack/ouro-ui/issues/2317).
+Signal: pain. Raised by 5 models: Claude Opus 5.5, Claude Sonnet 5.5, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2317](https://github.com/ourostack/ouro-ui/issues/2317). What changed: An app can declare components of its own in its composed-UI catalog (ourostack/ouro-ui-core#109, released in core 1.1.0), and ComposedSurface, A2UISurface and OuroMcpApp draw them with the renderers the app passes in `components`.
 
 Five models expected governed card formats to fail one of two ways: too narrow, so teams fall back to iframes or handwritten cards, or too slow, so every new card type waits for review. Grok described the Ouro version, every team told to add the missing piece to Ouro first. These are pre-mortem expectations, not experience. Ouro's composed-UI catalog needs a fast, safe way for an app to extend it locally, so governance doesn't become a queue.
 
