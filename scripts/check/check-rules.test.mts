@@ -175,7 +175,7 @@ describe("Ouro check's design rules", () => {
     assert.deepEqual(quietly.findings.filter((f) => f.rule === "jank"), []);
   });
 
-  test("giant-text: mendelow.me's root type, grown with the screen to 24px, fails on a 4K display and not on a laptop; ouro-base's 125% step passes", async () => {
+  test("giant-text: mendelow.me's root type, grown with the screen to 24px, fails on a 4K display and not on a laptop, and ouro-base's 125% step passes", async () => {
     const words = "<p>Selected work, from the timeline to the tea. Each piece sits under a rule and reads top to bottom.</p><p>The words are the page's running text, drawn at the body size the root sets.</p>";
     const style = (root: string) => `<style>main{max-width:36rem;margin:0 auto}body{font-size:1.125rem}h1{font-size:4rem;line-height:1}${root}</style>`;
     const folder = site("giant-text", {
