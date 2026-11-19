@@ -58,3 +58,8 @@
     @apply m-0 bg-(--acme-paper) p-4 font-sans text-(--acme-ink);
   }
 }
+
+/* The incumbent's own contrast fix for its dimmed text, which Mantine's default leaves under 4.5:1 on this paper colour. */
+:root[data-mantine-color-scheme] {
+  --mantine-color-dimmed: #4a5568;
+}

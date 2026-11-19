@@ -1,8 +1,7 @@
 {
   "waive": {
     "/": {
-      "off-theme": "The page is the incumbent's: Mantine's own stylesheet sets its colours, fonts and outlines, so the rule names them. They move with the page, which is why Billing carries none.",
-      "axe": "The page is the incumbent's: Mantine's dimmed text is below 4.5:1 on this page's paper colour. It is fixed when the page moves to Ouro HX."
+      "off-theme": "The page is the incumbent's: Mantine's own stylesheet sets its colours, fonts and outlines, so the rule names them. They move with the page, which is why Billing carries none."
     }
   }
 }
