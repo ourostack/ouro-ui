@@ -224,6 +224,14 @@ function usageWords(usage: string): string[]
 type Verdict = "pass" | "fail" | "skip";
 ```
 
+### `wordProblems`
+
+Returns the problems with a command's words, as lines with their fixes, and the count of words in its busiest usage line. Words come in the order the command reads them: an optional word, bracketed in usage, comes after the required ones. A schema default is a string of the word's values, not on a required word, and usage shows it as `[<name>=<value>]`.
+
+```ts
+function wordProblems(cmd: CliCommand): { words: number; problems: string[]; }
+```
+
 ### `xray`
 
 Runs the X-ray: the guard, the safety proof, then the surfaces given; returns the report.
@@ -241,7 +249,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```ts
-const XRAY_VERSION: "1.6.0"
+const XRAY_VERSION: "1.7.0"
 ```
 
 ### `XrayOptions`
