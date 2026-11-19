@@ -32,6 +32,7 @@ import {
   validateSession,
 } from "./interviews.mjs";
 import { checkFindings, interviewSeriesOf, publishedInterviews, readFindings, renderInterviewsPage } from "./interviews-page.mjs";
+import { URL } from "node:url";
 
 const asOf = "2026-11-19T00:00:00.000Z";
 const sha = "a".repeat(40);
