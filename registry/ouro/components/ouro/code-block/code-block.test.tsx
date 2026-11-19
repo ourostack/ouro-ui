@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
-import { parseAnsi } from "@/registry/ouro/components/ouro/code-block/code-block-styles";
+import { parseAnsi, type AnsiStyle } from "@/registry/ouro/components/ouro/code-block/code-block-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -561,8 +561,8 @@ describe("CodeBlock terminal output", () => {
 
 describe("parseAnsi", () => {
   const esc = "\x1b";
-  const plain = { bold: false, dim: false, italic: false, underline: false, strike: false, color: null };
-  const run = (text: string, style: Partial<typeof plain> | null = null) => ({ text, style: style && { ...plain, ...style } });
+  const plain: AnsiStyle = { bold: false, dim: false, italic: false, underline: false, strike: false, color: null };
+  const run = (text: string, style: Partial<AnsiStyle> | null = null) => ({ text, style: style && { ...plain, ...style } });
 
   it("maps each basic and bright color code to its color, and 39 back to none", () => {
     const code = Array.from({ length: 8 }, (_, index) => `${esc}[${30 + index}m${index}${esc}[${90 + index}m${index + 8}`).join("") + `${esc}[39mend`;
