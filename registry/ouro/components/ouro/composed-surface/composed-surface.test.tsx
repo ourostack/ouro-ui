@@ -257,6 +257,13 @@ describe("ComposedSurface", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it("draws Ouro HX's own names with HX, whatever the map holds", async () => {
+    const own = node("root", "Stack", {}, [node("name", "Heading", { text: "Cellar", level: 2 })]);
+    const host = await render(<ComposedSurface {...props({ tree: own, components: { Heading: () => <b data-test-harness>mine</b> } })} />);
+    expect(host.querySelector("b")).toBeNull();
+    expect(page.getByRole("heading", { level: 2, name: "Cellar" }).element()).toBeTruthy();
+  });
+
   it("shows nothing for an own component with no renderer, and the message names the fix", async () => {
     const own = node("root", "Stack", {}, [node("wine", "WineCard", { name: "Syrah" }), node("name", "Heading", { text: "Cellar", level: 2 })]);
     const host = await render(<ComposedSurface {...props({ tree: own })} />);

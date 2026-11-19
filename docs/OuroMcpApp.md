@@ -132,7 +132,7 @@ interface A2UISurfaceProps {
    */
   label?: ((context: LabelContext) => string | undefined) | undefined;
   /**
-   * Your app's own components, by the name your catalog declares them under: each is drawn by its renderer. See
+   * Your app's own components, by the name your catalog declares them under: a renderer draws its component. See
    * ComposedSurface's `components`.
    *
    * @default {}
@@ -199,8 +199,8 @@ interface ComposedSurfaceProps {
   data?: Obj | undefined;
   /**
    * Your app's own components, by the name your catalog declares them under (the actions file's `components` export):
-   * each is drawn by its renderer, which may use HX's components. A tree that names one with no renderer here shows
-   * nothing for it, and a development message names the fix.
+   * a renderer draws its component and may use HX's components. A name left out of the map is left out of the drawing,
+   * and a development message names the fix.
    *
    * @default {}
    */

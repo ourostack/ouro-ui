@@ -1,1 +1,1 @@
-- New: `ComposedSurface`, `A2UISurface` and `OuroMcpApp` take `components`, a map from your catalog's own component names to functions that draw them; a name with no renderer draws nothing and development builds say which.
+- New: `ComposedSurface`, `A2UISurface` and `OuroMcpApp` take `components`, a map from your catalog's own component names to functions that draw them; a name without a renderer is left out and development builds say which.

@@ -70,7 +70,7 @@ export interface A2UISurfaceProps {
    */
   label?: ((context: LabelContext) => string | undefined) | undefined;
   /**
-   * Your app's own components, by the name your catalog declares them under: each is drawn by its renderer. See
+   * Your app's own components, by the name your catalog declares them under: a renderer draws its component. See
    * ComposedSurface's `components`.
    *
    * @default {}

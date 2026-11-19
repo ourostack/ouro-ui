@@ -31,7 +31,7 @@ Type: `A2UISurfaceProps`.
 | --- | --- | --- | --- |
 | `catalog` (required) | `unknown` |  | The app's A2UI catalog, generated from its actions by core's `ouro-a2ui-catalog.mts catalog`. |
 | `className` | `string` |  | Layout only: margins, width (`max-w-md`). |
-| `components` | `ComposedSurfaceProps["components"]` | {} | Your app's own components, by the name your catalog declares them under: each is drawn by its renderer. See ComposedSurface's `components`. |
+| `components` | `ComposedSurfaceProps["components"]` | {} | Your app's own components, by the name your catalog declares them under: a renderer draws its component. See ComposedSurface's `components`. |
 | `label` | `((context: LabelContext) => string \| undefined)` |  | Names the ids in a confirm sheet's rows from the app's own data, such as a recipe's title for `rcp_lemon_orzo`. It is asked only for an id field, one whose catalog input has `shownAs`; every other row shows exactly what will be sent. Return undefined to keep the name the agent prepared, or the id. The name wins over what the agent prepared, because the agent's text is the one thing the person can't check. Keep it stable, as `messages` is: a new function on each render resolves the messages again. |
 | `messages` (required) | `readonly unknown[]` |  | The agent's A2UI messages, in order. The surface shows where they leave it. |
 | `onAction` (required) | `(message: A2UIActionMessage) => void \| Promise<void>` |  | Runs a pressed read or write button, and a consequential one once the person confirms. Send the message to the agent, or call the action's own tool with `message.action.context`. Return a promise to show the button loading until it settles. |
@@ -150,8 +150,8 @@ interface ComposedSurfaceProps {
   data?: Obj | undefined;
   /**
    * Your app's own components, by the name your catalog declares them under (the actions file's `components` export):
-   * each is drawn by its renderer, which may use HX's components. A tree that names one with no renderer here shows
-   * nothing for it, and a development message names the fix.
+   * a renderer draws its component and may use HX's components. A name left out of the map is left out of the drawing,
+   * and a development message names the fix.
    *
    * @default {}
    */
