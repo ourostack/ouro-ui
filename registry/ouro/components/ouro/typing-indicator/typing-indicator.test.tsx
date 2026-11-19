@@ -56,7 +56,7 @@ describe("TypingIndicator", () => {
     // Each face after the first overlaps the one before.
     expect(faces[1]!.getBoundingClientRect().left).toBeLessThan(faces[0]!.getBoundingClientRect().right);
     expect(line.querySelectorAll("[data-ouro-typing-dots] > span")).toHaveLength(3);
-    expect(line.hasAttribute("data-writing")).toBe(true);
+    expect(line.getAttribute("data-writing")).toBe("");
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -115,6 +115,8 @@ describe("TypingIndicator", () => {
         const { line } = await render(<TypingIndicator people={[ned]} />);
         const animations = line.getAnimations({ subtree: true });
         expect(animations).toHaveLength(3);
+        // The dots pulse in turn, each 0.2s after the one before.
+        expect(animations.map((animation) => (animation.effect as KeyframeEffect).getTiming().delay)).toEqual([0, 200, 400]);
         for (const animation of animations) {
           const frames = (animation.effect as KeyframeEffect).getKeyframes();
           for (const frame of frames) expect(Object.keys(frame).filter((key) => !["offset", "easing", "composite", "computedOffset"].includes(key))).toEqual(["opacity"]);
