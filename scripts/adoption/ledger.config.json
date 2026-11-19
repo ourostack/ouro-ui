@@ -789,7 +789,8 @@
           "latest": "apple",
           "from": "regex",
           "file": "Package.swift",
-          "regex": "ouro-ui-apple\\.git\",\\s*(?:exact:|\\.upToNextMinor\\(from:|from:)\\s*\"([0-9.]+)\""
+          "regex": "ouro-ui-apple\\.git\",\\s*(?:exact:|\\.upToNextMinor\\(from:|from:)\\s*\"([0-9.]+)\"",
+          "range": "major"
         }
       ],
       "hx": {
