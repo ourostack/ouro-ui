@@ -215,6 +215,26 @@ export function runtimeEnvironment(source = process.env) {
 }
 
 /** Each review's transport: Copilot where its catalog lists the model (copilot-first), otherwise the vendor's API. */
+/**
+ * The panel a run can reach. A model named with --models must be reachable, or the run stops; with the whole panel, a
+ * model with no route (not in Copilot's catalog and no key for its own API) is left out and recorded as skipped, so a
+ * Copilot sign-in alone runs every model Copilot serves.
+ */
+export function reachablePanel(panel, availableModelIds, keys, inferenceMode, named) {
+  if (named) return { selected: resolveTransports(panel, availableModelIds, keys, inferenceMode), skipped: [] };
+  const selected = [];
+  const skipped = [];
+  for (const review of panel) {
+    try {
+      selected.push(...resolveTransports([review], availableModelIds, keys, inferenceMode));
+    } catch (error) {
+      skipped.push({ provider: review.provider, displayName: review.displayName, reason: error.message });
+    }
+  }
+  if (!selected.length) throw new Error(`No model of the panel is reachable: ${skipped.map((s) => s.reason).join("; ")}`);
+  return { selected, skipped };
+}
+
 export function resolveTransports(reviews, availableModelIds, keys, inferenceMode = "direct-api") {
   return reviews.map((review) => {
     if (inferenceMode === "copilot-first" && availableModelIds.has(review.model)) return { ...review, transport: "copilot" };
@@ -633,7 +653,7 @@ export const FETCH_PARAMS = {
   required: ["url"],
   additionalProperties: false,
 };
-const VERDICT_DESC = "Submit your final evaluation after completing research on every candidate. Call this exactly once when you are done. Your evaluation may appear verbatim on a public website attributed to you — write it in your own voice and stand behind it.";
+export const VERDICT_DESC = "Submit your final evaluation after completing research on every candidate. Call this exactly once when you are done. Your evaluation may appear verbatim on a public website attributed to you — write it in your own voice and stand behind it.";
 
 /** The verdict tool's schema; the choices come in this session's shuffled order so the schema favors none. */
 export function verdictParameters(candidateOrder) {
@@ -1088,10 +1108,12 @@ export async function startRuntime(options, experiment, research, secrets, handl
   }
   const [status, availableModels] = await Promise.all([client.getStatus(), copilotFirst ? client.listModels() : []]);
   const panel = options.models ? REVIEW_MODELS.filter(({ provider }) => options.models.includes(provider)) : REVIEW_MODELS;
-  const selected = resolveTransports(panel, new Set(availableModels.map(({ id }) => id)), keys, options.inferenceMode);
+  const { selected, skipped } = reachablePanel(panel, new Set(availableModels.map(({ id }) => id)), keys, options.inferenceMode, Boolean(options.models));
   const runtime = { name: "GitHub Copilot CLI", version: status.version, protocolVersion: status.protocolVersion, sdk: "@github/copilot-sdk", mode: "empty", inferenceMode: options.inferenceMode, infiniteSessions: false, largeOutputIndirection: false, concurrency: Number.isFinite(options.concurrency) ? options.concurrency : "all", maxLoad: Number.isFinite(options.maxLoad) ? options.maxLoad : null, search: options.search === "copilot" ? { backend: "copilot", tool: "github-mcp-server web_search", relayModel: SEARCH_RELAY_MODEL } : { backend: "perplexity", model: "sonar" } };
 
+  if (skipped.length) runtime.skipped = skipped;
   console.log("Selected models:");
+  for (const skip of skipped) console.log(`  ${skip.displayName}: skipped (${skip.reason})`);
   for (const review of selected) console.log(`  ${review.displayName}: ${review.transport === "copilot" ? "GitHub Copilot inference" : `direct ${review.vendor} API (${mask(keys[review.fallback.key])})`}`);
   if (options.search === "copilot") {
     if (!availableModels.some(({ id }) => id === SEARCH_RELAY_MODEL)) throw new Error(`Copilot search needs ${SEARCH_RELAY_MODEL}, the relay model, which this account's Copilot catalog lacks`);

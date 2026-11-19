@@ -11,7 +11,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { BUDGET_REACHED, REVIEW_MODELS, SUBJECT, evaluationSection } from "./model-reviews.mjs";
+import crypto from "node:crypto";
+import { BUDGET_REACHED, FETCH_DESC, REVIEW_MODELS, SEARCH_DESC, SUBJECT, VERDICT_DESC, evaluationSection, renderSystemPrompt } from "./model-reviews.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = "https://github.com/ourostack/ouro-ui";
@@ -173,6 +174,52 @@ export function whatChanged(previous, latest, subject = SUBJECT, replays = []) {
   return [`Besides the models, at least these changed between the two reviews, so a change in picks can't be credited to ${subject} alone:`, "", ...causes.map((cause) => `- ${cause}`)];
 }
 
+/** The commands for a full run of your own, which METHODOLOGY.md's "Running it" also gives. */
+export const RUN_COMMANDS = [
+  "mkdir ../model-reviews-deps && (cd ../model-reviews-deps && npm i @github/copilot-sdk@1.0.13)",
+  "export OURO_MODEL_REVIEWS_SDK=$PWD/../model-reviews-deps",
+  "node scripts/model-reviews/model-reviews.mjs --preflight --inference copilot-first --output-dir ../my-review",
+  "node scripts/model-reviews/model-reviews.mjs --inference copilot-first --output-dir ../my-review",
+];
+
+/**
+ * "Run it yourself": the system prompt exactly as one model got it in the latest review, rebuilt with the script's own
+ * renderSystemPrompt from that model's recorded order and cutoff, and refused unless its hash is the one the record
+ * keeps, so the page can never show a prompt that differs from what the models got. Then the full run's commands.
+ */
+export function runItYourself(latest, subject = SUBJECT) {
+  const row = latest.rows.find((r) => r.review?.candidateOrder && r.review.promptSha256);
+  if (!row) return [];
+  const candidates = row.run.candidates;
+  const ordered = row.review.candidateOrder.map((name) => candidates.find((c) => c.name === name));
+  const prompt = renderSystemPrompt(ordered, row.run.asOf);
+  if (crypto.createHash("sha256").update(prompt).digest("hex") !== row.review.promptSha256) throw new Error(`The prompt the script renders for ${row.displayName} differs from the one its record hashed; the page shows only a prompt a model got`);
+  const fence = "`".repeat(Math.max(3, ...[...prompt.matchAll(/`+/g)].map((m) => m[0].length + 1)));
+  return [
+    "## Run it yourself",
+    "",
+    "### Quick: ask your own agent",
+    "",
+    `This is the system prompt ${row.displayName} got in this review, word for word: the script rebuilds it from the record, and the page checks it against the hash the record keeps. Give your agent web search and a way to read pages, use this as its instructions, and ask it to research the candidates and choose. Its answer is one chat, not the controlled run: the run also pins each repository to a commit, gives every model its own random order and the same tools, search and research budget, refuses a verdict that cites a page the model didn't read, and keeps every transcript.`,
+    "",
+    `${fence}text`,
+    prompt,
+    fence,
+    "",
+    `The run's tools: \`search\` (${SEARCH_DESC}), \`fetch_url\` (${FETCH_DESC}) and \`final_verdict\` (${VERDICT_DESC}) Compare your agent's pick with the table above.`,
+    "",
+    "### Full: run the harness",
+    "",
+    `In a clone of [ourostack/ouro-ui](${REPO}), signed in to GitHub with Copilot (\`gh auth login\`), and with nothing else: search is Copilot's, and a model Copilot doesn't serve and you have no key for is skipped and recorded.`,
+    "",
+    "```sh",
+    ...RUN_COMMANDS,
+    "```",
+    "",
+    `Your picks are in \`../my-review/run.json\` (\`summary.picks\`), each model's transcript in \`transcripts/\`, and they line up with the table above model by model. To publish a run beside ours, the [methodology](${REPO}/blob/main/scripts/model-reviews/METHODOLOGY.md) says how.`,
+  ];
+}
+
 /** The page, from `runs` (publishedRuns()). */
 export function renderPage(runs, subject = SUBJECT, replays = searchReplays()) {
   const all = seriesOf(runs);
@@ -254,10 +301,14 @@ export function renderPage(runs, subject = SUBJECT, replays = searchReplays()) {
   out.push(`- Search: ${SEARCH_NAMES[search]}.${before !== search ? ` The ${date(previous)} review searched with ${SEARCH_NAMES[before]}, so a difference between the two may come from search as well as from the models or the candidates.` : ""}`);
   const firsts = latest.rows.filter((row) => row.review?.candidateOrder?.[0] === subject);
   if (firsts.length) out.push(`- ${firsts.map((row) => row.displayName).join(", ")} saw ${subject} first in ${firsts.length > 1 ? "their lists" : "its list"}. The methodology's rule 2 says ${subject} is never first, but the script didn't enforce it until 2026-11-19, and does now. ${firsts.length > 1 ? "Those reviews are" : "That review is"} kept and counted, and flagged here.`);
+  const skipped = [...new Map(latest.runs.flatMap((run) => run.runtime?.skipped ?? []).map((skip) => [skip.provider, skip])).values()];
+  if (skipped.length) out.push(`- Not run, because the machine had no route to ${skipped.length > 1 ? "them" : "it"}: ${skipped.map((skip) => `${skip.displayName} (${skip.reason})`).join("; ")}.`);
   out.push(`- One verdict per model is a sample, not a rate. A result is about the models that ran, on that date.`);
   const firstIn = (series) => series.rows.filter((row) => row.review?.candidateOrder?.[0] === subject).map((row) => row.displayName);
   if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)}${firstIn(s).length ? ` ${firstIn(s).join(", ")} saw ${subject} first, which rule 2 forbids.` : ""})`).join("; ")}`);
   out.push("");
+  const yourself = runItYourself(latest, subject);
+  if (yourself.length) out.push(...yourself, "");
   return out.join("\n");
 }
 

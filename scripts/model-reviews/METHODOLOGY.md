@@ -73,6 +73,8 @@ node scripts/model-reviews/model-reviews.mjs --inference copilot-first --models 
 node scripts/model-reviews/model-reviews.mjs --inference copilot-first --concurrency 3 --max-load 60 --output-dir <new folder>   # on a shared machine
 ```
 
+With the whole panel, a model the machine can't reach (not in its Copilot catalog, and no key for the model's own API) is left out and recorded in `run.json` as `runtime.skipped`, so a Copilot sign-in alone runs every model Copilot serves; a model named with `--models` must be reachable, or the run stops. The page's "Run it yourself" section gives these commands and the prompt one model got, rebuilt from the record and checked against its hash.
+
 Models run at once by default. `--concurrency` caps how many, and `--max-load` starts another only while the one-minute load average is at or below it, so a busy machine runs one model at a time. The evaluations are independent, so the schedule changes nothing a model sees; `run.json` records it under `runtime`.
 
 A run takes tens of minutes, since each model reads every candidate. Tests: `node --test scripts/model-reviews/model-reviews.test.mjs` (part of `pnpm test:scripts`).
