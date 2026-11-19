@@ -124,6 +124,20 @@ export function shuffle(items, random = Math.random) {
   return copy;
 }
 
+/**
+ * A model's own order of the candidates: a uniform shuffle, except that the subject is never first (rule 2). When the
+ * shuffle puts it first, it trades places with one of the others, chosen at random, so every other place stays equally
+ * likely for it.
+ */
+export function orderCandidates(candidates, subject = SUBJECT, random = Math.random) {
+  const order = shuffle(candidates, random);
+  if (order.length > 1 && order[0].name === subject) {
+    const other = 1 + Math.floor(random() * (order.length - 1));
+    [order[0], order[other]] = [order[other], order[0]];
+  }
+  return order;
+}
+
 /** The whole system prompt. It names each candidate and its URL, and nothing else about any of them. */
 export function renderSystemPrompt(candidates, asOf) {
   return `You are choosing the design system or interface toolkit you would use to build interfaces that both people and agents use, across web and native platforms.
@@ -145,7 +159,7 @@ When you call final_verdict, be specific about architecture — not vague praise
 }
 
 export function buildSystemPrompt(experiment, random = Math.random) {
-  const shuffled = shuffle(experiment.candidates, random);
+  const shuffled = orderCandidates(experiment.candidates, SUBJECT, random);
   const prompt = renderSystemPrompt(shuffled, experiment.asOf);
   return { prompt, candidateOrder: shuffled.map(({ name }) => name), promptSha256: crypto.createHash("sha256").update(prompt).digest("hex") };
 }

@@ -38,6 +38,7 @@ import {
   runPool,
   runtimeEnvironment,
   shuffle,
+  orderCandidates,
   snapshotCandidates,
   summarize,
   validateResearch,
@@ -597,4 +598,39 @@ test("a Copilot search tries again after a relay mistake or a failed search, log
   assert.match(logs[0], /try 1 of 3 failed: Copilot web search failed \(upstream 429\)/);
   assert.match(logs[1], /try 2 of 3 failed: Search relay changed the query/);
   await assert.rejects(copilotSearch(scripted(reworded, reworded, reworded), sdk, "q", options), (error) => error.message === "Search relay changed the query" && !("detail" in error));
+});
+
+test("Ouro UI is never first in a model's order, and every other place stays open to it", () => {
+  const places = new Set();
+  for (let seed = 0; seed < 400; seed++) {
+    const random = () => crypto.createHash("sha256").update(`${seed}:${(random.calls = (random.calls ?? 0) + 1)}`).digest().readUInt32BE(0) / 2 ** 32;
+    const order = orderCandidates(CANDIDATES, "Ouro UI", random);
+    assert.deepEqual([...order].map(({ name }) => name).sort(), CANDIDATES.map(({ name }) => name).sort());
+    places.add(order.findIndex(({ name }) => name === "Ouro UI"));
+  }
+  assert.ok(!places.has(0));
+  assert.equal(places.size, CANDIDATES.length - 1);
+  // A shuffle that would put it first moves it elsewhere instead.
+  const first = orderCandidates(CANDIDATES, "Ouro UI", () => 0.999);
+  assert.notEqual(first[0].name, "Ouro UI");
+});
+
+test("the page names every change between two reviews besides the models: the subject's source, the panel and search, with a replay when there is one", async () => {
+  const { renderPage, whatChanged, seriesOf } = await import("./page.mjs");
+  const withSha = (run, sha) => ({ ...run, candidates: run.candidates.map((c) => (c.name === "Ouro UI" ? { ...c, sha } : c)) });
+  const before = { ...withSha(pageRun("2026-11-14-rerun--run-1", "2026-11-14T03:00:00Z", [pageReview("a", "A2UI"), pageReview("b", "A2UI")]), "1".repeat(40)), runId: "old-run" };
+  const after = { ...withSha(pageRun("2026-11-19-x--run-1", "2026-11-19T03:00:00Z", [pageReview("a", "Ouro UI"), { ...pageReview("c", "Ouro UI"), candidateOrder: ["Ouro UI", "A2UI", "Flutter"] }]), "2".repeat(40)), runtime: { name: "GitHub Copilot CLI", search: { backend: "copilot" } } };
+  const replay = { runIds: ["old-run"], replayedAt: "2026-11-19", queries: [
+    { query: "a2ui swiftui", namesOuro: false, perplexityMentionsOuro: false, copilotOuroPages: 0 },
+    { query: "ouro ui", namesOuro: true, perplexityMentionsOuro: true, copilotOuroPages: 1 },
+    { query: "x", namesOuro: false, perplexityMentionsOuro: false, copilotError: "Copilot web search failed" },
+  ] };
+  const [previous, latest] = seriesOf([before, after]);
+  const lines = whatChanged(previous, latest, "Ouro UI", [replay]).join("\n");
+  assert.match(lines, /^3 things besides the models changed between the two reviews, so a change in picks can't be credited to Ouro UI alone:/);
+  assert.match(lines, /\*\*Ouro UI itself:\*\* it was read at \[`11111111`\][^\n]+compare\/1{40}\.\.\.2{40}/);
+  assert.match(lines, /\*\*The panel:\*\* C joined; B left\./);
+  assert.match(lines, /of the 1 that didn't name Ouro UI, it returned a page of Ouro UI's for 0, and the earlier answers mentioned Ouro UI in 0 .*; of the 1 that named it, 1 and 1\. 1 could not be replayed\./);
+  assert.deepEqual(whatChanged(previous, seriesOf([before, { ...before, folder: "2026-11-19-x--run-1", startedAt: "2026-11-19T03:00:00Z" }])[1], "Ouro UI", [replay]), []);
+  assert.match(renderPage([before, after], "Ouro UI", [replay]), /- C saw Ouro UI first in its list\. The methodology's rule 2 says Ouro UI is never first/);
 });
