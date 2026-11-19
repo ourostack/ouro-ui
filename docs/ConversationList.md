@@ -34,6 +34,7 @@ Type: `ConversationListProps`.
 | `items` (required) | `readonly ConversationListItem[]` |  | The conversations, in the order they show. |
 | `label` (required) | `string` |  | What the list is, for screen readers ("Conversations"). Required, so the list has a name. |
 | `membersLabel` | `((names: readonly string[]) => string)` | `"group chat with"` the first two names, then the rest's count ("and 2 others") | What screen readers hear after a group chat's title, from its `members`' names, for other languages. |
+| `moreLabel` | `string` | `"More options for"` | What screen readers hear before a row's name on its more button, for other languages. |
 | `onSectionOpenChange` | `((id: string, open: boolean) => void)` |  | Called with a section's `id` and whether it is now open, when its header is pressed. |
 | `onSelect` (required) | `(id: string, event: MouseEvent<HTMLButtonElement>) => void` |  | Called with a row's `id` when it is chosen by a click, a tap, Enter or Space. A handler that takes a second parameter also gets the click, so the app can check `event.isTrusted` or `event.metaKey`; a one-parameter handler or a server action gets the `id` alone. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |

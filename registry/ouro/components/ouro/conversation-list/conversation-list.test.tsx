@@ -121,7 +121,7 @@ describe("ConversationList", () => {
     }
   });
 
-  it("keeps the open conversation highlighted under the pointer", async () => {
+  it("keeps the open conversation distinct under the pointer", async () => {
     const { host, rows } = await render(<ConversationList label="Conversations" items={items} selectedId="ana" onSelect={() => {}} />);
     const paint = (value: string) => {
       const probe = document.createElement("span");
@@ -135,21 +135,19 @@ describe("ConversationList", () => {
       await Promise.allSettled(row.getAnimations().map((animation) => animation.finished));
       return getComputedStyle(row).backgroundColor;
     };
-    // The open row stays exactly --accent under the pointer and while pressed, where the other rows
-    // take --muted. A theme that draws the two alike (shadcn's stock themes) cannot show the
-    // difference, but the row is still --accent there.
+    // The open row takes its own hover and pressed fills under the pointer, so it never reads as a hovered neighbour; the others take the row hover.
     await userEvent.hover(rows[1]!);
     expect(rows[1]!.matches(":hover")).toBe(true);
-    expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+    expect(await settled(rows[1]!)).toBe(paint("var(--ouro-row-selected-hover)"));
     await commands.pointerPress({ selector: '[data-ouro-control="conversation-list"][aria-current="true"]', action: "down" });
     try {
       expect(rows[1]!.matches(":active")).toBe(true);
-      expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
+      expect(await settled(rows[1]!)).toBe(paint("var(--ouro-row-selected-pressed)"));
     } finally {
       await commands.pointerPress({ action: "up" });
     }
     await userEvent.hover(rows[0]!);
-    expect(await settled(rows[0]!)).toBe(paint("var(--muted)"));
+    expect(await settled(rows[0]!)).toBe(paint("var(--ouro-row-hover)"));
     expect(await settled(rows[1]!)).toBe(paint("var(--accent)"));
   });
 
