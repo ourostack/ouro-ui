@@ -168,7 +168,8 @@ describe("home page", () => {
       ["Model reviews", "/docs/model-reviews/"],
       ["Android: emulators only", "/docs/platforms/"],
     ]);
-    expect(routes[0]!.title).toBe("Ouro UI");
+    // The home page's title leads with the parent, Ouro UI, before what it is for.
+    expect(routes[0]!.title).toMatch(/^Ouro UI: /);
     // The README opens with the ourostack brand mark every repository shares, then its title, Ouro UI, and what is its own;
     // MCP Apps and A2UI come after, under "Works with", as formats of Ouro's tree.
     const opening = readme.replace(/^<!-- ourostack:brand:start -->[\s\S]*?<!-- ourostack:brand:end -->\n\n/, "");
