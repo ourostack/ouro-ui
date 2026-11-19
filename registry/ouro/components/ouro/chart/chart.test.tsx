@@ -357,6 +357,8 @@ describe("Chart", () => {
     expect(header).toEqual(["Month", "Dishes cooked", "Dishes saved"]);
     await expect.poll(() => [...chart.querySelectorAll("[data-ouro-chart-legend] li")].map((item) => item.textContent)).toEqual(["Dishes cooked", "Dishes saved"]);
     expect(resolved("var(--color-cooked)", chart)).toBe(resolved("var(--destructive)"));
+    await userEvent.hover(bars(chart, "cooked")[0]!);
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toBe("JanuaryDishes cooked12Dishes saved4");
   });
 
   it("labels each series in a legend with a marker shape, so color is not the only cue", async () => {
@@ -624,6 +626,8 @@ describe("Chart", () => {
           await expectMotion(grow(), { stem: "chart", state: "data-highlighted", properties: { scale: fast }, reduced });
         }
         expect(getComputedStyle(grow()).scale).toBe("1.4");
+        // Only the point under the tooltip is marked, as a state with no value.
+        expect([...chart.querySelectorAll("[data-ouro-part='dot'][data-highlighted]")].map((dot) => dot.getAttribute("data-highlighted"))).toEqual(["", ""]);
       } finally {
         await commands.emulateMedia({ reducedMotion: "no-preference" });
       }
@@ -922,6 +926,11 @@ describe("Chart geometry", () => {
     // A chart of zeros still has an axis.
     expect(niceTicks(0, 0)).toEqual([0, 0.25, 0.5, 0.75, 1]);
     expect(niceTicks(0, 0.4)).toEqual([0, 0.1, 0.2, 0.3, 0.4]);
+    // Room left over goes above the values, or below them when none is above 0 (each as Recharts' getNiceTickValues gives them).
+    expect(niceTicks(0, 42)).toEqual([0, 15, 30, 45, 60]);
+    expect(niceTicks(0, 5)).toEqual([0, 2, 4, 6, 8]);
+    expect(niceTicks(-5, 0)).toEqual([-8, -6, -4, -2, 0]);
+    expect(niceTicks(-9, 0)).toEqual([-12, -9, -6, -3, 0]);
   });
 
   it("draws a monotone curve through every point that never overshoots one", () => {
@@ -930,6 +939,7 @@ describe("Chart geometry", () => {
     expect(curvePath([[0, 0], [10, 5]])).toBe("M0,0L10,5");
     // The path d3's curveMonotoneX draws through these points, its ends' slopes included.
     expect(curvePath([[0, 0], [10, 10], [20, 30], [30, 35]])).toBe("M0,0C3.33,2.5 6.67,5 10,10C13.33,15 16.67,26.67 20,30C23.33,33.33 26.67,34.17 30,35");
+    expect(curvePath([[0, 0], [5, 10], [20, 30], [30, 35], [34, 20]])).toBe("M0,0C1.67,3.47 3.33,6.94 5,10C10,19.17 15,25.83 20,30C23.33,32.78 26.67,35 30,35C31.33,35 32.67,27.5 34,20");
     const points = [[0, 50], [10, 20], [20, 30], [30, 30], [40, 0]] as const;
     const path = curvePath(points);
     const segments = [...path.matchAll(/C([^C]+)/g)].map((match) => match[1]!.trim().split(/[ ,]+/).map(Number));
@@ -1000,6 +1010,7 @@ describe("Chart plot", () => {
       expect(top).toBeCloseTo(Math.min(...ends), 6);
       expect(barHeight).toBeCloseTo(Math.abs(ends[1]! - ends[0]!), 6);
     });
+    expect(chart.querySelector("[data-ouro-chart-dot]"), "a bar chart's points").toBeNull();
     // Each category's label in the middle of its band, under the plot.
     const xLabels = [...chart.querySelectorAll('[data-ouro-chart-axis="x"] text')];
     expect(xLabels.map((label) => label.textContent)).toEqual(["A", "B", "C"]);
@@ -1015,11 +1026,13 @@ describe("Chart plot", () => {
     expect(chart.querySelector("[data-ouro-chart-line]")!.getAttribute("d")).toBe(curvePath(points));
     const dots = [...chart.querySelectorAll("[data-ouro-chart-dot]")].map((dot) => dot.getAttribute("transform"));
     expect(dots).toEqual(points.map(([x, at]) => `translate(${x} ${at})`));
+    expect(chart.querySelector("[data-ouro-chart-dot]")!.getAttribute("color")).toBe("var(--color-value)");
     expect([...chart.querySelectorAll('[data-ouro-chart-axis="x"] text')].map((label) => Number(label.getAttribute("x")))).toEqual(points.map(([x]) => x));
     await rerender(<Chart title="Scale" type="line" data={[{ at: "A", value: 5 }]} categoryKey="at" config={one} />);
     await drawn(chart);
     const lone = scale(chart, niceTicks(0, 5));
     expect(chart.querySelector("[data-ouro-chart-dot]")!.getAttribute("transform")).toBe(`translate(${(lone.left + lone.right) / 2} ${lone.y(5)})`);
+    expect(chart.querySelector("[data-ouro-chart-line]")!.getAttribute("d")).toBe(curvePath([[(lone.left + lone.right) / 2, lone.y(5)]]));
   });
 
   it("breaks a line and its area at each missing value, drawing each run between them once", async () => {

@@ -541,7 +541,7 @@ function usePlotSize(ref: RefObject<HTMLDivElement | null>, enabled: boolean): P
 
 let measuring: CanvasRenderingContext2D | undefined;
 
-/** How wide a label draws in a font, in CSS pixels. A new canvas always has a 2D context to give. */
+/** How wide a label draws in a font, in CSS pixels. */
 function textWidth(text: string, font: string): number {
   measuring ??= document.createElement("canvas").getContext("2d")!;
   measuring.font = font;

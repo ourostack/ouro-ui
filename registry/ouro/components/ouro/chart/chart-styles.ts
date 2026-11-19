@@ -158,13 +158,13 @@ function niceTicks(min: number, max: number, count = 5): number[] {
   const low = Math.min(min, 0);
   // A chart of zeros still has an axis to read them on.
   const high = Math.max(max, 0) === low ? low + 1 : Math.max(max, 0);
-  for (let correction = 0; ; correction++) {
-    const rough = (high - low) / (count - 1);
-    const digits = Math.floor(Math.log10(rough)) + 1;
-    const unit = 10 ** digits;
-    const scale = digits === 1 ? 0.1 : 0.05;
-    // The small allowance keeps a ratio that floating point puts a hair over a step (0.1 / 0.05) on that step.
-    const step = (Math.ceil(rough / unit / scale - 1e-9) + correction) * scale * unit;
+  const rough = (high - low) / (count - 1);
+  const digits = Math.floor(Math.log10(rough)) + 1;
+  const unit = (digits === 1 ? 0.1 : 0.05) * 10 ** digits;
+  // The smallest multiple of the unit whose ticks hold the range; a step under the rough one never does.
+  for (let multiple = 1; ; multiple++) {
+    const step = multiple * unit;
+    // The small allowance keeps a ratio that floating point puts a hair over a whole number on that number.
     let below = Math.ceil(-low / step - 1e-9);
     let above = Math.ceil(high / step - 1e-9);
     const total = below + above + 1;
@@ -188,19 +188,18 @@ function curvePath(points: ReadonlyArray<readonly [number, number]>): string {
   const last = points.length - 1;
   if (last < 0) return "";
   const start = `M${short(xs[0]!)},${short(ys[0]!)}`;
-  if (last === 0) return start;
   if (last === 1) return `${start}L${short(xs[1]!)},${short(ys[1]!)}`;
   const widths = xs.slice(1).map((x, index) => x - xs[index]!);
   const slopes = widths.map((width, index) => (ys[index + 1]! - ys[index]!) / width);
-  const sign = (value: number) => (value < 0 ? -1 : 1);
-  const tangents = xs.map((_, index) => {
-    if (index === 0 || index === last) return 0;
-    const [h0, h1, s0, s1] = [widths[index - 1]!, widths[index]!, slopes[index - 1]!, slopes[index]!];
+  // The slope at each point between the ends, from the segments on either side. Where one of them is flat, so is it
+  // (the least of the slopes is 0, whatever sign they give it).
+  const inner = Array.from({ length: last - 1 }, (_, place) => {
+    const [h0, h1, s0, s1] = [widths[place]!, widths[place + 1]!, slopes[place]!, slopes[place + 1]!];
     const through = (s0 * h1 + s1 * h0) / (h0 + h1);
-    return (sign(s0) + sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(through));
+    return (Math.sign(s0) + Math.sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(through));
   });
-  tangents[0] = (3 * slopes[0]! - tangents[1]!) / 2;
-  tangents[last] = (3 * slopes[last - 1]! - tangents[last - 1]!) / 2;
+  // Each end's slope bends the end segment toward its neighbour's; one point alone has no segment to draw.
+  const tangents = [(3 * slopes[0]! - inner[0]!) / 2, ...inner, (3 * slopes[last - 1]! - inner.at(-1)!) / 2];
   let path = start;
   for (let index = 0; index < last; index++) {
     const third = widths[index]! / 3;
