@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 
-import { caption, dprAt, EXIT, group, inSweepOrder, LABELS, needsAPerson, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
+import { caption, dprAt, EXIT, group, handoff, inSweepOrder, LABELS, needsAPerson, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { serve } from "../../registry/ouro/check/serve.ts";
 import { browser, dir, fixtures, playwrightModule, require, root, run, scratch, site, two } from "./kit.mts";
@@ -45,9 +45,12 @@ describe("Ouro check's command", () => {
       measured: false,
       readyEvents: ["a", "b"],
       imagesReport: undefined,
+      handoff: false,
     });
     assert.deepEqual(parseArgs(["merge", "a", "b", "--out", "o", "--config", "c.json"]), { ...parseArgs(["a"]), merge: true, targets: ["a", "b"], out: "o", config: "c.json" });
     assert.equal(parseArgs(["a", "--images-report", "images.json"]).imagesReport, "images.json");
+    assert.equal(parseArgs(["a", "--handoff"]).handoff, true);
+    assert.equal(parseArgs(["merge", "a", "--handoff"]).handoff, true);
     assert.equal(parseArgs(["merge", "a", "--images-report", "images.json"]).imagesReport, "images.json");
     assert.deepEqual(parseArgs(["--help"]).targets, []);
     assert.deepEqual(parseArgs(["merge", "-h"]).targets, []);
@@ -308,5 +311,16 @@ module.exports = { chromium: { launch: async (options) => {
     assert.equal(text.trimEnd().split("\n").at(-1), "- Whether it works with the device, the assistive technology and the network they actually use.");
     assert.match(summary({ ...base, pages: [page] }), /^#### Needs a person$/m);
     assert.deepEqual(needsAPerson(["nothing-known"]), []);
+  });
+
+  test("the handoff separates what the check measured from what a person judges, and lists the sessions", () => {
+    const base = { targets: [], sizes: [[390, 844]] as [number, number][], themes: ["light"], pages: [{ site: "s", page: "/a.html", name: "a" }], findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+    const text = handoff(base, [{ task: "Book an appointment", outcome: "What appointment do you have now?", observe: "Hesitation before confirm", page: "/a.html" }]);
+    assert.match(text, /^#### The floor Ouro check proves$/m);
+    assert.match(text, /^- No finding fails\.$/m);
+    assert.match(text, /^#### Left to a person$/m);
+    assert.match(text, /^1\. \*\*Book an appointment\*\* \(on `\/a\.html`\)$/m);
+    assert.match(text, /Ask afterwards: What appointment do you have now\?/);
+    assert.match(handoff(base), /The config declares none/);
   });
 });
