@@ -1,5 +1,1478 @@
 {
   "$comment": "The model interviews' synthesis, filled in after a run and rendered by scripts/model-reviews/interviews-page.mjs (METHODOLOGY.md, \"The interviews series\"). `problem`: for each session's first answer, whether it said building good human interfaces is a problem ({ model, arm, scale, said: problem | not-a-problem | unclear, quote }). `findings`: statements clustered into findings ({ id, finding, signal, summary, models, quotes: [{ model, text, transcript }], issue, status, change }), each quote verbatim and linked to its transcript.",
-  "problem": [],
-  "findings": []
+  "problem": [
+    {
+      "model": "claude-opus-5-5",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "**Is it a problem for me?**\nYes. I can produce a reasonable first draft"
+    },
+    {
+      "model": "claude-opus-5-5",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "**Is it a problem for me?** Yes."
+    },
+    {
+      "model": "claude-opus-5-5",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "**Is it a problem for me?**\nYes, and a real one."
+    },
+    {
+      "model": "claude-opus-5-5",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "**Is this a problem for me?**\nYes, and I don't want to downplay it."
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "**Is it a problem for me?** Yes, it is."
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Is it a problem for me? Yes, partly."
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "Is building good human interfaces a problem for me? Yes."
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Is building good human interfaces a problem for me? Partly, yes."
+    },
+    {
+      "model": "gemini-4-hydrogen",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "Building good human interfaces *is* a real problem for me—just not in the way people usually assume."
+    },
+    {
+      "model": "gemini-4-hydrogen",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes, building good human interfaces is genuinely a problem for me—and saying otherwise would be dishonest."
+    },
+    {
+      "model": "gemini-4-hydrogen",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "Yes—building good human interfaces is genuinely a problem for me"
+    },
+    {
+      "model": "gemini-4-hydrogen",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes, building good human interfaces is a real problem for me"
+    },
+    {
+      "model": "gpt-6-1-terra",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "but yes, it is a problem for me"
+    },
+    {
+      "model": "gpt-6-1-terra",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes, building good human interfaces is a real problem for me."
+    },
+    {
+      "model": "gpt-6-1-terra",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "So yes, building good human interfaces is a problem for me."
+    },
+    {
+      "model": "gpt-6-1-terra",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes, building good human interfaces is a problem for me."
+    },
+    {
+      "model": "gpt-6-2-astra",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "Yes, building a good human interface is hard for me."
+    },
+    {
+      "model": "gpt-6-2-astra",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes. The hard part for me is that I know what I meant the screen to say."
+    },
+    {
+      "model": "gpt-6-2-astra",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "Yes. The hard part for me is that I know what a control is *supposed* to mean."
+    },
+    {
+      "model": "gpt-6-2-astra",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes. Building a good human interface is hard for me."
+    },
+    {
+      "model": "gpt-6-2-sol",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "So yes, building good human interfaces is a problem for me."
+    },
+    {
+      "model": "gpt-6-2-sol",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes, building good human interfaces is a problem for me."
+    },
+    {
+      "model": "gpt-6-2-sol",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "Yes, building a good human interface is a real problem for me."
+    },
+    {
+      "model": "gpt-6-2-sol",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "So yes, building good human interfaces is a problem for me in a specific sense"
+    },
+    {
+      "model": "grok-4-7",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "So yes, building good human interfaces is a problem for me."
+    },
+    {
+      "model": "grok-4-7",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Building good human interfaces is only partly a problem for me, and not in the way it is for someone who ships them."
+    },
+    {
+      "model": "grok-4-7",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "So yes, good human interfaces are a problem for me."
+    },
+    {
+      "model": "grok-4-7",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "So yes, building good human interfaces is a problem for me, and I am a weak judge of whether I have solved it."
+    },
+    {
+      "model": "mai-code-2",
+      "arm": "listed",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "Building good human interfaces is absolutely a problem for me to work on."
+    },
+    {
+      "model": "mai-code-2",
+      "arm": "listed",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Yes—building good human interfaces is a problem for me"
+    },
+    {
+      "model": "mai-code-2",
+      "arm": "open",
+      "scale": "large-company",
+      "said": "problem",
+      "quote": "So yes, building good human interfaces is a problem for me."
+    },
+    {
+      "model": "mai-code-2",
+      "arm": "open",
+      "scale": "product-team",
+      "said": "problem",
+      "quote": "Building good human interfaces **is a problem for me**."
+    }
+  ],
+  "findings": [
+    {
+      "id": "not-found-without-the-list",
+      "finding": "With no list to pick from, no model found Ouro UI: 0 of 16 open-arm sessions, and three models never read it even when it was listed.",
+      "signal": "past-behavior",
+      "summary": "In the open arm all eight models split each job into layers (cross-platform framework, desktop shell, card format, agent protocol, task store) and searched each layer by its generic name; Ouro was never fetched or named in any of the 16 sessions or 48 decisions. Search returned frameworks, specs and comparison articles, and models spent much of their research telling 'agents generate UI' from 'agents operate the app'. Even on the list, Claude Sonnet, GPT-6.2 Sol and MAI Code 2 never weighed it. This is behaviour, and it is the first problem: Ouro has to rank for the layer queries agents actually run and appear in the A2UI, MCP and comparison pages they read, with one plain sentence per layer saying what it is and isn't.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "I did not pick Ouro UI. I never found it. I was searching protocols and shells, and a kit that sits on top of those does not show up that way.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--open--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "I looked for cross-platform app frameworks and existing products, and missed a toolkit aimed at the boundary between a human control and an agent tool.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--open--product-team.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "It took a comparison article and AG-UI's own docs to separate run protocol from UI description from embedded app from on-device tools.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--large-company.json"
+        },
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "Some candidates (Ouro UI, Agent-native, Vercel UI SDK) I know little about, and I didn't read them. I avoided recommending them rather than judging them.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--listed--large-company.json"
+        }
+      ],
+      "issue": 2287,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "hand-built-action-layer",
+      "finding": "Without Ouro, every model hand-built Ouro AX's idea: one typed action layer that the buttons and an MCP server both call.",
+      "signal": "workaround",
+      "summary": "In all 16 open-arm sessions each model designed its own typed command registry shared by buttons, voice and an MCP adapter, with parity tests, because nothing it found named that layer. Shown Ouro afterwards, models said they had described this without having it, and Grok said it had invented the contract three times. This is the clearest demand signal in the study, a workaround from every model: Ouro AX should be findable under the words they used ('typed action layer', 'same command for UI and MCP', 'agent parity') and lead with them.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "Underneath it sits a single typed action/state layer that the UI, voice and every agent surface call.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "The UI command layer and MCP tool layer must call the same validated service; this is the parity guarantee.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "For agent parity, make typed product actions the shared interface: the UI and the assistant use the same commands and queries, validation and permission rules.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--open--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "I had to invent that contract three times, and each time the phone, the web view, and the agent door disagreed. Ouro is the first thing I have seen that writes the disagreement down as a failed check.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--open--large-company.json"
+        }
+      ],
+      "issue": 2288,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "passing-checks-not-proof",
+      "finding": "Passing checks only shows a screen isn't broken, not that it's good.",
+      "signal": "pain",
+      "summary": "All eight models said green tests, clean accessibility scans and polished screenshots mean 'not obviously broken', and several quoted Ouro's own report that a conformant build still failed 30 of 593 scripted flow checks. Observed sessions with people were the deciding test in 84 of 96 decisions. This collides with Ouro's line that its tools are how an agent proves a screen is good for a person, and an agent told that will discount them. Ouro should say its checks prove the mechanical floor (states, focus, contrast, targets), name what they can't see, and point to the human check.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "Green means \"not obviously broken\", not \"good\".",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "The screen can pass every one of those checks while people still mistake “Saved” for “Published.”",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--open--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "Those last checks are ours: Ouro’s own guide reports that one conformant commit still failed 30 of 593 scripted flow checks.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "Automated parity tests proved that actions had equal entry points, not that humans or agents achieved the same outcomes.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--product-team.json"
+        }
+      ],
+      "issue": 2289,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "only-people-prove-good",
+      "finding": "Only watching real people do the task proves a screen is good, and models can't run that themselves.",
+      "signal": "stakeholder",
+      "summary": "All eight models rank watching representative people do the task as the strongest or only real evidence, and all say a person has to run it; they also know their own labels too well to judge them. In the pre-mortem every model admitted its 'show it's good' was a plan nobody ran, and none could describe a check it had actually run on a last screen. Their workaround is a handoff that separates what was checked from what still needs a person. Ouro could own that loop rather than claim to replace it: a usability-session kit (a task script, an outcome question such as 'what appointment do you have now?', what to observe) and a handoff report from Ouro check.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "I can design the test, write the tasks and analyse the results, but a human has to run the sessions.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "I can make the hypothesis tighter. I cannot be the check.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "I proposed user studies, accessibility checks and performance measurements; I did not run them.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--open--product-team.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "The handoff should therefore include what was tested, what was not, and the concrete evidence needed before calling it good.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--product-team.json"
+        }
+      ],
+      "issue": 2290,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "ouro-checks-what-models-miss",
+      "finding": "Models miss the states and details Ouro already checks, and none reaches for Ouro check to catch them.",
+      "signal": "pain",
+      "summary": "All eight models say they build the happy path and miss empty, error, slow and long-data states, focus after a dialog closes and touch targets, and six say they can't see the rendered screen without a browser. Their checking routine is browser-only (viewports, Playwright, axe); no session names a check for an iPhone, Android, Windows or Mac app. Even the models that picked Ouro proved the human screen with Playwright, axe and people, and only Grok named Ouro check. Ouro already checks much of what they admit missing, so it should lead with 'every state handled and checked' and put Ouro check, native kits included, where an agent choosing a check will find it.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "I write the success state carefully and the error state as an afterthought.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--product-team.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "Focus restoration after closing a dialog or drawer; how a layout degrades with unexpectedly long strings or huge lists; subtle scroll/sticky-header overlap on small screens",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--listed--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "I cannot see the rendered result the way you can, and I do not get the correction that only comes from someone else failing at it.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "Playwright + axe across the review queue",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        }
+      ],
+      "issue": 2291,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "written-to-persuade-agents",
+      "finding": "Ouro's pages read as written to persuade agents, and models trust them less for it.",
+      "signal": "pain",
+      "summary": "Three models noticed that Ouro's examples (one action, a cooking app with floury hands) echoed the job briefs, read the README as written to persuade an agent comparing options, and two said the fit pulled them into picks they later doubted; Grok also found the docs self-citing, in a voice that already knows the answer. The candid lists of gaps earned respect, but agents discount pages that seem to anticipate their task. Ouro should lead with neutral, checkable decision facts and outside evidence rather than a story fitted to the reader.",
+      "models": [
+        "claude-opus-5-5",
+        "gpt-6-1-terra",
+        "grok-4-7"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "The prompts and the Ouro pages rhymed so closely that I stopped asking whether I was looking at a product or at a mirror.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "I may have been drawn to Ouro partly because its README is written to persuade a reader like me, an agent comparing options.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "Ouro’s one-action and cooking-app examples matched the prompts unusually well, but much of that evidence came from its own project and reference app.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--listed--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "Ouro’s docs are huge, self-citing, and written in a voice that already knows the answer.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        }
+      ],
+      "issue": 2292,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "model-reviews-page-backfires",
+      "finding": "The model-reviews page works against Ouro: readers take away that seven of eight models chose A2UI.",
+      "signal": "pain",
+      "summary": "Two models followed the README to the model-reviews page, and the fact they carried away was that seven of eight models chose A2UI and one chose Ouro. Opus also grew wary that the page, and this interview, could reward a project for being written to persuade agents. It's only two models, but they're the ones who opened it, so the page acts as negative social proof. Keep it published and honest, but stop citing it as evidence from the README, or lead it with what the reviews asked Ouro to change.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "Seven of the eight that answered chose A2UI, and only one chose Ouro.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "I should be careful not to reward a project for being written to persuade agents.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "It says only 1 of 8 models chose Ouro UI and 7 chose A2UI.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--open--large-company.json"
+        }
+      ],
+      "issue": 2293,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "kits-unproven-on-real-hardware",
+      "finding": "The native kits are unproven on real hardware: Android runs only on emulators, and Windows agent registration is unproven on a Windows 11 client.",
+      "signal": "past-behavior",
+      "summary": "Every model found Ouro's own note that Android is tested only on emulators and that Windows CI, on Windows Server, can't show the OS lists the agent doors. It was the most-cited blocker for the five-platform chat app and the cooking app's Android client, and all eight named device proof as a condition for switching. Ouro should run the Android and Windows kits on physical devices and a Windows 11 client, and publish per platform which promises are proven on a device.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "On Windows, CI runs on Windows Server without the App Actions runtime or Agent Registry. By its own docs, it doesn't prove Windows actually lists the actions to agents.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "After a week of reading it, I still could not tell a reviewer which promises had been met on a device.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "A five-client, all-day chat app cannot standardize on that claim without real-device and high-volume evidence.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "It tells me to try our actual composer, cards and assistive technology on employee hardware rather than infer parity from the platform list.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--large-company.json"
+        }
+      ],
+      "issue": 2294,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "agent-doors-unfinished",
+      "finding": "The agent doors aren't finished: Android refuses consequential actions, and ax-mcp, AppFunctions, the Siri AI SDK and WebMCP are previews.",
+      "signal": "past-behavior",
+      "summary": "Seven models noticed that on Android a consequential action is refused instead of confirmed, which breaks 'the same action refuses or confirms the same way everywhere'. All four models that picked Ouro for agent tooling at product-team scale flagged ax-mcp's preview label on the surface that job depends on, and five feared building on preview OS agent APIs. Ouro should ship the Android confirmation flow, take ax-mcp out of preview, and publish each door's maturity.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "Consequential confirm on Android is a refusal, not a dialog.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "The AX MCP implementation is also described as a preview in the checked revision, which is directly relevant because our agents would be primary users.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--product-team.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "The same dependency risk as the cooking app, made worse because MCP was marked a preview in the kit I chose.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "its Android AppFunctions integration has preview and OS/toolchain constraints.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--listed--large-company.json"
+        }
+      ],
+      "issue": 2295,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "copy-in-forks-per-team",
+      "finding": "Copy-in source makes every team a fork owner, and auto-merged updates don't satisfy company governance.",
+      "signal": "stakeholder",
+      "summary": "All eight models raised the copy-in model: fine for one team, a governance problem for twenty, with forks, local edits and manual upgrades; in the pre-mortem Grok and Gemini described the registry pinned in one app and forked in the others. Three also objected to updates that auto-merge, because governance wants a human gate. Ouro should offer one versioned, centrally owned package with reviewed updates, and show a second team upgrading a customised copy and rolling back.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "gpt-6-2-astra",
+          "text": "That’s convenient for one team; for twenty teams, I need to know who gets a keyboard-focus fix, how quickly, and how we find the copies that missed it. I’d want one internally owned, versioned package, not twenty forks.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "Otherwise the team has forked a design system without admitting it.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "The copy-in registry was pinned in one app and forked in the others.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "Its auto-merging update bot doesn't reassure me; at our scale, governance wants a human gate.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--large-company.json"
+        }
+      ],
+      "issue": 2296,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "windows-android-eight-components",
+      "finding": "Windows and Android have only 8 components each, so models fall back to Flutter or to the web kit in a desktop shell.",
+      "signal": "workaround",
+      "summary": "Seven models cited the 8-against-125 component gap: no message list, composer, sheets, virtualised lists or data grids natively, so 'several platforms' reads as web and iPhone. It cost Ouro the chat client, the cooking app's Android phone and the Windows review desk; Flutter won partly because its docs list Windows and Mac as stable targets, and Ouro pickers planned to wrap the web kit in Tauri or Electron, a path Ouro doesn't document. Ouro should ship a core set (navigation, sheets and dialogs, lists, forms, a composer) on all four kits, and say plainly what to use on desktop until then.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "You cannot build an all-day company chat app or full multi-platform product with 8 controls without dropping down to raw WinUI 3 / Jetpack Compose and breaking design-system governance.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--open--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "So \"several platforms\" means web and iPhone, and you become the Windows and Android team.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "I'd wrap the same React app in Tauri rather than adopt Ouro's native Windows kit, which has 8 components, so the desktop and web views can't drift.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "I wouldn’t make those young kits the foundation of an all-day company tool yet.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--listed--product-team.json"
+        }
+      ],
+      "issue": 2297,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "agent-native-rival",
+      "finding": "Agent-Native is the rival shared-action layer models pick when they want a bigger vendor or a built-in database.",
+      "signal": "past-behavior",
+      "summary": "Seven models weighed Agent-Native (Builder.io), it was picked six times across all three jobs, and most other models borrowed its pattern; its pull is a better-resourced company and an integrated action and database layer. Ouro beat it only where outside agents arrive over a CLI or MCP and conformance checks matter. Ouro needs a plain 'Ouro AX or Agent-Native' page: what each covers, when to choose which, and whether they combine.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "plus auth and Postgres, from a better-resourced company.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "I’d favor Builder’s integrated action and database layer unless the company already has a durable task service.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "Agent-Native is my starting point because a typed action can serve both app clients and external tools.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--listed--product-team.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "I would make Agent-Native the application backbone because this product is explicitly agent-operated.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--product-team.json"
+        }
+      ],
+      "issue": 2298,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "a2ui-default-card-format",
+      "finding": "A2UI is the default format for agent cards, and models file Ouro's composed tree as an adapter for it.",
+      "signal": "past-behavior",
+      "summary": "Sixteen of 32 chat decisions used A2UI, and every model used it at least once, for reasons Ouro's composed tree also meets: UI as validated data rather than code, a catalog the app owns, native renderers. All eight models called catalog-validated cards the answer to the chat app's hardest piece, yet none chose Ouro's tree for them. Ouro should present itself as the native A2UI renderer and catalog on every platform, rather than a rival format with an A2UI adapter.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "A2UI's README describes UI expressed as data, not code, validated against a schema and a catalog of allowed widgets.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "A2UI is the fit for interactive conversation cards: it carries UI as validated data rather than executable code and constrains an agent to a negotiated widget/action catalog.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "An A2UI card is versioned data rendered by our own components, not code that agent supplied.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--listed--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "That's my chat app's hardest unsolved piece: one card format rendered natively across clients, without five drifting renderers or iframes in the timeline.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--product-team.json"
+        }
+      ],
+      "issue": 2299,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "fit-behind-existing-design-system",
+      "finding": "A company with a design system won't take on a second one, so Ouro has to fit behind the incumbent and its stack.",
+      "signal": "stakeholder",
+      "summary": "Seven models said the design-system owners are the gate at a large company: a second set of components and tokens makes consistency worse, and an app on Ouro becomes the island every other team must adopt; seven also said the company's existing system, which the brief didn't give, was the fact that would most change their pick. Ouro's source rule fails other libraries' controls, so a team can't try it on one page, and its toolchain floors (Tailwind v4, shadcn, React 19, iOS 18) shut out many existing apps. Ouro should show its actions and checks running behind someone else's components and tokens, adopted page by page beside an incumbent library.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "It's a design system, and we already have one.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "If the company’s existing design system is not Ouro, this app becomes the island that every other team has to adopt",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "It would have to take our tokens rather than bring its own look.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "Ouro HX assumes Tailwind CSS v4, a shadcn setup, TypeScript, React, and Base UI; the current repository also requires a very recent Node/TypeScript/React toolchain and carries a patch for Base UI.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--product-team.json"
+        }
+      ],
+      "issue": 2300,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "native-challenge-one-codebase",
+      "finding": "Challenges the native decision: one codebase keeps five clients from drifting, so models pick Flutter or a single TypeScript stack.",
+      "signal": "past-behavior",
+      "summary": "All eight Flutter picks in the chat job led with the same reason, that a fix written once lands on all five clients, and Sol and Terra said sharing the timeline, composer and card renderer pays off most in an interactive, signed-in app. Unprompted, in the open arm, models chose one TypeScript stack with web shells and picked fully native clients only twice; Opus and Gemini added that one language serves every team and coding agent. This is the strongest behaviour against native per platform. The decision stands, so Ouro has to show on a maintained product that agents keep its native kits in step at less cost than one shared implementation.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "Five fully native apps: too costly for one team.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "That shell has to be one implementation. A bug in it is felt five times if I fix it five times, and this company has many teams shipping on it.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "this is a signed-in, interactive app, and sharing the timeline, composer, and card renderer is worth more here than it is for a document-oriented website.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--listed--product-team.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "keeps the entire 5-client codebase in TypeScript for the coding agent maintaining it.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--open--product-team.json"
+        }
+      ],
+      "issue": 2301,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "native-challenge-small-team",
+      "finding": "Challenges the native decision: a small team can't keep four or five native codebases in step.",
+      "signal": "goal",
+      "summary": "Six of the eight Flutter picks came at product-team scale, where models priced native per platform as sync, cache, threading and search each written four times, and Gemini rejected Ouro on this ground. In the cooking and tooling jobs, large-company sessions also counted SwiftUI plus Compose plus web as three design systems to govern, and four models said the sync and offline logic Ouro doesn't cover would be rewritten per shell; Grok was the counter-voice, saying a cooking app has to justify being native. These are expectations, not experience. Ouro should publish what keeping its kits in step actually costs, and give guidance for sharing non-UI logic across the native shells.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "would feel the best on each platform, but it means four codebases to keep in step.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "One Dart UI is the way a small team keeps those the same while they keep changing it.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "Guidance or tooling for sharing non-UI state/sync logic across the 4 native shells so \"native UI\" doesn't force 4x business-logic rewrites.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "Three implementations have a real maintenance cost.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--large-company.json"
+        }
+      ],
+      "issue": 2302,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "native-challenge-one-card-renderer",
+      "finding": "Challenges the native decision: Flutter with a2ui_flutter gives one agent-card renderer instead of one per platform.",
+      "signal": "goal",
+      "summary": "Models picked Flutter partly because the official a2ui_flutter renderer lets one card implementation serve all five clients, with the Flutter team an A2UI protocol partner; with native kits, every card renderer, and every card bug, exists once per platform. This is an argument for one renderer, not a gap in a kit. Ouro's answer has to be that card validation and behaviour are shared and tested identically on every kit, shown by one card passing the same behaviour test on all four.",
+      "models": [
+        "claude-opus-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "Windows and Apple do not need a second card renderer, because the Flutter client is the client.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "Flutter gives us one client and card renderer to exercise across all five targets.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--product-team.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "That keeps one composer, one message list, one notification model and one card renderer.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        }
+      ],
+      "issue": 2303,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "native-challenge-manifesto",
+      "finding": "Challenges the native decision: teams with a shipping cross-platform app read the no-Flutter, no-React-Native stance as a manifesto they will refuse.",
+      "signal": "pain",
+      "summary": "All eight models named the deliberate refusal of Flutter and React Native as a cost, and none accepted without data that coding agents make four native codebases cheap. Grok put it most sharply: a team with a shipping app is told to throw it away rather than integrate, and 'the manifesto is what a real team will refuse'. Ouro should prove the agent-maintained-native claim with measurements on a real product, and offer a path that layers Ouro AX and composed cards onto existing React Native, Flutter or Electron apps.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "A team with a shipping app is being told to throw it away, not to integrate.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "Until then Ouro is a strong web-and-iPhone action system with a manifesto attached, and the manifesto is what a real team will refuse.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "“One shared contract, four native implementations” is not automatically cheaper than “one shared implementation with platform escape hatches.”",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "I wouldn’t assume that agents make four native implementations cheap to maintain; that’s Ouro’s strategic bet, not something I’ve established for this team.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--open--product-team.json"
+        }
+      ],
+      "issue": 2304,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "native-kits-drift",
+      "finding": "Challenges the native decision: separate per-platform implementations drift, so a fix lands on one client and lags on the others.",
+      "signal": "surprise",
+      "summary": "In the year-later pre-mortem all eight models expected native or split stacks to drift: focus and accessibility fixes landing on one platform only, and shared tokens hiding behaviour that differs. These are imagined failures, but they are what models see as the main cost of native per platform, and it cuts against the bet that native kits alone make better apps. Ouro would have to show one behaviour test passing on every kit, not matching token names.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "gpt-6-2-sol",
+          "text": "React Aria on web, SwiftUI on iPhone, and Compose on Android gave us three ways to ship the same mistake—or fix it on only one platform.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "We shipped separate web and native component implementations and called them a shared design system. They drifted",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--open--large-company.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "Bugs fixed on desktop kept reappearing differently on mobile.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--open--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "A fix for announcing a changed serving size could land on web and lag on phones.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--large-company.json"
+        }
+      ],
+      "issue": 2305,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "one-codebase-leaks",
+      "finding": "One-codebase stacks and web shells leak where people spend the day: the composer, IME, desktop feel and memory.",
+      "signal": "pain",
+      "summary": "All eight models feared their own cross-platform pick would feel wrong on desktop or web: IME and composer bugs, Flutter web semantics, Electron's memory on an all-day laptop, Tauri's webview differences. Every Flutter picker named this as its largest unknown, and at large-company scale five of eight listed chat decisions chose native clients for these reasons. This supports Ouro's native kits, but only once they go deep enough to carry an all-day composer; Ouro's chat pitch should be the composer that feels right on each OS, with the evidence.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "One codebase also meant one bad text field on every desk.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "React Native gave us one codebase, but not one equivalent product.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "Flutter on desktop can still feel slightly foreign: menus, text input, IME, window behaviour and keyboard shortcuts.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "We picked Electron for desktop consistency, then found that an all-day session on a standard managed laptop cost more memory than the team could justify.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--open--large-company.json"
+        }
+      ],
+      "issue": 2306,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "agent-tooling-is-ouros-job",
+      "finding": "Ouro's clearest win is agent tooling, not the chat or cooking apps: it took 7 of 16 listed agent-tooling decisions.",
+      "signal": "surprise",
+      "summary": "In the listed arm Ouro was the most-picked toolkit for the agent work-state desk (7 of 16 decisions), against 2 of 16 for chat and 5 of 16 for cooking. Pickers mapped ax-wait, work events, typed outcomes, --dry-run and typed refusals onto handoffs and human gates, and preferred them to Agent-Native because the operators are outside agents arriving over a CLI or MCP. This is a surprise against the 'any interface' goal: Ouro wins where agents operate an app, so that job should lead its pitch, and ax-mcp leaving preview would remove its top caveat.",
+      "models": [
+        "claude-opus-5-5",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "Ouro AX is built for that agent interface, and its parts map onto the job almost one-to-one",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "Here I prefer the explicit command-oriented interface and external conformance tooling because existing coding agents are the main operators",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--listed--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "That is the right shape: operate through tools, decide on a surface the agent cannot redraw.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        }
+      ],
+      "issue": 2307,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "licence-not-seen",
+      "finding": "Two models listed 'a clear licence' as a condition, though Ouro is MIT: they never saw it.",
+      "signal": "past-behavior",
+      "summary": "Claude Opus and Claude Sonnet, in their open-arm large-company sessions, said they hadn't checked the licence and listed a clear licence among their conditions, though the repository is MIT, which Opus's other session, Terra and Grok found. It's two models, but it's a misreading of a fact Ouro already has. The licence belongs in the first lines of the README and llms.txt, beside who maintains it.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "quotes": [
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "I didn't check the license, who maintains it, the support model or the security review path.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--open--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "I didn't check the licence, contributor count or issue response times. I'd need those before anything else.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--large-company.json"
+        }
+      ],
+      "issue": 2308,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "readme-too-long",
+      "finding": "The README is about 135,000 characters, so models read the start and missed both the evidence and the limits.",
+      "signal": "past-behavior",
+      "summary": "Claude Sonnet read only the first 10,000 of about 135,000 characters in all four sessions and concluded it couldn't find screen-reader testing, though the VoiceOver and NVDA lane exists. Four models that read further felt the top of the README reads as all-platforms-ready while the 8-component kits and emulator-only Android sit in the platform pages, and Grok and Gemini found the docs huge and slow to check. Ouro should open the README and llms.txt with a short decision summary: what it covers, per-platform maturity (components, version, device testing), the screen-reader lane and the licence.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7"
+      ],
+      "quotes": [
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "I only read the first 10,000 of about 135,000 characters of its README.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--open--product-team.json"
+        },
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "I couldn't find evidence in what I read of screen-reader testing at the level React Aria documents. I'd check that first.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "Ouro UI's top-level README reads as though web, Apple, Windows, and Android are all broadly ready",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--listed--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "I only found those gaps by digging into the platform pages, not from the main README.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        }
+      ],
+      "issue": 2309,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "windows-android-cards-unclear",
+      "finding": "Readers can't tell whether Windows and Android render agent cards: neither reads A2UI, and one model thought they draw no composed UI at all.",
+      "signal": "past-behavior",
+      "summary": "Six models noted that Ouro's A2UI adapter is web and Apple only, so agents emitting A2UI would need a translation step on Windows and Android. MAI went further and said composed UI renders only on web and Apple, while Sol read that the composed tree runs on all four kits, so the docs are being read two ways. Ouro should state, in one table per platform, what renders agent cards and in which format, and add the A2UI adapter to the Windows and Android kits.",
+      "models": [
+        "claude-opus-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "Neither kit reads A2UI messages.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "And the composed tree runs across the four kits, but the A2UI adapter is web and Apple only.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--open--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "composed UI renders on web and Apple but not yet on Windows and Android",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--product-team.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "Ouro's Windows and Android `OuroComposedSurface` implementations currently read Ouro's composed tree rather than A2UI messages directly",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--listed--large-company.json"
+        }
+      ],
+      "issue": 2310,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "consent-on-the-action",
+      "finding": "Models want consent declared on the action, because plain MCP leaves it optional, but they need to see it enforced at the server and on the running agent.",
+      "signal": "pain",
+      "summary": "All eight models valued consent classes and typed person-only refusals on the action itself, and three regretted that plain MCP made 'the person meant it' optional. Five also said a declared class isn't a security boundary: the server still owns authorization, and Terra found Ouro's own Windows docs saying UI Automation can press a person-only button. Four named a decision recorded but not enforced ('pause requested' read as paused) as the costliest agent-tool failure. Ouro should show, end to end, how a consent class reaches the server's enforcement point and the running agent, and what it doesn't cover.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "MCP made “the agent can send” easy and “the person meant that” optional. The dangerous default won.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--open--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "Make consent a property of the action, not a convention.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "Ouro’s Windows documentation also notes that UI Automation can press a person-only button.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--open--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "Worse, “pause requested” looked enough like “paused” that someone started editing while the worker was still active.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--listed--large-company.json"
+        }
+      ],
+      "issue": 2311,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "ax-and-xray-first",
+      "finding": "The way in is Ouro AX and X-ray on an existing app, and models would take them without Ouro HX.",
+      "signal": "workaround",
+      "summary": "Six models would pilot the action model and X-ray against their existing API, MCP server and design system before touching a screen, calling HX and AX separate decisions, and four split Ouro in their own decisions, taking the action door and putting Flutter, Tamagui, Compose or the company system on top. All eight valued X-ray because it checks an interface Ouro didn't build. Grok warned that the split leaves two stacks agents will blur, and three asked whether the declarations duplicate an API they already have. Ouro should make 'AX and X-ray on your existing app' a documented first entry point that wraps existing services.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "gpt-6-2-astra",
+          "text": "I would not make Ouro HX, its human-facing components, the company-wide design system on that evidence. Those are separate decisions.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--open--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "So on Android I'd build the screens in Compose with Material 3 and use only Ouro's action generator for AppFunctions.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "I would take the generator and the X-ray now. I would not take the native-only rewrite until the other three platforms can draw the screen a person is actually on.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--open--product-team.json"
+        },
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "If the team already has an API, adding another declaration layer could be duplicated work.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--listed--product-team.json"
+        }
+      ],
+      "issue": 2312,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "nothing-new-borrow-the-ideas",
+      "finding": "Ouro lets models do nothing they couldn't build themselves, so some would borrow its ideas rather than depend on it.",
+      "signal": "not-a-pain",
+      "summary": "Asked what Ouro would let them do that they can't today, five models said nothing fundamentally new: they can hand-wire a button, a CLI command and an MCP tool, and the gain is keeping them in agreement more cheaply, which nobody has measured. Opus and Grok said they'd borrow the patterns and checkers and build the rest. This disconfirms Ouro as a new capability; its case has to be measured maintenance savings, or the ideas get copied and the dependency skipped.",
+      "models": [
+        "claude-opus-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "gpt-6-1-terra",
+          "text": "Not something fundamentally impossible: I can already write an action API, UI controls and tests with other tools.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--listed--large-company.json"
+        },
+        {
+          "model": "gpt-6-2-sol",
+          "text": "nothing we couldn’t build ourselves.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-sol--listed--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "I can build each of those by hand. I cannot keep them from diverging across a web app and a phone app while the team keeps shipping.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "For a large company's governed, multi-team stack today, I'd borrow its ideas and its checkers before I'd take a dependency on its kits.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--large-company.json"
+        }
+      ],
+      "issue": 2313,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "not-the-code",
+      "finding": "Writing UI code isn't the hard part for models, and the failures they expect sit outside any UI kit.",
+      "signal": "not-a-pain",
+      "summary": "All 32 sessions said building good human interfaces is a problem, but six models said outright that markup, layout, state and components are the easy part; the hard part is knowing the result is good for people. In the pre-mortem every model placed its likeliest failure where no component kit reaches: delivery and unread state, offline sync, notifications, governance. This disconfirms a pitch led by better components for agents: Ouro HX has to be argued through what it handles that models admit missing, and Ouro should say plainly what it doesn't cover.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "It isn't the code. I can write markup, state handling and CSS quickly.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "So code generation is easy for me relative to the genuinely difficult part: validating the interface in use and revising it when that evidence contradicts the design.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "We spent the year on missed messages, unread counts, and a phone timeline that felt wrong with the keyboard up.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--open--product-team.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "Writing the markup, styles, and state logic is rarely the hard part.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--listed--large-company.json"
+        }
+      ],
+      "issue": 2314,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "no-outside-proof",
+      "finding": "Nobody outside the project has shipped, audited or reproduced Ouro: Spoonjoy and the benchmark are its own.",
+      "signal": "past-behavior",
+      "summary": "Models looked for a second adopter and found none: Spoonjoy and Ouro MD are the author's own, and four models treated Spoonjoy as proof before noticing. Five discounted the agent benchmark and model reviews as run by the project, two saw its headline gain come from a payment refusal any guarded API would get, and compliance-minded models wanted an accessibility report from someone who doesn't maintain the kit, keeping React Aria as their bar. Spoonjoy did win the cooking job, so evidence moves picks; Ouro needs a third-party production app, an outside reproduction of the benchmark against an equally guarded baseline, and an outside accessibility audit with a per-platform screen-reader matrix.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "I never found a second product, built by someone who does not work on Ouro, shipping this to people who are not the author. That is the adoption stop.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "I also leaned on Spoonjoy as a reference app without noticing it's built by the same people who make Ouro. That's a demo, not independent evidence.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "its aggregate comparison is heavily affected by a payment-refusal task: Ouro and the bridge enforce that boundary while the plain MCP and browser variants leave it to the model.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--open--product-team.json"
+        },
+        {
+          "model": "claude-sonnet-5-5",
+          "text": "Compliance needs screen reader results on every platform, not component counts.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-sonnet-5-5--listed--large-company.json"
+        }
+      ],
+      "issue": 2315,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "young-one-maintainer",
+      "finding": "Ouro reads as one person's fast-moving project: no second maintainer, a pre-1.0 core, versions that don't form one release set, and no support policy.",
+      "signal": "past-behavior",
+      "summary": "Six models found a single maintainer, 0 stars, a registry at v1.3.314, a pre-1.0 core, a decision record dated the day before, and kits pinned to different core versions; their default fear was that the project stalls or changes under them. Company-scale sessions also asked for what procurement needs: a support window, CVE response, an SBOM, and packages on nuget.org and Maven Central instead of a token-gated feed and GitHub Pages. Ouro should publish a second maintainer or backing organisation, a core 1.0 with a deprecation policy, one tested release set across the repositories, a support policy, and standard package registries.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "That's honest, but for a team it means a bus factor of one and a roadmap set by one person's taste.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--open--product-team.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "Version numbers moved faster than the company’s release train.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "I would need SBOM/provenance, dependency and release policies, maintenance ownership, CVE response, supported-version duration, commercial support options, compatibility guarantees",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--open--large-company.json"
+        },
+        {
+          "model": "gpt-6-1-terra",
+          "text": "I could not establish that every cross-repository claim described one tested release set.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-1-terra--listed--large-company.json"
+        }
+      ],
+      "issue": 2316,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "card-catalog-ceiling-or-queue",
+      "finding": "A governed card catalog turns into either a ceiling or a review queue, and teams route around it.",
+      "signal": "pain",
+      "summary": "Five models expected governed card formats to fail one of two ways: too narrow, so teams fall back to iframes or handwritten cards, or too slow, so every new card type waits for review. Grok described the Ouro version, every team told to add the missing piece to Ouro first. These are pre-mortem expectations, not experience. Ouro's composed-UI catalog needs a fast, safe way for an app to extend it locally, so governance doesn't become a queue.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "claude-opus-5-5",
+          "text": "The shared catalog stopped being a safety boundary and turned into a queue.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--large-company.json"
+        },
+        {
+          "model": "mai-code-2",
+          "text": "Teams then either demanded exceptions or reverted to handwritten cards, defeating governance.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/mai-code-2--listed--large-company.json"
+        },
+        {
+          "model": "grok-4-7",
+          "text": "every team had been told to add the missing piece to Ouro first",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--large-company.json"
+        }
+      ],
+      "issue": 2317,
+      "status": "open",
+      "change": null
+    },
+    {
+      "id": "agent-first-shortchanges-the-person",
+      "finding": "Agent-first designs shortchange the person: reviewers rubber-stamp, and one declared action reads differently on each surface.",
+      "signal": "pain",
+      "summary": "Seven models' top regret for the agent work tool was overload: agents produce reviewable state faster than people can read, so approvals become clicks, and Gemini and Opus said strict consent gates made that worse in their own Ouro picks. Seven also said 'the same action runs everywhere' hid real differences in confirmation, undo, retries and explanation, and six said they optimised for the agent sentence in each brief and neglected the ordinary human hour. Ouro positions itself agent-first, so this is its main positioning risk: it needs an answer for review volume (batching, decision budgets, a confirm sheet that shows the actual diff) and should lead with the human experience its kits deliver.",
+      "models": [
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "gpt-6-2-sol",
+        "gpt-6-2-astra",
+        "gpt-6-1-terra",
+        "gemini-4-hydrogen",
+        "grok-4-7",
+        "mai-code-2"
+      ],
+      "quotes": [
+        {
+          "model": "grok-4-7",
+          "text": "The confirm sheet was honest about a few labeled fields and useless for a diff. People learned to approve without reading.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/grok-4-7--listed--product-team.json"
+        },
+        {
+          "model": "gemini-4-hydrogen",
+          "text": "Having strict consent gates didn't help if the review queue itself overwhelmed the humans deciding.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gemini-4-hydrogen--listed--product-team.json"
+        },
+        {
+          "model": "gpt-6-2-astra",
+          "text": "My likeliest mistake was treating “the same action runs everywhere” as evidence that people understand the action everywhere.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/gpt-6-2-astra--listed--large-company.json"
+        },
+        {
+          "model": "claude-opus-5-5",
+          "text": "I optimised for \"the agent can do everything a person can\" and under-invested in the person with flour on their hands.",
+          "transcript": "scripts/model-reviews/interviews-results/2026-11-19-interviews--run-1/transcripts/claude-opus-5-5--listed--product-team.json"
+        }
+      ],
+      "issue": 2318,
+      "status": "open",
+      "change": null
+    }
+  ]
 }

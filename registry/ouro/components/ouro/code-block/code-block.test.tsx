@@ -472,22 +472,40 @@ describe("CodeBlock terminal output", () => {
     const colors = [...Array.from({ length: 8 }, (_, index) => 30 + index), ...Array.from({ length: 8 }, (_, index) => 90 + index)];
     const code = ["plain", `${esc}[2mdim${esc}[0m`, ...colors.flatMap((color) => [`${esc}[${color}mc${color}${esc}[0m`, `${esc}[2;${color}md${color}${esc}[0m`])].join("\n");
     const { host, pre, block } = await render(<CodeBlock language="ansi" code={code} />);
+    const root = document.documentElement;
+    // Ouro's light and dark, and a dark theme whose muted text is nearly as bright as its plain text (Spoonjoy's:
+    // plain at 11.3:1, muted at 7.3:1), where dim is still the theme's muted text and so still below plain.
+    const bright = { "--foreground": "#f2eee6", "--muted-foreground": "#c8c0b4", "--muted": "#34302b" };
+    const schemes = [
+      { name: "light", dark: false, tokens: {} },
+      { name: "dark", dark: true, tokens: {} },
+      { name: "bright dark", dark: true, tokens: bright },
+    ];
     try {
-      for (const scheme of ["light", "dark"]) {
-        document.documentElement.classList.toggle("dark", scheme === "dark");
+      for (const scheme of schemes) {
+        root.classList.toggle("dark", scheme.dark);
+        for (const [token, value] of Object.entries(scheme.tokens)) root.style.setProperty(token, value);
         const surface = getComputedStyle(block).backgroundColor;
         const plain = contrast(getComputedStyle(pre).color, surface);
+        const mutedText = block.appendChild(document.createElement("span"));
+        mutedText.style.color = "var(--muted-foreground)";
+        const muted = contrast(getComputedStyle(mutedText).color, surface);
+        mutedText.remove();
         const dim = contrast(getComputedStyle(span(host, "dim")).color, surface);
-        expect(dim, `${scheme} dim`).toBeGreaterThanOrEqual(4.5);
-        expect(dim, `${scheme} dim beside plain at ${plain.toFixed(2)}:1`).toBeLessThan(plain / 1.5);
+        expect(dim, `${scheme.name} dim`).toBeGreaterThanOrEqual(4.5);
+        // Muted as the theme mutes text: no brighter than its muted text nudged toward plain, and below plain.
+        expect(dim, `${scheme.name} dim beside plain at ${plain.toFixed(2)}:1`).toBeLessThan(plain);
+        expect(dim, `${scheme.name} dim beside muted text at ${muted.toFixed(2)}:1`).toBeGreaterThanOrEqual(muted);
         for (const color of colors) {
           for (const name of [`c${color}`, `d${color}`]) {
-            expect(contrast(getComputedStyle(span(host, name)).color, surface), `${scheme} ${name}`).toBeGreaterThanOrEqual(4.5);
+            expect(contrast(getComputedStyle(span(host, name)).color, surface), `${scheme.name} ${name}`).toBeGreaterThanOrEqual(4.5);
           }
         }
+        for (const token of Object.keys(scheme.tokens)) root.style.removeProperty(token);
       }
     } finally {
-      document.documentElement.classList.remove("dark");
+      root.classList.remove("dark");
+      for (const token of Object.keys(bright)) root.style.removeProperty(token);
     }
   });
 

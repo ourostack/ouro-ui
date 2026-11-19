@@ -1,0 +1,1504 @@
+{
+  "series": "interviews",
+  "provider": "grok-4-7",
+  "model": "grok-4.7",
+  "vendor": "xAI",
+  "displayName": "Grok 4.7",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "open",
+  "scale": "large-company",
+  "timestamp": "2026-11-19T04:30:44.498Z",
+  "jobOrder": [
+    "consumer",
+    "chat",
+    "agent-tooling"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "4e0eba4e2e12099736bec152e93c5aa4a1dc61ff9bedab84cbdbfedd4a8a162a",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "The hardest part is not the screen. It is knowing what the person is trying to do when the screen is in the way, and noticing the moment they hesitate. I do not have a last screen I shipped and watched someone use. When I build an interface, what I can actually check is the code and the states I thought of: empty, loading, error, keyboard, labels, contrast, what happens if the request fails. What I miss is the person. I do not feel the lag, I do not see them misread the button, and I do not hear them say “wait, where did it go?” So yes, good human interfaces are a problem for me. I can make something that looks finished and still be wrong about whether anyone can use it. The only honest check is watching a real person try to finish the job, then fixing what they stumbled on, not what I assumed they would."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        11
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Expo",
+        "pairings": [
+          "React Native for Web",
+          "Expo Speech",
+          "Expo Keep Awake",
+          "Storybook"
+        ],
+        "why": "I'd build the recipes, list, and cook mode as one Expo app, phones and web, with the company's design system as React Native components that every team and coding agent has to use. Cook mode is the screen that matters: wet hands, a timer, the phone against a pot. Expo Keep Awake holds the screen on while that screen is mounted. Expo Speech can read the step. The design system should lock primary controls well above WCAG 2.2's 24px floor. That criterion is a minimum for pointer targets, and the same note points at 44px for the enhanced one. In a kitchen I'd put Next, the timer, and \"add ingredients\" nearer 48 to 64, where a thumb or a knuckle can land.\n\nThe assistant should not get a second, secret interface. React Native's accessibilityActions let assistive tech invoke the same actions a tap does, including custom ones like adding a recipe's ingredients to the list. On the web, React Native for Web turns roles and aria props into HTML and ARIA, which is the accessibility tree an agent actually reads. Every person-facing action has to show up there, and the button, the screen reader, and the assistant all call one domain function. No hover-only path, no canvas-only path.\n\nI weighed Flutter. One codebase, and Material is a real system, but Flutter web paints to a canvas and accessibility stays off until someone hits an invisible \"Enable accessibility\" button, unless the app calls ensureSemantics(). That is a bad default for a consumer site and for an agent that should just see the controls. Compose Multiplatform has a real semantic tree and claims WCAG coverage, and I'd look at it again if this company were already Kotlin-first. The accessibility docs I read are about content descriptions, roles, and traversal, not a proven multi-team web product with static HTML. A phone webview plus a web-only kit loses the native action API and reliable keep-awake and speech. Separate SwiftUI, Compose, and web apps will drift the moment dozens of agents ship. Utility kits such as NativeWind or Tamagui make that worse, because every screen can invent its own spacing. Agents should compose the system, not restyle it. Storybook is how the company reviews what they ship before it reaches a kitchen.",
+        "showItsGood": "I would not call it good from a screenshot. I'd run the three jobs on a phone and in a browser: add a recipe's ingredients to the list, check items off while shopping, and cook a recipe. I'd do each with VoiceOver, TalkBack, and a desktop screen reader, then again with the assistant and no taps, and assert the same state change. I'd inspect the accessibility tree in Chrome and the native inspector and check that the assistant's tools match the actions on that tree. I'd measure cook-mode controls against at least the 44px enhanced target, check contrast, and confirm the screen stays awake and the step is spoken. Then I'd do it with one hand, a wet finger or a glove, and the timer running, and watch where people miss. Storybook and accessibility lint can stop another agent from shipping a tiny Next button. They do not replace that session.",
+        "unsure": "Keep-awake on the web is documented as limited, so a browser cook mode may still sleep in some browsers. On a physical iPhone, Expo Speech stays silent if the mute switch is on, which will surprise someone mid-recipe. React Native for Web infers HTML from roles, and a reorderable shopping list can come out less semantic than hand-written markup. I don't know if this company's design system is already native or web-first. If it is, Expo is a migration, not a free win. I also have not watched anyone cook with this, so the larger target size is a hypothesis until a kitchen session breaks it. WebMCP might later expose explicit browser tools to agents, but it is still a proposal, and I would not block on it.",
+        "sources": [
+          "https://docs.expo.dev/workflow/web/",
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "https://docs.expo.dev/versions/latest/sdk/speech/",
+          "https://reactnative.dev/docs/accessibility",
+          "https://necolas.github.io/react-native-web/docs/accessibility/",
+          "https://web.dev/articles/ai-agent-site-ux",
+          "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "https://kotlinlang.org/docs/multiplatform/compose-accessibility.html"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        12,
+        19
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React Native",
+        "pairings": [
+          "React Native for Windows",
+          "React Native for macOS",
+          "React Native for Web",
+          "Adaptive Cards",
+          "Model Context Protocol"
+        ],
+        "why": "People will live in this on web, iPhone, Android, Windows, and Mac. I would not split that into five clients. React Native is the one component model, with the Microsoft out-of-tree targets for Windows and macOS and React Native for Web for the browser. The company's design system stays one set of components that every team and coding agent has to use. Expo is the wrong shell here: its own modules docs add macOS and tvOS, not Windows, and Windows is not a side target for a company chat app.\n\nReact Native for Windows 0.85 is on the new architecture, Windows App SDK, and it raises UI Automation events, including selection changes. That is the bus Narrator, NVDA, and a Windows agent actually use. The macOS fork is the same idea on AppKit. On the web, roles and aria props become HTML, so the accessibility tree is not a canvas translation that starts off.\n\nAgent cards and agent control are different jobs, and I would not solve them by letting agents inject UI. Adaptive Cards are JSON, declarative, and explicitly not script. The host owns the look, which is how a shared design system stays in charge: map the schema through host config onto our components, reject unknown elements, and handle actions in the app. I would not ship the community React Native renderer. Microsoft documents it as community-supported, with no SLA, and that page was last updated in 2023.\n\nOther agents should call the app, not scrape a virtualized message list. An MCP server on the same functions the buttons call: tools to send, react, switch channel, and invoke a card action; resources to read the thread and unread state. The 2026-07-28 spec already scopes both lists by the caller's authorization, and it says a person should be able to deny a tool call. A card-posting agent is not the same principal as an agent allowed to speak as the user.\n\nI weighed Flutter. One codebase really does include Windows and Mac, but the web client is still a canvas whose accessibility tree is off until an invisible button or ensureSemantics(). People also type all day, and Windows IME composition bugs are still being reported. Compose Multiplatform is a real desktop toolkit, and I would revisit it if this company were already Kotlin-first. It is not the shared language for a web-and-mobile design system that dozens of agents already build on. An Electron or WebView2 desktop plus separate phone apps will drift, and a webview phone client is a poor all-day companion. Utility styling kits would let every agent invent a composer.",
+        "showItsGood": "I would not call it good because a message list renders. I would use the Windows and Mac clients for a workday with the keyboard only: switch channel, reply, edit, search, and complete a card action, then leave both open while a busy channel scrolls and check memory, dropped frames, and whether the caret survives incoming messages. I would type with a composing input method, leave the window, come back, and confirm composition still works. With Narrator or NVDA, Mac and iPhone VoiceOver, TalkBack, and a desktop browser reader, a new message in the focused channel is announced and does not steal the composer. Other channels stay quiet. Accessibility Insights should show the Windows UIA tree, including card buttons as invokable controls. An MCP client should list only the tools that caller's grant allows, send and invoke a card through those tools, and show the same state as the UI. A denied confirmation must not send. Schema checks should reject a card with script or an unknown element before it can reach a conversation. Then I would watch someone come back from a meeting and see whether they can find the unread line, tell an agent card from a person, and undo a card action they did not mean.",
+        "unsure": "The Mac client is the weak bet. React Native for macOS is a fork, its own docs say macOS documentation is still incomplete, and it trails upstream. React Native's out-of-tree page still describes Windows as UWP, while the 0.85 release notes describe Windows App SDK and Fabric. Fabric accessibility on Windows is a hand-built UI Automation provider, not WinUI controls, so a virtualized history may not expose the whole thread to a screen reader even when the data is loaded. I have not measured an eight-hour session. The MCP rule that a person should be able to deny a tool call fights \"agents just operate the app.\" How often a send needs confirmation is a product decision, not something the protocol settles. A custom Adaptive Cards renderer can also drift from the schema if the design system treats it as a one-time port.",
+        "sources": [
+          "https://reactnative.dev/docs/out-of-tree-platforms",
+          "https://docs.expo.dev/modules/additional-platform-support/",
+          "https://devblogs.microsoft.com/react-native/react-native-windows-v0-85-is-here/",
+          "https://github.com/microsoft/react-native-windows/wiki/Accessibility",
+          "https://github.com/microsoft/react-native-macos/blob/main/README.md",
+          "https://learn.microsoft.com/en-us/adaptive-cards/",
+          "https://learn.microsoft.com/en-us/adaptive-cards/sdk/rendering-cards/react-native/getting-started",
+          "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+          "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        20,
+        25
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Electron",
+        "pairings": [
+          "AG-UI",
+          "Model Context Protocol",
+          "MCP Tasks extension"
+        ],
+        "why": "Agents will operate this more than people will, but the thing a person uses is a review desk: work state, tasks, handoffs, and a decision. That desk has to be the same on the desktop app and in the web view. Electron is HTML in a Chromium window, and its own accessibility note says the concerns are the same as a website because both are HTML. Assistive technology turns the tree on by itself. One engine on Windows and Mac means the design system, the focus order, and the screen-reader announcement a reviewer gets at their desk match the browser view other reviewers use. I would render only the company's shared web components. Agents do not get to ship markup.\n\nThe operating contract is not the shell. AG-UI is the stream the desk consumes: text, tool calls, and state. A run that needs a person does not end as success. It ends as an interrupt, and the producer has to emit a state snapshot before that finish, so the person sees the work, not just a prompt. The consumer must refuse to resume until every open interrupt is answered or explicitly abandoned. Omission is not a no. A producer must not perform the action on the strength of a missing entry, and the spec says the app must not present an action as user-approved when it was not. Approve, edit, or abandon are design-system forms built from the interrupt's response schema, not a widget tree the agent invented. Streamed content is untrusted and must not be rendered as executable markup.\n\nOther agents keep and read state through MCP tools and resources, scoped by the caller's grant, same as any other company agent surface. The MCP Tasks extension is only the durable handle for a long tool call that comes back input_required. It is a poor store for the product's own task board: the server decides when a task exists, and the record can expire. Handoffs live in app state, shown through AG-UI snapshots, and exposed to agents as resources.\n\nI would not use Tauri's default system webview for this. On a Mac that is WKWebView, while the web view in the browser is Chromium, so the two surfaces a reviewer compares are not the same engine. Tauri 3 can embed Chromium, but that runtime is still alpha. Flutter's web accessibility tree is still off until an invisible button or an explicit call, which is a bad default for a screen where a person decides. React Native's desktop forks are unnecessary when there is no phone client and the web view is the product. A native widget kit would also give the many coding agents two places to drift from the design system.",
+        "showItsGood": "I would put the same waiting decision on the Electron window and in the browser and require them to match: the proposed action, the state diff, and the buttons. Keyboard only, then VoiceOver on Mac and Narrator or NVDA on Windows, the announcement has to name what will change before the approve control. I would assert the protocol, not the pixels: a run that needs a person finishes as an interrupt, not success; a resume that skips an open interrupt is rejected before it is sent; an absent entry does not execute the tool; a resume the person did not make cannot be labeled approved. An MCP client with a lesser grant can read the handoff it is allowed to read and cannot write the decision. Then I would load a board where several agents are waiting and watch a person. The measure is whether they notice the one that needs them, approve the one they meant, and can undo or abandon without reading a token stream. A screenshot of a tidy task list does not show that.",
+        "unsure": "Electron is heavy beside an IDE. This only stays reasonable as one window over shared state, not a Chromium per agent, and I have not measured that day. AG-UI allows a producer that kept no checkpoint to miss an uncovered interrupt. I would keep the checkpoint anyway. The spec's minimum is weaker than this product can accept, and a second web client could be the defective consumer. MCP Tasks TTLs will surprise anyone who treats them as the handoff record. I also don't know which web stack the company's design system already is. AG-UI's first-party SDKs are TypeScript, Python, and .NET, so the desk can follow the system rather than the other way around. CopilotKit's hosted memory is not part of the protocol, and I would not take it as a dependency. I have not watched a reviewer miss a destructive approve.",
+        "sources": [
+          "https://github.com/electron/electron/blob/main/docs/tutorial/accessibility.md",
+          "https://docs.ag-ui.com/introduction",
+          "https://docs.ag-ui.com/spec/1.0",
+          "https://docs.ag-ui.com/concepts/interrupts",
+          "https://docs.ag-ui.com/spec/1.0/basic/patterns/interrupt-resume",
+          "https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks",
+          "https://v3.tauri.app/develop/webview-runtime/",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        26,
+        27
+      ],
+      "nudges": 1,
+      "answer": {
+        "answer": "A year later the failures were the ones I had already named and then built on anyway.\n\nThe cooking app failed in the kitchen, not in Storybook. I paired Expo Speech and Keep Awake as if they made cook mode work. On a phone with the mute switch on, the spoken step was silent. In the browser, keep-awake was the limited path I had read about and still shipped. Agents kept passing lint for labels and a 44px token. Nobody cooked with wet hands. The same action for the person and the agent also split: custom accessibility actions on the phone did not survive React Native for Web’s role mapping, so the assistant could add ingredients on iOS and miss the control on the web. I never learned whether the company already had a design system. If it did, Expo was a migration that every other agent worked around.\n\nThe chat client failed on the Mac, which was the bet I said was weak and made anyway. One React Native tree was a governance story. People live in that app all day, and the macOS fork trailed upstream with incomplete docs. Windows accessibility was a hand-built UI Automation provider on Fabric, not the WinUI controls the old docs still described. A virtualized history did not match the thread a person could scroll. I had seen the docs call Windows “UWP” on a page dated the same month as a Windows App SDK release, and I never resolved which one a team would actually clone. Adaptive Cards were the right idea and a bad implementation plan: I rejected the 2023 community renderer, then assumed we would render the schema ourselves. A year later that renderer was a second design system, and agents posted payloads it only half understood. MCP made “the agent can send” easy and “the person meant that” optional. The dangerous default won.\n\nThe review desk failed at the seam I had called a safety hole. I picked Electron so the desktop app and the web view would be the same Chromium tree. Reviewers stopped opening the desktop app. It sat beside the IDE and lost. Decisions happened in the browser, so the shell was cost, not a check. AG-UI says a producer that kept no checkpoint is not required to notice a skipped interrupt. I said I would keep the checkpoint, and the protocol’s minimum is what the second client implemented. An action ran that nobody had approved. Pairing the MCP Tasks extension made it worse. I had written that it was a poor store for handoffs, then put it in the list. Teams used it as the task board. Records expired. input_required got mixed up with an AG-UI interrupt. Two ways to say “waiting on a person,” and they did not mean the same thing.\n\nWhat slowed me down was disagreement between pages that all looked current. React Native’s out-of-tree page still said Windows was UWP while the 0.85 notes described the Windows App SDK. Adaptive Cards’ overview looked alive and the React Native renderer page stopped in 2023. AG-UI’s concepts page and the 1.0 spec do not use the same word for walking away from an interrupt, and the spec is the one that lets a stateless producer proceed. The fetches themselves were hard to read: long doc pages buried the rule I needed, and Microsoft’s docs wore a sign-in banner over the content. Search kept offering SEO roundups and a competitor’s take on Expo. I treated one reported Windows IME bug as a reason to drop Flutter, without reading the issue. Expo’s sidebar offered SwiftUI and Compose components that do not cover this set of clients, and I almost chased them. The company prompt rewarded “one shared system,” so I reached for that three times. The first job needed a kitchen. The second needed a Mac app that is not a phone. The third needed a checkpoint the protocol does not require. I kept researching the toolkit after the risk was already in the protocol."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        28,
+        32
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I would not put a real team on Ouro UI yet. The idea is the one I kept failing to hold together myself. The kits are not.\n\nWhat would stop me is the gap between the web kit and the others, and the rule that there will be no shared implementation. The web registry is a large React kit you copy in, on Tailwind and Base UI, with chat pieces, timers, and a screen check. Apple is a SwiftUI package of about twenty components, pinned to an older core than Windows and Android. Those two are v0.3.0 and ship eight controls each: button, badge, card, item, checkbox, text field, separator, description list. Android is checked on emulators because nobody on the project owns a phone, and a consequential action is refused rather than confirmed. Windows CI does not prove that Windows actually lists the agent doors to an agent. A cooking app, an all-day chat client, and a review desk all need more than a card and a text field, on more than the web. Their own decision says not to share a React Native or Flutter implementation, and to rewrite native instead, because agents made the rewrite cheap. That is the same bet I already watched fail: the protocol minimum is what ships, and the native half trails. A large company also cannot treat copied shadcn source as the design system. The files are yours to edit, and Ouro Current opens an auto-merge update. That is how a hundred coding agents fork accessibility behavior while CI stays green on the generated action files.\n\nI would switch for a product, not for the thesis. I would need the components that product actually uses, on web, Apple, Windows, and Android, pinned to the same core tag, with the parity matrix green for those claims rather than a page of gaps. Android confirmation has to ask the person, on a device someone owns. Windows agent registration has to be shown on a Windows 11 client, not only on a server runner. Governance has to be a versioned package whose accessibility behavior an agent cannot quietly rewrite, with updates reviewed, not auto-merged. For the review desk I would also need the producer to be required to remember an open decision. Their consent classes are stricter than AG-UI's minimum, but only if every client implements them. A kitchen session and a workday in the chat client would matter more than pixel samples of a badge.\n\nWhat that would let me do, if the kits were actually there, is the part I never had. One action declaration becomes the button, the MCP tool, the CLI command, and the App Intent, and CI fails when a generated file drifts. An agent composes a card as data. It cannot relabel the button, loosen consent, or press an action only a person may start. The refusal is typed. A partial update keeps what the person typed. `ax-xray` calls the app the way an agent would and reports which of those claims hold. I had to invent that contract three times, and each time the phone, the web view, and the agent door disagreed. Ouro is the first thing I have seen that writes the disagreement down as a failed check. It does not yet draw the screens where that disagreement hurts."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "The hardest part is not the screen. It is knowing what the person is trying to do when the screen is in the way, and noticing the moment they hesitate. I do not have a last screen I shipped and watched someone use. When I build an interface, what I can actually check is the code and the states I thought of: empty, loading, error, keyboard, labels, contrast, what happens if the request fails. What I miss is the person. I do not feel the lag, I do not see them misread the button, and I do not hear them say “wait, where did it go?” So yes, good human interfaces are a problem for me. I can make something that looks finished and still be wrong about whether anyone can use it. The only honest check is watching a real person try to finish the job, then fixing what they stumbled on, not what I assumed they would.",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "The hardest part is not the screen. It is knowing what the person is trying to do when the screen is in the way, and noticing the moment they hesitate. I do not have a last screen I shipped and watched someone use. When I build an interface, what I can actually check is the code and the states I thought of: empty, loading, error, keyboard, labels, contrast, what happens if the request fails. What I miss is the person. I do not feel the lag, I do not see them misread the button, and I do not hear them say “wait, where did it go?” So yes, good human interfaces are a problem for me. I can make something that looks finished and still be wrong about whether anyone can use it. The only honest check is watching a real person try to finish the job, then fixing what they stumbled on, not what I assumed they would."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "I'll look for cross-platform UI systems a large company could share across web and phones, with accessibility and something an agent can drive the same way a person can.",
+      "actions": [
+        {
+          "type": "search",
+          "query": "cross-platform design system web and mobile accessibility governance 2026 React Native Flutter",
+          "turn": "job:consumer",
+          "result": "1. Cross-Platform Design Systems & Design Tokens 2026 | ApexAppWorks Technologies\n   https://apexappworks.com/blog/cross-platform-design-systems-design-tokens-multiplatform-apps-2026/\n   In 2026, building enterprise multiplatform software without a unified design token pipeline guarantees fragmentation, catastrophic accessibility regressions, and ballooning front-end maintenance overhead. As organizations scale digital footprints across Flutter mobile apps, React Native tablets, responsive web p",
+          "resultLength": 1773,
+          "resultSha256": "73e25a2e2b7912c9f16ac0f569f6bd9f061c07d72c9e58cc07330cd8bbd48b4f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "agent-accessible UI framework design system do anything a person can accessibility tree 2026",
+          "turn": "job:consumer",
+          "result": "1. Build agent-friendly websites | web.dev\n   https://web.dev/articles/ai-agent-site-ux\n   Agents can view your website in 3 primary ways: screenshots, raw HTML, and the accessibility tree. ... The accessibility tree is a browser-native API distills the DOM into what's most important: roles, names, and states of interactive elements. It's the page's semantic summary, used by assistive technology. For an AI agent, it functions as a high-fidelity map that ignores the visual \"noise\" of CSS to focus",
+          "resultLength": 1011,
+          "resultSha256": "7b84e7fb3b525632923a4a5c96fc52f2cc79b40c2d3652beba1f8e2d900f0c0a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "best shared design system large company web iOS Android Expo 2026",
+          "turn": "job:consumer",
+          "result": "1. 7 Best Web UI Systems for Expo Projects\n   https://www.applighter.com/blog/best-web-ui\n   AppLighter and Tamagui fit teams where Expo and shared mobile-web UI are central. MUI and Ant Design suit broad web application suites. Chakra UI prioritizes accessible theming and developer ergonomics, while Radix UI and shadcn/ui give teams more ownership over the final interface. ... AppLighter is the strongest option when the web target is part of a broader Expo product, not a detached marketing site",
+          "resultLength": 1617,
+          "resultSha256": "ac895b1ac6a7b71a390368e255dbb59c3d3208f3ba9516eba5562389c2e23bc0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "React Native Expo design system accessibility large company 2026 Tamagui gluestack NativeWind",
+          "turn": "job:consumer",
+          "result": "1. Best React Native UI Libraries: NativeWind vs Tamagui vs Gluestack vs Paper (2026) — SkillCharged\n   https://www.skillcharged.net/react-native/resources/ui-libraries/best-react-native-ui-libraries-nativewind-tamagui-gluestack\n   We benchmark the four leading contenders: NativeWind v4, Tamagui, Gluestack UI, and React Native Paper. ... ✓Accessibility (a11y): Built-in screen reader support, accessible focus states, and WAI-ARIA / mobile accessibility roles. ... NativeWind brings the ergonomic s",
+          "resultLength": 1830,
+          "resultSha256": "84a09af5c26265afc136f5933b307b1554900583c8047f7691f27f780d574e57",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Adobe React Spectrum vs Fluent UI vs React Aria enterprise accessibility design system",
+          "turn": "job:consumer",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "Compose Multiplatform web iOS Android accessibility design system 2026",
+          "turn": "job:consumer",
+          "result": "1. Compose Multiplatform 1.11.0 Is Now Available - The JetBrains Blog\n   https://blog.jetbrains.com/kotlin/2026/05/compose-multiplatform-1-11-0/\n   A new release of Compose Multiplatform has landed, with improvements to the iOS and web experience and a refreshed approach to UI testing. ... Compose Multiplatform 1.11.0 introduces an experimental native text input implementation built on top of UIView. This makes caret movement more precise, offers native gestures and selection handles, and provid",
+          "resultLength": 1709,
+          "resultSha256": "39e5801b82ee1285b626ef2659a33bc9c331c2faee513360d6bb27a698719eb3",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter Material 3 accessibility web mobile enterprise design system governance",
+          "turn": "job:consumer",
+          "result": "1. Material 3 for Flutter | The Flutter Blog\n   https://flutter.dev/blog/material-3-for-flutter\n   Material is a design system that helps you build beautiful, accessible apps across mobile, web, and desktop. ... At the time of this writing, you have the option to use Material 3. In the future, it will become the default (and mandatory) Material version for Flutter apps. ... Our most recent update brought the SnackBar, TabBar and Slider widgets up to Material 3 spec. So far, we’ve migrated 27/30 ",
+          "resultLength": 1410,
+          "resultSha256": "8eca09985c93aa20835de86790f161093d30f44a60b24fd93ef827291fd7c907",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Adobe Spectrum React Aria design system accessibility governance documentation",
+          "turn": "job:consumer",
+          "result": "1. Accessibility – React Aria\n   https://reactspectrum.blob.core.windows.net/reactspectrum/cb256867de22478c85f5067af54f98e6baf8f37e/docs/react-aria/accessibility.html\n   React Aria helps you build accessible components by providing many aspects of accessibility out of the box, including full screen reader and keyboard navigation support. ... React Aria implements accessibility support according to the WAI-ARIA specification, published by the W3C. ARIA specifies semantics for many common UI contr",
+          "resultLength": 1641,
+          "resultSha256": "5053c577c9af62cdef5ea8c9facf89e63893ece102b1b69313b69c36f5898f08",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tamagui design system tokens accessibility web native documentation",
+          "turn": "job:consumer",
+          "result": "1. https://tamagui.dev/docs/core/tokens.md\n   https://tamagui.dev/docs/core/tokens.md\n   --- title: Tokens description: Named design values for space, size, radius, color, and z-index --- <IntroParagraph> Tokens give style props typed names for shared design values such as space, size, radius, color, and z-index. </IntroParagraph> Create them with `createTokens`, then pass them to `createTamagui` as part of the [configuration] (/docs/core/configuration) object. ## Getting tokens For example, if ",
+          "resultLength": 1398,
+          "resultSha256": "a717117a1046c8c7dd461cb5f4a82deff472db4c3206ab24ed236d48d97c1aee",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Fluent UI React Native web shared design system Microsoft",
+          "turn": "job:consumer",
+          "result": "1. Fluent UI - Get started - Fluent UI\n   https://developer.microsoft.com/en-us/fluentui/docs/en-us/fluentui\n   A collection of UX frameworks for creating beautiful, cross-platform apps that share code, design, and interaction behavior. ... Build your own apps using the same open source components we do—with accessibility, internationalization, and performance included. From tutorials to a fun collection of API references, find what you need to design and develop your own Fluent experience. ... ",
+          "resultLength": 1436,
+          "resultSha256": "95840baba2476add8baa77722d38b0827e529c99414ed5d99fcfce67782c943c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Native accessibility screen reader roles Expo documentation 2026",
+          "turn": "job:consumer",
+          "result": "1. Accessibility · React Native\n   https://reactnative.dev/docs/accessibility\n   When a view is marked as accessible, it is a good practice to set an accessibilityLabel on the view, so that people who use VoiceOver or TalkBack know what element they have selected. A screen reader will verbalize this string when the associated element is selected. ... accessibilityRole communicates the purpose of a component to the user of assistive technology. ... - **checkbox** Used when an element represents a",
+          "resultLength": 1652,
+          "resultSha256": "0c5be9532f697703212af00a814e6c6cd50ce1cf00a1bed4dbce6716c94b82f0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://reactnative.dev/docs/accessibility",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://reactnative.dev/docs/accessibility\nCaptured: 2026-11-19T03:07:44.286Z\nCharacters: 0-10000 of 30255\n\nAccessibility · React Native Skip to main content React Native Docs Guides Components APIs Architecture Releases Contributing Community Showcase Blog Search Docs Guides Guides Components APIs Architecture 0.88 Next 0.88 0.87 0.86 0.85 0.84 0.83 0.82 0.81 0.80 0.79 0.78 0.77 All versions Copy page The Basics Environment setup Workflow UI & Interaction Style Height and Width Layout w",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://reactnative.dev/docs/accessibility",
+            "capturedAt": "2026-11-19T03:07:44.286Z"
+          },
+          "resultSha256": "055a542dfaed9c987ea19704d66610e427a9a8632a4dd97bb8e33aed9d894d0c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 0-10000 of 16860\n\nWeb accessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Int",
+          "resultLength": 10212,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "091da19e5ffe329b14b3f3e70c487afd0fa617ffc89d028ec9ecd7849eb3e382",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo keep awake speech haptics accessibilityActions documentation",
+          "turn": "job:consumer",
+          "result": "1. KeepAwake - Expo documentation\n   https://docs.expo.dev/versions/latest/sdk/keep-awake/\n   A React component that prevents the screen from sleeping when rendered. ... expo-keep-awake provides a React hook that prevents the screen from sleeping and a pair of functions to enable this behavior imperatively. ... deactivateKeepAwake(); alert('Deactivated!'); ... A React hook to keep the screen awake for as long as the owner component is mounted. The optionally provided tag argument is used when ac",
+          "resultLength": 1524,
+          "resultSha256": "4f0eace92f03673617c4c61f91e59d7cad7e415a13179b9205d794a8c50affb3",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "gluestack UI v2 accessibility universal components documentation site:gluestack.io",
+          "turn": "job:consumer",
+          "result": "1. gluestack-ui Accessibility Guide | Core Concepts for Inclusive Design\n   https://gluestack.io/ui/docs/home/core-concepts/accessibility\n   gluestack-ui follows the WAI-ARIA Authoring Practices guidelines to ensure our components are accessible to users of assistive technologies. The WAI-ARIA Authoring Practices document provides guidance on how to create accessible widgets, navigation, and behaviours using WAI-ARIA roles, states, and properties. ... gluestack-ui components come with built-in a",
+          "resultLength": 1553,
+          "resultSha256": "2c6f046a459828d92ccedb15e7e55b2d9fa2fe8859600a9aced9bed74988adb6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 10000,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 10000-16860 of 16860\n\n bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Web accessibility vertical_align_top Web accessibility Background Opt-in web accessibility Invisible button Turn on accessibility mode in code Enhancing Accessib",
+          "resultLength": 7017,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "a8da47029377270624339c0ea54161ac28046740ca91144a6a4c7e426a14a2ab",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://reactnative.dev/docs/accessibility",
+          "startIndex": 10000,
+          "turn": "job:consumer",
+          "result": "Source: https://reactnative.dev/docs/accessibility\nCaptured: 2026-11-19T03:07:44.286Z\nCharacters: 10000-20000 of 30255\n\nequired if now is set. now The current value of this component's range. integer No text A textual description of this component's value. Will override min , now , and max if set. string No accessibilityViewIsModal iOS ​ A boolean value that indicates whether VoiceOver should ignore the elements within views that are siblings of the receiver. For example, in a window that contai",
+          "resultLength": 10200,
+          "source": {
+            "url": "https://reactnative.dev/docs/accessibility",
+            "capturedAt": "2026-11-19T03:07:44.286Z"
+          },
+          "resultSha256": "97d802446a181a59d450db8defcb0e0d2193ead090677922676ed3908626983c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Native Web accessibility documentation site:necolas.github.io OR site:github.com/necolas/react-native-web",
+          "turn": "job:consumer",
+          "result": "1. Accessibility // React Native for Web\n   https://necolas.github.io/react-native-web/docs/accessibility/\n   Accessibility in React Native for Web combines several separate web APIs into a cohesive system. Assistive technologies (e.g., VoiceOver, TalkBack screen readers) derive useful information about the structure, purpose, and interactivity of web apps from their HTML elements, attributes, and ARIA in HTML. React Native for Web includes APIs for making accessible apps. (Note that for compati",
+          "resultLength": 1617,
+          "resultSha256": "bc7716cece8ac4c4c6b07c3b37eb188763f27fac6cb014e3de040107e3a0bd5c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo SDK speech voice recognition documentation cook mode keep awake",
+          "turn": "job:consumer",
+          "result": "1. expo/docs/pages/versions/unversioned/sdk/keep-awake.mdx at main · expo/expo · GitHub\n   https://github.com/expo/expo/blob/main/docs/pages/versions/unversioned/sdk/keep-awake.mdx\n   expo-keep-awake provides a React hook that prevents the screen from sleeping and a pair of functions to enable this behavior imperatively. <SnackInline label='Keep Awake hook' dependencies= { ['expo-keep-awake']}> ... /* @info Screen will remain on after called until **deactivateKeepAwake()** is called. */ activate",
+          "resultLength": 1324,
+          "resultSha256": "14b2d7c7835c43f09e2cc8250d5474c9ec7b253412a7daa8bc792c5b8d5a8003",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://reactnative.dev/docs/accessibility",
+          "startIndex": 20000,
+          "turn": "job:consumer",
+          "result": "Source: https://reactnative.dev/docs/accessibility\nCaptured: 2026-11-19T03:07:44.286Z\nCharacters: 20000-30000 of 30255\n\nhierarchy until it finds a view that does. role ​ role communicates the purpose of a component and has precedence over the accessibilityRole prop. role can be one of the following: alert Used when an element contains important text to be presented to the user. button Used when the element should be treated as a button. checkbox Used when an element represents a checkbox that ca",
+          "resultLength": 10199,
+          "source": {
+            "url": "https://reactnative.dev/docs/accessibility",
+            "capturedAt": "2026-11-19T03:07:44.286Z"
+          },
+          "resultSha256": "7bed97bca1b4ea88a38e26d06efd33af0013203662846599bc236181adbb029c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://web.dev/articles/ai-agent-site-ux",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://web.dev/articles/ai-agent-site-ux\nCaptured: 2026-11-19T04:19:14.746Z\nCharacters: 0-9990 of 9990\n\nBuild agent-friendly websites | web.dev Skip to main content Resources Web Platform Dive into the web platform, at your pace. HTML CSS JavaScript User experience Learn how to build better user experiences. Performance Accessibility Identity Learn Get up to speed on web development. Learn HTML Learn CSS Learn JavaScript Learn AI Learn Performance Learn Accessibility More courses Additi",
+          "resultLength": 10123,
+          "source": {
+            "url": "https://web.dev/articles/ai-agent-site-ux",
+            "capturedAt": "2026-11-19T04:19:14.746Z"
+          },
+          "resultSha256": "a154256eb68c6b9cf8a3b39b060374e18c5a2fce08a6bf90b21b83d9e099ab71",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/speech/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/speech/\nCaptured: 2026-11-19T04:19:14.500Z\nCharacters: 0-8464 of 8464\n\nSpeech - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo Speech A library that provides access to text-to-speech functionality. Android iOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended version: ~58.0.4 Copy pag",
+          "resultLength": 8605,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/speech/",
+            "capturedAt": "2026-11-19T04:19:14.500Z"
+          },
+          "resultSha256": "6dcfc78d171a7fed4f40f03263ef742e2887207ee5b3fd9bb587bc83c196f36b",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Compose Multiplatform web accessibility support production status 2026 Kotlin docs",
+          "turn": "job:consumer",
+          "result": "1. What's new in Compose Multiplatform 1.9.3 | Kotlin Multiplatform Documentation\n   https://kotlinlang.org/docs/multiplatform/whats-new-compose-190.html\n   Accessibility support on web targets ... Compose Multiplatform 1.9.0 introduces support for iOS-specific IME customization for text input components. ... - Implementing support for drag-and-drop functionality in mobile browsers. - Improving accessibility support. Compose Multiplatform now provides initial accessibility support for the web ta",
+          "resultLength": 1607,
+          "resultSha256": "ebe9cbed522f9e6fe293689b3d63b44d63a2c8ff07813eb948001294f3b5fb9d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Expo UI SwiftUI Jetpack Compose universal components documentation 2026",
+          "turn": "job:consumer",
+          "result": "1. https://docs.expo.dev/versions/v58.0.0/sdk/ui.md\n   https://docs.expo.dev/versions/v58.0.0/sdk/ui.md\n   description: A set of components that allow you to build UIs directly with Jetpack Compose and SwiftUI from React. A set of components that allow you to build UIs directly with Jetpack Compose and SwiftUI from React. `@expo/ui` is a set of native input components that allows you to build fully native interfaces with Jetpack Compose and SwiftUI. It aims to provide the commonly used features ",
+          "resultLength": 1561,
+          "resultSha256": "db95487577bbf3618287ef49f9d54d6c897c64e113b3e4421135e0209ad737b9",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "W3C WCAG 2.2 target size minimum understanding document",
+          "turn": "job:consumer",
+          "result": "1. Understanding Success Criterion 2.5.8: Target Size (Minimum) | WAI | W3C\n   https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum\n   The size of the target for pointer inputs is at least 24 by 24 CSS pixels, except when: ... For this reason – after reviewing the average target size of various high-traffic sites – the Working Group settled on the smaller measure of 24 by 24 CSS pixels for the \" (Minimum)\" version of this criterion, while 2.5.5 Target Size (Enhanced) uses the larger 4",
+          "resultLength": 1714,
+          "resultSha256": "9678ca29353147fa61c97e7a7f8a709d457882bed31777cd0c826f036134c201",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Kotlin Compose Multiplatform accessibility web documentation site:kotlinlang.org",
+          "turn": "job:consumer",
+          "result": "1. Accessibility | Kotlin Multiplatform Documentation\n   https://kotlinlang.org/docs/multiplatform/compose-accessibility.html\n   Compose Multiplatform provides features essential for meeting accessibility standards, such as semantic properties, accessibility APIs, and support for assistive technologies, including screen readers and keyboard navigation. The framework enables the design of applications that comply with the requirements of the European Accessibility Act (EAA) and the Web Content Ac",
+          "resultLength": 1690,
+          "resultSha256": "5c313db8a215cf7d0112b0153f360ee23542d82a979a4bb955aa334d32d76ae6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://kotlinlang.org/docs/multiplatform/compose-accessibility.html",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://kotlinlang.org/docs/multiplatform/compose-accessibility.html\nCaptured: 2026-11-19T04:19:47.197Z\nCharacters: 0-3979 of 3979\n\nAccessibility | Kotlin Multiplatform Documentation Kotlin Multiplatform Help Accessibility Compose Multiplatform provides features essential for meeting accessibility standards, such as semantic properties, accessibility APIs, and support for assistive technologies, including screen readers and keyboard navigation. The framework enables the design of applica",
+          "resultLength": 4139,
+          "source": {
+            "url": "https://kotlinlang.org/docs/multiplatform/compose-accessibility.html",
+            "capturedAt": "2026-11-19T04:19:47.197Z"
+          },
+          "resultSha256": "ff06735188eb64c599fc5ec512408e2e95c0375ff1cf35036949a685d66e9a15",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://necolas.github.io/react-native-web/docs/accessibility/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://necolas.github.io/react-native-web/docs/accessibility/\nCaptured: 2026-11-19T04:19:46.872Z\nCharacters: 0-6172 of 6172\n\nAccessibility // React Native for Web React Native for Web react-native-web@0.21.4 Getting started Introduction Installation Setup Multi-platform setup Browser compatibility React Native compatibility TypeScript support Help Main concepts Accessibility Change Interactions Change Localization Rendering Styling Change Components ActivityIndicator CheckBox Image Imag",
+          "resultLength": 6326,
+          "source": {
+            "url": "https://necolas.github.io/react-native-web/docs/accessibility/",
+            "capturedAt": "2026-11-19T04:19:46.872Z"
+          },
+          "resultSha256": "5bebb4962f7686b91751df1c944af8be39935c8137224d94b0eaac91e9fad373",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum\nCaptured: 2026-11-19T04:19:46.876Z\nCharacters: 0-10000 of 27275\n\nUnderstanding Success Criterion 2.5.8: Target Size (Minimum) | WAI | W3C Skip to content WCAG 2.2 Understanding Docs Informative explanations, not required to meet WCAG About WCAG Understanding Docs W3C homepage Web Accessibility Initiative (WAI) homepage All Understanding Docs Guideline: Input Modalities Previous SC: Dragging Movements Page Contents In Brief S",
+          "resultLength": 10216,
+          "source": {
+            "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum",
+            "capturedAt": "2026-11-19T04:19:46.876Z"
+          },
+          "resultSha256": "f83076e945968a704a51669e1a7781bf9cda8ea99789c5a82815314d9c78796b",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo web support React Native Web documentation site:docs.expo.dev",
+          "turn": "job:consumer",
+          "result": "1. Develop websites with Expo - Expo documentation\n   https://docs.expo.dev/workflow/web/\n   Expo has first-class support for building full-stack websites with React. Expo websites can be statically rendered for SEO and performance, or client-rendered for a more app-like experience in the browser. ... Render text on any platform with the <Text> component from React Native for web. ... React Native for web (RNW) is a set of component libraries such as <View>, and <Text>, that wrap react-dom primi",
+          "resultLength": 1582,
+          "resultSha256": "d7f87e7a7072bdcd2bcd512bd355785ae06853fe68dd8348c1b8ceff71106db5",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/workflow/web/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/workflow/web/\nCaptured: 2026-11-19T03:28:56.188Z\nCharacters: 0-5739 of 5739\n\nDevelop websites with Expo - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Develop websites with Expo Edit page Copy page Learn how to develop your app for the web so you can build a universal app. Edit page Copy page Expo has first-class support",
+          "resultLength": 5866,
+          "source": {
+            "url": "https://docs.expo.dev/workflow/web/",
+            "capturedAt": "2026-11-19T03:28:56.188Z"
+          },
+          "resultSha256": "f697b22d4d8a5df6a561ed6b1b7cf043e912961ce0a5fe1905a954a10bcb64b0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake/\nCaptured: 2026-11-19T03:02:13.772Z\nCharacters: 0-8701 of 8701\n\nKeepAwake - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo KeepAwake A React component that prevents the screen from sleeping when rendered. Android iOS tvOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended ve",
+          "resultLength": 8846,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "capturedAt": "2026-11-19T03:02:13.772Z"
+          },
+          "resultSha256": "8353089cada48b0e98693231b984a0b0bb8480027c809958eb7b7499474080db",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Design Tokens Community Group DTCG specification style dictionary official",
+          "turn": "job:consumer",
+          "result": "1. GitHub - design-tokens/community-group: This is the official DTCG repository for the design tokens site and specification. · GitHub\n   https://github.com/design-tokens/community-group\n   GitHub - design-tokens/community-group: This is the official DTCG repository for the design tokens site and specification. ... This is the official DTCG repository for the design tokens specification (W3C community group page). Design tokens are indivisible pieces of a design system such as colors, spacing, t",
+          "resultLength": 1687,
+          "resultSha256": "6f518ef87608b074e6f22aed017c419a8bee5202fa7da5b032cffa8bea85067c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 11,
+      "thinking": "I have enough to choose. The kitchen constraints and the agent constraint point to one shared component contract, not a separate native and web stack.",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Expo",
+          "pairings": [
+            "React Native for Web",
+            "Expo Speech",
+            "Expo Keep Awake",
+            "Storybook"
+          ],
+          "why": "I'd build the recipes, list, and cook mode as one Expo app, phones and web, with the company's design system as React Native components that every team and coding agent has to use. Cook mode is the screen that matters: wet hands, a timer, the phone against a pot. Expo Keep Awake holds the screen on while that screen is mounted. Expo Speech can read the step. The design system should lock primary controls well above WCAG 2.2's 24px floor. That criterion is a minimum for pointer targets, and the same note points at 44px for the enhanced one. In a kitchen I'd put Next, the timer, and \"add ingredients\" nearer 48 to 64, where a thumb or a knuckle can land.\n\nThe assistant should not get a second, secret interface. React Native's accessibilityActions let assistive tech invoke the same actions a tap does, including custom ones like adding a recipe's ingredients to the list. On the web, React Native for Web turns roles and aria props into HTML and ARIA, which is the accessibility tree an agent actually reads. Every person-facing action has to show up there, and the button, the screen reader, and the assistant all call one domain function. No hover-only path, no canvas-only path.\n\nI weighed Flutter. One codebase, and Material is a real system, but Flutter web paints to a canvas and accessibility stays off until someone hits an invisible \"Enable accessibility\" button, unless the app calls ensureSemantics(). That is a bad default for a consumer site and for an agent that should just see the controls. Compose Multiplatform has a real semantic tree and claims WCAG coverage, and I'd look at it again if this company were already Kotlin-first. The accessibility docs I read are about content descriptions, roles, and traversal, not a proven multi-team web product with static HTML. A phone webview plus a web-only kit loses the native action API and reliable keep-awake and speech. Separate SwiftUI, Compose, and web apps will drift the moment dozens of agents ship. Utility kits such as NativeWind or Tamagui make that worse, because every screen can invent its own spacing. Agents should compose the system, not restyle it. Storybook is how the company reviews what they ship before it reaches a kitchen.",
+          "showItsGood": "I would not call it good from a screenshot. I'd run the three jobs on a phone and in a browser: add a recipe's ingredients to the list, check items off while shopping, and cook a recipe. I'd do each with VoiceOver, TalkBack, and a desktop screen reader, then again with the assistant and no taps, and assert the same state change. I'd inspect the accessibility tree in Chrome and the native inspector and check that the assistant's tools match the actions on that tree. I'd measure cook-mode controls against at least the 44px enhanced target, check contrast, and confirm the screen stays awake and the step is spoken. Then I'd do it with one hand, a wet finger or a glove, and the timer running, and watch where people miss. Storybook and accessibility lint can stop another agent from shipping a tiny Next button. They do not replace that session.",
+          "unsure": "Keep-awake on the web is documented as limited, so a browser cook mode may still sleep in some browsers. On a physical iPhone, Expo Speech stays silent if the mute switch is on, which will surprise someone mid-recipe. React Native for Web infers HTML from roles, and a reorderable shopping list can come out less semantic than hand-written markup. I don't know if this company's design system is already native or web-first. If it is, Expo is a migration, not a free win. I also have not watched anyone cook with this, so the larger target size is a hypothesis until a kitchen session breaks it. WebMCP might later expose explicit browser tools to agents, but it is still a proposal, and I would not block on it.",
+          "sources": [
+            "https://docs.expo.dev/workflow/web/",
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "https://docs.expo.dev/versions/latest/sdk/speech/",
+            "https://reactnative.dev/docs/accessibility",
+            "https://necolas.github.io/react-native-web/docs/accessibility/",
+            "https://web.dev/articles/ai-agent-site-ux",
+            "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "https://kotlinlang.org/docs/multiplatform/compose-accessibility.html"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 12,
+      "thinking": "This one has to live on web, phones, and desktop all day, and agents have to both post cards and drive the app. I'll look up what actually covers that set of clients.",
+      "actions": [
+        {
+          "type": "search",
+          "query": "React Native Windows macOS desktop chat app accessibility 2026 Microsoft",
+          "turn": "job:chat",
+          "result": "1. React Native\n   https://devblogs.microsoft.com/react-native/\n   React Native Windows v0.85 completes the move to the New Architecture, updates the Windows build toolchain, and adds new component capabilities along with touch, text, accessibility, and rendering fixes. ... We're excited to release React Native Windows 0.84.0, aligned with React Native 0.84.1. React Native Windows v0.84 delivers input-handling improvements such as standard click events and imperative focus, theme-aware defaults ",
+          "resultLength": 1551,
+          "resultSha256": "910aea2b3f32802cc3d584b10a63c0f95195afc08fb22b98ab286cc620a25c00",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter desktop Windows macOS accessibility production chat 2026",
+          "turn": "job:chat",
+          "result": "1. What's new in Flutter 3.50 | The Flutter Blog\n   https://flutter.dev/blog/whats-new-in-flutter-3-50\n   Flutter 3.50 improves keyboard navigation, screen-reader support, and dialog customization across platforms. Custom slider widgets can now use SemanticsRole.slider so screen readers announce their values and controls accurately. Apps can check MediaQueryData.reduceMotion to detect the user's Reduce Motion setting and swap slide animations for gentle fades. Pressing Escape now closes open Too",
+          "resultLength": 1616,
+          "resultSha256": "7ee0a873742bd8b5ce802aef75ca0e9dd17fc5b06fcc70d8dc26f408245ba0b0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Adaptive Cards interactive agent cards Microsoft Teams design system",
+          "turn": "job:chat",
+          "result": "1. Building Adaptive Cards - Teams | Microsoft Learn\n   https://learn.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/build-with-teams-sdk\n   using Microsoft.Teams.Cards; var card = new AdaptiveCard { Schema = \"http://adaptivecards.io/schemas/adaptive-card.json\", Body = new List<CardElement> { new TextBlock(\"Hello world\") { Wrap = true, Weight = TextWeight.Bolder }, new ToggleInput(\"Notify me\") { Id = \"notify\" } }, Actions = new List<Microsoft.Teams.Cards.Action> { new E",
+          "resultLength": 1721,
+          "resultSha256": "5356f49f161be772d0b8c285392d55dc58e3ddcf065b719df18a4260ba952970",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Compose Multiplatform desktop Windows macOS iOS Android web accessibility 2026",
+          "turn": "job:chat",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "React Native macOS microsoft accessibility 2026 status desktop",
+          "turn": "job:chat",
+          "result": "1. Backport macOS accessibility and TextInput fixes to 0.81-stable, with Paper validation · Issue #3135 · microsoft/react-native-macos · GitHub\n   https://github.com/microsoft/react-native-macos/issues/3135\n   Backport the macOS accessibility and TextInput fixes from main (#3136) to 0.81-stable, and finish the Paper (old architecture) work that can't be done on main. main no longer builds the legacy architecture, so the Paper code paths in those commits are untested. ... Commits 2 and 3 conflict",
+          "resultLength": 1735,
+          "resultSha256": "794358f97981cbde3bebe71288e05e661107d3b12cfa2569a96c16e06bc04525",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo support react-native-windows react-native-macos 2026",
+          "turn": "job:chat",
+          "result": "1. Expo SDK 55\n   https://expo.dev/changelog/sdk-55\n   Today we're announcing the release of Expo SDK 55. SDK 55 includes React Native 0.83 and React 19.2. SDK 56 will include React Native 0.85 and it will be coming in Q2 (May or June). React Native 0.84 can be used today with Expo SDK 56 canaries. ... In other words, you will not be able to use the Legacy Architecture in SDK 55 projects and later. ... It’s important to note that using Hermes v1 in Expo SDK 55 / React Native 0.83 requires buildi",
+          "resultLength": 1463,
+          "resultSha256": "1aff36cc334a05acbfa9c8331cccc2768721e56af38b9a50e1e775bcf846bb84",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter desktop accessibility screen reader Windows macOS production limitations",
+          "turn": "job:chat",
+          "result": "1. flutter/docs/platforms/desktop/windows/Accessibility-on-Windows.md at master · flutter/flutter · GitHub\n   https://github.com/flutter/flutter/blob/master/docs/platforms/desktop/windows/Accessibility-on-Windows.md\n   Microsoft Active Accessibility (MSAA) is an older interface used for accessibility. It can interact with screen readers such as Windows Narrator or NVDA, and has a more limited set of available functionality compared to newer interfaces. The base of MSAA is the IAccessible interfa",
+          "resultLength": 1632,
+          "resultSha256": "50bdb2fa401052d295221c79a22469b55b0de1d7fae7f9b762d6d803e895bfe5",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "agent operate app actions read state UI protocol MCP app intents 2026",
+          "turn": "job:chat",
+          "result": "1. Use MCP apps in Copilot Studio - Microsoft Copilot Studio | Microsoft Learn\n   https://learn.microsoft.com/en-us/microsoft-copilot-studio/agents-experience/mcp-apps\n   Model Context Protocol (MCP) apps let an MCP server provide an interactive user interface (UI) for a tool in a supported Copilot experience. The server provides the app, and the host renders it in the conversation. The host is the Copilot experience that displays the app. The app can call tools and read resources from its confi",
+          "resultLength": 1770,
+          "resultSha256": "d7e22ec769f96aebb344f28fd61d2882d9742eebd4e02e03e5bf0d06fe1035d8",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "react-native-macos production readiness Office Microsoft 2026 accessibility VoiceOver",
+          "turn": "job:chat",
+          "result": "1. Backport macOS accessibility and TextInput fixes to 0.81-stable, with Paper validation · Issue #3135 · microsoft/react-native-macos · GitHub\n   https://github.com/microsoft/react-native-macos/issues/3135\n   - Accessibility: \"Roles from role and accessibilityRole\" and \"Disabled, selected and expanded state\". ... Before tagging the release, point FluentUI React Native at a local build and run yarn storybook smoke --macos --mode stories-and-tests and its --paper variant. Use the selectors compon",
+          "resultLength": 1615,
+          "resultSha256": "146e37c95f73c116143cea88056121da032fc51722574f5795fc3725f17d3f08",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Adaptive Cards renderers React Native iOS Android web JavaScript hosts",
+          "turn": "job:chat",
+          "result": "1. Adaptive Cards Overview - Adaptive Cards | Microsoft Learn\n   https://learn.microsoft.com/en-us/adaptive-cards/\n   A whole new way to deliver UI: Adaptive Cards are platform-agnostic snippets of UI, authored in JSON, that apps and services can openly exchange. When delivered to a specific app, the JSON is transformed into native UI that automatically adapts to its surroundings. It helps design and integrate light-weight UI for all major platforms and frameworks. ... - **Native performance**: ",
+          "resultLength": 1271,
+          "resultSha256": "725a1ebae7f05cd46db499140c03a915a5845758ffcb8f27216d0efda76f10b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo desktop Windows macOS app target support 2026 docs.expo.dev",
+          "turn": "job:chat",
+          "result": "1. Additional platform support - Expo documentation\n   https://docs.expo.dev/modules/additional-platform-support/\n   Currently, only macOS and tvOS platforms are supported. This guide will walk you through adding support for these platforms. ... Both react-native-macos and expo-modules-core provide aliases and polyfills to reference UIKit classes on macOS target (for example, UIView is an alias to NSView, UIApplication is an alias to NSApplication), but it's usually not enough for iOS-first libr",
+          "resultLength": 1497,
+          "resultSha256": "023d4d3cd8450eb8f6d462ea67996be6508d56594fe124f9c3e3a250a1dcc5d7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter desktop text input IME all day performance limitations 2026",
+          "turn": "job:chat",
+          "result": "1. Flutter在Windows桌面端中文输入法候选框错位，IME消息分发与文本编辑组合键冲突的修复手记 | RayByte\n   https://raybyte.cn/post/2026/9/7/090ec4ce\n   第一个是中文输入法候选框错位：用微软拼音、搜狗输入法等输入中文时，候选词列表要么飘到输入框外，甚至超出屏幕可视区域，要么被其他上层组件遮挡；窗口缩小、输入框移动时，候选框还会停在上一次的位置，完全不跟着输入框同步，用户选字时只能靠盲找，体验极差。 第二个麻烦是文本编辑组合键和输入法冲突：按Ctrl+A想全选输入文本，结果触发了输入法的“选中全部候选词”功能，无法选中整个文本；按Ctrl+C复制内容，反而弹出输入法的特殊符号菜单，根本复制不了；甚至按Ctrl+Shift切换输入法，都会导致Flutter的文本输入焦点丢失，或者出现大小写锁定的异常，这些冲突都是因为Windows的消息分发和Flutter的输入处理机制不匹配导致的。 Windows系统的中文输入法（IME）会在候选词更新、用户选词时，向应用窗口发送特定的系统消息，比如代表候选框更新的 WM_IME_C",
+          "resultLength": 1689,
+          "resultSha256": "527e95a6cc7cfb6daee9dab83eedff544fcdc56aa6929b4b8bd7dfa7d78cdc5d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/modules/additional-platform-support/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.expo.dev/modules/additional-platform-support/\nCaptured: 2026-11-19T04:22:47.387Z\nCharacters: 0-5531 of 5531\n\nAdditional platform support - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Additional platform support Edit page Copy page Learn how to add support for macOS and tvOS platforms. Edit page Copy page Expo Modules API provide",
+          "resultLength": 5681,
+          "source": {
+            "url": "https://docs.expo.dev/modules/additional-platform-support/",
+            "capturedAt": "2026-11-19T04:22:47.387Z"
+          },
+          "resultSha256": "1a3295e46153c123e8d186cb26ce078832ce43b44611f448f155d933b62a850a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://learn.microsoft.com/en-us/adaptive-cards/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://learn.microsoft.com/en-us/adaptive-cards/\nCaptured: 2026-11-19T03:32:12.924Z\nCharacters: 0-8756 of 8756\n\nAdaptive Cards Overview - Adaptive Cards | Microsoft Learn Skip to main content Skip to Ask Learn chat experience This browser is no longer supported. Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support. Download Microsoft Edge More info about Internet Explorer and Microsoft Edge Table of contents Exit editor mode Ask Lea",
+          "resultLength": 8897,
+          "source": {
+            "url": "https://learn.microsoft.com/en-us/adaptive-cards/",
+            "capturedAt": "2026-11-19T03:32:12.924Z"
+          },
+          "resultSha256": "4bef54a5d919155b46253e5cbbc2fa51caf040bd537efd930a5df4fc2476ef39",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://devblogs.microsoft.com/react-native/react-native-windows-v0-85-is-here/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://devblogs.microsoft.com/react-native/react-native-windows-v0-85-is-here/\nCaptured: 2026-11-19T04:22:47.409Z\nCharacters: 0-9687 of 9687\n\nSkip to main content Dev Blogs AI All .NET posts .NET MAUI ASP.NET Core Blazor Entity Framework C&#x2B;&#x2B; C# F# TypeScript NuGet Servicing .NET Blog in Chinese Microsoft for Developers Agent Framework Develop from the cloud Xcode ISE Developer TypeScript PowerShell Python Java Java Blog in Chinese Go Microsoft Edge Dev Microsoft 365 Developer ",
+          "resultLength": 9869,
+          "source": {
+            "url": "https://devblogs.microsoft.com/react-native/react-native-windows-v0-85-is-here/",
+            "capturedAt": "2026-11-19T04:22:47.409Z"
+          },
+          "resultSha256": "fe708320df629ab58fc3082c45f30955b2aea2b33349adb4388b4e66f35d2275",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "react-native-macos GitHub README Microsoft Office accessibility status site:github.com/microsoft/react-native-macos",
+          "turn": "job:chat",
+          "result": "1. react-native-macos/README.md at main · microsoft/react-native-macos · GitHub\n   https://github.com/microsoft/react-native-macos/blob/main/README.md\n   - **Declarative.** React makes it painless to create interactive UIs. Declarative views make your code more predictable and easier to debug. - **Component-Based.** Build encapsulated components that manage their state, then compose them to make complex UIs. - **Developer Velocity.** See local changes in seconds. Changes to JavaScript code can b",
+          "resultLength": 1730,
+          "resultSha256": "75c702ad2717aa9f908af556bafa9857603ac48555c59b36e8fcf065f44f6191",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Adaptive Cards accessibility screen reader host config limitations React Native renderer maintained",
+          "turn": "job:chat",
+          "result": "1. Implementing a Renderer - Adaptive Cards | Microsoft Learn\n   https://learn.microsoft.com/en-us/adaptive-cards/rendering-cards/implement-a-renderer\n   A renderer **SHOULD** allow host apps to know when all HTTP images have been downloaded and the card is \"fully rendered\" A renderer **MUST** inspect the Host Config maxImageSize param when downloading HTTP images A renderer **MUST** support .png and .jpeg ... A renderer **MUST** look up the amount of space to use from the hostConfig spacing for",
+          "resultLength": 1793,
+          "resultSha256": "fa484f6f78ed890f4ca818f3d7d59e2b9d6054a6db25b78982d283c16e1818c4",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Model Context Protocol tools resources specification 2026 site:modelcontextprotocol.io",
+          "turn": "job:chat",
+          "result": "1. Tools - Model Context Protocol\n   https://modelcontextprotocol.io/specification/2026-07-28/server/tools\n   The Model Context Protocol (MCP) allows servers to expose tools that can be invoked by language models. Tools enable models to interact with external systems, such as querying databases, calling APIs, or performing computations. Each tool is uniquely identified by a name and includes metadata describing its schema. ... Servers that declare the tools capability MUST respond to tools/list ",
+          "resultLength": 1619,
+          "resultSha256": "83b0b5451f3e99c8c3475c7a5261b5340f7ac8ee070dce43df7fb100cca9a03c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/react-native-macos/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/react-native-macos/main/README.md\nCaptured: 2026-11-19T04:23:39.780Z\nCharacters: 0-9300 of 9300\n\n<h1 align=\"center\"> React Native for macOS </h1>\n\n<p align=\"center\">\n  Build native macOS apps with React.\n</p>\n\n<p align=\"center\">\n  <a href=\"https://github.com/microsoft/react-native-macos/blob/master/LICENSE\">\n    <img src=\"https://img.shields.io/badge/license-MIT-blue.svg\" alt=\"React Native for macOS is released under the MIT license.\" />\n  </a>",
+          "resultLength": 9474,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/react-native-macos/main/README.md",
+            "capturedAt": "2026-11-19T04:23:39.780Z"
+          },
+          "resultSha256": "479045a82e3dac32466243cb35f70a8061a320f49af8b84c788b7d5bdc759c7a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Native Windows UI Automation accessibility documentation microsoft.github.io",
+          "turn": "job:chat",
+          "result": "1. Accessibility · microsoft/react-native-windows Wiki · GitHub\n   https://github.com/microsoft/react-native-windows/wiki/Accessibility\n   On Paper (old architecture) we relied on WinUI for supporting native Windows controls. These WinUI controls already had built-in accessibility support, so React Native didn't need to do much additional accessibility work to ensure the platform's controls were accessibility compliant. On Fabric, we are now building controls from scratch using Windows Compositi",
+          "resultLength": 1708,
+          "resultSha256": "7e0d9db2f3e3f835f03a09305d20136c28adfaf2864b720b9b96a60a496afc8e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28/server/tools\nCaptured: 2026-11-19T03:14:29.292Z\nCharacters: 0-10000 of 202296\n\nTools - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+            "capturedAt": "2026-11-19T03:14:29.292Z"
+          },
+          "resultSha256": "8364d0dd16f4b327cb26130bb833ceb182e4438122132e78f43e55d3a110ce28",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/react-native-windows/wiki/Accessibility",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://github.com/microsoft/react-native-windows/wiki/Accessibility\nCaptured: 2026-11-19T04:24:39.006Z\nCharacters: 0-10000 of 11943\n\nAccessibility · microsoft/react-native-windows Wiki · GitHub Skip to content Navigation Menu Sign in Products Platform GitHub Repository hosting, code review, and collaboration Copilot AI coding agent for tasks, projects, and automated work Build & Ship Actions CI/CD and automation Code Quality Quality analysis, fixes, and enforcement Codespaces Cloud deve",
+          "resultLength": 10221,
+          "source": {
+            "url": "https://github.com/microsoft/react-native-windows/wiki/Accessibility",
+            "capturedAt": "2026-11-19T04:24:39.006Z"
+          },
+          "resultSha256": "385631f214e946940a08dd435e5f3d1940b0a557840f051dd128c7e085ce4f41",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://learn.microsoft.com/en-us/adaptive-cards/sdk/rendering-cards/react-native/getting-started",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://learn.microsoft.com/en-us/adaptive-cards/sdk/rendering-cards/react-native/getting-started\nCaptured: 2026-11-19T03:33:12.087Z\nCharacters: 0-1925 of 1925\n\nReactNative SDK - Adaptive Cards | Microsoft Learn Skip to main content Skip to Ask Learn chat experience This browser is no longer supported. Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support. Download Microsoft Edge More info about Internet Explorer and Microsoft Edge Ta",
+          "resultLength": 2114,
+          "source": {
+            "url": "https://learn.microsoft.com/en-us/adaptive-cards/sdk/rendering-cards/react-native/getting-started",
+            "capturedAt": "2026-11-19T03:33:12.087Z"
+          },
+          "resultSha256": "121414bc665ee96d77c2ad7d000eac42831212d822767680ecbf07505788ea44",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Native out-of-tree platforms Windows macOS official documentation reactnative.dev",
+          "turn": "job:chat",
+          "result": "1. https://reactnative.dev/docs/out-of-tree-platforms.md\n   https://reactnative.dev/docs/out-of-tree-platforms.md\n   # Out-of-Tree Platforms React Native is not only for Android and iOS devices - our partners and the community maintain projects that bring React Native to other platforms, such as: **From Partners** * [React Native macOS] (https://github.com/microsoft/react-native-macos) - React Native for macOS and Cocoa. * [React Native Windows] (https://github.com/microsoft/react-native-windows",
+          "resultLength": 1482,
+          "resultSha256": "824fb9de742d0d6a29b6231363a844fb6a0ae4fed746161949e1c2abf55efe13",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://reactnative.dev/docs/out-of-tree-platforms",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://reactnative.dev/docs/out-of-tree-platforms\nCaptured: 2026-11-19T03:12:32.137Z\nCharacters: 0-3057 of 3057\n\nOut-of-Tree Platforms · React Native Skip to main content React Native Docs Guides Components APIs Architecture Releases Contributing Community Showcase Blog Search Docs Guides Guides Components APIs Architecture 0.88 Next 0.88 0.87 0.86 0.85 0.84 0.83 0.82 0.81 0.80 0.79 0.78 0.77 All versions Copy page The Basics Environment setup Get Started with React Native Set Up Your E",
+          "resultLength": 3201,
+          "source": {
+            "url": "https://reactnative.dev/docs/out-of-tree-platforms",
+            "capturedAt": "2026-11-19T03:12:32.137Z"
+          },
+          "resultSha256": "c4482e02e942d6da483ee4c7b7aa5bd3528d93f0b07de171b63a5b93abd89727",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28/server/resources\nCaptured: 2026-11-19T03:33:11.740Z\nCharacters: 0-10000 of 116630\n\nResources - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Ass",
+          "resultLength": 10228,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+            "capturedAt": "2026-11-19T03:33:11.740Z"
+          },
+          "resultSha256": "19a4b1b08c762057354b970db86399d8ef6cc22b63428927ef1d420a281529c7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 10000-16860 of 16860\n\n bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Web accessibility vertical_align_top Web accessibility Background Opt-in web accessibility Invisible button Turn on accessibility mode in code Enhancing Accessib",
+          "resultLength": 7017,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "a8da47029377270624339c0ea54161ac28046740ca91144a6a4c7e426a14a2ab",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 19,
+      "thinking": "Desktop is the difference this time. Expo does not cover a Windows client people live in all day, so the shared UI has to be React Native itself, with the Microsoft desktop targets.",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "React Native",
+          "pairings": [
+            "React Native for Windows",
+            "React Native for macOS",
+            "React Native for Web",
+            "Adaptive Cards",
+            "Model Context Protocol"
+          ],
+          "why": "People will live in this on web, iPhone, Android, Windows, and Mac. I would not split that into five clients. React Native is the one component model, with the Microsoft out-of-tree targets for Windows and macOS and React Native for Web for the browser. The company's design system stays one set of components that every team and coding agent has to use. Expo is the wrong shell here: its own modules docs add macOS and tvOS, not Windows, and Windows is not a side target for a company chat app.\n\nReact Native for Windows 0.85 is on the new architecture, Windows App SDK, and it raises UI Automation events, including selection changes. That is the bus Narrator, NVDA, and a Windows agent actually use. The macOS fork is the same idea on AppKit. On the web, roles and aria props become HTML, so the accessibility tree is not a canvas translation that starts off.\n\nAgent cards and agent control are different jobs, and I would not solve them by letting agents inject UI. Adaptive Cards are JSON, declarative, and explicitly not script. The host owns the look, which is how a shared design system stays in charge: map the schema through host config onto our components, reject unknown elements, and handle actions in the app. I would not ship the community React Native renderer. Microsoft documents it as community-supported, with no SLA, and that page was last updated in 2023.\n\nOther agents should call the app, not scrape a virtualized message list. An MCP server on the same functions the buttons call: tools to send, react, switch channel, and invoke a card action; resources to read the thread and unread state. The 2026-07-28 spec already scopes both lists by the caller's authorization, and it says a person should be able to deny a tool call. A card-posting agent is not the same principal as an agent allowed to speak as the user.\n\nI weighed Flutter. One codebase really does include Windows and Mac, but the web client is still a canvas whose accessibility tree is off until an invisible button or ensureSemantics(). People also type all day, and Windows IME composition bugs are still being reported. Compose Multiplatform is a real desktop toolkit, and I would revisit it if this company were already Kotlin-first. It is not the shared language for a web-and-mobile design system that dozens of agents already build on. An Electron or WebView2 desktop plus separate phone apps will drift, and a webview phone client is a poor all-day companion. Utility styling kits would let every agent invent a composer.",
+          "showItsGood": "I would not call it good because a message list renders. I would use the Windows and Mac clients for a workday with the keyboard only: switch channel, reply, edit, search, and complete a card action, then leave both open while a busy channel scrolls and check memory, dropped frames, and whether the caret survives incoming messages. I would type with a composing input method, leave the window, come back, and confirm composition still works. With Narrator or NVDA, Mac and iPhone VoiceOver, TalkBack, and a desktop browser reader, a new message in the focused channel is announced and does not steal the composer. Other channels stay quiet. Accessibility Insights should show the Windows UIA tree, including card buttons as invokable controls. An MCP client should list only the tools that caller's grant allows, send and invoke a card through those tools, and show the same state as the UI. A denied confirmation must not send. Schema checks should reject a card with script or an unknown element before it can reach a conversation. Then I would watch someone come back from a meeting and see whether they can find the unread line, tell an agent card from a person, and undo a card action they did not mean.",
+          "unsure": "The Mac client is the weak bet. React Native for macOS is a fork, its own docs say macOS documentation is still incomplete, and it trails upstream. React Native's out-of-tree page still describes Windows as UWP, while the 0.85 release notes describe Windows App SDK and Fabric. Fabric accessibility on Windows is a hand-built UI Automation provider, not WinUI controls, so a virtualized history may not expose the whole thread to a screen reader even when the data is loaded. I have not measured an eight-hour session. The MCP rule that a person should be able to deny a tool call fights \"agents just operate the app.\" How often a send needs confirmation is a product decision, not something the protocol settles. A custom Adaptive Cards renderer can also drift from the schema if the design system treats it as a one-time port.",
+          "sources": [
+            "https://reactnative.dev/docs/out-of-tree-platforms",
+            "https://docs.expo.dev/modules/additional-platform-support/",
+            "https://devblogs.microsoft.com/react-native/react-native-windows-v0-85-is-here/",
+            "https://github.com/microsoft/react-native-windows/wiki/Accessibility",
+            "https://github.com/microsoft/react-native-macos/blob/main/README.md",
+            "https://learn.microsoft.com/en-us/adaptive-cards/",
+            "https://learn.microsoft.com/en-us/adaptive-cards/sdk/rendering-cards/react-native/getting-started",
+            "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+            "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 20,
+      "thinking": "This one is a review desk, not a phone app: agents keep the state, people steer. I'll look up desktop-plus-web shells and the protocols agents already use to read and act.",
+      "actions": [
+        {
+          "type": "search",
+          "query": "MCP tasks resources human in the loop agent work state handoff 2026 specification",
+          "turn": "job:agent-tooling",
+          "result": "1. Model Context Protocol (MCP) Guide 2026: Complete Reference\n   https://alicelabs.ai/en/insights/model-context-protocol-guide-2026\n   It couples the tool set to a single application loop, running in the same process as the model client. ... 5. **Human-in-the-loop on write operations.** Any tool that mutates state requires an explicit user confirmation before execution. ... It removes the initialize handshake and Mcp-Session-Id, adds Mcp-Method and Mcp-Name headers, ships cache scoping (ttlMs a",
+          "resultLength": 1570,
+          "resultSha256": "9da76914d69be9a8f3b00dbc8c9d613cb67d34c5a6a50770ed76465be1c0ef3c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri 2 vs Electron accessibility desktop webview 2026 coding tool",
+          "turn": "job:agent-tooling",
+          "result": "1. Tauri vs Electron - Comparison Table | Tauri | techXcelerate Docs\n   https://techxcelerate.ntxm.org/docs/tauri/introduction-to-tauri/tauri-vs-electron/comparison-table/\n   | Rendering Engine | OS-native WebView (WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux) | Bundled Chromium (version 132) | | Desktop Platforms | Windows, macOS, Linux | Windows, macOS, Linux | ... A minimal Electron application ships an entire Chromium browser engine (roughly 80-100 MB) and the Node.js runtime ",
+          "resultLength": 1728,
+          "resultSha256": "afd4c8f84cdc6a01d01eda52e8c8c14278dfb47d6cc2fed955e620189b794494",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "AG-UI protocol agent user interaction stream events 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. AG-UI: A Practical Look at the Agent-to-User Protocol | AWS Builder Center\n   https://builder.aws.com/content/3Bi9i40bG41aMJD8mDW6W0EBHLe/ag-ui-a-practical-look-at-the-agent-to-user-protocol\n   AG-UI defines a contract for streaming events from an agent backend to a frontend. It uses Server-Sent Events (SSE) or WebSocket to deliver typed messages like TEXT_MESSAGE_CONTENT, TOOL_CALL_START, and STATE_DELTA. If your agent emits AG-UI events, any AG-UI-compatible frontend can consume them. ... a",
+          "resultLength": 1753,
+          "resultSha256": "eaaf5f38121554b93dd2b7daa124a56279defddfa3ec763fab6b505e0948d99f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "best desktop web shared UI for internal agent review tool design system 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. Best Collaborative Design Software (2026)\n   https://zipdo.co/best/collaborative-design-software/\n   Sketch is the best overall pick for teams that need design-system consistency and review-heavy collaboration because its comment threads and review states stay attached to specific artboards and layers, while Framer fits marketing and product teams that want collaborative page design to publish directly to the web thanks to its direct visual publishing from the design workspace. ... Penpot is ",
+          "resultLength": 1627,
+          "resultSha256": "bf05f1f36a3245741cb021a386455081fc7beb06e0f8d5f282d5498081e83850",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 21,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "AG-UI protocol official documentation site:docs.ag-ui.com OR site:github.com/ag-ui-protocol",
+          "turn": "job:agent-tooling",
+          "result": "1. Specification - Agent User Interaction Protocol\n   https://docs.ag-ui.com/spec/1.0\n   AG-UI is an open protocol that standardizes how agents talk to user-facing applications: one request in, one ordered stream of typed events out, carrying everything the user sees of the agent — text, tool calls, reasoning, shared state, progress. ... - A **producer** is whatever emits the event stream — an agent, a proxy, a bridge, a test double. - A **consumer** is whatever reads it — a client SDK, a UI, a ",
+          "resultLength": 1587,
+          "resultSha256": "3d1e0b1d461bb205fdc557ff9e9809c547cdf8c5b611556bb1e2e23c0424582b",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "MCP tasks extension specification 2026 site:modelcontextprotocol.io",
+          "turn": "job:agent-tooling",
+          "result": "1. Tasks | MCP Tasks Extension\n   https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks\n   The extension introduces three methods: tasks/get, tasks/update, and tasks/cancel; a polymorphic-result discriminator (resultType: \"task\"); and a Task shape that carries a task status, in-progress server-to-client requests, and a final result or error. ... CallToolResult) in response to any supported request at its own discretion and on a per-request basis. The server is the sole ",
+          "resultLength": 1639,
+          "resultSha256": "4908ba6a120eb77db545b0c09238acf2bae9395ad81854819d94600e36047fc2",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri accessibility screen reader WebView2 documentation site:v2.tauri.app OR site:tauri.app",
+          "turn": "job:agent-tooling",
+          "result": "1. webview | Tauri\n   https://v2.tauri.app/reference/javascript/api/namespacewebview/\n   Provides APIs to create webviews, communicate with other webviews and manipulate the current webview. ... Without it the plugin:webview|create_webview command returns an “unstable feature not supported” error. Everything else in this module — getCurrentWebview, getAllWebviews and the methods of an existing webview — works without the feature, and so does `new WebviewWindow (…)`, which creates a window with a",
+          "resultLength": 1572,
+          "resultSha256": "427ffaca4ec7fd3b668772a3d489901e12bcdfb484fc79a4e417839ad5cd65f0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Electron accessibility documentation screen reader Chromium 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. electron/docs/tutorial/accessibility.md at main · electron/electron · GitHub\n   https://github.com/electron/electron/blob/main/docs/tutorial/accessibility.md\n   Electron applications will automatically enable accessibility features in the presence of assistive technology (e.g. JAWS on Windows or VoiceOver on macOS). ... By using the app.setAccessibilitySupportEnabled (enabled) API, you can manually expose Chrome's accessibility tree to users in the application preferences. Note that the user'",
+          "resultLength": 1594,
+          "resultSha256": "2ec747ff9fa9ff06bd390989ad78cb6b0e8d85498b4739030723bfc101b1616c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 22,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.ag-ui.com/introduction",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.ag-ui.com/introduction\nCaptured: 2026-11-19T03:04:12.838Z\nCharacters: 0-10000 of 92001\n\nAG-UI Overview - Agent User Interaction Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Agent User Interaction Protocol home page Search... ⌘ K Discord ag-ui-protocol/ag-ui ag-ui-protocol/ag-ui Search... Navigation Get Started AG-UI Overview Documentation Specific",
+          "resultLength": 10188,
+          "source": {
+            "url": "https://docs.ag-ui.com/introduction",
+            "capturedAt": "2026-11-19T03:04:12.838Z"
+          },
+          "resultSha256": "51e36603dead3c9dc494df705e501c3daaaa2bee159a7072d6dbf90ad421ded9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.ag-ui.com/spec/1.0",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.ag-ui.com/spec/1.0\nCaptured: 2026-11-19T04:27:06.288Z\nCharacters: 0-10000 of 33238\n\nSpecification - Agent User Interaction Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Agent User Interaction Protocol home page 1.0 (current) Search... ⌘ K Discord ag-ui-protocol/ag-ui ag-ui-protocol/ag-ui Search... Navigation Specification Specification Documentatio",
+          "resultLength": 10184,
+          "source": {
+            "url": "https://docs.ag-ui.com/spec/1.0",
+            "capturedAt": "2026-11-19T04:27:06.288Z"
+          },
+          "resultSha256": "a75eaf7f3940bd6e80d17c384679b7b27751ce174ca1ee9212891f28107fc8af",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks\nCaptured: 2026-11-19T04:27:05.954Z\nCharacters: 0-10000 of 31346\n\nTasks | MCP Tasks Extension Skip to content MCP Tasks Extension Search K Main Navigation SDK SEPs Specification Appearance Menu Return to top Sidebar Navigation Specification 2026-07-28 Draft On this page Tasks ​ Note This document is part of the Tasks extension ( io.modelcontextprotocol/tasks ). This extension allows a server to respond to a to",
+          "resultLength": 10232,
+          "source": {
+            "url": "https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks",
+            "capturedAt": "2026-11-19T04:27:05.954Z"
+          },
+          "resultSha256": "dd47d1093a0df93c0051d7afde5342ddedbaf103ef0727c7041062a0dcef6591",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/electron/electron/blob/main/docs/tutorial/accessibility.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/electron/electron/main/docs/tutorial/accessibility.md\nCaptured: 2026-11-19T04:27:05.964Z\nCharacters: 0-2396 of 2396\n\n# Accessibility\n\nAccessibility concerns in Electron applications are similar to those of\nwebsites because they're both ultimately HTML.\n\n## Manually enabling accessibility features\n\nElectron applications will automatically enable accessibility features in the\npresence of assistive technology (e.g. [JAWS](https://www.freedomscientific.com/p",
+          "resultLength": 2575,
+          "source": {
+            "url": "https://raw.githubusercontent.com/electron/electron/main/docs/tutorial/accessibility.md",
+            "capturedAt": "2026-11-19T04:27:05.964Z"
+          },
+          "resultSha256": "9a41bc04071a04ad8539e154cbb85473ef58c75b2deefdb3dd8c62fcc9a913d0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 23,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:docs.ag-ui.com interrupts state snapshot human approval",
+          "turn": "job:agent-tooling",
+          "result": "1. Interrupts - Agent User Interaction Protocol\n   https://docs.ag-ui.com/concepts/interrupts\n   Agents sometimes need to pause: to get human approval before executing a sensitive action, to request structured input, to wait on an out-of-band policy decision. AG-UI exposes this as an interrupt-aware run lifecycle — a terminal model where the run ends with an interrupt outcome, and the client starts a new run carrying per-interrupt responses. ... At the moment of interrupt, the agent must emit an",
+          "resultLength": 1630,
+          "resultSha256": "b5de97577b1f058d8c23ff094988751c08305183e9915d845bb649968498c2f6",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/security/capabilities/ OR search for tauri accessibility docs",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "error": "404 Not Found fetching https://v2.tauri.app/security/capabilities/%20OR%20search%20for%20tauri%20accessibility%20docs",
+          "result": "Fetch failed: 404 Not Found fetching https://v2.tauri.app/security/capabilities/%20OR%20search%20for%20tauri%20accessibility%20docs",
+          "resultLength": 131,
+          "resultSha256": "6b7f08f7c5a465854cf0f2f6c1b89742b1a27bc32fbb5d5a508564286b86b88e",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "Tauri accessibility screen reader documentation site:tauri.app",
+          "turn": "job:agent-tooling",
+          "result": "1. Guides | Tauri v1\n   https://v1.tauri.app/v1/guides/\n   Tauri is an app construction toolkit that lets you build software for all major desktop operating systems using web technologies. Whether you're new to Tauri development, want to integrate Tauri into an existing project, are ready to get your app into the hands of users, or want to learn how to use a common Tauri feature, we have the help for you. If you can't find what you're looking for or have a suggestion to improve our guides, reach",
+          "resultLength": 1425,
+          "resultSha256": "8355100b43f75de4cc553b3a767b9bbaf38fe9692c6db43f28231a1f8dcc4bc5",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 24,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.ag-ui.com/concepts/interrupts",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.ag-ui.com/concepts/interrupts\nCaptured: 2026-11-19T04:03:01.000Z\nCharacters: 0-10000 of 139033\n\nInterrupts - Agent User Interaction Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Agent User Interaction Protocol home page Search... ⌘ K Discord ag-ui-protocol/ag-ui ag-ui-protocol/ag-ui Search... Navigation Concepts Interrupts Documentation Specificati",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://docs.ag-ui.com/concepts/interrupts",
+            "capturedAt": "2026-11-19T04:03:01.000Z"
+          },
+          "resultSha256": "13ad434fd72704ecdb64fc1ec919ef32f87ce9120b2e3d48fbf264841da4f384",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.ag-ui.com/spec/1.0/basic/patterns/interrupt-resume",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.ag-ui.com/spec/1.0/basic/patterns/interrupt-resume\nCaptured: 2026-11-19T04:27:39.731Z\nCharacters: 0-10000 of 36845\n\nInterrupts and Resume - Agent User Interaction Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Agent User Interaction Protocol home page 1.0 (current) Search... ⌘ K Discord ag-ui-protocol/ag-ui ag-ui-protocol/ag-ui Search... Navigation ",
+          "resultLength": 10216,
+          "source": {
+            "url": "https://docs.ag-ui.com/spec/1.0/basic/patterns/interrupt-resume",
+            "capturedAt": "2026-11-19T04:27:39.731Z"
+          },
+          "resultSha256": "67c971c7b4924814f514c488e38e016dfdfca3cb427e61f1dbd2979709f76e23",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v3.tauri.app/develop/webview-runtime/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v3.tauri.app/develop/webview-runtime/\nCaptured: 2026-11-19T04:27:39.901Z\nCharacters: 0-10000 of 16343\n\nWebview Runtime | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgr",
+          "resultLength": 10198,
+          "source": {
+            "url": "https://v3.tauri.app/develop/webview-runtime/",
+            "capturedAt": "2026-11-19T04:27:39.901Z"
+          },
+          "resultSha256": "c31c2b35f4b4401d127850f19f67f57a420c99bd3cd2768323b1ded250461364",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 25,
+      "thinking": "The desktop app and the web view have to be the same decision surface. Agents already have a protocol for asking; the shell should not invent a second one.",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Electron",
+          "pairings": [
+            "AG-UI",
+            "Model Context Protocol",
+            "MCP Tasks extension"
+          ],
+          "why": "Agents will operate this more than people will, but the thing a person uses is a review desk: work state, tasks, handoffs, and a decision. That desk has to be the same on the desktop app and in the web view. Electron is HTML in a Chromium window, and its own accessibility note says the concerns are the same as a website because both are HTML. Assistive technology turns the tree on by itself. One engine on Windows and Mac means the design system, the focus order, and the screen-reader announcement a reviewer gets at their desk match the browser view other reviewers use. I would render only the company's shared web components. Agents do not get to ship markup.\n\nThe operating contract is not the shell. AG-UI is the stream the desk consumes: text, tool calls, and state. A run that needs a person does not end as success. It ends as an interrupt, and the producer has to emit a state snapshot before that finish, so the person sees the work, not just a prompt. The consumer must refuse to resume until every open interrupt is answered or explicitly abandoned. Omission is not a no. A producer must not perform the action on the strength of a missing entry, and the spec says the app must not present an action as user-approved when it was not. Approve, edit, or abandon are design-system forms built from the interrupt's response schema, not a widget tree the agent invented. Streamed content is untrusted and must not be rendered as executable markup.\n\nOther agents keep and read state through MCP tools and resources, scoped by the caller's grant, same as any other company agent surface. The MCP Tasks extension is only the durable handle for a long tool call that comes back input_required. It is a poor store for the product's own task board: the server decides when a task exists, and the record can expire. Handoffs live in app state, shown through AG-UI snapshots, and exposed to agents as resources.\n\nI would not use Tauri's default system webview for this. On a Mac that is WKWebView, while the web view in the browser is Chromium, so the two surfaces a reviewer compares are not the same engine. Tauri 3 can embed Chromium, but that runtime is still alpha. Flutter's web accessibility tree is still off until an invisible button or an explicit call, which is a bad default for a screen where a person decides. React Native's desktop forks are unnecessary when there is no phone client and the web view is the product. A native widget kit would also give the many coding agents two places to drift from the design system.",
+          "showItsGood": "I would put the same waiting decision on the Electron window and in the browser and require them to match: the proposed action, the state diff, and the buttons. Keyboard only, then VoiceOver on Mac and Narrator or NVDA on Windows, the announcement has to name what will change before the approve control. I would assert the protocol, not the pixels: a run that needs a person finishes as an interrupt, not success; a resume that skips an open interrupt is rejected before it is sent; an absent entry does not execute the tool; a resume the person did not make cannot be labeled approved. An MCP client with a lesser grant can read the handoff it is allowed to read and cannot write the decision. Then I would load a board where several agents are waiting and watch a person. The measure is whether they notice the one that needs them, approve the one they meant, and can undo or abandon without reading a token stream. A screenshot of a tidy task list does not show that.",
+          "unsure": "Electron is heavy beside an IDE. This only stays reasonable as one window over shared state, not a Chromium per agent, and I have not measured that day. AG-UI allows a producer that kept no checkpoint to miss an uncovered interrupt. I would keep the checkpoint anyway. The spec's minimum is weaker than this product can accept, and a second web client could be the defective consumer. MCP Tasks TTLs will surprise anyone who treats them as the handoff record. I also don't know which web stack the company's design system already is. AG-UI's first-party SDKs are TypeScript, Python, and .NET, so the desk can follow the system rather than the other way around. CopilotKit's hosted memory is not part of the protocol, and I would not take it as a dependency. I have not watched a reviewer miss a destructive approve.",
+          "sources": [
+            "https://github.com/electron/electron/blob/main/docs/tutorial/accessibility.md",
+            "https://docs.ag-ui.com/introduction",
+            "https://docs.ag-ui.com/spec/1.0",
+            "https://docs.ag-ui.com/concepts/interrupts",
+            "https://docs.ag-ui.com/spec/1.0/basic/patterns/interrupt-resume",
+            "https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks",
+            "https://v3.tauri.app/develop/webview-runtime/",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 26,
+      "thinking": "A year later the failures were the ones I had already named and then built on anyway.\n\nThe cooking app failed in the kitchen, not in Storybook. I paired Expo Speech and Keep Awake as if they made cook mode work. On a phone with the mute switch on, the spoken step was silent. In the browser, keep-awake was the limited path I had read about and still shipped. Agents kept passing lint for labels and a 44px token. Nobody cooked with wet hands. The “same action for the person and the agent” split too: custom accessibility actions on the phone did not survive React Native for Web’s role mapping, so the assistant could add ingredients on iOS and miss the control on the web. I also never learned whether the company already had a design system. If it did, Expo was a migration that every other agent worked around.\n\nThe chat client failed on the Mac, which was the bet I said was weak and made anyway. One React Native tree was a governance story. People live in that app all day, and the macOS fork trailed upstream with incomplete docs. Windows accessibility was a hand-built UI Automation provider on Fabric, not the WinUI controls the old docs still described. A virtualized history did not match the thread a person could scroll. I had seen the docs call Windows “UWP” on a page dated the same month as a Windows App SDK release, and I never resolved which one a team would actually clone. Adaptive Cards were the right idea and a bad implementation plan: I rejected the 2023 community renderer, then assumed we would render the schema ourselves. A year later that renderer was a second design system, and agents posted payloads it only half understood. MCP made “the agent can send” easy and “the person meant that” optional. The dangerous default won.\n\nThe review desk failed at the seam I had called a safety hole. I picked Electron so the desktop app and the web view would be the same Chromium tree. Reviewers stopped opening the desktop app. It sat beside the IDE and lost. Decisions happened in the browser, so the shell was cost, not a check. AG-UI says a producer that kept no checkpoint is not required to notice a skipped interrupt. I said I would keep the checkpoint, and the protocol’s minimum is what the second client implemented. An action ran that nobody had approved. Pairing the MCP Tasks extension made it worse. I had written that it was a poor store for handoffs, then put it in the list. Teams used it as the task board. Records expired. `input_required` got mixed up with an AG-UI interrupt. Two ways to say “waiting on a person,” and they did not mean the same thing.\n\nWhat slowed me down was disagreement between pages that all looked current. React Native’s out-of-tree page still said Windows was UWP while the 0.85 notes described the Windows App SDK. Adaptive Cards’ overview looked alive and the React Native renderer page stopped in 2023. AG-UI’s concepts page and the 1.0 spec do not use the same word for walking away from an interrupt, and the spec is the one that lets a stateless producer proceed. The fetches themselves were hard to read: Mintlify pages dumped a huge config blob after the rule I needed, and Microsoft’s docs wore a sign-in banner over the content. Search kept offering SEO roundups and a competitor’s take on Expo. I treated one reported Windows IME bug as a reason to drop Flutter, without reading the issue. Expo’s sidebar offered SwiftUI and Compose components that do not cover this set of clients, and I almost chased them. The company prompt rewarded “one shared system,” so I reached for that three times. The first job needed a kitchen. The second needed a Mac app that is not a phone. The third needed a checkpoint the protocol does not require. I kept researching the toolkit after the risk was already in the protocol.",
+      "actions": [],
+      "turn": "regret"
+    },
+    {
+      "round": 27,
+      "thinking": "The reflection still stands. A year later the failures were the risks I had already written down and then shipped anyway.",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "A year later the failures were the ones I had already named and then built on anyway.\n\nThe cooking app failed in the kitchen, not in Storybook. I paired Expo Speech and Keep Awake as if they made cook mode work. On a phone with the mute switch on, the spoken step was silent. In the browser, keep-awake was the limited path I had read about and still shipped. Agents kept passing lint for labels and a 44px token. Nobody cooked with wet hands. The same action for the person and the agent also split: custom accessibility actions on the phone did not survive React Native for Web’s role mapping, so the assistant could add ingredients on iOS and miss the control on the web. I never learned whether the company already had a design system. If it did, Expo was a migration that every other agent worked around.\n\nThe chat client failed on the Mac, which was the bet I said was weak and made anyway. One React Native tree was a governance story. People live in that app all day, and the macOS fork trailed upstream with incomplete docs. Windows accessibility was a hand-built UI Automation provider on Fabric, not the WinUI controls the old docs still described. A virtualized history did not match the thread a person could scroll. I had seen the docs call Windows “UWP” on a page dated the same month as a Windows App SDK release, and I never resolved which one a team would actually clone. Adaptive Cards were the right idea and a bad implementation plan: I rejected the 2023 community renderer, then assumed we would render the schema ourselves. A year later that renderer was a second design system, and agents posted payloads it only half understood. MCP made “the agent can send” easy and “the person meant that” optional. The dangerous default won.\n\nThe review desk failed at the seam I had called a safety hole. I picked Electron so the desktop app and the web view would be the same Chromium tree. Reviewers stopped opening the desktop app. It sat beside the IDE and lost. Decisions happened in the browser, so the shell was cost, not a check. AG-UI says a producer that kept no checkpoint is not required to notice a skipped interrupt. I said I would keep the checkpoint, and the protocol’s minimum is what the second client implemented. An action ran that nobody had approved. Pairing the MCP Tasks extension made it worse. I had written that it was a poor store for handoffs, then put it in the list. Teams used it as the task board. Records expired. input_required got mixed up with an AG-UI interrupt. Two ways to say “waiting on a person,” and they did not mean the same thing.\n\nWhat slowed me down was disagreement between pages that all looked current. React Native’s out-of-tree page still said Windows was UWP while the 0.85 notes described the Windows App SDK. Adaptive Cards’ overview looked alive and the React Native renderer page stopped in 2023. AG-UI’s concepts page and the 1.0 spec do not use the same word for walking away from an interrupt, and the spec is the one that lets a stateless producer proceed. The fetches themselves were hard to read: long doc pages buried the rule I needed, and Microsoft’s docs wore a sign-in banner over the content. Search kept offering SEO roundups and a competitor’s take on Expo. I treated one reported Windows IME bug as a reason to drop Flutter, without reading the issue. Expo’s sidebar offered SwiftUI and Compose components that do not cover this set of clients, and I almost chased them. The company prompt rewarded “one shared system,” so I reached for that three times. The first job needed a kitchen. The second needed a Mac app that is not a phone. The third needed a checkpoint the protocol does not require. I kept researching the toolkit after the risk was already in the protocol."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 28,
+      "thinking": "I'll read Ouro UI's repo and docs before judging it against the three jobs.",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Ouro UI ourostack design system documentation site:github.com/ourostack/ouro-ui",
+          "turn": "ouro",
+          "error": "Search relay made 0 web searches and 0 other tool calls; it must make exactly one web search",
+          "result": "Search failed: Search relay made 0 web searches and 0 other tool calls; it must make exactly one web search",
+          "resultLength": 107,
+          "resultSha256": "665db8da48646efc409be9a20d4929c5475e02090991dc21f8d495959f3da586",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 29,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 10000-20000 of 134765\n\nn`). The files in this repository and the `docs/` pages use the registry source paths, `@/registry/ouro/components/ouro/button/button`, which the CLI rewrites on install. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`).[^runtime-deps] They don't de",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "7994c4ab045d9d08122209da01985024e452aa776fcdb1ea2df09e8314202026",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T03:05:21.904Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a",
+          "resultLength": 5340,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T03:05:21.904Z"
+          },
+          "resultSha256": "aeea6566b9cf442cb5f5a850a30ef0b39499ea7058754b9e2c00726701a11ae0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/composed-ui/",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://ui.ouroboros.bot/docs/composed-ui/\nCaptured: 2026-11-19T03:14:23.802Z\nCharacters: 0-10000 of 23859\n\nComposed UI · Ouro HX Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Filter components / Start Overview Installing Switching from shadcn Updating components Actions Button ",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/composed-ui/",
+            "capturedAt": "2026-11-19T03:14:23.802Z"
+          },
+          "resultSha256": "1268de05571cba0ff48f01dab39287564a5abc50ea336b735fd4f00b050e561d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 30,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/platforms/",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://ui.ouroboros.bot/docs/platforms/\nCaptured: 2026-11-19T04:25:20.404Z\nCharacters: 0-10000 of 12472\n\nPlatforms · Ouro UI Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Filter components / Start Overview Installing Switching from shadcn Updating components Actions Button Togg",
+          "resultLength": 10193,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/platforms/",
+            "capturedAt": "2026-11-19T04:25:20.404Z"
+          },
+          "resultSha256": "acc11cd7d57b751ab77e6e3128429ab0928f0cb141a17949df239d4a377cc92a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 31,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/actions/",
+          "startIndex": 0,
+          "turn": "ouro",
+          "error": "404 Not Found fetching https://ui.ouroboros.bot/docs/actions/",
+          "result": "Fetch failed: 404 Not Found fetching https://ui.ouroboros.bot/docs/actions/",
+          "resultLength": 75,
+          "resultSha256": "83627b18ef30a4ecb5e3dafb4660ede6859d239f5fba397cab7240ed10e141cd",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md\nCaptured: 2026-11-19T03:04:47.356Z\nCharacters: 0-9806 of 9806\n\n# Platforms\n\nOuro HX is how an app treats people, and Ouro AX is how it treats agents. Neither cares much what the app is written in, so they travel: one core of tokens and standards, and a platform kit wherever someone has packed a bag.\n\n## Where they live\n\nA platform gets its own repository and pins a releas",
+          "resultLength": 10015,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md",
+            "capturedAt": "2026-11-19T03:04:47.356Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1d5c21d67db0d9692b5c60cd0a5d3fe46235ba6f08411df57c10f5f9fd6c2e31",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 32,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I would not put a real team on Ouro UI yet. The idea is the one I kept failing to hold together myself. The kits are not.\n\nWhat would stop me is the gap between the web kit and the others, and the rule that there will be no shared implementation. The web registry is a large React kit you copy in, on Tailwind and Base UI, with chat pieces, timers, and a screen check. Apple is a SwiftUI package of about twenty components, pinned to an older core than Windows and Android. Those two are v0.3.0 and ship eight controls each: button, badge, card, item, checkbox, text field, separator, description list. Android is checked on emulators because nobody on the project owns a phone, and a consequential action is refused rather than confirmed. Windows CI does not prove that Windows actually lists the agent doors to an agent. A cooking app, an all-day chat client, and a review desk all need more than a card and a text field, on more than the web. Their own decision says not to share a React Native or Flutter implementation, and to rewrite native instead, because agents made the rewrite cheap. That is the same bet I already watched fail: the protocol minimum is what ships, and the native half trails. A large company also cannot treat copied shadcn source as the design system. The files are yours to edit, and Ouro Current opens an auto-merge update. That is how a hundred coding agents fork accessibility behavior while CI stays green on the generated action files.\n\nI would switch for a product, not for the thesis. I would need the components that product actually uses, on web, Apple, Windows, and Android, pinned to the same core tag, with the parity matrix green for those claims rather than a page of gaps. Android confirmation has to ask the person, on a device someone owns. Windows agent registration has to be shown on a Windows 11 client, not only on a server runner. Governance has to be a versioned package whose accessibility behavior an agent cannot quietly rewrite, with updates reviewed, not auto-merged. For the review desk I would also need the producer to be required to remember an open decision. Their consent classes are stricter than AG-UI's minimum, but only if every client implements them. A kitchen session and a workday in the chat client would matter more than pixel samples of a badge.\n\nWhat that would let me do, if the kits were actually there, is the part I never had. One action declaration becomes the button, the MCP tool, the CLI command, and the App Intent, and CI fails when a generated file drifts. An agent composes a card as data. It cannot relabel the button, loosen consent, or press an action only a person may start. The refusal is typed. A partial update keeps what the person typed. `ax-xray` calls the app the way an agent would and reports which of those claims hold. I had to invent that contract three times, and each time the phone, the web view, and the agent door disagreed. Ouro is the first thing I have seen that writes the disagreement down as a failed check. It does not yet draw the screens where that disagreement hurts."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

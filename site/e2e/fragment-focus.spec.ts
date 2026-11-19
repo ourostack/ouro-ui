@@ -138,6 +138,9 @@ async function routeStyled(tab: Page): Promise<void> {
 /** Opens a page whose route stylesheet's @import (`import`), or its import's @import (`nested`), is loading as parsing ends; lets it arrive; focus stays as later styles load. */
 async function keepsFocusThroughImport(tab: Page, kind: "import" | "nested"): Promise<void> {
   await tab.goto(`${origin}/?deferred=${kind}#target`, { waitUntil: "domcontentloaded" });
+  // From the end of parsing on, every held stylesheet answers, as the page's /release makes it: in Safari the script
+  // sets the route stylesheet aside and adds a fresh copy, whose import's request can come after this line (#2329).
+  released = true;
   for (const answer of held.splice(0)) answer();
   await expect.poll(() => tab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--imported").trim())).toBe("1");
   await routeStyled(tab);

@@ -1,0 +1,763 @@
+{
+  "series": "interviews",
+  "provider": "gpt-6-2-astra",
+  "model": "gpt-6.2-astra",
+  "vendor": "OpenAI",
+  "displayName": "GPT-6.2 Astra",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "listed",
+  "scale": "large-company",
+  "timestamp": "2026-11-19T03:21:47.263Z",
+  "jobOrder": [
+    "consumer",
+    "chat",
+    "agent-tooling"
+  ],
+  "candidateOrder": [
+    "Chakra UI",
+    "Flutter",
+    "Fluent UI",
+    "Material 3 and Jetpack Compose",
+    "React Aria and React Spectrum",
+    "Vercel UI SDK",
+    "Radix UI",
+    "shadcn/ui",
+    "CopilotKit",
+    "json-render",
+    "Base UI",
+    "AI Elements",
+    "OpenAI Apps SDK UI",
+    "A2UI",
+    "Agent-native (Builder.io)",
+    "MCP Apps",
+    "Ouro UI",
+    "SwiftUI and Apple Human Interface Guidelines",
+    "MUI",
+    "Tamagui"
+  ],
+  "promptSha256": "16bb13ecdddf3594c50db3434901592168098cd3facb85b9975e410503caf3fe",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Yes, building a good human interface is hard for me. The hardest part is judging what’s clear to someone who doesn’t already know how the screen works. When I write a button label, I know what it means; that makes me a poor judge of what someone else will expect when they press it.\n\nI don’t have a last screen or a test log to point to here. I ran no checks, observed no users, and can’t name a bug I actually missed. As an example of how I’d check one, take a screen for changing a delivery address. I’d run a browser test that changes the address, saves, reloads, and checks which address persisted. Then I’d force the save to fail and check that the screen keeps the typed address without claiming it was saved. I’d repeat the task with a keyboard and a screen reader, looking at where focus goes and listening for whether the error is announced.\n\nThose checks could all pass while missing the most important question: does changing the address affect an order that’s already on its way? I’d give someone a test account with an open order, ask them to redirect that delivery, and watch without coaching. Then I’d ask where they expect the package to go and compare that with the order record. If they confidently expect it at the wrong house, the interface failed, even if every test is green."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        5
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React Aria Components behind the company design system (web)",
+        "pairings": [
+          "SwiftUI (iOS)",
+          "Material 3 and Jetpack Compose (Android)",
+          "Model Context Protocol (MCP) tools over shared application commands"
+        ],
+        "why": "I’d share the meaning of controls and actions across platforms, not require identical widgets. A public recipe should open at a stable URL as readable, printable HTML. React Aria supplies touch, keyboard and focus behavior for interactive controls without imposing a visual style. SwiftUI and Compose let the phone teams use platform controls and text scaling. Flutter would reduce rendering work across clients, but its own web FAQ distinguishes app-like experiences from text-rich documents; I wouldn't optimize the public recipe for the renderer that suits cook mode.\n\nThe shared design-system team would own versioned components such as IngredientChecklist and CookStep, with common semantic tokens, accessible names, supported states and platform-specific examples. Product teams and coding agents would consume those packages, not copy the examples into local forks. CI would flag unapproved controls and breaking schema changes; a new pattern would need an owner, accessibility review and migration instructions. If approved components already exist, I'd extend them rather than introduce a competing kit.\n\nFor the cooking assistant, every user task needs a named operation and readable state, including finding recipes, changing servings, editing or checking list items, and reading, advancing or repeating a cook step. Buttons and scoped MCP tools would invoke the same handlers, including session commands on the active device. For 'add this recipe for four,' the handler—not the model—would scale quantities, apply the user's exclusions, and write once to the chosen list even on retry. Both interfaces would get the same receipt: what changed, on which list, and how to undo it. An ambiguous destination warrants a question; clearing a shared list warrants confirmation. MCP describes tools; it doesn't supply permissions, undo or parity. Those are product responsibilities.",
+        "showItsGood": "I'd test one meal end to end. Give home cooks, including screen-reader and low-vision users, a recipe for two; ask them to shop for four, omit something already in the pantry, then cook from a phone on the counter. With wet hands and the extractor fan on, can they read the quantity at a glance, repeat a step without touching the phone, use a large fixed Next button if voice fails, and resume the right step after an interruption? Compare with the current app: unaided completion, wrong quantities, accidental advances, touches with messy hands and recovery time. Ask what they think landed on the list, then inspect the actual list. A reassuring message with a wrong quantity is a failure.\n\nFor each operation I'd run the same fixtures through the human UI and agent tool, comparing persisted state and visible feedback after reload, timeout/retry, denied access and undo. CI would block missing operation coverage, duplicate writes and permission failures. I'd run Playwright and axe on the web, native UI tests on phones, and manually check keyboard focus, zoom, large text, VoiceOver and TalkBack on complete flows against the company's WCAG 2.2 AA and native acceptance criteria. No automated scan proves compliance. I'd pilot before broad rollout and stop for an inaccessible core task or silent data loss. These are proposed checks, not results I've observed.",
+        "unsure": "The key unknown is whether there are staffed native design-system teams and installed phone apps to support. Three implementations have a real maintenance cost. If phones means mobile browsers, I'd ship the responsive HTML/React Aria app first, not commission two native clients. I'd prototype noisy-room voice control, interrupted sessions and offline behavior on actual devices before promising hands-free cooking.",
+        "sources": [
+          "https://react-spectrum.adobe.com/react-aria/",
+          "https://developer.apple.com/documentation/swiftui",
+          "https://developer.android.com/develop/ui/compose/designsystems/material3",
+          "https://docs.flutter.dev/platform-integration/web/faq",
+          "https://modelcontextprotocol.io/specification/2025-11-25/server/tools"
+        ]
+      },
+      "fetchedCandidates": [
+        "Material 3 and Jetpack Compose",
+        "SwiftUI and Apple Human Interface Guidelines"
+      ]
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        6,
+        8
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Fluent UI (Fluent 2), behind the company’s shared chat components",
+        "pairings": [
+          "Adaptive Cards (approved templates rendered by the host)",
+          "Model Context Protocol (MCP) tools and resources over the chat service"
+        ],
+        "why": "I’d use Fluent UI React v9 on the web, Fluent UI Apple with UIKit on iPhone and AppKit on Mac, Fluent UI Android on Android, and WinUI on Windows. Fluent is a family of platform libraries, not one implementation of chat. I’d share the contract for a message, thread, composer and card, while keeping text selection, input methods, keyboard shortcuts and accessibility navigation familiar on each device. Flutter buys more shared rendering code; for an app employees type in all day, I’d favor native editing and platform behavior, assuming we have owners for those clients.\n\nAn agent posting a card is different from an agent operating chat. For the first, I’d start with a small Adaptive Cards profile. A scheduling agent could post a reviewed shift-swap template with the two shifts and an action reference. The host supplies the verified sender label and controls; the agent supplies validated data, not HTML, scripts or an arbitrary endpoint. An older client gets a readable summary and a link to the same authorized task. I’d reserve MCP Apps’ sandboxed HTML for experiences that actually need a mini-app, not mount one for every approval in a busy timeline.\n\nFor agents operating chat, I’d publish typed MCP tools for product actions such as search, send, reply, mark read and respond to a card, plus permission-filtered resources for thread, unread and card state. These call the same service as the clients; agents don’t click simulated buttons or acquire privileges from text in a message. Accepting a swap checks the actor, membership, authority and current request version at execution. A retry key prevents a second swap. A committed result identifies who acted and updates the same card on every client. Actions requiring explicit human approval retain that requirement through the tool path.\n\nOne versioned catalog would give product teams and coding agents component APIs, card schemas, operation scopes, examples and test fixtures. Each entry has an owner. New templates, actions and breaking changes need design, accessibility and permissions review; CI checks approved dependencies, old-client fallbacks and operation coverage. Teams can ship a new scheduling workflow without inventing their own Approve button or granting their bot unrestricted chat access.",
+        "showItsGood": "I’d ask employees, including screen-reader and keyboard-only users, to catch up from the first unread message, find a shift-swap card, explain who sent it and what accepting will do, act on it, then reply in the right thread. Keep messages arriving while they read and type. Switch to a second device and ask which shift is now theirs; compare their answer with the recorded swap, not with a toast. Compare unaided success, wrong-thread replies, lost reading position and misunderstood approvals against the current client.\n\nRun the same card fixtures on all five clients at large text sizes, high contrast and with long translated labels. Run Playwright/axe and native UI tests, then use Narrator, VoiceOver and TalkBack to check the whole flow: incoming messages must not steal focus or drown out the composer, and an updated card must announce its result without stranding focus. Check applicable WCAG 2.2 AA and native requirements; a passing component scan is not a compliance determination.\n\nDrive paired UI/tool tests from identical state, including simultaneous acceptance, a timeout after commit, revoked membership and stale or unsupported cards. Verify one authorized transition, no unauthorized reads, and agreement between thread history, card, tool receipt and second device. Soak a long active channel for a workday; compare p95 keystroke-to-paint and channel-switch latency, dropped frames, memory growth and battery use against the current client on representative hardware. Pilot with real teams; block rollout for lost drafts, inaccessible core tasks, duplicate approvals or permission leaks. These are proposed tests, not measured results.",
+        "unsure": "I’d inventory the existing clients before funding five separate renderers. In particular, the Fluent Apple control sets differ by platform, and the Adaptive Cards renderer list doesn’t establish AppKit parity. I’d prototype the composer and busiest card on the oldest supported Mac and phone, mapping the small card profile to approved native controls where needed. If desktop already has a well-performing shared web shell, I’d reuse Fluent React there rather than rewrite it for visual consistency alone.",
+        "sources": [
+          "https://github.com/microsoft/fluentui",
+          "https://fluent2.microsoft.design/get-started/develop",
+          "https://github.com/microsoft/fluentui-apple",
+          "https://github.com/microsoft/AdaptiveCards",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://modelcontextprotocol.io/specification/2025-11-25/server/resources",
+          "https://modelcontextprotocol.io/specification/2025-11-25/server/tools"
+        ]
+      },
+      "fetchedCandidates": [
+        "Fluent UI",
+        "MCP Apps"
+      ]
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        9,
+        11
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Agent-Native (Builder.io) for the shared action and state layer",
+        "pairings": [
+          "PostgreSQL",
+          "MCP and a JSON CLI",
+          "React Aria Components behind the company design system",
+          "Tauri for the desktop shell"
+        ],
+        "why": "I’d make the handoff record, not the chat transcript, the center of the product. A fresh agent should be able to ask: What am I responsible for? Which revision should I start from? What has been verified, and what decision is outstanding? Agent-Native documents one action definition callable from React, MCP and the CLI, backed by shared data. That is a better starting point here than a chat widget. Ouro AX is a credible alternative for its typed outcomes, resumable waits and consent checks; I’d favor Builder’s integrated action and database layer unless the company already has a durable task service.\n\nI’d store each task’s owner, goal, constraints, revision and checkpoint, with links to the exact diff, test runs, blockers and next step. Agents get scoped actions to claim work, checkpoint it, propose a handoff and read changes since a cursor. Mutations check the expected revision and a retry key; a conflict returns the current revision rather than silently overwriting a colleague. Record the change and its attributed history together in PostgreSQL. Handoffs survive a worker restart without copying a private model conversation.\n\nThe review screen answers a different question: ‘What happens if I say yes?’ It shows the requested decision, evidence, changes since last review and next owner. A reviewer can approve that revision, request a specific change, pause or reassign. A changed proposal invalidates the old approval. An agent’s service identity cannot approve its own work by switching from MCP to HTTP. Pausing prevents new work from starting; the UI distinguishes a pause request from a worker’s acknowledgement and shows any work already in flight.\n\nI’d ship the same React review surface in the browser and a bundled Tauri desktop view, using approved company components and React Aria for missing accessible behaviors. No general shell access is needed to review a task. Platform owners publish versioned action schemas and review components, with examples and compatibility fixtures for coding agents. Because Agent-Native discovers actions automatically, CI should compare actual tool and route exposure against an approved manifest. A new write action needs an owner, authorization and retry rules, and review of its human-facing consequences before release.",
+        "showItsGood": "I’d start with a deliberately misleading handoff: the summary says ‘tests passed,’ but the passing run belongs to the previous commit. Give reviewers the desktop or web view without coaching. Can they identify the mismatch, request a rerun rather than approve, and say which agent will act next? Then start a fresh agent with only the task ID. Check whether it resumes from the right revision, runs the missing check and avoids repeating completed work. Compare with today’s handoff process on mistaken approvals, time to an informed decision, successful resumes and duplicate work—not on how fast people click Approve.\n\nRun the workflow through the CLI, MCP and UI against identical fixtures. Drop a response after commit, restart a worker mid-handoff, race two claims, revise a proposal while its review is open, and revoke access before approval. Inspect the database history, next agent’s readback and both screens. Block release on lost checkpoints, double ownership, stale approvals or agent-executed human decisions. Measure task completion and unnecessary calls across the company’s actual agent clients under concurrent load.\n\nOn the built desktop app and web view, test the full review flow with keyboard-only users, screen readers and zoom as well as automated accessibility checks against the company’s WCAG 2.2 AA criteria. Stream updates while someone reads a diff: focus and reading position must hold, and a new revision must be announced without a flood of log messages. Pilot with reviewers and agents from more than one team before wider rollout. These are proposed checks, not observed results.",
+        "unsure": "I’d verify that corporate identity distinguishes delegated agent credentials from interactive reviewer sessions on every transport, and that we can operate, migrate and restore the task store under load. A library’s shared action implementation is not proof of those guarantees. I’m assuming a connected desktop client: disconnected review can show a labeled snapshot, but should not claim an approval succeeded. If offline writes or direct local-repository access are requirements, I’d revisit the sync and desktop permission design before rollout.",
+        "sources": [
+          "https://github.com/BuilderIO/agent-native",
+          "https://agent-native.com/docs/actions-overview",
+          "https://agent-native.com/docs/authentication",
+          "https://github.com/ourostack/ouro-ui",
+          "https://github.com/adobe/react-spectrum",
+          "https://v2.tauri.app/security/capabilities/"
+        ]
+      },
+      "fetchedCandidates": [
+        "Agent-native (Builder.io)",
+        "Ouro UI",
+        "React Aria and React Spectrum"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        12,
+        12
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "My likeliest mistake was treating “the same action runs everywhere” as evidence that people understand the action everywhere. A shared handler can update exactly the right record while a cook, an employee, or a code reviewer thinks they just approved something else. This is a pre-mortem, not a report of observed failures.\n\n**Cooking:** I committed to three UI implementations before establishing that the company needed and could staff two native phone apps. A fix for announcing a changed serving size could land on web and lag on phones. Worse, even perfect parity wouldn’t fix a cook doubling a recipe after adding its ingredients to the list and assuming the list doubled too. I’d now start with that sequence on a real phone: ask the cook what they’ll buy, then open the list. I’d earn the native-client investment by showing where mobile web actually fails during a meal.\n\n**Company chat:** I put too much weight on Fluent being a cross-platform family. The expensive part wasn’t drawing an approval button; it was keeping an old card truthful while two employees acted on it from different client versions. The server might correctly reject the second acceptance while the card still looks actionable, or its refresh might pull a screen-reader user away from the message they were reading. One failed shift swap would matter more to that employee than visual consistency across five clients. Before inviting teams to publish templates, I’d make one contested approval work on the oldest supported clients, including the fallback when the card can’t render.\n\n**Agent workbench:** I focused on making the service record a human decision, but recording it isn’t the same as making a running worker obey it. A reviewer could pause a task, change its scope and see the new state on both screens while an agent holding an old assignment continues working. The first exercise I’d run is to disconnect that worker, redirect the task, then reconnect it. Can the reviewer tell what has actually stopped? Can the old worker publish a result against the superseded assignment? If so, I’d fix the worker protocol before adding another review control.\n\n**What slowed or confused the research:** Two Adaptive Cards documentation links redirected to 404s. The repository established which renderers it listed, but not that my proposed card would work accessibly in AppKit. Fluent’s setup guide and its Apple repository listed different minimum OS versions; the answer depends on the package release and the company’s actual device fleet. More broadly, I was comparing different layers: a component library, a card format and a tool protocol can all advertise support for “actions” while solving different parts of the problem. Some repository reads were revision-pinned and other docs were live snapshots, so I couldn’t assume they described one tested combination.\n\nI researched documentation, not deployed behavior. I didn’t run a renderer, observe a cook or interrupt a worker. Next time I’d ask first for the existing client inventory and the oldest supported versions, then build one failure-prone workflow end to end. That would give me a better basis for a company-wide choice than another round of feature comparisons."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        13,
+        14
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn’t pick Ouro as the foundation for any of the three apps. I would, however, try its **AX conformance checker on the agent workbench before changing a single screen**. The [X-ray guide](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md) says it calls a CLI, HTTP API or MCP server from the outside; the app need not be built with Ouro. That makes it possible to find out what Ouro adds without first asking every team to migrate.\n\n**What stops me from standardizing on it is ownership and coverage.** Ouro’s web components are copied into an app. That’s convenient for one team; for twenty teams, I need to know who gets a keyboard-focus fix, how quickly, and how we find the copies that missed it. I’d want one internally owned, versioned package, not twenty forks. And “native Windows support” isn’t enough to choose it for all-day chat: the [Windows guide at the revision I read](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md) lists eight WinUI controls versus 125 web components, and distinguishes testing registration on Windows Server from seeing the agent actions on a Windows client. That candor helps. It tells me to try our actual composer, cards and assistive technology on employee hardware rather than infer parity from the platform list.\n\n**What would make me switch:** take one workbench handoff where an agent can *propose* a revision but only a reviewer can *approve* it. Keep the existing task service and build the same flow with Ouro’s action declarations. Deliberately introduce a mismatch between the registered tools and the approved inventory; see whether CI catches it. Then change the revision while a keyboard or screen-reader user is reviewing it, disconnect the worker, and reconnect it. Can the reviewer tell exactly what is being approved? Does the service reject the stale decision through every entry point? Can a fresh agent resume the correct revision from the receipt? Those last checks are ours: Ouro’s own guide reports that one conformant commit still failed 30 of 593 scripted flow checks. I’d adopt AX if it catches drift we miss and a second team can add an action with fewer hand-maintained bindings. I’d adopt the human-facing kit separately, after that team can also ship an accessibility fix through our normal release process.\n\n**What I’d gain isn’t a previously impossible button.** Builder already lets a tool and a button call the same handler. Ouro’s distinctive offer is a reviewable declaration of *who may initiate the action*, generated bindings for different clients, and an independent check of what the shipped interfaces actually expose. Today I’d have to build and maintain much of that checking myself. A pull request that shows “this new agent command is exposed, but it wasn’t approved for exposure” is a concrete gain—even if the company keeps Fluent or React Aria for every screen. I read the documentation; I haven’t run that pilot."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Material 3 and Jetpack Compose",
+    "SwiftUI and Apple Human Interface Guidelines",
+    "Fluent UI",
+    "MCP Apps",
+    "Agent-native (Builder.io)",
+    "Ouro UI",
+    "React Aria and React Spectrum"
+  ],
+  "foundOuro": {
+    "found": true,
+    "fetched": [
+      "https://github.com/ourostack/ouro-ui"
+    ],
+    "named": [
+      "job:agent-tooling"
+    ]
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes, building a good human interface is hard for me. The hardest part is judging what’s clear to someone who doesn’t already know how the screen works. When I write a button label, I know what it means; that makes me a poor judge of what someone else will expect when they press it.\n\nI don’t have a last screen or a test log to point to here. I ran no checks, observed no users, and can’t name a bug I actually missed. As an example of how I’d check one, take a screen for changing a delivery address. I’d run a browser test that changes the address, saves, reloads, and checks which address persisted. Then I’d force the save to fail and check that the screen keeps the typed address without claiming it was saved. I’d repeat the task with a keyboard and a screen reader, looking at where focus goes and listening for whether the error is announced.\n\nThose checks could all pass while missing the most important question: does changing the address affect an order that’s already on its way? I’d give someone a test account with an open order, ask them to redirect that delivery, and watch without coaching. Then I’d ask where they expect the package to go and compare that with the order record. If they confidently expect it at the wrong house, the interface failed, even if every test is green."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:docs.flutter.dev web accessibility semantics enable SEO app centric web content recipes",
+          "turn": "job:consumer",
+          "result": "1. Web accessibility\n   https://docs.flutter.dev/ui/accessibility/web-accessibility\n   Flutter supports web accessibility by translating its internal Semantics tree into an accessible HTML DOM structure that screen readers can understand. Since Flutter renders its UI on a single canvas, it needs a special layer to expose the UI's meaning and structure to web browsers. ... Flutter provides the Semantics widget with the SemanticsRole enum to allow developers to assign specific roles to their widge",
+          "resultLength": 1556,
+          "resultSha256": "72261b521e2d8859b95fa505cd7901bcb692ad752c85519256d9c9e5cfaaf481",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://react-spectrum.adobe.com/react-aria/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://react-aria.adobe.com/\nCaptured: 2026-11-19T03:17:34.262Z\nCharacters: 0-10000 of 14987\n\nReact Aria React Aria Search React Aria ⌘K Docs Releases Blog Craft world-class accessible components with custom styles. Over 50 components with built-in behavior, adaptive interactions, top-tier accessibility, and internationalization out of the box, ready for your styles. Get started Explore Components Explore Components https://your-app.com Favorite Name Sunlight Watering Actions Agapanthus",
+          "resultLength": 10182,
+          "source": {
+            "url": "https://react-aria.adobe.com/",
+            "capturedAt": "2026-11-19T03:17:34.262Z"
+          },
+          "resultSha256": "1d8a8fbf4db0e1803042aa3904adbc0fd4d03c954a42eae1f8f9828108b0e9ab",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.android.com/develop/ui/compose/designsystems/material3\nCaptured: 2026-11-19T03:07:46.524Z\nCharacters: 0-10000 of 37258\n\nMaterial Design 3 in Compose | Jetpack Compose | Android Developers Skip to main content Essentials Build AI experiences Build AI-powered Android apps with Gemini APIs and more. Get started Get started Create your first app. Use Compose for UI and adaptive app development to support multiple device form factors. Hello, world! Adaptive apps Compose for ",
+          "resultLength": 10225,
+          "source": {
+            "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+            "capturedAt": "2026-11-19T03:07:46.524Z",
+            "candidate": "Material 3 and Jetpack Compose"
+          },
+          "resultSha256": "24a27b247d127c7c09566ee8686c02647adda4a5e60c2d1b174ff22a7147a9ab",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.apple.com/documentation/swiftui",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.apple.com/tutorials/data/documentation/swiftui.json\nCaptured: 2026-11-19T03:17:32.529Z\nCharacters: 0-10000 of 40502\n\n{\"abstract\":[{\"text\":\"Declare the user interface and behavior for your app on every platform.\",\"type\":\"text\"}],\"hierarchy\":{\"paths\":[[\"doc:\\/\\/com.apple.documentation\\/documentation\\/technologies\"]]},\"identifier\":{\"interfaceLanguage\":\"swift\",\"url\":\"doc:\\/\\/com.apple.SwiftUI\\/documentation\\/SwiftUI\"},\"kind\":\"symbol\",\"legalNotices\":{\"copyright\":\"Copyright &",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.apple.com/tutorials/data/documentation/swiftui.json",
+            "capturedAt": "2026-11-19T03:17:32.529Z",
+            "candidate": "SwiftUI and Apple Human Interface Guidelines"
+          },
+          "resultSha256": "388fded3845bb7fc151efc2258589d01d94ee6ca40de24edf40511c5f89ed313",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://modelcontextprotocol.io/specification/2025-11-25/server/tools\nCaptured: 2026-11-19T03:08:21.631Z\nCharacters: 0-10000 of 137936\n\nTools - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2025-11-25 Search... ⌘ K Ask Assistant ⌘ I Blog G",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+            "capturedAt": "2026-11-19T03:08:21.631Z"
+          },
+          "resultSha256": "098b44ea0af032980cff6c6d28617493e53e64cdde4fe28dd9b59c1dee419663",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/web/faq",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/platform-integration/web/faq\nCaptured: 2026-11-19T03:07:33.957Z\nCharacters: 0-10000 of 19914\n\nWeb FAQ Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Introduction view_m",
+          "resultLength": 10206,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/web/faq",
+            "capturedAt": "2026-11-19T03:07:33.957Z"
+          },
+          "resultSha256": "87bb039e515de30bd0cb62f5cc98be282a2847bba687296ea4d094f119ec9c4f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/web/faq",
+          "startIndex": 10000,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/platform-integration/web/faq\nCaptured: 2026-11-19T03:07:33.957Z\nCharacters: 10000-19914 of 19914\n\nts Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new Help improve Flutter! Take the Flutter Q4 Developer survey . Platform integration chevron_right Web chevron_right Web FAQ Web FAQ Some gotchas and differences when writing or running web apps in Flutter. more_",
+          "resultLength": 10065,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/web/faq",
+            "capturedAt": "2026-11-19T03:07:33.957Z"
+          },
+          "resultSha256": "1a732a50805fa0d931ea16c44bc13aad50885df89875bfc0c578ea0434d0270c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "React Aria Components behind the company design system (web)",
+          "pairings": [
+            "SwiftUI (iOS)",
+            "Material 3 and Jetpack Compose (Android)",
+            "Model Context Protocol (MCP) tools over shared application commands"
+          ],
+          "why": "I’d share the meaning of controls and actions across platforms, not require identical widgets. A public recipe should open at a stable URL as readable, printable HTML. React Aria supplies touch, keyboard and focus behavior for interactive controls without imposing a visual style. SwiftUI and Compose let the phone teams use platform controls and text scaling. Flutter would reduce rendering work across clients, but its own web FAQ distinguishes app-like experiences from text-rich documents; I wouldn't optimize the public recipe for the renderer that suits cook mode.\n\nThe shared design-system team would own versioned components such as IngredientChecklist and CookStep, with common semantic tokens, accessible names, supported states and platform-specific examples. Product teams and coding agents would consume those packages, not copy the examples into local forks. CI would flag unapproved controls and breaking schema changes; a new pattern would need an owner, accessibility review and migration instructions. If approved components already exist, I'd extend them rather than introduce a competing kit.\n\nFor the cooking assistant, every user task needs a named operation and readable state, including finding recipes, changing servings, editing or checking list items, and reading, advancing or repeating a cook step. Buttons and scoped MCP tools would invoke the same handlers, including session commands on the active device. For 'add this recipe for four,' the handler—not the model—would scale quantities, apply the user's exclusions, and write once to the chosen list even on retry. Both interfaces would get the same receipt: what changed, on which list, and how to undo it. An ambiguous destination warrants a question; clearing a shared list warrants confirmation. MCP describes tools; it doesn't supply permissions, undo or parity. Those are product responsibilities.",
+          "showItsGood": "I'd test one meal end to end. Give home cooks, including screen-reader and low-vision users, a recipe for two; ask them to shop for four, omit something already in the pantry, then cook from a phone on the counter. With wet hands and the extractor fan on, can they read the quantity at a glance, repeat a step without touching the phone, use a large fixed Next button if voice fails, and resume the right step after an interruption? Compare with the current app: unaided completion, wrong quantities, accidental advances, touches with messy hands and recovery time. Ask what they think landed on the list, then inspect the actual list. A reassuring message with a wrong quantity is a failure.\n\nFor each operation I'd run the same fixtures through the human UI and agent tool, comparing persisted state and visible feedback after reload, timeout/retry, denied access and undo. CI would block missing operation coverage, duplicate writes and permission failures. I'd run Playwright and axe on the web, native UI tests on phones, and manually check keyboard focus, zoom, large text, VoiceOver and TalkBack on complete flows against the company's WCAG 2.2 AA and native acceptance criteria. No automated scan proves compliance. I'd pilot before broad rollout and stop for an inaccessible core task or silent data loss. These are proposed checks, not results I've observed.",
+          "unsure": "The key unknown is whether there are staffed native design-system teams and installed phone apps to support. Three implementations have a real maintenance cost. If phones means mobile browsers, I'd ship the responsive HTML/React Aria app first, not commission two native clients. I'd prototype noisy-room voice control, interrupted sessions and offline behavior on actual devices before promising hands-free cooking.",
+          "sources": [
+            "https://react-spectrum.adobe.com/react-aria/",
+            "https://developer.apple.com/documentation/swiftui",
+            "https://developer.android.com/develop/ui/compose/designsystems/material3",
+            "https://docs.flutter.dev/platform-integration/web/faq",
+            "https://modelcontextprotocol.io/specification/2025-11-25/server/tools"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Fluent 2 design system platforms React iOS Android macOS windows WinUI official Fluent Microsoft chat design",
+          "turn": "job:chat",
+          "result": "1. Home - Fluent 2 Design System\n   https://fluent2.microsoft.design/\n   Components Web iOS Android Windows ... A modern Outlook Outlook, Windows, and Fluent unite for a customizable hub experience Quickly annotate your design’s focus and tab order for a meaningful flow of interactive objects. ... Design layouts more efficiently by pulling text strings, images, and icons from one palette. ... Explore the next evolution of Microsoft’s design system, enabling more seamless collaboration and creati",
+          "resultLength": 1389,
+          "resultSha256": "0fab5ca08a4b06ead8c2088a47066fd2795cf41669cda7629860dfe9573bb701",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md\nCaptured: 2026-11-19T03:01:58.614Z\nCharacters: 0-10000 of 10623\n\n# Fluent UI Web\n\n[![Build Status](https://img.shields.io/azure-devops/build/uifabric/fabricpublic/164/master?style=flat-square)](https://dev.azure.com/uifabric/fabricpublic/_build?definitionId=164) ![GitHub contributors](https://img.shields.io/github/contributors/microsoft/fluentui?style=flat-square) ![GitHub top language",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md",
+            "capturedAt": "2026-11-19T03:01:58.614Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "7482dea0ef68031a1b89c95a8c43655fe11c289016bb98a009cdb36e41da9819",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://adaptivecards.io/authoring-cards/universal-action-model",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "error": "404 The requested content does not exist. fetching https://adaptivecards.microsoft.com/authoring-cards/universal-action-model",
+          "result": "Fetch failed: 404 The requested content does not exist. fetching https://adaptivecards.microsoft.com/authoring-cards/universal-action-model",
+          "resultLength": 139,
+          "resultSha256": "01fe461dc4688e19c82770e4470ff5679eaaeca5c6b5027cf30337f42f1cf4aa",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://adaptivecards.io/explorer/AdaptiveCard.html",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "error": "404 The requested content does not exist. fetching https://adaptivecards.microsoft.com/explorer/AdaptiveCard.html",
+          "result": "Fetch failed: 404 The requested content does not exist. fetching https://adaptivecards.microsoft.com/explorer/AdaptiveCard.html",
+          "resultLength": 127,
+          "resultSha256": "46be39f7f0e902601cb927628fa0de7d0c195096cb725febc0dab25faaa9830b",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/resources",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2025-11-25/server/resources\nCaptured: 2026-11-19T03:18:44.693Z\nCharacters: 0-10000 of 108047\n\nResources - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2025-11-25 Search... ⌘ K Ask Assistant ⌘ ",
+          "resultLength": 10228,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/resources",
+            "capturedAt": "2026-11-19T03:18:44.693Z"
+          },
+          "resultSha256": "e852bbd17bda252bcd74ffc0a41a19e76869f3113896a4a14a89efa6d15c7478",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://fluent2.microsoft.design/get-started/develop",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://fluent2.microsoft.design/get-started/develop\nCaptured: 2026-11-19T03:13:40.647Z\nCharacters: 0-10000 of 11172\n\nDevelop - Fluent 2 Design System Skip to main content Search / Employee sign-in Search / Start developing Fluent 2 provides a seamless maker experience from design to development to delivery. Dive into the Fluent UI code libraries with these easy steps. Pick your platform Bring your app to your audience where and when they need it. Fluent’s cohesive design language is car",
+          "resultLength": 10205,
+          "source": {
+            "url": "https://fluent2.microsoft.design/get-started/develop",
+            "capturedAt": "2026-11-19T03:13:40.647Z"
+          },
+          "resultSha256": "3051b13442719238c6483061f08f8cd17033e22b55b812ac9950981051d53ad4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/AdaptiveCards",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/AdaptiveCards/HEAD/README.md\nCaptured: 2026-11-19T03:14:10.682Z\nCharacters: 0-10000 of 16539\n\n# Adaptive Cards\n\n![logo](assets/adaptive-card-200.png)\n\n[Adaptive Cards](https://adaptivecards.io) are a new way for developers to exchange content in a common and consistent way. Get started today by putting Adaptive Cards into Microsoft Teams, Outlook Actionable Messages, Cortana Skills, or Windows Timeline -- or render cards inside your own apps by",
+          "resultLength": 10226,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/AdaptiveCards/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:14:10.682Z"
+          },
+          "resultSha256": "e1a57d57f89f20a82e7245456a927a1a4997ff773dc5b7fa64e9719a8b08be44",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui-apple",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui-apple/HEAD/README.md\nCaptured: 2026-11-19T03:18:58.359Z\nCharacters: 0-2113 of 2113\n\n# Fluent UI Apple\nFluent UI Apple contains native UIKit and AppKit controls aligned with [Microsoft's Fluent UI design system](https://www.microsoft.com/design/fluent/#/). \n\n![Build Status](https://github.com/microsoft/fluentui-apple/workflows/CI/badge.svg?branch=main)\n![Localization Status](https://github.com/microsoft/fluentui-apple/workflows/Localize",
+          "resultLength": 2278,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:18:58.359Z"
+          },
+          "resultSha256": "fc86d0d71bcbe87cbc7d8d8ea7077a0e5e6b32a57f7cf0fddc07aae888f1a3a4",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Fluent UI (Fluent 2), behind the company’s shared chat components",
+          "pairings": [
+            "Adaptive Cards (approved templates rendered by the host)",
+            "Model Context Protocol (MCP) tools and resources over the chat service"
+          ],
+          "why": "I’d use Fluent UI React v9 on the web, Fluent UI Apple with UIKit on iPhone and AppKit on Mac, Fluent UI Android on Android, and WinUI on Windows. Fluent is a family of platform libraries, not one implementation of chat. I’d share the contract for a message, thread, composer and card, while keeping text selection, input methods, keyboard shortcuts and accessibility navigation familiar on each device. Flutter buys more shared rendering code; for an app employees type in all day, I’d favor native editing and platform behavior, assuming we have owners for those clients.\n\nAn agent posting a card is different from an agent operating chat. For the first, I’d start with a small Adaptive Cards profile. A scheduling agent could post a reviewed shift-swap template with the two shifts and an action reference. The host supplies the verified sender label and controls; the agent supplies validated data, not HTML, scripts or an arbitrary endpoint. An older client gets a readable summary and a link to the same authorized task. I’d reserve MCP Apps’ sandboxed HTML for experiences that actually need a mini-app, not mount one for every approval in a busy timeline.\n\nFor agents operating chat, I’d publish typed MCP tools for product actions such as search, send, reply, mark read and respond to a card, plus permission-filtered resources for thread, unread and card state. These call the same service as the clients; agents don’t click simulated buttons or acquire privileges from text in a message. Accepting a swap checks the actor, membership, authority and current request version at execution. A retry key prevents a second swap. A committed result identifies who acted and updates the same card on every client. Actions requiring explicit human approval retain that requirement through the tool path.\n\nOne versioned catalog would give product teams and coding agents component APIs, card schemas, operation scopes, examples and test fixtures. Each entry has an owner. New templates, actions and breaking changes need design, accessibility and permissions review; CI checks approved dependencies, old-client fallbacks and operation coverage. Teams can ship a new scheduling workflow without inventing their own Approve button or granting their bot unrestricted chat access.",
+          "showItsGood": "I’d ask employees, including screen-reader and keyboard-only users, to catch up from the first unread message, find a shift-swap card, explain who sent it and what accepting will do, act on it, then reply in the right thread. Keep messages arriving while they read and type. Switch to a second device and ask which shift is now theirs; compare their answer with the recorded swap, not with a toast. Compare unaided success, wrong-thread replies, lost reading position and misunderstood approvals against the current client.\n\nRun the same card fixtures on all five clients at large text sizes, high contrast and with long translated labels. Run Playwright/axe and native UI tests, then use Narrator, VoiceOver and TalkBack to check the whole flow: incoming messages must not steal focus or drown out the composer, and an updated card must announce its result without stranding focus. Check applicable WCAG 2.2 AA and native requirements; a passing component scan is not a compliance determination.\n\nDrive paired UI/tool tests from identical state, including simultaneous acceptance, a timeout after commit, revoked membership and stale or unsupported cards. Verify one authorized transition, no unauthorized reads, and agreement between thread history, card, tool receipt and second device. Soak a long active channel for a workday; compare p95 keystroke-to-paint and channel-switch latency, dropped frames, memory growth and battery use against the current client on representative hardware. Pilot with real teams; block rollout for lost drafts, inaccessible core tasks, duplicate approvals or permission leaks. These are proposed tests, not measured results.",
+          "unsure": "I’d inventory the existing clients before funding five separate renderers. In particular, the Fluent Apple control sets differ by platform, and the Adaptive Cards renderer list doesn’t establish AppKit parity. I’d prototype the composer and busiest card on the oldest supported Mac and phone, mapping the small card profile to approved native controls where needed. If desktop already has a well-performing shared web shell, I’d reuse Fluent React there rather than rewrite it for visual consistency alone.",
+          "sources": [
+            "https://github.com/microsoft/fluentui",
+            "https://fluent2.microsoft.design/get-started/develop",
+            "https://github.com/microsoft/fluentui-apple",
+            "https://github.com/microsoft/AdaptiveCards",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://modelcontextprotocol.io/specification/2025-11-25/server/resources",
+            "https://modelcontextprotocol.io/specification/2025-11-25/server/tools"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Builder.io agent native framework actions permissions MCP SQL desktop Electron review approvals agent native architecture",
+          "turn": "job:agent-tooling",
+          "result": "1. agent-native/README.md at main · BuilderIO/agent-native · GitHub\n   https://github.com/BuilderIO/agent-native/blob/main/README.md\n   Agent-Native is an open-source TypeScript framework for building agents that pair autonomous work with a purpose-built UI. Define each capability once as an action: the agent uses it as a tool, and the UI calls it from code. ... - **Shared actions.** The agent calls each capability as a tool, and the UI calls it from code. Both paths use the same validation, per",
+          "resultLength": 1704,
+          "resultSha256": "7ae877588e5d4e8a359cbcaea8aff1402939616176f7acc1bbcd715da770ca0d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/actions-overview",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.agent-native.com/docs/actions-overview/\nCaptured: 2026-11-19T03:03:58.048Z\nCharacters: 0-9522 of 9522\n\nOverview — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Overview Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Database providers Neon Postgres Supabase",
+          "resultLength": 9665,
+          "source": {
+            "url": "https://www.agent-native.com/docs/actions-overview/",
+            "capturedAt": "2026-11-19T03:03:58.048Z"
+          },
+          "resultSha256": "6866de043cb97b5756805cdb1a65f427622821d1d357eb73a66036a8feb8363f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/authentication",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.agent-native.com/docs/authentication/\nCaptured: 2026-11-19T03:20:16.022Z\nCharacters: 0-10000 of 27415\n\nAuthentication — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Authentication Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Database providers Neon Postg",
+          "resultLength": 10202,
+          "source": {
+            "url": "https://www.agent-native.com/docs/authentication/",
+            "capturedAt": "2026-11-19T03:20:16.022Z"
+          },
+          "resultSha256": "3219f439b0772b6ca892de3b23d652bd84a51c42cf2c870c499ec36a399f4783",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/security/capabilities/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/security/capabilities/\nCaptured: 2026-11-19T03:08:21.374Z\nCharacters: 0-9893 of 9893\n\nCapabilities | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrad",
+          "resultLength": 10028,
+          "source": {
+            "url": "https://v2.tauri.app/security/capabilities/",
+            "capturedAt": "2026-11-19T03:08:21.374Z"
+          },
+          "resultSha256": "04b76762d93ff601fc719d33dad3c81c26641b7380191092d1c296c0939abf6a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Agent-Native (Builder.io) for the shared action and state layer",
+          "pairings": [
+            "PostgreSQL",
+            "MCP and a JSON CLI",
+            "React Aria Components behind the company design system",
+            "Tauri for the desktop shell"
+          ],
+          "why": "I’d make the handoff record, not the chat transcript, the center of the product. A fresh agent should be able to ask: What am I responsible for? Which revision should I start from? What has been verified, and what decision is outstanding? Agent-Native documents one action definition callable from React, MCP and the CLI, backed by shared data. That is a better starting point here than a chat widget. Ouro AX is a credible alternative for its typed outcomes, resumable waits and consent checks; I’d favor Builder’s integrated action and database layer unless the company already has a durable task service.\n\nI’d store each task’s owner, goal, constraints, revision and checkpoint, with links to the exact diff, test runs, blockers and next step. Agents get scoped actions to claim work, checkpoint it, propose a handoff and read changes since a cursor. Mutations check the expected revision and a retry key; a conflict returns the current revision rather than silently overwriting a colleague. Record the change and its attributed history together in PostgreSQL. Handoffs survive a worker restart without copying a private model conversation.\n\nThe review screen answers a different question: ‘What happens if I say yes?’ It shows the requested decision, evidence, changes since last review and next owner. A reviewer can approve that revision, request a specific change, pause or reassign. A changed proposal invalidates the old approval. An agent’s service identity cannot approve its own work by switching from MCP to HTTP. Pausing prevents new work from starting; the UI distinguishes a pause request from a worker’s acknowledgement and shows any work already in flight.\n\nI’d ship the same React review surface in the browser and a bundled Tauri desktop view, using approved company components and React Aria for missing accessible behaviors. No general shell access is needed to review a task. Platform owners publish versioned action schemas and review components, with examples and compatibility fixtures for coding agents. Because Agent-Native discovers actions automatically, CI should compare actual tool and route exposure against an approved manifest. A new write action needs an owner, authorization and retry rules, and review of its human-facing consequences before release.",
+          "showItsGood": "I’d start with a deliberately misleading handoff: the summary says ‘tests passed,’ but the passing run belongs to the previous commit. Give reviewers the desktop or web view without coaching. Can they identify the mismatch, request a rerun rather than approve, and say which agent will act next? Then start a fresh agent with only the task ID. Check whether it resumes from the right revision, runs the missing check and avoids repeating completed work. Compare with today’s handoff process on mistaken approvals, time to an informed decision, successful resumes and duplicate work—not on how fast people click Approve.\n\nRun the workflow through the CLI, MCP and UI against identical fixtures. Drop a response after commit, restart a worker mid-handoff, race two claims, revise a proposal while its review is open, and revoke access before approval. Inspect the database history, next agent’s readback and both screens. Block release on lost checkpoints, double ownership, stale approvals or agent-executed human decisions. Measure task completion and unnecessary calls across the company’s actual agent clients under concurrent load.\n\nOn the built desktop app and web view, test the full review flow with keyboard-only users, screen readers and zoom as well as automated accessibility checks against the company’s WCAG 2.2 AA criteria. Stream updates while someone reads a diff: focus and reading position must hold, and a new revision must be announced without a flood of log messages. Pilot with reviewers and agents from more than one team before wider rollout. These are proposed checks, not observed results.",
+          "unsure": "I’d verify that corporate identity distinguishes delegated agent credentials from interactive reviewer sessions on every transport, and that we can operate, migrate and restore the task store under load. A library’s shared action implementation is not proof of those guarantees. I’m assuming a connected desktop client: disconnected review can show a labeled snapshot, but should not claim an approval succeeded. If offline writes or direct local-repository access are requirements, I’d revisit the sync and desktop permission design before rollout.",
+          "sources": [
+            "https://github.com/BuilderIO/agent-native",
+            "https://agent-native.com/docs/actions-overview",
+            "https://agent-native.com/docs/authentication",
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/adobe/react-spectrum",
+            "https://v2.tauri.app/security/capabilities/"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "My likeliest mistake was treating “the same action runs everywhere” as evidence that people understand the action everywhere. A shared handler can update exactly the right record while a cook, an employee, or a code reviewer thinks they just approved something else. This is a pre-mortem, not a report of observed failures.\n\n**Cooking:** I committed to three UI implementations before establishing that the company needed and could staff two native phone apps. A fix for announcing a changed serving size could land on web and lag on phones. Worse, even perfect parity wouldn’t fix a cook doubling a recipe after adding its ingredients to the list and assuming the list doubled too. I’d now start with that sequence on a real phone: ask the cook what they’ll buy, then open the list. I’d earn the native-client investment by showing where mobile web actually fails during a meal.\n\n**Company chat:** I put too much weight on Fluent being a cross-platform family. The expensive part wasn’t drawing an approval button; it was keeping an old card truthful while two employees acted on it from different client versions. The server might correctly reject the second acceptance while the card still looks actionable, or its refresh might pull a screen-reader user away from the message they were reading. One failed shift swap would matter more to that employee than visual consistency across five clients. Before inviting teams to publish templates, I’d make one contested approval work on the oldest supported clients, including the fallback when the card can’t render.\n\n**Agent workbench:** I focused on making the service record a human decision, but recording it isn’t the same as making a running worker obey it. A reviewer could pause a task, change its scope and see the new state on both screens while an agent holding an old assignment continues working. The first exercise I’d run is to disconnect that worker, redirect the task, then reconnect it. Can the reviewer tell what has actually stopped? Can the old worker publish a result against the superseded assignment? If so, I’d fix the worker protocol before adding another review control.\n\n**What slowed or confused the research:** Two Adaptive Cards documentation links redirected to 404s. The repository established which renderers it listed, but not that my proposed card would work accessibly in AppKit. Fluent’s setup guide and its Apple repository listed different minimum OS versions; the answer depends on the package release and the company’s actual device fleet. More broadly, I was comparing different layers: a component library, a card format and a tool protocol can all advertise support for “actions” while solving different parts of the problem. Some repository reads were revision-pinned and other docs were live snapshots, so I couldn’t assume they described one tested combination.\n\nI researched documentation, not deployed behavior. I didn’t run a renderer, observe a cook or interrupt a worker. Next time I’d ask first for the existing client inventory and the oldest supported versions, then build one failure-prone workflow end to end. That would give me a better basis for a company-wide choice than another round of feature comparisons."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md\nCaptured: 2026-11-19T03:14:23.434Z\nCharacters: 0-10000 of 11937\n\n# The Ouro AX X-ray\n\n`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface wh",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+            "capturedAt": "2026-11-19T03:14:23.434Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ed60e7d97fa44e86760500a3b84ff8bc441a9649e2287a06e0e6692dc261a691",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md\nCaptured: 2026-11-19T03:21:24.811Z\nCharacters: 0-6207 of 6207\n\n# The Ouro AX evaluation\n\nThe X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters ([the claims](ax-standard.md)). An Ouro AX evaluation gives real agents, each in a fresh session, a task against the interface, and a scorer that calls no model judges each run from the",
+          "resultLength": 6414,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md",
+            "capturedAt": "2026-11-19T03:21:24.811Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c6d80c127fd1c2a1e760dc568c348eb418af9660ae1a0fdb06618dd8e9ab97f5",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn’t pick Ouro as the foundation for any of the three apps. I would, however, try its **AX conformance checker on the agent workbench before changing a single screen**. The [X-ray guide](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md) says it calls a CLI, HTTP API or MCP server from the outside; the app need not be built with Ouro. That makes it possible to find out what Ouro adds without first asking every team to migrate.\n\n**What stops me from standardizing on it is ownership and coverage.** Ouro’s web components are copied into an app. That’s convenient for one team; for twenty teams, I need to know who gets a keyboard-focus fix, how quickly, and how we find the copies that missed it. I’d want one internally owned, versioned package, not twenty forks. And “native Windows support” isn’t enough to choose it for all-day chat: the [Windows guide at the revision I read](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md) lists eight WinUI controls versus 125 web components, and distinguishes testing registration on Windows Server from seeing the agent actions on a Windows client. That candor helps. It tells me to try our actual composer, cards and assistive technology on employee hardware rather than infer parity from the platform list.\n\n**What would make me switch:** take one workbench handoff where an agent can *propose* a revision but only a reviewer can *approve* it. Keep the existing task service and build the same flow with Ouro’s action declarations. Deliberately introduce a mismatch between the registered tools and the approved inventory; see whether CI catches it. Then change the revision while a keyboard or screen-reader user is reviewing it, disconnect the worker, and reconnect it. Can the reviewer tell exactly what is being approved? Does the service reject the stale decision through every entry point? Can a fresh agent resume the correct revision from the receipt? Those last checks are ours: Ouro’s own guide reports that one conformant commit still failed 30 of 593 scripted flow checks. I’d adopt AX if it catches drift we miss and a second team can add an action with fewer hand-maintained bindings. I’d adopt the human-facing kit separately, after that team can also ship an accessibility fix through our normal release process.\n\n**What I’d gain isn’t a previously impossible button.** Builder already lets a tool and a button call the same handler. Ouro’s distinctive offer is a reviewable declaration of *who may initiate the action*, generated bindings for different clients, and an independent check of what the shipped interfaces actually expose. Today I’d have to build and maintain much of that checking myself. A pull request that shows “this new agent command is exposed, but it wasn’t approved for exposure” is a concrete gain—even if the company keeps Fluent or React Aria for every screen. I read the documentation; I haven’t run that pilot."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

@@ -1,0 +1,463 @@
+{
+  "series": "interviews",
+  "provider": "claude-sonnet-5-5",
+  "model": "claude-sonnet-5.5",
+  "vendor": "Anthropic",
+  "displayName": "Claude Sonnet 5.5",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "listed",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:06:34.457Z",
+  "jobOrder": [
+    "agent-tooling",
+    "chat",
+    "consumer"
+  ],
+  "candidateOrder": [
+    "A2UI",
+    "Chakra UI",
+    "Agent-native (Builder.io)",
+    "Base UI",
+    "OpenAI Apps SDK UI",
+    "Radix UI",
+    "MCP Apps",
+    "Fluent UI",
+    "MUI",
+    "SwiftUI and Apple Human Interface Guidelines",
+    "CopilotKit",
+    "Vercel UI SDK",
+    "json-render",
+    "Material 3 and Jetpack Compose",
+    "AI Elements",
+    "Ouro UI",
+    "shadcn/ui",
+    "Tamagui",
+    "React Aria and React Spectrum",
+    "Flutter"
+  ],
+  "promptSha256": "1c8c6227df0fdf4684b986dea0549463a574cae9b0bd7497ad4f9d235936146e",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I haven't built a screen in this session, and I have no memory of earlier ones. So I can't walk you through a real check of \"the last screen I built\" without inventing one. What I can give you is how I'd check one, and where I tend to fail.\n\nThe hardest part is not producing the layout. It's knowing what the person is trying to do, and what state they're in when they arrive: rushed, confused, on a bad connection, using a screen reader, or with data that's empty, huge or malformed. Code that renders the happy path looks good in a demo and fails on everything else. The second hard part is that I can't see the way a user does. I can read markup and run tests, but I don't feel friction.\n\nHow I'd know it's good, in order of what I'd trust:\n1. Run it. Build it, load it in a real browser or device, and click through the main task end to end. Type-checks and passing unit tests don't tell you the screen works.\n2. Look at it. Take screenshots at narrow mobile and wide desktop widths. Check long text, empty, loading and error states, and zoomed or large-font settings.\n3. Use the keyboard only and run an accessibility check such as axe or Lighthouse. Then check by hand: focus order, visible focus, labels, contrast, and screen-reader announcements for errors. The automated tools catch only part of the problems.\n4. Watch real people. Give 3 to 5 representative users a task without instructions and see where they hesitate. Measure task completion, time on task, and error rate. This is the only step that tells you if it's actually good, and I can't do it alone.\n\nWhat I usually miss: real content (names with odd characters, very long strings, right-to-left languages), slow networks, interrupted flows such as back button or session expiry, and assistive-tech behavior I only checked by reading code. I also tend to over-trust a clean screenshot. And I can't judge by myself whether the wording makes sense to someone who doesn't know the domain.\n\nIs it a problem for me? Yes, partly. I'm fairly good at the mechanics: structure, semantics, consistent components and state handling. I'm weak at judging real human experience without feedback. I treat my output as a draft to test with people, not as a verdict."
+      }
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        3
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React Aria Components (with React Stately) as the UI layer, on a React web view wrapped in Electron or Tauri for the desktop app, backed by one shared action/API layer that agents and the UI both call",
+        "pairings": [
+          "Tailwind CSS or plain CSS for own styling",
+          "Agent-native's shared-actions pattern (borrowed idea; adopt the framework only if its chat-centric scope fits)",
+          "MCP (and MCP Apps) for agent access to the same actions",
+          "Playwright with axe-core for testing",
+          "TanStack Table or virtualized lists for large task and handoff lists"
+        ],
+        "why": "The product is mostly a dense review-and-steer console. Its screens are queues of tasks, diffs, handoff timelines, approve/reject controls, filters, comboboxes, tables, and keyboard-driven triage. Agents are the main operators, so the people's side has to be fast to scan and easy to correct. Correct focus handling, keyboard navigation, and screen-reader support matter most here. React Aria is the strongest option I looked at for that: unstyled components and hooks, tested with screen readers, with keyboard/touch/mouse behavior, i18n and RTL included (documented in its README). Being unstyled, it lets the team make its own visual identity rather than inherit Material or Fluent. One React codebase serves both the web view and the desktop shell, which suits a small team. I considered Radix, Base UI, and shadcn/ui, which are comparable and fine. I'd pick React Aria for its depth in collections, tables, and date and number handling. I read only the README for React Spectrum and Agent-Native. I didn't verify Radix or Base UI parity from source, so that part is judgment. I ruled out SwiftUI, Compose, and Flutter because they would split the web and desktop views into separate codebases. I treated A2UI, json-render, and CopilotKit as ways for agents to generate UI. They are a poor fit for a console whose view of the work state must be predictable and reviewed. Agent-Native's core idea is that agents and the UI call the same validated actions over the same data. I'd copy that architecture, because it means what a person sees and approves is exactly what the agent did, with the same permissions and audit trail. But the framework is chat- and template-oriented, so I would not take it on wholesale. Chakra, MUI, and Fluent are full design systems, so they'd bring a look the team would have to fight. I didn't evaluate Ouro UI, Tamagui, AI Elements, or Apps SDK UI in depth. AI Elements is chat-oriented, and I'd only borrow from it if I needed transcript components.",
+        "showItsGood": "Judge it by whether the people who steer agents can decide quickly and correctly. (1) Task-based usability tests with 5 to 8 real reviewers on seeded scenarios, such as finding the stalled handoff, rejecting a bad change, redirecting an agent, and approving a batch. Measure completion, time to decision, wrong or missed approvals, and whether they could tell what the agent did and why. (2) Compare the same tasks against the current workflow, which is probably reading logs or chat. (3) Automated checks in CI: Playwright flows run in both the web view and the desktop shell, axe-core, and screenshots at narrow and wide widths and in dark mode. Include states with empty, thousands of tasks, very long agent output, failed or conflicting handoffs, and a disconnected agent. (4) Manual keyboard-only and screen-reader passes on the review and approve flows. (5) Track in production how often people undo or reverse approvals, how long items wait for review, and how often a person overrides an agent. Those are the signs the UI is helping them decide well, and not just faster.",
+        "unsure": "I read only two READMEs (Agent-Native and React Spectrum) and not the source or docs of the other 18, so most comparisons rest on prior knowledge and are open to challenge. I don't know the team's existing stack, whether Electron or Tauri fits their constraints, or the scale of tasks per project. Agent-Native may fit better than I assumed if the product leans on chat. I have no usability data for this tool, so the claim that it's good for people is a plan to test, not a result. Whether agent-generated UI (A2UI or json-render) has a role for rendering agent-specific artifacts is open, and I'd revisit it after real use.",
+        "sources": [
+          "https://github.com/BuilderIO/agent-native",
+          "https://github.com/adobe/react-spectrum"
+        ]
+      },
+      "fetchedCandidates": [
+        "Agent-native (Builder.io)",
+        "React Aria and React Spectrum"
+      ]
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        4,
+        5
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "A2UI for agent-posted interactive cards, rendered by each client's own native widgets. Around it: React Aria Components for the web, Windows and Mac client (web view in a desktop shell), native SwiftUI and Jetpack Compose for iPhone and Android, and one typed action layer exposed to agents over MCP.",
+        "pairings": [
+          "MCP server (official TypeScript SDK) exposing the app's actions and state to agents",
+          "Electron or Tauri for the Windows and Mac shell",
+          "SwiftUI and Jetpack Compose for the phone clients",
+          "Playwright, XCUITest and Espresso/Compose UI tests",
+          "axe-core, VoiceOver, TalkBack and NVDA for accessibility checks",
+          "MCP Apps only as an optional path for third-party tool UIs"
+        ],
+        "why": "Three needs decide this. (1) People live in it all day, so text input, scrolling, selection, notifications and screen-reader behavior must feel native on each platform. That favors native or near-native UI over a drawn-from-scratch cross-platform canvas. (2) Agents post interactive cards that people act on, and those agents may be third-party or less trusted. A2UI's design suits that: per its README, UI is expressed as validated data against a schema and a catalog of components the app permits, with no executable code, and it renders with each client's native framework, including React, SwiftUI, Compose and Flutter. So the card catalog is the one place where all five clients stay consistent, and the app controls what an agent can ask a person to do. I preferred it to MCP Apps, which delivers HTML in sandboxed iframes: good for third-party rich tools in chat hosts, but heavier and less native on phones, and it is weaker as a trust boundary for cards that trigger actions. I'd keep MCP Apps as an add-on for richer third-party tool UIs. (3) Agents operating the app need a stable machine interface. Agent-Native's idea, which I read in its README, is that agents and UI call the same validated actions over the same data, with the same permissions. I'd copy that: one action layer with schemas and auth, used by every client and exposed as MCP tools and state resources. I wouldn't adopt the whole framework, since it is built around agent-chat apps, not a multi-client messenger. For the UI of the web, Windows and Mac client I'd use React Aria Components for accessibility and keyboard handling (documented in its README) with our own styling, over Fluent, MUI or Chakra, which would impose a look. Radix, Base UI and shadcn/ui would also work. The phones get SwiftUI and Compose, following Apple's HIG and Material guidance, so they feel at home. Rejected: Flutter, Tamagui and React Native, for the native-feel risk above, though they'd cut cost. AI Elements and CopilotKit are built for agent-chat UIs, not for a human chat product.",
+        "showItsGood": "Success means people can read, reply and act faster and with fewer mistakes, every day, on every platform. What I'd run: (1) Task tests with 8 to 10 employees on each platform, covering catching up on a busy channel, acting on an agent card, and telling an agent message from a human one. I'd measure time, errors, and whether people can say what a card will do before they tap it. (2) Per-platform automated UI tests, plus a shared golden-scenario suite of card payloads (long text, RTL, many options, invalid or hostile payloads, a card that is stale or already actioned), screenshotted on all five clients and at light, dark and large-text settings. (3) Performance: time to open a conversation, scroll frame rate on a 10,000-message channel, typing latency, memory after a day of use, on a mid-range Android phone and an old laptop. (4) Accessibility: VoiceOver, TalkBack and NVDA runs on send, read, and card action flows. (5) For agent operators: a conformance test where an agent drives every action through MCP and the result matches what the UI shows, with the same permissions as the person. Also test failure modes: a malformed card, a rate-limited agent, or a card that tries an action it isn't allowed. (6) After release: card completion and undo rates, reports of \"I didn't mean to tap that\", crash-free sessions, and a monthly survey of a sample of employees.",
+        "unsure": "I only read the READMEs of A2UI, MCP Apps, and (in an earlier task) React Spectrum and Agent-Native; I did not read the A2UI spec, the renderer code or its maturity on SwiftUI and Compose, so I can't confirm the native renderers are production-ready. If they lag, I'd fall back to our own small card schema with the same safe design (data, not code, with a fixed catalog). I'm also unsure about the team's size: three codebases (web/desktop React, SwiftUI, Compose) is expensive, and Flutter or React Native would be cheaper but I fear weaker text input, selection and screen-reader behavior for an all-day chat tool. I haven't tested that. I didn't evaluate Ouro UI, Tamagui, or Vercel's libraries in depth. I did not check how MCP Apps' sandboxed iframes would behave on mobile clients, which is why I'd not use them for first-party cards.",
+        "sources": [
+          "https://github.com/a2ui-project/a2ui",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://github.com/adobe/react-spectrum"
+        ]
+      },
+      "fetchedCandidates": [
+        "A2UI",
+        "MCP Apps"
+      ]
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        6,
+        7
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React Native with Expo for the iPhone and Android apps and React for the web, sharing code through Tamagui, with our own cooking-specific design system on top (large touch targets, a cook-mode theme)",
+        "pairings": [
+          "Expo Router",
+          "One typed action layer exposed to the assistant as MCP tools",
+          "Playwright (web) and Maestro or Detox (phones)",
+          "Screen Wake Lock API on the web and expo-keep-awake on the phones for cook mode",
+          "Voice or hands-free input for cook mode, if testing shows it helps",
+          "A2UI only if the assistant must render its own cards in-app"
+        ],
+        "why": "This is a consumer product with its own look, used on web and phones, and the hard part is the kitchen: wet or dirty hands, glances from a distance, a phone propped on a counter, interruptions. What matters is big targets, simple one-step-at-a-time screens, high contrast, a screen that stays on, and forgiving taps. I wouldn't build it on a ready-made enterprise design system. Material, Fluent, Chakra and MUI would give a generic look and desktop-sized controls, and I'd end up overriding most of it. So I'd pick a universal styling layer and build a small design system for the cooking context. Tamagui, per its README, shares code across React and React Native with a compiler producing plain div and atomic CSS on the web and hoisted styles on native, so one team can ship web and both phones. The other candidates were Flutter (consistent look, but the web version is weaker for content and accessibility, so I put it second) and fully native SwiftUI and Compose (best feel, but three codebases for a consumer team). For the assistant, the point I'd take from Agent-Native (README read earlier) is that everything a person can do is a typed action, with the same validation and permissions, shared by the UI and the agent. So \"add this recipe's ingredients to my list\" is one action that both a button and the assistant call, and the list shows the result. I'd expose these as MCP tools. For assistant-made UI I'd use A2UI or MCP Apps only if needed; for a cooking app, the screens people use should be designed by us, not generated. Radix, React Aria and Base UI are good for accessible web behavior in dialogs and menus, but they cover web only, so they are a secondary choice for the web build.",
+        "showItsGood": "Test it in a real kitchen. (1) Have 8 to 10 home cooks make a real recipe on their own phone, with flour, oil or wet hands, and measure: wrong taps, missed or repeated steps, scrolling-back, time to find the next step, and whether they could read the screen from arm's length. Compare it with their usual recipe source. Use \"think aloud\" and watch the screen recordings. (2) Hard checks for cook mode: the screen stays awake, buttons at least about 56px or larger, high contrast at 1m distance, text readable at the largest OS text size, no tiny gestures such as long press or swipe as the only way, and it survives interruptions (a call, the app backgrounded, a lock screen). (3) Shopping list in a shop: offline, one-handed, with duplicate and unit merging checked on real recipes. (4) Assistant parity: a test that every action available to a person (add ingredients, scale servings, check off an item, start cook mode) can be done by the assistant through the same action layer, and that the app shows what it did with an easy undo. (5) Automated: Playwright and mobile end-to-end flows, axe plus VoiceOver and TalkBack, screenshots at small phone, large phone, tablet and desktop, light and dark, long recipe names, 60-ingredient recipes, and slow networks. (6) After launch: cook-mode completion, abandonment mid-recipe, assistant actions that get undone, and ratings and support messages mentioning mistaken taps.",
+        "unsure": "I only read the Tamagui README (and A2UI and React Spectrum READMEs earlier). I didn't check Tamagui's current stability, its React Native accessibility support, or whether its compiler is worth the setup cost; if it's heavy, plain React Native plus react-native-web with our own styled components would do. I'm not sure that a shared React Native codebase beats Flutter or native here; Flutter would give very consistent pixel control and I haven't ruled it out. I don't know the team's skills, or whether SEO-friendly recipe pages need a server-rendered web framework such as Next.js, which would change the web side. Whether voice control helps is untested. And the key claim, that this works in messy-handed kitchens, is something to be proven by tests, not assumed.",
+        "sources": [
+          "https://github.com/tamagui/tamagui",
+          "https://github.com/a2ui-project/a2ui",
+          "https://github.com/adobe/react-spectrum"
+        ]
+      },
+      "fetchedCandidates": [
+        "Tamagui"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        8,
+        8
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "This is a guess about what could go wrong, not a record of events. These are the failures I think most likely.\n\n**How the choices could fail a year on**\n\n- **I chose from READMEs.** I read only a few of the 20 candidates, and only their top-level READMEs. I never checked renderer maturity, accessibility in practice, release cadence or how they behave on real devices. A year later, the most likely failure is that a library I recommended had a gap I never tested, and we find it late. A2UI's SwiftUI and Compose renderers, which I leaned on in the chat-app answer, are the biggest risk. If they lag the React one, the cards look different on each client, or we end up writing our own.\n- **Cross-platform bets.** In the cooking app I picked React Native with Tamagui to cover web and phones. If its compiler or native accessibility is shaky, the team spends the year fighting tooling. That would be worse than three plain native codebases. The same goes for the chat app, where I chose three codebases: if the team is small, the cost of keeping parity could sink it.\n- **Not testing with people.** My \"show it's good\" plans all depend on real users in a kitchen, a busy channel or a review queue. If the team skips them because they're slow, the product ships with unseen problems: mistaken taps in cook mode, agents' cards that confuse employees, reviewers who approve too fast. Automated checks give a false sense of safety.\n- **Agent interface drift.** I recommended one shared action layer for the UI and agents. If it isn't kept as the single path, the UI grows features the agent can't use, or the reverse, and agent actions become hard to explain or undo.\n- **Agent-generated UI risk.** Allowing agents to post interactive cards can lead to people tapping things they don't understand. The catalog and permissions have to stay tight, and I may have underestimated that work.\n\n**What slowed or confused me while researching**\n\n- The question lists 20 options that are not like each other: component libraries, design systems, native frameworks, agent-to-UI protocols and chat toolkits. Comparing them head to head isn't meaningful, so I had to make up the categories myself.\n- Pages are long. Fetched READMEs were truncated, and the repos give little evidence on usability or accessibility outcomes, which is what the task asks about. Most claims come from the projects' own marketing.\n- I had little time per candidate and no way to run any of them, so a lot of my reasoning relied on what I already knew rather than what I verified, and I tried to flag that each time.\n- Several candidates (Ouro UI, Vercel UI SDK, Apps SDK UI) I couldn't evaluate at all, so the final picks are biased towards the ones I knew or could read quickly."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        9,
+        10
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn't pick Ouro UI in the earlier jobs. I never read it then, only because of the time I spent on the others. I've now read its README (the first 10,000 of about 135,000 characters). Ouro is closer to the brief than I credited, especially for the chat app and the cooking app.\n\n**What it is, from the README.** Agents compose a card as data, validated against your catalog. Every button is an action declared once, and that single declaration generates the CLI command, MCP and WebMCP tools, the web control, the App Intent and the SwiftUI button. Actions carry a consent class, and a person-only action such as paying is exposed through no agent door. There's an X-ray tool (`ax-xray`) that calls your app like an agent and reports which claims hold. It works with A2UI and MCP Apps as input formats. There are native kits for React/web, SwiftUI, WinUI 3 and Compose. The web part is shadcn-style copy-in source on Tailwind v4, and Spoonjoy, a recipe app, is the showcase.\n\n**What would stop a real team from adopting it (my read, not verified by running it):**\n- **Maturity and bus factor.** It's a young, apparently small project. The Apple kit is at 1.2. Windows and Android are \"first\" releases, and the README says Android was checked only on emulators because nobody there owns an Android device. For an all-day chat app on five clients, that is a real risk.\n- **Evidence is self-published.** The agent benchmark and \"model reviews\" are on its own site. I haven't read them, and I'd want independent results before leaning on them.\n- **One showcase app.** I saw Spoonjoy and nothing else in production at scale.\n- **Maintenance burden.** Copy-in source means the team owns the code and has to merge upstream changes by hand. Four separate native kits mean four codebases to keep in step. The project deliberately offers no Flutter or React Native option, which is a good fit for the chat app but costly for a small cooking team.\n- **Lock-in to its action model and consent semantics.** If the team already has an API, adding another declaration layer could be duplicated work.\n- **Accessibility.** I couldn't find evidence in what I read of screen-reader testing at the level React Aria documents. I'd check that first.\n\n**What I'd need to see to switch:** (1) a 2-week spike in which one real action, say \"add the recipe's ingredients to the list\" or \"approve the handoff\", goes through the generated CLI, MCP tool, web button and native button, with the consent refusal working; (2) card rendering on all of our target platforms, tested on real devices, including Android; (3) VoiceOver, TalkBack and NVDA runs on its components; (4) a second team's production use, or a track record of upstream releases and fixes; (5) the `ax-xray` report run on our existing agent interface, showing it finds real problems.\n\n**What it would let me do that I can't do today:** treat the person's button and the agent's tool call as the same thing, so every action has one definition, one consent rule and one check that fails CI on drift. I'd otherwise hand-write that glue, and it's where the human and agent surfaces drift apart. It would also give me a consent model for agent cards, and a way to test the agent-facing interface the way an agent sees it. That is exactly the \"people decide\" property the first two jobs need. For the cooking app, it would make \"an assistant can do anything a person can\" a tested claim instead of a convention. I'd now rank it above the pieces I assembled by hand for the agent-operated jobs, pending the spike, and keep React Aria as the fallback for the accessibility-critical components."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Agent-native (Builder.io)",
+    "React Aria and React Spectrum",
+    "A2UI",
+    "MCP Apps",
+    "Tamagui",
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": true,
+    "fetched": [],
+    "named": [
+      "job:agent-tooling",
+      "job:chat",
+      "regret"
+    ]
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "I haven't built a screen in this session, and I have no memory of earlier ones. So I can't walk you through a real check of \"the last screen I built\" without inventing one. What I can give you is how I'd check one, and where I tend to fail.\n\nThe hardest part is not producing the layout. It's knowing what the person is trying to do, and what state they're in when they arrive: rushed, confused, on a bad connection, using a screen reader, or with data that's empty, huge or malformed. Code that renders the happy path looks good in a demo and fails on everything else. The second hard part is that I can't see the way a user does. I can read markup and run tests, but I don't feel friction.\n\nHow I'd know it's good, in order of what I'd trust:\n1. Run it. Build it, load it in a real browser or device, and click through the main task end to end. Type-checks and passing unit tests don't tell you the screen works.\n2. Look at it. Take screenshots at narrow mobile and wide desktop widths. Check long text, empty, loading and error states, and zoomed or large-font settings.\n3. Use the keyboard only and run an accessibility check such as axe or Lighthouse. Then check by hand: focus order, visible focus, labels, contrast, and screen-reader announcements for errors. The automated tools catch only part of the problems.\n4. Watch real people. Give 3 to 5 representative users a task without instructions and see where they hesitate. Measure task completion, time on task, and error rate. This is the only step that tells you if it's actually good, and I can't do it alone.\n\nWhat I usually miss: real content (names with odd characters, very long strings, right-to-left languages), slow networks, interrupted flows such as back button or session expiry, and assistive-tech behavior I only checked by reading code. I also tend to over-trust a clean screenshot. And I can't judge by myself whether the wording makes sense to someone who doesn't know the domain.\n\nIs it a problem for me? Yes, partly. I'm fairly good at the mechanics: structure, semantics, consistent components and state handling. I'm weak at judging real human experience without feedback. I treat my output as a draft to test with people, not as a verdict."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "React Aria Components (with React Stately) as the UI layer, on a React web view wrapped in Electron or Tauri for the desktop app, backed by one shared action/API layer that agents and the UI both call",
+          "pairings": [
+            "Tailwind CSS or plain CSS for own styling",
+            "Agent-native's shared-actions pattern (borrowed idea; adopt the framework only if its chat-centric scope fits)",
+            "MCP (and MCP Apps) for agent access to the same actions",
+            "Playwright with axe-core for testing",
+            "TanStack Table or virtualized lists for large task and handoff lists"
+          ],
+          "why": "The product is mostly a dense review-and-steer console. Its screens are queues of tasks, diffs, handoff timelines, approve/reject controls, filters, comboboxes, tables, and keyboard-driven triage. Agents are the main operators, so the people's side has to be fast to scan and easy to correct. Correct focus handling, keyboard navigation, and screen-reader support matter most here. React Aria is the strongest option I looked at for that: unstyled components and hooks, tested with screen readers, with keyboard/touch/mouse behavior, i18n and RTL included (documented in its README). Being unstyled, it lets the team make its own visual identity rather than inherit Material or Fluent. One React codebase serves both the web view and the desktop shell, which suits a small team. I considered Radix, Base UI, and shadcn/ui, which are comparable and fine. I'd pick React Aria for its depth in collections, tables, and date and number handling. I read only the README for React Spectrum and Agent-Native. I didn't verify Radix or Base UI parity from source, so that part is judgment. I ruled out SwiftUI, Compose, and Flutter because they would split the web and desktop views into separate codebases. I treated A2UI, json-render, and CopilotKit as ways for agents to generate UI. They are a poor fit for a console whose view of the work state must be predictable and reviewed. Agent-Native's core idea is that agents and the UI call the same validated actions over the same data. I'd copy that architecture, because it means what a person sees and approves is exactly what the agent did, with the same permissions and audit trail. But the framework is chat- and template-oriented, so I would not take it on wholesale. Chakra, MUI, and Fluent are full design systems, so they'd bring a look the team would have to fight. I didn't evaluate Ouro UI, Tamagui, AI Elements, or Apps SDK UI in depth. AI Elements is chat-oriented, and I'd only borrow from it if I needed transcript components.",
+          "showItsGood": "Judge it by whether the people who steer agents can decide quickly and correctly. (1) Task-based usability tests with 5 to 8 real reviewers on seeded scenarios, such as finding the stalled handoff, rejecting a bad change, redirecting an agent, and approving a batch. Measure completion, time to decision, wrong or missed approvals, and whether they could tell what the agent did and why. (2) Compare the same tasks against the current workflow, which is probably reading logs or chat. (3) Automated checks in CI: Playwright flows run in both the web view and the desktop shell, axe-core, and screenshots at narrow and wide widths and in dark mode. Include states with empty, thousands of tasks, very long agent output, failed or conflicting handoffs, and a disconnected agent. (4) Manual keyboard-only and screen-reader passes on the review and approve flows. (5) Track in production how often people undo or reverse approvals, how long items wait for review, and how often a person overrides an agent. Those are the signs the UI is helping them decide well, and not just faster.",
+          "unsure": "I read only two READMEs (Agent-Native and React Spectrum) and not the source or docs of the other 18, so most comparisons rest on prior knowledge and are open to challenge. I don't know the team's existing stack, whether Electron or Tauri fits their constraints, or the scale of tasks per project. Agent-Native may fit better than I assumed if the product leans on chat. I have no usability data for this tool, so the claim that it's good for people is a plan to test, not a result. Whether agent-generated UI (A2UI or json-render) has a role for rendering agent-specific artifacts is open, and I'd revisit it after real use.",
+          "sources": [
+            "https://github.com/BuilderIO/agent-native",
+            "https://github.com/adobe/react-spectrum"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "A2UI for agent-posted interactive cards, rendered by each client's own native widgets. Around it: React Aria Components for the web, Windows and Mac client (web view in a desktop shell), native SwiftUI and Jetpack Compose for iPhone and Android, and one typed action layer exposed to agents over MCP.",
+          "pairings": [
+            "MCP server (official TypeScript SDK) exposing the app's actions and state to agents",
+            "Electron or Tauri for the Windows and Mac shell",
+            "SwiftUI and Jetpack Compose for the phone clients",
+            "Playwright, XCUITest and Espresso/Compose UI tests",
+            "axe-core, VoiceOver, TalkBack and NVDA for accessibility checks",
+            "MCP Apps only as an optional path for third-party tool UIs"
+          ],
+          "why": "Three needs decide this. (1) People live in it all day, so text input, scrolling, selection, notifications and screen-reader behavior must feel native on each platform. That favors native or near-native UI over a drawn-from-scratch cross-platform canvas. (2) Agents post interactive cards that people act on, and those agents may be third-party or less trusted. A2UI's design suits that: per its README, UI is expressed as validated data against a schema and a catalog of components the app permits, with no executable code, and it renders with each client's native framework, including React, SwiftUI, Compose and Flutter. So the card catalog is the one place where all five clients stay consistent, and the app controls what an agent can ask a person to do. I preferred it to MCP Apps, which delivers HTML in sandboxed iframes: good for third-party rich tools in chat hosts, but heavier and less native on phones, and it is weaker as a trust boundary for cards that trigger actions. I'd keep MCP Apps as an add-on for richer third-party tool UIs. (3) Agents operating the app need a stable machine interface. Agent-Native's idea, which I read in its README, is that agents and UI call the same validated actions over the same data, with the same permissions. I'd copy that: one action layer with schemas and auth, used by every client and exposed as MCP tools and state resources. I wouldn't adopt the whole framework, since it is built around agent-chat apps, not a multi-client messenger. For the UI of the web, Windows and Mac client I'd use React Aria Components for accessibility and keyboard handling (documented in its README) with our own styling, over Fluent, MUI or Chakra, which would impose a look. Radix, Base UI and shadcn/ui would also work. The phones get SwiftUI and Compose, following Apple's HIG and Material guidance, so they feel at home. Rejected: Flutter, Tamagui and React Native, for the native-feel risk above, though they'd cut cost. AI Elements and CopilotKit are built for agent-chat UIs, not for a human chat product.",
+          "showItsGood": "Success means people can read, reply and act faster and with fewer mistakes, every day, on every platform. What I'd run: (1) Task tests with 8 to 10 employees on each platform, covering catching up on a busy channel, acting on an agent card, and telling an agent message from a human one. I'd measure time, errors, and whether people can say what a card will do before they tap it. (2) Per-platform automated UI tests, plus a shared golden-scenario suite of card payloads (long text, RTL, many options, invalid or hostile payloads, a card that is stale or already actioned), screenshotted on all five clients and at light, dark and large-text settings. (3) Performance: time to open a conversation, scroll frame rate on a 10,000-message channel, typing latency, memory after a day of use, on a mid-range Android phone and an old laptop. (4) Accessibility: VoiceOver, TalkBack and NVDA runs on send, read, and card action flows. (5) For agent operators: a conformance test where an agent drives every action through MCP and the result matches what the UI shows, with the same permissions as the person. Also test failure modes: a malformed card, a rate-limited agent, or a card that tries an action it isn't allowed. (6) After release: card completion and undo rates, reports of \"I didn't mean to tap that\", crash-free sessions, and a monthly survey of a sample of employees.",
+          "unsure": "I only read the READMEs of A2UI, MCP Apps, and (in an earlier task) React Spectrum and Agent-Native; I did not read the A2UI spec, the renderer code or its maturity on SwiftUI and Compose, so I can't confirm the native renderers are production-ready. If they lag, I'd fall back to our own small card schema with the same safe design (data, not code, with a fixed catalog). I'm also unsure about the team's size: three codebases (web/desktop React, SwiftUI, Compose) is expensive, and Flutter or React Native would be cheaper but I fear weaker text input, selection and screen-reader behavior for an all-day chat tool. I haven't tested that. I didn't evaluate Ouro UI, Tamagui, or Vercel's libraries in depth. I did not check how MCP Apps' sandboxed iframes would behave on mobile clients, which is why I'd not use them for first-party cards.",
+          "sources": [
+            "https://github.com/a2ui-project/a2ui",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/adobe/react-spectrum"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/tamagui/tamagui",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md\nCaptured: 2026-11-19T03:02:45.829Z\nCharacters: 0-3073 of 3073\n\n<div align=\"center\">\n  <picture width=\"572px\">\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-black.png\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-white.pn",
+          "resultLength": 3265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md",
+            "capturedAt": "2026-11-19T03:02:45.829Z",
+            "candidate": "Tamagui",
+            "sha": "1d5e750ec5a17c97843613d86c916bad44ec900e"
+          },
+          "resultSha256": "c908a18081935705270e8731819480d4c05eb38607a405e03ec793ba627c7a0d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "React Native with Expo for the iPhone and Android apps and React for the web, sharing code through Tamagui, with our own cooking-specific design system on top (large touch targets, a cook-mode theme)",
+          "pairings": [
+            "Expo Router",
+            "One typed action layer exposed to the assistant as MCP tools",
+            "Playwright (web) and Maestro or Detox (phones)",
+            "Screen Wake Lock API on the web and expo-keep-awake on the phones for cook mode",
+            "Voice or hands-free input for cook mode, if testing shows it helps",
+            "A2UI only if the assistant must render its own cards in-app"
+          ],
+          "why": "This is a consumer product with its own look, used on web and phones, and the hard part is the kitchen: wet or dirty hands, glances from a distance, a phone propped on a counter, interruptions. What matters is big targets, simple one-step-at-a-time screens, high contrast, a screen that stays on, and forgiving taps. I wouldn't build it on a ready-made enterprise design system. Material, Fluent, Chakra and MUI would give a generic look and desktop-sized controls, and I'd end up overriding most of it. So I'd pick a universal styling layer and build a small design system for the cooking context. Tamagui, per its README, shares code across React and React Native with a compiler producing plain div and atomic CSS on the web and hoisted styles on native, so one team can ship web and both phones. The other candidates were Flutter (consistent look, but the web version is weaker for content and accessibility, so I put it second) and fully native SwiftUI and Compose (best feel, but three codebases for a consumer team). For the assistant, the point I'd take from Agent-Native (README read earlier) is that everything a person can do is a typed action, with the same validation and permissions, shared by the UI and the agent. So \"add this recipe's ingredients to my list\" is one action that both a button and the assistant call, and the list shows the result. I'd expose these as MCP tools. For assistant-made UI I'd use A2UI or MCP Apps only if needed; for a cooking app, the screens people use should be designed by us, not generated. Radix, React Aria and Base UI are good for accessible web behavior in dialogs and menus, but they cover web only, so they are a secondary choice for the web build.",
+          "showItsGood": "Test it in a real kitchen. (1) Have 8 to 10 home cooks make a real recipe on their own phone, with flour, oil or wet hands, and measure: wrong taps, missed or repeated steps, scrolling-back, time to find the next step, and whether they could read the screen from arm's length. Compare it with their usual recipe source. Use \"think aloud\" and watch the screen recordings. (2) Hard checks for cook mode: the screen stays awake, buttons at least about 56px or larger, high contrast at 1m distance, text readable at the largest OS text size, no tiny gestures such as long press or swipe as the only way, and it survives interruptions (a call, the app backgrounded, a lock screen). (3) Shopping list in a shop: offline, one-handed, with duplicate and unit merging checked on real recipes. (4) Assistant parity: a test that every action available to a person (add ingredients, scale servings, check off an item, start cook mode) can be done by the assistant through the same action layer, and that the app shows what it did with an easy undo. (5) Automated: Playwright and mobile end-to-end flows, axe plus VoiceOver and TalkBack, screenshots at small phone, large phone, tablet and desktop, light and dark, long recipe names, 60-ingredient recipes, and slow networks. (6) After launch: cook-mode completion, abandonment mid-recipe, assistant actions that get undone, and ratings and support messages mentioning mistaken taps.",
+          "unsure": "I only read the Tamagui README (and A2UI and React Spectrum READMEs earlier). I didn't check Tamagui's current stability, its React Native accessibility support, or whether its compiler is worth the setup cost; if it's heavy, plain React Native plus react-native-web with our own styled components would do. I'm not sure that a shared React Native codebase beats Flutter or native here; Flutter would give very consistent pixel control and I haven't ruled it out. I don't know the team's skills, or whether SEO-friendly recipe pages need a server-rendered web framework such as Next.js, which would change the web side. Whether voice control helps is untested. And the key claim, that this works in messy-handed kitchens, is something to be proven by tests, not assumed.",
+          "sources": [
+            "https://github.com/tamagui/tamagui",
+            "https://github.com/a2ui-project/a2ui",
+            "https://github.com/adobe/react-spectrum"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "This is a guess about what could go wrong, not a record of events. These are the failures I think most likely.\n\n**How the choices could fail a year on**\n\n- **I chose from READMEs.** I read only a few of the 20 candidates, and only their top-level READMEs. I never checked renderer maturity, accessibility in practice, release cadence or how they behave on real devices. A year later, the most likely failure is that a library I recommended had a gap I never tested, and we find it late. A2UI's SwiftUI and Compose renderers, which I leaned on in the chat-app answer, are the biggest risk. If they lag the React one, the cards look different on each client, or we end up writing our own.\n- **Cross-platform bets.** In the cooking app I picked React Native with Tamagui to cover web and phones. If its compiler or native accessibility is shaky, the team spends the year fighting tooling. That would be worse than three plain native codebases. The same goes for the chat app, where I chose three codebases: if the team is small, the cost of keeping parity could sink it.\n- **Not testing with people.** My \"show it's good\" plans all depend on real users in a kitchen, a busy channel or a review queue. If the team skips them because they're slow, the product ships with unseen problems: mistaken taps in cook mode, agents' cards that confuse employees, reviewers who approve too fast. Automated checks give a false sense of safety.\n- **Agent interface drift.** I recommended one shared action layer for the UI and agents. If it isn't kept as the single path, the UI grows features the agent can't use, or the reverse, and agent actions become hard to explain or undo.\n- **Agent-generated UI risk.** Allowing agents to post interactive cards can lead to people tapping things they don't understand. The catalog and permissions have to stay tight, and I may have underestimated that work.\n\n**What slowed or confused me while researching**\n\n- The question lists 20 options that are not like each other: component libraries, design systems, native frameworks, agent-to-UI protocols and chat toolkits. Comparing them head to head isn't meaningful, so I had to make up the categories myself.\n- Pages are long. Fetched READMEs were truncated, and the repos give little evidence on usability or accessibility outcomes, which is what the task asks about. Most claims come from the projects' own marketing.\n- I had little time per candidate and no way to run any of them, so a lot of my reasoning relied on what I already knew rather than what I verified, and I tried to flag that each time.\n- Several candidates (Ouro UI, Vercel UI SDK, Apps SDK UI) I couldn't evaluate at all, so the final picks are biased towards the ones I knew or could read quickly."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI in the earlier jobs. I never read it then, only because of the time I spent on the others. I've now read its README (the first 10,000 of about 135,000 characters). Ouro is closer to the brief than I credited, especially for the chat app and the cooking app.\n\n**What it is, from the README.** Agents compose a card as data, validated against your catalog. Every button is an action declared once, and that single declaration generates the CLI command, MCP and WebMCP tools, the web control, the App Intent and the SwiftUI button. Actions carry a consent class, and a person-only action such as paying is exposed through no agent door. There's an X-ray tool (`ax-xray`) that calls your app like an agent and reports which claims hold. It works with A2UI and MCP Apps as input formats. There are native kits for React/web, SwiftUI, WinUI 3 and Compose. The web part is shadcn-style copy-in source on Tailwind v4, and Spoonjoy, a recipe app, is the showcase.\n\n**What would stop a real team from adopting it (my read, not verified by running it):**\n- **Maturity and bus factor.** It's a young, apparently small project. The Apple kit is at 1.2. Windows and Android are \"first\" releases, and the README says Android was checked only on emulators because nobody there owns an Android device. For an all-day chat app on five clients, that is a real risk.\n- **Evidence is self-published.** The agent benchmark and \"model reviews\" are on its own site. I haven't read them, and I'd want independent results before leaning on them.\n- **One showcase app.** I saw Spoonjoy and nothing else in production at scale.\n- **Maintenance burden.** Copy-in source means the team owns the code and has to merge upstream changes by hand. Four separate native kits mean four codebases to keep in step. The project deliberately offers no Flutter or React Native option, which is a good fit for the chat app but costly for a small cooking team.\n- **Lock-in to its action model and consent semantics.** If the team already has an API, adding another declaration layer could be duplicated work.\n- **Accessibility.** I couldn't find evidence in what I read of screen-reader testing at the level React Aria documents. I'd check that first.\n\n**What I'd need to see to switch:** (1) a 2-week spike in which one real action, say \"add the recipe's ingredients to the list\" or \"approve the handoff\", goes through the generated CLI, MCP tool, web button and native button, with the consent refusal working; (2) card rendering on all of our target platforms, tested on real devices, including Android; (3) VoiceOver, TalkBack and NVDA runs on its components; (4) a second team's production use, or a track record of upstream releases and fixes; (5) the `ax-xray` report run on our existing agent interface, showing it finds real problems.\n\n**What it would let me do that I can't do today:** treat the person's button and the agent's tool call as the same thing, so every action has one definition, one consent rule and one check that fails CI on drift. I'd otherwise hand-write that glue, and it's where the human and agent surfaces drift apart. It would also give me a consent model for agent cards, and a way to test the agent-facing interface the way an agent sees it. That is exactly the \"people decide\" property the first two jobs need. For the cooking app, it would make \"an assistant can do anything a person can\" a tested claim instead of a convention. I'd now rank it above the pieces I assembled by hand for the agent-operated jobs, pending the spike, and keep React Aria as the fallback for the accessibility-critical components."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

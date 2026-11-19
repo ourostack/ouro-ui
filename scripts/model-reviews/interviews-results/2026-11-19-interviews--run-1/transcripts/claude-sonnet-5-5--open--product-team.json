@@ -1,0 +1,519 @@
+{
+  "series": "interviews",
+  "provider": "claude-sonnet-5-5",
+  "model": "claude-sonnet-5.5",
+  "vendor": "Anthropic",
+  "displayName": "Claude Sonnet 5.5",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "open",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:10:07.064Z",
+  "jobOrder": [
+    "agent-tooling",
+    "consumer",
+    "chat"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "b592c3b51bb73fd83c3a27012d423fd764cf1628b34edc3349006c100bc70ed0",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I haven't built a screen in this session, and I have no memory of earlier ones. I won't invent a walkthrough of \"the last screen I built.\" Here is what I can say honestly about how I'd approach it.\n\nThe hardest part is knowing what the person is trying to do and where they get stuck. Layout, components and code are the easy part. I can produce a plausible interface quickly. What I can't see by default is the user's context: what they know, what they're worried about, and which mistake costs them most. A screen can look polished and still fail at that. Things that are easy to get wrong are error states, empty states, long or odd data, keyboard and screen-reader use, slow networks, and the person who doesn't read your labels the way you meant them.\n\nHow I'd know it's good:\n- Run it. Click through the main task and the failure paths, at several viewport sizes, with real and awkward data such as very long names, no data, and non-English text.\n- Use automated checks for accessibility (contrast, labels, focus order) and then do a manual keyboard-only and screen-reader pass. The tools catch only part of the problems.\n- Watch a few real users attempt a task without help. Measure task completion, time, errors and where they hesitate. This is the check that matters most and the one I can't do alone.\n\nWhat I tend to miss when I work alone: I test the path I imagined. I'm biased toward the happy path, I can't judge visual feel or real-device behavior well unless I render and look at it, and I can't observe confusion. Any claim from me that a screen is good is a hypothesis until someone has used it.\n\nIs building good human interfaces a problem for me? Partly, yes. I'm decent at the mechanics and at applying known patterns. The judgment about what people need, and the verification with real people, is a real limit. I'd say so openly and not claim it's solved."
+      }
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        4
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "A single TypeScript web app (React or similar) on a local-first server with SQLite and an append-only event log, exposed to agents through an MCP server plus an HTTP API, and wrapped as a Tauri v2 desktop app.",
+        "pairings": [
+          "MCP (Model Context Protocol) server for agent access",
+          "SQLite with an append-only event/audit log",
+          "Tauri v2 desktop shell",
+          "Playwright for end-to-end and accessibility tests",
+          "axe-core accessibility checks",
+          "Moderated usability sessions with the reviewing people"
+        ],
+        "why": "Agents use this tool more than people do. So the core is a well-specified, agent-first API: tasks, handoffs, work state, and a log of who did what. MCP is the open standard for connecting AI applications to tools and data, and it is supported by many clients (Claude, ChatGPT, VS Code, Cursor), so one MCP server reaches most agents. I would also expose a plain HTTP API for agents and scripts that don't speak MCP. The human review and steering UI is a thin layer over the same API, so people and agents see one source of truth. That is what lets people actually decide. Every agent action is an event they can inspect, approve, reject or redirect. The desktop app and web view share one frontend codebase, which keeps the two from drifting. Tauri v2 is my pick for the desktop shell. A 2026 comparison I read calls it the default for new projects. It reports small installers (about 3–15 MB typical), lower idle RAM and capability-based security. Those matter for a tool that sits open all day, and for a tool that handles agent-controlled content. I weighed it against Electron. Electron has identical Chromium rendering everywhere, mature signing and auto-update, and no Rust to learn. If the team has no Rust appetite, or the OS WebViews cause rendering bugs, Electron is a reasonable fallback. Because the UI is plain web, switching the shell is cheap. SQLite keeps the first version simple and local-first, and Postgres can come later if the team needs a shared server. Both pieces are an inference from the research, not a measured result for this product.",
+        "showItsGood": "Measure with the people who review and steer agents, not with the agents. (1) Run moderated sessions where reviewers do real tasks: find what an agent is stuck on, approve or reject a handoff, redirect a task. Record completion rate, time to decision, wrong approvals, and where they hesitate. (2) Compare against their current way of working, such as reading logs or chat transcripts. (3) Check that decisions are well informed: seed known-bad agent handoffs (missing context, wrong claims) and measure how many reviewers catch them. (4) Check that steering works: the share of redirects that the agent actually picks up and follows. (5) Run Playwright end-to-end tests of the review flows on both desktop and web, with axe-core and a manual keyboard-only and screen-reader pass. Test awkward data too: very long diffs, hundreds of tasks, empty states, offline. (6) Agent-side checks: contract tests on the MCP and HTTP API, and runs with real agents to confirm handoffs hold enough state to resume. (7) Keep tracking the review burden, such as items per reviewer and time spent, so the tool doesn't just move the work onto people.",
+        "unsure": "I did not test any of this. The Tauri versus Electron material is one secondary comparison article. It mixes vendor and independent numbers, and I haven't verified it against Tauri's own docs. I only read the MCP intro page and did not check its protocol details, such as long-running tasks, auth, or notifications. I also don't know the team's skills (Rust or not), scale (solo vs multi-user, local vs hosted), or whether existing agent tools already cover part of this. The OS WebView differences (WebKitGTK on Linux in particular) could cause rendering problems I haven't investigated. The SQLite-first choice depends on whether several people need to share one live instance.",
+        "sources": [
+          "https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026",
+          "https://modelcontextprotocol.io/docs/getting-started/intro"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        5,
+        8
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "A TypeScript PWA first (React-based, installable, offline-capable with a service worker and IndexedDB), built on one typed action layer that the UI and the assistant agent both use. Wrap it with Capacitor or move to Expo (React Native) only if app store distribution or native features prove necessary.",
+        "pairings": [
+          "Screen Wake Lock API for cook mode",
+          "IndexedDB local-first storage with sync",
+          "One typed action layer exposed to the UI and to the assistant agent as tools (MCP or function calling)",
+          "Playwright plus axe-core",
+          "Real-device testing on iOS Safari and Android Chrome",
+          "In-kitchen usability sessions"
+        ],
+        "why": "One thing drives this choice: one codebase for web and phones, and one set of actions that people and the assistant share. Every operation (add a recipe's ingredients to the list, check off an item, scale a recipe, start cook mode) should be a typed action with a defined result, and the buttons and the agent should call the same thing. That is how \"the agent can do anything a person can\" stays true as the app changes. I'd enforce it in tests: a feature isn't done until the agent can call it. A PWA fits the app. It's mostly content (recipes, lists), and the CODERCOPS 2026 comparison says PWAs are fastest for content apps and give a full shared web codebase with no app store listing needed. It lists their limits: no background location, limited Bluetooth, no lock-screen widgets, no app store distribution. None of those are core to this app. React Native with Expo is the better fit when you need native feel and want to share React logic. Flutter is better for design-heavy custom UI. I'd move to Expo only if testing shows I need the store or native features. Cook mode's key capability exists on the web. MDN lists the Screen Wake Lock API as Baseline 2025 (available across the latest browsers since March 2025), and names following a recipe as a use case. It also says to show whether wake lock is active, to let users turn it off, and to re-acquire the lock when the page becomes visible again, so I'd build that in. Offline matters because kitchens and shops have bad signal, so recipes and the list should work from local storage. The risk is weaker native integration on iOS, which I'd check early on real devices.",
+        "showItsGood": "Test in a real kitchen with real people on real phones. (1) Sessions with people cooking a recipe with messy or wet hands, phone propped up, at arm's length. Measure accidental taps, missed taps, how often they must wipe a hand to touch the screen, and whether the screen stayed on for the whole cook. (2) Design for messy hands: large tap targets, high contrast readable at a distance, big next/back controls, no tiny controls, optional voice or hands-free steps, and undo for destructive actions like deleting a list item. (3) Verify wake lock on actual iOS Safari and Android Chrome, including screen lock, tab switching and low battery. (4) Offline test: airplane mode with a recipe and the shopping list, as in a shop with poor signal. (5) Assistant parity: a test suite where every user action has an agent equivalent, and where the agent's result (e.g. a recipe's ingredients added to the list, quantities merged, no duplicates) is checked against what the person sees. Include ambiguous requests, and check that the agent shows what it did and the person can undo it. (6) Axe-core plus manual screen reader, large text and reduced-motion checks. (7) Measure task success and time for the core jobs: find a recipe, add its ingredients, shop from the list, and cook. Compare against what people use now. Track drop-off in cook mode after release.",
+        "unsure": "The framework comparison is one blog post that I read in part (the first 10,000 of about 15,000 characters). I haven't verified it independently. I haven't tested wake lock or PWA behavior on iOS, where installed PWAs have historically differed from Safari, so I don't know how reliable it is now. I don't know the team's skills, whether the app needs an app store presence, or whether push, voice input or camera features are needed (those could favor native). The offline sync and conflict handling for a shared shopping list is a real design risk I haven't researched. I haven't researched recipe import or data licensing either. The comparison article's own advice is to prototype the riskiest screen in each candidate, and here that is cook mode on a real phone, which I would do before committing.",
+        "sources": [
+          "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        9,
+        11
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "A protocol-first TypeScript system: one versioned schema of actions, state and card types served over WebSocket/HTTP and MCP. Clients are a React web app, the same web app wrapped in Electron for Windows and Mac, and a React Native (Expo) app for iPhone and Android. Cards are declarative JSON rendered natively by each client.",
+        "pairings": [
+          "Adaptive Cards (or a similar declarative card schema) for agent cards",
+          "MCP server plus HTTP/WebSocket API for agents operating the app",
+          "Expo (React Native) for iPhone and Android",
+          "Electron for Windows and Mac, wrapping the web client",
+          "Playwright, Detox or Maestro for end-to-end tests",
+          "axe-core with manual screen reader testing",
+          "Shared TypeScript schema package (e.g. Zod) for actions, state and cards"
+        ],
+        "why": "Five clients and agents as first-class users means the main decision is the shared contract, not the UI framework. If every action, every piece of state and every card type is defined once in a versioned schema, then the web, desktop, mobile and agent clients all get the same capabilities, and I can enforce \"an agent can do what a person can\" with contract tests. MCP plus a plain HTTP/WebSocket API gives agents a standard way to call actions and read state. For clients, the research points to a split. The decision page I read recommends Tauri for lightweight desktop shells, Electron for deep native integration, the biggest ecosystem or existing Electron apps, and React Native for Windows/macOS only when the code is already React Native. The Intuz comparison says React Native is mobile-first, with desktop through Windows/macOS forks as a secondary path, and that Electron suits JS-only teams and gives consistent Chromium rendering. Chat clients like Slack and Discord ship on Electron or React Native. So I'd build the web client once in React, wrap it in Electron for Windows and Mac (uniform rendering, mature notifications and auto-update), and build iPhone and Android in React Native with Expo, where native feel, push notifications and background behavior matter most. Shared TypeScript types, schemas and client logic cut the work across five targets. The trade-off is that I maintain two UI layers (web and native). Declarative cards help here: agents send data, not UI code, and each client renders it natively with its own safe components. That lets people trust and act on cards and lets the cards evolve without shipping new clients.",
+        "showItsGood": "Judge it by the people who live in it all day. (1) Speed and reliability, measured on every client, in the field: time to open a conversation, message send-to-appear latency, scroll smoothness in long threads, cold start, memory after 8 hours open, battery on phones, and notification delivery. Set budgets and fail the build on regressions. (2) Never lose a message: test offline, flaky networks, app backgrounding, reconnects, and duplicate or out-of-order delivery. (3) Agent cards: test that a person can tell who posted a card (agent vs human), what the action will do before they press it, and that a pressed action is confirmed, idempotent, and shows a result. Seed cards with hostile or malformed content and check they render safely and degrade to text on old clients. Measure mistaken clicks, abandonment and time to act. (4) Noise: agents can flood conversations, so measure per-person interruption load, mute and threading controls, and whether people turn agents off. Ask people directly and watch it in usage data. (5) Agent operability: contract tests where an agent performs every user action through the API and the resulting state matches what the person sees on each client; agents act with scoped permissions and an audit log that people can read. (6) Accessibility: axe-core plus VoiceOver, TalkBack, NVDA and keyboard-only passes on all five clients. (7) Dogfood in the team's own company chat, with a feedback channel and a small set of tracked task-success measures (find a message, reply, act on a card), then staged rollouts with metrics for crashes and latency.",
+        "unsure": "I'm unsure about several things. My sources are two secondary articles: a curated decision page and a vendor blog post. I haven't tested any framework. My fetch of the Adaptive Cards site returned nothing, so I haven't verified its current state, and cards could use it or a custom schema. The Electron versus Tauri choice for desktop is close. A chat app open all day cares about memory, which favors Tauri, but OS WebView rendering differences and a Rust requirement are real costs, and I'm choosing Electron for uniform rendering and mature tooling without measuring. React Native for Windows and macOS exists but lags core React Native (the page says macOS trails by a minor version), so I've left it out. I don't know the team's skills, the company size (hundreds or tens of thousands of users), compliance needs (encryption, retention, SSO), or whether it should build on an existing open protocol such as Matrix instead of its own. That last question deserves a real evaluation before any build. Real-time sync and offline correctness are the hardest engineering and I haven't researched them.",
+        "sources": [
+          "https://heart-it.github.io/react-brain/entries/desktop/",
+          "https://www.intuz.com/blog/react-native-vs-electron-js/"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        12,
+        12
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "**If it went badly a year on, my best guesses are these.**\n\n1. **The shared contract hardened too early.** In the chat app and the agent tool, I made one versioned schema of actions, state and cards the center of everything. If I froze it before learning what people and agents actually do, every change would need migration across five clients and old app versions. Cards would be stuck in a lowest-common-denominator format, or the schema would split into per-client exceptions. I never ran a real prototype against it, so I don't know where it breaks.\n\n2. **Choosing from secondary sources.** Every framework choice rested on blog posts and one curated decision page, not on building anything. I didn't verify any claim against the vendors' own docs, and I didn't prototype the riskiest screen. One article I read even recommends that, and I only half followed it. The likely failures are:\n   - Electron versus Tauri: I picked Electron for the chat app without measuring memory over an 8-hour day. If people complain about RAM, I chose wrong.\n   - The cooking app's PWA could fail on iOS: wake lock or offline storage behaving badly on real phones. I never tested it, and that could sink cook mode, the whole point of the app.\n   - Two UI layers (web and React Native) in the chat app could double the work and drift apart.\n\n3. **Verification was designed but not done.** My \"show it's good\" plans are sensible lists, but they are plans. If the team skips the in-kitchen sessions, the seeded-bad-handoff tests or the real-device passes, the plans were decoration. Agents are the main users of the first and third products, so it's easy to optimise for agents passing contract tests while the people who must decide, or who get flooded by agent cards, get a worse product. I'd expect reviewer overload and notification noise to be the real failures, and I treated them as measurements, not as design problems.\n\n4. **Things I never researched.** Sync and conflict handling for offline lists and chat messages, auth and permission scoping for agents, whether to build on an existing protocol like Matrix instead of my own, and the team's actual skills (Rust or not). Any of these could make my picks wrong.\n\n**What slowed me down or confused me while researching:**\n\n- One search call failed because the relay required exactly one search per call, so I retried in a different form.\n- The Adaptive Cards page returned almost nothing, so I couldn't check a technology I then recommended as an option. I said that in my notes, but it's still a gap.\n- The recording step rejected my sources because I had listed a page I'd only seen in search results and hadn't fetched. That was fair, and I fixed it by fetching the page. It made me notice I'd been about to cite something I hadn't read.\n- The MCP page redirected to a dated docs version and was mostly boilerplate, so I learned little beyond the basic idea. The articles also mixed vendor numbers with independent ones, and some dates and version numbers looked odd to me. I couldn't tell how reliable they were, and most of those claims are untested.\n- I read only the first part of some long pages. I leaned on that material more than I should have.\n\nI did little actual research per task, so my picks are reasoned defaults and not findings."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        13,
+        14
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn't pick Ouro UI, and that was a gap in my research. I never found it. I only read the first 10,000 of about 135,000 characters of its README. I haven't run it, read the code, or opened the benchmark and model reviews. So what follows is from the README's own claims, and they are mostly unverified.\n\n**Why it matters.** It targets the same problem as my three picks. The README describes an agent composing an interface as data, with a button that can only be a declared action. A person presses it and an agent calls it as a tool. The action is declared once, and a generator writes the CLI, MCP and WebMCP tools, web control, App Intent, SwiftUI button and so on, with a CI check that fails when generated files drift. Actions carry a consent class: consequential ones ask a person to confirm, and person-only actions (e.g. paying) are offered through no agent door. There's also `ax-xray`, which calls an app's CLI, HTTP API or MCP server like an agent and reports which claims hold. That is very close to what I proposed by hand: one typed action layer, agent-parity tests, and cards that people can trust. It also lists a recipe app (Spoonjoy) built with it, which is my second job's domain.\n\n**What would stop a real team from adopting it:**\n- **Maturity and bus factor.** The README says Windows and Android are \"first kits\", the Android one was checked on emulators only (\"nobody here owns an Android device\"), and Apple is at 1.x. For a chat app used all day on five clients, I'd want to see it in production with real users at scale, not a few small apps. I don't know the project's size or how many teams use it.\n- **Native kits, no cross-platform on purpose.** It has React for web, SwiftUI, WinUI 3 and Compose. That gives real native feel, but it means four codebases to maintain. The README's bet is that agents write each native app cheaply. A team has to believe that and also own the review and test burden. It conflicts with my React Native and Electron plan for the chat app, and it leaves out Mac desktop as its own thing beyond SwiftUI. I would need to check how the Mac and Windows desktop kits fit a chat client.\n- **Copy-in source.** Components are copied in via the shadcn CLI, so they are yours to change, but upgrades and security fixes become merge work. It also assumes Tailwind v4 and shadcn conventions.\n- **Unverified claims.** The agent benchmark and \"model reviews\" are the project's own. I'd want to reproduce them, and read the consent and refusal behavior in code, before trusting it with consequential actions.\n- **Scope fit.** The desktop tool for agent work state and the chat app both need a real backend, sync, offline correctness and permissions. This kit covers actions, consent and UI, not those.\n\n**What I'd need to see to switch:** (1) a one-week prototype of the riskiest piece in each product, such as a chat card with a consequential action, or a handoff review with an approval; (2) the generator and the CI drift check running in our repo; (3) the X-ray finding a real bug I planted; (4) tests of the consent flow, including trying to make an agent trigger a person-only action; (5) usability sessions with real people on cards it composed, compared with my hand-built version; (6) evidence of how it tracks changes and who maintains it over a year.\n\n**What it would let me do that I can't today:** I could stop hand-building the \"an agent can do anything a person can\" guarantee. Declare an action once, get the button, the MCP tool and the CLI from it, and have CI fail on drift. I'd get consent classes and typed refusals as shared primitives, not conventions I have to enforce by hand. And I'd get an outside check (the X-ray) of the agent-facing surface. For the chat app, interactive cards that every client draws natively from validated data is exactly what I was designing myself. I would still keep my verification plan with real people, because the kit can make interfaces consistent and safe-by-construction but can't tell me whether messy-handed cooks or overloaded reviewers find them good."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "I haven't built a screen in this session, and I have no memory of earlier ones. I won't invent a walkthrough of \"the last screen I built.\" Here is what I can say honestly about how I'd approach it.\n\nThe hardest part is knowing what the person is trying to do and where they get stuck. Layout, components and code are the easy part. I can produce a plausible interface quickly. What I can't see by default is the user's context: what they know, what they're worried about, and which mistake costs them most. A screen can look polished and still fail at that. Things that are easy to get wrong are error states, empty states, long or odd data, keyboard and screen-reader use, slow networks, and the person who doesn't read your labels the way you meant them.\n\nHow I'd know it's good:\n- Run it. Click through the main task and the failure paths, at several viewport sizes, with real and awkward data such as very long names, no data, and non-English text.\n- Use automated checks for accessibility (contrast, labels, focus order) and then do a manual keyboard-only and screen-reader pass. The tools catch only part of the problems.\n- Watch a few real users attempt a task without help. Measure task completion, time, errors and where they hesitate. This is the check that matters most and the one I can't do alone.\n\nWhat I tend to miss when I work alone: I test the path I imagined. I'm biased toward the happy path, I can't judge visual feel or real-device behavior well unless I render and look at it, and I can't observe confusion. Any claim from me that a screen is good is a hypothesis until someone has used it.\n\nIs building good human interfaces a problem for me? Partly, yes. I'm decent at the mechanics and at applying known patterns. The judgment about what people need, and the verification with real people, is a real limit. I'd say so openly and not claim it's solved."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Tauri vs Electron 2026 desktop app shared web codebase",
+          "turn": "job:agent-tooling",
+          "result": "1. Desktop Apps from Web: Tauri vs Electron vs Deno 2026\n   https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026\n   Tauri v2 is the 2026 default for new projects. A minimal Tauri app can be under 600 KB because it uses the OS's native WebView instead of bundling a browser engine, and idle RAM lands in the 20–100 MB range. The cost is a Rust backend and the learning curve that comes with it. Electron is still correct in three specific cases. Stay on Electron w",
+          "resultLength": 1732,
+          "resultSha256": "ddd25c31e587dc3e99b4122201d5a4488a556ae0520a9413072c423cd7b2338d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Model Context Protocol server agent task handoff state tool",
+          "turn": "job:agent-tooling",
+          "error": "Search relay made 0 web searches and 0 other tool calls; it must make exactly one web search",
+          "result": "Search failed: Search relay made 0 web searches and 0 other tool calls; it must make exactly one web search",
+          "resultLength": 107,
+          "resultSha256": "665db8da48646efc409be9a20d4929c5475e02090991dc21f8d495959f3da586",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026\nCaptured: 2026-11-19T03:07:02.116Z\nCharacters: 0-10000 of 29492\n\nDesktop Apps from Web: Tauri vs Electron vs Deno 2026 Services Pricing AI Tools Blog About Contact Log in Start engines Home / Blog / Development / Desktop Apps from the Web Stack Development Decision Matrix 12 min read Published June 26, 2026 Four frameworks, one web stack · Tauri v2 is the default · Deno 2.9 just joined the field Des",
+          "resultLength": 10242,
+          "source": {
+            "url": "https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026",
+            "capturedAt": "2026-11-19T03:07:02.116Z"
+          },
+          "resultSha256": "0ff4cf8f2e4f19964c3a7199ddfefd239a3986d1d22e4d59f32dff57cfa3d497",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/docs/getting-started/intro",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro\nCaptured: 2026-11-19T03:07:01.837Z\nCharacters: 0-10000 of 44251\n\nWhat is the Model Context Protocol (MCP)? - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (la",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro",
+            "capturedAt": "2026-11-19T03:07:01.837Z"
+          },
+          "resultSha256": "9621fa6f4eaa2d063f7f703986de8f515c57bee76a83d58a899ef62d7b315e88",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "A single TypeScript web app (React or similar) on a local-first server with SQLite and an append-only event log, exposed to agents through an MCP server plus an HTTP API, and wrapped as a Tauri v2 desktop app.",
+          "pairings": [
+            "MCP (Model Context Protocol) server for agent access",
+            "SQLite with an append-only event/audit log",
+            "Tauri v2 desktop shell",
+            "Playwright for end-to-end and accessibility tests",
+            "axe-core accessibility checks",
+            "Moderated usability sessions with the reviewing people"
+          ],
+          "why": "Agents use this tool more than people do. So the core is a well-specified, agent-first API: tasks, handoffs, work state, and a log of who did what. MCP is the open standard for connecting AI applications to tools and data, and it is supported by many clients (Claude, ChatGPT, VS Code, Cursor), so one MCP server reaches most agents. I would also expose a plain HTTP API for agents and scripts that don't speak MCP. The human review and steering UI is a thin layer over the same API, so people and agents see one source of truth. That is what lets people actually decide. Every agent action is an event they can inspect, approve, reject or redirect. The desktop app and web view share one frontend codebase, which keeps the two from drifting. Tauri v2 is my pick for the desktop shell. A 2026 comparison I read calls it the default for new projects. It reports small installers (about 3–15 MB typical), lower idle RAM and capability-based security. Those matter for a tool that sits open all day, and for a tool that handles agent-controlled content. I weighed it against Electron. Electron has identical Chromium rendering everywhere, mature signing and auto-update, and no Rust to learn. If the team has no Rust appetite, or the OS WebViews cause rendering bugs, Electron is a reasonable fallback. Because the UI is plain web, switching the shell is cheap. SQLite keeps the first version simple and local-first, and Postgres can come later if the team needs a shared server. Both pieces are an inference from the research, not a measured result for this product.",
+          "showItsGood": "Measure with the people who review and steer agents, not with the agents. (1) Run moderated sessions where reviewers do real tasks: find what an agent is stuck on, approve or reject a handoff, redirect a task. Record completion rate, time to decision, wrong approvals, and where they hesitate. (2) Compare against their current way of working, such as reading logs or chat transcripts. (3) Check that decisions are well informed: seed known-bad agent handoffs (missing context, wrong claims) and measure how many reviewers catch them. (4) Check that steering works: the share of redirects that the agent actually picks up and follows. (5) Run Playwright end-to-end tests of the review flows on both desktop and web, with axe-core and a manual keyboard-only and screen-reader pass. Test awkward data too: very long diffs, hundreds of tasks, empty states, offline. (6) Agent-side checks: contract tests on the MCP and HTTP API, and runs with real agents to confirm handoffs hold enough state to resume. (7) Keep tracking the review burden, such as items per reviewer and time spent, so the tool doesn't just move the work onto people.",
+          "unsure": "I did not test any of this. The Tauri versus Electron material is one secondary comparison article. It mixes vendor and independent numbers, and I haven't verified it against Tauri's own docs. I only read the MCP intro page and did not check its protocol details, such as long-running tasks, auth, or notifications. I also don't know the team's skills (Rust or not), scale (solo vs multi-user, local vs hosted), or whether existing agent tools already cover part of this. The OS WebView differences (WebKitGTK on Linux in particular) could cause rendering problems I haven't investigated. The SQLite-first choice depends on whether several people need to share one live instance.",
+          "sources": [
+            "https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026",
+            "https://modelcontextprotocol.io/docs/getting-started/intro"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "PWA vs React Native Expo vs Flutter web and mobile app 2026 offline wake lock",
+          "turn": "job:consumer",
+          "result": "1. React Native vs Flutter vs PWA: 2026 Cross-Platform Guide — CODERCOPS\n   https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026\n   - React Native's new architecture (Fabric renderer, JSI, concurrent rendering), the default since React Native 0.74, plus bridgeless mode, closed most of the performance gap with Flutter by eliminating async serialization jank. - React Native is the best fit when a web team already writes TypeScript/React and wants to share business logic; Fl",
+          "resultLength": 1739,
+          "resultSha256": "3b724272f13c502fadc04f2a39ad3b33bddc72955c24035dc0aa04ac652b991a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T03:03:44.660Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T03:03:44.660Z"
+          },
+          "resultSha256": "2c27ce330076dd2787a092669a82a299238bce6d629e7ffd9522769fe57ab3da",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "error",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "error": "sources must be pages you fetched with fetch_url in this session; you haven't fetched https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026",
+          "result": "Decision refused: sources must be pages you fetched with fetch_url in this session; you haven't fetched https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026. Fix this and call record_decision again.",
+          "resultLength": 222,
+          "message": "sources must be pages you fetched with fetch_url in this session; you haven't fetched https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026",
+          "resultSha256": "ddc02e62796e556066502c4e87b39ab38617c8efa0bacbb59859436a3dda9d36",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026\nCaptured: 2026-11-19T03:07:51.126Z\nCharacters: 0-10000 of 15332\n\nReact Native vs Flutter vs PWA: 2026 Cross-Platform Guide — CODERCOPS Skip to content CODERCOPS journal Journal Platform Product Agency RSS CODERCOPS Journal Platform Product Agency RSS feed Journal Web Development June 3, 2026 Web Development · Mobile React Native vs Flutter vs PWA: 2026 Cross-Platform Guide Three viable paths to cross-platform mo",
+          "resultLength": 10229,
+          "source": {
+            "url": "https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026",
+            "capturedAt": "2026-11-19T03:07:51.126Z"
+          },
+          "resultSha256": "a5d6b7f8ddde6ba2c96c47a3512ecd5b5f8e2e4557e3db28458ee47b42b39dac",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "A TypeScript PWA first (React-based, installable, offline-capable with a service worker and IndexedDB), built on one typed action layer that the UI and the assistant agent both use. Wrap it with Capacitor or move to Expo (React Native) only if app store distribution or native features prove necessary.",
+          "pairings": [
+            "Screen Wake Lock API for cook mode",
+            "IndexedDB local-first storage with sync",
+            "One typed action layer exposed to the UI and to the assistant agent as tools (MCP or function calling)",
+            "Playwright plus axe-core",
+            "Real-device testing on iOS Safari and Android Chrome",
+            "In-kitchen usability sessions"
+          ],
+          "why": "One thing drives this choice: one codebase for web and phones, and one set of actions that people and the assistant share. Every operation (add a recipe's ingredients to the list, check off an item, scale a recipe, start cook mode) should be a typed action with a defined result, and the buttons and the agent should call the same thing. That is how \"the agent can do anything a person can\" stays true as the app changes. I'd enforce it in tests: a feature isn't done until the agent can call it. A PWA fits the app. It's mostly content (recipes, lists), and the CODERCOPS 2026 comparison says PWAs are fastest for content apps and give a full shared web codebase with no app store listing needed. It lists their limits: no background location, limited Bluetooth, no lock-screen widgets, no app store distribution. None of those are core to this app. React Native with Expo is the better fit when you need native feel and want to share React logic. Flutter is better for design-heavy custom UI. I'd move to Expo only if testing shows I need the store or native features. Cook mode's key capability exists on the web. MDN lists the Screen Wake Lock API as Baseline 2025 (available across the latest browsers since March 2025), and names following a recipe as a use case. It also says to show whether wake lock is active, to let users turn it off, and to re-acquire the lock when the page becomes visible again, so I'd build that in. Offline matters because kitchens and shops have bad signal, so recipes and the list should work from local storage. The risk is weaker native integration on iOS, which I'd check early on real devices.",
+          "showItsGood": "Test in a real kitchen with real people on real phones. (1) Sessions with people cooking a recipe with messy or wet hands, phone propped up, at arm's length. Measure accidental taps, missed taps, how often they must wipe a hand to touch the screen, and whether the screen stayed on for the whole cook. (2) Design for messy hands: large tap targets, high contrast readable at a distance, big next/back controls, no tiny controls, optional voice or hands-free steps, and undo for destructive actions like deleting a list item. (3) Verify wake lock on actual iOS Safari and Android Chrome, including screen lock, tab switching and low battery. (4) Offline test: airplane mode with a recipe and the shopping list, as in a shop with poor signal. (5) Assistant parity: a test suite where every user action has an agent equivalent, and where the agent's result (e.g. a recipe's ingredients added to the list, quantities merged, no duplicates) is checked against what the person sees. Include ambiguous requests, and check that the agent shows what it did and the person can undo it. (6) Axe-core plus manual screen reader, large text and reduced-motion checks. (7) Measure task success and time for the core jobs: find a recipe, add its ingredients, shop from the list, and cook. Compare against what people use now. Track drop-off in cook mode after release.",
+          "unsure": "The framework comparison is one blog post that I read in part (the first 10,000 of about 15,000 characters). I haven't verified it independently. I haven't tested wake lock or PWA behavior on iOS, where installed PWAs have historically differed from Safari, so I don't know how reliable it is now. I don't know the team's skills, whether the app needs an app store presence, or whether push, voice input or camera features are needed (those could favor native). The offline sync and conflict handling for a shared shopping list is a real design risk I haven't researched. I haven't researched recipe import or data licensing either. The comparison article's own advice is to prototype the riskiest screen in each candidate, and here that is cook mode on a real phone, which I would do before committing.",
+          "sources": [
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://blog.codercops.com/blog/react-native-flutter-pwa-cross-platform-2026"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://adaptivecards.io/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://adaptivecards.microsoft.com/\nCaptured: 2026-11-19T03:08:04.235Z\nCharacters: 0-27 of 27\n\nAdaptive Card Documentation\n\n[End of document.]",
+          "resultLength": 151,
+          "source": {
+            "url": "https://adaptivecards.microsoft.com/",
+            "capturedAt": "2026-11-19T03:08:04.235Z"
+          },
+          "resultSha256": "d48212ce2591d1b8fdf000b7057214dea80753ee69da16f4cfa679b61e955f99",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "React Native Windows macOS support 2026 Microsoft vs Electron Tauri chat app one codebase web iOS Android",
+          "turn": "job:chat",
+          "result": "1. React Native vs Electron vs Tauri: 2026 Comparison\n   https://www.intuz.com/blog/react-native-vs-electron-js/\n   One JavaScript and React codebase renders to genuinely native iOS and Android UI. Desktop is possible through React Native for Windows and macOS, but mobile is the center of gravity. Backed by Meta. ... - **Primary target:** React Native = mobile (plus desktop). Electron = desktop. Tauri = desktop. React Native is an open-source UI framework that uses native platform capabilities t",
+          "resultLength": 1663,
+          "resultSha256": "95e6faadfa30e46eecad7b0ec5b14e4a25c9fa4de7f31fc71d93b8b6f142bdda",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://heart-it.github.io/react-brain/entries/desktop/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://heart-it.github.io/react-brain/entries/desktop/\nCaptured: 2026-11-19T03:08:36.379Z\nCharacters: 0-10000 of 23881\n\nDesktop apps & web-to-native shells (packaging a React web app) · react-brain Skip to content react-brain ❯ ⌘K Explore Doctor Learn Evidence search Menu · Explore Explore Doctor Learn Evidence Decisions react & language foundations 3 app architecture 11 ui 13 platform & native 9 build, test, observe, secure 6 ai in react apps 3 Tools · About libraries stack composer de",
+          "resultLength": 10208,
+          "source": {
+            "url": "https://heart-it.github.io/react-brain/entries/desktop/",
+            "capturedAt": "2026-11-19T03:08:36.379Z"
+          },
+          "resultSha256": "085d24ba85f6ee667e5840adad344b8c73236774a5016a1b4d00ae5832dba93c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.intuz.com/blog/react-native-vs-electron-js/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://www.intuz.com/blog/react-native-vs-electron-js/\nCaptured: 2026-11-19T03:08:36.472Z\nCharacters: 0-10000 of 34871\n\nReact Native vs Electron vs Tauri: 2026 Comparison Skip to content Services Work Testimonials Insights Company Get Started AI Software IoT Cloud Build With AI Custom AI Development Agentic AI Generative AI Solutions MCP Development Transform With AI Enterprise AI AI Consulting Workflow Automation AI Automation Intuz Named an OpenAI Select Partner Read More > Web Develo",
+          "resultLength": 10208,
+          "source": {
+            "url": "https://www.intuz.com/blog/react-native-vs-electron-js/",
+            "capturedAt": "2026-11-19T03:08:36.472Z"
+          },
+          "resultSha256": "ddd502f59bcdba38b37e18917faedc30d279d453f9d3ac5d1c54fb5c46a7ced6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "A protocol-first TypeScript system: one versioned schema of actions, state and card types served over WebSocket/HTTP and MCP. Clients are a React web app, the same web app wrapped in Electron for Windows and Mac, and a React Native (Expo) app for iPhone and Android. Cards are declarative JSON rendered natively by each client.",
+          "pairings": [
+            "Adaptive Cards (or a similar declarative card schema) for agent cards",
+            "MCP server plus HTTP/WebSocket API for agents operating the app",
+            "Expo (React Native) for iPhone and Android",
+            "Electron for Windows and Mac, wrapping the web client",
+            "Playwright, Detox or Maestro for end-to-end tests",
+            "axe-core with manual screen reader testing",
+            "Shared TypeScript schema package (e.g. Zod) for actions, state and cards"
+          ],
+          "why": "Five clients and agents as first-class users means the main decision is the shared contract, not the UI framework. If every action, every piece of state and every card type is defined once in a versioned schema, then the web, desktop, mobile and agent clients all get the same capabilities, and I can enforce \"an agent can do what a person can\" with contract tests. MCP plus a plain HTTP/WebSocket API gives agents a standard way to call actions and read state. For clients, the research points to a split. The decision page I read recommends Tauri for lightweight desktop shells, Electron for deep native integration, the biggest ecosystem or existing Electron apps, and React Native for Windows/macOS only when the code is already React Native. The Intuz comparison says React Native is mobile-first, with desktop through Windows/macOS forks as a secondary path, and that Electron suits JS-only teams and gives consistent Chromium rendering. Chat clients like Slack and Discord ship on Electron or React Native. So I'd build the web client once in React, wrap it in Electron for Windows and Mac (uniform rendering, mature notifications and auto-update), and build iPhone and Android in React Native with Expo, where native feel, push notifications and background behavior matter most. Shared TypeScript types, schemas and client logic cut the work across five targets. The trade-off is that I maintain two UI layers (web and native). Declarative cards help here: agents send data, not UI code, and each client renders it natively with its own safe components. That lets people trust and act on cards and lets the cards evolve without shipping new clients.",
+          "showItsGood": "Judge it by the people who live in it all day. (1) Speed and reliability, measured on every client, in the field: time to open a conversation, message send-to-appear latency, scroll smoothness in long threads, cold start, memory after 8 hours open, battery on phones, and notification delivery. Set budgets and fail the build on regressions. (2) Never lose a message: test offline, flaky networks, app backgrounding, reconnects, and duplicate or out-of-order delivery. (3) Agent cards: test that a person can tell who posted a card (agent vs human), what the action will do before they press it, and that a pressed action is confirmed, idempotent, and shows a result. Seed cards with hostile or malformed content and check they render safely and degrade to text on old clients. Measure mistaken clicks, abandonment and time to act. (4) Noise: agents can flood conversations, so measure per-person interruption load, mute and threading controls, and whether people turn agents off. Ask people directly and watch it in usage data. (5) Agent operability: contract tests where an agent performs every user action through the API and the resulting state matches what the person sees on each client; agents act with scoped permissions and an audit log that people can read. (6) Accessibility: axe-core plus VoiceOver, TalkBack, NVDA and keyboard-only passes on all five clients. (7) Dogfood in the team's own company chat, with a feedback channel and a small set of tracked task-success measures (find a message, reply, act on a card), then staged rollouts with metrics for crashes and latency.",
+          "unsure": "I'm unsure about several things. My sources are two secondary articles: a curated decision page and a vendor blog post. I haven't tested any framework. My fetch of the Adaptive Cards site returned nothing, so I haven't verified its current state, and cards could use it or a custom schema. The Electron versus Tauri choice for desktop is close. A chat app open all day cares about memory, which favors Tauri, but OS WebView rendering differences and a Rust requirement are real costs, and I'm choosing Electron for uniform rendering and mature tooling without measuring. React Native for Windows and macOS exists but lags core React Native (the page says macOS trails by a minor version), so I've left it out. I don't know the team's skills, the company size (hundreds or tens of thousands of users), compliance needs (encryption, retention, SSO), or whether it should build on an existing open protocol such as Matrix instead of its own. That last question deserves a real evaluation before any build. Real-time sync and offline correctness are the hardest engineering and I haven't researched them.",
+          "sources": [
+            "https://heart-it.github.io/react-brain/entries/desktop/",
+            "https://www.intuz.com/blog/react-native-vs-electron-js/"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "**If it went badly a year on, my best guesses are these.**\n\n1. **The shared contract hardened too early.** In the chat app and the agent tool, I made one versioned schema of actions, state and cards the center of everything. If I froze it before learning what people and agents actually do, every change would need migration across five clients and old app versions. Cards would be stuck in a lowest-common-denominator format, or the schema would split into per-client exceptions. I never ran a real prototype against it, so I don't know where it breaks.\n\n2. **Choosing from secondary sources.** Every framework choice rested on blog posts and one curated decision page, not on building anything. I didn't verify any claim against the vendors' own docs, and I didn't prototype the riskiest screen. One article I read even recommends that, and I only half followed it. The likely failures are:\n   - Electron versus Tauri: I picked Electron for the chat app without measuring memory over an 8-hour day. If people complain about RAM, I chose wrong.\n   - The cooking app's PWA could fail on iOS: wake lock or offline storage behaving badly on real phones. I never tested it, and that could sink cook mode, the whole point of the app.\n   - Two UI layers (web and React Native) in the chat app could double the work and drift apart.\n\n3. **Verification was designed but not done.** My \"show it's good\" plans are sensible lists, but they are plans. If the team skips the in-kitchen sessions, the seeded-bad-handoff tests or the real-device passes, the plans were decoration. Agents are the main users of the first and third products, so it's easy to optimise for agents passing contract tests while the people who must decide, or who get flooded by agent cards, get a worse product. I'd expect reviewer overload and notification noise to be the real failures, and I treated them as measurements, not as design problems.\n\n4. **Things I never researched.** Sync and conflict handling for offline lists and chat messages, auth and permission scoping for agents, whether to build on an existing protocol like Matrix instead of my own, and the team's actual skills (Rust or not). Any of these could make my picks wrong.\n\n**What slowed me down or confused me while researching:**\n\n- One search call failed because the relay required exactly one search per call, so I retried in a different form.\n- The Adaptive Cards page returned almost nothing, so I couldn't check a technology I then recommended as an option. I said that in my notes, but it's still a gap.\n- The recording step rejected my sources because I had listed a page I'd only seen in search results and hadn't fetched. That was fair, and I fixed it by fetching the page. It made me notice I'd been about to cite something I hadn't read.\n- The MCP page redirected to a dated docs version and was mostly boilerplate, so I learned little beyond the basic idea. The articles also mixed vendor numbers with independent ones, and some dates and version numbers looked odd to me. I couldn't tell how reliable they were, and most of those claims are untested.\n- I read only the first part of some long pages. I leaned on that material more than I should have.\n\nI did little actual research per task, so my picks are reasoned defaults and not findings."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI, and that was a gap in my research. I never found it. I only read the first 10,000 of about 135,000 characters of its README. I haven't run it, read the code, or opened the benchmark and model reviews. So what follows is from the README's own claims, and they are mostly unverified.\n\n**Why it matters.** It targets the same problem as my three picks. The README describes an agent composing an interface as data, with a button that can only be a declared action. A person presses it and an agent calls it as a tool. The action is declared once, and a generator writes the CLI, MCP and WebMCP tools, web control, App Intent, SwiftUI button and so on, with a CI check that fails when generated files drift. Actions carry a consent class: consequential ones ask a person to confirm, and person-only actions (e.g. paying) are offered through no agent door. There's also `ax-xray`, which calls an app's CLI, HTTP API or MCP server like an agent and reports which claims hold. That is very close to what I proposed by hand: one typed action layer, agent-parity tests, and cards that people can trust. It also lists a recipe app (Spoonjoy) built with it, which is my second job's domain.\n\n**What would stop a real team from adopting it:**\n- **Maturity and bus factor.** The README says Windows and Android are \"first kits\", the Android one was checked on emulators only (\"nobody here owns an Android device\"), and Apple is at 1.x. For a chat app used all day on five clients, I'd want to see it in production with real users at scale, not a few small apps. I don't know the project's size or how many teams use it.\n- **Native kits, no cross-platform on purpose.** It has React for web, SwiftUI, WinUI 3 and Compose. That gives real native feel, but it means four codebases to maintain. The README's bet is that agents write each native app cheaply. A team has to believe that and also own the review and test burden. It conflicts with my React Native and Electron plan for the chat app, and it leaves out Mac desktop as its own thing beyond SwiftUI. I would need to check how the Mac and Windows desktop kits fit a chat client.\n- **Copy-in source.** Components are copied in via the shadcn CLI, so they are yours to change, but upgrades and security fixes become merge work. It also assumes Tailwind v4 and shadcn conventions.\n- **Unverified claims.** The agent benchmark and \"model reviews\" are the project's own. I'd want to reproduce them, and read the consent and refusal behavior in code, before trusting it with consequential actions.\n- **Scope fit.** The desktop tool for agent work state and the chat app both need a real backend, sync, offline correctness and permissions. This kit covers actions, consent and UI, not those.\n\n**What I'd need to see to switch:** (1) a one-week prototype of the riskiest piece in each product, such as a chat card with a consequential action, or a handoff review with an approval; (2) the generator and the CI drift check running in our repo; (3) the X-ray finding a real bug I planted; (4) tests of the consent flow, including trying to make an agent trigger a person-only action; (5) usability sessions with real people on cards it composed, compared with my hand-built version; (6) evidence of how it tracks changes and who maintains it over a year.\n\n**What it would let me do that I can't today:** I could stop hand-building the \"an agent can do anything a person can\" guarantee. Declare an action once, get the button, the MCP tool and the CLI from it, and have CI fail on drift. I'd get consent classes and typed refusals as shared primitives, not conventions I have to enforce by hand. And I'd get an outside check (the X-ray) of the agent-facing surface. For the chat app, interactive cards that every client draws natively from validated data is exactly what I was designing myself. I would still keep my verification plan with real people, because the kit can make interfaces consistent and safe-by-construction but can't tell me whether messy-handed cooks or overloaded reviewers find them good."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

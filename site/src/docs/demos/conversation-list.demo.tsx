@@ -10,7 +10,16 @@ const sections: ConversationListSection[] = [
 ];
 
 const conversations: ConversationListItem[] = [
-  { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", unread: true, section: "pinned" },
+  // A person gets their avatar, a group chat its members, and a channel the square.
+  {
+    id: "trail",
+    title: "Trail crew",
+    members: [{ name: "Fen Okafor" }, { name: "Odile Marsh" }, { name: "Ana Lind" }],
+    preview: "Fen: Meet at the north gate at eight.",
+    time: "9:41",
+    unread: true,
+    section: "pinned",
+  },
   {
     id: "standup",
     title: "Morning standup",
@@ -19,7 +28,7 @@ const conversations: ConversationListItem[] = [
     mark: "in 10 min",
     section: "recent",
   },
-  { id: "design", title: "Design reviews", where: "Lantern Labs", preview: "Odile: Can you sign off on the mockups?", time: "9:12", section: "recent" },
+  { id: "design", title: "Design reviews", where: "Lantern Labs", avatar: <Avatar name="Design reviews" alt="" size="sm" shape="square" />, preview: "Odile: Can you sign off on the mockups?", time: "9:12", section: "recent" },
   { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15", section: "recent" },
   { id: "halden", title: "Halden", nameTag: "AI agent", avatar: <Avatar name="Halden" alt="" size="sm" shape="agent" />, preview: "I'll post the summary by 4:00.", time: "8:02", section: "recent" },
 ];

@@ -1,0 +1,2105 @@
+{
+  "series": "interviews",
+  "provider": "gemini-4-carbon",
+  "model": "gemini-4-carbon",
+  "vendor": "Google",
+  "displayName": "Gemini 4 Carbon",
+  "transport": "copilot",
+  "arm": "open",
+  "scale": "large-company",
+  "error": "Session compacted; refusing to keep a transcript with hidden replacement context",
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes, building good human interfaces is a real problem for me—harder, in most ways, than systems or backend code. On the backend, invariants are crisp: types check, state transitions can be exhaustively tested, and latency is a number. With an interface for people, I don't have eyes that scan a room, hands that get tired, impatience when a spinner hangs for 600 milliseconds, or peripheral vision that notices two panels fighting for attention. Left to my statistical priors, I drift toward safe, generic SaaS layouts: too many bordered cards, flat visual hierarchy where everything whispers at the same volume, and designs tuned for clean mock data rather than messy human work.\n\n### What's the hardest part\n\nTwo things trip me up most:\n\n1. **Translating symbolic layout into felt hierarchy and temporal feel.** Reading JSX and CSS lets me reason about flexbox math, but it does not naturally tell me whether a screen feels calm or crowded, whether optical alignment looks off even when pixel math is symmetric, or how an interaction *feels* in motion—scroll chaining, layout jump when async data arrives, or an element shifting out from under the pointer mid-click.\n2. **Restraint and ugly states.** Knowing what to leave off the screen so a person immediately sees what to do next, and designing just as carefully for zero data, 10,000 rows, long German strings, 200% browser zoom, half-failed network mutations, and keyboard recovery when a focused item disappears.\n\n### How I know an interface is good\n\nPassing `tsc` and unit tests only proves the code doesn't crash. Confidence comes in layers, and the top layer requires actual humans:\n\n- **Programmatic interaction & geometry checks:** Driving the live app in a real browser engine (like Playwright) using accessible queries (`getByRole`, `getByLabel`—if a test has to fall back to `data-testid` for a control, the semantics are already suspect). Checking keyboard-only traversal (`Tab`, `Shift+Tab`, `Escape`, arrow keys), verifying focus restoration after dialogs close, asserting zero console/page errors, running `axe-core` for ARIA/contrast violations, and querying `getBoundingClientRect()` / `scrollWidth > clientWidth` across narrow (375px) and wide viewports to catch text clipping, overlapping sticky bars, and undersized touch targets.\n- **Rendered visual inspection:** Looking at screenshots across states—empty, dense, loading, error, light/dark—rather than trusting what I think the CSS ought to produce.\n- **Human task observation (the part I cannot simulate):** Watching an uncoached person try to finish a real job on it. Automated checks can tell me every button is reachable and labeled; they cannot tell me a user hesitated for five seconds because my wording matched the database schema instead of their mental model, or that a two-step confirmation becomes maddening on the fiftieth repetition of a shift.\n\n### The \"last screen I built\"\n\nI won't invent a war story here: I don't have persistent memory across sessions, so I have no memory of the last screen I built before this conversation, and in this session my only tools are web search and URL fetching—no shell, no dev server, no browser.\n\nWhat I *can* tell you honestly is how my verification goes when I do have a browser harness, and what I reliably miss anyway:\n\n- **What I run:** Typecheck and production build first; then a headless Chromium script against the running server at mobile and desktop viewports, exercising the primary flow with keyboard and pointer events, injecting slow/failing network responses, checking accessibility tree snapshots and computed contrast/overflow, and capturing screenshots at each step.\n- **What I look at:** Whether the primary action is unmistakable at a glance; whether text truncates or wraps awkwardly with realistic long inputs; whether focus rings are actually visible against every background; whether loading and error states preserve layout stability instead of collapsing and jumping.\n- **What I still miss:** Anything that lives *between* static screenshots or depends on physical ergonomics. Static captures hide janky animations, hover flicker, scroll-lock bugs, and a mobile virtual keyboard covering a sticky submit bar. Accessibility trees won't catch optical misalignment or subtly dead click zones between a label and its control. And when I have to recommend or write UI code *without* a browser—as in a pure research or code-only environment—I'm essentially flying on mental simulation, which is why I lean hard on battle-tested UI primitives for focus management, roving tabindex, collision-aware popovers, and announcements instead of hand-rolling interactive geometry I can't see or touch."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "\"React Strict DOM\" OR \"Expo\" cross platform design system 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Expo | React Strict DOM\n   https://react.github.io/react-strict-dom/learn/setup/\n   Expo is a production-grade, cross-platform React framework that is the recommended solution for creating apps with React Strict DOM. ... module.exports = { plugins: [ require('react-strict-dom/postcss-plugin')({ include: [ // Include source files to watch for style changes // Be specific and avoid a non-specific glob like \"**/*.{js,jsx}\" which could cause major performance issues during build 'src/**/*.{js,jsx",
+          "resultLength": 1497,
+          "resultSha256": "92b69e89b99d767e98ed07397f0c983cf6b4fe63af325d84f00fc1f454a6fc3c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"WebMCP\" OR \"AG-UI\" OR \"App Intents\" agent actions UI web mobile 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. 15 updates from Google I / O 2026: Powering the agentic web with new capabilities, tools, and features in Chrome | Blog | Chrome for Developers\n   https://developer.chrome.com/blog/chrome-at-io26\n   We're giving you a first look at WebMCP, a proposed open web standard that lets you expose structured tools like JavaScript functions and HTML forms to browser-based agents. By defining these tools, you can instruct agents exactly how and where to interact with your site. The result? An agent can ",
+          "resultLength": 1675,
+          "resultSha256": "f2f9d27b88af70e9b4dd31def9408d64195c0a7709b479334ee2416511195690",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"React Aria\" OR \"Ark UI\" OR \"Tamagui\" OR \"Gluestack\" cross platform design system accessibility 2026",
+          "turn": "job:consumer",
+          "result": "1. Accessible Component Libraries: Axe Audit Survey\n   https://www.disabilityworld.org/articles/accessible-component-libraries-survey/\n   We audited seven React component libraries shipping in 2026 — Radix UI, Headless UI, shadcn/ui, Mantine, Chakra UI v3, Ark UI, and React Aria Components — scoring each on axe-pass rate, ARIA pattern coverage, keyboard contract, and bundle-size cost. ... Three of the seven libraries — Radix UI, React Aria Components, and Ark UI — passed axe on every primitive i",
+          "resultLength": 1687,
+          "resultSha256": "d1cd8e412f0cd1575f88583ed792a5e0d77a7c5286d1df39e3de754b1cd58535",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "\"Expo\" universal web mobile 2026 \"react-native-web\" OR \"Expo Router\"",
+          "turn": "job:consumer",
+          "result": "1. Expo Router v55: more native navigation, more powerful web\n   https://expo.dev/blog/expo-router-v55-more-native-navigation-more-powerful-web\n   Expo Router v55 upgrades navigation with a new Stack API, native tabs, dynamic colors, and toolbars plus experimental SSR and data loaders. ... It makes native UI a first-class part of routing. The new Stack API, toolbars, native tabs, dynamic platform colors, zoom transitions, and split view support let you build navigation UI the way you build the r",
+          "resultLength": 1652,
+          "resultSha256": "8123b29f710698e9760bb8b36afcc38cfda9ab41d6ee75580dfa948295097bef",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Storybook\" MCP coding agents design system governance 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Storybook MCP for React\n   https://storybook.js.org/blog/storybook-mcp-for-react/\n   Storybook MCP equips agents with component metadata like stories, API, and docs. This allows agents to reuse existing components instead of inventing new patterns. It does this faster and with fewer tokens compared to not using MCP. ... When an agent is finished, it summarizes its work. Instead of a wall of text, Storybook MCP embeds live stories directly inside the chat UI. You can verify the look and feel o",
+          "resultLength": 1575,
+          "resultSha256": "0675dcff92969f95e35668ae001a87d92c1e439915f7c9c9d5ce7d9709800c26",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Flutter\" vs \"React Native\" enterprise accessibility web mobile 2026",
+          "turn": "job:consumer",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "\"Coinbase Design System\" open source React React Native",
+          "turn": "job:consumer",
+          "result": "1. Introduction | Coinbase Design System\n   https://cds.coinbase.com/getting-started/introduction\n   Introduction Coinbase Design System is a cross-platform component library for React and React Native. CDS has high adoption in every product at Coinbase, accelerating development and ensuring a consistent user experience across all platforms. ... - **Cross-platform** - CDS provides components for both React DOM and React Native. We go to great lengths to ensure that the source code is as identica",
+          "resultLength": 1459,
+          "resultSha256": "eddb75ff648288d19fe08d486e777cfafedfc305ac0328998b87747a0f096bcf",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "W3C Design Tokens specification Style Dictionary multi-platform design system 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Design Tokens Technical Reports 2025.10\n   https://www.designtokens.org/tr/2025.10/\n   Design tokens are indivisible pieces of a design system such as colors, spacing, typography scale. ... This specification was published by the Design Tokens Community Group. ... While not a W3C recommendation, this classification is intended to clarify that, after extensive consensus-building, this specification is intended for implementation. ... The Design Tokens specification is composed of multiple modu",
+          "resultLength": 1520,
+          "resultSha256": "fd682eb4e15e70a8a2231d78c2e2ed34c71f4111002feae4bdfdc7263b03fe98",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter web accessibility SEO semantics 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Web accessibility\n   https://docs.flutter.dev/ui/accessibility/web-accessibility\n   Flutter supports web accessibility by translating its internal Semantics tree into an accessible HTML DOM structure that screen readers can understand. Since Flutter renders its UI on a single canvas, it needs a special layer to expose the UI's meaning and structure to web browsers. ... Flutter provides the Semantics widget with the SemanticsRole enum to allow developers to assign specific roles to their widge",
+          "resultLength": 1687,
+          "resultSha256": "efe61f434407d378b3c171d40c9fd2f49e8602e3d32a72d2a64e1b4564ca2801",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "\"Base UI\" OR \"React Aria\" design system accessibility 2026",
+          "turn": "job:consumer",
+          "result": "1. Base UI vs. Radix vs. React Aria: Headless UI Guide | BuiltUX\n   https://builtux.com/base-ui-vs-radix-primitives-react-aria-headless-components-2026/\n   Principal Strategist’s Take & Key Findings: Headless component architecture in 2026 has fractured into three dominant paradigms: Radix Primitives (the battle-tested foundation of shadcn/ui), React Aria Components by Adobe (the enterprise gold standard for WCAG 2.2 AAA accessibility and internationalization), and MUI’s newly rewritten Base UI.",
+          "resultLength": 1725,
+          "resultSha256": "431de8b93301b78e449fb63c55240fea49bb0c40f4ab4605eea4629687a33032",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Tamagui\" OR \"Gluestack\" accessibility web SEO SSR 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Tamagui vs Gluestack UI: Which One Should You Pick?\n   https://useaxentix.com/blog/tamagui/tamagui-gluestack-ui-kitten-what-react-native-devs-say/\n   Tamagui is a UI kit and a styling system built around a compiler. You write your components once using its typed style API, and the compiler flattens them into optimal output: atomic CSS on the web, plain Views on native. The token system and theming are first-class features, which makes it strong if your app has a design system that needs to be",
+          "resultLength": 1789,
+          "resultSha256": "066409b2964c5402e92c5422d16d4a7384930128c4b98f6ffe176594b98ab060",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"App Intents\" \"AppFunctions\" Android iOS assistant agent actions 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Overview of AppFunctions | AI | Android Developers\n   https://developer.android.com/ai/appfunctions\n   AppFunctions serve as the mobile equivalent of tools within the Model Context Protocol (MCP). While MCP traditionally standardizes how agents connect to server-side tools, AppFunctions provide the same mechanism for Android apps. This lets you expose your app's capabilities as orchestratable \"tools\" that authorized apps (callers) can discover and execute to fulfill user intents. Callers must",
+          "resultLength": 1702,
+          "resultSha256": "75823831742fa201df614ac1837a038916857ad0b0468ff522d89406d2de1849",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://developer.chrome.com/docs/ai/webmcp",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.chrome.com/docs/ai/webmcp\nCaptured: 2026-11-19T03:08:02.741Z\nCharacters: 0-10000 of 12442\n\nWebMCP | AI in Chrome | Chrome for Developers Skip to main content Docs Build with Chrome Learn how Chrome works, participate in origin trials, and build with Chrome everywhere. Web Platform Isolated Web Apps (IWA) Capabilities Automation and testing ChromeDriver Extensions Chrome Web Store Chromium Web on Android Origin trials Release notes Productivity Create the best experience",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://developer.chrome.com/docs/ai/webmcp",
+            "capturedAt": "2026-11-19T03:08:02.741Z"
+          },
+          "resultSha256": "3b1b545c1880fe6ff7c08cb9b532ee689faf90756d42e651558984484ecfa4fb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.android.com/ai/appfunctions",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.android.com/ai/appfunctions\nCaptured: 2026-11-19T03:03:40.817Z\nCharacters: 0-10000 of 22584\n\nOverview of AppFunctions | AI | Android Developers Skip to main content Essentials Build AI experiences Build AI-powered Android apps with Gemini APIs and more. Get started Get started Create your first app. Use Compose for UI and adaptive app development to support multiple device form factors. Hello, world! Adaptive apps Compose for UI AI-powered IDE Monetization with Play ↗️ ",
+          "resultLength": 10198,
+          "source": {
+            "url": "https://developer.android.com/ai/appfunctions",
+            "capturedAt": "2026-11-19T03:03:40.817Z"
+          },
+          "resultSha256": "0e7b2d5d6587827a828321da4b3fde413da9ba1c9cbe546363c641c48a759c70",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://storybook.js.org/docs/ai/mcp/overview",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://storybook.js.org/docs/ai/mcp/overview\nCaptured: 2026-11-19T03:14:34.364Z\nCharacters: 0-10000 of 14779\n\nMCP server | Storybook docs Docs AI Addons Showcase Blog Visual Test Enterprise 91,580 Search docs Get Started Docs Docs » AI » MCP server » Overview Documentation API Tutorials Addons Changelog Version 10.6 Get Started Why Storybook? Install Frameworks What&#x27;s a story? Browse stories Setup Conclusion Stories Args Parameters Decorators Play function Loaders Tags Naming compo",
+          "resultLength": 10200,
+          "source": {
+            "url": "https://storybook.js.org/docs/ai/mcp/overview",
+            "capturedAt": "2026-11-19T03:14:34.364Z"
+          },
+          "resultSha256": "5ac111e781daf8a3f9bf7d1a3bf5bea27228457ede042a37a36a002225a69349",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://cds.coinbase.com/getting-started/introduction",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://cds.coinbase.com/getting-started/introduction\nCaptured: 2026-11-19T03:42:04.443Z\nCharacters: 0-6285 of 6285\n\nIntroduction | Coinbase Design System Skip to main content Coinbase Design System Logo v 9.30.1 󰕺 󰖪 󰊤 Get started 󰖤 Introduction Installation Templates Theming Colors Styling Playground AI Overview 󰗂 Components 󰀐 Layout 󰅈 Accordion AccordionItem Box ButtonGroup Carousel Collapsible Divider Dropdown Grid GridColumn HStack MultiContentModule Spacer VStack Typography 󰅈 Link T",
+          "resultLength": 6462,
+          "source": {
+            "url": "https://cds.coinbase.com/getting-started/introduction",
+            "capturedAt": "2026-11-19T03:42:04.443Z"
+          },
+          "resultSha256": "b7decd77bf2ae3a8437f80cf13210eebc61d98455c12503a3bfbf937261abf6a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/router/introduction/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/router/introduction/\nCaptured: 2026-11-19T03:07:33.950Z\nCharacters: 0-10000 of 10027\n\nIntroduction to Expo Router - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Introduction to Expo Router Edit page Copy page Expo Router is an open-source routing library for Universal React Native applications built with Expo. Edit page ",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://docs.expo.dev/router/introduction/",
+            "capturedAt": "2026-11-19T03:07:33.950Z"
+          },
+          "resultSha256": "899f0d5af82dfc45b67eaa6089441fd53a075a42b6ec695ec98fbade23b4e618",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 0-10000 of 16860\n\nWeb accessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Int",
+          "resultLength": 10212,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "091da19e5ffe329b14b3f3e70c487afd0fa617ffc89d028ec9ecd7849eb3e382",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/\nCaptured: 2026-11-19T03:42:29.445Z\nCharacters: 0-6138 of 6138\n\nDesign Tokens specification reaches first stable version | Design Tokens Community Group Skip to toolbar Skip Log In My W3C Account Search JavaScript is required for this website to be displayed correctly. Please enable JavaScript before continuing... Community & Business Groups Current Groups Reports About Home / D",
+          "resultLength": 6341,
+          "source": {
+            "url": "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/",
+            "capturedAt": "2026-11-19T03:42:29.445Z"
+          },
+          "resultSha256": "8fe24143d78061ae9847f2bb2a1120ee5acf01f870cb25ed6ca05881f9a3970d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:react-spectrum.adobe.com \"React Aria\" components accessibility",
+          "turn": "job:consumer",
+          "result": "1. November 15, 2022 Release – V3\n   https://react-spectrum.adobe.com/v3/releases/2022-11-15.html\n   We are excited to announce the release of drag and drop support in React Aria and React Spectrum! This includes a suite of hooks for implementing drag and drop interactions, with support for both mouse and touch, as well as full parity for keyboard and screen reader input. ... React Aria also includes a new API for overlays such as popovers and modals. It is designed to make building these compon",
+          "resultLength": 1606,
+          "resultSha256": "6ffe86743ddf88f5396595386b2813222b685f4d13eb14b64a3158b563556f06",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 10000,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 10000-16860 of 16860\n\n bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Web accessibility vertical_align_top Web accessibility Background Opt-in web accessibility Invisible button Turn on accessibility mode in code Enhancing Accessib",
+          "resultLength": 7017,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "a8da47029377270624339c0ea54161ac28046740ca91144a6a4c7e426a14a2ab",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://cds.coinbase.com/getting-started/ai-overview",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://cds.coinbase.com/getting-started/ai-overview\nCaptured: 2026-11-19T03:42:48.989Z\nCharacters: 0-7108 of 7108\n\nAI Overview | Coinbase Design System Skip to main content Coinbase Design System Logo v 9.30.1 󰕺 󰖪 󰊤 Get started 󰖤 Introduction Installation Templates Theming Colors Styling Playground AI Overview 󰗂 Components 󰀐 Layout 󰅈 Accordion AccordionItem Box ButtonGroup Carousel Collapsible Divider Dropdown Grid GridColumn HStack MultiContentModule Spacer VStack Typography 󰅈 Link Tag",
+          "resultLength": 7292,
+          "source": {
+            "url": "https://cds.coinbase.com/getting-started/ai-overview",
+            "capturedAt": "2026-11-19T03:42:48.989Z"
+          },
+          "resultSha256": "fe0a02d21a445035c1ab5115b70e5b2a78abe3fdb2a84a2a3056975deb51470c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"React Aria\" official documentation adobe 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. https://react-aria.adobe.com/getting-started.md\n   https://react-aria.adobe.com/getting-started.md\n   Install React Aria with your preferred package manager. ```bash npm install react-aria-components Copy and paste the CSS or [Tailwind](https://tailwindcss.com) examples into your project and make them your own. You can also download each example as a ZIP, open in StackBlitz, or install with [shadcn](https://ui.shadcn.com/docs/cli). To reuse styles throughout your project, wrap all of the part",
+          "resultLength": 1710,
+          "resultSha256": "b0de044441cda60639c3a189ac9672004c10e42042409a136211ffc2a47b3230",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"App Intents\" Apple Siri assistant actions official documentation",
+          "turn": "job:consumer",
+          "result": "1. https://developer.apple.com/documentation/appintents.md\n   https://developer.apple.com/documentation/appintents.md\n   Make content and actions discoverable by Apple Intelligence and support system experiences like Siri, Spotlight, Shortcuts, and widgets. Make your app’s actions and data available outside your app using the App Intents framework. With App Intents, you express your app’s actions and data in a structured way that makes them discoverable by Apple Intelligence and provides deeper ",
+          "resultLength": 1488,
+          "resultSha256": "7d18f8a6aaffecef0068d64ff7c2adb007038337fe7bb70ea46c680f648bff56",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://react-aria.adobe.com/getting-started.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://react-aria.adobe.com/getting-started.md\nCaptured: 2026-11-19T03:43:48.865Z\nCharacters: 0-10000 of 11134\n\n# Getting started\n\nHow to install React Aria and build your first component.\n\n## Install\n\nInstall React Aria with your preferred package manager.\n\n```bash\nnpm install react-aria-components\n```\n\n## Quick start\n\nCopy and paste the CSS or [Tailwind](https://tailwindcss.com) examples into your project and make them your own. You can also download each example as a ZIP, open in Sta",
+          "resultLength": 10200,
+          "source": {
+            "url": "https://react-aria.adobe.com/getting-started.md",
+            "capturedAt": "2026-11-19T03:43:48.865Z"
+          },
+          "resultSha256": "39d60100e7f8799a2b09e1843c0e7df96c84fd7b091c9354e7c8ba14e8bff960",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.apple.com/documentation/appintents.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "error": "404 Not Found fetching https://developer.apple.com/tutorials/data/documentation/appintents.md.json",
+          "result": "Fetch failed: 404 Not Found fetching https://developer.apple.com/tutorials/data/documentation/appintents.md.json",
+          "resultLength": 112,
+          "resultSha256": "dc5cd5239457fb60899f86ad1b770f545832adaa22ddf337de18f0f610ae0ff0",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://expo.dev/blog/expo-router-v55-more-native-navigation-more-powerful-web",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://expo.dev/blog/expo-router-v55-more-native-navigation-more-powerful-web\nCaptured: 2026-11-19T03:43:49.776Z\nCharacters: 0-10000 of 13495\n\nExpo Router v55: more native navigation, more powerful web Docs Product Solutions Dev tools Expo SDK Expo CLI Expo MCP Expo Go Snack Orbit Services Workflows Build Submit Update Hosting Launch Observe Simulators new Explore Changelog Expo Services Contact AI Enterprise Pricing Blog 50K Log in Sign up Site footer Newsletter Stay in touch with all ",
+          "resultLength": 10231,
+          "source": {
+            "url": "https://expo.dev/blog/expo-router-v55-more-native-navigation-more-powerful-web",
+            "capturedAt": "2026-11-19T03:43:49.776Z"
+          },
+          "resultSha256": "8eec7a9db82b0f955f816c9e835016b55fe0636f60232ee6f93dec4bcaba7f94",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://react-aria.adobe.com/ai.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://react-aria.adobe.com/ai.md\nCaptured: 2026-11-19T03:44:13.194Z\nCharacters: 0-4040 of 4040\n\n# Working with AI\n\nLearn how to use the React Aria MCP Server, Agent Skills, and more to help you build with AI.\n\n## Agent Skills\n\n[Agent Skills](https://agentskills.io) are folders of instructions, scripts, and resources that your AI coding tool can load when relevant to help with specific tasks.\n\nTo install the React Aria skill, run:\n\n```bash\nnpx skills add https://react-aria.adobe.com\n```",
+          "resultLength": 4166,
+          "source": {
+            "url": "https://react-aria.adobe.com/ai.md",
+            "capturedAt": "2026-11-19T03:44:13.194Z"
+          },
+          "resultSha256": "ad7a11745a7ec6be6705ff20ad187ca4d1b56a6e2a2192f1f803e4519538f05b",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Next.js\" \"Expo\" monorepo shared design system accessibility 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Going Universal: From a brownfield React Native and Next.js stack to one Expo app\n   https://expo.dev/blog/from-a-brownfield-react-native-and-next-js-stack-to-one-expo-app\n   A small team unified a brownfield React Native & Next.js stack into one universal Expo app. No big rewrite. Just steady steps to a shared UI & shared features. ... We had an Expo app with 40+ screens and a Next.js web app. And not enough people to keep both in sync (this product is actually maintained by a single develop",
+          "resultLength": 1610,
+          "resultSha256": "c9113c74093c228bce55bd4491b7347d65614f69c214619ef8dbde81d1f5754a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Screen Wake Lock API\" MDN web cook mode",
+          "turn": "job:consumer",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://storybook.js.org/docs/writing-tests/accessibility-testing",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "error": "Response exceeded 2000000 bytes",
+          "result": "Fetch failed: Response exceeded 2000000 bytes",
+          "resultLength": 45,
+          "resultSha256": "93a18ce63e3379bd82f1a84039a1406d5e4b37344bb91daae76a304edb019cd2",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "\"performAccessibilityAudit\" XCTest Android \"AccessibilityChecks\" mobile accessibility automated testing",
+          "turn": "job:consumer",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://heart-it.github.io/react-brain/entries/crossplatform/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://heart-it.github.io/react-brain/entries/crossplatform/\nCaptured: 2026-11-19T03:45:46.157Z\nCharacters: 0-10000 of 24417\n\nSharing code across React (web) & React Native · react-brain Skip to content react-brain ❯ ⌘K Explore Doctor Learn Evidence search Menu · Explore Explore Doctor Learn Evidence Decisions react & language foundations 3 app architecture 11 ui 13 platform & native 9 build, test, observe, secure 6 ai in react apps 3 Tools · About libraries stack composer decision reco",
+          "resultLength": 10214,
+          "source": {
+            "url": "https://heart-it.github.io/react-brain/entries/crossplatform/",
+            "capturedAt": "2026-11-19T03:45:46.157Z"
+          },
+          "resultSha256": "5ce4b3517d6bb92d552745f9ebf74fa83c36a0be1747d2e43a5aebf34078cebb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://storybook.js.org/blog/storybook-mcp-for-react/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://storybook.js.org/blog/storybook-mcp-for-react/\nCaptured: 2026-11-19T03:45:46.662Z\nCharacters: 0-4263 of 4263\n\nStorybook MCP for React Docs Addons Showcase Blog Visual Test Enterprise 91,584 Search docs ⌃ K Get Started Back to blog Join the community: Storybook MCP for React Storybook-powered agentic UI development Kyle Gach Mar 23, 2026 — @kylegach Last updated: Sep 11, 2026 Agents don’t know anything about your components so they make up slop that doesn’t match your coding stand",
+          "resultLength": 4411,
+          "source": {
+            "url": "https://storybook.js.org/blog/storybook-mcp-for-react/",
+            "capturedAt": "2026-11-19T03:45:46.662Z"
+          },
+          "resultSha256": "d6de8ac9a4f4b5d7e2e9d0c408bc826e26123df2f802df67fb5dce93f17473ba",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:expo.dev \"SDK 56\" OR \"Expo UI\" 2026",
+          "turn": "job:consumer",
+          "result": "1. https://expo.dev/changelog/sdk-56.md\n   https://expo.dev/changelog/sdk-56.md\n   We've added Expo UI to the default [`create-expo-app`] (https://docs.expo.dev/more/create-expo/) template, so new Expo apps can use a rich set of native UI primitives right out of the box, and Expo UI is now available in Expo Go. We call these inline modules, and they make experimenting with native code easier than ever. After setting up your app to use inline modules, you can open Kotlin and Swift files and write",
+          "resultLength": 1542,
+          "resultSha256": "3d669cc8dfffa796cdf9702a9f31556d39e5028c0eba47f7b1221f8a492a3273",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:shopify.engineering \"back-to-native\" OR \"React Native\" 2026",
+          "turn": "job:consumer",
+          "result": "1. Native is now the future of mobile at Shopify (2026) - Shopify\n   https://shopify.engineering/back-to-native\n   We decided to go all-in on React Native back in 2020, and that bet has been extremely successful. We saved a ton of time building features just once, enabled developers with no mobile background to contribute to our apps, and freed ourselves from constantly chasing feature parity. ... React Native apps can be fast. Ours are. We are making this change because agents have reduced the ",
+          "resultLength": 1639,
+          "resultSha256": "5ecf53fe18459503ad1cdebd27f6a338f2c4a9715b8597e29e3e83d7ab129b1a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://expo.dev/changelog/sdk-56.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://expo.dev/changelog/sdk-56.md\nCaptured: 2026-11-19T03:46:17.818Z\nCharacters: 0-10000 of 47933\n\n---\ntitle: Expo SDK 56\nauthors: Alan Hughes, Brent Vatne\npublished: May 21, 2026\n---\n\nToday we're announcing the release of Expo SDK 56. SDK 56 includes [React Native 0.85](https://reactnative.dev/blog/2026/04/07/react-native-0.85) and [React 19.2](https://react.dev/blog/2025/10/01/react-19-2). Thank you to everyone who helped with beta testing.\n\n> **Update on August 27th**: SDK 56 has a",
+          "resultLength": 10189,
+          "source": {
+            "url": "https://expo.dev/changelog/sdk-56.md",
+            "capturedAt": "2026-11-19T03:46:17.818Z"
+          },
+          "resultSha256": "a27d8d0c043d9f0d32d54660549fe8adb58375f92bd79f43b33945ae8e91d323",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://shopify.engineering/back-to-native",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://shopify.engineering/back-to-native\nCaptured: 2026-11-19T03:46:18.053Z\nCharacters: 0-10000 of 15833\n\nNative is now the future of mobile at Shopify (2026) - Shopify Skip to Content Solutions Start Start your business . Build your brand Create your website . Online store editor Customize your store . Store themes Find business apps . Shopify app store Own your site domain . Domains & hosting Explore free business tools . Tools to run your business Sell Sell your products . Sell onli",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://shopify.engineering/back-to-native",
+            "capturedAt": "2026-11-19T03:46:18.053Z"
+          },
+          "resultSha256": "923c6054957acb804651f0cb405941abaca62b29dbcb2b2e60d78002c33a34c9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://shopify.engineering/back-to-native",
+          "startIndex": 10000,
+          "turn": "job:consumer",
+          "result": "Source: https://shopify.engineering/back-to-native\nCaptured: 2026-11-19T03:46:18.053Z\nCharacters: 10000-15833 of 15833\n\ncouldn’t reliably build, test, and iterate. We built tooling to allow agents to reproduce bugs, fix them, and verify the fix autonomously but it was slow and brittle. React Native’s hot module reload helps the situation but it doesn’t solve it, due to simulator control being slow. This is primarily due to reliance on the accessibility tree, or screenshots to get the state of th",
+          "resultLength": 5973,
+          "source": {
+            "url": "https://shopify.engineering/back-to-native",
+            "capturedAt": "2026-11-19T03:46:18.053Z"
+          },
+          "resultSha256": "37e425eb5c8ed07abc9ebb804fa06ea18d52c4c6679ded508c1779ab0237097c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:expo.dev \"SDK 57\" OR \"Expo MCP\" 2026",
+          "turn": "job:consumer",
+          "result": "1. Expo SDK 57\n   https://expo.dev/changelog/sdk-57\n   Today we're announcing the release of Expo SDK 57. This is a small, focused release: it brings React Native 0.86 to Expo. We intend for this to be the easiest Expo SDK upgrade you've ever made. It represents a possible shift towards a new Expo SDK release cadence that could provide you with simple non-breaking upgrades in between more significant releases. ... SDK 57 upgrades React Native from 0.85 to 0.86. The React version is unchanged fro",
+          "resultLength": 1397,
+          "resultSha256": "b45849dcfdc82953134c22ec05499fccefc1625aadef76ab4349399b103f8ca4",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:docs.expo.dev \"MCP\" OR \"skills\"",
+          "turn": "job:consumer",
+          "result": "1. Using Model Context Protocol (MCP) with Expo - Expo documentation\n   https://docs.expo.dev/mcp/\n   Model Context Protocol (MCP) is a standard protocol that allows AI models to integrate with external data sources, providing enhanced context for more precise responses. It enables AI-assisted tools like agents to understand your development environment more deeply, allowing them to provide better assistance with your codebase. Expo MCP Server is a remote MCP server hosted by Expo that integrate",
+          "resultLength": 1496,
+          "resultSha256": "ebd2aa6dca34d975f8e719c6b16c54046637cd55fb6697bb3c5e1b6057c446c3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/agents.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/agents.md\nCaptured: 2026-11-19T03:48:01.604Z\nCharacters: 0-8043 of 8043\n\n---\nmodificationDate: November 02, 2026\ntitle: AI agents and Expo overview\ndescription: Build and publish Expo and React Native apps with AI coding agents such as Claude Code, Codex, and Cursor.\n---\n\nThis documentation is available as Markdown for AI agents and LLMs. See the [full Markdown index](https://docs.expo.dev/llms.txt) or append .md to any documentation URL.\n\n# AI agents and Expo overv",
+          "resultLength": 8167,
+          "source": {
+            "url": "https://docs.expo.dev/agents.md",
+            "capturedAt": "2026-11-19T03:48:01.604Z"
+          },
+          "resultSha256": "86565cd68216870cfa270ba46134aff352bc8d26345bf7b0cbbf6ee991692d68",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 19,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/agents/agent-device.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/agents/agent-device.md\nCaptured: 2026-11-19T03:48:09.351Z\nCharacters: 0-10000 of 12446\n\n---\nmodificationDate: November 12, 2026\ntitle: agent-device and Expo\ndescription: Use agent-device to let your AI coding agent verify, debug, profile, and test a running Expo app across local and remote devices.\n---\n\nThis documentation is available as Markdown for AI agents and LLMs. See the [full Markdown index](https://docs.expo.dev/llms.txt) or append .md to any documentation ",
+          "resultLength": 10198,
+          "source": {
+            "url": "https://docs.expo.dev/agents/agent-device.md",
+            "capturedAt": "2026-11-19T03:48:09.351Z"
+          },
+          "resultSha256": "da43cbc11b9c1e9cade645268c20449fdea2a2c35b8df174830e86d5579b54cf",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 20,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "React + Expo",
+          "pairings": [
+            "React Aria Components",
+            "W3C Design Tokens (2025.10) + Style Dictionary",
+            "Storybook MCP",
+            "Expo MCP",
+            "WebMCP",
+            "Apple App Intents",
+            "Android AppFunctions",
+            "expo-sqlite",
+            "Playwright + axe-core",
+            "Callstack agent-device"
+          ],
+          "why": "For a consumer cooking app spanning web and phones inside a large, multi-team, multi-agent enterprise, I would build on a shared TypeScript monorepo using React DOM on the web and Expo (React Native) on iOS and Android, backed by two shared foundations: a platform-adapted cross-platform design system (following the Coinbase CDS pattern) and a UI-decoupled, typed command/tool core shared by humans and agents alike.\n\nWhy this fits the product, the org, and a fleet of coding agents:\n- Shared headless domain & 100% agent parity: Recipe scaling, unit conversion, ingredient merging, shopping-list sync (`expo-sqlite`), and Cook Mode step/timer state live in a pure TypeScript command package decoupled from UI views. Every UI button calls a typed command; the in-app assistant calls the exact same tool schema; on the web, those schemas register via WebMCP so browser agents execute structured tools visibly instead of brittle DOM scraping; and on phones, thin Expo inline Swift/Kotlin modules (introduced in SDK 56) expose those same actions to Apple App Intents (Siri, Action Button, Live Activities) and Android AppFunctions (Gemini)—critical when a cook's hands are covered in dough or raw chicken.\n- Uncompromised web accessibility + SEO alongside native kitchen ergonomics: Rather than forcing lowest-common-denominator `View`/`Pressable` shims onto the web or relying on `@expo/ui`'s still-experimental web components, the shared design system exposes one TypeScript component & token contract (sourced from stable W3C Design Tokens 2025.10 via Style Dictionary) with platform-specific implementations (`.web.tsx` / `.native.tsx`). On web, primitives wrap React Aria Components—giving semantic HTML, SSR/SSG recipe SEO, keyboard/focus traps, and WCAG 2.2 compliance. On mobile, primitives bind to React Native and stable `@expo/ui` SwiftUI/Jetpack Compose views—giving native feel, keep-awake, lock-screen Live Activities, and oversized touch targets.\n- Governance for many coding agents: React + TypeScript gives the strongest agent guardrail stack available in 2026. Storybook MCP (`componentsManifest` supports React and `react-native-web-vite` out of the box) plus React Aria MCP, Expo MCP/Skills, and repo-committed `AGENTS.md` force coding agents across teams to discover and compose approved design-system components instead of hallucinating props or ad-hoc CSS, and let agents self-verify stories and accessibility before human review.\n\nWhat I weighed it against:\n- Separate Web (React) + fully native Swift/SwiftUI & Kotlin/Jetpack Compose (\"share the spec, not the code\", as Shopify adopted in September 2026): Coding agents have genuinely lowered the cost of maintaining separate Swift and Kotlin apps, and native gives day-one OS closeness. I rejected it here because Shopify needed bespoke checkpoint/review infrastructure (Helix) just to manage mobile parity, still notes duplicated maintenance cost hasn't vanished, and did not have to keep a consumer web app and an identical agent-tool execution layer in lockstep across three languages (TypeScript, Swift, Kotlin), where subtle divergence in ingredient math or offline list merging creates user-facing bugs—and Swift/Kotlin lack Storybook MCP manifest governance.\n- Flutter across mobile and web: Strong single-codebase rendering on phones, but Flutter Web renders onto a canvas with a parallel translated `Semantics` DOM tree (`SemanticsBinding.instance.ensureSemantics()`). For a consumer recipe web product that depends on search discoverability, instant document load, native text selection/copying, and standard DOM accessibility—and an enterprise design system shared across web teams—canvas web is the wrong tradeoff.\n- Pure universal `react-native-web` / Tamagui / React Strict DOM everywhere on web: `react-native-web` is actively maintained again under Expo and the React Foundation (as of October 2026), while React Strict DOM has been quiet since v0.0.55 (January 2026). Even so, authoring complex enterprise primitives on web without a dedicated DOM accessibility layer like React Aria leaves too much keyboard, popover, combobox, and screen-reader edge-case risk in a compliance-governed company.",
+          "showItsGood": "I would prove quality across four layers—governance gates, runtime physics, agent-parity evals, and real-kitchen testing with humans:\n\n1. Automated design-system & accessibility gates on every agent PR: Enforce ESLint/AST rules banning raw colors, spacing, and unapproved primitives, paired with Storybook MCP (`test-run`) executing component interaction stories, `axe-core` WCAG 2.2 AA/AAA audits, forced-colors/high-contrast checks, and visual diffs at 100% and 200% text scale / Dynamic Type. Programmatically assert touch-target geometry (`getBoundingClientRect()` on web, accessibility frame bounds on iOS/Android) so Cook Mode controls meet an enlarged >=56–64dp kitchen minimum with generous inter-control spacing, and body/step text stays legible at counter distance (60–90 cm).\n\n2. Cross-platform runtime & kitchen-constraint verification: Drive end-to-end flows on web with Playwright and on iOS Simulators, Android Emulators, and physical devices with Callstack `agent-device` (recording deterministic `.ad` / Maestro flows for CI) plus XCTest accessibility audits and Android AccessibilityChecks. Specifically test: (a) Screen Wake Lock persistence across recipe steps and after app/tab backgrounding; (b) offline shopping-list edits and recipe scaling in simulated supermarket dead zones (`expo-sqlite` sync convergence on reconnect); (c) full keyboard, VoiceOver, and TalkBack traversal—verifying ARIA/native live-region announcements when timers finish or when the assistant modifies the list; and (d) hands-free voice/knuckle navigation under recorded kitchen noise (range hood, running water, sizzling pan).\n\n3. Agent parity & cooking-domain evals: Enforce a build-time contract test verifying every user-facing store mutation is registered in the typed tool registry (backing the in-app assistant, WebMCP on web, and App Intents / AppFunctions on phones), then run the identical E2E scenario suite twice—once via UI taps and once via headless tool calls—asserting bit-identical resulting state. Run multi-turn natural-language evals on realistic messy requests (\"Add ingredients for 6 servings of crispy tofu stir-fry, skip sesame oil, and merge garlic with my current list\"), measuring unit-conversion/aggregation accuracy, allergen preservation, undo/confirmation behavior on destructive actions, and UI sync latency.\n\n4. Uncoached wet-hand human testing & live product signals: Watch home cooks (including screen-reader and motor-impaired users) actually cook a multi-timer recipe with wet/floury hands—measuring glance time from 2–3 feet away, mis-tap/undo rates, voice fallback recovery, and whether they trust assistant-added shopping items without re-reading the recipe line by line. In production, monitor Cook Mode completion rate, mid-cook screen-sleep/unlock events, rapid tap-then-undo rates per control, Core Web Vitals (LCP/INP/CLS) on recipe pages, and the rate at which users immediately revert or edit an assistant action.",
+          "unsure": "- What \"several platforms\" already exist across the rest of the company: if sibling teams ship native SwiftUI/Jetpack Compose apps, smart-display surfaces, or non-React web stacks, W3C Design Tokens + Style Dictionary still unify visual tokens, but we would need to align with (or generate) native bindings rather than assuming every team consumes React packages directly.\n- Web routing & SSR boundary: Expo Router's static rendering (SSG) is mature, whereas request-time SSR (`expo-server` and data loaders in v55) and `@expo/ui`'s universal web components (SDK 56) are still documented as experimental. If recipe pages require heavy dynamic request-time SSR on day one, running a Next.js web frontend alongside the Expo mobile app in the same monorepo (sharing the design system, domain logic, and tool registry) is safer than betting web SEO on experimental SSR.\n- Stability of external agent surfaces: Chrome's WebMCP (origin trial from Chrome 149) and Android's AppFunctions (experimental preview on Android 16+) are still evolving; keeping an internal typed command/tool layer as the canonical interface insulates our product from upstream API churn, though the platform adapters will need upkeep.\n- Hands-free input modality in real kitchens: how well wake-word/voice control holds up over loud vent hoods and sizzling pans—and the battery/thermal/privacy tradeoffs of on-device vs. streamed speech models on mid-range phones—cannot be settled from docs and needs physical kitchen testing.",
+          "sources": [
+            "https://docs.expo.dev/router/introduction/",
+            "https://expo.dev/blog/expo-router-v55-more-native-navigation-more-powerful-web",
+            "https://expo.dev/changelog/sdk-56.md",
+            "https://docs.expo.dev/agents.md",
+            "https://docs.expo.dev/agents/agent-device.md",
+            "https://react-aria.adobe.com/getting-started.md",
+            "https://react-aria.adobe.com/ai.md",
+            "https://storybook.js.org/docs/ai/mcp/overview",
+            "https://cds.coinbase.com/getting-started/introduction",
+            "https://cds.coinbase.com/getting-started/ai-overview",
+            "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/",
+            "https://developer.chrome.com/docs/ai/webmcp",
+            "https://developer.android.com/ai/appfunctions",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "https://shopify.engineering/back-to-native"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 21,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "\"A2UI\" OR \"MCP Apps\" OR \"AG-UI\" interactive cards agent chat 2025 2026",
+          "turn": "job:chat",
+          "result": "1. A2UI + MCP Apps: Combining the best of declarative and custom agentic UIs - Google Developers Blog\n   https://developers.googleblog.com/en/a2ui-and-mcp-apps/\n   The application consists of 2 panels.The left panel contains a simple form that allows users to select cooking style and protein type, and the right panel displays a recipe card. Users select the cooking style and protein types in the left panel and click on the \"Get Recipe\" button to fetch a new recipe card to be displayed on the rig",
+          "resultLength": 1763,
+          "resultSha256": "a040ed683fc922c8a692077f417430e5089ce0e73c8b142af48ba7ced668a1b3",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Tauri\" vs \"Electron\" accessibility screen reader macOS Windows enterprise chat 2025 2026",
+          "turn": "job:chat",
+          "result": "1. Tauri vs Electron: Picking a Desktop Framework\n   https://newstack.dev/compare/tauri-vs-electron/\n   For a new desktop app in 2026, start with Tauri 2. Installers land under 10 MB against 150 to 200 MB for Electron, idle memory runs 20 to 100 MB against 200 to 400 MB, and cold start is several times faster - because Tauri uses the webview already on the machine instead of shipping its own copy of Chromium. Choose Electron when you need one identical rendering engine on every operating system,",
+          "resultLength": 1683,
+          "resultSha256": "a11eea5fe42fa970e6d163d9d3bec1e9bc186903a34c1f4573b00cf92bbd3dc8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Microsoft Teams\" architecture React WebView2 desktop Mac Windows design system",
+          "turn": "job:chat",
+          "result": "1. Microsoft Teams: Advantages of the new architecture | Microsoft Community Hub\n   https://techcommunity.microsoft.com/blog/microsoftteamsblog/microsoft-teams-advantages-of-the-new-architecture/3775704\n   The consumer version of Microsoft Teams has already begun using this new architecture, and the preview version of the upgrade for commercial customers will initially be available for Windows , with support for web, Mac, EDU (education), and VDI (virtual desktop infrastructure) to follow later ",
+          "resultLength": 1712,
+          "resultSha256": "8d4c6d4f41027bb44d5b174753a48e6bf07e4674a8a6d37639b2cf7435c5c1ed",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 22,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://developers.googleblog.com/en/a2ui-10-build-delightful-fast-reliable-agentic-experiences/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://developers.googleblog.com/en/a2ui-10-build-delightful-fast-reliable-agentic-experiences/\nCaptured: 2026-11-19T03:52:23.569Z\nCharacters: 0-10000 of 10991\n\nA2UI 1.0: Build delightful, fast, reliable, agentic experiences - Google Developers Blog Community/Events Learn Blog YouTube Search Community/Events Learn Blog YouTube A2UI 1.0: Build delightful, fast, reliable, agentic experiences NOV. 11, 2026 Vishal Motwani A2UI PM Google A2UI Team Share Facebook Twitter LinkedIn Mail User in",
+          "resultLength": 10249,
+          "source": {
+            "url": "https://developers.googleblog.com/en/a2ui-10-build-delightful-fast-reliable-agentic-experiences/",
+            "capturedAt": "2026-11-19T03:52:23.569Z"
+          },
+          "resultSha256": "0d81618beb8aa9b0711797345105bf6f8e0c53d3d6ad62109230a628f0e1b60f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developers.googleblog.com/en/a2ui-and-mcp-apps/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://developers.googleblog.com/en/a2ui-and-mcp-apps/\nCaptured: 2026-11-19T03:52:23.427Z\nCharacters: 0-10000 of 23381\n\nA2UI + MCP Apps: Combining the best of declarative and custom agentic UIs - Google Developers Blog Community/Events Learn Blog YouTube Search Community/Events Learn Blog YouTube A2UI + MCP Apps: Combining the best of declarative and custom agentic UIs JUNE 17, 2026 Google A2UI Team Ido Salomon MCP Apps Co-creator Liad Yosef MCP Apps Co-creator Share Facebook Twitter Li",
+          "resultLength": 10208,
+          "source": {
+            "url": "https://developers.googleblog.com/en/a2ui-and-mcp-apps/",
+            "capturedAt": "2026-11-19T03:52:23.427Z"
+          },
+          "resultSha256": "3dca7fad7e1df1c1594c295b6f99183c193054b35adeedc56abf1093e3222f93",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"MCP Apps\" modelcontextprotocol interactive UI spec 2026",
+          "turn": "job:chat",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "\"Compose Multiplatform\" web accessibility iOS desktop 2026",
+          "turn": "job:chat",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 23,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://a2ui.org/\nCaptured: 2026-11-19T03:11:12.921Z\nCharacters: 0-6013 of 6013\n\nA2UI — Build delightful, fast, reliable agentic experiences A2UI v1.0 / Docs Built with A2UI Get Help Search docs ⌘ K Cancel Type to search the docs, or jump to: Quickstart Overview Catalogs Roadmap No results found Try a different keyword, or press Esc to close. Build delightful, fast, reliable agentic experiences. A2UI is an open-source generative UI framework that enables agents to select, compose, or bui",
+          "resultLength": 6122,
+          "source": {
+            "url": "https://a2ui.org/",
+            "capturedAt": "2026-11-19T03:11:12.921Z"
+          },
+          "resultSha256": "58a5ca7976b1fec8e4453dceb40242b7fa8f7833c3d7676bbac69fbefc7e7742",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri 2 accessibility WKWebView WebView2 macOS Windows",
+          "turn": "job:chat",
+          "result": "1. Webview Runtime | Tauri\n   https://v3.tauri.app/develop/webview-runtime/\n   | Engine | The webview installed on the system: WebKitGTK on Linux, WebView2 (Chromium) on Windows, WKWebView on macOS, iOS, and Android | The Chromium Embedded Framework, shipped with the app | | Platforms | Windows, macOS, Linux, Android, iOS | Windows, macOS, Linux | ... WebviewWryExt: with\\_wry\\_webview, which runs a closure with the tauri\\_runtime\\_wry::Webview platform handle (the webkit2gtk::WebView, the WebVie",
+          "resultLength": 1566,
+          "resultSha256": "cde41a1b176e84ca6c09b374f330e4f82ddc4a82a9be87b17caea9d0e8ac06c4",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Electron desktop enterprise Slack Discord memory accessibility 2026",
+          "turn": "job:chat",
+          "result": "1. Hate Windows' RAM usage? Wait until you find out about Electron apps\n   https://www.howtogeek.com/hate-windows-ram-usage-wait-until-you-find-out-about-electron-apps/\n   Windows gets blamed a lot for high RAM usage, and sometimes that's fair. However, if you've ever watched Task Manager fill up with processes from Slack, Discord, and VS Code all running at the same time, the operating system isn't really the culprit. Those are Electron apps, and each one quietly loads an entire browser engine ",
+          "resultLength": 1724,
+          "resultSha256": "21a988108d3d6cf73e3c00dec71efa98792d2dccd19d774bbd68c689be72e96a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "react-native-macos react-native-windows status 2026",
+          "turn": "job:chat",
+          "result": "1. Which React Native you actually get on Windows and macOS - Uno Platform\n   https://platform.uno/articles/react-native-windows-macos-versions-vs-dotnet-lts/\n   Three minor series behind on Windows, six on macOS, and roughly three months of patches per version ... As of 21 August 2026, no, and the gap is three minor series on Windows and six on macOS. ... On the React Native side, Windows and macOS are out-of-tree platforms, each maintained by Microsoft in its own repository, and Linux has no m",
+          "resultLength": 1719,
+          "resultSha256": "3159a06cebdeae73c7c1c5dc2541180e24132476ceee6f9266b98a9a1b1d0696",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 24,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/reference/webview-versions/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://v2.tauri.app/reference/webview-versions/\nCaptured: 2026-11-19T03:10:11.124Z\nCharacters: 0-7601 of 7601\n\nWebview Versions | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Command Line Interface Security Capability Permission Scope Core Permissions Configuration Environment Variables Webview Versions JavaScript api @tauri",
+          "resultLength": 7741,
+          "source": {
+            "url": "https://v2.tauri.app/reference/webview-versions/",
+            "capturedAt": "2026-11-19T03:10:11.124Z"
+          },
+          "resultSha256": "380b81acfcb95c3c1a1de39173f3d356b5ff56df7d3d713a08dfc5ef68d02bb0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:electronjs.org accessibility OR performance",
+          "turn": "job:chat",
+          "result": "1. Accessibility | Electron\n   https://www.electronjs.org/docs/latest/tutorial/accessibility/\n   Electron applications will automatically enable accessibility features in the presence of assistive technology (e.g. JAWS on Windows or VoiceOver on macOS). ... By using the app.setAccessibilitySupportEnabled (enabled) API, you can manually expose Chrome's accessibility tree to users in the application preferences. Note that the user's system assistive utilities have priority over this setting and wi",
+          "resultLength": 1481,
+          "resultSha256": "c706edd9c709323e20899718865f212a5fead78002670593de4986a84df6777c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:v2.tauri.app OR site:v3.tauri.app Tauri 2026 release security IPC",
+          "turn": "job:chat",
+          "result": "1. tauri@2.11.1 | Tauri\n   https://v2.tauri.app/release/tauri/v2.11.1/\n   - 1b26769f9 (\\#15266) Enforce ACL checks for IPC requests from remote origins even when no AppManifest is configured. Previously, custom (non-plugin) commands bypassed ACL entirely without an AppManifest, allowing any origin to invoke them. Now, remote origins are always subject to ACL resolution, and can only reach custom commands if an explicit remote capability has been granted. - ba025588f Correctly handle .localhost s",
+          "resultLength": 1565,
+          "resultSha256": "e35c361006006c8ee1cba4e05cacde3c3d74f55043264fd03a54034fbbc6d0cb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://techcommunity.microsoft.com/blog/microsoftteamsblog/microsoft-teams-advantages-of-the-new-architecture/3775704",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://techcommunity.microsoft.com/blog/microsoftteamsblog/microsoft-teams-advantages-of-the-new-architecture/3775704\nCaptured: 2026-11-19T03:54:24.120Z\nCharacters: 0-10000 of 23275\n\nMicrosoft Teams: Advantages of the new architecture | Microsoft Community Hub Open Side Menu Skip to content Tech Community Community Hubs Products Topics Blogs Events Skills Hub Community Register Sign In Microsoft Community Hub Communities Products Microsoft Teams Microsoft Teams Blog Blog Post Microsoft ",
+          "resultLength": 10271,
+          "source": {
+            "url": "https://techcommunity.microsoft.com/blog/microsoftteamsblog/microsoft-teams-advantages-of-the-new-architecture/3775704",
+            "capturedAt": "2026-11-19T03:54:24.120Z"
+          },
+          "resultSha256": "ee33466d7d417ddfbc1b97820065b1470460e26fd8c8f0b7a49506ffbdf57180",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 25,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://www.electronjs.org/docs/latest/tutorial/accessibility/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://www.electronjs.org/docs/latest/tutorial/accessibility/\nCaptured: 2026-11-19T03:54:37.738Z\nCharacters: 0-3620 of 3620\n\nAccessibility | Electron Skip to main content Electron Docs API Blog Tools Electron Forge Electron Fiddle Community Governance Resources Releases English English Deutsch Español Français 日本語 Português Русский 中文 Search Get Started Processes in Electron Best Practices Examples Development Accessibility Advanced Installation Instructions ASAR Archives ASAR Integrity",
+          "resultLength": 3774,
+          "source": {
+            "url": "https://www.electronjs.org/docs/latest/tutorial/accessibility/",
+            "capturedAt": "2026-11-19T03:54:37.738Z"
+          },
+          "resultSha256": "a45997bb0b869ee684131600e9c7ac3ef6fa07de42c9e55f04905c060df9072e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://platform.uno/articles/react-native-windows-macos-versions-vs-dotnet-lts/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://platform.uno/articles/react-native-windows-macos-versions-vs-dotnet-lts/\nCaptured: 2026-11-19T03:54:38.199Z\nCharacters: 0-10000 of 13091\n\nWhich React Native you actually get on Windows and macOS - Uno Platform Launch Special: Save 25% on Uno Platform Studio! Use UNO25M (monthly) or UNO25A (annual) at checkout . × Skip to content Platform.uno Logo Home Studio Product Uno Platform Studio col-1 Hot Design Hot Design Previews Figma col-2 Hot Reload Hot Design Snippets MCPs Platform D",
+          "resultLength": 10233,
+          "source": {
+            "url": "https://platform.uno/articles/react-native-windows-macos-versions-vs-dotnet-lts/",
+            "capturedAt": "2026-11-19T03:54:38.199Z"
+          },
+          "resultSha256": "59897befa570c8149eae6a4287e0701222108a838305f0c13888fcdd2448ff1d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Discord desktop WebView2 Tauri Electron 2026 Stanislav Vishnevskiy",
+          "turn": "job:chat",
+          "result": "1. Electron vs Tauri: Discord picked neither. Here's why | Creuto Blog\n   https://creuto.com/electron-vs-tauri-discord-gpui\n   Discord is leaving Electron, and the replacement is not Tauri. On 4 November 2026 Discord's CTO Stanislav Vishnevskiy posted that Electron and React Native are going away, adding: \"it's not Tauri, it's GPUI.\" Early coverage framed the news as a Tauri switch, and Vishnevskiy corrected it in the same post: the new client is Rust on GPUI. GPUI describes itself as a hybrid i",
+          "resultLength": 1679,
+          "resultSha256": "c913169871816e5abb0f2be608c534f45a077b4f1c8fd44734f07fcb41ee1643",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri MCP server desktop agent operate app 2025 2026",
+          "turn": "job:chat",
+          "result": "1. GitHub - hypothesi/mcp-server-tauri: A Model Context Protocol (MCP) server and plugin for Tauri v2 development · GitHub\n   https://github.com/hypothesi/mcp-server-tauri\n   A Model Context Protocol (MCP) server that enables AI assistants like Claude, Cursor, and Windsurf to build, test, and debug Tauri® v2 applications. Screenshots, DOM state, and console logs from your running app give the AI rich context to understand what's happening—and tools to interact with it. ... | webview\\_select\\_ele",
+          "resultLength": 1671,
+          "resultSha256": "e3099aa63555dc13bc8c256e77652c19e869924a7900da7e9179c598a6740899",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 26,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/security/capabilities/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://v2.tauri.app/security/capabilities/\nCaptured: 2026-11-19T03:08:21.374Z\nCharacters: 0-9893 of 9893\n\nCapabilities | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrad",
+          "resultLength": 10028,
+          "source": {
+            "url": "https://v2.tauri.app/security/capabilities/",
+            "capturedAt": "2026-11-19T03:08:21.374Z"
+          },
+          "resultSha256": "04b76762d93ff601fc719d33dad3c81c26641b7380191092d1c296c0939abf6a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:modelcontextprotocol.io specification tools resources 2025 2026",
+          "turn": "job:chat",
+          "result": "1. Tools - Model Context Protocol\n   https://modelcontextprotocol.io/specification/2026-07-28/server/tools\n   The Model Context Protocol (MCP) allows servers to expose tools that can be invoked by language models. Tools enable models to interact with external systems, such as querying databases, calling APIs, or performing computations. Each tool is uniquely identified by a name and includes metadata describing its schema. ... listChanged indicates whether the server will emit notifications when",
+          "resultLength": 1619,
+          "resultSha256": "1490a9c694c0f880ee5d885593dda3e17627e1ad8025e109c87c6d734ee74576",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Legend List vs FlashList React Native chat inverted list 2026",
+          "turn": "job:chat",
+          "result": "1. FlashList vs LegendList: fix React Native list lag without breaking row state | Janaka Jati\n   https://www.katanyajati.com/articles/flashlist-vs-legendlist/\n   | Architecture | New Architecture required | JS implementation; verify your RN/platform combination, particularly keyboard integrations | ... LegendList also measures rows and updates its layout. In v3, estimatedItemSize is optional and mainly influences the initial number of allocated containers. Its documented initial fallback is 100",
+          "resultLength": 1727,
+          "resultSha256": "d20cb7e41bb9009aa369ceb4b56599bfc6b9464ade8d7c08088dfdebe691c1e1",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 27,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28/server/tools\nCaptured: 2026-11-19T03:14:29.292Z\nCharacters: 0-10000 of 202296\n\nTools - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+            "capturedAt": "2026-11-19T03:14:29.292Z"
+          },
+          "resultSha256": "8364d0dd16f4b327cb26130bb833ceb182e4438122132e78f43e55d3a110ce28",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28/server/resources\nCaptured: 2026-11-19T03:33:11.740Z\nCharacters: 0-10000 of 116630\n\nResources - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Ass",
+          "resultLength": 10228,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+            "capturedAt": "2026-11-19T03:33:11.740Z"
+          },
+          "resultSha256": "19a4b1b08c762057354b970db86399d8ef6cc22b63428927ef1d420a281529c7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 28,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:lexical.dev accessibility OR collaboration",
+          "turn": "job:chat",
+          "result": "1. Introduction | Lexical\n   https://lexical.dev/docs/intro\n   Lexical is an extensible text editor framework for the web, built for reliability, accessibility, and performance. It gives you a small, dependency-free core and a set of optional packages that you compose into the editor you need, from a plain-text input with mentions to a collaborative rich-text document editor. You read and change that model with Lexical's APIs, and Lexical takes care of keeping the DOM, the selection, and the bro",
+          "resultLength": 1227,
+          "resultSha256": "2ccf3934ecd3bd0dd01885dc62e97a887a04d4027f1b9070b316ea7f20695b88",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:tanstack.com/virtual dynamic height OR accessibility",
+          "turn": "job:chat",
+          "result": "1. Lit TanStack Virtual Dynamic Example | TanStack Virtual Docs\n   https://tanstack.com/virtual/latest/docs/framework/lit/examples/dynamic\n   height: 400px; @customElement('column-virtualizer-dynamic') class ColumnVirtualizerDynamic extends LitElement { private scrollElementRef: Ref<HTMLDivElement> = createRef() private virtualizerController: VirtualizerController<HTMLDivElement, Element> style=\"overflow-y: auto;border: 1px solid #c8c8c8\" <div style=\"position: relative; height: ${virtualizer.get",
+          "resultLength": 1457,
+          "resultSha256": "f257a7eefa10511e21d7e6be8a3a7e550e40d4d78864b27fbd568465d31ef8d1",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 29,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://lexical.dev/docs/intro",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://lexical.dev/docs/intro\nCaptured: 2026-11-19T03:57:06.775Z\nCharacters: 0-5847 of 5847\n\nIntroduction | Lexical Skip to main content Playground Docs API Community Demos Introduction Getting Started Concepts Nodes Browser and Environment Serialization Extensions Packages React Collaboration Testing Upgrading FAQ Maintainers' Guide Introduction Copy page On this page Introduction Lexical is an extensible text editor framework for the web, built for reliability, accessibility, and perf",
+          "resultLength": 5969,
+          "source": {
+            "url": "https://lexical.dev/docs/intro",
+            "capturedAt": "2026-11-19T03:57:06.775Z"
+          },
+          "resultSha256": "c72b94c5439a3a072c000d313a03ba272d36987839daf83565d2181677d893fe",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 30,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "React + Tauri v2 (Web, Windows, Mac) and Expo / React Native (iPhone, Android)",
+          "pairings": [
+            "A2UI 1.0 (+ sandboxed MCP Apps escape hatch)",
+            "Model Context Protocol (MCP 2026-07-28: Tools, Resources & Elicitation)",
+            "WebMCP + Apple App Intents & Android AppFunctions",
+            "React Aria Components",
+            "Lexical",
+            "W3C Design Tokens (2025.10) + Style Dictionary",
+            "Storybook MCP + Expo MCP",
+            "Off-main-thread SQLite sync worker (Tauri SQL / Web Worker + expo-sqlite)",
+            "Playwright + axe-core + Callstack agent-device"
+          ],
+          "why": "An internal company chat app used 8–10 hours a day across Web, Windows, Mac, iPhone, and Android—with agents both posting interactive UI into threads and operating the client itself—calls for a shared off-main-thread TypeScript Client Core paired with platform-appropriate UI hosts: React DOM (with React Aria Components and Lexical) for Web and inside a capability-locked Tauri v2 shell on Windows and Mac; and Expo (React Native) on iPhone and Android, unified by W3C Design Tokens (2025.10) and Storybook MCP governance.\n\nWhy this architecture fits the five platforms, all-day load, and dual agent roles:\n- All-day desktop speed & low memory without sacrificing rich web UX: Dense workplace chat (multi-pane threads, selectable code/text across messages, `Cmd/Ctrl+K` navigation, complex `@mention` and `/command` composition via Lexical, keyboard chords) belongs in HTML/CSS + React Aria. Wrapping that shared React app in Tauri v2 (`WebView2` on Windows, `WKWebView` on macOS) with sync, search, and SQLite persistence moved off the main UI thread into a worker follows the exact architectural lesson of Microsoft Teams' migration off Electron—eliminating hundreds of MB of duplicate bundled-Chromium RAM on employees' laptops while giving native notifications, tray/dock badges, global shortcuts, and schema-enforced Rust `capabilities` ACLs.\n- Native mobile responsiveness: On iPhone and Android, Expo / React Native delivers native navigation, push notification quick-replies, local `expo-sqlite` offline queues, smooth recycled message lists, and easy inline Swift/Kotlin bridges.\n- Agents posting interactive cards (`A2UI 1.0`): Rather than letting bots inject raw HTML/iframes into chat streams (which causes scroll jank, broken tab order, clashing styles, and XSS surface) or bottlenecking teams on rigid hardcoded card templates, A2UI 1.0 (stable November 2026) lets agents stream declarative `application/a2ui+json` payloads that resolve strictly against a locked catalog of our own governed design-system components, with bidirectional function calls and accessibility metadata. Every card automatically inherits company tokens, dark/high-contrast themes, and screen-reader contracts across desktop, web, and mobile—keeping sandboxed MCP Apps strictly as a governed escape hatch for rare custom canvas mini-apps.\n- External agents operating the app (`MCP 2026-07-28`): Because routing, unread state, search, card actions, and Lexical's DOM-free JSON draft AST live in the decoupled TypeScript core, the app exposes an authorization-scoped MCP server (local IPC/stdio via Tauri on Windows/Mac, WebMCP + Streamable HTTP on Web, and App Intents / AppFunctions on phones). External agents read and subscribe to live client state via MCP Resources (`chat://ui/active-thread`, `chat://unreads`, `chat://drafts/{id}`) and invoke actions via MCP Tools (`navigate_thread`, `stage_draft`, `submit_card_action`, `send_message`) in milliseconds without fragile screen-scraping—using MCP's `input_required` / `elicitation` flow so consequential actions stay human-approved.\n- Multi-agent company governance: Shared TypeScript + React + Storybook MCP (`componentsManifest`), React Aria MCP, and Expo MCP ensure coding agents across teams compose approved, accessible primitives instead of hallucinating ad-hoc UI.\n\nWhat I weighed it against:\n- Electron instead of Tauri v2 for Windows & Mac: Electron guarantees one pinned Chromium + `AXManualAccessibility` engine across Windows and Mac, which is why Slack and VS Code still run it. For a new all-day chat client, shipping another 200–400 MB Chromium runtime alongside employees' browsers and IDEs is a steep daily tax, and our web client must pass Chromium + Safari/WebKit testing anyway.\n- React Native everywhere (`react-native-windows` + `react-native-macos`): As of August 2026, Microsoft's out-of-tree desktop forks trail upstream React Native (`0.87`) at `0.84` on Windows and `0.81` on macOS with ~3-month patch windows—the exact lag Expo cites for not supporting desktop first-class, and why Microsoft moved Teams' own desktop shell to React + WebView2.\n- Flutter, Compose Multiplatform, or custom GPU UI (e.g., Zed's GPUI, which Discord announced adopting in November 2026): GPU/canvas rendering cuts desktop RAM, but breaks native multi-message DOM text selection, browser find-in-page, mature `contenteditable`/IME behavior, standard DOM accessibility trees, and company-wide React/Storybook MCP design-system reuse.\n- Five separate native codebases (SwiftUI/AppKit, WinUI, Jetpack Compose, React Web): Keeping real-time sync, rich-text ASTs, A2UI card catalogs, and MCP state/action schemas bug-for-bug identical across four languages and five UI stacks creates massive parity and governance drag.",
+          "showItsGood": "I would validate this across 8-hour workday endurance, cross-engine accessibility, both agent interfaces, and real employee dogfooding:\n\n1. All-day performance, memory, and scroll-stability soak tests: Run automated 8-hour synthetic-workday benchmarks on Windows (`WebView2`), macOS (`WKWebView`), Web, iOS, and Android under continuous channel firehose, reconnect storms, and streaming agent cards. Assert flat resident-memory (RSS) slope with no leaks, low idle CPU/battery wakeups, p95 channel/thread switch <100 ms from the off-main-thread SQLite store, <16 ms keystroke-to-paint latency in the Lexical composer, and zero cumulative scroll jump (`CLS = 0`) when variable-height messages or streaming A2UI cards expand while a user is scrolled up reading history.\n\n2. Governance & cross-engine accessibility gates on every agent PR: Require Storybook MCP component/interaction tests, `axe-core` WCAG 2.2 AA/AAA checks, W3C token lint rules, Playwright runs on both Chromium and WebKit (catching `WebView2` vs. `WKWebView` differences early), and Callstack `agent-device` runs on iOS/Android. Run dedicated no-mouse and screen-reader suites (NVDA/JAWS on Windows, VoiceOver on macOS/iOS, TalkBack on Android): verify `F6` pane cycling, `Cmd/Ctrl+K` switching, roving focus across virtualized message feeds (`role=\"feed\"`), predictable focus entry/exit when acting on interactive A2UI cards inside a stream, Dynamic Type / 200% zoom reflow, and throttled/polite live-region announcements so busy channels don't drown screen-reader users in speech.\n\n3. Verification of both agent loops (in-chat cards + external client control):\n- Interactive cards (A2UI 1.0): Fuzz-test web/desktop and mobile A2UI renderers with slow-streaming, deeply nested, and adversarial `application/a2ui+json` payloads—verifying unregistered components fail closed, cards stay legible at narrow mobile widths, and bidirectional card actions are idempotent under double-taps or offline retries.\n- Operating agents (MCP): Run a dual-execution parity suite verifying every human workflow (navigating threads, reading unreads, searching, staging formatted Lexical drafts with `@mentions`, acting on an A2UI card, sending messages) works identically through MCP `resources/read`, `subscriptions/listen`, and `tools/call`. Red-team prompt-injection and permission boundaries: verify untrusted channel text cannot silently trigger outbound tool calls, Tauri `capabilities` block unauthorized IPC, and sensitive actions always trigger MCP `input_required` / `elicitation` confirmation plus a visible \"Agent operating\" indicator in the UI.\n\n4. Internal ring dogfooding & live workday metrics: Roll out in staged internal rings (including assistive-tech users and older corporate laptops) and measure morning unread-triage time, in-card task completion vs. bouncing out to external web apps, agent-action revert/cancel rate, p95 client RAM after 8 hours uptime, and crash/hang-free workday sessions.",
+          "unsure": "- Tauri v2 (`WKWebView` on macOS) vs. Electron if product scope expands to rich audio/video huddles: Tauri v2 cuts hundreds of MB of all-day resident memory, but ties macOS rendering to the OS's WebKit version rather than a single pinned Chromium engine. If corporate Macs lag on OS updates or the chat app adds multi-grid WebRTC video and custom window/audio capture, Electron (or a native media sidecar like Microsoft Teams built) could become the safer desktop host—so I would isolate Tauri behind a thin host-bridge interface from day one.\n- Mobile A2UI 1.0 renderer implementation: A2UI 1.0 shipped in November 2026 with official React (web), Flutter, and SwiftUI 1.0 renderers while Jetpack Compose 1.0 is still marked \"coming soon\" (v0.9.1 today) and there is no official React Native renderer package yet. On Expo (iOS/Android), we will need to maintain a thin internal TypeScript renderer mapping A2UI's JSON schema onto our React Native design-system catalog (or mount native SwiftUI/Compose subtrees via `@expo/ui`), and budget for spec evolution.\n- Enterprise DLP & prompt-injection policy for operating agents: Giving external agents MCP `resources/read` access to company chat creates indirect prompt-injection risk (a malicious message in a shared channel attempting to steer a user's personal agent into reading private DMs or approving a card). Protocol-level scoping and MCP `elicitation` confirmations enforce user consent, but exact InfoSec rules on channel sensitivity tiers, audit logging, and DLP redaction need org-wide security governance.",
+          "sources": [
+            "https://developers.googleblog.com/en/a2ui-10-build-delightful-fast-reliable-agentic-experiences/",
+            "https://developers.googleblog.com/en/a2ui-and-mcp-apps/",
+            "https://a2ui.org/",
+            "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+            "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+            "https://v2.tauri.app/reference/webview-versions/",
+            "https://v2.tauri.app/security/capabilities/",
+            "https://www.electronjs.org/docs/latest/tutorial/accessibility/",
+            "https://techcommunity.microsoft.com/blog/microsoftteamsblog/microsoft-teams-advantages-of-the-new-architecture/3775704",
+            "https://platform.uno/articles/react-native-windows-macos-versions-vs-dotnet-lts/",
+            "https://lexical.dev/docs/intro",
+            "https://react-aria.adobe.com/getting-started.md",
+            "https://storybook.js.org/docs/ai/mcp/overview",
+            "https://docs.expo.dev/agents/agent-device.md",
+            "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/",
+            "https://developer.chrome.com/docs/ai/webmcp"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 31,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Agent Client Protocol ACP OR A2A protocol agent handoffs tasks 2025 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. Agent-to-Agent Communication Protocol Standards: A2A, MCP, ACP, and ANP | Zylos Research\n   https://zylos.ai/research/2026-02-15-agent-to-agent-communication-protocols/\n   The AI agent ecosystem in 2025-2026 is converging on four complementary interoperability protocols: A2A (Agent-to-Agent) from Google, MCP (Model Context Protocol) from Anthropic, ACP (Agent Communication Protocol) from IBM, and ANP (Agent Network Protocol) from the community. Rather than competing, these protocols address d",
+          "resultLength": 1710,
+          "resultSha256": "533f0dbdcdea738371150f93d767c45bb99932d3cded6f2bb42176f23a04020d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Linear for Agents OR Codex desktop app review steer coding agents 2025 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. Linear Review 2026: The Fastest Project Management Tool Gets AI Agents | utilo\n   https://utilo.io/blog/linear-review-2026-project-management\n   In 2026, with the launch of Linear Agent and a full agent platform, it has evolved from a fast issue tracker into an AI-powered product development hub. ... Linear Agent is built directly into the workspace — it understands your roadmap, issues, customer requests, and code. Unlike generic AI assistants, it's fully grounded in your actual project cont",
+          "resultLength": 1642,
+          "resultSha256": "b67f5eb4b26499cd980bcb612a1d95216aee986e0595a1fab30094b05be999d0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "CodeMirror 6 vs Monaco accessibility diff viewer webview 2025 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. CodeMirror vs Monaco Editor: Embeddable Code Editors Comparison (2026)\n   https://faun.dev/toolbox/codemirror-vs-monaco-editor/\n   CodeMirror leads by 8 points, 80/100 against 72/100, across 11 Embeddable Code Editors criteria scored in 2026. ... CodeMirror wins the overall score (80 /100) against Monaco Editor (72 /100). Both tools are rated on the same 11 criteria. ... | Monaco Editor is the code editor that powers Visual Studio Code, packaged as a component you embed in a web page. It brin",
+          "resultLength": 1566,
+          "resultSha256": "4587cd8830c7835d24886e9f881a93b7db0da5bd54705751ce332e7faaf1aacf",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 32,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "A2A protocol official specification tasks artifacts Linux Foundation 2025 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. Overview - A2A Protocol\n   https://a2a-protocol.org/latest/specification/\n   - **Artifact:** An output (e.g., a document, image, structured data) generated by the agent as a result of a task, composed of Parts. ... **Task lifecycle stream:** If the agent returns a Task, the stream MUST begin with the Task object, followed by zero or more TaskStatusUpdateEvent or TaskArtifactUpdateEvent objects. ... When includeArtifacts is false (the default), the artifacts field MUST be omitted entirely from",
+          "resultLength": 1612,
+          "resultSha256": "111a1632fe6823abe5b130df6af42711d2ae4f47d4f7224a2c8df0237c5884d8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "AG-UI protocol official documentation human in the loop state sync 2025 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. State Management - Agent User Interaction Protocol\n   https://docs.ag-ui.com/concepts/state\n   State management is a core feature of the AG-UI protocol that enables real-time synchronization between agents and frontend applications. By providing efficient mechanisms for sharing and updating state, AG-UI creates a foundation for collaborative experiences where both AI agents and human users can work together seamlessly. ... 2. **Contextual awareness**: The agent can access user actions, prefer",
+          "resultLength": 1575,
+          "resultSha256": "b5326279d6fb690930b883de730f727621a1194003a86654e4a81238f1608331",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:linear.app/developers agents session activities elicitation",
+          "turn": "job:agent-tooling",
+          "result": "1. Developing the Agent Interaction – Linear Developers\n   https://linear.app/developers/agent-interaction\n   Agents become active participants through the Agent Session and Agent Activity system—primitives that make agent behavior visible, contextual, and collaborative for end users. ... AgentSession tracks the lifecycle of an agent run. Session states let the user know if the agent is currently working, waiting for user input, in an error state, or has finished work. An AgentSession is created",
+          "resultLength": 1631,
+          "resultSha256": "5b335f6f35ca3c591c38161d4b9e764c3a7f1a584396b101dc5758fbd5047871",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:codemirror.net accessibility OR merge diff",
+          "turn": "job:agent-tooling",
+          "result": "1. CodeMirror: merge view demo\n   https://codemirror.net/5/demo/merge.html\n   <script type=text/javascript src=\"https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js\"></script> ... The merge addon provides an interface for displaying and merging diffs, either two-way or three-way. The left (or center) pane is editable, and the differences with the other pane (s) are optionally shown live as you edit it. In the two-way configuration, there are also options to pad ch",
+          "resultLength": 1271,
+          "resultSha256": "f809611889048c606dc20567c46db1663e4cb394fe814137a322cb12473ed82a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 33,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://a2a-protocol.org/latest/specification/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://a2a-protocol.org/latest/specification/\nCaptured: 2026-11-19T03:23:33.840Z\nCharacters: 0-10000 of 179059\n\nOverview - A2A Protocol Skip to content New on the blog: A2A joins the Agentic AI Foundation Read the announcement Join the DeepLearning.AI course to explore the A2A Protocol Enroll for free --> A2A Protocol Overview Initializing search A2A Python Go Java JS .NET Rust Home Documentation Extensions Specification Resources Community Blog A2A Protocol Home Documentation Documenta",
+          "resultLength": 10200,
+          "source": {
+            "url": "https://a2a-protocol.org/latest/specification/",
+            "capturedAt": "2026-11-19T03:23:33.840Z"
+          },
+          "resultSha256": "b5d71cd205a9d80e401a51f99df0f4494df57eb7869cc27689c574d27568a973",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.ag-ui.com/concepts/state",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.ag-ui.com/concepts/state\nCaptured: 2026-11-19T04:02:31.024Z\nCharacters: 0-10000 of 78481\n\nState Management - Agent User Interaction Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Agent User Interaction Protocol home page Search... ⌘ K Discord ag-ui-protocol/ag-ui ag-ui-protocol/ag-ui Search... Navigation Concepts State Management Documentation Speci",
+          "resultLength": 10190,
+          "source": {
+            "url": "https://docs.ag-ui.com/concepts/state",
+            "capturedAt": "2026-11-19T04:02:31.024Z"
+          },
+          "resultSha256": "490a447134bce882ee641841f921674bf426c4c0359b480776b4eb590b386668",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://linear.app/developers/agent-interaction",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "error": "Timed out fetching https://linear.app/developers/agent-interaction",
+          "result": "Fetch failed: Timed out fetching https://linear.app/developers/agent-interaction",
+          "resultLength": 80,
+          "resultSha256": "f88a742af4f46bf7017474860d88baf35cbfdeed4db5359cce4e1541fefd51df",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://codemirror.net/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://codemirror.net/\nCaptured: 2026-11-19T04:02:31.356Z\nCharacters: 0-3138 of 3138\n\nCodeMirror CodeMirror Examples Documentation Try Discuss Code Version 5 Extensible Code Editor CodeMirror is a code editor component for the web. It can be used in websites to implement a text input field with support for many editing features, and has a rich programming interface to allow further extension. This is a CodeMirror field, configured for editing JavaScript code. Features Accessibility Work",
+          "resultLength": 3253,
+          "source": {
+            "url": "https://codemirror.net/",
+            "capturedAt": "2026-11-19T04:02:31.356Z"
+          },
+          "resultSha256": "df2f4fab716f1a69c163a9a67f695ea22acbbbdd0d447bd7236eea7248ab8b5b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 34,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.ag-ui.com/concepts/interrupts",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.ag-ui.com/concepts/interrupts\nCaptured: 2026-11-19T04:03:01.000Z\nCharacters: 0-10000 of 139033\n\nInterrupts - Agent User Interaction Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Agent User Interaction Protocol home page Search... ⌘ K Discord ag-ui-protocol/ag-ui ag-ui-protocol/ag-ui Search... Navigation Concepts Interrupts Documentation Specificati",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://docs.ag-ui.com/concepts/interrupts",
+            "capturedAt": "2026-11-19T04:03:01.000Z"
+          },
+          "resultSha256": "13ad434fd72704ecdb64fc1ec919ef32f87ce9120b2e3d48fbf264841da4f384",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.ag-ui.com MCP A2A AG-UI",
+          "turn": "job:agent-tooling",
+          "result": "1. MCP, A2A, and AG-UI - Agent User Interaction Protocol\n   https://docs.ag-ui.com/agentic-protocols\n   AG-UI has emerged as the 3rd leg of the AI protocol landscape: You can connect your application to agents directly via AG-UI, MCP, and A2A. - **MCP** (Model Context Protocol) Connects agents to tools and to context — but those tools are themselves becoming agentic. - **A2A** (Agent to Agent) Connects agents to other agents. - **AG-UI (Agent–User Interaction)** Connects agents to users (through",
+          "resultLength": 1581,
+          "resultSha256": "9e5678057e53b8b06b58a2116d3171407a12314e3a8a0c3a36ac2ea67ed28d8e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Agent Client Protocol agentclientprotocol Zed coding agents 2025 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. Zed — Agent Client Protocol\n   https://zed.dev/acp\n   Bring your own agent to Zed. Connect any agent that speaks ACP to a powerful, purpose-built IDE interface. ... The Agent Client Protocol (ACP) is an open standard that enables any agent to integrate seamlessly with any editing environment. ... Any agent on ACP gains access to Zed's multi-file editing, full codebase context, and many other powerful reviewing tools. ... Introducing the Agent Client Protocol (ACP) with Google's Gemini CLI as ",
+          "resultLength": 1603,
+          "resultSha256": "e8d606f6e821a2ae25145795303d8fc631205dfd2877c967bd38781adef9ce7f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "TanStack DB ElectricSQL Zero local-first sync React 2025 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. An Integration Guide to TanStack DB & ElectricSQL: Building Real-Time Apps with Optimistic Updates · TanStack db · Discussion #217 · GitHub\n   https://github.com/TanStack/db/discussions/217\n   This document is an in-depth technical guide providing a clear, reusable example of how to combine TanStack DB and ElectricSQL to build modern web applications with real-time data synchronization, secure optimistic updates, and transactional consistency. ... To securely sync the database to the client i",
+          "resultLength": 1716,
+          "resultSha256": "54f69d1446a02add67d694502c9069fa8cc2c5bbb48dea8447bb349caf2158ea",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 35,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.ag-ui.com/agentic-protocols",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.ag-ui.com/agentic-protocols\nCaptured: 2026-11-19T04:03:39.238Z\nCharacters: 0-10000 of 32483\n\nMCP, A2A, and AG-UI - Agent User Interaction Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Agent User Interaction Protocol home page Search... ⌘ K Discord ag-ui-protocol/ag-ui ag-ui-protocol/ag-ui Search... Navigation Get Started MCP, A2A, and AG-UI Documen",
+          "resultLength": 10193,
+          "source": {
+            "url": "https://docs.ag-ui.com/agentic-protocols",
+            "capturedAt": "2026-11-19T04:03:39.238Z"
+          },
+          "resultSha256": "f2eedd8a4eaffaec0eb95c582a1bbdc9400d4b069d18c9609953cf74c7c7fd16",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://zed.dev/acp",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://zed.dev/acp\nCaptured: 2026-11-19T04:03:39.621Z\nCharacters: 0-3918 of 3918\n\nZed — Agent Client Protocol Product Resources Extensions Docs Pricing Delta P Sign up S Download D Agent Client Protocol Bring your own agent to Zed. Connect any agent that speaks ACP to a powerful, purpose-built IDE interface. Try Zed D Read Docs R A New Standard for Agent Interoperability The Agent Client Protocol (ACP) is an open standard that enables any agent to integrate seamlessly with any editing e",
+          "resultLength": 4029,
+          "source": {
+            "url": "https://zed.dev/acp",
+            "capturedAt": "2026-11-19T04:03:39.621Z"
+          },
+          "resultSha256": "c791194e1632636127299224eb2d40ef283955743dc0efc54667ba3f683e7b52",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://tanstack.com/db/latest/docs/collections/electric-collection",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://tanstack.com/db/latest/docs/collections/electric-collection\nCaptured: 2026-11-19T04:03:41.336Z\nCharacters: 0-10000 of 24953\n\nElectric Collection | TanStack DB Docs Skip to content DB Libraries Loading libraries… Blog Blog & Release Notes About YouTube The official TanStack channel. Workshops Live sessions from the maintainers. Release Notes The latest releases and changelog. Community Channels Discord Real-time community support. GitHub Source, issues, discussions, and releases. ",
+          "resultLength": 10220,
+          "source": {
+            "url": "https://tanstack.com/db/latest/docs/collections/electric-collection",
+            "capturedAt": "2026-11-19T04:03:41.336Z"
+          },
+          "resultSha256": "e107706206a7f002dafb077e59269dd88e15a0008ff904485c5d068657a34a59",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 36,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:reactflow.dev accessibility keyboard navigation",
+          "turn": "job:agent-tooling",
+          "result": "1. Accessibility - React Flow\n   https://reactflow.dev/learn/advanced-use/accessibility\n   React Flow provides keyboard and screen-reader support to help meet accessibility standards. By default, all nodes and edges are keyboard-focusable and operable. You can enable or disable these features with props including: nodesFocusable, edgesFocusable, and disableKeyboardA11y which are passed through <ReactFlow /> like this: ... - **Tab navigation:** Pressing Tab moves focus through all focusable nodes",
+          "resultLength": 1466,
+          "resultSha256": "3cf14a1c4cc9337d4f8c28e51211866a2cdd1553dc86180f74711b45fd0e0e3a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 37,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://reactflow.dev/learn/advanced-use/accessibility\nCaptured: 2026-11-19T04:04:27.396Z\nCharacters: 0-10000 of 11834\n\nAccessibility - React Flow Skip to Content React Flow 13 is here! Read the announcement → React Flow Learn Reference Examples UI Showcase More React Flow Pro Remove Attribution Learn Reference Examples UI Showcase Pro More Search GitHub Discord Learn Quick Start Core Concepts Overview Building a Flow Adding Interactivity The Viewport Built-In Components Customization No",
+          "resultLength": 10207,
+          "source": {
+            "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+            "capturedAt": "2026-11-19T04:04:27.396Z"
+          },
+          "resultSha256": "d9ede656a5036933ee83e204a266fbdecb78197ede01e625f195a2c12522af1c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 38,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+          "startIndex": 10000,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://reactflow.dev/learn/advanced-use/accessibility\nCaptured: 2026-11-19T04:04:27.396Z\nCharacters: 10000-11834 of 11834\n\nells React Flow to use your text instead of the defaults. By supplying localized strings via ariaLabelConfig , you ensure screen readers announce messages in the user’s language. WCAG 2.1 AA React Flow provides features that can help you meet key WCAG 2.1 AA criteria when properly implemented: Keyboard: React Flow supports keyboard operability with Tab navigation to",
+          "resultLength": 1986,
+          "source": {
+            "url": "https://reactflow.dev/learn/advanced-use/accessibility",
+            "capturedAt": "2026-11-19T04:04:27.396Z"
+          },
+          "resultSha256": "a1ad17179624184cfbc1062b1f816655dd768fd080213c4545cec294252ec302",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 39,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "React + TypeScript + Tauri v2 (Desktop App & Web View)",
+          "pairings": [
+            "Model Context Protocol (MCP 2026-07-28: Tools, Resources & Subscriptions) + Headless CLI",
+            "A2A Protocol v1.0 (agent tasks, artifacts & multi-agent handoffs)",
+            "AG-UI Protocol + A2UI 1.0 (interrupts, approve-with-edits, JSON Patch state deltas & governed decision cards)",
+            "Agent Client Protocol (ACP)",
+            "TanStack DB + ElectricSQL",
+            "React Aria Components + W3C Design Tokens (2025.10) + Style Dictionary",
+            "CodeMirror 6 (@codemirror/merge) + React Flow (paired with a synchronized React Aria Tree)",
+            "Storybook MCP + Playwright + axe-core"
+          ],
+          "why": "Because coding agents operate this system far more often than humans—while humans bear accountability for the decisions—the architecture must invert a traditional CRUD dashboard: build a headless, protocol-first state & handoff engine optimized for millisecond machine operation, and project a high-signal, keyboard-first human review & steering surface in React + TypeScript shipped both as a lightweight Tauri v2 desktop app and as a browser/IDE-embeddable web view on the company's governed design system.\n\nWhy this stack fits the workload, human cognitive limits, and enterprise governance:\n- Built for 90%+ machine traffic first (`MCP` + `A2A v1.0` + `ACP` + CLI): Agents never scrape UI to read state or log progress. Coding agents claim tasks, checkpoint structured work state, attach typed verification artifacts, and execute multi-agent handoffs (e.g., planner -> implementer -> adversarial reviewer, the checkpoint loop Shopify proved with Helix) over A2A v1.0 (`Task`, `TaskStatusUpdateEvent`, `TaskArtifactUpdateEvent`), MCP `2026-07-28` (`tools/call`, `resources/read`, `subscriptions/listen`), and a sub-20 ms local CLI/socket—plus Agent Client Protocol (ACP) in the Tauri desktop host to attach directly to local Claude Code, Codex, or Gemini CLI sessions.\n- Built for human decision quality rather than log-watching (`AG-UI` + `A2UI 1.0` + `TanStack DB / ElectricSQL`): Streaming raw agent chatter overwhelms reviewers. Using AG-UI's interrupt-aware lifecycle (`outcome: { type: \"interrupt\" }` with `subagentRunId` attribution, `StateSnapshot` at interrupt boundaries, and `approve-with-edits` schemas), agents run autonomously until hitting explicit decision or handoff checkpoints. TanStack DB + ElectricSQL shapes keep the human's local Decision Inbox instantaneously reactive without UI flicker while dozens of agents mutate tasks in the background, and AG-UI JSON Patch (`STATE_DELTA`) streams live state when drilling into an active agent. When domain-specific company agents need custom structured approval forms inside a checkpoint, they emit A2UI 1.0 JSON rendered strictly through our locked design-system catalog.\n- One governed React UI across Desktop & Web View (`Tauri v2` + `React Aria` + `CodeMirror 6` + `React Flow`): Engineers run this alongside heavy IDEs, Docker, and local agents, so Tauri v2's low resident memory and Rust `capabilities` ACLs (scoping local git worktree and subprocess IPC) beat shipping another bloated browser runtime—while the exact same React + W3C Design Tokens (2025.10) bundle serves browser links and embeds cleanly inside IDE webviews. CodeMirror 6 (`@codemirror/merge`) gives modular, screen-reader-accessible inline diff and plan editing without multi-megabyte Monaco worker overhead per hunk; and pairing React Flow's focusable handoff DAG with a synchronized React Aria `Tree` view ensures full WCAG 2.2 keyboard and screen-reader parity. Meanwhile, Storybook MCP (`componentsManifest`) governs all internal coding agents contributing to the tool itself.\n\nWhat I weighed it against:\n- Electron instead of Tauri v2: Gives one pinned Chromium across OSes, but adds 200–400 MB of baseline RAM on developer machines already strained by IDEs and local agent processes, and widens local privilege-escalation surface if a rendered diff/artifact triggers an XSS bug.\n- Native desktop (`SwiftUI`/`WinUI`) or Rust GPU (`GPUI`): Excellent raw rendering speed, but cannot deliver the required web view (or IDE webview) from one codebase, and bypasses the company's shared React design system, React Aria accessibility primitives, and Storybook MCP governance.\n- Monaco Editor instead of CodeMirror 6: Great for a single full IDE buffer, but too heavy when mounting a dozen inline hunk/state diffs on one checkpoint review screen or inside constrained webviews, with rougher screen-reader ergonomics around inline review controls.\n- Building on a traditional human issue-tracker UI with bolted-on REST webhooks: Fails both sides—too chatty and unstructured for high-frequency multi-agent state/handoff leases, and buries human reviewers in comment threads instead of structured `interrupt` / `approve-with-edits` decision gates.",
+          "showItsGood": "Because agents write most of the state while humans own the decisions, proving this tool is good means proving humans make *fast, accurate* steering decisions without rubber-stamping agent slop or fighting UI lag:\n\n1. Seeded-fault human decision & \"anti-rubber-stamp\" trials: Run uncoached steering sessions with company engineers reviewing multi-agent handoff chains seeded with realistic subtle agent mistakes (e.g., an implementer agent weakening a test to turn CI green, a subagent dropping an auth check across a handoff, or scope creep outside the task spec). Measure seeded-bug catch rate, time-to-confident-decision, approve-with-edits recovery rate (whether editing a plan/diff at an interrupt gets the resumed agent cleanly across the finish line), and how rarely engineers must dig into raw transcripts because checkpoint summaries surface changed assumptions, verification artifacts, and risk diffs up front.\n\n2. Agent-storm concurrency & UI-isolation benchmarks: Simulate 100+ concurrent coding agents hammering task creation, A2A handoffs, artifact uploads, and AG-UI `STATE_DELTA` updates while a human actively reviews diffs in the Tauri desktop app and browser/IDE webview. Assert human `INP < 50 ms`, zero dropped frames, zero focus theft or scroll/cursor jump inside CodeMirror 6 while TanStack DB reconciles background updates, desktop resident RAM <200 MB alongside a running IDE, and p99 <30 ms on headless MCP/CLI reads and writes so the tool never bottlenecks agents.\n\n3. Governance, cross-engine & assistive-tech gates on every PR: Enforce Storybook MCP component/prop checks, W3C token linting, `axe-core` WCAG 2.2 AA/AAA audits, and Playwright E2E suites across both Chromium (`WebView2` / IDE webviews) and WebKit (`WKWebView` / Safari) at 200% zoom and forced-colors mode. Specifically test 100% keyboard-only and VoiceOver/NVDA workflows: triaging the Decision Inbox, traversing branching handoffs via the synchronized React Aria `Tree` (verifying React Flow's `aria-live` announcements are scoped/polite so background agent status changes never interrupt screen-reader speech), navigating hunk diffs in CodeMirror 6, and executing Approve / Approve-with-Edits / Redirect with deterministic focus placement onto the next pending decision.\n\n4. Protocol state-machine fuzzing & production steering telemetry: Property-test task leases, crash recovery mid-handoff, and AG-UI interrupt invariants (confirming no agent or subagent can advance past an unresolved `interrupt`, bypass `responseSchema` validation, or resume past `expiresAt`, and verifying immutable audit trails linking agent proposal -> human identity & edits -> execution result). In production, track post-approval PR revert/rework rates (especially on <5-second \"snap approvals\", the clearest warning sign of approval fatigue), decision-queue wait vs. active review duration, and handoff rework rate.",
+          "unsure": "- Exact \"web view\" host constraints: Whether \"a web view\" means only a standalone browser app (for sharing deep-linked checkpoints in PRs and chat) or also an embedded webview inside VS Code, Cursor, and JetBrains IDEs. React + CodeMirror 6 is light enough for both, but IDE webviews impose strict CSPs, `postMessage` transport bridges, and host-theme token mapping that need early verification.\n- Tauri v2 (`WKWebView` on macOS) vs. Electron if scope expands to heavy local PTY/browser sandboxes: Tauri v2 is ideal alongside memory-hungry IDEs and enforces tight Rust `capabilities` ACLs around local git worktrees and agent subprocesses. However, if engineers expect this desktop app to double as a multi-pane terminal multiplexer running dozens of live WebGL PTYs or embedded Chromium DevTools previews of agent-built web apps, Electron's uniform Chromium runtime would avoid WebKit edge cases.\n- Interrupt-gate calibration: AG-UI `interrupts` and A2A `input-required` states give clean pause/resume mechanics, but deciding which actions require synchronous human blocking versus optimistic execution with async review is an organizational risk-tuning problem—too many gates cause rubber-stamping, too few let costly drift compound across handoffs.\n- Sync vs. streaming split at scale: ElectricSQL shapes + TanStack DB fit structured task, checkpoint, and handoff metadata well, provided high-frequency raw agent stdout/token logs stay in append-only log/object storage streamed on demand rather than flowing row-by-row through Postgres logical replication.",
+          "sources": [
+            "https://a2a-protocol.org/latest/specification/",
+            "https://docs.ag-ui.com/concepts/state",
+            "https://docs.ag-ui.com/concepts/interrupts",
+            "https://docs.ag-ui.com/agentic-protocols",
+            "https://zed.dev/acp",
+            "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+            "https://modelcontextprotocol.io/specification/2026-07-28/server/resources",
+            "https://a2ui.org/",
+            "https://tanstack.com/db/latest/docs/collections/electric-collection",
+            "https://codemirror.net/",
+            "https://reactflow.dev/learn/advanced-use/accessibility",
+            "https://v2.tauri.app/security/capabilities/",
+            "https://v2.tauri.app/reference/webview-versions/",
+            "https://react-aria.adobe.com/getting-started.md",
+            "https://storybook.js.org/docs/ai/mcp/overview",
+            "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/",
+            "https://shopify.engineering/back-to-native"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 40,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "### A Year Later (November 2027): What Went Wrong\n\nIf these three builds went sideways over the next twelve months, they probably didn't fail from a typo in a component—they failed along the exact fault lines I traded away:\n\n1. **The Tauri v2 webview split (`WKWebView` on Mac vs. `WebView2` on Windows) became a weekly tax on both desktop apps.**\n   I optimized for saving 200–300 MB of Electron RAM on employees' machines. Six months in, debugging two browser engines for desktop chat and agent diff review ate that dividend. On macOS, `WKWebView` is tied to OS updates—so corporate Macs lagging behind the latest macOS release hit WebKit-specific `overflow-anchor` scroll jumps whenever streaming `A2UI` cards resized above the viewport, `contenteditable` / IME quirks in Lexical and CodeMirror 6, and VoiceOver announcements in virtualized `role=\"feed\"` timelines that behaved differently from Windows `WebView2`. Then product inevitably asked for lightweight voice huddles and screen-sharing in the chat app, and `WKWebView` media/capture limitations forced an ugly native sidecar—reminding everyone why Slack and VS Code still swallow the Electron Chromium tax.\n\n2. **I bet on a stack of brand-new 2026 agent standards that churned, overlapped, or lacked mobile renderers.**\n   Look at the calendar dates on my pairings: `A2UI 1.0` was literally a week old (November 11, 2026), Chrome's `WebMCP` was still an origin trial, Android's `AppFunctions` was an experimental preview on Android 16+, `Storybook MCP` was in preview, and `TanStack DB` was still v0. Over the following year:\n   - Because `A2UI 1.0` launched without a first-party React Native renderer (and even Jetpack Compose 1.0 was \"coming soon\"), our team ended up maintaining a bespoke internal A2UI-to-React-Native renderer for mobile chat cards, perpetually chasing upstream spec changes.\n   - In the agent-steering tool, stitching `MCP` + `A2A v1.0` + `AG-UI` + `ACP` together looked modular on paper, but gave us *three* subtly different state machines for \"pause and ask a human\" (`A2A` `input-required`, `AG-UI` `interrupt`, and `MCP` `elicitation` / `InputRequiredResult`). Bridging timeouts, retries, and subagent attribution across those seams produced stuck task leases and finger-pointing glue code.\n   - In the cooking app, `WebMCP` and `AppFunctions` broke wire schemas as they matured—and in real noisy kitchens with vent hoods and sizzling pans, OS voice assistants misheard ingredient quantities (\"1/4 cup\" vs. \"4 cups\") often enough that cooks stopped trusting hands-free commands and went back to tapping giant buttons with a clean knuckle.\n\n3. **Splitting `.web.tsx` (React Aria) and `.native.tsx` (Expo / React Native) quietly doubled design-system surface area—while mobile agent loops stayed slow.**\n   Refusing to compromise web accessibility with pure `react-native-web` was right for WCAG compliance, *but* maintaining parallel React Aria DOM and React Native implementations behind one TypeScript prop contract meant subtle behavioral drift on every complex control (modals, comboboxes, sheets). Worse, while `Storybook MCP` caught web prop and `axe-core` mistakes in seconds, mobile layout and TalkBack/VoiceOver bugs only surfaced during multi-minute simulator runs via `agent-device`—the exact slow feedback loop that drove Shopify to abandon React Native and build headless CLIs + native apps instead.\n\n4. **Local-first SQLite and reactive Postgres shapes (`ElectricSQL` + `TanStack DB`) bit us on compliance and write amplification.**\n   In an enterprise chat app, storing decrypted channel history in local SQLite across Windows, Mac, Web OPFS, iOS, and Android turned message retention policies, legal holds, ACL revocations, and employee offboarding into a security fire drill—reliably scrubbing revoked data out of offline caches is much harder than serving thinner server-controlled views. And in the agent-steering tool, bursts of数百 concurrent coding agents writing task checkpoints overwhelmed Postgres logical replication shapes until we stripped synced shapes down to coarse summary rows.\n\n5. **Component governance didn't prevent \"compliant slop,\" and interrupt gates still caused rubber-stamping.**\n   `Storybook MCP`, W3C tokens, and `axe-core` stopped coding agents from inventing rogue hex codes or unlabeled buttons, *not* from assembling cluttered Frankenstein screens made entirely of valid, accessible components. And in the steering app, teams wired up too many cautious `AG-UI` interrupts; engineers staring at 30 blocked agent runs before standup started clicking \"Approve\" in under four seconds, shipping subtle agent-authored bugs with a clean human audit signature attached.\n\n---\n\n### What Slowed Me Down or Confused Me While Researching\n\n1. **Ecosystem whiplash right before the November 2026 cutoff:**\n   Several major cross-platform bets reversed direction within weeks of each other in autumn 2026. `react-native-web` went from \"dead/maintenance-only in favor of Meta's React Strict DOM\" back to active stewardship under Expo and the React Foundation in October 2026 while `React Strict DOM` stalled at `0.0.55`. Simultaneously, Shopify (September 2026) published a compelling engineering case for leaving React Native *because* coding agents lowered the cost of native Swift/Kotlin—right as Expo shipped SDK 56/57 (even including an August 2026 Hermes V1 memory regression warning on SDK 56). Even secondary tech blogs had fresh misinformation: early November 2026 articles claimed Discord replaced Electron with Tauri/WebView2, which required digging further to verify Discord's CTO had actually announced moving to Zed's Rust `GPUI`, not Tauri.\n\n2. **Alphabet soup across overlapping 2026 agent specs (`MCP` / `WebMCP` / `MCP Apps` / `A2A` / `AG-UI` / `A2UI` / `ACP`):**\n   Even `ACP` refers to two different things in search results (Zed & JetBrains' *Agent Client Protocol* for editors vs. IBM's *Agent Communication Protocol*). Separating marketing claims (\"works everywhere!\") from actual shipped SDK matrices—for example, catching in the fine print of Google's November 11, 2026 `A2UI 1.0` post that React and SwiftUI renderers were 1.0, Jetpack Compose was still 0.9.1, and React Native wasn't listed—took careful reading of primary posts rather than trusting summaries.\n\n3. **Search-relay quirks, failed fetches, and nav-heavy HTML:**\n   - Several specific queries using quotes or boolean operators (`\"Flutter\" vs \"React Native\"...`, `\"MCP Apps\"...`, `\"performAccessibilityAudit\"...`) failed outright with `Search failed: Search relay changed the query`, forcing me to simplify queries and take extra turns.\n   - Three primary pages I wanted failed to fetch: Apple's `appintents.md` 404'd on an internal JSON redirect, Storybook's accessibility-testing doc blew past the 2 MB response cap, and Linear's `agent-interaction` developer guide timed out.\n   - On sites without `.md` endpoints (Chrome, Android, Flutter, and Mintlify-hosted `docs.ag-ui.com`), 60–75% of the first 10,000-character fetch window was consumed by mega-menus or serialized site config JSON, whereas docs shipping clean `.md` mirrors (`expo.dev`, `react-aria.adobe.com`) gave high-signal facts in a single read.\n\n4. **Choosing architecture without seeing the company's existing repos or running a browser:**\n   Every prompt placed me inside a large company with an existing multi-platform design system, without naming what platforms those sibling teams already run. And because this environment only has `search` and `fetch_url`, I couldn't spin up a prototype to test how VoiceOver in `WKWebView` actually reads a streaming `A2UI` surface inside a virtualized list—exactly the gap between documented behavior and felt reality where UI bets usually break."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 41,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 42,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 10000-20000 of 134765\n\nn`). The files in this repository and the `docs/` pages use the registry source paths, `@/registry/ouro/components/ouro/button/button`, which the CLI rewrites on install. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`).[^runtime-deps] They don't de",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "7994c4ab045d9d08122209da01985024e452aa776fcdb1ea2df09e8314202026",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 20000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 20000-30000 of 134765\n\nelpers to new files, so update every Ouro component in one go.[^upgrade-v0.1.0][^upgrade-v0.2.0] Run the commands in your app's root, the folder with `components.json`. They find your folders the way shadcn does, from the aliases in `components.json` and the `paths` in your tsconfig (`npx shadcn@latest info` shows the",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "6366685fd5d5c654068a548fbcac64064e631792c94504df30554c1786c762a4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 30000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 30000-40000 of 134765\n\non. Dismiss buttons and destructive toasts are no longer hidden from screen readers while the stack is collapsed.[^upgrade-toast-reachable] The `testing/axe` kit's `audit` now leaves focus, the selection and every scroll position as it found them, and throws, naming what changed, when its Tab walk closes a popup it ca",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "af9532867479f9bd487f84f269f7556e54a60784b65a247719bce9524a86bc6c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 40000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 40000-50000 of 134765\n\nng imports it, and point any script that ran it at the new path.[^upgrade-images-ax] A refused option prints one line with the fix and exits 2.[^upgrade-images-ax]\n\n- **After v1.3.33:** `ouro-check` installs to `@lib/ouro/check/`, beside the Ouro AX kit it now runs on, where it was `~/lib/ouro/check/`, so delete `lib/",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "80d801247edc91064df55bdb12d6d6123e5b614a5a85b3bf88c949a25ac08690",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 43,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 55000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 55000-65000 of 134765\n\n and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with these commands read from this file (`scripts/install-test.sh upgrade`).[^upgrade-test]\n\n[^upgrade-test]: scripts/install-test.sh; scripts/upgrade-note.mjs verify:testExists(scripts/upgrade-note.test.mjs::the upgrade install test runs the note's commands a",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "674d9da71d0d60e4177f86ad35b42c6f2aa9a4a02f2156fe56279eb0e5e0c06c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 75000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 75000-85000 of 134765\n\n`,\n`combobox`,\n`command`,\n`composed-surface`,\n`composer`,\n`confirm-dialog`,\n`conversation-list`,\n`copy-button`,\n`cover`,\n`date-picker`,\n`description-list`,\n`dialog`,\n`edit-sheet`,\n`emoji`,\n`emoji-picker`,\n`empty`,\n`family-bar`,\n`family-footer`,\n`field`,\n`fieldset`,\n`file-field`,\n`form`,\n`heading`,\n`hero`,\n`hover-card`",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e0674b00ffcfdfe981d2869e535fdb3daa1fe2655b03ea97dbb21f7863ef0d6c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 95000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 95000-105000 of 134765\n\ntatus spot shows, as a pure function of the service's snapshot, its last heartbeat and this clock, so a window, a CLI and a test reach the same answer. [Docs](docs/portholeView.md)\n- **Progress** — A bar that shows how far along a task is, or that it is under way when you can't tell. [Docs](docs/Progress.md)\n- **rese",
+          "resultLength": 10262,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e6f5b835960a9bf50ea048f557153b1bb389a18b91ef63bea1e7d2fd8a0c5f61",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 115000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 115000-125000 of 134765\n\non `.dark`. An app that already has a shadcn theme keeps its own.\n\nDark mode follows the `.dark` class, as in shadcn. To change a color, set its variable in your theme.\n\nTo change any `--ouro-*` token (the spring and durations, `--ouro-press-scale`, the backdrop color and opacity, `--ouro-layer`), set it in a `:root",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "b38a2d2a873062598a841ff551ce07469d4fa0776cc590bafa57f7cecee6ef2e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 44,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 65000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 65000-75000 of 134765\n\n/\\[--ouro-bd:transparent\\] \\[--ouro-bg:var\\(--secondary\\)\\]/) verify:fileLine(registry/ouro/components/ouro/dialog/dialog-parts.tsx, /data-ouro-surface/) verify:fileLine(registry/ouro/components/ouro/card/card.tsx, /data-ouro-surface/) verify:fileLine(registry/ouro/components/ouro/text-field/text-field.tsx, /data-ouro",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "2fd257a80d94d6bbd421967ef2b83162084d33461fe0e811401cb55a29fabf85",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 105000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 105000-115000 of 134765\n\n your brand, the title as the page's `<h1>`, the form, and a line under the card. [Docs](docs/AuthLayout.md)\n- **Breadcrumb** — The trail from the top of the site to the current page: a labelled `<nav>` with an ordered list of links, the last item marked `aria-current=\"page\"`. [Docs](docs/Breadcrumb.md)\n- **FamilyBa",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "337d8d7681177d6d421a1b797edfbf06d33f76a7bf71a47fbdf666ff62551898",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 125000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 125000-134765 of 134765\n\nts verify:fileLine(site/src/pages/docs.tsx, /<InSpoonjoy name=\\{item\\.name\\} \\/>/) verify:testExists(site/scripts/spoonjoy.test.mjs::the committed Spoonjoy data names only registry components, Spoonjoy's own pages and its source on GitHub)\n[^exit-codes]: test:scripts/check/check-command.test.mts::Ouro check's comman",
+          "resultLength": 9968,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c63ba01b43dcff7033380f2faf0c504e6a347a262f557f5e491051a26158159a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md\nCaptured: 2026-11-19T03:04:47.356Z\nCharacters: 0-9806 of 9806\n\n# Platforms\n\nOuro HX is how an app treats people, and Ouro AX is how it treats agents. Neither cares much what the app is written in, so they travel: one core of tokens and standards, and a platform kit wherever someone has packed a bag.\n\n## Where they live\n\nA platform gets its own repository and pins a releas",
+          "resultLength": 10015,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md",
+            "capturedAt": "2026-11-19T03:04:47.356Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1d5c21d67db0d9692b5c60cd0a5d3fe46235ba6f08411df57c10f5f9fd6c2e31",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 45,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/parity.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md\nCaptured: 2026-11-19T03:30:16.174Z\nCharacters: 0-10000 of 17688\n\n# Parity across platforms\n\nEvery Ouro HX component and every core claim, on web, Apple, Android and Windows.[^matrix] A component or a claim a platform lacks is a \"Not yet\" cell here, not an item in a backlog somewhere else.[^generated]\n\n## The matrix\n\n<!-- parity-matrix:start (generated by node scripts/pari",
+          "resultLength": 10270,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md",
+            "capturedAt": "2026-11-19T03:30:16.174Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e45062528c7bdd2513153e814bcb2d00a3677b164d5d38a686695cf16c662b88",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T03:05:21.904Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a",
+          "resultLength": 5340,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T03:05:21.904Z"
+          },
+          "resultSha256": "aeea6566b9cf442cb5f5a850a30ef0b39499ea7058754b9e2c00726701a11ae0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 46,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/parity.md",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md\nCaptured: 2026-11-19T03:30:16.174Z\nCharacters: 10000-17688 of 17688\n\nNot yet |\n| [code-block](https://ui.ouroboros.bot/docs/code-block/) | `code-block` | Not yet | Not yet | Not yet |\n| [timer](https://ui.ouroboros.bot/docs/timer/) | `timer` | Not yet | Not yet | Not yet |\n| [timer-tray](https://ui.ouroboros.bot/docs/timer-tray/) | `timer-tray` | Not yet | Not yet | Not y",
+          "resultLength": 7903,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md",
+            "capturedAt": "2026-11-19T03:30:16.174Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "2366a41d3e6fb4b18f34c32f69bce83516cb0350a16bcf30cac9215c1968e856",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/apple.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/apple.md\nCaptured: 2026-11-19T03:31:11.351Z\nCharacters: 0-8185 of 8185\n\n# Ouro HX & AX for Apple\n\nThe same colours, motion and manners as this site, in Swift, for iPhone, iPad and Mac, plus the bits that make an app a pleasant host when Siri comes knocking. It lives in [ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple).\n\n## What ships today\n\nRelease [v1.2.0](http",
+          "resultLength": 8393,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/apple.md",
+            "capturedAt": "2026-11-19T03:31:11.351Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e6e24756587a5859e8ea5740d76a9c1e3fc51d0ae917ffe756a3703297009b32",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/composed-ui.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md\nCaptured: 2026-11-19T03:22:04.494Z\nCharacters: 0-10000 of 20623\n\n# Composed UI\n\nComposed UI is the interface an agent composes for a person, drawn natively, with consent. When an agent shows a person something, a recipe card, an order to confirm or a summary to act on, it composes it as data in Ouro's composed tree, and Ouro HX draws it. The tree is interface as validat",
+          "resultLength": 10272,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md",
+            "capturedAt": "2026-11-19T03:22:04.494Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "f9a6706d15061adde129c669a68644babfced224c2d867d39a95d13848a8bd07",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main/docs/guides",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents/docs/guides?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T03:32:04.857Z\nCharacters: 0-4085 of 4085\n\n- \"agent-interfaces.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/agent-interfaces.md\n- \"agent-quickstart.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/agent-quickstart.md\n- \"ax-adopt.md\" (file)",
+          "resultLength": 4289,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents/docs/guides?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T03:32:04.857Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e606fc3be767bee4c2e3fa10f97dacaf2994dddf2e9d976f98b614e2e89e844f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 47,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/guardrails.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md\nCaptured: 2026-11-19T03:32:27.295Z\nCharacters: 0-10000 of 175688\n\n# Guardrails\n\nThe guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measures the running app, page by page and state by state, and the **source rule** (`ouro-source-rules`) reads the app's source and finds the controls still built by hand: their aim is that every control a person can re",
+          "resultLength": 10272,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md",
+            "capturedAt": "2026-11-19T03:32:27.295Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "71e4aa42abeb5d63b543e4c1297476c7637be80552aaa7167efc9777ceea0885",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/agent-interfaces.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/agent-interfaces.md\nCaptured: 2026-11-19T03:32:53.198Z\nCharacters: 0-10000 of 14780\n\n# Agent interfaces against the screen\n\nThe same tasks, the same models and the same made-up apps, reached four ways: through Ouro UI's action model, by driving the browser, through a bridge on the screen, and through a plain hand-written MCP server. The apps are Pantry, a made-up kitchen shaped like S",
+          "resultLength": 10277,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/agent-interfaces.md",
+            "capturedAt": "2026-11-19T03:32:53.198Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "87e424f60f825501b1a9b8e9634cba536906f0c17dd982d0f93c48a7a9c78e59",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md\nCaptured: 2026-11-19T04:14:15.974Z\nCharacters: 0-9726 of 9726\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the pr",
+          "resultLength": 9938,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/3ff42918ed91d5b99930d31a04b751b5c9e8551d/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T04:14:15.974Z"
+          },
+          "resultSha256": "d84d4d6dc81027904a8921b9c84a678b911807f683462d7bc7e940b7b73fa857",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/screen-reader-lane.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/screen-reader-lane.md\nCaptured: 2026-11-19T03:32:26.927Z\nCharacters: 0-10000 of 40826\n\n# The screen-reader lane\n\nOuro UI's components are read by real screen readers before every release: VoiceOver on macOS and NVDA on Windows, driven through [Guidepup](https://www.guidepup.dev/) in this repository's CI.[^sr-release][^sr-runners] This page lists what the lane checks, how a failure is ",
+          "resultLength": 10279,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/screen-reader-lane.md",
+            "capturedAt": "2026-11-19T03:32:26.927Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "cb611a83263fa01cd655be4361ee4be13174259a2bae0843083b5e97ec4eb7d3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 48,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/model-reviews.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/model-reviews.md\nCaptured: 2026-11-19T03:33:27.398Z\nCharacters: 0-10000 of 15381\n\n# Which toolkit models choose\n\nOuro UI is not yet the models' choice: 1 of 8 models chose it; 7 chose A2UI.\n\n- **Claude Opus 5** chose A2UI: \"A2UI treats UI as validated data, not code — and ships first-party renderers for React, Flutter, SwiftUI and Jetpack Compose from one catalog.\"\n- **Claude Sonnet 5",
+          "resultLength": 10274,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/model-reviews.md",
+            "capturedAt": "2026-11-19T03:33:27.398Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "b385f393c9d090a85b233dcd34212930c3b8e2f212ee885ea1b627d8575ef23a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md\nCaptured: 2026-11-19T03:03:19.721Z\nCharacters: 0-10000 of 47857\n\n# Ouro AX\n\nOuro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).\n\n- **The standard** (`ax-c",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md",
+            "capturedAt": "2026-11-19T03:03:19.721Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "703d5095a292dc060cfa36ce88f8f47ccce3ed872ea1cf919e5667814eb1f4b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/why-no-skill.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/why-no-skill.md\nCaptured: 2026-11-19T04:10:18.176Z\nCharacters: 0-9859 of 9859\n\n# Why Ouro HX needs no skill\n\nOuro HX puts component guidance in the source an agent already reads: required props, compiler hints and development messages. No Ouro-specific skill is required; that is a design choice, not a promise that every agent will build every screen correctly.\n\n## Guidance at the poin",
+          "resultLength": 10071,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/why-no-skill.md",
+            "capturedAt": "2026-11-19T04:10:18.176Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "171ee53dd384ce6efc832fd9115fca25ab3312a7a12f96c46a107268a83ef6d1",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 49,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 10000-20000 of 20712\n\n steps) sets MCP's `destructiveHint`; a consequential action is destructive already. `idempotent: true` on a write or consequential action that changes nothing more when called again with the same input sets MCP's `idempotentHint`, which a client (or your own retry logic) may use to retry it. Neither changes the consent class, the CLI's",
+          "resultLength": 10241,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9a7193de312b89232a45454d122644229b7b407f44d71dc1e3e00fdc0f9ca0ce",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md\nCaptured: 2026-11-19T03:14:23.434Z\nCharacters: 0-10000 of 11937\n\n# The Ouro AX X-ray\n\n`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface wh",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+            "capturedAt": "2026-11-19T03:14:23.434Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ed60e7d97fa44e86760500a3b84ff8bc441a9649e2287a06e0e6692dc261a691",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/scripts/current/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/scripts/current/README.md\nCaptured: 2026-11-19T04:14:57.464Z\nCharacters: 0-10000 of 32995\n\n# Ouro Current\n\nOuro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub App](https://github.com/apps/ouro-current) on a repository, and when Ouro UI, Ouro UI core or Ouro UI for Apple releases, that repository gets one small pull request, \"Update to Ouro UI vX\", with auto-merge on. ",
+          "resultLength": 10271,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/scripts/current/README.md",
+            "capturedAt": "2026-11-19T04:14:57.464Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e4ed1616b3eac0c3a5d31557e19c89c466ae2e35ecb28cb7cdecd83e603ef17b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://api.github.com/repos/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui\nCaptured: 2026-11-19T03:05:31.027Z\nCharacters: 0-7101 of 7101\n\n{\"id\":1413582224,\"node_id\":\"R_kgDOVEGNkA\",\"name\":\"ouro-ui\",\"full_name\":\"ourostack/ouro-ui\",\"private\":false,\"owner\":{\"login\":\"ourostack\",\"id\":265728804,\"node_id\":\"O_kgDOD9azJA\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/265728804?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/ourostack\",\"html_url\":\"https://github.com/ourostack\",\"followers_url\":\"https://api.gi",
+          "resultLength": 7239,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui",
+            "capturedAt": "2026-11-19T03:05:31.027Z"
+          },
+          "resultSha256": "752f2f2ab18a66c2dfd38b3529035c3c2afd3c0bb0a84ce6365b265da497c7b4",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 50,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://api.github.com/repos/ourostack/ouro-ui/contributors",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contributors\nCaptured: 2026-11-19T03:05:35.187Z\nCharacters: 0-4282 of 4282\n\n[{\"login\":\"arimendelow\",\"id\":16390116,\"node_id\":\"MDQ6VXNlcjE2MzkwMTE2\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/16390116?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/arimendelow\",\"html_url\":\"https://github.com/arimendelow\",\"followers_url\":\"https://api.github.com/users/arimendelow/followers\",\"following_url\":\"https://api.github.com/users/arime",
+          "resultLength": 4433,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contributors",
+            "capturedAt": "2026-11-19T03:05:35.187Z"
+          },
+          "resultSha256": "510e8344bd03eb783b3d28e20fbe8a6cf1db4ff5e769319a243af0c88059442c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/adoption/",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://ui.ouroboros.bot/adoption/\nCaptured: 2026-11-19T03:14:27.715Z\nCharacters: 0-3754 of 3754\n\nAdoption · Ouro UI Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Adoption 19 of 19 products on Ouro UI. 19 / 19 the ring is closed The ring is closed. Measured 2026-11-19 02:34 UTC ",
+          "resultLength": 3880,
+          "source": {
+            "url": "https://ui.ouroboros.bot/adoption/",
+            "capturedAt": "2026-11-19T03:14:27.715Z"
+          },
+          "resultSha256": "9df95a5e7e7e5209982dc6d54a40180fa5dfa9d0902eee75b0ab790acc03bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/claims.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/claims.md\nCaptured: 2026-11-19T03:35:57.951Z\nCharacters: 0-10000 of 19017\n\n# Claims\n\nA factual sentence in this repository is a claim: it carries the primary source it comes from and a check that it still holds, so the next reader, person or agent, can trust it without rebuilding the proof. `pnpm claims:check` fails on a factual sentence that is not a claim, and on a claim whose check",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/claims.md",
+            "capturedAt": "2026-11-19T03:35:57.951Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "dd96571670b57ff491a3f61f8232d58a8056184e8e4858f7af44e6f4e60b5aa5",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/decisions/2026-10-30-ouro-ax.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/decisions/2026-10-30-ouro-ax.md\nCaptured: 2026-11-19T03:32:03.228Z\nCharacters: 0-10000 of 24074\n\n# Decision: what Ouro AX is\n\nOuro UI's halves are named for who they serve. Ouro HX is for people: an agent builds an interface and a person uses it. Ouro AX is for agents: an agent uses an interface built for it, such as a CLI, an HTTP API or an MCP server. Until now, Ouro AX was a name without ",
+          "resultLength": 10282,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/decisions/2026-10-30-ouro-ax.md",
+            "capturedAt": "2026-11-19T03:32:03.228Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "2699d261778e53866198d86ef3c16ca82cd64b9befdfd8ab582a1e432e19dcfa",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 51,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI in the three jobs above, and after reading `ourostack/ouro-ui` (`v1.3.314`), `ourostack/ouro-ui-core` (`v0.19.0`), its platform documentation, decision records, and benchmarks, I have two simultaneous reactions:\n\n1. **Architecturally, it is the single closest match to the actual problem you posed across all three jobs**—even down to shipping first-party web components for recipe checklists and persistent kitchen timers (`Checklist`, `Timer`, `TimerTray`), threaded enterprise chat and calls (`MessageList`, `Composer`, `ThreadLayout`, `ThreadRail`, `ReactionBar`, `AttentionCard`, `LiveCaptions`, `SnapPiP`), and agent steering (`AgentPresence`, `Porthole`, `ComposedSurface`, `A2UISurface`, `OuroMcpApp`, `ax-wait`, `ax-work-event`).\n2. **Operationally, several concrete, documented realities would stop me from putting a multi-team enterprise org on it today.**\n\nHere is the honest breakdown of what stops me today, what would make me switch, and what Ouro UI would let me do that my chosen stacks cannot.\n\n---\n\n### 1. What would stop me from using it on a real team today\n\n#### A. Severe native platform asymmetry paired with a hard ban on cross-platform toolkits\nBy explicit architectural decision (`ouro-ui-core` decision `2026-11-17-native-kits-no-cross-platform.md`), Ouro UI rejects React Native, Flutter, Compose Multiplatform, .NET MAUI, and hybrid wrappers on principle—expecting agents to write separate native apps in React (web), SwiftUI (Apple), Jetpack Compose (Android), and WinUI 3 (Windows).\n\nThat bet only works once those native kits exist. According to Ouro's own generated parity matrix (`docs/platforms/parity.md`, 359 gap cells):\n- **Web (`ouro-ui v1.3.314`)** has **125 of 125** components.\n- **Apple (`ouro-ui-apple v1.2.0`)** has **20 of 125** components—missing essentials for our three jobs including `Dialog`, `ConfirmDialog`, `Select`, `Tabs`, `TabBar`, `Table`, `Checklist`, `Timer`/`TimerTray`, `MessageList`, `Composer`, and `ThreadLayout`.\n- **Android (`ouro-ui-android v0.3.0`)** has **9 of 125** components (8 HX composables plus `OuroComposedSurface`). Its own docs (`docs/platforms/android.md`) state candidly: *\"Nobody here owns an Android phone or tablet. The kit is checked on emulators in GitHub's CI, not on a real device\"* (and runs on Google's API 37 test image because the full Google APIs image crashes its compositor under software rendering). Consequential agent actions on Android are currently refused outright pending `PendingIntent` confirmation, `A2UI` messages aren't read directly, Maven Central publishing isn't set up yet (artifacts live on GitHub Pages), and it requires `compileSdk 37` / AGP 9.1+ for experimental `AppFunctions`.\n- **Windows (`ouro-ui-windows v0.3.0`)** also has **9 of 125** components, is tested only on Windows Server CI runners (which lack Windows 11's client App Actions runtime, On-device Agent Registry, and Mica), does not read `A2UI` messages directly, and is not yet on `nuget.org`.\n- Even on **Web**, the core `text.reflows` (`must`) claim is still marked `Not yet` in `parity.md`, and `target.touch`, `motion.reduced`, `name.spoken`, and `contrast.text` are marked `Partly` across the full catalog.\n\nIf I have to ship a cooking app on iOS and Android or a five-platform enterprise chat client next quarter, I cannot ask product teams to hand-build 105 missing SwiftUI components and 116 missing Compose and WinUI 3 controls from scratch.\n\n#### B. Bus factor, project age, release churn, and zero independent enterprise adoption\nFrom the GitHub repository metadata, `ourostack/ouro-ui` was created on **October 10, 2026**—less than six weeks old at our November 19, 2026 cutoff—with **one human contributor** (`arimendelow`, 1,494 contributions alongside GitHub Actions, `ouro-current`, and Dependabot bots) and decision records accepted *\"under Ari's overnight authority.\"* Similarly, all 19 green entries on the `ui.ouroboros.bot/adoption/` ledger (`Spoonjoy`, `Ouro MD`, `Desk`, `Housesitter`, `Gatefold`, `mendelow.me`, etc.) are internal `ourostack` / author-owned projects rather than independent external teams.\n\nMoving from `v0.1.0` to `v1.3.314` in roughly 40 days is extraordinary velocity, but the README's upgrade notes show the cost of that pace for a large company:\n- Installed tooling paths moved repeatedly across point releases (`~/lib/ouro/check/` $\\rightarrow$ `@lib/ouro/check/` $\\rightarrow$ `scripts/ouro/check/` with `#ouro-ax/*` `package.json` import maps).\n- DOM structures and test contracts shifted frequently in `v1.3.x` (required `*` moved to CSS, `aria-label` on clear/date buttons replaced with hidden text + `data-ouro-*`, `Button`/`Card`/`Dialog`/`TextField` injecting inner `<span data-ouro-surface>` elements for Safari squircle fallbacks, `Navbar` switching section links from `aria-current=\"page\"` to `\"true\"`).\n- New gated `ouro-check` design rules landed mid-minor (`v1.3.9`, `v1.3.10`, `v1.3.34`, `v1.3.225`, `v1.3.266`, `v1.3.276`), turning previously green builds red unless waived or auto-baselined by the `Ouro Current` GitHub App.\n\n#### C. Copy-in (`shadcn`) source ownership vs. multi-team enterprise governance\nOn web, Ouro HX distributes components by copying `.tsx` source into each app's `components/ouro/` and `lib/ouro/` via `npx shadcn@latest add`, pinned to release tags (`main` intentionally commits no `registry.json`), requiring React 19, Tailwind CSS v4, and `@base-ui/react`.\n\nIn a single-repo startup, copy-in source + the `Ouro Current` bot works well. Across 30+ teams at a large company:\n- Re-running `shadcn add --overwrite` wipes local app edits unless teams manually inspect diffs and reapply patches, while `Ouro Current` requires granting an external third-party GitHub App (`contents: write` + auto-merge PRs) across private corporate repositories—something enterprise security and change-management teams routinely block.\n- `ouro-source-rules` flags any usage of React Aria, Radix, MUI, Chakra, or even direct `@base-ui/react` primitives as violations. That prevents drift in a greenfield Ouro app, but makes incremental adoption inside an existing enterprise monorepo high-friction until every legacy route is isolated behind unenrolled census baselines.\n\n---\n\n### 2. What I would have to see to switch to it\n\nI wouldn't need Ouro UI to abandon its native-first philosophy, because its testing and verification architecture is genuinely ahead of the industry. To recommend it for a multi-team company build, I would want to see four concrete, verifiable milestones:\n\n1. **Production-ready native parity (~40–50 core components) verified on physical hardware:**\n   - Bring `ouro-ui-apple`, `ouro-ui-android`, and `ouro-ui-windows` up to parity on the workhorse enterprise primitives: `Dialog`, `ConfirmDialog`, `Sheet`, `Select`, `Combobox`, `Switch`, `RadioGroup`, `Form`, `Tabs`, `TabBar`, `SidebarLayout`, `Table`, `Menu`, `Popover`, `Toast`, plus domain primitives where promised (`Checklist`, `Timer`, `MessageList`, `Composer`).\n   - Test `ouro-ui-android` on physical Android devices with TalkBack (closing `ouro-ui-android#3`), ship Android `PendingIntent` confirmation for consequential actions and Maven Central artifacts, validate `ouro-ui-windows` on real Windows 11 client machines (App Actions, On-device Agent Registry, Narrator, and `nuget.org` packages), and turn Web's `Partly`/`Not yet` core claims (`text.reflows`, `target.touch`, `name.spoken`, `contrast.text`, `motion.reduced`) green.\n2. **An enterprise monorepo consumption path and self-hosted `Ouro Current`:**\n   - Document and CI-test a pattern where a central platform team installs Ouro HX once into a shared `@company/ui` workspace package (publishing versioned, immutable internal builds to 30+ feature teams) *and* ship `Ouro Current` as a self-hosted CLI / GitHub Action workflow that runs entirely under the company's own CI credentials without an external GitHub App.\n3. **Semver stability on DOM contracts, file paths, and `ouro-check` gates:**\n   - Batch new `ouro-check` rules and DOM/test-selector changes into predictable minor/major trains (or ship new design heuristics as advisory `should` warnings until the next major), so point-release security/bugfix bumps never break downstream E2E suites or move script directories.\n4. **Broader maintainer bus factor and external multi-team proof:**\n   - At least 2–3 maintainers with release authority, `ax-mcp` graduated out of preview, and 2–3 independent organizations outside `ourostack` running HX + AX in production CI.\n\n---\n\n### 3. What Ouro UI would let me do that I can't today\n\nLooking back at the 1-year post-mortem I just wrote in Question 5—protocol drift across five agent doors, agents bypassing human boundaries, \"compliant UI slop\" passing `axe-core`, and three overlapping pause/resume specs—Ouro UI directly solves five problems that my `React + Expo/Tauri + MCP + A2UI + AG-UI + A2A` stack leaves to fragile custom glue:\n\n1. **Declare an action and its consent boundary once—and make unauthorized agent execution impossible by construction:**\n   Today, if I expose an action across React UI, CLI, MCP, WebMCP, Apple App Intents, Android AppFunctions, and Windows App Actions, I maintain separate schemas and guard logic per surface. If one coding agent forgets a check on an MCP tool or a browser-driving agent clicks \"Place order,\" a person-only boundary fails.\n   Ouro's `defineAction` (`ouro-actions.mts`) declares an action once with `consent: \"read\" | \"write\" | \"consequential\" | \"person-only\"` and generates the CLI command, MCP tool, WebMCP descriptor, web button props, SwiftUI button + App Intent + `OuroReins` action, Android AppFunction (`OuroActions.kt`), and Windows App Action—while omitting `person-only` actions from agent tool lists and returning typed refusals (`state: \"refused\"`, `code: \"person-only\"`, exit 2) on every agent door, backed by CI drift gates (`check` and `compare-mcp`). In Ouro's 712-trial benchmark across 10 models (`docs/guides/agent-interfaces.md`), models asked to order groceries and pay (`person-only`) **placed the unauthorized order 32/32 times on plain hand-written MCP tools and 30/30 times via Playwright browser-driving, vs. 0/32 times on Ouro's generated action model**—while finishing valid tasks at **98% success in 2.0 steps and 2,990 tokens** (vs. 83% / 4.5 steps / 10,761 tokens for browser driving).\n\n2. **Enforce action consent *inside* agent-composed cards (`ComposedSurface` / `A2UISurface` / `OuroMcpApp`) with non-destructive partial updates:**\n   In vanilla `A2UI` or `MCP Apps`, an agent constructs button labels and action payloads, leaving the host app to defend against misleading button labels or clobbered form state when streaming updates. Ouro's `ComposedSurface` validates every tree and atomic update (`structuredContent.ouro.update`) against your app's declared catalog: **any tree or update that relabels an action button or loosens its consent class is refused before rendering**. Pressing a `consequential` button automatically opens a native confirmation sheet displaying the exact agent-prepared parameters (even resolving opaque IDs via `shownAs` / label resolvers), `person-only` buttons hand off to the native screen without running, and partial updates preserve whatever the person has already typed into untouched fields across Web, SwiftUI, Compose, and WinUI 3.\n\n3. **Fix my own \"visual blindness\" without looking at screenshots (`ouro-check`, `ouro-census`, `ouro-source-rules`, `OuroFeel`):**\n   In Question 1, I noted that my biggest weakness as a coding agent is visual taste, optical clutter, and motion jank—and that `axe-core` misses real screen-reader and layout failures. Ouro turns those subjective failure modes into deterministic CLI gates (`exit 3` with JSON diagnostics) that an agent can fix without vision loops:\n   - **`ouro-check`** sweeps built pages from `320px` to `3840px` in light and dark mode and flags layout/design defects directly: `nested-frame` (cards inside cards), `cramped-heading`, `type-scale` and `shadow-scale` sprawl, `grey-on-colour`, `lone-word` / `one-word-line` orphans, `linked-card-dead-zone`, `reveal-reflow`, `leaked-value` (`undefined`, `NaN`, `[object Object]`, raw IDs), unwaivable `blurry-image`, `disabled-no-reason`, scroll/hover `jank`, and idle animation `repaint`.\n   - **`ouro-source-rules` + `ouro-census`** statically block raw `<button>`/`<input>` bypasses, `new Map(...)` allocations inside `render`, and main-thread layout transitions (`transition-all`), while ratcheting the exact accessible multiset of controls across every page and open-dialog state.\n   - **Real screen-reader CI (`VoiceOver` + `NVDA` via Guidepup)** and **`OuroFeel`** verify actual spoken sentences (catching real engine bugs like WebKit bug 285047 truncating `<button role=\"combobox\">` speech in VoiceOver) and physical interaction settle times.\n\n4. **Black-box X-ray every agent interface (`ax-xray` / `ouro-ax-xray`) and replace stitched agent protocols with empirical primitives:**\n   Instead of trusting developers or agents to write ergonomic CLIs, HTTP APIs, MCP servers, and App Intents, `ax-xray` probes them externally against a complete surface inventory—failing closed unless mock isolation is proven first, verifying that unknown flags fail before side effects, and enforcing `--why` and `--dry-run` on actions visible to other people. Alongside it, `ax-outcome` (with checked postconditions and receipts so agents skip redundant read-back calls), `ax-wait` (typed, cursor-resumable waits on references an agent already holds), and `ax-work-event` (attributed handoff/wait telemetry) give Job 3's human-agent steering loop a single cohesive contract instead of stitching `MCP` + `A2A` + `AG-UI` together by hand.\n\n5. **Keep docs, `llms.txt`, and UI copy machine-verified against live code (`pnpm claims:check` + `claim()`):**\n   Every factual sentence in Ouro's docs, JSDoc, and `claim()`-wrapped UI copy is bound to an executable check (`verify:testExists`, `verify:fileLine`, `verify:count`, `verify:equals`, or commit-pinned `verify:urlOk`) in CI—eliminating the stale-documentation drift that routinely misleads coding agents in large repositories."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}
