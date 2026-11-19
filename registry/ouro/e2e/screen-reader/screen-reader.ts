@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { navigateWithRetry, waitUntil } from "./navigation";
 import { nvdaFor, startNVDA, stopNVDA } from "./nvda";
 import { installVoiceOverStartRetry, voiceOverRunning } from "./start-retry";
-import { firstMatch, type FocusMove, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
+import { firstMatch, type FocusMove, HINT_ONLY_PREFIX, hintOnlyMiss, MARK, missedPhrase, readRecords, saidInMiss, RECORD_END, RECORD_START, readyForAction, speechTimeline, speechVerdict, spokenAfter, withTimeline, WATCH_LIMIT_SECONDS, type WatchEnd } from "./phrases";
 
 // The screen-reader lane's fixtures (playwright.screen-reader.config.ts): VoiceOver on macOS and
 // NVDA on Windows, through Guidepup. VoiceOver starts for each test; NVDA once for each worker
@@ -286,10 +286,27 @@ end repeat`;
  * phrase `matches` accepts (build it with `inOneSentence`, phrases.ts), failing with every phrase it
  * heard. Phrases are never joined, and the item text under the cursor never counts: only speech.
  * VoiceOver's phrases come from `watchVoiceOver`, which reads each one as it is said; NVDA's from
- * Guidepup's capture, which logs every phrase NVDA speaks.
+ * Guidepup's capture, which logs every phrase NVDA speaks. On VoiceOver, a miss in which it said nothing but usage hints
+ * falls back to describing the focus (VO-F4), which must pass the same matcher, and logs HINT_ONLY_PREFIX; SR_STRICT=1
+ * turns that off (ourostack/ouro-ui#2085).
  */
 export async function heard(sr: ScreenReader, action: () => Promise<unknown>, matches: (phrase: string) => boolean, what: string, timeout = 15_000): Promise<string> {
-  if (isVoiceOver(sr)) return heardFromVoiceOver(sr, action, matches, what, timeout);
+  if (isVoiceOver(sr)) {
+    try {
+      return await heardFromVoiceOver(sr, action, matches, what, timeout);
+    } catch (error) {
+      // VoiceOver on macOS 26 now and then says only a control's usage hint, never its name (ourostack/ouro-ui#2085). Then
+      // the focused control, described, must pass the step's own matcher; any other miss, or a describe that fails it, fails
+      // as it was. SR_STRICT=1 (the nightly strict run) turns the fallback off, so a control that is only described stays seen.
+      const said = error instanceof Error && process.env["SR_STRICT"] !== "1" ? hintOnlyMiss(error.message) : null;
+      if (!said) throw error;
+      const description = await describesFocus(sr, matches, `${what}, described`).catch(() => {
+        throw error;
+      });
+      console.log(`${HINT_ONLY_PREFIX} VoiceOver said only its hint for ${what} (${said.map((phrase) => `"${phrase}"`).join(" | ")}); described, the focus is "${description}"`);
+      return description;
+    }
+  }
   const phrases: string[] = [];
   const add = (phrase: string) => {
     const text = phrase.trim();
@@ -317,9 +334,8 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
  * describes the element around it (`describesContainer`). A miss in which VoiceOver said something
  * `contradicts` accepts (the old state, say) fails as it is: the fallback is for silence, not for a
  * wrong announcement. Only for a step VoiceOver is known to skip at times: the Checkbox and
- * Checklist toggles (ourostack/ouro-ui#118, on macOS 15 only: `olderMacOS`), the Dialog's opening
- * (ourostack/ouro-ui#119), and Select's focus and Menu's first item when macOS 26 says only their hint
- * (ourostack/ouro-ui#2085). On NVDA it is `heard`, and so it is on newer macOS for an `olderMacOS` finding.
+ * Checklist toggles (ourostack/ouro-ui#118, on macOS 15 only: `olderMacOS`) and the Dialog's opening
+ * (ourostack/ouro-ui#119). A miss of nothing but hints falls back in `heard` itself, for every step (ourostack/ouro-ui#2085). On NVDA it is `heard`, and so it is on newer macOS for an `olderMacOS` finding.
  */
 export async function heardOrDescribed(
   sr: ScreenReader,

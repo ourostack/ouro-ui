@@ -258,6 +258,20 @@ export function missedPhrase(message: string): boolean {
   return /^\[sr\] no utterance matched /.test(message);
 }
 
+/** The start of the log line a step's hint-only fallback writes (screen-reader.ts's `heard`); scripts/sr-classify.mjs counts them. */
+export const HINT_ONLY_PREFIX = "[sr] finding: hint-only (ourostack/ouro-ui#2085):";
+
+/**
+ * The phrases of a missed step in which VoiceOver said something, and nothing but its usage hints ("You are currently on a
+ * menu item…"), or null for any other miss: silence, a phrase that names something, or another failure. Only such a miss
+ * falls back to describing the focus (ourostack/ouro-ui#2085).
+ */
+export function hintOnlyMiss(message: string): string[] | null {
+  if (!missedPhrase(message)) return null;
+  const said = saidInMiss(message);
+  return said.length > 0 && said.every((phrase) => withoutHints(phrase).trim() === "") ? said : null;
+}
+
 /** The separator `withTimeline` puts before a timeline, after a miss's `heard:` list. */
 const TIMELINE_SEPARATOR = " timeline: ";
 

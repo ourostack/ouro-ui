@@ -98,6 +98,24 @@ export const startRetries = (log) => log.split(/\r?\n/).filter((line) => /^\s*\[
 /** How many VoiceOver tests ran (passed or failed): the denominator of the retry rate. */
 export const voiceOverTestsRan = (log) => log.split(/\r?\n/).filter((line) => /^\s*(✓|✘)\s+\d+\s+\[voiceover\]/.test(line)).length;
 
+/** How many VoiceOver steps were judged from a description of the focus after VoiceOver said only hints (screen-reader.ts's heard). */
+export const hintOnlyFallbacks = (log) => log.split(/\r?\n/).filter((line) => /^\s*\[sr\] finding: hint-only /.test(line)).length;
+
+/** How many VoiceOver steps heard their utterance, or were judged from a description after only hints: the fallbacks' denominator. */
+export const voiceOverSteps = (log) => log.split(/\r?\n/).filter((line) => /^\s*\[sr\] heard /.test(line) && !/, described: "/.test(line)).length + hintOnlyFallbacks(log);
+
+/**
+ * The run summary's line on VoiceOver's hint-only fallbacks (ourostack/ouro-ui#2085), against its steps: above 1 in 50 it says
+ * so, a cause to find rather than noise. Empty when no step fell back.
+ */
+export function hintOnlySummary(log) {
+  const fallbacks = hintOnlyFallbacks(log);
+  if (fallbacks === 0) return "";
+  const steps = voiceOverSteps(log);
+  const flag = fallbacks * 50 > steps ? " Above 1 in 50 steps: a cause to find, not noise." : "";
+  return `VoiceOver hint-only fallbacks: ${fallbacks} in ${steps} steps (1 in ${Math.round(steps / fallbacks)}), each judged from a description of the focus (ourostack/ouro-ui#2085).${flag}`;
+}
+
 /**
  * The run summary's line on VoiceOver's retries, against the VoiceOver tests that ran: navigations
  * retried, and starts retried (`; VoiceOver start: …`). Above 1 in 50 tests the navigations say so: a
@@ -154,7 +172,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const exit = code === undefined || code === "" ? null : Number(code);
   const result = classify(log, log === "" ? null : exit);
   const detail = { pass: "every utterance was as expected", accessibility: "an expected utterance was missing or wrong, or a story is missing: this blocks a release", infrastructure: `${why(log)}: not a finding about the components`, harness: "Playwright refused the lane's own command, so no test ran: fix the command in the workflow, not the components" }[result];
-  const navigation = navigationSummary(log);
+  const navigation = [navigationSummary(log), hintOnlySummary(log)].filter(Boolean).join("\n\n");
   console.log(`SR_CLASS=${result}`);
   console.log(`Screen-reader lane: ${result} (${detail}).`);
   if (navigation) console.log(navigation);
