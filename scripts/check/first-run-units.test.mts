@@ -219,6 +219,39 @@ describe("first-run harness: the judges", () => {
     assert.equal(judgeDeadEnd(card(null), { vocabulary: VOCABULARY }).place, "dead-end");
   });
 
+  test("a blank page under the app's own view that says it's signing in is in progress; once that view is gone, or the window is one shade, it's blank and a dead end", () => {
+    const start = (view: boolean, uniform: number) =>
+      snap(
+        [
+          [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+          [1, "AXWebArea", undefined, { w: 1000, h: 700 }],
+          [2, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 600 }],
+          ...(view
+            ? ([
+                [1, "AXGroup", undefined, { x: 312, y: 284, w: 400, h: 200 }],
+                [2, "AXImage", undefined, { w: 64, h: 64 }],
+                [2, "AXStaticText", "Signing in…", { w: 160, h: 24 }],
+              ] satisfies Spec[])
+            : []),
+        ],
+        { pixels: { uniform, mean: 200 } },
+      );
+    const drawing = start(true, 0.7);
+    const blank = judgeNotBlank(drawing, VOCABULARY);
+    assert.equal(blank.ok, true);
+    assert.equal(blank.evidence, "the main pane is still drawing under the app's own view, which shows a progress state: Signing in…");
+    assert.equal(blank.progress, "Signing in…");
+    assert.equal(judgeDeadEnd(drawing, { vocabulary: VOCABULARY }).place, "progress");
+    // The view gone and the page still empty: blank, and a dead end.
+    const after = start(false, 0.7);
+    assert.equal(judgeNotBlank(after, VOCABULARY).ok, false);
+    assert.equal(judgeDeadEnd(after, { vocabulary: VOCABULARY }).place, "dead-end");
+    // A window of one shade shows no view, whatever its tree says.
+    const flat = start(true, 0.9999);
+    assert.equal(judgeNotBlank(flat, VOCABULARY).ok, false);
+    assert.equal(judgeDeadEnd(flat, { vocabulary: VOCABULARY }).place, "dead-end");
+  });
+
   test("words over a pane of one shade are still blank, but a sparse page is not", () => {
     const words: Spec[] = [[0, "AXStaticText", "Hello"]];
     const flat = judgeNotBlank(shell(words, { pixels: { uniform: 0.9999, mean: 240 } }), VOCABULARY);

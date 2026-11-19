@@ -106,12 +106,20 @@ jobs:
       - name: The parity matrix's pinned Apple components are GitHub's
         # scripts/parity-data/platforms.json's Apple components, against the release versions.json pins, from GitHub. Exits 1 on
         # drift (fix with node scripts/parity-matrix.mjs --write), 2 when the API cannot be read. The kits' newest releases are
-        # not checked: the Pages build writes them.
+        # not checked: the Pages build writes them. A pull request also renders its own change to the page; on main, a page that
+        # two pull requests merged minutes apart left behind is Core pin's to re-render (it runs on each push that changes the
+        # matrix's data), so only the pins are held here and no release run fails on it.
         id: parity
         if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/parity-matrix.mjs --live
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            node scripts/parity-matrix.mjs --live
+          else
+            node scripts/parity-matrix.mjs --live --pins
+          fi
   report:
     # One issue for a page behind on main, opened or commented on at most daily (scripts/scheduled-failure.sh).
     needs: [compare]

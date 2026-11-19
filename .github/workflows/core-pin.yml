@@ -5,10 +5,20 @@ name: Core pin
 # the same at build time, so the site is current; this keeps main's copy, which GitHub shows, current too. Its own pull
 # request, never Docs pin's, so a core release that breaks a test here can't hold up pointing the docs at a web release.
 # It keeps one pull request open on one branch, force-updating it, and turns auto-merge on. It pushes as Docs pin does: the
-# Ouro Current app's token, else DOCS_PIN_TOKEN, else its own token, whose held runs it approves.
+# Ouro Current app's token, else DOCS_PIN_TOKEN, else its own token, whose held runs it approves. It also runs on each push
+# to main that changes the matrix's data, so a page two pull requests left behind (each rendered on a branch without the
+# other's component) is re-rendered and lands through this pull request, rather than failing Apple release.
 on:
   schedule:
     - cron: "37 */6 * * *"
+  push:
+    branches: [main]
+    paths:
+      - registry/ouro/components/ouro/*/component.json
+      - scripts/parity-data/**
+      - scripts/parity-matrix.mjs
+      - scripts/parity-rows.mjs
+      - docs/platforms/parity.md
   workflow_dispatch:
 permissions: {}
 concurrency:

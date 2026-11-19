@@ -188,6 +188,30 @@ describe("Ouro check's design rules", () => {
     assert.match(giant[0]!.detail, /^most of it is drawn at 27px \(\d+ characters\); keep reading text to 24px or under at every screen size$/);
   });
 
+  test("giant-text counts no emoji: a picker's grid drawn large on a 4K display is no running text (#2363)", async () => {
+    const grid = Array.from({ length: 80 }, () => `<button type="button" aria-label="Thumbs up">\u{1F44D}\u{1F3FD}</button>`).join("");
+    const head = `<style>main{max-width:36rem;margin:0 auto}button{font-size:1.5rem;border:0;background:none;padding:4px}@media (width >= 150rem) { html { font-size: 112.5%; } }</style>`;
+    const folder = site("giant-emoji", { "picker.html": page(`<h1>Pick a reaction</h1><p>Choose a skin tone first.</p><div>${grid}</div>`, head) });
+    const result = await check({ targets: [folder], out: dir("giant-emoji"), sizes: [[3840, 2160]], themes: ["light"], chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "giant-text"), []);
+  });
+
+  test("dark-miss leaves a fill from a token the theme gives a dark value, as nova's near-white primary, and still finds one with no dark value (#2363)", async () => {
+    const bubble = (fill: string) => `<p>The page is dark.</p><div class="bubble" style="padding:16px;border-radius:12px;color:#171717;background:${fill}">Perfect, thank you both.</div>`;
+    // shadcn's way: a .dark class the app sets from the scheme, and Tailwind's bg-primary reading --color-primary, which reads --primary.
+    const classTheme = `<style>:root{--background:#ffffff;--primary:#171717;--color-primary:var(--primary)}.dark{--background:#0a0a0a;--primary:#e5e5e5}body{background:var(--background);color:#fafafa}.bg-primary{background-color:var(--color-primary)}</style><script>document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches)</script>`;
+    const mediaTheme = `<style>:root{--background:#ffffff;--card:#eeeeee;--primary:#171717}@media (prefers-color-scheme: dark){:root{--background:#0a0a0a;--primary:#e5e5e5}}body{background:var(--background);color:#fafafa}</style>`;
+    const folder = site("dark-tokens", {
+      "class.html": page(`<p>The page is dark.</p><div class="bg-primary" style="padding:16px;border-radius:12px;color:#171717">Perfect, thank you both.</div>`, classTheme),
+      "media.html": page(bubble("var(--primary)"), mediaTheme),
+      "light-only-token.html": page(bubble("var(--card)"), mediaTheme),
+      "literal.html": page(bubble("#e5e5e5"), mediaTheme),
+    });
+    const result = await check({ targets: [folder], out: dir("dark-tokens"), sizes: [[1440, 900]], themes: ["dark"], chromium, log: quiet });
+    const misses = result.findings.filter((f) => f.rule === "dark-miss").map((f) => f.page).sort();
+    assert.deepEqual(misses, ["/light-only-token.html", "/literal.html"]);
+  });
+
   test("judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step", async () => {
     // A button whose first click alone takes 400 ms; the veil covers it after that click, for 1200 ms or for good.
     const plan = (veil: string) => page(`<button id="open" type="button" aria-expanded="false">Show the plan</button><div id="panel" hidden>The plan.</div><div style="height:1200px"></div><script>const open = document.getElementById("open"); let clicks = 0; open.addEventListener("click", () => { clicks++; if (clicks === 1) { const start = performance.now(); while (performance.now() - start < 400); ${veil} } const shown = open.getAttribute("aria-expanded") === "true"; open.setAttribute("aria-expanded", String(!shown)); document.getElementById("panel").hidden = shown; });</script>`);
