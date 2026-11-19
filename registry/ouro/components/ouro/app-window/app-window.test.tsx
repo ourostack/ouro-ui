@@ -99,12 +99,43 @@ describe("AppWindow", () => {
     expect(root.borderTopColor).toBe(themed("borderTopColor", "var(--border)"));
     expect(root.backgroundColor).toBe(themed("backgroundColor", "var(--card)"));
     expect(root.color).toBe(themed("color", "var(--card-foreground)"));
-    expect(root.overflow).toBe("hidden");
     const bar = getComputedStyle(part("bar")!);
     expect(bar.backgroundColor).toBe(themed("backgroundColor", "var(--muted)"));
     expect(bar.borderBottomStyle).toBe("solid");
     expect(bar.borderBottomWidth).toBe("1px");
     expect(bar.borderTopWidth).toBe("0px");
+  });
+
+  it("clips nothing a padded window holds, and rounds its bar and foot to its own radius less its border", async () => {
+    const { frame, part } = await render(full);
+    const outer = Number.parseFloat(getComputedStyle(frame).borderTopLeftRadius);
+    expect(outer).toBeGreaterThan(1);
+    expect(getComputedStyle(frame).overflow).toBe("visible");
+    expect(getComputedStyle(part("body")!).overflow).toBe("visible");
+    const bar = getComputedStyle(part("bar")!);
+    const foot = getComputedStyle(part("built-with")!);
+    for (const radius of [bar.borderTopLeftRadius, bar.borderTopRightRadius, foot.borderBottomLeftRadius, foot.borderBottomRightRadius]) expect(Number.parseFloat(radius)).toBeCloseTo(outer - 1, 1);
+    expect(bar.borderBottomLeftRadius).toBe("0px");
+    expect(foot.borderTopLeftRadius).toBe("0px");
+  });
+
+  it("clips an edge-to-edge body to the window's bottom corners only when it ends the window", async () => {
+    const { host } = await render(
+      <div style={{ width: 400 }}>
+        <AppWindow title="map.tsx" inset={false}>
+          <div style={{ height: 80, background: "var(--primary)" }} />
+        </AppWindow>
+        <AppWindow title="plan.tsx" inset={false} builtWith={["Reorderable"]}>
+          <div style={{ height: 80, background: "var(--primary)" }} />
+        </AppWindow>
+      </div>,
+    );
+    const [last, middle] = [...host.querySelectorAll<HTMLElement>('[data-slot="body"]')].map((body) => getComputedStyle(body));
+    const outer = Number.parseFloat(getComputedStyle(host.querySelector('[data-ouro="app-window"]')!).borderTopLeftRadius);
+    expect(last!.overflow).toBe("clip");
+    expect(Number.parseFloat(last!.borderBottomLeftRadius)).toBeCloseTo(outer - 1, 1);
+    expect(middle!.overflow).toBe("visible");
+    expect(middle!.borderBottomLeftRadius).toBe("0px");
   });
 
   it("lists what it is built with along its foot, each name a list item and an outline Badge, under the label", async () => {

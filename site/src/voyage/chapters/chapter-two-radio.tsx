@@ -29,6 +29,8 @@ export const RADIO_DELAY = { typing: 500, reply: 1300 } as const;
 const QUICK = REACTIONS.filter((reaction) => reaction.key === "like" || reaction.key === "love" || reaction.key === "funny");
 
 const CREW_NAMES = Object.keys(RADIO.presence) as Array<keyof typeof RADIO.presence>;
+/** The whole crew's chat's members, with the faces cut for an avatar of the captain's size. */
+const CREW = CREW_NAMES.map((name) => ({ name, src: crewFace(name, "md") }));
 
 let nextId = 0;
 const reactionsOf = (start: RadioLine["reactions"]): Reaction[] =>
@@ -113,7 +115,8 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
   };
   const captain = presenceOf("Captain Nemo");
   const channels: ConversationListItem[] = [
-    { id: "crew", title: RADIO.crew, subtitle: RADIO.crewNote, avatar: <Avatar name={RADIO.crew} shape="square" alt="" /> },
+    // A group chat is drawn from its members' faces, at the captain's size beside it; the square is for a channel.
+    { id: "crew", title: RADIO.crew, subtitle: RADIO.crewNote, members: CREW, avatar: <Avatar name={RADIO.crew} members={CREW} alt="" /> },
     { id: "captain", title: RADIO.captain, subtitle: RADIO.captainNote, avatar: <Avatar name="Captain Nemo" src={crewFace("Captain Nemo", "md")} alt="" presence={captain.presence} presenceLabel={captain.label} /> },
     ...(calling ? [{ id: "caller", title: RADIO.caller, preview: RADIO.callerNote, unread, avatar: <Avatar name="?" shape="square" alt="" /> }] : []),
   ];

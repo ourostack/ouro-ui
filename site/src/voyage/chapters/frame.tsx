@@ -1,6 +1,6 @@
 import { createContext, use, useEffect, useRef, useState, type CSSProperties, type JSX, type ReactNode, type RefObject } from "react";
+import { AppWindow } from "@/registry/ouro/components/ouro/app-window/app-window";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
-import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
@@ -180,10 +180,9 @@ export function useLiveCode<S extends object>(values: Partial<S>): void {
 }
 
 /**
- * One composition, framed as an application's window: its title and line above it, then the window
- * itself, with the file it lives in and a Code button in its title bar, the working controls inside,
- * and the Ouro HX components it is built from along its foot. The window is the card surface and its
- * edge is a real border, so it holds in forced colours. The Code sheet puts each thing HX does over
+ * One composition, framed as an application's window (Ouro HX's AppWindow): its title and line above it,
+ * then the window itself, with the file it lives in and a Code button in its title bar, the working
+ * controls inside, and the Ouro HX components it is built from along its foot. The Code sheet puts each thing HX does over
  * the line of the exhibit that asks it to (wrapped, never cut off at the panel's edge), written with
  * the exhibit's values as they stood when the sheet opened (useLiveCode).
  */
@@ -202,27 +201,20 @@ export function Composition<S extends object>({ id, title, intro, file, sheet, c
         {title}
       </h3>
       <p className="mt-1 mb-4 text-muted-foreground">{intro}</p>
-      <div className="overflow-hidden rounded-ouro-xl border border-border bg-card text-card-foreground shadow-(--shadow-lg)" data-composition-window="">
-        <div className="flex min-h-11 items-center gap-3 border-b border-border bg-muted ps-4 pe-2" data-composition-bar="">
-          <span className="site-mono truncate text-xs text-muted-foreground">{file}</span>
-          <span className="ms-auto" data-chapter-control={`${id}-code`}>
+      <AppWindow
+        title={file}
+        actions={
+          <span data-chapter-control={`${id}-code`}>
             <Button variant="plain" tone="secondary" size="sm" aria-haspopup="dialog" onClick={show}>
               {CHAPTER_ONE.code}
             </Button>
           </span>
-        </div>
-        <div className="px-4 sm:px-6" data-composition-body="">
-          <LiveCode value={live}>{children}</LiveCode>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-4 py-3 sm:px-6" data-composition-uses="">
-          <span className="me-1 text-xs text-muted-foreground">{CODE_SHEETS.builtWith}</span>
-          {sheet.uses.map((name) => (
-            <Badge key={name} tone="secondary" variant="outline">
-              {name}
-            </Badge>
-          ))}
-        </div>
-      </div>
+        }
+        builtWith={sheet.uses}
+        builtWithLabel={CODE_SHEETS.builtWith}
+      >
+        <LiveCode value={live}>{children}</LiveCode>
+      </AppWindow>
       <Sheet title={sheet.title} description={sheet.description} side="right" open={open} onOpenChange={setOpen} className="w-[min(36rem,calc(100vw-3rem))]">
         <div className="grid gap-6 text-sm">
           <section aria-labelledby={`${id}-hx`}>
