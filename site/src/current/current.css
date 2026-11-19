@@ -4,6 +4,10 @@
  * Nothing here moves.
  */
 @layer components {
+  /* The Current page's reading measure, which Ouro check's narrow-text accepts as declared. */
+  :root {
+    --measure-prose: 62ch;
+  }
   .current {
     --current-hairline: color-mix(in oklab, var(--border) 70%, transparent);
     --current-quiet: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));

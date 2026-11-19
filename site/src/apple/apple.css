@@ -11,6 +11,11 @@
  * transitions are of opacity and colour.
  */
 @layer components {
+  /* The Apple pages' reading measures, which Ouro check's narrow-text accepts as declared. */
+  :root {
+    --measure-band: 40rem;
+    --measure-caption: 46rem;
+  }
   .apple {
     --apple-gap: calc(var(--spacing) * 10);
     --apple-screen-radius: calc(var(--radius) * 2.6);
