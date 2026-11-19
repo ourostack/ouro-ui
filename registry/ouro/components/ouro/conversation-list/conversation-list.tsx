@@ -1037,6 +1037,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     if (event.key === "ArrowRight" && row !== undefined && hasMenu(row)) {
       const more = event.currentTarget.nextElementSibling as HTMLElement | null;
       event.preventDefault();
+      // Stryker disable next-line OptionalChaining: a row with a menu always renders the more button right after it.
       more?.focus();
       return;
     }
@@ -1046,8 +1047,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     focusKey(keys[to(keys.indexOf(key), keys.length - 1)]!);
   };
   // The rows are memoised, so they call the latest handlers through these stable ones.
-  // Stryker disable next-line ObjectLiteral: the layout effect below sets the handlers before any row can call them.
   const more = (key: string, anchor: HTMLElement) => openMenu(itemOf(key)!, key, frozen(anchor));
+  // Stryker disable next-line ObjectLiteral: the layout effect below sets the handlers before any row can call them.
   const handlers = useRef({ onSelect, move, more });
   useLayoutEffect(() => {
     handlers.current = { onSelect, move, more };

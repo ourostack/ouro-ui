@@ -119,4 +119,45 @@ describe("ConversationList hover", () => {
     await userEvent.keyboard("{ArrowRight}{ArrowLeft}");
     expect(document.activeElement).toBe(row);
   });
+
+  it("keeps the more button out of the tab order and lets Left and Escape hand focus back to the row", async () => {
+    const host = await render(list());
+    const row = rowOf(host, "Ana Lind");
+    const more = moreOf(row)!;
+    expect(more.tabIndex).toBe(-1);
+    for (const key of ["ArrowLeft", "Escape"]) {
+      more.focus();
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      await act(async () => {
+        more.dispatchEvent(event);
+      });
+      expect(event.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(row);
+    }
+    more.focus();
+    const other = new KeyboardEvent("keydown", { key: "a", bubbles: true, cancelable: true });
+    more.dispatchEvent(other);
+    expect(other.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(more);
+  });
+
+  it("reserves the end slot only for what fills it: a time, a menu, or a mark or unread dot on the title line", async () => {
+    const slots = async (item: ConversationListItem) => {
+      const host = await render(<ConversationList label="Conversations" items={[item]} onSelect={() => {}} />);
+      return [...host.querySelectorAll('[data-ouro-part="row"] .shrink-0.flex.items-center.gap-2')];
+    };
+    expect(await slots({ id: "a", title: "A" })).toHaveLength(0);
+    expect(await slots({ id: "b", title: "B", mark: "★" })).toHaveLength(1);
+    expect(await slots({ id: "c", title: "C", unread: true })).toHaveLength(1);
+    expect(await slots({ id: "d", title: "D", preview: "p", mark: "★", unread: true })).toHaveLength(0);
+    expect(await slots({ id: "e", title: "E", time: "9:41" })).toHaveLength(1);
+    expect(await slots({ id: "f", title: "F", menu: [{ label: "Pin", onClick: () => {} }] })).toHaveLength(1);
+  });
+
+  it("gives the slot the more button's width only when the row has a menu", async () => {
+    const host = await render(list());
+    const slotOf = (title: string) => rowOf(host, title).querySelector<HTMLElement>("[data-ouro-conversation-time]")!.parentElement!;
+    expect(style(slotOf("Ana Lind")).minWidth).toBe("28px");
+    expect(style(slotOf("No menu here")).minWidth).not.toBe("28px");
+  });
 });
