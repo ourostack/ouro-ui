@@ -43,6 +43,19 @@ afterEach(async () => {
 const subtitleOf = (header: HTMLElement) => header.querySelector("[data-ouro-chat-header-subtitle]")?.textContent ?? null;
 
 describe("ChatHeader", () => {
+  it("stays inside a 320px container, even in an auto grid track, truncating the title and the line and keeping the members button", async () => {
+    const { host, header } = await render(
+      <div style={{ display: "grid" }}>
+        <ChatHeader title="The whole crew of the Nautilus, aboard for the long voyage under the sea" members={crew} subtitle="Captain Nemo, Professor Aronnax, Conseil, Ned Land and everyone else aboard" />
+      </div>,
+    );
+    host.style.width = "320px";
+    await expect.poll(() => host.scrollWidth).toBeLessThanOrEqual(320);
+    const members = header.querySelector<HTMLElement>('[data-ouro-part="members"]')!;
+    expect(members.getBoundingClientRect().right).toBeLessThanOrEqual(host.getBoundingClientRect().right);
+    expect(header.getBoundingClientRect().width).toBeLessThanOrEqual(320);
+  });
+
   it("shows a one-to-one chat as the person, with their presence under the title and no member list", async () => {
     const { header } = await render(<ChatHeader title="Captain Nemo" members={[nemo]} />);
     const avatar = header.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
