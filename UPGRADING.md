@@ -86,6 +86,8 @@ What an app on v0.1.0 has to know beyond these steps.[^upgrade-test] The release
 
 - **After v1.3.298 (TextArea):** TextArea's vertical padding is the `--ouro-text-area-py` variable, which `autoGrow` adds to its `rows` and `maxRows` bounds so its first frame has its final height, so an app that changed the padding with a `py-*` class on the textarea (`className="[&_textarea]:py-3"`) sets the variable instead (`className="[&_textarea]:[--ouro-text-area-py:12px]"`); in development, TextArea warns with that fix.[^upgrade-text-area-py]
 
+- **After v1.3.313 (wide-screen type):** `ouro-base` grows the root type to 112.5% from 2400px wide and to 125% (20px) from 3200px, so a 4K display at 1x reads at a laptop's size.[^upgrade-wide-type] An app that grew its own root type for wide screens can drop that rule; one that wants another size keeps its own `html { font-size }` outside any layer, which wins.
+
 #### 0. Commit first
 
 `--overwrite` replaces every Ouro file, including files you edited.[^upgrade-shadcn-add] Commit before you start. Afterwards, `git diff` shows your own edits being overwritten, so reapply the ones you need.
@@ -202,6 +204,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 [^upgrade-plain]: scripts/registry.test.mjs verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them) verify:testExists(site/scripts/static-css.test.mjs::ouro-plain keeps every class of ouro-plain.css and its tokens, as plain CSS)
 [^upgrade-radius-steps]: registry/ouro/theme/radius-fallback.test.tsx verify:testExists(registry/ouro/theme/radius-fallback.test.tsx::radius scale where the engine has no corner-shape > rounds Button and Card on Ouro's steps, so the fallback and the scale reach them whatever the app's own --radius-lg and --radius-xl say)
 [^upgrade-trigger-or-open]: scripts/agent-types.test.mjs verify:testExists(scripts/agent-types.test.mjs::tsc reports exactly the expected errors, naming the fix where the case says so)
+[^upgrade-wide-type]: registry/ouro/theme/theme.test.tsx verify:testExists(registry/ouro/theme/theme.test.tsx::wide-screen type > grows the root a step at 2400px and another at 3200px, then stops at 20px, so a 4K screen at 1x reads at a laptop's size)
 [^upgrade-card-rules]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/new-rules.json, /"rule": "reveal-reflow"/)
 [^upgrade-card-known]: scripts/current/current.test.mjs verify:testExists(scripts/current/current.test.mjs::an Ouro check rule an update brings in has the findings the pull request's checks reported recorded as known, the run after, and kept while the next checks run)
 [^upgrade-first-run]: scripts/check/check.test.mts verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/new-rules.json, /"rule": "signed-out-empty"/)
