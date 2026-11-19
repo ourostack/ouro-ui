@@ -19,10 +19,12 @@ const LOADS = { warmUps: 2, samples: 12 };
  * A setup retry, never a timing one (ourostack/ouro-ui#2131). The 4× CPU throttle is a precondition of every load: a
  * navigation at times lands in a renderer the throttle was not set on, and that load ran at full speed. Whether the
  * throttle applied is read from the load's own CPU loop (`throttleApplied`), never from its paint times, and a load it
- * did not apply to is taken again, up to RETAKES times, each retake logged and counted in the job's summary. A load the
- * throttle still missed after them fails the test.
+ * did not apply to is taken again, each retake logged and counted in the job's summary, from one budget of RETAKES for
+ * the whole page's loads: the misses come in runs (one load at 3c9f359 missed four takes in a row), so a load gets as many
+ * takes as the page has left (ourostack/ouro-ui#2392). A load the throttle still missed once the budget is spent fails the
+ * test.
  */
-const RETAKES = 3;
+const RETAKES = 12;
 
 /** Whether the throttle applied to a load: its CPU loop ran at least twice as slow as the runner's full speed. */
 function throttleApplied(loopMs: number, fullMs: number): boolean {
@@ -180,16 +182,16 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
       for (const app of [BARE, name]) {
         // The full speed measured so far can only fall, so a load fast enough against it stays fast enough at the end.
         let taken: Awaited<ReturnType<typeof load>>;
-        for (let take = 0; ; take++) {
+        for (;;) {
           const page = await context.newPage();
           try {
             taken = await load(page, app, chart && app === name);
           } finally {
             await page.close();
           }
-          if (throttleApplied(taken.throttled, full) || take === RETAKES) break;
+          if (throttleApplied(taken.throttled, full) || retaken === RETAKES) break;
           retaken += 1;
-          const line = `${name}: the ${LATENCY.throttle}× throttle did not apply to a ${app} load (its loop ran ${Math.round((taken.throttled / full) * 10) / 10}× full speed); taking it again (${take + 1} of ${RETAKES})`;
+          const line = `${name}: the ${LATENCY.throttle}× throttle did not apply to a ${app} load (its loop ran ${Math.round((taken.throttled / full) * 10) / 10}× full speed); taking it again (retake ${retaken} of the page's ${RETAKES})`;
           test.info().annotations.push({ type: "latency-throttle-retake", description: line });
           console.log(`latency-throttle-retake ${line}`);
         }
