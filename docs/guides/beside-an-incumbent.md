@@ -1,4 +1,4 @@
-# Beside an incumbent design system
+# Adopt it beside your design system
 
 A company with a design system of its own will not take on a second one, and Ouro HX does not ask it to. This guide adopts Ouro HX one page at a time beside the incumbent library, with the incumbent's tokens drawing the colors, and with the guardrail kits recording what the incumbent still draws rather than failing it.
 
