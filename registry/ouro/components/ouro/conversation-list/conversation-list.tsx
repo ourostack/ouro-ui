@@ -716,6 +716,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   };
   const focusKey = (key: string) => {
     const control = controls.current.get(key);
+    // A key moves focus on, so the row an earlier key reached no longer holds the view: revealing it as rows around it are measured would scroll back to it.
+    if (keepInView.current?.block === "nearest") keepInView.current = null;
     if (!control) {
       focusNext.current = key;
       setReach(key);
