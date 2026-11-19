@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 const kits = [
   { kit: "web", repo: "ourostack/ouro-ui", dir: "test/fixtures/a2ui/cases", job: /^ci$/i, logJob: /^scripts/ },
   { kit: "apple", repo: "ourostack/ouro-ui-apple", dir: "Tests/OuroA2UITests/Conformance/cases", job: /^Build, test, DocC and gallery/ },
-  { kit: "windows", repo: "ourostack/ouro-ui-windows", dir: "vendor/core/a2ui/conformance/cases", job: /^windows$/ },
+  { kit: "windows", repo: "ourostack/ouro-ui-windows", dir: "vendor/core/a2ui/conformance/cases", job: /^actions$/ },
   { kit: "android", repo: "ourostack/ouro-ui-android", dir: "vendor/core/composed/cases", job: /^build$/ },
 ];
 
