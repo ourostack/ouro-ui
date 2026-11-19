@@ -60,4 +60,30 @@ describe("ThemePicker", () => {
     await render(<ThemePicker presets={[]} />);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("[ouro-ui] ThemePicker: presets is empty"));
   });
+
+  it("names its group Theme by default and draws the chosen dot with a solid border", async () => {
+    const el = await render(<ThemePicker presets={presets} />);
+    expect(el.querySelector('[role="group"]')!.getAttribute("aria-label")).toBe("Theme");
+    const dot = (name: string) => el.querySelector(`[aria-label="${name}"] [data-theme]`)!.className.split(" ");
+    expect(dot("Pearl")).toContain("border-foreground");
+    expect(dot("Pearl")).not.toContain("border-foreground/20");
+    expect(dot("Abyss")).toContain("border-foreground/20");
+    expect(dot("Abyss")).not.toContain("border-foreground");
+  });
+
+  it("keeps the choice under the key it is given, and starts on the default it is given", async () => {
+    const el = await render(<ThemePicker presets={presets} storageKey="app-look" defaultPreset="abyss" />);
+    expect(el.querySelector('[aria-label="Abyss"]')!.getAttribute("aria-pressed")).toBe("true");
+    await act(async () => el.querySelector<HTMLButtonElement>('[aria-label="Pearl"]')!.click());
+    expect(localStorage.getItem("app-look")).toBe("pearl");
+    localStorage.removeItem("app-look");
+  });
+
+  it("names the fix when an appearance class is passed, and for no presets", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(<ThemePicker presets={[]} className="bg-red-500" />);
+    const text = warn.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(text).toContain('remove "bg-red-500"; ThemePicker draws its dots from the presets');
+    expect(text).toContain('Fix: <ThemePicker presets={[{ name: "pearl", label: "Pearl" }]} />');
+  });
 });

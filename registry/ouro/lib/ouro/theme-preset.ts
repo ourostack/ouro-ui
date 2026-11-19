@@ -23,7 +23,7 @@ function stored(key: string, presets: readonly string[], fallback: string): stri
     try {
       value = localStorage.getItem(key);
     } catch {
-      value = null;
+      // Storage is refused: there is no kept choice to read.
     }
   }
   return value !== null && presets.includes(value) ? value : fallback;

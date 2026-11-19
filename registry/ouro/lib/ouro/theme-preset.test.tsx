@@ -94,4 +94,36 @@ describe("useThemePreset", () => {
     expect(seen.at(-1)!.preset).toBe("brass");
     expect(html.getAttribute("data-theme")).toBe("brass");
   });
+
+  it("ignores a kept name that is not a preset, and reports an empty name for no presets", async () => {
+    localStorage.setItem("ouro-theme-preset", "sepia");
+    const seen: ThemePresetValue[] = [];
+    await render(<Probe seen={seen} />);
+    expect(seen.at(-1)!.preset).toBe("pearl");
+    const none: ThemePresetValue[] = [];
+    await render(<Probe seen={none} names={[]} />);
+    expect(none.at(-1)!.preset).toBe("");
+  });
+
+  it("stops listening for another tab's choice once it unmounts", async () => {
+    const remove = vi.spyOn(window, "removeEventListener");
+    const seen: ThemePresetValue[] = [];
+    await render(<Probe seen={seen} />);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(remove).toHaveBeenCalledWith("storage", expect.any(Function));
+  });
+
+  it("writes to the key and presets it has now, not the first render's", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const seen: ThemePresetValue[] = [];
+    await act(async () => root.render(<Probe seen={seen} storageKey="app-look" />));
+    await act(async () => root.render(<Probe seen={seen} storageKey="private-look" names={["pearl", "sepia"]} />));
+    await act(async () => seen.at(-1)!.setPreset("sepia"));
+    expect(localStorage.getItem("private-look")).toBe("sepia");
+    expect(localStorage.getItem("app-look")).toBeNull();
+  });
 });

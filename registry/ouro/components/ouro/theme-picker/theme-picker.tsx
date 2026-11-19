@@ -62,7 +62,9 @@ export function ThemePicker(props: ThemePickerProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; ThemePicker draws its dots from the presets`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : /* istanbul ignore next @preserve -- production only */
+        // Stryker disable next-line StringLiteral: the production build never reads this hint
+        "",
   );
   useDevWarnings(
     "ThemePicker",
