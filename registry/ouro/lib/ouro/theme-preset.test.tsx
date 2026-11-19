@@ -126,4 +126,21 @@ describe("useThemePreset", () => {
     expect(localStorage.getItem("private-look")).toBe("sepia");
     expect(localStorage.getItem("app-look")).toBeNull();
   });
+
+  it("reads the saved choice again once storage works after refusing a write", async () => {
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+    const seen: ThemePresetValue[] = [];
+    await render(<Probe seen={seen} storageKey="quota-look" />);
+    await act(async () => seen.at(-1)!.setPreset("brass"));
+    set.mockRestore();
+    await act(async () => seen.at(-1)!.setPreset("abyss"));
+    expect(seen.at(-1)!.preset).toBe("abyss");
+    localStorage.setItem("quota-look", "pearl");
+    window.dispatchEvent(new StorageEvent("storage", { key: "quota-look" }));
+    await act(async () => {});
+    expect(seen.at(-1)!.preset).toBe("pearl");
+    localStorage.removeItem("quota-look");
+  });
 });

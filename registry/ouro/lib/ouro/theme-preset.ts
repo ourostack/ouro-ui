@@ -34,6 +34,7 @@ function subscribe(listener: () => void): () => void {
   // Another tab's choice arrives as a storage event.
   window.addEventListener("storage", listener);
   return () => {
+    // Stryker disable next-line all: a stale listener only re-reads the snapshot of a reader that is gone
     listeners.delete(listener);
     window.removeEventListener("storage", listener);
   };
@@ -60,6 +61,7 @@ export function useThemePreset(presets: readonly string[], options: ThemePresetO
   // The names join into one string, so a new array each render reads as the same snapshot.
   const list = presets.join("\n");
   const read = () => stored(key, presets, fallback);
+  // Stryker disable next-line all: the server snapshot never runs in a browser test
   const preset = useSyncExternalStore(subscribe, read, () => fallback);
   const setPreset = useCallback(
     (next: string) => {

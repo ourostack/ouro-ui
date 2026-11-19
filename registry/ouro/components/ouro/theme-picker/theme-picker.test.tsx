@@ -83,7 +83,7 @@ describe("ThemePicker", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await render(<ThemePicker presets={[]} className="bg-red-500" />);
     const text = warn.mock.calls.map((call) => String(call[0])).join("\n");
-    expect(text).toContain('remove "bg-red-500"; ThemePicker draws its dots from the presets');
+    expect(text).toContain('[ouro-ui] ThemePicker: "bg-red-500" sets appearance, and className is for layout only. Fix: remove "bg-red-500"; ThemePicker draws its dots from the presets');
     expect(text).toContain('Fix: <ThemePicker presets={[{ name: "pearl", label: "Pearl" }]} />');
   });
 });
