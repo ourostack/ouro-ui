@@ -781,8 +781,8 @@
         }
       ],
       "issue": 2300,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "Ouro's actions, X-ray and Ouro check now run in CI over a fixture app on Mantine with its own tokens, one page moved to Ouro HX beside the rest, and a guide says how to adopt it page by page (#2399, #2402, #2421); the toolchain floors that remain are Tailwind CSS v4 and React 19."
     },
     {
       "id": "native-challenge-one-codebase",
