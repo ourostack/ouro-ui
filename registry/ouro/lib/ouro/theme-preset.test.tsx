@@ -59,7 +59,7 @@ describe("useThemePreset", () => {
     await render(<Probe seen={seen} />);
     await act(async () => seen.at(-1)!.setPreset("sepia"));
     expect(localStorage.getItem("ouro-theme-preset")).toBeNull();
-    expect(html.hasAttribute("data-theme")).toBe(false);
+    expect(html.getAttribute("data-theme")).toBe("pearl");
   });
 
   it("follows another tab's choice", async () => {
@@ -68,6 +68,17 @@ describe("useThemePreset", () => {
     localStorage.setItem("app-look", "abyss");
     await act(async () => void window.dispatchEvent(new StorageEvent("storage", { key: "app-look" })));
     expect(seen.at(-1)!.preset).toBe("abyss");
+    expect(html.getAttribute("data-theme")).toBe("abyss");
+  });
+
+  it("keeps a choice when only writing to localStorage is refused", async () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+    const seen: ThemePresetValue[] = [];
+    await render(<Probe seen={seen} storageKey="quota-look" />);
+    await act(async () => seen.at(-1)!.setPreset("brass"));
+    expect(seen.at(-1)!.preset).toBe("brass");
   });
 
   it("still switches where the browser refuses localStorage", async () => {

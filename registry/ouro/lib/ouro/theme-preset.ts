@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { THEME_PRESET_DEFAULTS, type ThemePresetOptions } from "@/registry/ouro/lib/ouro/theme-preset-script";
 
 export type { ThemePresetOptions } from "@/registry/ouro/lib/ouro/theme-preset-script";
@@ -18,11 +18,13 @@ const memory = new Map<string, string>();
 const listeners = new Set<() => void>();
 
 function stored(key: string, presets: readonly string[], fallback: string): string {
-  let value: string | null;
-  try {
-    value = localStorage.getItem(key);
-  } catch {
-    value = memory.get(key) ?? null;
+  let value: string | null = memory.get(key) ?? null;
+  if (value === null) {
+    try {
+      value = localStorage.getItem(key);
+    } catch {
+      value = null;
+    }
   }
   return value !== null && presets.includes(value) ? value : fallback;
 }
@@ -64,13 +66,17 @@ export function useThemePreset(presets: readonly string[], options: ThemePresetO
       if (!list.split("\n").includes(next)) return;
       try {
         localStorage.setItem(key, next);
+        memory.delete(key);
       } catch {
         memory.set(key, next);
       }
-      document.documentElement.setAttribute("data-theme", next);
       for (const listener of listeners) listener();
     },
     [key, list],
   );
+  // Runs for a change from another tab too, so the page follows the picker.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", preset);
+  }, [preset]);
   return { preset, setPreset };
 }
