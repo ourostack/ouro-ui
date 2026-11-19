@@ -18,7 +18,7 @@ import { docsPages, guidePages, platformPages, publishedMarkdown, repositoryLink
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
-import { headTags, SITE } from "./head";
+import { headTags, homeStructuredData, SITE } from "./head";
 import { componentPrompt, GUIDE_TASKS, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
 import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
@@ -1101,6 +1101,16 @@ describe("the header's current section on a docs page", () => {
 });
 
 describe("head tags", () => {
+  it("give the home page, and only the home page, schema.org data naming the repository and licence", () => {
+    const home = routes.find((route) => route.path === "/")!;
+    const tag = headTags(home, true).find((t) => t.startsWith('<script type="application/ld+json">'))!;
+    const data = JSON.parse(tag.slice(tag.indexOf(">") + 1, -"</script>".length));
+    expect(data["@type"]).toBe("SoftwareSourceCode");
+    expect(data.codeRepository).toBe("https://github.com/ourostack/ouro-ui");
+    expect(data.keywords).toContain("shadcn registry");
+    expect(homeStructuredData({ path: "/", title: "t", description: "a </script> b" })).not.toContain("</script>");
+    expect(headTags(routes.find((route) => route.path === "/ax/")!, true).some((t) => t.includes("ld+json"))).toBe(false);
+  });
   it("end a card's title with a full stop before its scene in the alt text, when the title has none", () => {
     const tags = headTags({ path: "/ax/", title: "Ouro AX", description: "A morning with an agent" }, true).join("\n");
     expect(tags).toContain('<meta property="og:image:alt" content="Ouro AX: A morning with an agent. Inside a sleek high-speed train in low golden morning sun, ');

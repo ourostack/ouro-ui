@@ -14,6 +14,28 @@ const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;
 export const showsMono = (html: string): boolean => /<(?:code|pre|samp)[\s>]|\bfont-mono\b/.test(html);
 
 /**
+ * The home page's structured data (schema.org JSON-LD), which search engines read to name what the site is: a software
+ * source code project with its repository, licence and the languages of its four kits, hosted at the site's address.
+ */
+export function homeStructuredData(route: Route): string {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: "Ouro UI",
+    description: route.description,
+    url: `${SITE}/`,
+    codeRepository: "https://github.com/ourostack/ouro-ui",
+    license: "https://github.com/ourostack/ouro-ui/blob/main/LICENSE",
+    programmingLanguage: ["TypeScript", "Swift", "C#", "Kotlin"],
+    runtimePlatform: ["React", "SwiftUI", "WinUI", "Jetpack Compose"],
+    keywords: ["shadcn registry", "React components", "Base UI", "Tailwind CSS", "A2UI", "MCP Apps", "Model Context Protocol", "AI agents", "design system"],
+    author: { "@type": "Person", name: "Ari Mendelow" },
+  };
+  // A "<" in the text would end the script early.
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
+/**
  * The `<head>` tags of a prerendered page: its title and description, the canonical URL, the
  * icons (the Ouro HX silhouette, which the site wears as Ouro UI's mark, the touch icon and the web manifest, all from the storybook
  * brand), and the Open Graph and Twitter tags link previews read, with the page's storybook card
@@ -55,6 +77,7 @@ export function headTags(route: Route, canonical: boolean, mono = true): string[
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:image:alt" content="${alt}" />`,
+    route.path === "/" ? `<script type="application/ld+json">${homeStructuredData(route)}</script>` : "",
     // Every preset sets its type in Geist and its code in Geist Mono. Fetched with the stylesheets, they arrive before
     // the first paint; found only once the page lays out, they swap in after it, and on a phone the wider face rewraps
     // the docs' opening paragraph and moves the page below it. A docs page without code leaves Geist Mono out, since a
