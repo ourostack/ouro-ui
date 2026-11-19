@@ -30,7 +30,8 @@ async function chunks(probe) {
     }));
 }
 
-// Measured at 14,737 bytes when Chart began drawing its own marks (Vite 8, React external). The range keeps "about
+// Measured at 14,737 bytes when Chart began drawing its own marks (Vite 8, React external); before, the same probe
+// loaded 13,386 bytes with the page and Recharts' chunk of 112,590 bytes after it, 125,976 in all. The range keeps "about
 // 15 KB" true: the ceiling fails a change that brings a charting library back, and the floor one that makes the
 // docs' figure stale by shrinking it.
 const [FLOOR, CEILING] = [13_000, 16_000];
