@@ -203,8 +203,10 @@ export function pageIndicator(s: Snapshot): string | null {
 
 /**
  * The app's own view, outside the page's web content, saying something is under way: a start view that shows "Signing
- * in…" while the page under it is still drawing. Only for a pane that is the page (a main landmark or a web area); a dialog,
- * or a window with no web area, is read whole already. Gone once that view is gone, so a page still blank after it fails.
+ * in…" while the page under it is still drawing. It applies when the pane is the page (a main landmark or a web area),
+ * since a dialog's pane, or a window with no web area, takes in the whole view already. Gone once that view is gone, so a page
+ * still blank after it fails.
+ * @claim "It applies when the pane is the page" scripts/check/first-run-units.test.mts verify:testExists(scripts/check/first-run-units.test.mts::first-run harness: the judges > a blank page under the app's own view that says it's signing in is in progress; once that view is gone, or the window is one shade, it's blank and a dead end) verify:testExists(scripts/check/first-run-units.test.mts::first-run harness: the judges > a progress bar beside the main landmark, as a sign-in form shows while it checks an account, keeps a page from being a dead end, and without it the page is one (#2351))
  */
 export function appViewProgress(s: Snapshot, p: Pane, v: Vocabulary): string | null {
   const win = mainWindow(s);
