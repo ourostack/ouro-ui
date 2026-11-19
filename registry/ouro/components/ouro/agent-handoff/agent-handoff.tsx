@@ -53,7 +53,7 @@ export interface AgentHandoffOwnProps {
 /** Props for {@link AgentHandoff}: its own props and the `<div>` attributes it passes through. */
 export type AgentHandoffProps = Omit<HTMLAttributes<HTMLDivElement>, keyof AgentHandoffOwnProps> & AgentHandoffOwnProps;
 
-/** The prompt's parts, each ending in a "/" not followed by another, so a web address breaks only between its parts. */
+/** The prompt cut after a "/" where a web address may break: between its parts, but not inside "//". */
 function promptParts(prompt: string): string[] {
   return prompt.split(/(?<=\/)(?!\/)/);
 }
@@ -76,6 +76,7 @@ function promptParts(prompt: string): string[] {
  *   prompt="Build this app's interface with Ouro UI. Read https://ui.ouroboros.bot/llms.txt first and follow it."
  *   caption="Paste it into your coding agent's chat."
  * />
+ * @claim "The line is in the page's own type, never a terminal's" registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx verify:testExists(registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx::AgentHandoff > draws the line in the page's own type, on the card surface with a border in the theme's colors) verify:testExists(registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx::AgentHandoff > lets the line break after each slash of a web address, and never between the two of its scheme)
  * @claim "Copy is CopyButton, which says it copied on itself" registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx verify:testExists(registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx::AgentHandoff > copies the line and says Copied on its own button, marked as the hand-off's copy part)
  * @claim "In a narrow column Copy goes under the line" registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx verify:testExists(registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx::AgentHandoff > puts Copy under the line in a narrow column, and beside it in a wide one)
  */
