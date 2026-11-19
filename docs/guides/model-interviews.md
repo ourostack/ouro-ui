@@ -83,7 +83,7 @@ Seven models noticed that on Android a consequential action is refused instead o
 
 #### The native kits are unproven on real hardware: Android runs only on emulators, and Windows agent registration is unproven on a Windows 11 client.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2294](https://github.com/ourostack/ouro-ui/issues/2294).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2294](https://github.com/ourostack/ouro-ui/issues/2294).
 
 Every model found Ouro's own note that Android is tested only on emulators and that Windows CI, on Windows Server, can't show the OS lists the agent doors. It was the most-cited blocker for the five-platform chat app and the cooking app's Android client, and all eight named device proof as a condition for switching. Ouro should run the Android and Windows kits on physical devices and a Windows 11 client, and publish per platform which promises are proven on a device.
 

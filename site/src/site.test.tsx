@@ -1248,7 +1248,7 @@ describe("docs running text", () => {
 
 describe("platforms", () => {
   it("has a page per file in docs/platforms at docs/platforms/<name>, the index at docs/platforms", () => {
-    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/parity", "platforms/your-platform", "platforms/contributing"]);
+    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/proof", "platforms/windows", "platforms/parity", "platforms/your-platform", "platforms/contributing"]);
     for (const doc of platformPages) {
       expect(doc.group).toBe("Platforms");
       expect(routes.find((route) => route.path === `/docs/${doc.name}/`)?.title).toBe(`${doc.title} · Ouro UI`);
