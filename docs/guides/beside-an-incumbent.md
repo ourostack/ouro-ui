@@ -35,7 +35,7 @@ Do not make the first move a page's whole worth of components. Pick a page with 
 
 The [guardrail kits](guardrails.md) are built for an app that is not clean yet. They record where the app starts and only let the count fall.
 
-- **Source rule.** The source rule finds elements from another UI-control library, such as MUI, Chakra or Radix, in your source. Run `node scripts/ouro-source-rules.mjs --write-baseline` once: the incumbent's controls become the starting point, a new one fails, and a fixed one fails until the baseline drops it.[^baseline] The incumbent's controls pass today and cannot grow.
+- **Source rule.** The source rule finds elements from another UI-control library, such as MUI, Chakra or Radix, in your source. Run `node scripts/ouro-source-rules.mjs --write-baseline` once: the incumbent's controls become the starting point, a new one fails, and a fixed one fails until the baseline drops it.[^baseline] The incumbent's controls pass today and cannot grow. The rule finds only the libraries it lists and hand-drawn controls, so an in-house library under your own package scope is tracked through the census alone.
 - **Census.** Leave a journey unenrolled while the incumbent still draws part of its page. Its unmarked controls are counted, and the count may only fall in each state.[^census] Set `enrolled: true` once the page has moved, and any control without an Ouro marker fails from then on.[^census]
 
 A pull request that moves a page lowers both counts, and the diff shows it.
