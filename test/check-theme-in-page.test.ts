@@ -180,7 +180,8 @@ describe("findThemeIssues: dark-miss", () => {
     try {
       await loaded;
       render(`<style>
-        :root { --t-primary: #171717; --t-card: #e0e0e0; --t-wide: #e0e0e0; --t-loop-a: var(--t-loop-b); --t-loop-b: var(--t-loop-a); --t-color-primary: var(--t-primary); }
+        :root { --t-primary: #171717; --t-card: #e0e0e0; --t-wide: #e0e0e0; --t-loop-a: var(--t-loop-b); --t-loop-b: var(--t-loop-a); }
+        .t-scope { --t-color-primary: var(--t-primary); }
         .dark { --t-primary: #d4d4d4; }
         @media (prefers-color-scheme: dark) { :root { --t-muted: #e5e5e5; } }
         @media (min-width: 1px) { :root { --t-wide: #e0e0e0; } }
@@ -192,7 +193,7 @@ describe("findThemeIssues: dark-miss", () => {
         .t-loop { background-color: var(--t-loop-a, #e0e0e0); }
         .t-ink { color: #121212; }
       </style>
-      <div class="t-nest"><div class="dark">
+      <div class="t-nest"><div class="dark t-scope">
         <div class="t-primary t-ink" style="${box}">Through a var() chain</div>
         <div style="background:var(--t-muted, #e5e5e5);${box}">Dark in a media query</div>
         <div style="background:var(--t-layered);${box}">Dark in a layer</div>
