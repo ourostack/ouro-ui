@@ -14,7 +14,6 @@ export { groupChatWith };
  */
 function groupChatWith(names: readonly string[]): string {
   const [a, b, c] = names;
-  if (names.length === 0) return "group chat";
   if (names.length === 1) return `group chat with ${a}`;
   if (names.length === 2) return `group chat with ${a} and ${b}`;
   if (names.length === 3) return `group chat with ${a}, ${b} and ${c}`;

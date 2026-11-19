@@ -833,6 +833,10 @@ describe("ConversationList group chats", () => {
     await expect.element(page.getByRole("button", { name: /^The whole crew ?, group chat with Captain Nemo, Professor Aronnax and 2 others Four aboard$/ })).toBeVisible();
     await render(<ConversationList label="Discussions" items={rows} membersLabel={(names) => `discussion à ${names.length}`} onSelect={() => {}} />);
     await expect.element(page.getByRole("button", { name: /^The whole crew ?, discussion à 4 Four aboard$/ })).toBeVisible();
+    // A row with no members yet is no group chat: its name says nothing about who is in it.
+    await render(<ConversationList label="Empty" items={[{ id: "new", title: "New chat", members: [] }]} onSelect={() => {}} />);
+    await expect.element(page.getByRole("list", { name: "Empty" }).getByRole("button", { name: /^New chat ?$/ })).toBeVisible();
+    warn.mockClear();
     // A picture the group set for itself, given as the avatar, still draws the group until it loads.
     const own = await render(<ConversationList label="Chats" items={[{ id: "crew", title: "The whole crew", members: crew, avatar: "data:image/png;base64,broken" }]} onSelect={() => {}} />);
     await expect.poll(() => own.host.querySelector('[data-ouro="avatar"]')!.getAttribute("data-image")).toBe("error");

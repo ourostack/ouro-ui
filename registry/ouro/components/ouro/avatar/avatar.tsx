@@ -394,7 +394,7 @@ function GroupSlice({ member, tint, quarter, half }: { member: AvatarMember; tin
         <img src={member.src} alt="" className="size-full object-cover" />
       ) : (
         <span
-          data-ouro-avatar-initials={Array.from(member.initials ?? initialsOf(member.name))[0] ?? ""}
+          data-ouro-avatar-initials={Array.from(member.initials ?? initialsOf(member.name))[0]}
           className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic] before:content-[attr(data-ouro-avatar-initials)]"
         />
       )}
@@ -572,10 +572,11 @@ export function Avatar(props: AvatarProps): JSX.Element {
       ? () => [
           nameProp === undefined && ["name is missing, so screen readers hear nothing", '<Avatar name="Ana Lind" src={url} />'],
           !groupSize && sizeProp !== undefined && !checkSize(sizeProp) && sizeWarning("Avatar", sizeProp),
-          shapeProp === "group" && [
-            'shape="group" is not a shape; a group chat is drawn from its members',
-            `<Avatar name="${name || "Crew"}" members={[{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }]} />`,
-          ],
+          !group &&
+            shapeProp === "group" && [
+              'shape="group" is not a shape; a group chat is drawn from its members',
+              `<Avatar name="${name}" members={[{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }]} />`,
+            ],
           shapeProp !== undefined &&
             shapeProp !== "group" &&
             !oneOf(shapes, shapeProp) && [
@@ -583,8 +584,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
               `<Avatar shape="${/agent|hex/i.test(String(shapeProp)) ? "agent" : "square"}">`,
             ],
           group &&
-            shapeProp !== undefined &&
-            shapeProp !== "group" && [
+            shapeProp !== undefined && [
               `a group chat is drawn from its members, so shape="${String(shapeProp)}" does nothing; a channel or team is shape="square" with no members`,
               `<Avatar name="${name}" members={members} />`,
             ],
@@ -593,7 +593,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
           members !== undefined &&
             members.length === 0 && [
               "members is empty, so the avatar shows the group's initials",
-              `<Avatar name="${name || "Crew"}" members={[{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }]} />`,
+              `<Avatar name="${name}" members={[{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }]} />`,
             ],
           misnamedMembers !== undefined && [`${misnamedMembers} is not a prop; a group chat's people are members`, '<Avatar name="Crew" members={[{ name: "Ana Lind", src: ana }]} />'],
           !group &&
@@ -623,6 +623,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   const groupWords = group ? membersLabel(members!.map((member) => member.name)) : "";
   const label = [alt ?? (nameLoading ? nameLoadingLabel : [name, groupWords].filter(Boolean).join(", ")), spoken].filter(Boolean).join(", ");
   // Two slices below 40px, three from 40px up: a quarter of a smaller avatar is too small to tell who it is.
+  // Stryker disable next-line ArrayDeclaration: the slices are read only for a group, so what a non-group holds here is never drawn.
   const slices = group ? members!.slice(0, plainSizes.includes(size) ? 2 : 3) : [];
   const glyph = icon !== undefined && icon !== null ? icon : shape === "agent" ? <AgentGlyph /> : undefined;
   const iconShown = glyph !== undefined;
@@ -653,14 +654,12 @@ export function Avatar(props: AvatarProps): JSX.Element {
         className={cn(
           "absolute inset-0 rounded-[inherit]",
           // The slices are clipped to the squircle, where corner-shape draws it as where the clip path does.
-          group && image !== "loaded" ? "grid overflow-hidden" : "flex items-center justify-center",
+          // A group's slices: a half each, or a half and two quarters, with a hole between them.
+          group && image !== "loaded" ? "grid gap-[max(1px,calc(var(--ouro-edge)*0.6))] overflow-hidden" : "flex items-center justify-center",
           shape === "circle" ? "[--ouro-sq-r:44%]" : "[--ouro-sq-r:24%]",
           shape === "agent" ? agentTileClass : !nameLoading && !group && fill,
-          // A group's slices: a half each, or a half and two quarters, with a hole between them.
-          group && image !== "loaded" && "gap-[max(1px,calc(var(--ouro-edge)*0.6))]",
           group && image !== "loaded" && slices.length > 1 && "grid-cols-2",
           group && image !== "loaded" && slices.length > 2 && "grid-rows-2",
-          group && image === "loaded" && fill,
           presence && biteClass,
           image !== "loaded" && iconShown && !nameLoading && !group && "*:size-[55%]",
           nameLoading && "overflow-hidden",

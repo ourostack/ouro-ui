@@ -1097,6 +1097,8 @@ describe("Avatar group chats", () => {
       if (small) {
         expect(rest[0]!.height).toBeCloseTo(box.height, 0);
         expect(rest[0]!.right).toBeCloseTo(box.right, 0);
+        // Two halves draw their letters at one size.
+        expect(getComputedStyle(slices[1]!).fontSize).toBe(getComputedStyle(slices[0]!).fontSize);
       } else {
         // The next two are quarters, stacked on the end side, with smaller letters.
         for (const quarter of rest) {
@@ -1211,6 +1213,30 @@ describe("Avatar group chats", () => {
     expect(warn).toHaveBeenCalledWith(
       '[ouro-ui] Avatar: a group chat is drawn from its members, so shape="square" does nothing; a channel or team is shape="square" with no members. Fix: <Avatar name="Crew" members={members} />.',
     );
+  });
+
+  it("names the one fix for shape=\"group\" with members, which a group needs no shape beside", async () => {
+    const props = { name: "Crew", members: crew, shape: "group" } as unknown as Parameters<typeof Avatar>[0];
+    const { avatar } = await render(<Avatar {...props} />);
+    expect(avatar.getAttribute("data-shape")).toBe("group");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Avatar: a group chat is drawn from its members, so shape="group" does nothing; a channel or team is shape="square" with no members. Fix: <Avatar name="Crew" members={members} />.',
+    );
+  });
+
+  it("paints every slice neutral or in the brand tint when the group's color says so", async () => {
+    const tone = async (color: "neutral" | "brand") => {
+      const one = (await render(<Avatar name="Solo" color={color} />)).avatar;
+      const group = (await render(<Avatar name="Crew" members={crew} color={color} size="lg" />)).avatar;
+      const fill = getComputedStyle(surface(one)).backgroundColor;
+      return slicesOf(group).map((slice) => getComputedStyle(slice).backgroundColor === fill && getComputedStyle(slice).color === getComputedStyle(one).color);
+    };
+    expect(await tone("neutral")).toEqual([true, true, true]);
+    expect(await tone("brand")).toEqual([true, true, true]);
+    // Colorful, the default, gives each member their own hue.
+    const colorful = (await render(<Avatar name="Crew" members={crew} size="lg" />)).avatar;
+    expect(new Set(slicesOf(colorful).map((slice) => getComputedStyle(slice).backgroundColor)).size).toBeGreaterThan(1);
   });
 
   it("says the group's name and who is in it", async () => {
