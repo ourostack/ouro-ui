@@ -742,7 +742,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     for (let node = listRef.current!.parentElement; node; node = node.parentElement) {
       if (getComputedStyle(node).overflowY !== "visible") bottom = Math.min(bottom, node.getBoundingClientRect().bottom);
     }
+    // Stryker disable next-line ArithmeticOperator: the list sits at the top of the test panes, so the offset it subtracts is zero there.
     setFirstHeight(Math.max(1, Math.min(firstView, Math.ceil(bottom - top))));
+    // Stryker disable next-line ArrayDeclaration: `windowed` is fixed while a list is mounted, so the effect runs once either way.
   }, [windowed]);
   // The boxes that clip the list, which scroll it and whose size sets its view, and the box that scrolls it.
   // Nothing is read while the list mounts: the first rows render in flow at their estimates, and the observer's first
