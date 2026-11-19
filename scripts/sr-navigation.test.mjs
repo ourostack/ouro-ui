@@ -130,11 +130,13 @@ test("navigateWithRetry: VoiceOver outside the web area on both tries fails as i
   assert.match(why(log), /VoiceOver never entered the page's web area/);
 });
 
-test("voiceOverGone: AppleScript's -600 is VoiceOver gone; a test's own error is not", () => {
+test("voiceOverGone: AppleScript's -600, and -609 for a lost connection to System Events, are VoiceOver gone; a test's own error is not", () => {
   assert.equal(voiceOverGone(new Error("System Events got an error: Application isn’t running. (-600)")), true);
   assert.equal(voiceOverGone(new Error("Application isn't running")), true);
   assert.equal(voiceOverGone(new Error("locator.focus: element is detached")), false);
   assert.equal(voiceOverGone("(-600)"), true);
+  // Main's run 44605928118 (#2453): osascript lost System Events while the navigation pressed VoiceOver's keys.
+  assert.equal(voiceOverGone(new Error("Unable to send keys: to application: VoiceOver\nCommand failed: /usr/bin/osascript\n60:71: execution error: System Events got an error: Connection is invalid. (-609)")), true);
 });
 
 test("navigateWithRetry: a stop that fails is logged, and VoiceOver still starts again", async () => {
