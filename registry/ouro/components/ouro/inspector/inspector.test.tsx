@@ -1476,6 +1476,75 @@ describe("Inspector", () => {
     }
   });
 
+  /** The badge's and the button's heights, from a first render of a phone's page with nothing spotlit. */
+  const heights = async (buttonTop: number) => {
+    await page.viewport(390, 844);
+    const view = await render(<Opened buttonTop={buttonTop} badgeTop={3000} />);
+    await drawn(2);
+    const badge = view.host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+    const button = view.host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    return { ...view, badge, button, badgeHeight: badge.getBoundingClientRect().height, buttonHeight: button.getBoundingClientRect().height };
+  };
+
+  it("centres the spotlit item when centring leaves the opener's top exactly at the screen's top, and stops short when the item's middle is lower", async () => {
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { badge, badgeHeight, rerender } = await heights(500);
+    // The badge's middle lands on the screen's middle (422px) when the page scrolls by the button's top, so the button stays.
+    await rerender(<Opened buttonTop={500} badgeTop={922 - badgeHeight / 2} spotlight="badge" />);
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.contexts[0]).toBe(badge);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    scrollTo({ top: 0, behavior: "instant" });
+    into.mockClear();
+    // Half the badge lower, centring would carry the button off the top, so the page stops with the button at the top.
+    const lower = await heights(500);
+    const buttonAt = lower.button.getBoundingClientRect().top + scrollY;
+    await lower.rerender(<Opened buttonTop={500} badgeTop={922} spotlight="badge" />);
+    await expect.poll(() => Math.abs(scrollY - buttonAt) <= 1).toBe(true);
+    expect(into).not.toHaveBeenCalled();
+  });
+
+  it("centres a spotlit item above when centring leaves the opener's bottom exactly at the screen's bottom", async () => {
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { badge, button, badgeHeight, buttonHeight, rerender } = await heights(1500);
+    scrollTo({ top: 1200, behavior: "instant" });
+    expect(document.activeElement).toBe(button);
+    // Scrolling up to centre the badge moves the button down until its bottom is the screen's bottom edge, and no further.
+    await rerender(<Opened buttonTop={1500} badgeTop={1500 + buttonHeight - 422 - badgeHeight / 2} spotlight="badge" />);
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "smooth" }]);
+    expect(into.mock.contexts[0]).toBe(badge);
+  });
+
+  it("stops a scroll down with the opener at the bottom of a header's scroll-padding", async () => {
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { button, rerender } = await heights(120);
+    const buttonAt = button.getBoundingClientRect().top + scrollY;
+    document.documentElement.style.scrollPaddingTop = "50px";
+    try {
+      await rerender(<Opened badgeTop={880} spotlight="badge" />);
+      await expect.poll(() => Math.abs(scrollY - (buttonAt - 50)) <= 1).toBe(true);
+      expect(into).not.toHaveBeenCalled();
+    } finally {
+      document.documentElement.style.scrollPaddingTop = "";
+    }
+  });
+
+  it("centres the spotlit item when the page's root element is what has focus", async () => {
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { badge, rerender } = await heights(120);
+    document.documentElement.tabIndex = -1;
+    try {
+      document.documentElement.focus();
+      expect(document.activeElement).toBe(document.documentElement);
+      await rerender(<Opened badgeTop={880} spotlight="badge" />);
+      await expect.poll(() => into.mock.calls.length).toBe(1);
+      expect(into.mock.contexts[0]).toBe(badge);
+    } finally {
+      document.documentElement.removeAttribute("tabindex");
+    }
+  });
+
   it("scrolls back up only as far as keeps an opener on screen, when the spotlit item is above it", async () => {
     await page.viewport(390, 844);
     const into = vi.spyOn(Element.prototype, "scrollIntoView");

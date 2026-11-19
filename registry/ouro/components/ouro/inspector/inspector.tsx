@@ -183,6 +183,7 @@ function pointAt(element: Element, behavior: ScrollBehavior) {
   const centring = target.top + target.height / 2 - (port.top + port.bottom) / 2;
   if (control.top - centring >= port.top && control.bottom - centring <= port.bottom) return centre();
   // Scrolling down stops once the control's top reaches the scrollport's top; scrolling up, once its bottom reaches the bottom.
+  // Stryker disable next-line EqualityOperator: centring is never 0 here, since an element whose middle is the scrollport's middle shows, and returned above.
   const delta = centring > 0 ? Math.min(centring, Math.max(0, control.top - port.top)) : Math.max(centring, -Math.max(0, port.bottom - control.bottom));
   window.scrollBy({ top: delta, behavior });
 }
