@@ -1,0 +1,1 @@
+- A group chat avatar's slice [draws its initial from its own element, so each unloaded slice is one element, not two](registry/ouro/components/ouro/avatar/avatar.tsx "verify:fileLine(registry/ouro/components/ouro/avatar/avatar.tsx, /so an unloaded slice is one element, not two/)").
