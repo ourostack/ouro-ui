@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const kits = [
@@ -38,6 +38,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const rows = kits.map((k, i) => ({ kit: k.kit, ...sameCases(coreDir, join(roots[i], k.dir)), ...latestMain(k.repo, k.job) }));
   const table = ["| Kit | Cases identical to core | Latest main CI job running them | Commit |", "|---|---|---|---|",
     ...rows.map((r) => `| ${r.kit} | ${r.same}/${r.cases} | [${r.result}](${r.url}) | ${r.sha} |`)].join("\n");
-  writeFileSync("scripts/cross-kit/table.md", table + "\n");
   console.log(table);
 }
