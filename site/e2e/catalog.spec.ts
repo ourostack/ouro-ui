@@ -115,6 +115,16 @@ const CEILINGS = { voyage: 280 * 1024, docs: 167_396 + 1024 } as const;
 // 47,158 bytes with them, built locally over main at ca591b4f.
 const CSS_CEILINGS = { voyage: 45 * 1024, docs: 47 * 1024 } as const;
 
+/**
+ * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the
+ * components on its first screen and a screen ahead, drawn small beside their names (site/src/components/catalog-preview.tsx;
+ * Ari, 2026-11-18: the catalog a first visitor shows someone). They are their own budget, not the docs' first load, which
+ * they never join: each draws as it nears the screen, one at a time when the browser is idle. The first screen's measured
+ * 14,779 bytes over 13 files at 1440 by 900, built locally over main at e4a295a5; 24 KiB leaves room for the rows a slower
+ * network idle lets draw first.
+ */
+const PREVIEWS_CEILING = 24 * 1024;
+
 test("every built docs demo has resolved static content, and native example content is visible without JS", async ({ browser, request, baseURL }) => {
   const names = Object.keys(buildManifest())
     .map((name) => /\/docs\/demos\/(.+)\.demo\.tsx$/.exec(name)?.[1])
@@ -287,9 +297,25 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
           ? [...lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected), ...lazyFiles(manifest, "src/components/docs-header.tsx", expected)]
           : [],
     );
+    // The index's previews load their demos, and the components those draw, once it is live: within their own budget.
+    const previews = new Set(
+      kind === "docs"
+        ? Object.keys(manifest)
+            .filter((key) => /^src\/docs\/demos\/.+\.demo\.tsx$/.test(key))
+            .flatMap((key) => lazyFiles(manifest, key, expected))
+            .filter((file) => !island.has(file))
+        : [],
+    );
+    if (kind === "docs") {
+      const drawn = [...new Set(reads)].filter((file) => previews.has(file));
+      const previewGzip = drawn.reduce((sum, file) => sum + distGzip(file, hashes), 0);
+      report["docs previews"] = { gzip: previewGzip, ceiling: PREVIEWS_CEILING, files: drawn.length };
+      expect(drawn.length, "the index draws previews once it is live").toBeGreaterThan(0);
+      expect(previewGzip, `the index's previews, gzip bytes: ${drawn.join(", ")}`).toBeLessThanOrEqual(PREVIEWS_CEILING);
+    }
     // OuroProvider loads the squircle polyfill after mount, in a chunk of its own that is no part of the first load.
     const isPolyfill = (file: string) => (moduleMap[file] ?? []).length > 0 && (moduleMap[file] ?? []).every((module) => module.startsWith("registry/ouro/lib/ouro/squircle"));
-    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.has(file) && !isPolyfill(file));
+    const loaded = [...new Set(reads)].filter((file) => !file.includes(".demo-") && !island.has(file) && !previews.has(file) && !isPolyfill(file));
     expect(loaded.sort(), `${name} loads its closure and nothing else`).toEqual(expected);
     // Chunk hashes are measured as one placeholder, so a module renamed by another's change costs nothing (bytes.ts).
     const gzip = expected.reduce((sum, file) => sum + distGzip(file, hashes), 0);

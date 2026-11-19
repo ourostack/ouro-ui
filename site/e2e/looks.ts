@@ -27,7 +27,8 @@ export function routes(): string[] {
   return found.filter((route) => !/^\/(storybook|r)\//.test(route)).sort();
 }
 
-export const LOOK_SELECTOR = "[data-ouro], [data-ouro-part], [data-ouro-control]";
+// The components index's previews (components/catalog-preview.tsx) are pictures, scaled down and inert: no look of a page.
+export const LOOK_SELECTOR = ":is([data-ouro], [data-ouro-part], [data-ouro-control]):not([data-site-preview] *)";
 
 export interface Look {
   index: number;

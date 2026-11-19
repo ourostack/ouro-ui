@@ -8,6 +8,7 @@ import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
 import { finishReveal } from "./voyage/theme-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
+import { NO_PREVIEW } from "./components/catalog-preview";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
@@ -388,6 +389,54 @@ describe("docs", () => {
       expect(went).toHaveLength(2);
     } finally {
       surpriseNav.go = go;
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+
+  it("draws each component small beside its name on the index, a picture the row's link covers, filled as it nears the screen", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const frames = [...document.querySelectorAll<HTMLElement>("[data-site-preview]")];
+    expect(frames.map((frame) => frame.dataset["sitePreview"])).toEqual(docsItems.map((item) => item.name));
+    for (const name of NO_PREVIEW) expect(Object.hasOwn(demos, name), `${name} has a demo`).toBe(true);
+    // A picture: hidden from screen readers, out of the tab order and the reach of a press.
+    for (const frame of frames) {
+      expect(frame.getAttribute("aria-hidden")).toBe("true");
+      expect(frame.inert).toBe(true);
+    }
+    // The first row's frame fills with its component's own demo.
+    const first = frames[0]!;
+    await expect.poll(() => first.querySelector("[data-ouro]") !== null).toBe(true);
+    // A press on the picture lands on the row's link.
+    first.scrollIntoView({ block: "center" });
+    const box = first.getBoundingClientRect();
+    expect(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest("a")?.getAttribute("href")).toBe(href(`/docs/${docsItems[0]!.name}/`));
+    // A row far down the page is drawn only once it nears the screen.
+    const last = frames.findLast((frame) => !NO_PREVIEW.has(frame.dataset["sitePreview"]!))!;
+    expect(last.children).toHaveLength(0);
+    last.scrollIntoView({ block: "center" });
+    await expect.poll(() => last.querySelector("[data-ouro]") !== null).toBe(true);
+    // A demo that runs something for the whole page stays a plain frame.
+    const at = frames.findIndex((frame) => NO_PREVIEW.has(frame.dataset["sitePreview"]!) && frames[frames.indexOf(frame) + 1] && !NO_PREVIEW.has(frames[frames.indexOf(frame) + 1]!.dataset["sitePreview"]!));
+    frames[at]!.scrollIntoView({ block: "center" });
+    // Its neighbour, drawn with it, says the frames there have had their turn.
+    await expect.poll(() => frames[at + 1]!.querySelector("[data-ouro]") !== null).toBe(true);
+    expect(frames[at]!.children).toHaveLength(0);
+  });
+
+  it("fades a preview in, and with reduced motion only fades it, faster: nothing moves", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      await page.viewport(1280, 900);
+      await renderPage("/docs/");
+      const first = document.querySelector<HTMLElement>("[data-site-preview]")!;
+      first.scrollIntoView({ block: "center" });
+      await expect.poll(() => first.firstElementChild).not.toBeNull();
+      const style = getComputedStyle(first.firstElementChild!);
+      expect(style.transitionProperty).toBe("opacity");
+      const seconds = (time: string) => (time.endsWith("ms") ? parseFloat(time) / 1000 : parseFloat(time));
+      expect(seconds(style.transitionDuration)).toBe(seconds(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast").trim()));
+    } finally {
       await commands.emulateMedia({ reducedMotion: "no-preference" });
     }
   });

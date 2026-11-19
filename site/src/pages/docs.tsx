@@ -10,6 +10,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { agentExamples } from "../agents/examples";
 import { CodeBlock, Command, InlineCode } from "../components/code";
+import { CatalogPreview } from "../components/catalog-preview";
 import { DocsShell } from "../components/docs-shell";
 import { SurpriseMe } from "../components/surprise-me";
 import type { SceneName } from "../storybook";
@@ -303,8 +304,28 @@ function DoorList({ children }: { children: ReactNode }): JSX.Element {
   return <ul className="m-0 grid list-none gap-x-10 p-0 sm:grid-cols-2">{children}</ul>;
 }
 
-/** One page's door: its name, an arrow that wakes as you point at it (and stays awake on a touch screen), and one line on what it is for. */
-function Door({ to, title, children }: { to: string; title: string; children: ReactNode }): JSX.Element {
+/**
+ * One page's door: its name, an arrow that wakes as you point at it (and stays awake on a touch screen), and one line on
+ * what it is for. A component's door shows the component small beside them (`preview`), which the link covers, so a press
+ * there opens the page too.
+ */
+function Door({ to, title, preview, children }: { to: string; title: string; preview?: ReactNode; children: ReactNode }): JSX.Element {
+  if (preview !== undefined) {
+    return (
+      <li className="relative flex items-center gap-4 border-t border-border/70 py-4">
+        {preview}
+        <a href={href(to)} className="group grid min-w-0 flex-1 gap-1 rounded-sm no-underline outline-ring after:absolute after:inset-0 focus-visible:outline-2 focus-visible:outline-offset-4">
+          <span className="font-medium text-foreground transition-colors group-hover:text-primary">
+            {title}{" "}
+            <span aria-hidden="true" className="text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:opacity-100">
+              →
+            </span>
+          </span>
+          <span className="text-sm leading-6 text-muted-foreground">{children}</span>
+        </a>
+      </li>
+    );
+  }
   return (
     <li className="border-t border-border/70">
       <a href={href(to)} className="group grid gap-1 rounded-sm py-4 no-underline outline-ring focus-visible:outline-2 focus-visible:outline-offset-4">
@@ -343,7 +364,7 @@ export function DocsIndex(): JSX.Element {
             {docsItems
               .filter((item) => item.group === group)
               .map((item) => (
-                <Door key={item.name} to={`/docs/${item.name}/`} title={item.title}>
+                <Door key={item.name} to={`/docs/${item.name}/`} title={item.title} preview={<CatalogPreview name={item.name} />}>
                   {prose(item.summary)}
                 </Door>
               ))}
