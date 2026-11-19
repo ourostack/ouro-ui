@@ -160,7 +160,7 @@ Seven models cited the 8-against-125 component gap: no message list, composer, s
 
 #### Agent-first designs shortchange the person: reviewers rubber-stamp, and one declared action reads differently on each surface.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2318](https://github.com/ourostack/ouro-ui/issues/2318).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2318](https://github.com/ourostack/ouro-ui/issues/2318).
 
 Seven models' top regret for the agent work tool was overload: agents produce reviewable state faster than people can read, so approvals become clicks, and Gemini and Opus said strict consent gates made that worse in their own Ouro picks. Seven also said 'the same action runs everywhere' hid real differences in confirmation, undo, retries and explanation, and six said they optimised for the agent sentence in each brief and neglected the ordinary human hour. Ouro positions itself agent-first, so this is its main positioning risk: it needs an answer for review volume (batching, decision budgets, a confirm sheet that shows the actual diff) and should lead with the human experience its kits deliver.
 
