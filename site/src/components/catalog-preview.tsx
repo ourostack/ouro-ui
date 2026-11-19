@@ -1,6 +1,6 @@
 import { Component, startTransition, Suspense, useEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { demos } from "../docs/demos";
-import { useXray } from "../voyage/xray-store";
+import { watchXray } from "../voyage/xray-store";
 
 // The components index draws each component small, beside its name: its own live demo, scaled down, so the catalog shows
 // what each one looks like before you open it. The server draws the empty frames only, so nothing moves when one fills.
@@ -66,6 +66,17 @@ function pump(): void {
   });
 }
 
+/**
+ * X-ray tells what the page is made of, not what these pictures are: while it is on, the page's root carries
+ * `data-site-xray` and the previews step out of its sight (a CSS rule, so no preview renders again). Set up once.
+ */
+let markingXray = false;
+function markXray(): void {
+  if (markingXray) return;
+  markingXray = true;
+  watchXray((on) => document.documentElement.toggleAttribute("data-site-xray", on));
+}
+
 /** Draws `element`'s frame once it is near the screen and its turn comes; returns what stops waiting. */
 function watch(element: Element, draw: () => void): () => void {
   watcher ??= new IntersectionObserver(
@@ -105,12 +116,11 @@ class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
 export function CatalogPreview({ name }: { name: string }): JSX.Element {
   const frame = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
-  // X-ray tells what the page is made of, not what these pictures are: they step out of sight while it is on.
-  const xray = useXray();
   const Demo = Object.hasOwn(demos, name) && !NO_PREVIEW.has(name) ? demos[name] : undefined;
   useEffect(() => {
     const element = frame.current;
     if (!element || !Demo) return;
+    markXray();
     // A transition, so React draws it in slices between frames.
     return watch(element, () => startTransition(() => setShown(true)));
   }, [Demo]);
@@ -129,7 +139,7 @@ export function CatalogPreview({ name }: { name: string }): JSX.Element {
           <Suspense fallback={null}>
             {/* Drawn at 360 by 240 and scaled to the frame. It fades in, which reduced motion keeps, shorter, as a fade moves nothing. */}
             <div
-              className={`flex h-60 w-90 flex-none scale-[0.3333] items-center-safe justify-center p-4 transition-opacity duration-(--ouro-duration-slow) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast) sm:scale-40 ${xray ? "invisible" : ""}`}
+              className="flex h-60 w-90 flex-none scale-[0.3333] items-center-safe justify-center p-4 transition-opacity duration-(--ouro-duration-slow) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast) sm:scale-40 [[data-site-xray]_&]:invisible"
             >
               <Demo />
             </div>
