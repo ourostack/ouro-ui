@@ -32,6 +32,15 @@ An unpackaged app also needs `<EnableMsixTooling>true</EnableMsixTooling>` in it
 - **The person check.** Requiring Windows Hello before a person-only action is built and off by default. Whether to turn it on is Ari's decision, and [the person-check note](https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/docs/person-check.md) sets out the question.[^person]
 - **Contrast themes.** Under a contrast theme the controls draw the person's system colours, so status tones look alike, and their meaning must also be in words.[^readme]
 
+## What to use meanwhile
+
+Until the kit has the screens you need, pick one of these, and say which in your plan:
+
+- **Ouro HX on web, in WebView2 in a desktop shell.** The web kit has the whole catalog: navigation, sheets, dialogs, lists, forms and a composer. The same React app runs on the web and in the shell, with the web kit's own checks. The cost is that it is a web app in a shell, not WinUI controls. Ouro does not document a shell yet, so you own that wrapper.
+- **The native kit plus plain WinUI.** Use the kit's components where it has them, and draw the rest in WinUI from core's tokens, which the kit vendors. The kit's checks cover only its own components, so check the rest by hand and keep what you add small.
+
+Don't mix the two in one screen.
+
 ## How it is checked
 
 CI runs on GitHub's free `windows-latest` runners, and in its `actions` job on Ubuntu.[^readme] That job runs the runtime's tests and checks that every tone and variant reads at 4.5:1 or better in core's six themes, light and dark.[^readme] The `windows` job builds, packages and installs the MSIX. It then reads the window through UI Automation in light, dark, a contrast theme, with animations off and with text at a larger size. It checks each component against core's claims, samples the pixels of each Button's and Badge's middle row against the fill and label it reports, runs the X-ray and answers the MCP server's confirmation.[^ci][^release]
