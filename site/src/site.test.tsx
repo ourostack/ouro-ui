@@ -1248,7 +1248,7 @@ describe("docs running text", () => {
 
 describe("platforms", () => {
   it("has a page per file in docs/platforms at docs/platforms/<name>, the index at docs/platforms", () => {
-    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/windows", "platforms/parity", "platforms/your-platform", "platforms/contributing"]);
+    expect(platformPages.map((doc) => doc.name)).toEqual(["platforms", "platforms/apple", "platforms/android", "platforms/proof", "platforms/windows", "platforms/parity", "platforms/your-platform", "platforms/contributing"]);
     for (const doc of platformPages) {
       expect(doc.group).toBe("Platforms");
       expect(routes.find((route) => route.path === `/docs/${doc.name}/`)?.title).toBe(`${doc.title} · Ouro UI`);
@@ -1257,7 +1257,7 @@ describe("platforms", () => {
 
   it("lists the platforms last in the docs sidebar, a platform only ever after for", () => {
     const platforms = docsSections().find((section) => section.label === "Platforms")!;
-    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "For Windows", "Parity across platforms", "For your platform", "A guide for platform builders"]);
+    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "What is proven on a device", "For Windows", "Parity across platforms", "For your platform", "A guide for platform builders"]);
     expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
   });
 
