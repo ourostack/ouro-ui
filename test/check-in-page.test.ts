@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { ALIASES, behindModal, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
+import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, outline, runAxe } from "@/registry/ouro/check/in-page";
 import { findImageFades } from "@/registry/ouro/check/fade-check";
 import { findOverlaps } from "@/registry/ouro/check/overlap-check";
 import { findSizeIssues } from "@/registry/ouro/check/size-check";
@@ -1143,5 +1143,111 @@ describe("runAxe", () => {
     expect(await runAxe()).toEqual([]);
     host.innerHTML = `<span aria-hidden="true" tabindex="0">Hidden but focusable</span>`;
     expect((await runAxe()).map((issue) => issue.element)).toEqual([expect.stringMatching(/^aria-hidden-focus: /)]);
+  });
+});
+
+describe("findFragmentFocusIssues", () => {
+  const added: Element[] = [];
+  const page = window as unknown as { __ouroFragmentFocus?: { parsed: boolean; script: Element | null } };
+  afterEach(() => {
+    for (const element of added.splice(0)) element.remove();
+    delete page.__ouroFragmentFocus;
+    document.body.removeAttribute("data-ouro-check-ref");
+    document.documentElement.removeAttribute("data-ouro-allow");
+    document.documentElement.removeAttribute("data-ouro-allow-why");
+  });
+  /** Adds a stylesheet link to <head>. */
+  const sheet = (href = "data:text/css,i{}") => {
+    const link = Object.assign(document.createElement("link"), { rel: "stylesheet", href });
+    document.head.append(link);
+    added.push(link);
+  };
+  /** What fragmentFocusScript records as it runs: here, an element at the start of <body> or the end of <head>. */
+  const ran = (parsed: boolean, where: "body" | "head" = "body") => {
+    const script = document.createElement("script");
+    if (where === "body") document.body.prepend(script);
+    else document.head.append(script);
+    added.push(script);
+    page.__ouroFragmentFocus = { parsed, script };
+    return script;
+  };
+  const details = () => findFragmentFocusIssues().map((issue) => issue.detail);
+
+  it("finds a page with a stylesheet and no fragmentFocusScript, marked on the page", () => {
+    sheet();
+    const [issue, ...rest] = findFragmentFocusIssues();
+    expect(rest).toEqual([]);
+    expect(issue).toMatchObject({ rule: "fragment-focus", element: "the page" });
+    expect(issue!.detail).toMatch(/without fragmentFocusScript$/);
+    expect(document.body.getAttribute("data-ouro-check-ref")).toBe(issue!.ref);
+  });
+
+  it("finds fragmentFocusScript that ran after the page was parsed, as one a script adds does", () => {
+    sheet();
+    ran(false);
+    expect(details()).toEqual(["fragmentFocusScript ran after the page was parsed, too late to hold it: render it as a plain inline <script>, not one a script adds"]);
+  });
+
+  it("finds fragmentFocusScript before a stylesheet in <head>", () => {
+    ran(true, "head");
+    sheet("data:text/css,b{}");
+    expect(details()).toEqual(["fragmentFocusScript comes before the stylesheet data:text/css,b{}, so Safari can still take focus as stylesheets load"]);
+  });
+
+  it("passes fragmentFocusScript run as the page was parsed after every stylesheet, or taken out since, a stylesheet link with no address, and a page allowed fragment-focus with a reason", () => {
+    sheet();
+    ran(true);
+    expect(findFragmentFocusIssues()).toEqual([]);
+    ran(true, "head").remove();
+    sheet("data:text/css,b{}");
+    expect(findFragmentFocusIssues()).toEqual([]);
+    for (const element of added.splice(0)) element.remove();
+    // A link with no address loads nothing, so a script before it in <head> is still after every stylesheet.
+    sheet();
+    ran(true, "head");
+    const empty = Object.assign(document.createElement("link"), { rel: "stylesheet" });
+    document.head.append(empty);
+    added.push(empty);
+    expect(findFragmentFocusIssues()).toEqual([]);
+    for (const element of added.splice(0)) element.remove();
+    delete page.__ouroFragmentFocus;
+    sheet();
+    document.documentElement.setAttribute("data-ouro-allow", "fragment-focus");
+    document.documentElement.setAttribute("data-ouro-allow-why", "   ");
+    expect(findFragmentFocusIssues()).toHaveLength(1);
+    document.documentElement.setAttribute("data-ouro-allow-why", "a page no link points into");
+    expect(findFragmentFocusIssues()).toEqual([]);
+  });
+
+  it("reads an allow of every rule on <body>, needs its reason, and judges a record with no script, or a stylesheet in <body> after the script", () => {
+    // A page with no stylesheet to load has nothing for Safari to wait on.
+    expect(document.querySelector('link[rel~="stylesheet"][href]')).toBeNull();
+    expect(findFragmentFocusIssues()).toEqual([]);
+    sheet();
+    document.body.setAttribute("data-ouro-allow", "all");
+    try {
+      // An allow with no reason at all allows nothing.
+      expect(findFragmentFocusIssues()).toHaveLength(1);
+      document.body.setAttribute("data-ouro-allow-why", "a page no link points into");
+      expect(findFragmentFocusIssues()).toEqual([]);
+    } finally {
+      document.body.removeAttribute("data-ouro-allow");
+      document.body.removeAttribute("data-ouro-allow-why");
+    }
+    // A record that names no script: parsed, so nothing comes after it in <head>.
+    page.__ouroFragmentFocus = { parsed: true, script: null };
+    expect(findFragmentFocusIssues()).toEqual([]);
+    // A stylesheet in <body> after the script holds no fragment jump the parser makes.
+    const script = ran(true);
+    const late = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "data:text/css,u{}" });
+    script.after(late);
+    added.push(late);
+    expect(findFragmentFocusIssues()).toEqual([]);
+    // Two findings on one page each add their own mark to <body>.
+    document.body.removeAttribute("data-ouro-check-ref");
+    page.__ouroFragmentFocus = { parsed: false, script };
+    const [first] = findFragmentFocusIssues();
+    const [second] = findFragmentFocusIssues();
+    expect(document.body.getAttribute("data-ouro-check-ref")).toBe(`${first!.ref} ${second!.ref}`);
   });
 });
