@@ -276,6 +276,9 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     // first and the island's files land while the next page loads, counted as that page's.
     if (name === "nautilus") await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
     await page.waitForLoadState("networkidle");
+    // The index's previews draw once it is live, one at a time when the browser is idle, which can come after the network
+    // goes quiet (WebKit has no requestIdleCallback): wait for the first to fill, so the budget below measures them.
+    if (kind === "docs") await expect(page.locator("[data-site-preview-drawn] > *").first()).toBeAttached({ timeout: 15_000 });
     page.off("response", listener);
     const expected = initialFiles(manifest, kind);
     const modules = expected.flatMap((file) => moduleMap[file] ?? []);
