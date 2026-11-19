@@ -1,0 +1,1 @@
+- Added: [Sidebar's StatusBadges story passes a Badge as an item's badge](registry/ouro/components/ouro/sidebar/sidebar.stories.tsx "verify:fileLine(registry/ouro/components/ouro/sidebar/sidebar.stories.tsx, /badge: <Badge tone=\"warning\">Idle<\/Badge>/)"), as an app's agent list does, so the story scans draw a badge given as an element.
