@@ -125,7 +125,9 @@ test.describe("each control in Chapter II", () => {
     await expect(radio(page).getByRole("heading", { level: 4, name: RADIO.crew })).toBeVisible();
     await radio(page).getByRole("button", { name: "4 members" }).click();
     const list = page.getByRole("dialog", { name: "Members" });
+    // real clock: the member list, which stays open until it is closed.
     await expect(list).toContainText("Ned Land");
+    // real clock: the member list, which stays open until it is closed.
     await expect(list).toContainText(RADIO.presence["Ned Land"].label);
     await page.keyboard.press("Escape");
     await expect(list).toBeHidden();
