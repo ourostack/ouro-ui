@@ -1,0 +1,1 @@
+- New: Ouro check writes `handoff.md` beside `summary.md`, separating what it measured from what a person still has to judge, and lists the usability sessions declared as `usability` in `ouro-check.json`.

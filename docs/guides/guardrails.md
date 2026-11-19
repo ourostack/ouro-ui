@@ -485,6 +485,18 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 
 `ouro-images` installs `scripts/ouro/images/images.ts`, outside your TypeScript project, with the [Ouro AX](ax.md) files it runs on in `lib/ouro/ax/`, imported as `#ouro-ax/<file>` (the imports line in [the screen check](#the-screen-check) names that folder), and names `sharp` as a devDependency.
 
+### Hand off to a person
+
+Ouro check writes `handoff.md` beside `summary.md`: what it measured, what it can't judge (whether someone finishes the task unaided, whether the words mean to them what you meant, whether they trust the screen, whether it works on their own device) and the sessions to run next.[^handoff] Declare the sessions in `ouro-check.json`, one per task, with the question that tells whether the person got there and what to watch for:
+
+```json
+{ "usability": [{ "task": "Book an appointment for next Tuesday", "outcome": "What appointment do you have now?", "observe": "Where they hesitate before the confirm button", "page": "/book" }] }
+```
+
+Fix the findings that fail first, so a session is spent on the task and not on a broken screen. A clean check leaves those questions open.
+
+[^handoff]: test:scripts/check/check-command.test.mts::Ouro check's command > the handoff separates what the check measured from what a person judges, and lists the sessions verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > the handoff separates what the check measured from what a person judges, and lists the sessions)
+
 ## How a list feels
 
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]

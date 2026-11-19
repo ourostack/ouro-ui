@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 
-import { caption, dprAt, EXIT, group, inSweepOrder, LABELS, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
+import { caption, dprAt, EXIT, group, handoff, inSweepOrder, LABELS, parseArgs, RULES, SIZES, summary, type Finding } from "../../registry/ouro/check/run.ts";
 import { BASE_EXIT_CODES } from "../../registry/ouro/ax/exit-codes.ts";
 import { serve } from "../../registry/ouro/check/serve.ts";
 import { browser, dir, fixtures, playwrightModule, require, root, run, scratch, site, two } from "./kit.mts";
@@ -295,5 +295,16 @@ module.exports = { chromium: { launch: async (options) => {
     assert.match(one, /^\| · \| `s \/a\.html` \|/m);
     assert.doesNotMatch(one, /Fixed since/);
     assert.doesNotMatch(summary({ targets: [], sizes: two, themes: ["light"], pages: [], findings: [], fixed: [], candidates: [], shots: [], allowances: [] }), /Every finding/);
+  });
+
+  test("the handoff separates what the check measured from what a person judges, and lists the sessions", () => {
+    const base = { targets: [], sizes: [[390, 844]] as [number, number][], themes: ["light"], pages: [{ site: "s", page: "/a.html", name: "a" }], findings: [], fixed: [], candidates: [], shots: [], allowances: [] };
+    const text = handoff(base, [{ task: "Book an appointment", outcome: "What appointment do you have now?", observe: "Hesitation before confirm", page: "/a.html" }]);
+    assert.match(text, /^#### Measured by Ouro check$/m);
+    assert.match(text, /^- No finding fails\.$/m);
+    assert.match(text, /^#### Left to a person$/m);
+    assert.match(text, /^1\. \*\*Book an appointment\*\* \(on `\/a\.html`\)$/m);
+    assert.match(text, /Ask afterwards: What appointment do you have now\?/);
+    assert.match(handoff(base), /The config declares none/);
   });
 });

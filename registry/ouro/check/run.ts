@@ -1,4 +1,4 @@
-export { blank, BUDGETS, inSweepOrder, goTo, caption, check, dprAt, EXIT, group, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, runScript, SIZES, summary, transportIssues };
+export { blank, BUDGETS, inSweepOrder, goTo, caption, check, dprAt, EXIT, group, handoff, HINTS, imagesReport, LABELS, main, merge, parseArgs, placeOf, RULES, runScript, SIZES, summary, transportIssues };
 export type { Budgets, CheckOptions, CheckResult, Finding, Gate, ImageEntry, MergeOptions, Report };
 
 import { spawn } from "node:child_process";
@@ -153,6 +153,16 @@ interface Gate {
   // The app's own words for the first-run rules, as regular expressions' sources read without case: a control that signs
   // in, words that say there is nothing, and words that name progress. Each replaces Ouro's default.
   firstRun?: Pick<FirstRunOptions, "signIn" | "empty" | "progress">;
+  // The sessions a person runs after the check: each a task to give them, the question that tells whether they got
+  // there, and what to watch for. handoff.md lists them beside what the check measured.
+  usability?: UsabilitySession[];
+}
+
+interface UsabilitySession {
+  task: string;
+  outcome: string;
+  observe: string;
+  page?: string;
 }
 
 interface CheckOptions {
@@ -598,7 +608,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await close();
     // A shard with nothing to sweep still writes its report, so a merge of every shard's folder works.
     await mkdir(out, { recursive: true });
-    await write(out, report);
+    await write(out, report, config.usability);
     return { ...report, gated: [] };
   }
   // A browser that does not start leaves no server running behind it.
@@ -1019,7 +1029,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await browser.close();
     await close();
   }
-  await write(out, report);
+  await write(out, report, config.usability);
   return { ...report, gated: findings.filter((f) => f.gated) };
 }
 
@@ -1111,9 +1121,10 @@ function imagesReport(findings: Finding[]): ImageEntry[] {
   return [...entries.values()].sort((a, b) => a.site.localeCompare(b.site) || a.page.localeCompare(b.page) || b.requiredWidth - a.requiredWidth);
 }
 
-async function write(out: string, report: Report) {
+async function write(out: string, report: Report, usability: UsabilitySession[] = []) {
   await writeFile(join(out, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
   await writeFile(join(out, "summary.md"), summary(report));
+  await writeFile(join(out, "handoff.md"), handoff(report, usability));
 }
 
 // Merges the out folders of a sharded run into one: every finding, the first close-up of each (at most 40 a page), the
@@ -1176,7 +1187,7 @@ async function merge({ dirs, out, config, chromium, executablePath, install }: M
   } finally {
     await browser.close();
   }
-  await write(out, merged);
+  await write(out, merged, config?.usability);
   return { ...merged, gated: merged.findings.filter((f) => f.gated) };
 }
 
@@ -1219,6 +1230,39 @@ function summary({ findings, fixed, pages, sizes, themes, shard, allowances }: R
     }
     lines.push("", "</details>");
   }
+  return `${lines.join("\n")}\n`;
+}
+
+const NEEDS_A_PERSON = [
+  "Whether a person finishes the task without help, and how long it takes them.",
+  "Whether the words on labels and buttons mean to them what they mean to you.",
+  "Whether they trust what the screen tells them, and notice what it hides.",
+  "Whether it works with the device, the assistive technology and the network they actually use.",
+];
+
+// What the check measured, and what it leaves to a person: the page for a session someone runs next.
+function handoff({ findings, pages, sizes, themes }: Report, usability: UsabilitySession[] = []): string {
+  const gated = group(findings).filter((r) => r.gated).length;
+  const lines = [
+    "### Handoff: what the check measured, and what a person still has to judge",
+    "",
+    "#### Measured by Ouro check",
+    "",
+    `- ${pages.length} page${pages.length === 1 ? "" : "s"} at ${sizes.length} size${sizes.length === 1 ? "" : "s"}, ${themes.join(" and ")}.`,
+    `- The rules: ${RULES.map((rule) => LABELS[rule]).join(", ")}.`,
+    gated ? `- ${gated} finding${gated === 1 ? "" : "s"} still fail: fix them before a person looks, so the session is spent on the task and not on a broken screen.` : "- No finding fails.",
+    "",
+    "#### Left to a person",
+    "",
+    ...NEEDS_A_PERSON.map((line) => `- ${line}`),
+    "",
+    "#### Sessions to run",
+    "",
+  ];
+  if (!usability.length) lines.push('The config declares none. Add `"usability": [{ "task": "…", "outcome": "…", "observe": "…" }]` to `ouro-check.json`.', "");
+  usability.forEach((u, i) => {
+    lines.push(`${i + 1}. **${u.task}**${u.page ? ` (on \`${u.page}\`)` : ""}`, `   - Ask afterwards: ${u.outcome}`, `   - Watch for: ${u.observe}`);
+  });
   return `${lines.join("\n")}\n`;
 }
 
@@ -1405,7 +1449,7 @@ async function readJson<T>(file: string): Promise<T> {
 }
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat, states, waive, firstRun }: Gate): string | null {
+function configProblem({ press, pressRepeat, states, waive, firstRun, usability }: Gate): string | null {
   const waived = Object.entries(waive ?? {}).find(([, rules]) => Object.hasOwn(Object(rules), "blurry-image"));
   if (waived)
     return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
@@ -1424,6 +1468,9 @@ function configProblem({ press, pressRepeat, states, waive, firstRun }: Gate): s
   };
   if (firstRun !== undefined && !(named(firstRun) && Object.entries(firstRun).every(([key, source]) => ["signIn", "empty", "progress"].includes(key) && pattern(source))))
     return '"firstRun" takes signIn, empty and progress, each a regular expression\'s source, such as {"signIn": "^(sign in|log in)\\\\b", "empty": "nothing new|all caught up"}.';
+  const text = (value: unknown) => typeof value === "string" && value.trim() !== "";
+  if (usability !== undefined && !(Array.isArray(usability) && usability.every((u) => named(u) && text(u.task) && text(u.outcome) && text(u.observe) && (u.page === undefined || text(u.page)))))
+    return '"usability" takes sessions, each with a task, the outcome question to ask afterwards and what to observe, such as [{"task": "Book an appointment", "outcome": "What appointment do you have now?", "observe": "Where they hesitate before the confirm button"}].';
   return null;
 }
 
