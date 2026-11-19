@@ -270,10 +270,10 @@ describe("the windows", () => {
     await renderPage("/nautilus/");
     await expect.poll(() => document.querySelector("#chapter-three[data-chapter-ready]")).not.toBeNull();
     for (const [id, sheet, file] of [["encounter", CODE_SHEETS_THREE.encounter, ENCOUNTER.file], ["saloon", CODE_SHEETS_THREE.saloon, SALOON.file]] as const) {
-      const window = document.querySelector(`[data-composition='${id}'] [data-ouro='app-window']`)!;
-      expect(window.querySelector("[data-slot='bar']")!.textContent).toContain(file);
-      expect(window.querySelector(`[data-slot='bar'] [data-chapter-control='${id}-code']`)).not.toBeNull();
-      const uses = [...window.querySelectorAll("[data-slot='built-with'] li [data-ouro='badge']")].map((badge) => badge.textContent);
+      const window = document.querySelector(`[data-composition='${id}'] [data-composition-window]`)!;
+      expect(window.querySelector("[data-composition-bar]")!.textContent).toContain(file);
+      expect(window.querySelector(`[data-composition-bar] [data-chapter-control='${id}-code']`)).not.toBeNull();
+      const uses = [...window.querySelectorAll("[data-composition-uses] [data-ouro='badge']")].map((badge) => badge.textContent);
       expect(uses).toEqual([...sheet.uses]);
       // A real border, not a shadow alone, so the window keeps its edge in forced colours.
       expect(getComputedStyle(window).borderTopStyle).toBe("solid");
