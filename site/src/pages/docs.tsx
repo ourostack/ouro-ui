@@ -32,7 +32,7 @@ import itemSources from "../docs/sources.json";
 /** A page's first words, under its scene: what it is for, in one paragraph. */
 function Lead({ children }: { children: ReactNode }): JSX.Element {
   return (
-    <Text size="lg" tone="muted" className="mb-10 max-w-[40rem] text-pretty">
+    <Text size="lg" tone="muted" className="mb-10 max-w-[40rem] text-pretty" data-ouro-measure="">
       {children}
     </Text>
   );
@@ -382,7 +382,7 @@ export function DocsIndex(): JSX.Element {
         <Heading level={2} size="md" id="group-more" className="mb-4">
           Parts and app setup
         </Heading>
-        <Text size="sm" tone="muted" className="mb-4 max-w-[40rem]">
+        <Text size="sm" tone="muted" className="mb-4 max-w-[40rem]" data-ouro-measure="">
           Pages for the exports that install with another component, or with the helpers in <InlineCode>lib/ouro</InlineCode>.
         </Text>
         <ul className="m-0 flex list-none flex-wrap gap-x-5 gap-y-2 p-0">

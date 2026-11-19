@@ -6,6 +6,11 @@
 @layer theme, base, components, utilities;
 
 @layer components {
+  /* The voyage pages' reading measures: the ledes' deliberate line lengths, which Ouro check's narrow-text accepts as declared. */
+  :root {
+    --measure-lede: 44ch;
+    --measure-lede-wide: 44rem;
+  }
   .voyage {
     font-family: var(--font-sans);
     font-size: 1rem;

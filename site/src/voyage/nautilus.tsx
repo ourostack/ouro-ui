@@ -23,7 +23,7 @@ export function StoryOpening(): JSX.Element {
           <h1 id="story-title" className="site-h1 mt-4">
             {NAUTILUS_PAGE.title}
           </h1>
-          <p className="site-lede mt-5 max-w-[44ch]">
+          <p className="site-lede mt-5 max-w-(--measure-lede)">
             {NAUTILUS_PAGE.intro} {NAUTILUS_PAGE.parts}
           </p>
           <p className="mt-4 mb-0 max-w-[52ch] text-sm text-muted-foreground" data-site-book="">

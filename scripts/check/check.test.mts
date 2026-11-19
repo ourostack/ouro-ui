@@ -31,8 +31,9 @@ describe("Ouro check", () => {
 
   test("finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups", async () => {
     const out = dir("rules");
-    // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
-    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
+    // long-lines is checked only against a declared measure, on main's paragraphs; "**" would also declare a measure on every
+    // page's prose, which holds narrow-text off everywhere.
+    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "main p": "100 chars" } }, chromium, log: quiet });
     // http-error and not-ready are about the page, not its content, https about a site on the web, and dark-art compares
     // a light run with a dark one: each has tests of its own.
     // The wrap rules read where a font broke a page's lines, and the system font the other fixtures' words are set in breaks
@@ -52,10 +53,10 @@ describe("Ouro check", () => {
     assert.match(swap.taker.first, /^<(button|a)\b/);
     assert.match(swap.taker.rest, /^<(button|a)\b/);
     assert.ok(swap.gone.rest === null || /^<(button|a)\b/.test(swap.gone.rest));
-    assert.equal(result.shots.length, 96 * 2);
+    assert.equal(result.shots.length, 98 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 96);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 96 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 98);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 98 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -78,7 +79,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 48);
+    assert.equal(merged.pages.length, 49);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });

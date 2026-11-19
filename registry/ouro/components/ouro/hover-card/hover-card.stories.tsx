@@ -45,7 +45,7 @@ export const Playground: Story = {};
 export const InText: Story = {
   parameters: { screenshot: { name: "hover-card-open", focus: true } },
   render: (args) => (
-    <p style={{ ...body, maxWidth: 420 }}>
+    <p data-ouro-measure="" style={{ ...body, maxWidth: 420 }}>
       This shakshuka comes from <HoverCard {...args} />, who adds preserved lemon at the end.
     </p>
   ),

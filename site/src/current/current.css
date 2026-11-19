@@ -4,13 +4,17 @@
  * Nothing here moves.
  */
 @layer components {
+  /* The Current page's reading measure, which Ouro check's narrow-text accepts as declared. */
+  :root {
+    --measure-prose: 62ch;
+  }
   .current {
     --current-hairline: color-mix(in oklab, var(--border) 70%, transparent);
     --current-quiet: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
     padding-bottom: calc(var(--spacing) * 16);
   }
   .current-lede p {
-    max-width: 62ch;
+    max-width: var(--measure-prose);
   }
   .current-lede strong {
     font-weight: 600;
@@ -23,7 +27,7 @@
     margin-top: calc(var(--spacing) * 6);
   }
   .current-setup {
-    max-width: 62ch;
+    max-width: var(--measure-prose);
     margin: calc(var(--spacing) * 4) 0 0;
   }
   .current-detail,
@@ -103,7 +107,7 @@
   .current-never {
     display: grid;
     gap: calc(var(--spacing) * 2);
-    max-width: 62ch;
+    max-width: var(--measure-prose);
   }
   .current-repos {
     display: grid;
