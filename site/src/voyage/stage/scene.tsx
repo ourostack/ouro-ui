@@ -271,7 +271,7 @@ const Sea = memo(function Sea(): JSX.Element {
       <Backdrop name="bg-twilight" night="bg-twilight-dark" className="stage-paint-open" />
       <Backdrop name="bg-midnight" className="stage-paint-midnight" />
       <div className="stage-surface-world">
-        <Backdrop name="bg-sunlit" night="bg-sunlit-dark" className="stage-paint-surface" fades="its foot fades into the open water painted under it, not into the page, so no edge shows as it lifts" />
+        <Backdrop name="bg-sunlit" night="bg-sunlit-dark" className="stage-paint-surface" fades="its foot fades into the open water painted under it, not into the page" />
         <div className="stage-sky-tint" />
       </div>
       <Specks />
