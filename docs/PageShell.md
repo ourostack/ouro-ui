@@ -2,7 +2,7 @@
 
 # PageShell
 
-The page column of a site: content up to 72rem wide, centred, with a side gutter that grows with the screen (1.25rem on a phone, up to 4rem on a laptop) and a wider column from 2000px. Sizes are in `rem`, so the larger root text size that `ouro-base` sets on big screens widens the column with it, and a 4K display is not a thin strip of text in a sea of margin.
+The page column of a site: centred content with a side gutter that grows with the screen, and a wider column on big screens. Sizes are in `rem`, so the larger root text size that `ouro-base` sets on big screens widens the column with it, and a huge display is not a thin strip of text in a sea of margin.
 
 ```tsx
 import { PageShell } from "@/registry/ouro/components/ouro/page-shell/page-shell";

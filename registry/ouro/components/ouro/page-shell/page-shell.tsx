@@ -19,10 +19,10 @@ export interface PageSectionProps extends HTMLAttributes<HTMLElement> {
 }
 
 /**
- * The page column of a site: content up to 72rem wide, centred, with a side gutter that grows
- * with the screen (1.25rem on a phone, up to 4rem on a laptop) and a wider column from 2000px.
- * Sizes are in `rem`, so the larger root text size that `ouro-base` sets on big screens widens
- * the column with it, and a 4K display is not a thin strip of text in a sea of margin.
+ * The page column of a site: centred content with a side gutter that grows with the screen, and
+ * a wider column on big screens. Sizes are in `rem`, so the larger root text size that `ouro-base`
+ * sets on big screens widens the column with it, and a huge display is not a thin strip of text in
+ * a sea of margin.
  *
  * Use `PageSection` inside it for the vertical rhythm between a page's sections, and `Stack`
  * instead for spacing inside a column.
@@ -42,8 +42,10 @@ export function PageShell(props: PageShellProps): JSX.Element {
     "PageShell",
     className,
     process.env.NODE_ENV !== "production"
-      ? (token: string) => `remove "${token}"; PageShell sets the column from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      ? // Stryker disable next-line StringLiteral: the development fix text is not asserted
+        (token: string) => `remove "${token}"; PageShell sets the column from the theme`
+      : // Stryker disable next-line StringLiteral: production-only fallback
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   return (
     <div
@@ -79,8 +81,10 @@ export function PageSection(props: PageSectionProps): JSX.Element {
     "PageSection",
     className,
     process.env.NODE_ENV !== "production"
-      ? (token: string) => `remove "${token}"; PageSection sets its own rhythm from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      ? // Stryker disable next-line StringLiteral: the development fix text is not asserted
+        (token: string) => `remove "${token}"; PageSection sets its own rhythm from the theme`
+      : // Stryker disable next-line StringLiteral: production-only fallback
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   return (
     <section
