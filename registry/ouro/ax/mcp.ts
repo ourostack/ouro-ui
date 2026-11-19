@@ -220,7 +220,8 @@ function createMcpHandler(options: McpOptions): (message: unknown) => Promise<Re
       }
       return turn.cancelled ? null : reply;
     } finally {
-      inFlight.delete(id);
+      // A client may reuse the id of a call it cancelled while that call still runs.
+      if (inFlight.get(id) === turn) inFlight.delete(id);
     }
   };
 }

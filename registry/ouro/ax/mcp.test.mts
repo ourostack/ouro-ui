@@ -301,6 +301,18 @@ test("a client that cancels a call gets no reply for it: a queued call never run
   assert.deepEqual(await Promise.all([running, queued, other].map((p) => p.then((a) => a?.result?.["isError"] ?? null))), [null, null, false]);
   assert.deepEqual(started, ["rooms", "rooms"]);
   assert.equal((await ask(h, "tools/call", { name: "rooms", arguments: {}, _meta: MODERN }, 1)).result?.["isError"], false);
+  const gate = () => { let open!: () => void; const promise = new Promise<void>((r) => (open = r)); return { promise, open }; };
+  const gates = [gate(), gate()];
+  let calls = 0;
+  const slow = createRawHandler({ cli, concurrent: true, call: async () => { await gates[calls++]!.promise; return { ok: true, data: {} }; } });
+  const first = ask(slow, "tools/call", { name: "rooms", arguments: {}, _meta: MODERN }, 1);
+  await slow({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 1 } });
+  const reused = ask(slow, "tools/call", { name: "rooms", arguments: {}, _meta: MODERN }, 1);
+  gates[0]!.open();
+  assert.equal(await first, null);
+  await slow({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 1 } });
+  gates[1]!.open();
+  assert.equal(await reused, null);
 });
 
 test("serveMcp serves a 2026-07-28 probe, then an older client's handshake, line by line", async () => {
