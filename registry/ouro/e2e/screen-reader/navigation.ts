@@ -49,9 +49,12 @@ const firstLine = (error: unknown): string => (error instanceof Error ? error.me
 /**
  * Whether an error says VoiceOver itself was gone: AppleScript's "Application isn't running" (-600),
  * which Guidepup's key presses meet when VoiceOver quit between tests (#2084), and "Connection is invalid" (-609), when
- * osascript's connection to System Events is lost while VoiceOver is being driven (#2453). Any other error is the test's.
+ * osascript's connection to System Events is lost while VoiceOver is being driven (#2453), and the syntax error (-2741)
+ * that Guidepup's fixed key-press script meets when VoiceOver's scripting terms cannot be loaded (#2213, #2465). Any other
+ * error is the test's.
  */
-const voiceOverGone = (error: unknown): boolean => /Application isn.t running|\(-600\)|Connection is invalid|\(-609\)/.test(error instanceof Error ? error.message : String(error));
+const voiceOverGone = (error: unknown): boolean =>
+  /Application isn.t running|\(-600\)|Connection is invalid|\(-609\)|Expected end of line, etc\. but found identifier\. \(-2741\)/.test(error instanceof Error ? error.message : String(error));
 
 /**
  * Navigates. A navigation that is not done within `timeoutMs` has hung, and one that fails because
