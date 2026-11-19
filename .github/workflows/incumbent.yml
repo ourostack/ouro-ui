@@ -1,0 +1,49 @@
+name: Incumbent
+# The fixture app in test/incumbent-fixture/ (Mantine's components, its own tokens, one page moved to Ouro HX
+# beside the rest): the source rule judges it against its baseline, then the app builds and Ouro check runs
+# over both pages. Not a required check; it shows whether Ouro works behind another design system.
+on:
+  pull_request:
+    paths:
+      - "test/incumbent-fixture/**"
+      - "registry/ouro/source-rules/**"
+      - "registry/ouro/check/**"
+      - ".github/workflows/incumbent.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: incumbent-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  incumbent:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - run: pnpm i --frozen-lockfile
+      - name: Source rule over the fixture, against its baseline
+        working-directory: test/incumbent-fixture
+        run: node ../../registry/ouro/source-rules/source-rules.mjs
+      - name: Install and build the fixture
+        working-directory: test/incumbent-fixture
+        run: |
+          npm install --no-package-lock --no-audit --no-fund
+          npx vite build
+      - uses: ./.github/actions/check
+        with:
+          targets: test/incumbent-fixture/dist
+          sizes: 390x844,1440x900
+          script: registry/ouro/check/check.ts
+          artifact: incumbent-check
+          install-browser: "false"
