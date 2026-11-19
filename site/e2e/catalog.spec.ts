@@ -297,20 +297,15 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
           ? [...lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected), ...lazyFiles(manifest, "src/components/docs-header.tsx", expected)]
           : [],
     );
-    // The index's previews load their demos, and the components those draw, once it is live: within their own budget.
-    const previews = new Set(
-      kind === "docs"
-        ? Object.keys(manifest)
-            .filter((key) => /^src\/docs\/demos\/.+\.demo\.tsx$/.test(key))
-            .flatMap((key) => lazyFiles(manifest, key, expected))
-            .filter((file) => !island.has(file))
-        : [],
-    );
+    // The index's previews load the demos they draw, and the components those use, once it is live: within their own
+    // budget. Only the frames that drew count, so any other chunk the page fetches still fails the closure check below.
+    const drew = kind === "docs" ? await page.locator("[data-site-preview-drawn]").evaluateAll((frames) => frames.map((frame) => frame.getAttribute("data-site-preview")!)) : [];
+    const previews = new Set(drew.flatMap((demo) => lazyFiles(manifest, `src/docs/demos/${demo}.demo.tsx`, expected)).filter((file) => !island.has(file)));
     if (kind === "docs") {
       const drawn = [...new Set(reads)].filter((file) => previews.has(file));
       const previewGzip = drawn.reduce((sum, file) => sum + distGzip(file, hashes), 0);
       report["docs previews"] = { gzip: previewGzip, ceiling: PREVIEWS_CEILING, files: drawn.length };
-      expect(drawn.length, "the index draws previews once it is live").toBeGreaterThan(0);
+      expect(drew.length, "the index draws previews once it is live").toBeGreaterThan(0);
       expect(previewGzip, `the index's previews, gzip bytes: ${drawn.join(", ")}`).toBeLessThanOrEqual(PREVIEWS_CEILING);
     }
     // OuroProvider loads the squircle polyfill after mount, in a chunk of its own that is no part of the first load.

@@ -7,6 +7,7 @@ import { demos } from "./docs/demos";
 import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
 import { finishReveal } from "./voyage/theme-store";
+import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
@@ -411,6 +412,14 @@ describe("docs", () => {
     first.scrollIntoView({ block: "center" });
     const box = first.getBoundingClientRect();
     expect(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest("a")?.getAttribute("href")).toBe(href(`/docs/${docsItems[0]!.name}/`));
+    // X-ray tells what the page is made of: the pictures step out of its sight while it is on.
+    setXray(true);
+    try {
+      await expect.poll(() => getComputedStyle(first.firstElementChild!).visibility).toBe("hidden");
+    } finally {
+      setXray(false);
+    }
+    await expect.poll(() => getComputedStyle(first.firstElementChild!).visibility).toBe("visible");
     // A row far down the page is drawn only once it nears the screen.
     const last = frames.findLast((frame) => !NO_PREVIEW.has(frame.dataset["sitePreview"]!))!;
     expect(last.children).toHaveLength(0);

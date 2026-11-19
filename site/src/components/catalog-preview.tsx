@@ -1,5 +1,6 @@
 import { Component, startTransition, Suspense, useEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { demos } from "../docs/demos";
+import { useXray } from "../voyage/xray-store";
 
 // The components index draws each component small, beside its name: its own live demo, scaled down, so the catalog shows
 // what each one looks like before you open it. The server draws the empty frames only, so nothing moves when one fills.
@@ -27,28 +28,62 @@ export const NO_PREVIEW: ReadonlySet<string> = new Set([
 /** How far from the screen a frame starts to fill: about a screen ahead, so a preview is drawn by the time it is seen. */
 const AHEAD = "600px 0px";
 
-/** Previews waiting to be drawn, one at a time when the browser is idle, so scrolling never waits on one. */
-const waiting: Array<() => void> = [];
+/** A frame waiting to be drawn, and whether it is near the screen now. */
+type Waiting = { draw: () => void; near: boolean };
+
+/** Frames waiting to be drawn. One is drawn at a time when the browser is idle, the nearest the middle of the screen first. */
+const waiting = new Map<Element, Waiting>();
+let watcher: IntersectionObserver | undefined;
 let drawing = false;
 
-function next(): void {
-  const draw = waiting.shift();
-  if (!draw) {
-    drawing = false;
-    return;
+/** The waiting frame nearest the middle of the screen, of those near it now: a row scrolled past waits for its turn back. */
+function nearest(): Element | undefined {
+  let best: Element | undefined;
+  let distance = Infinity;
+  for (const [element, entry] of waiting) {
+    if (!entry.near) continue;
+    const box = element.getBoundingClientRect();
+    const away = Math.abs(box.top + box.height / 2 - innerHeight / 2);
+    if (away < distance) [best, distance] = [element, away];
   }
+  return best;
+}
+
+function pump(): void {
+  if (drawing || nearest() === undefined) return;
+  drawing = true;
   const later = (run: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(run, { timeout: 400 }) : setTimeout(run, 32));
   later(() => {
-    draw();
-    next();
+    drawing = false;
+    const element = nearest();
+    if (element) {
+      const { draw } = waiting.get(element)!;
+      waiting.delete(element);
+      watcher?.unobserve(element);
+      draw();
+    }
+    pump();
   });
 }
 
-function queue(draw: () => void): void {
-  waiting.push(draw);
-  if (drawing) return;
-  drawing = true;
-  next();
+/** Draws `element`'s frame once it is near the screen and its turn comes; returns what stops waiting. */
+function watch(element: Element, draw: () => void): () => void {
+  watcher ??= new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const frame = waiting.get(entry.target);
+        if (frame) frame.near = entry.isIntersecting;
+      }
+      pump();
+    },
+    { rootMargin: AHEAD },
+  );
+  waiting.set(element, { draw, near: false });
+  watcher.observe(element);
+  return () => {
+    waiting.delete(element);
+    watcher?.unobserve(element);
+  };
 }
 
 /** A preview that fails to load or render leaves its frame empty: the row still says what the component is. */
@@ -70,27 +105,14 @@ class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
 export function CatalogPreview({ name }: { name: string }): JSX.Element {
   const frame = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
+  // X-ray tells what the page is made of, not what these pictures are: they step out of sight while it is on.
+  const xray = useXray();
   const Demo = Object.hasOwn(demos, name) && !NO_PREVIEW.has(name) ? demos[name] : undefined;
   useEffect(() => {
     const element = frame.current;
     if (!element || !Demo) return;
-    let gone = false;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        observer.disconnect();
-        // A transition, so React draws it in slices between frames.
-        queue(() => {
-          if (!gone) startTransition(() => setShown(true));
-        });
-      },
-      { rootMargin: AHEAD },
-    );
-    observer.observe(element);
-    return () => {
-      gone = true;
-      observer.disconnect();
-    };
+    // A transition, so React draws it in slices between frames.
+    return watch(element, () => startTransition(() => setShown(true)));
   }, [Demo]);
   return (
     <div
@@ -98,13 +120,17 @@ export function CatalogPreview({ name }: { name: string }): JSX.Element {
       aria-hidden="true"
       inert
       data-site-preview={name}
+      // Set from the moment its turn comes, before its demo has loaded: what the page's budget counts (catalog.spec.ts).
+      data-site-preview-drawn={shown ? "" : undefined}
       className="relative flex h-20 w-30 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/50 select-none sm:h-24 sm:w-36 dark:bg-muted/65"
     >
       {shown && Demo && (
         <Quiet>
           <Suspense fallback={null}>
             {/* Drawn at 360 by 240 and scaled to the frame. It fades in, which reduced motion keeps, shorter, as a fade moves nothing. */}
-            <div className="flex h-60 w-90 flex-none scale-[0.3333] items-center-safe justify-center p-4 transition-opacity duration-(--ouro-duration-slow) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast) sm:scale-40">
+            <div
+              className={`flex h-60 w-90 flex-none scale-[0.3333] items-center-safe justify-center p-4 transition-opacity duration-(--ouro-duration-slow) starting:opacity-0 motion-reduce:duration-(--ouro-duration-fast) sm:scale-40 ${xray ? "invisible" : ""}`}
+            >
               <Demo />
             </div>
           </Suspense>
