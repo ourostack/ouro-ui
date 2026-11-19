@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
+import { parseAnsi } from "@/registry/ouro/components/ouro/code-block/code-block-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { audit, describeFindings } from "@/registry/ouro/lib/ouro/testing/axe";
@@ -527,6 +528,19 @@ describe("CodeBlock terminal output", () => {
     expect(style("both").textDecorationLine).toBe("underline line-through");
   });
 
+  it("gives a run with no color of its own no color class, and an ansi block holding escape codes no development message", async () => {
+    const { host } = await render(<CodeBlock language="ansi" code={`${esc}[1mbold${esc}[0m ${esc}[3mitalic${esc}[0m`} />);
+    expect(span(host, "bold").className).toBe("font-bold");
+    expect(span(host, "italic").className).toBe("italic");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("draws a dim color apart from both the color and plain dim text", async () => {
+    const { host } = await render(<CodeBlock language="ansi" code={`${esc}[31mred${esc}[0m ${esc}[2;31mdimred${esc}[0m ${esc}[2mdim${esc}[0m`} />);
+    const color = (name: string) => getComputedStyle(span(host, name)).color;
+    expect(new Set([color("red"), color("dimred"), color("dim")]).size).toBe(3);
+  });
+
   it("draws a catalogue's emoji inside styled output", async () => {
     const catalogue: EmojiCatalogue = {
       categories: [{ id: "symbols", label: "Symbols", items: [{ id: "rocket", name: "Rocket", text: "🚀", src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" }] }],
@@ -542,5 +556,51 @@ describe("CodeBlock terminal output", () => {
     const { pre, host } = await render(<CodeBlock language="text" code={code} />);
     expect(pre.querySelector("code")!.textContent).toBe(code);
     expect(host.querySelector("[data-ouro-ansi]")).toBeNull();
+  });
+});
+
+describe("parseAnsi", () => {
+  const esc = "\x1b";
+  const plain = { bold: false, dim: false, italic: false, underline: false, strike: false, color: null };
+  const run = (text: string, style: Partial<typeof plain> | null = null) => ({ text, style: style && { ...plain, ...style } });
+
+  it("maps each basic and bright color code to its color, and 39 back to none", () => {
+    const code = Array.from({ length: 8 }, (_, index) => `${esc}[${30 + index}m${index}${esc}[${90 + index}m${index + 8}`).join("") + `${esc}[39mend`;
+    expect(parseAnsi(code)).toEqual([...Array.from({ length: 8 }, (_, index) => [run(String(index), { color: index }), run(String(index + 8), { color: index + 8 })]).flat(), run("end")]);
+    expect(parseAnsi(`${esc}[97mwhite`)).toEqual([run("white", { color: 15 })]);
+  });
+
+  it("joins text of one style across codes into one run, and leaves no empty run", () => {
+    expect(parseAnsi(`${esc}[1ma${esc}[1mb${esc}[0m${esc}[0mc${esc}[K`)).toEqual([run("ab", { bold: true }), run("c")]);
+    expect(parseAnsi(`${esc}[mx`)).toEqual([run("x")]);
+  });
+
+  it("turns each attribute on and off, and 22 clears bold and dim together", () => {
+    expect(parseAnsi(`${esc}[1;2;3;4;9ma${esc}[22mb${esc}[23mc${esc}[24md${esc}[29me`)).toEqual([
+      run("a", { bold: true, dim: true, italic: true, underline: true, strike: true }),
+      run("b", { italic: true, underline: true, strike: true }),
+      run("c", { underline: true, strike: true }),
+      run("d", { strike: true }),
+      run("e"),
+    ]);
+  });
+
+  it("reads an extended color's parameters and skips them, keeping only a foreground from the table's first 16", () => {
+    expect(parseAnsi(`${esc}[38;5;15ma${esc}[38;5;16mb${esc}[48;5;1mc${esc}[38;7;3md${esc}[0;38;2;1;2;3;4me${esc}[0;5;9mf`)).toEqual([
+      run("a", { color: 15 }),
+      run("bc"),
+      run("d", { italic: true }),
+      run("e", { underline: true }),
+      run("f", { strike: true }),
+    ]);
+    expect(parseAnsi(`${esc}[48:5:1ma${esc}[38:5:3mb${esc}[38:5mc`)).toEqual([run("a"), run("b", { color: 3 }), run("c")]);
+  });
+
+  it("ignores the codes it does not draw: blink, backgrounds and the rest", () => {
+    expect(parseAnsi(`${esc}[5ma${esc}[42mb${esc}[49;100;7;8mc`)).toEqual([run("abc")]);
+  });
+
+  it("styles only from SGR, dropping every other sequence whole", () => {
+    expect(parseAnsi(`${esc}[2Ka${esc}[1 mb${esc}]0;a window title${esc}\\c${esc}]8;;https://example.com${esc}[1md`)).toEqual([run("abc")]);
   });
 });

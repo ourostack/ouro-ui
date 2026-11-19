@@ -30,7 +30,7 @@ interface AnsiRun {
  * matches too.
  */
 // eslint-disable-next-line no-control-regex -- terminal escape codes start with ESC, and OSC ends with BEL
-const ansiEscapePattern = /\x1b(?:\[[0-?]*[ -/]*[@-~]|[\]PX^_][\s\S]*?(?:\x07|\x1b\\|$)|[ -/]*[0-~]|$)/g;
+const ansiEscapePattern = /\x1b(?:\[([0-?]*)([ -/]*)([@-~])|[\]PX^_][\s\S]*?(?:\x07|\x1b\\|$)|[ -/]*[0-~]|$)/g;
 
 /** The text of terminal output without its escape codes: what a person copies. @internal */
 function stripAnsi(text: string): string {
@@ -43,22 +43,23 @@ function isPlain(style: AnsiStyle): boolean {
   return !style.bold && !style.dim && !style.italic && !style.underline && !style.strike && style.color === null;
 }
 
-/** A basic color from an extended one: the 256-color table's first 16, and nothing else. */
-function extendedColor(mode: number | undefined, value: number | undefined): number | null {
-  return mode === 5 && value !== undefined && value < 16 ? value : null;
+/** A basic color from an extended one: the 256-color table's first 16, and nothing else (a missing value is NaN). */
+function extendedColor(mode: number, value: number): number | null {
+  return mode === 5 && value < 16 ? value : null;
 }
 
 function applySgr(style: AnsiStyle, parameters: string): AnsiStyle {
   // Parameters are split by ";"; one with ":" carries its own sub-parameters (ITU T.416), as tmux
   // writes a curly underline (4:3) or a true color (38:2::r:g:b).
-  const parts = parameters === "" ? ["0"] : parameters.split(";");
+  // An empty parameter is 0, as Number("") is, so ESC[m resets.
+  const parts = parameters.split(";");
   let next = { ...style };
   for (let index = 0; index < parts.length; index += 1) {
-    const [head, ...subs] = parts[index]!.split(":").map((part) => (part === "" ? 0 : Number(part)));
+    const [head, ...subs] = parts[index]!.split(":").map(Number);
     const code = head!;
     if (subs.length > 0) {
       if (code === 4) next.underline = subs[0] !== 0;
-      else if (code === 38) next.color = extendedColor(subs[0], subs[1]);
+      else if (code === 38) next.color = extendedColor(subs[0]!, Number(subs[1]));
       continue;
     }
     if (code === 0) next = { ...plain };
@@ -106,9 +107,8 @@ function parseAnsi(text: string): AnsiRun[] {
   for (const match of text.matchAll(ansiEscapePattern)) {
     push(text.slice(last, match.index));
     last = match.index + match[0].length;
-    // eslint-disable-next-line no-control-regex -- an SGR code starts with ESC
-    const sgr = /^\x1b\[([0-9;:]*)m$/.exec(match[0]);
-    if (sgr) style = applySgr(style, sgr[1]!);
+    // An SGR code is a CSI sequence ending in m, with no intermediate bytes.
+    if (match[3] === "m" && match[2] === "") style = applySgr(style, match[1]!);
   }
   push(text.slice(last));
   return runs;
@@ -144,12 +144,15 @@ const colors = [
  * @internal
  */
 function ansiClassName(style: AnsiStyle): string {
+  // Stryker disable next-line ConditionalExpression: colors[null] is undefined too; the check is for the type.
   const color = style.color === null ? undefined : colors[style.color];
   return cn(
     color,
-    color && !style.dim && "text-(--ouro-ansi)",
-    color && style.dim && "text-[color-mix(in_oklab,var(--ouro-ansi)_50%,color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground)))]",
-    !color && style.dim && "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]",
+    color
+      ? style.dim
+        ? "text-[color-mix(in_oklab,var(--ouro-ansi)_50%,color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground)))]"
+        : "text-(--ouro-ansi)"
+      : style.dim && "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]",
     style.bold && "font-bold",
     style.italic && "italic",
     style.underline && style.strike ? "[text-decoration-line:underline_line-through]" : style.underline ? "underline" : style.strike && "line-through",
