@@ -13,7 +13,7 @@ Building a settings page, a dashboard or a list beside its detail? Install its p
 
 Building a new app? Start at https://ui.ouroboros.bot/docs/agent-quickstart.md: five steps, every file whole, for a new Vite app with a validated form, a light and dark toggle and a confirmation dialog.[^quickstart]
 
-Ouro UI is a complete kit for agents to build delightful interfaces for people and other agents. An agent composes an interface as data in Ouro's own tree, validated against the app's catalog, and every kit draws it natively; each button is an action declared once, which a person presses and an agent calls as a tool, with consent built in and an X-ray to check both[^composed]: https://ui.ouroboros.bot/docs/composed-ui.md Core's generator turns one action declaration into a CLI command, MCP and WebMCP tools, a web control, an App Intent, a SwiftUI button and a Reins action.[^one-action] A consequential action asks the person to confirm what an agent prepared before it runs.[^consent-confirm] A person-only action has no agent door; each door answers an agent with a typed refusal.[^person-only] MCP Apps (https://github.com/modelcontextprotocol/ext-apps) and A2UI (https://a2ui.org/) are formats of that tree:[^works-with] an MCP tool result carries it, then only what changed, to an MCP Apps view,[^mcp-app] and the A2UI adapter turns A2UI messages into it.[^a2ui-render] Agent benchmark: https://ui.ouroboros.bot/docs/agent-interfaces/. Model reviews: https://ui.ouroboros.bot/docs/model-reviews/.
+Ouro UI is a complete kit for agents to build delightful interfaces for people and other agents. An agent composes an interface as data in Ouro's own tree, validated against the app's catalog, and every kit draws it natively; each button is an action declared once, which a person presses and an agent calls as a tool, with consent built in and an X-ray to check both[^composed]: https://ui.ouroboros.bot/docs/composed-ui.md Core's generator turns one action declaration into a CLI command, MCP and WebMCP tools, a web control, an App Intent, a SwiftUI button and a Reins action.[^one-action] A consequential action asks the person to confirm what an agent prepared before it runs.[^consent-confirm] A person-only action has no agent door; each door answers an agent with a typed refusal.[^person-only] MCP Apps (https://github.com/modelcontextprotocol/ext-apps) and A2UI (https://a2ui.org/) are formats of that tree:[^works-with] an MCP tool result carries it, then only what changed, to an MCP Apps view,[^mcp-app] and the A2UI adapter turns A2UI messages into it.[^a2ui-render] Agent benchmark: https://ui.ouroboros.bot/docs/composed-ui.md. Model reviews: https://ui.ouroboros.bot/docs/model-reviews/.
 
 Ouro HX is Ouro UI's component library; Ouro AX ("Ouro AX" below) is its half for the interfaces agents use.
 
@@ -29,6 +29,8 @@ The full item list, under Items below, is long. These are the items for needs ap
 - Saying something happened: `toaster`. A message on the page: `alert`. Nothing here yet: `moment`. Loading: `skeleton`, `spinner`.
 - Getting around: `navbar`, `sidebar`, `tabs`, `menu`, `command` (a command palette).
 - Data: `table`, `combobox`, `date-picker`.
+- A design system's tokens and theme: ouro-base adds the `--ouro-*` tokens once per app, and ouro-theme is an optional shadcn theme (https://ui.ouroboros.bot/docs/installing.md).
+- Interfaces an agent sends: Ouro's own tree, which can travel as A2UI messages or in an MCP Apps view; see https://ui.ouroboros.bot/docs/composed-ui.md.
 
 ## Install
 

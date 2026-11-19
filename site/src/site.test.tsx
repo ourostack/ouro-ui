@@ -195,6 +195,9 @@ describe("home page", () => {
       expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
     }
     expect(llms.startsWith("# Ouro HX\n")).toBe(true);
+    for (const term of ["design system's tokens and theme", "`ouro-theme`", "A2UI messages", "MCP Apps view"]) {
+      expect(llms).toContain(term);
+    }
     for (const text of [readme, llms]) {
       expect(text).not.toMatch(/under construction/i);
       expect(text).toContain("Ouro UI");
