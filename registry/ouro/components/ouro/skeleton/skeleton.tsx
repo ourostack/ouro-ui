@@ -4,6 +4,7 @@ import { useLayoutEffect, useState } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { joinWave } from "@/registry/ouro/components/ouro/skeleton/skeleton-styles";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** Avatar's sizes, for `<Skeleton shape="circle" size>`. */
@@ -154,17 +155,8 @@ let breathing = 0;
 // rest. So each one sets its own delay, from the wave's start, before its first frame: still for what remains of the
 // first second, then partway through a breath. The wave starts with the first placeholder of a load and ends once
 // none has breathed for a second; the next starts a new one. This writes a custom property and reads no layout.
-const stillMs = 1000;
-const breathMs = 2400;
 let waveStart = 0;
 let emptiedAt = Number.NEGATIVE_INFINITY;
-
-function joinWave(): string {
-  const now = performance.now();
-  if (breathing === 0 && now - emptiedAt > stillMs) waveStart = now;
-  const elapsed = now - waveStart;
-  return `${elapsed < stillMs ? stillMs - elapsed : -((elapsed - stillMs) % breathMs)}ms`;
-}
 
 function useBreathes(shimmer: boolean): { breathes: boolean; style: CSSProperties | undefined } {
   const [claim, setClaim] = useState<{ breathes: boolean; delay: string | undefined }>({ breathes: true, delay: undefined });
@@ -173,14 +165,22 @@ function useBreathes(shimmer: boolean): { breathes: boolean; style: CSSPropertie
     if (!shimmer) return;
     const place = breathing < breatheLimit;
     // Claiming a place is shared module state, so it can only be read once mounted.
+    let delay: string | undefined;
+    if (place) {
+      const joined = joinWave(performance.now(), breathing, emptiedAt, waveStart);
+      waveStart = joined.start;
+      delay = joined.delay;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setClaim({ breathes: place, delay: place ? joinWave() : undefined });
+    setClaim({ breathes: place, delay });
     breathing += place ? 1 : 0;
     return () => {
       breathing -= place ? 1 : 0;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: a later cleanup that finds none left sets it again, and a new wave starts only when none breathes, so setting it early changes nothing.
       if (breathing === 0) emptiedAt = performance.now();
     };
   }, [shimmer]);
+  // Stryker disable next-line ConditionalExpression: a style object whose only value is undefined draws the same as none.
   return { breathes: shimmer && claim.breathes, style: claim.delay === undefined ? undefined : ({ "--ouro-skeleton-delay": claim.delay } as CSSProperties) };
 }
 

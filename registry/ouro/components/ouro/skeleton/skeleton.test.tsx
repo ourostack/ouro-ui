@@ -6,6 +6,7 @@ import { commands } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Item } from "@/registry/ouro/components/ouro/item/item";
+import { breathMs, joinWave, stillMs } from "@/registry/ouro/components/ouro/skeleton/skeleton-styles";
 import { Skeleton, type SkeletonProps } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -228,6 +229,29 @@ describe("Skeleton", () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     expect(getComputedStyle(late).animationName).toBe("none");
     expect(late.getAnimations()).toEqual([]);
+  });
+
+  it("places a placeholder in the wave: a new wave after a quiet gap of more than a second, else the running one", () => {
+    expect(joinWave(5000, 0, 3999, 100)).toEqual({ start: 5000, delay: "1000ms" });
+    expect(joinWave(5000, 0, 4000, 100)).toEqual({ start: 100, delay: `${-((4900 - stillMs) % breathMs)}ms` });
+    expect(joinWave(5000, 1, Number.NEGATIVE_INFINITY, 4001)).toEqual({ start: 4001, delay: "1ms" });
+    expect(joinWave(5000, 1, 0, 4000).delay).toBe("0ms");
+    expect(joinWave(5000, 1, 0, 3999).delay).toBe("-1ms");
+    expect(joinWave(9000, 2, 0, 1000).delay).toBe(`${-((8000 - stillMs) % breathMs)}ms`);
+  });
+
+  it("keeps the app's own style beside the wave's phase, on every shape", async () => {
+    const own = { marginTop: "7px" };
+    const shapes = [
+      await render(<Skeleton style={own} />),
+      await render(<Skeleton shape="text" style={own} />),
+      (await render(<Skeleton shape="row" style={own} />)),
+      (await render(<Skeleton shape="card" style={own} />)),
+    ];
+    for (const shape of shapes) {
+      const holder = [shape, ...shape.querySelectorAll<HTMLElement>("[style]")].find((el) => el.style.marginTop === "7px");
+      expect(holder, "the app's style survives").toBeDefined();
+    }
   });
 
   it("starts a new wave, still for its first second, once none has been mounted for a second", async () => {
