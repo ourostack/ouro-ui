@@ -1135,7 +1135,7 @@ test("each check main's rules require comes from a workflow Release can start by
   const all = readWorkflows();
   const { producers, problems } = requiredProducers(requiredChecks, all);
   assert.deepEqual(problems, []);
-  assert.deepEqual(producers, ["ci.yml", "conformance-exemptions.yml"]);
+  assert.deepEqual(producers, ["ci.yml", "conformance-exemptions.yml", "release-note.yml"]);
   const spec = (on) => ({ file: "x.yml", text: `on:\n  pull_request:\n${on}jobs:\n  check:\n    name: lane\n    runs-on: ubuntu-latest\n` });
   assert.deepEqual(requiredProducers(["lane"], [spec("")]).problems, ['x.yml reports the required check "lane" but has no workflow_dispatch trigger, so Release cannot start it']);
   assert.deepEqual(requiredProducers(["lane"], [spec("  workflow_dispatch:\n")]), { producers: ["x.yml"], problems: [] });
@@ -2461,6 +2461,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "release-note.yml": "  group: release-note-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "stale-pages.yml": "  group: stale-pages-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "squircle-cost.yml": "  group: squircle-cost-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "ax-xray.yml": "  group: ax-xray-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
@@ -2612,6 +2613,16 @@ test("the conformance exemptions check runs on each pull request and its descrip
   for (const step of steps.filter((step) => !queue.includes(step))) assert.match(step, /^if: github\.event_name != 'merge_group'$/m, step);
   assert.match(text, /^ {10}BASE_REF: \$\{\{ github\.base_ref \|\| 'main' \}\}$/m);
   assert.match(text, /BASE_REF="origin\/\$BASE_REF" node scripts\/conformance-exemptions\.mjs/);
+});
+
+test("the release note check runs on each pull request and its description's edits, reads the description from the environment only, and installs nothing", () => {
+  const { text } = workflows.find(({ file }) => file === "release-note.yml");
+  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n(?: {2}#.*\n)? {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:\n/m);
+  assert.match(text, /^ {4}name: release note$/m);
+  assert.match(text, /^ {10}PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}$/m);
+  assert.equal(text.match(/pull_request\.body/g).length, 1);
+  assert.doesNotMatch(text, /pnpm/);
+  assert.match(text, /BASE_REF="origin\/\$BASE_REF" node scripts\/release-note\.mjs/);
 });
 
 test("CI rehearses the release commit on every run: release.yml's own edits, for a version with no tag yet, then the checks and the site build that read them", () => {
