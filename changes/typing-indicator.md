@@ -1,0 +1,1 @@
+- New: TypingIndicator, the line under a chat that says who is writing: their faces, pulsing dots and "Ned Land is writing…", as a polite status that keeps one line's height when nobody is.
