@@ -94,7 +94,7 @@ Every model found Ouro's own note that Android is tested only on emulators and t
 
 #### Challenges the native decision: one codebase keeps five clients from drifting, so models pick Flutter or a single TypeScript stack.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2301](https://github.com/ourostack/ouro-ui/issues/2301).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2301](https://github.com/ourostack/ouro-ui/issues/2301).
 
 All eight Flutter picks in the chat job led with the same reason, that a fix written once lands on all five clients, and Sol and Terra said sharing the timeline, composer and card renderer pays off most in an interactive, signed-in app. Unprompted, in the open arm, models chose one TypeScript stack with web shells and picked fully native clients only twice; Opus and Gemini added that one language serves every team and coding agent. This is the strongest behaviour against native per platform. The decision stands, so Ouro has to show on a maintained product that agents keep its native kits in step at less cost than one shared implementation.
 
@@ -270,7 +270,7 @@ Seven models weighed Agent-Native (Builder.io), it was picked six times across a
 
 #### Challenges the native decision: a small team can't keep four or five native codebases in step.
 
-Signal: goal. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2302](https://github.com/ourostack/ouro-ui/issues/2302).
+Signal: goal. Raised by 7 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2302](https://github.com/ourostack/ouro-ui/issues/2302).
 
 Six of the eight Flutter picks came at product-team scale, where models priced native per platform as sync, cache, threading and search each written four times, and Gemini rejected Ouro on this ground. In the cooking and tooling jobs, large-company sessions also counted SwiftUI plus Compose plus web as three design systems to govern, and four models said the sync and offline logic Ouro doesn't cover would be rewritten per shell; Grok was the counter-voice, saying a cooking app has to justify being native. These are expectations, not experience. Ouro should publish what keeping its kits in step actually costs, and give guidance for sharing non-UI logic across the native shells.
 
