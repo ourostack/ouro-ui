@@ -2271,6 +2271,16 @@ test("a pull request calls only the read-only lane: ci.yml's job grants contents
   assert.doesNotMatch(workflow("ci.yml"), /issues: write/);
 });
 
+test("the screen-reader lane's report upload is tried twice and never decides the lane's verdict (#2254)", () => {
+  const lane = srJobs().lane;
+  const first = lane.match(/- id: upload\n {8}if: (.*)\n {8}uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}continue-on-error: true\n {8}with: &sr-report\n/);
+  assert.ok(first, "the first upload continues on error and names its settings");
+  assert.equal(first[1], "always() && steps.classify.outcome != 'skipped'");
+  assert.match(lane, /^ {10}overwrite: true$/m);
+  assert.match(lane, /- id: upload-again\n {8}if: always\(\) && steps\.upload\.outcome == 'failure'\n {8}uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}continue-on-error: true\n {8}with: \*sr-report\n/);
+  assert.match(lane, /if: always\(\) && steps\.upload-again\.outcome == 'failure'\n {8}run: echo "::warning title=Screen-reader report not uploaded::/);
+});
+
 test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory nightly, at the commit it was given", () => {
   const lane = srJobs().lane;
   // The matrix for an event: the nightly run adds the advisory macos-15 job; a push to main, a dispatch and a pull request's call run the two that gate (#2097).

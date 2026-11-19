@@ -135,9 +135,13 @@ jobs:
         run: |
           node scripts/sr-classify.mjs "$RUNNER_TEMP/sr.log" "$EXIT" | tee "$RUNNER_TEMP/sr-class.txt"
           exit "${PIPESTATUS[0]}"
-      - if: always() && steps.classify.outcome != 'skipped'
+      # The report is for reading a failure, and nothing downloads it: the classify step above is the verdict. An upload
+      # the runner cannot make (ENOTFOUND on GitHub's artifact service, #2254) is tried once more, then left as a warning.
+      - id: upload
+        if: always() && steps.classify.outcome != 'skipped'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
+        continue-on-error: true
+        with: &sr-report
           name: screen-reader-${{ matrix.project }}-${{ matrix.os }}
           path: |
             ${{ runner.temp }}/sr.log
@@ -146,3 +150,11 @@ jobs:
             test-results/screen-reader/
           if-no-files-found: ignore
           retention-days: 14
+          overwrite: true
+      - id: upload-again
+        if: always() && steps.upload.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        continue-on-error: true
+        with: *sr-report
+      - if: always() && steps.upload-again.outcome == 'failure'
+        run: echo "::warning title=Screen-reader report not uploaded::The runner could not upload the report twice (ourostack/ouro-ui#2254). The lane's verdict is the classify step's; the log above has the specs' output."
