@@ -7,7 +7,7 @@ Where the platforms' promises have been run, and where they haven't. A promise r
 | Web | Real browsers in CI, and the screen readers VoiceOver on macOS and NVDA on Windows before a release.[^web] | A phone's or a tablet's own browser, and other screen readers.[^web] |
 | Apple | GitHub's macOS runners, with the SwiftUI package built and tested there.[^apple] | A run on an iPhone, an iPad or a Mac that someone owns is not recorded here. |
 | Windows | GitHub's `windows-latest` runner, which is Windows Server.[^windows] | A Windows client machine: the runner lacks the App Actions runtime and the On-device Agent Registry, so CI shows the package registers its doors but not that Windows lists them to agents.[^windows] |
-| Android | Emulators in GitHub's CI.[^android] | A real phone or tablet; no device run is recorded. |
+| Android | Emulators in GitHub's CI.[^android] | A real phone or tablet; a device run is still to come.[^open] |
 
 ## What this means for you
 
