@@ -549,6 +549,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     ...rest
   } = props;
   const density: ConversationListDensity = (densities as readonly string[]).includes(densityProp) ? (densityProp as ConversationListDensity) : "comfortable";
+  // Stryker disable next-line ConditionalExpression: an absent estimate fails the >= 1 test too; the check only narrows the type
   const rowEstimate = estimatedRowHeight !== undefined && estimatedRowHeight >= 1 ? estimatedRowHeight : estimates[density];
   const listRef = useRef<HTMLUListElement>(null);
   const baseId = useId();
