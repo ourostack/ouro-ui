@@ -18,7 +18,10 @@ export type { ImageMeasure, Measure, PageIssue, SizeCheckOptions };
 //                    (or an ancestor's, below the nearest layout box: a flex or grid box, or main) holds it to under 75% of the
 //                    width its parent offers, where that parent is 900px or wider. The max-width must be what holds the box, so
 //                    a column or sidebar narrow by its layout passes; so do code, tables, cards, dialogs and text a declared
-//                    measure covers
+//                    measure covers. An app declares a measure in the page itself, too: data-ouro-measure on the text or an
+//                    element around it, or a max-width read from a --measure-* token (max-width: var(--measure-lede)). A
+//                    measure declared there passes at 40ch or wider in the text's own font, and is flagged narrower. A cap on
+//                    an element that holds more than prose (headings, pictures, controls) is the page's layout, and passes
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and data-ouro-allow-why="<reason>"; an allow without
 // a reason does not count. For an app whose own rules keep data-ouro-* for Ouro's components, plain aliases do the same,
@@ -461,10 +464,10 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   };
   // The rule that set a cap, best effort: the element's own style first (it wins the cascade), else the last stylesheet rule
   // that matches it under a media query that holds. A cross-origin sheet has no rules a script may read, so it is skipped.
-  const capSource = (el: Element) => {
+  const capSource = (el: Element): { text: string; value: string } => {
     const inline = (el as HTMLElement).style?.maxWidth;
-    if (inline) return `style="max-width: ${inline}" on ${describe(el)}`;
-    let found: string | null = null;
+    if (inline) return { text: `style="max-width: ${inline}" on ${describe(el)}`, value: inline };
+    let found: { text: string; value: string } | null = null;
     const matches = (selector: string) => {
       try {
         return el.matches(selector);
@@ -475,7 +478,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     const visit = (rules: CSSRuleList) => {
       for (const rule of rules) {
         if (rule instanceof CSSStyleRule) {
-          if (rule.style.maxWidth && matches(rule.selectorText)) found = `${rule.selectorText} { max-width: ${rule.style.maxWidth} }`;
+          if (rule.style.maxWidth && matches(rule.selectorText)) found = { text: `${rule.selectorText} { max-width: ${rule.style.maxWidth} }`, value: rule.style.maxWidth };
         } else if (rule instanceof CSSMediaRule) {
           if (matchMedia(rule.media.mediaText).matches) visit(rule.cssRules);
         } else if ("cssRules" in rule) visit((rule as CSSGroupingRule).cssRules);
@@ -488,8 +491,25 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
         // A sheet it can't read.
       }
     }
-    return found ?? `max-width: ${Math.round(parseFloat(getComputedStyle(el).maxWidth))}px on ${describe(el)}`;
+    return found ?? { text: `max-width: ${Math.round(parseFloat(getComputedStyle(el).maxWidth))}px on ${describe(el)}`, value: "" };
   };
+  // A measure the page declares for the text: data-ouro-measure on it or around it, or a cap read from a --measure-* token.
+  const measureToken = /var\(\s*--measure-/;
+  const pageMeasure = (el: Element, source: { value: string }) => el.closest("[data-ouro-measure]") !== null || measureToken.test(source.value);
+  // 40ch in the text's own font: the narrowest declared measure the rule accepts, the short end of a readable line.
+  const minMeasure = 40;
+  const chWidth = (el: Element) => {
+    const probe = document.createElement("span");
+    probe.style.cssText = `display:inline-block;width:${minMeasure}ch;padding:0;border:0;margin:0`;
+    el.append(probe);
+    const width = probe.getBoundingClientRect().width;
+    probe.remove();
+    return width;
+  };
+  // An element around the text caps it as a reading measure only when it holds nothing but prose; one that holds headings,
+  // pictures, controls or other blocks is the page's layout (a centred page column), however wide the screen.
+  const proseTags = new Set(["p", "li", "ul", "ol", "dl", "dt", "dd", "blockquote", "span", "a", "strong", "em", "b", "i", "code", "small", "br", "abbr", "time", "mark", "sub", "sup", "kbd", "s", "u", "q", "cite", "wbr"]);
+  const holdsOnlyProse = (box: Element) => [...box.querySelectorAll("*")].every((n) => proseTags.has(n.localName));
   const declared = (el: Element) => measures.some(({ selector }) => selector === null || el.closest(selector) !== null);
   const narrowCapped = new Set<Element>();
   for (const el of document.body.querySelectorAll("p, li, dd, blockquote, [data-ouro=text]")) {
@@ -499,20 +519,26 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     for (let n: Element | null = el; n && n !== document.body && !layoutBox(n); n = n.parentElement) {
       const offered = cappedBy(n);
       if (offered !== null) {
-        cap = { el: n, offered };
+        if (n === el || holdsOnlyProse(n)) cap = { el: n, offered };
         break;
       }
     }
     if (!cap || cap.offered < 900 || cap.el.getBoundingClientRect().width >= 0.75 * cap.offered || narrowCapped.has(cap.el)) continue;
+    const source = capSource(cap.el);
+    const capWidth = cap.el.getBoundingClientRect().width;
+    const declaredHere = pageMeasure(el, source);
+    if (declaredHere && capWidth >= chWidth(el) - 1) continue;
     // One finding per capped element: a container that caps several paragraphs is named by the first.
     narrowCapped.add(cap.el);
-    const width = Math.round(cap.el.getBoundingClientRect().width);
+    const width = Math.round(capWidth);
     const kind = el.localName === "p" ? "paragraph" : el.localName === "li" ? "list item" : "text";
     issues.push({
       ref: ref(el),
       rule: "narrow-text",
       element: `${describe(el)}${quoted(el)}`,
-      detail: `This ${kind} wraps at ${width}px in a ${Math.round(cap.offered)}px column, leaving the rest empty. Let it use the width it has: remove \`${capSource(cap.el)}\`. If the design sets a measure on purpose, declare it in ouro-check.json ("measure").`,
+      detail: declaredHere
+        ? `This ${kind}'s declared measure, \`${source.text}\`, holds it to ${width}px, under ${minMeasure}ch in its font, too narrow to read comfortably. Widen the measure to ${minMeasure}ch or more, or remove it so the text uses its ${Math.round(cap.offered)}px column.`
+        : `This ${kind} wraps at ${width}px in a ${Math.round(cap.offered)}px column, leaving the rest empty. Let it use the width it has: remove \`${source.text}\`. If the design sets a measure on purpose, declare it at ${minMeasure}ch or wider: read the max-width from a --measure-* token, add data-ouro-measure to the text, or set "measure" in ouro-check.json.`,
     });
   }
   return issues;

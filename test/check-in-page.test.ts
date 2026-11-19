@@ -713,7 +713,7 @@ describe("findSizeIssues: narrow-text", () => {
     expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#cap"]);
     const width = Math.round(document.getElementById("cap")!.getBoundingClientRect().width);
     expect(issues[0]!.detail).toMatch(new RegExp(`^This paragraph wraps at ${width}px in a 1200px column, leaving the rest empty\\. Let it use the width it has: remove \`\\.about p \\{ max-width: 46rem \\}\`\\.`));
-    expect(issues[0]!.detail).toContain('declare it in ouro-check.json ("measure")');
+    expect(issues[0]!.detail).toContain('declare it at 40ch or wider: read the max-width from a --measure-* token, add data-ouro-measure to the text, or set "measure" in ouro-check.json');
     expect(document.getElementById("cap")!.getAttribute("data-ouro-check-ref")).toBeTruthy();
   });
 
@@ -723,6 +723,27 @@ describe("findSizeIssues: narrow-text", () => {
     expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#first"]);
     expect(issues[0]!.detail).toContain("leaving the rest empty");
     expect(issues[0]!.detail).toContain('`style="max-width: 46rem" on div`');
+  });
+
+  it("passes a page column that holds more than prose, capped however narrow against a wide screen", async () => {
+    render(`<section style="width:2560px"><div style="max-width:1422px;margin-inline:auto"><h2>Composed UI</h2><p>${LONG} ${LONG}</p><img alt="" width="40" height="40"></div></section>`);
+    expect(narrow(await findSizeIssues())).toEqual([]);
+  });
+
+  it("leaves a measure the page declares at 40ch or wider, by data-ouro-measure or a --measure-* token, and flags one declared narrower", async () => {
+    const page = (lede: string, attr = "") =>
+      `<section style="width:1200px"><style>:root { --measure-lede: ${lede}; } .lede { max-width: var(--measure-lede); } .note { max-width: ${lede}; }</style><p class="lede">${LONG} ${LONG}</p><div class="note"${attr}><p>${LONG} ${LONG}</p></div></section>`;
+    render(page("44ch", " data-ouro-measure"));
+    expect(narrow(await findSizeIssues())).toEqual([]);
+    host.remove();
+    render(page("30ch", " data-ouro-measure"));
+    const narrower = narrow(await findSizeIssues());
+    expect(narrower.map((issue) => issue.element.split(" ")[0])).toEqual(["p.lede", "p"]);
+    expect(narrower[0]!.detail).toMatch(/^This paragraph's declared measure, `\.lede \{ max-width: var\(--measure-lede\) \}`, holds it to \d+px, under 40ch in its font, too narrow to read comfortably\./);
+    host.remove();
+    // A cap that names no measure is still the habit the rule is for, at any width.
+    render(page("44ch"));
+    expect(narrow(await findSizeIssues()).map((issue) => issue.element.split(" ")[0])).toEqual(["p"]);
   });
 
   it("leaves text a declared measure covers, a page's prose included, and text an opt-out with a reason allows", async () => {

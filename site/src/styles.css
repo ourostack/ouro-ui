@@ -22,6 +22,13 @@
 :root {
   color-scheme: light;
   --site-code: color-mix(in oklab, var(--muted) 70%, var(--background));
+  /* The site's reading measures, each a deliberate line length that Ouro check's narrow-text accepts as declared. */
+  --measure-lede: 44ch;
+  --measure-lede-wide: 44rem;
+  --measure-band: 40rem;
+  --measure-caption: 46rem;
+  --measure-prose: 62ch;
+  --measure-intro: 40rem;
 }
 
 .dark {

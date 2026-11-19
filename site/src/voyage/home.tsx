@@ -84,7 +84,7 @@ export function TwoShips(): JSX.Element {
         <h2 id="ships-title" className="site-h2 mt-4">
           {TWO_SHIPS.title}
         </h2>
-        <p className="site-lede mt-5 mb-0 max-w-[44ch]">{TWO_SHIPS.intro}</p>
+        <p className="site-lede mt-5 mb-0 max-w-(--measure-lede)">{TWO_SHIPS.intro}</p>
         <div className="mt-12 grid gap-y-14 lg:mt-16 lg:gap-y-20">
           <Showcase
             id="ship-nautilus"

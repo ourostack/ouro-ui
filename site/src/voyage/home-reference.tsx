@@ -126,7 +126,7 @@ export function Agents(): JSX.Element {
         <h2 id="agents-title" className="site-h2 mt-4">
           Agents read the types
         </h2>
-        <p className="site-lede mt-5 max-w-[44rem]">
+        <p className="site-lede mt-5 max-w-(--measure-lede-wide)">
           An agent that learned on shadcn/ui writes what it knows. Ouro HX answers where the agent already looks: the type check, the source it just
           installed, and the console.{" "}
           {claim("Every message here is real output from the code, checked against the code on every CI run.", {
