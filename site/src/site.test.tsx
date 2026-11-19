@@ -638,7 +638,8 @@ describe("docs", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toContain("Sheet");
     // Three letters must be exact.
     await userEvent.fill(filter, "dlg");
-    expect(nav.getByRole("link").elements()).toHaveLength(0);
+    // No component's link: only the line that offers to ask for one.
+    expect(nav.getByRole("link").elements().filter((link) => !link.closest('[role="status"]'))).toHaveLength(0);
   });
 
   it("finds a component by the name another kit gives it, and says what it is called here", async () => {
