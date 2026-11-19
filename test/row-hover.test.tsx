@@ -7,7 +7,7 @@ import { applyThemeFixture, themeFixtures } from "./theme-fixtures.ts";
 
 // A hovered row, the open row and a hovered open row are three different fills, in every theme: the Ouro
 // look sets the row tokens, and the shadcn themes (nova and vega from `shadcn init`, Spoonjoy's cookbook)
-// set none, so the components' own fallbacks draw them. Each fill is measured as a colour in OKLab,
+// set none, so the defaults in ouro-base.css (mixes of shadcn's own variables) draw them. Each fill is measured as a colour in OKLab,
 // composited over the page, so a theme whose hover and selected colours blur together fails here.
 
 const canvas = document.createElement("canvas");
