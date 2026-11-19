@@ -201,10 +201,12 @@ describe("home page", () => {
     }
   });
 
-  it("says in the README's at-a-glance list what Ouro UI is, in the words a search for it uses", () => {
-    for (const term of ["shadcn registry", "design system", "A2UI", "MCP Apps", "SwiftUI", "WinUI", "Jetpack Compose"]) {
-      expect(readme).toContain(term);
+  it("says in the README's at-a-glance list what Ouro UI is, in the words a search for it uses, with A2UI and MCP Apps as formats it speaks", () => {
+    const bullet = readme.split("\n").find((line) => line.startsWith("- **What it is:**"))!;
+    for (const term of ["shadcn registry", "design system", "Base UI", "Tailwind CSS", "SwiftUI", "WinUI", "Jetpack Compose", "speaks A2UI and MCP Apps"]) {
+      expect(bullet).toContain(term);
     }
+    expect(bullet).not.toMatch(/with A2UI|formats agents compose/);
   });
 
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
