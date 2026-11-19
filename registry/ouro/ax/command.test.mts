@@ -373,6 +373,23 @@ test("a word outside a required argument's values is refused with the usage exit
   assert.equal(parse(gate, ["gate", "wait"]).kind, "run");
 });
 
+test("a command other people see asks for --why before it refuses a word outside an argument's values, as ax-xray's probe expects", () => {
+  const tool = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "presence set", summary: "P.", effect: "others", args: [{ name: "state", description: "S.", required: true, values: ["available", "busy"] }], run: () => [] })] });
+  const shape = (argv: string[]) => {
+    try {
+      parse(tool, argv);
+    } catch (e) {
+      return (e as AxError).shape;
+    }
+    return null;
+  };
+  // Without --why, the made-up word waits: what other people would see needs a reason first.
+  assert.equal(shape(["presence", "set", "nope"])?.code, "needs-why");
+  // With --why, the word is refused as before, naming the values and the closest one.
+  assert.deepEqual(shape(["presence", "set", "bsy", "--why", "Jo asked"]), { code: "bad-value", exit: 2, thing: "presence set", problem: 'it takes available or busy, not "bsy"', fix: 't presence set busy --why "Jo asked"' });
+  assert.equal(parse(tool, ["presence", "set", "busy", "--why", "Jo asked"]).kind, "run");
+});
+
 test("an optional argument's word outside its values is refused too; a valid word or none still parses as before", () => {
   const tool = defineCli({ name: "t", about: [], commands: [defineCommand({ name: "gate", summary: "G.", effect: "private", readOnly: true, args: [{ name: "action", description: "A.", values: ["check", "wait"] }], run: () => [] })] });
   const refused = (argv: string[]) => {
