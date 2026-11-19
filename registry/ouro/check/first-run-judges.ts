@@ -193,7 +193,10 @@ export function pageIndicator(s: Snapshot): string | null {
   if (!win) return null;
   const web = win.nodes.filter((n) => n.role === "AXWebArea" && visible(n)).sort((a, b) => b.w! * b.h! - a.w! * a.h!)[0];
   if (!web) return null;
-  const onScreen = (n: AxNode) => (n.x ?? 0) < win.x + win.w && (n.x ?? 0) + n.w! > win.x && (n.y ?? 0) < win.y + win.h && (n.y ?? 0) + n.h! > win.y;
+  const onScreen = (n: AxNode) => {
+    const r = rectOf(n);
+    return r.x < win.x + win.w && r.x + r.w > win.x && r.y < win.y + win.h && r.y + r.h > win.y;
+  };
   const bar = subtree(win.nodes, web.i).find((n) => PROGRESS_ROLES.has(n.role) && visible(n) && onScreen(n));
   return bar ? `a ${bar.role === "AXBusyIndicator" ? "busy" : "progress"} indicator${bar.words ? ` (${bar.words})` : ""}` : null;
 }
@@ -244,7 +247,7 @@ export function judgeDeadEnd(s: Snapshot, o: { vocabulary?: Vocabulary; goal?: (
   // put away with Escape or a click beside it, and the app behind it is the way on, as the session's own advance treats it
   // (#2359). Signed out or unknown, a card with no way forward is still a dead end.
   const top = dialogs(s).at(-1);
-  if (s.signedIn === true && top) return { ok: true, evidence: `signed in, a card over the app ("${dialogLabel(top.nodes) || "a dialog"}"), put away with Escape`, place: "forward", forward };
+  if (s.signedIn === true && top) return { ok: true, evidence: `signed in, a card over the app ("${dialogLabel(top.nodes)}"), put away with Escape`, place: "forward", forward };
   const offered = (mainWindow(s)?.nodes ?? []).filter((n) => PRESSABLE.has(n.role) && n.enabled && visible(n) && n.words).map((n) => n.words!.split(" | ")[0]!);
   return { ok: false, evidence: `a dead end: no enabled control moves the person forward and nothing is under way (the controls here: ${[...new Set(offered)].slice(0, 8).join(", ") || "none"})`, place: "dead-end", forward };
 }
