@@ -69,3 +69,31 @@ test("the official client that opens with initialize is served 2025-11-25, and e
     });
   }
 });
+
+async function withRegistry(options, body) {
+  const client = new Client({ name: "ouro-ui-tests", version: "1.0.0" }, options);
+  await client.connect(new StdioClientTransport({ command: process.execPath, args: ["actions/server/registry-mcp.mts"], cwd: root }));
+  try {
+    return await body(client);
+  } finally {
+    await client.close();
+  }
+}
+
+test("the official client reaches the registry door on 2026-07-28 with no initialize, and on 2025-06-18 with it", async () => {
+  await withRegistry({ versionNegotiation: { mode: "auto" } }, async (client) => {
+    assert.equal(client.getProtocolEra(), "modern");
+    assert.equal(client.getNegotiatedProtocolVersion(), "2026-07-28");
+    assert.equal(client.getServerVersion()?.name, "ouro-ui-registry");
+    const { tools } = await client.listTools();
+    assert.deepEqual(tools.map((tool) => tool.name), ["list_registry_items", "get_item_install", "get_item_docs"]);
+    const found = await client.callTool({ name: "list_registry_items", arguments: { filter: "tabs" } });
+    assert.match(found.structuredContent.names, /tabs/);
+  });
+  await withRegistry({ supportedProtocolVersions: ["2025-06-18"] }, async (client) => {
+    assert.equal(client.getProtocolEra(), "legacy");
+    assert.equal(client.getNegotiatedProtocolVersion(), "2025-06-18");
+    const { tools } = await client.listTools();
+    assert.equal(tools.length, 3);
+  });
+});
