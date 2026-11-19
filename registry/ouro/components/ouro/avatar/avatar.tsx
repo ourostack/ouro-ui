@@ -373,7 +373,7 @@ function initialsOf(name: string): string {
  * One member's slice of a group's avatar: their picture once it loads, else their initial (one
  * letter, which a slice has room for) in their hue. A quarter's letter is smaller than a half's.
  */
-function GroupSlice({ member, tint, quarter }: { member: AvatarMember; tint: string | undefined; quarter: boolean }): JSX.Element {
+function GroupSlice({ member, tint, quarter, half }: { member: AvatarMember; tint: string | undefined; quarter: boolean; half: boolean }): JSX.Element {
   const image = useImageStatus(member.src);
   const [fill, ink] = (tint ?? hueOf(member.idForColor ?? member.name)).split(" ") as [string, string];
   return (
@@ -385,8 +385,9 @@ function GroupSlice({ member, tint, quarter }: { member: AvatarMember; tint: str
         fill,
         ink,
         quarter && "text-[0.75em]",
-        // Forced colours paint every fill as the page, so each slice keeps an edge of its own.
-        "forced-colors:border forced-colors:border-[CanvasText]",
+        half && "row-span-2",
+        // Forced colours paint every fill as the page, so each slice keeps an edge of its own (in CanvasText, as forced colours draw every border).
+        "forced-colors:border",
       )}
     >
       {image === "loaded" ? (
@@ -656,9 +657,9 @@ export function Avatar(props: AvatarProps): JSX.Element {
           shape === "circle" ? "[--ouro-sq-r:44%]" : "[--ouro-sq-r:24%]",
           shape === "agent" ? agentTileClass : !nameLoading && !group && fill,
           // A group's slices: a half each, or a half and two quarters, with a hole between them.
-          group && image !== "loaded" && "gap-(--ouro-slice-gap) [--ouro-slice-gap:max(1px,calc(var(--ouro-edge)*0.6))]",
+          group && image !== "loaded" && "gap-[max(1px,calc(var(--ouro-edge)*0.6))]",
           group && image !== "loaded" && slices.length > 1 && "grid-cols-2",
-          group && image !== "loaded" && slices.length > 2 && "grid-rows-2 *:first:row-span-2",
+          group && image !== "loaded" && slices.length > 2 && "grid-rows-2",
           group && image === "loaded" && fill,
           presence && biteClass,
           image !== "loaded" && iconShown && !nameLoading && !group && "*:size-[55%]",
@@ -669,7 +670,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
           <img src={src} alt="" className="size-full rounded-[inherit] object-cover" />
         ) : group ? (
           slices.map((member, index) => (
-            <GroupSlice key={index} member={member} tint={color === "neutral" ? neutral : color === "brand" ? brand : undefined} quarter={index > 0 && slices.length > 2} />
+            <GroupSlice key={index} member={member} tint={color === "neutral" ? neutral : color === "brand" ? brand : undefined} quarter={index > 0 && slices.length > 2} half={index === 0 && slices.length > 2} />
           ))
         ) : nameLoading ? (
           // The avatar's own box and corners, so it is the avatar's exact shape; the presence dot stays whole outside it.
