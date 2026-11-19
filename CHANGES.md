@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Changed: web vendors [core v0.20.0](test/fixtures/a2ui/core.json "verify:equals(test/fixtures/a2ui/core.json#coreTag)=v0.20.0"), whose `applyTreeUpdate` changes a composed tree by node id and its data by JSON pointer ([the decision record](https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/docs/decisions/2026-11-18-composed-tree-updates.md "verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/docs/decisions/2026-11-18-composed-tree-updates.md)")). `OuroMcpApp` applies a tool result whose `structuredContent.ouro` carries `update` to the tree it shows; an update that can't apply shows the same short alert as a tree that fails the checks, and the agent hears why.
+- Changed: the composed tree the components vendor moves to the current core release, so a tree built against it matches the other kits.
