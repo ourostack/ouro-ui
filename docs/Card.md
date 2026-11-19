@@ -97,6 +97,6 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Part names
 
-Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `card`, `card-action`, `card-content`, `card-description`, `card-description-text`, `card-footer`, `card-header`, `card-header-text`, `card-link`, `card-link-hint`, `card-media`, `card-rise`, `card-rise-band`, `card-rise-glass`, `card-title`.
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `card`, `card-action`, `card-content`, `card-description`, `card-description-frame`, `card-footer`, `card-header`, `card-header-text`, `card-link`, `card-link-hint`, `card-media`, `card-rise`, `card-rise-band`, `card-rise-glass`, `card-title`.
 
 [^layout-classes]: test:registry/ouro/components/ouro/card/card.test.tsx::Card > passes attributes and a ref through, and lets layout classes win verify:testExists(registry/ouro/components/ouro/card/card.test.tsx::Card > passes attributes and a ref through, and lets layout classes win)

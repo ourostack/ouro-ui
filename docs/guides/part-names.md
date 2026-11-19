@@ -29,7 +29,7 @@ Write the rules in your own stylesheet, outside any `@layer`. Tailwind puts the 
 }
 ```
 
-A surface with Ouro's squircle corners (Badge, Button, Card and the other filled controls) paints its fill and border from `--ouro-bg` and `--ouro-bd`, because where a browser has no `corner-shape` a layer under the element draws them.[^surface] Set those, not `background-color` or `border-color`:
+Badge, Button and Card paint their fill and border from `--ouro-bg` and `--ouro-bd`, and Dialog's popup its fill from `--ouro-bg`, because where a browser has no `corner-shape` a layer under the element draws them.[^surface] Set those, not `background-color` or `border-color`:
 
 ```css
 [data-slot="badge"] {
@@ -51,7 +51,7 @@ Select by the name, not by the element or the classes: which element a part is, 
 
 ## Beside shadcn/ui components
 
-Ouro uses shadcn's attribute, and some names are the same as shadcn's (`card`, `button`, `dialog-title`). So in an app with both, a rule written for a shadcn part also styles the Ouro part of that name, and shadcn's own classes that look for a name around them (`in-data-[slot=card-content]:…`) apply inside an Ouro part of that name too. To keep a rule to one library, add `[data-ouro]`, which only Ouro's roots carry: `[data-slot="card"]:not([data-ouro])` is shadcn's Card, `[data-slot="card"][data-ouro]` Ouro's.
+Ouro uses shadcn's attribute, and some names are the same as shadcn's (`card`, `button`, `dialog-title`). So in an app with both, a rule written for a shadcn part also styles the Ouro part of that name, and shadcn's own classes that look for a name around them (`in-data-[slot=card-content]:…`) apply inside an Ouro part of that name too. To keep a rule to one library, go through the root: only Ouro's roots carry `data-ouro`, its parts don't. So `[data-slot="card"]:not([data-ouro])` is shadcn's Card and `[data-ouro="card"]` Ouro's, and for a part, `[data-slot="card"]:not([data-ouro]) [data-slot="card-content"]` is shadcn's and `[data-ouro="card"] [data-slot="card-content"]` Ouro's. `:not([data-ouro])` on a part alone matches both.
 
 ## For contributors
 

@@ -356,8 +356,8 @@ export function Card(props: CardProps): JSX.Element {
           {heading}
           {description &&
             (reveal ? (
-              <div data-slot="card-description" id={descriptionId} data-card-reveal={rise ? "rise" : ""} className={rise ? riseClass : revealClass}>
-                <Text data-slot="card-description-text" as="div" size="sm" tone="muted" className={rise ? "min-h-0 overflow-hidden" : undefined}>
+              <div data-slot="card-description-frame" id={descriptionId} data-card-reveal={rise ? "rise" : ""} className={rise ? riseClass : revealClass}>
+                <Text data-slot="card-description" as="div" size="sm" tone="muted" className={rise ? "min-h-0 overflow-hidden" : undefined}>
                   {description}
                 </Text>
               </div>
