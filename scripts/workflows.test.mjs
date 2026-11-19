@@ -2544,7 +2544,7 @@ test("a release gives each job its own permissions, and none may write commit st
   const release = workflow("release.yml");
   assert.match(release, /^permissions: \{\}$/m);
   const jobs = releaseJobs();
-  assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin"]);
+  assert.deepEqual(Object.keys(jobs), ["release", "pages", "publish", "finish", "next", "docs-pin", "attest"]);
   const permissions = permissionsOf;
   // It reads main's CI runs and the pull request merged as the commit, whose run may prove its tree (scripts/ci-proof.mjs).
   assert.deepEqual(permissions(jobs.release), { contents: "write", actions: "read", "pull-requests": "read" });
@@ -2553,6 +2553,8 @@ test("a release gives each job its own permissions, and none may write commit st
   assert.deepEqual(permissions(jobs.finish), { contents: "read", issues: "write" });
   assert.deepEqual(permissions(jobs.next), { actions: "write" });
   assert.deepEqual(permissions(jobs["docs-pin"]), { actions: "write" });
+  // It attaches the tag's registry.json to the release and signs an attestation for it.
+  assert.deepEqual(permissions(jobs.attest), { contents: "write", "id-token": "write", attestations: "write" });
   for (const block of Object.values(jobs)) assert.doesNotMatch(block, /statuses: write|pull-requests: write/);
 });
 

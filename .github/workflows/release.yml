@@ -441,3 +441,29 @@ jobs:
       - name: Start Docs pin
         run: |
           gh workflow run docs-pin.yml --ref main -f tag="$TAG"
+  attest:
+    # Attaches the tag's registry.json to the release and attests it, so the file an install reads has
+    # a signed subject that says which workflow and commit built it. A failure here changes no release.
+    needs: release
+    if: ${{ needs.release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the file to the release
+      id-token: write # sign the attestation
+      attestations: write # store it
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: v${{ inputs.version }}
+    steps:
+      - name: Fetch the tag's registry.json
+        run: |
+          gh api -H "Accept: application/vnd.github.raw" "repos/$GH_REPO/contents/registry.json?ref=$TAG" > registry.json
+          jq -e '.items | length > 0' registry.json >/dev/null
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: registry.json
+      - name: Attach it to the release
+        run: |
+          gh release upload "$TAG" registry.json --clobber
