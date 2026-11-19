@@ -151,3 +151,15 @@ test("gather reads Apple's components at the recorded commit, and Windows's comp
   assert.deepEqual(facts.windows.claims, ["contrast.text"]);
   assert.equal(facts.android.claims, undefined);
 });
+
+test("no hand-written page states web's component count: the parity matrix holds it", async () => {
+  // Two component pull requests that each wrote "127" merged into 128 and turned main red (#2372 after #2362). A page
+  // links the parity matrix instead (docs/platforms/android.md, windows.md, #2382).
+  const { execFileSync } = await import("node:child_process");
+  const pages = execFileSync("git", ["ls-files", "*.md", "*.mdx"], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const stating = pages.filter((page) => {
+    const prose = readFileSync(page, "utf8").replace(/^(```|~~~)[\s\S]*?^\1/gm, "");
+    return /verify:count\(registry:ui\)/.test(prose);
+  });
+  assert.deepEqual(stating, []);
+});
