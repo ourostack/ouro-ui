@@ -471,7 +471,7 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
     const matches = (selector: string) => {
       try {
         return el.matches(selector);
-      } catch {
+      } catch /* istanbul ignore next @preserve -- no selector a stylesheet accepts is known to make matches() throw; a guard so one never stops the check */ {
         return false;
       }
     };

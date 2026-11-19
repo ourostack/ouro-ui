@@ -725,6 +725,20 @@ describe("findSizeIssues: narrow-text", () => {
     expect(issues[0]!.detail).toContain('`style="max-width: 46rem" on div`');
   });
 
+  it("names a list item and other text by kind, and reads a percentage cap, a content-box cap and one no max-width rule names", async () => {
+    render(`<section style="width:1200px">
+      <ul style="margin:0;padding:0;list-style:none"><li id="half" style="max-width:50%">${LONG} ${LONG}</li></ul>
+      <blockquote id="boxed" style="margin:0;box-sizing:content-box;padding-inline:8px;max-width:40rem">${LONG} ${LONG}</blockquote>
+      <dl style="margin:0"><dd id="logical" style="margin:0;max-inline-size:40rem">${LONG} ${LONG}</dd></dl>
+    </section>`);
+    const issues = narrow(await findSizeIssues());
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["li#half", "blockquote#boxed", "dd#logical"]);
+    expect(issues[0]!.detail).toMatch(/^This list item wraps at 600px in a 1200px column/);
+    expect(issues[0]!.detail).toContain('`style="max-width: 50%" on li#half`');
+    expect(issues[1]!.detail).toMatch(/^This text wraps at 656px in a 1200px column/);
+    expect(issues[2]!.detail).toContain("`max-width: 640px on dd#logical`");
+  });
+
   it("passes a page column that holds more than prose, capped however narrow against a wide screen", async () => {
     render(`<section style="width:2560px"><div style="max-width:1422px;margin-inline:auto"><h2>Composed UI</h2><p>${LONG} ${LONG}</p><img alt="" width="40" height="40"></div></section>`);
     expect(narrow(await findSizeIssues())).toEqual([]);
