@@ -505,7 +505,7 @@ function guidanceSections(described: Described, required: boolean): string[] {
 /**
  * The function an export is: a function declaration, or a function a const takes from a pure `Object.assign(function
  * Name() {…}, { tag })`, the form a component that carries a tag takes so a build that never renders it can drop it,
- * wrapped in `memo(…)` so an app's linter takes it for a component.
+ * wrapped in `memo(…)` (imported bare, not `React.memo`) so an app's linter takes it for a component.
  */
 function exportedFunction(symbol: ts.Symbol): ts.SignatureDeclaration | undefined {
   for (const declaration of symbol.declarations ?? []) {

@@ -799,7 +799,6 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
         // Fades in where it first shows, then glides from point to point; with reduced motion it only fades.
         <div
           ref={card}
-          data-ouro-part="tooltip"
           data-ouro-chart-tooltip-place=""
           className="pointer-events-none absolute top-0 transition-[opacity,translate] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:transition-opacity"
           style={{ left: 0, translate: `${beside(active!.x, cardWidth, width)}px ${beside(active!.y, cardHeight, height)}px` }}

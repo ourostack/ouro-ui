@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { Line, LineChart, Tooltip, XAxis } from "recharts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -613,11 +614,12 @@ describe("Chart", () => {
         await act(() => plot.focus());
         const grow = () => chart.querySelectorAll('[data-ouro-chart-dot][data-ouro-chart-series="cooked"] > [data-ouro-part="dot"]')[1]!;
         void getComputedStyle(grow()).scale;
-        await act(() => plot.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+        // The change commits at once, with no await before the motion is read.
+        flushSync(() => plot.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
         if (reduced) {
           await expectNoMotion(grow(), { stem: "chart", state: "data-highlighted", reduced });
           // The tooltip card only fades as it moves.
-          expect(getComputedStyle(chart.querySelector("[data-ouro-part='tooltip']")!).transitionProperty).toBe("opacity");
+          expect(getComputedStyle(chart.querySelector("[data-ouro-chart-tooltip-place]")!).transitionProperty).toBe("opacity");
         } else {
           await expectMotion(grow(), { stem: "chart", state: "data-highlighted", properties: { scale: fast }, reduced });
         }
