@@ -1581,6 +1581,8 @@ jobs:
           else
             OURO_STORIES=$(node scripts/test-impact.mjs stories "$COMPONENTS") pnpm test:themes --shard="$SHARD/3"
           fi
+          # The shipped contrast tests under cookbook, once, on the first shard.
+          if [ "$SHARD" = 1 ]; then pnpm test:themes-contrast; fi
   conformance-shard:
     # The conformance matrix (test/conformance/, docs/guides/conformance.md): every story through
     # the checks that replace recurring review findings (focus after every action, announcements,
