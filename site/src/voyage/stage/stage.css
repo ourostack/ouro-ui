@@ -169,7 +169,7 @@
   opacity: 1;
 }
 .stage-paint-surface {
-  mask-image: linear-gradient(to bottom, black 72%, transparent);
+  mask-image: linear-gradient(to bottom, black 72%, transparent); /* fade-ok: the surface painting melts into the open water painted under it, inside the glass, not into the page */
 }
 /*
  * The Live look's sky as a wash over the painted one, from the sun at the horizon to the sky overhead (themes/live.ts).
@@ -181,7 +181,7 @@
   height: calc(70 * 100% / 480);
   background: linear-gradient(to top, var(--live-sun, transparent), var(--live-sky, transparent) 75%);
   opacity: 0.3;
-  mask-image: linear-gradient(to bottom, black 75%, transparent);
+  mask-image: linear-gradient(to bottom, black 75%, transparent); /* fade-ok: a tint over the painted sky, fading into the same painting */
 }
 
 /* The surface world: the surface painting and the sea in front of her, lifted out of view as the porthole goes down, 700 of the glass's 480 units. */
