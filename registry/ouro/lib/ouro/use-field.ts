@@ -84,9 +84,8 @@ export interface FieldOwner {
    */
   nativeLabel?: false | undefined;
   /**
-   * `true` when the control can never fail the browser's own validation, so the field draws no
-   * error slot until it has an error of its own. Without it, an empty slot waits for the browser's
-   * message.
+   * `true` leaves out the field's empty error slot until it has an error of its own. Set it for a
+   * control that has no constraint the browser could report; otherwise the slot waits for the browser's message.
    */
   quiet?: true | undefined;
 }

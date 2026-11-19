@@ -303,7 +303,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
     required === true ||
     type === "email" ||
     type === "url" ||
-    ["pattern", "minLength", "maxLength", "min", "max", "step", "validate"].some((name) => name in rest);
+    ["pattern", "minLength", "maxLength", "min", "max", "step"].some((name) => name in rest);
 
   useDevWarnings(
     "TextField",

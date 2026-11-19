@@ -57,6 +57,31 @@ async function mountMs(render: () => ReactElement, count: number): Promise<numbe
   return took;
 }
 
+const constraints: { constraint: string; field: ReactElement }[] = [
+  { constraint: "email", field: <TextField label="Name" type="email" /> },
+  { constraint: "url", field: <TextField label="Name" type="url" /> },
+  { constraint: "pattern", field: <TextField label="Name" pattern="[a-z]+" /> },
+  { constraint: "minLength", field: <TextField label="Name" minLength={2} /> },
+  { constraint: "maxLength", field: <TextField label="Name" maxLength={9} /> },
+  { constraint: "min", field: <TextField label="Name" type="date" min="2020-01-01" /> },
+  { constraint: "max", field: <TextField label="Name" type="date" max="2030-01-01" /> },
+  { constraint: "step", field: <TextField label="Name" type="date" step={2} /> },
+];
+
+describe("TextField's constraints", () => {
+  it.each(constraints)("keeps the error slot for a field with $constraint", async ({ constraint, field }) => {
+    const host = document.createElement("div");
+    host.dataset["testHarness"] = "";
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(field));
+    const drawn = componentsUnder(host);
+    await act(async () => root.unmount());
+    host.remove();
+    expect(drawn, `components with ${constraint}`).toBeGreaterThanOrEqual(17);
+  });
+});
+
 describe("TextField's mount time", () => {
   it("mounts 40 plain fields in a bounded multiple of the time 40 bare inputs take", async () => {
     await mountMs(() => <TextField label="Name" />, 40);
