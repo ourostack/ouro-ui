@@ -69,6 +69,13 @@ async function generatedFailures(root) {
       failures.push({ message: "docs/guides/model-interviews.md differs from what scripts/model-reviews/interviews-page.mjs renders from scripts/model-reviews/interviews-results/ and findings.json. Render it again: node scripts/model-reviews/interviews-page.mjs docs/guides/model-interviews.md." });
     }
   }
+  const evidencePage = join(root, "docs/guides/accessibility-evidence.md");
+  if (existsSync(join(root, "scripts/a11y-evidence/page.mjs")) && existsSync(evidencePage)) {
+    const { renderEvidencePage, evidenceRows } = await import(pathToFileURL(join(root, "scripts/a11y-evidence/page.mjs")).href);
+    if (readFileSync(evidencePage, "utf8") !== renderEvidencePage(evidenceRows(root))) {
+      failures.push({ message: "docs/guides/accessibility-evidence.md differs from what scripts/a11y-evidence/page.mjs renders from the components' stories and screen-reader specs. Render it again: node scripts/a11y-evidence/page.mjs docs/guides/accessibility-evidence.md." });
+    }
+  }
   return failures;
 }
 

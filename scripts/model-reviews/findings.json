@@ -1358,8 +1358,8 @@
         }
       ],
       "issue": 2315,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "The accessibility half is now checkable by anyone: a per-component evidence page links each claim to its axe, conformance and screen-reader checks and the CI runs behind them, and says plainly that the checks are the project's own. A third-party production app, an outside benchmark rerun and an outside accessibility audit are still missing."
     },
     {
       "id": "young-one-maintainer",

@@ -105,7 +105,7 @@ All eight Flutter picks in the chat job led with the same reason, that a fix wri
 
 #### Nobody outside the project has shipped, audited or reproduced Ouro: Spoonjoy and the benchmark are its own.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2315](https://github.com/ourostack/ouro-ui/issues/2315).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2315](https://github.com/ourostack/ouro-ui/issues/2315). What changed: The accessibility half is now checkable by anyone: a per-component evidence page links each claim to its axe, conformance and screen-reader checks and the CI runs behind them, and says plainly that the checks are the project's own. A third-party production app, an outside benchmark rerun and an outside accessibility audit are still missing.
 
 Models looked for a second adopter and found none: Spoonjoy and Ouro MD are the author's own, and four models treated Spoonjoy as proof before noticing. Five discounted the agent benchmark and model reviews as run by the project, two saw its headline gain come from a payment refusal any guarded API would get, and compliance-minded models wanted an accessibility report from someone who doesn't maintain the kit, keeping React Aria as their bar. Spoonjoy did win the cooking job, so evidence moves picks; Ouro needs a third-party production app, an outside reproduction of the benchmark against an equally guarded baseline, and an outside accessibility audit with a per-platform screen-reader matrix.
 
