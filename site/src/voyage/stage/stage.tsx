@@ -10,6 +10,7 @@ import { Slider } from "@/registry/ouro/components/ouro/slider/slider";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { afterPaint, useAfterPaint } from "../after-paint";
 import { useStable } from "../use-stable";
+import { crewFace } from "../chapters/crew-faces";
 import { GITHUB } from "../../paths";
 import { bandAt, BANDS, describeScene, LOG, MAX_DEPTH, OPENING_LOG, SPEAKER, SPEEDS, STAGE_COPY, TANKS, type LogLine, type Speed } from "./copy";
 import { Scene } from "./scene";
@@ -298,7 +299,7 @@ const CrewLine = memo(function CrewLine({ entry, logOpen }: { entry: Entry; logO
   const quiet = useSyncExternalStore(logOpen.subscribe, logOpen.get, logOpen.get);
   return (
     <p className="stage-crew" data-stage-crew="" aria-live={quiet ? "off" : "polite"} aria-atomic="true">
-      <Avatar name={entry.name} alt="" size="sm" />
+      <Avatar name={entry.name} src={crewFace(entry.name)} alt="" size="sm" />
       <span className="stage-crew-words">
         <span className="stage-crew-name">{SPEAKER[entry.name]}:</span> {entry.text}
       </span>
@@ -490,7 +491,7 @@ type Flag = ReturnType<typeof createFlag>;
 
 const LogEntry = memo(function LogEntry({ entry }: { entry: Entry }): JSX.Element {
   return (
-    <Message role="assistant" name={SPEAKER[entry.name]}>
+    <Message role="assistant" name={SPEAKER[entry.name]} avatar={crewFace(entry.name)}>
       {entry.text}
     </Message>
   );
