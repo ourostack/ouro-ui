@@ -1,0 +1,1 @@
+- llms.txt lists a design system's tokens and theme and the interfaces an agent sends (A2UI messages, MCP Apps) among the common needs.

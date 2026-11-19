@@ -29,6 +29,8 @@ The full item list, under Items below, is long. These are the items for needs ap
 - Saying something happened: `toaster`. A message on the page: `alert`. Nothing here yet: `moment`. Loading: `skeleton`, `spinner`.
 - Getting around: `navbar`, `sidebar`, `tabs`, `menu`, `command` (a command palette).
 - Data: `table`, `combobox`, `date-picker`.
+- A design system's tokens and theme: `ouro-base` adds the `--ouro-*` tokens once per app, and `ouro-theme` is an optional shadcn theme (https://ui.ouroboros.bot/docs/guides/installing.md).
+- Interfaces an agent sends: Ouro's own tree, which can travel as A2UI messages or in an MCP Apps view; see https://ui.ouroboros.bot/docs/agent-interfaces/.
 
 ## Install
 
