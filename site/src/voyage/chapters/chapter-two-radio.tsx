@@ -134,7 +134,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
   const writing = [...new Set(writers.filter((writer) => writer.to === channel).map((writer) => writer.name))].map((name) => ({ name, src: crewFace(name) }));
 
   return (
-    <div className="grid gap-6 py-4 sm:py-6 md:grid-cols-[15rem_minmax(0,1fr)]" data-chapter-radio="" data-calling={calling ? "" : undefined}>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 py-4 sm:py-6 md:grid-cols-[15rem_minmax(0,1fr)]" data-chapter-radio="" data-calling={calling ? "" : undefined}>
       <div className="grid content-start gap-5">
         <div data-chapter-control="channels">
           <ConversationList label={RADIO.channels} items={channels} selectedId={channel} onSelect={choose} density="compact" unreadLabel={RADIO.unread} />
@@ -159,7 +159,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
           </ul>
         </div>
       </div>
-      <div className="grid min-w-0 content-start gap-3">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3">
         <div data-chapter-control="members">
           <ChatHeader title={title} members={members} level={4} data-chapter-chat-header={channel} />
         </div>
