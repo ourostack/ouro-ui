@@ -50,7 +50,7 @@ describe("TypingIndicator", () => {
     expect(faces).toHaveLength(3);
     expect(faces.map((face) => face.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials"))).toEqual(["N", "C", "C"]);
     // A handle written in lowercase still shows a capital, as the person's own avatar does.
-    const handle = (await render(<TypingIndicator people={[{ name: "ned" }]} />)).line;
+    const handle = (await render(<TypingIndicator people={[{ name: "  ned" }]} />)).line;
     expect(handle.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("N");
     expect(faces.every((face) => face.getBoundingClientRect().width === 24)).toBe(true);
     // Each face after the first overlaps the one before.
@@ -77,6 +77,7 @@ describe("TypingIndicator", () => {
     expect(empty).toBe(24);
     expect(words(view.line)).toBe("");
     expect(view.line.querySelector('[data-ouro="avatar"]')).toBeNull();
+    expect(view.line.querySelector("[data-ouro-typing-dots]")).toBeNull();
     expect(view.line.hasAttribute("data-writing")).toBe(false);
     await view.rerender(<TypingIndicator people={crew} />);
     expect(view.line.getBoundingClientRect().height).toBe(empty);
