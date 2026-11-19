@@ -2312,7 +2312,7 @@ test("the budget job waits on every other job, reads the run's jobs and nothing 
 });
 
 // The screen-reader lane (screen-reader-lane.yml, which screen-reader.yml and ci.yml call): real VoiceOver and
-// NVDA through Guidepup, nightly, before every release, and for a pull request whose change reaches a spec.
+// NVDA through Guidepup, nightly, before every release, and on every push to main; ci.yml's plan selects it for no pull request.
 // Guidepup's setup rewrites VoiceOver and TCC settings, so the lane runs only what it is asked to, on throwaway
 // hosted runners, with nothing to leak. Only screen-reader.yml writes issues, on a schedule or a push: a pull
 // request's call never meets that job.
@@ -2498,6 +2498,27 @@ test("the screen-reader lane sets up Guidepup in two phases, setup --ci then ins
   assert.deepEqual(Object.keys(setup.bin), ["guidepup"]);
   // The classification runs whatever failed before it, except the guard, and fails the job unless the lane passed.
   assert.match(lane, /^ {8}if: always\(\) && steps\.guard\.outcome == 'success'$/m);
+});
+
+test("the screen-reader lane annotates every failed verdict but an accessibility finding title=infra, so main's auto-revert reverts only for a finding about the components", () => {
+  const classify = stepScript(srJobs().lane, "Classify the result");
+  for (const [name, log, exit, annotated] of [
+    ["an accessibility finding", `  ✘  1 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button\n    Error: [sr] no utterance matched /save/i; heard: "Close, button"\n  1 failed`, "1", false],
+    ["an infrastructure failure", `  ✘  1 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button\n    Error: VoiceOver cannot be started\n  1 failed`, "1", true],
+    ["a harness failure", "Error: No tests found", "1", true],
+    ["a run with no log", "", "", true],
+    ["a pass", `  ✓  1 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button (4.0s)\n  1 passed`, "0", false],
+  ]) {
+    const temp = scratchDir("ouro-sr-classify-");
+    try {
+      writeFileSync(join(temp, "sr.log"), log);
+      const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", classify], { cwd: root, encoding: "utf8", env: sandboxEnv({ RUNNER_TEMP: temp, EXIT: exit }) });
+      assert.equal(result.status === 0, exit === "0", `${name}: ${result.stdout}${result.stderr}`);
+      assert.equal(/^::error title=infra::Screen-reader lane: /m.test(result.stdout), annotated, `${name}: ${result.stdout}`);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
+    }
+  }
 });
 
 test("the screen-reader lane tries Guidepup's OS setup once more when it fails, with a warning naming why (#2396)", () => {
