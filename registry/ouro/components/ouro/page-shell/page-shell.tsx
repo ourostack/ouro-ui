@@ -88,7 +88,7 @@ export function PageSection(props: PageSectionProps): JSX.Element {
       ref={ref}
       data-ouro="page-section"
       className={cn(
-        "m-0 border-0 border-t border-solid border-border py-14 md:py-24 first:border-t-0",
+        "border-0 border-t border-solid border-border py-(--ouro-section-py) [--ouro-section-py:3.5rem] first:border-t-0 md:[--ouro-section-py:6rem]",
         className,
       )}
     />
