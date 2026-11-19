@@ -1,4 +1,4 @@
-# Keep the person's review worth doing
+# Make review worth the time
 
 An agent can propose changes faster than a person can read them, and a confirmation that asks too often turns into a click. This guide is for the app's author: how to keep the review that a person does worth their time, and what changes between the surfaces an action reaches.
 

@@ -1,1 +1,1 @@
-- New: [Keep the person's review worth doing](https://ui.ouroboros.bot/docs/guides/review-volume/) says how to show the change in a confirmation, batch related proposals, ask only about consequence, and check the surfaces you ship.
+- New: [Make review worth the time](https://ui.ouroboros.bot/docs/guides/review-volume/) says how to show the change in a confirmation, batch related proposals, ask only about consequence, and check the surfaces you ship.
