@@ -186,10 +186,12 @@ describe("home page", () => {
     expect(worksWith.textContent).toContain("Ouro's own tree");
     expect(worksWith.textContent!.indexOf("Ouro's own tree")).toBeLessThan(worksWith.textContent!.indexOf("MCP Apps"));
     expect(document.querySelector("h1")!.parentElement!.parentElement!.textContent).not.toContain("A2UI");
-    for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-reviews/", "docs/platforms/android.md"]) {
+    for (const link of ["https://ui.ouroboros.bot/docs/agent-interfaces/", "https://ui.ouroboros.bot/docs/model-interviews/", "docs/platforms/android.md"]) {
       expect(opening.indexOf(link)).toBeLessThan(opening.indexOf("## Ouro HX"));
     }
-    expect(llms.startsWith("# Ouro HX\n")).toBe(true);
+    // llms.txt is named for the whole kit, and its summary names what agents search for: the native kits and one typed action layer.
+    expect(llms.startsWith("# Ouro UI\n\n> Delightful interfaces, by agents, for everyone.")).toBe(true);
+    expect(llms.slice(0, 600)).toMatch(/Apple, Windows and Android; one typed action layer that a person's button and an agent's MCP tool both call/);
     for (const text of [readme, llms]) {
       expect(text).not.toMatch(/under construction/i);
       expect(text).toContain("Ouro UI");
