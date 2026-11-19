@@ -1,0 +1,1 @@
+- New: ChatHeader, the bar above an open chat: a one-to-one chat shows the person with their presence, and a group chat its members' faces, "Ana Lind and 3 others" and a count that opens the member list, with an optional back button and actions.
