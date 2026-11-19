@@ -13,7 +13,7 @@ import { extname, join, normalize } from "node:path";
 import { performance } from "node:perf_hooks";
 import { setInterval } from "node:timers";
 import { fileURLToPath, URL } from "node:url";
-import { gzipSync } from "node:zlib";
+import { pageBodies } from "./pages-bodies.mjs";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
 const dist = join(repo, "site/dist");
@@ -65,6 +65,8 @@ setInterval(() => {
   tick = now;
 }, 1000).unref();
 
+const bodyOf = pageBodies();
+
 const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")), cert: readFileSync(join(certDir, "cert.pem")), allowHTTP1: true }, (request, response) => {
   const started = performance.now();
   response.on("finish", () => {
@@ -77,12 +79,11 @@ const server = createSecureServer({ key: readFileSync(join(certDir, "key.pem")),
     return response.end();
   }
   const file = resolveFile(url.pathname);
-  const body = file ? readFileSync(file) : readFileSync(join(dist, "404.html"));
   const type = types[extname(file ?? ".html")] ?? "application/octet-stream";
   const headers = { "content-type": type, "cache-control": file && url.pathname.includes("/assets/") ? "max-age=31536000, immutable" : "max-age=600" };
   const compress = /text|json|svg|xml/.test(type) && /\bgzip\b/.test(String(request.headers["accept-encoding"] ?? ""));
   response.writeHead(file ? 200 : 404, compress ? { ...headers, "content-encoding": "gzip", vary: "accept-encoding" } : headers);
-  response.end(compress ? gzipSync(body) : body);
+  response.end(bodyOf(file ?? join(dist, "404.html"), compress));
 });
 
 server.on("error", (error) => log(`server error: ${error.message}`));
