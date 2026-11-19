@@ -137,6 +137,34 @@ describe("first-run harness: the judges", () => {
     assert.equal(dead.evidence, "under way: Getting your chats…");
   });
 
+  test("a progress bar beside the main landmark, as a sign-in form shows while it checks an account, keeps a page from being a dead end, and without it the page is one (#2351)", () => {
+    const signIn = (bar: Spec[]) =>
+      snap([
+        [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+        [1, "AXWebArea", undefined, { w: 1000, h: 700 }],
+        [2, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 500 }],
+        [3, "AXTextField", "ari@example.com"],
+        [3, "AXButton", "Next", { enabled: false }],
+        ...bar,
+      ]);
+    const waiting = judgeDeadEnd(signIn([[2, "AXProgressIndicator", "Please wait", { x: 80, y: 600, w: 440, h: 6 }]]), { vocabulary: VOCABULARY });
+    assert.equal(waiting.ok, true);
+    assert.equal(waiting.place, "progress");
+    assert.equal(waiting.evidence, "under way: a progress indicator (Please wait)");
+    assert.equal(judgeDeadEnd(signIn([]), { vocabulary: VOCABULARY }).place, "dead-end");
+    // Off the screen, or too small to see, it shows nothing under way.
+    assert.equal(judgeDeadEnd(signIn([[2, "AXProgressIndicator", "Please wait", { x: 80, y: 2000, w: 440, h: 6 }]]), { vocabulary: VOCABULARY }).place, "dead-end");
+    assert.equal(judgeDeadEnd(signIn([[2, "AXProgressIndicator", "Please wait", { x: 80, y: 600, w: 440, h: 0 }]]), { vocabulary: VOCABULARY }).place, "dead-end");
+    // A native main pane with no web area around it has no page to look across.
+    const native = snap([
+      [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+      [1, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 500 }],
+      [2, "AXButton", "Next", { enabled: false }],
+      [1, "AXProgressIndicator", "Please wait", { x: 80, y: 600, w: 440, h: 6 }],
+    ]);
+    assert.equal(judgeDeadEnd(native, { vocabulary: VOCABULARY }).place, "dead-end");
+  });
+
   test("words over a pane of one shade are still blank, but a sparse page is not", () => {
     const words: Spec[] = [[0, "AXStaticText", "Hello"]];
     const flat = judgeNotBlank(shell(words, { pixels: { uniform: 0.9999, mean: 240 } }), VOCABULARY);
