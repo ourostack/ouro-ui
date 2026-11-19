@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: Ouro Current can leave auto-merge off and [ask a named team to review its update pull request](scripts/current/current.test.mjs "verify:testExists(scripts/current/current.test.mjs::a repository that names a review team gets its update with auto-merge off and that team asked to review (#2296))"), when the repository's `.github/ouro-current.json` has `"review": { "team": "design-system" }`.
