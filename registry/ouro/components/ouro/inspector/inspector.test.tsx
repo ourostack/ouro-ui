@@ -1436,6 +1436,46 @@ describe("Inspector", () => {
     expect(into.mock.contexts[0]).toBe(badge);
   });
 
+  it("counts an item that starts where a tab bar's scroll-padding begins as off screen, and keeps the opener on screen as it scrolls", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host, rerender } = await render(<Opened badgeTop={700} />);
+    await drawn(2);
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    const badge = host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+    const buttonAt = button.getBoundingClientRect().top + scrollY;
+    // The bar covers the screen from the badge's top edge down, so the badge does not show, though it is inside the viewport.
+    document.documentElement.style.scrollPaddingBottom = `${innerHeight - badge.getBoundingClientRect().top}px`;
+    try {
+      await rerender(<Opened badgeTop={700} spotlight="badge" />);
+      await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, badge)).toBe(true);
+      await expect.poll(() => Math.abs(scrollY - buttonAt) <= 1).toBe(true);
+      expect(into).not.toHaveBeenCalled();
+    } finally {
+      document.documentElement.style.scrollPaddingBottom = "";
+    }
+  });
+
+  it("counts an opener that ends where a header's scroll-padding ends as off screen, and centres the spotlit item", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host, rerender } = await render(<Opened badgeTop={880} />);
+    await drawn(2);
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    const badge = host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+    expect(document.activeElement).toBe(button);
+    // The header covers the screen down to the opener's bottom edge, so the opener is no longer on screen to keep there.
+    document.documentElement.style.scrollPaddingTop = `${button.getBoundingClientRect().bottom}px`;
+    try {
+      await rerender(<Opened badgeTop={880} spotlight="badge" />);
+      await expect.poll(() => into.mock.calls.length).toBe(1);
+      expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "smooth" }]);
+      expect(into.mock.contexts[0]).toBe(badge);
+    } finally {
+      document.documentElement.style.scrollPaddingTop = "";
+    }
+  });
+
   it("scrolls back up only as far as keeps an opener on screen, when the spotlit item is above it", async () => {
     await page.viewport(390, 844);
     const into = vi.spyOn(Element.prototype, "scrollIntoView");
