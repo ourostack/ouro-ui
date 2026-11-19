@@ -5,9 +5,9 @@ import ouroThemeCss from "@/registry/ouro/theme/ouro-theme.css?raw";
 // `:root`, `.dark` and `@theme inline` blocks an app's stylesheet has (nova and vega from
 // `shadcn init`, cookbook from Spoonjoy). The page compiled app.css once, with the Ouro look, so
 // a fixture is applied the way the browser would see the app's stylesheet: the Ouro look's
-// variables are unset, ouro-base's `:root` and `.dark` values come back (every app adds
-// ouro-base), then the fixture's blocks follow, its `@theme inline` declarations as runtime
-// variables (`--font-heading`, `--font-sans`). Only what Tailwind inlines at compile time is
+// variables are unset, ouro-base's `:root` and `.dark` values come back, and so does its root type step (the `@media`
+// blocks that grow `html` on a wide screen; every app adds ouro-base), then the fixture's blocks follow, its `@theme inline`
+// declarations as runtime variables (`--font-heading`, `--font-sans`). Only what Tailwind inlines at compile time is
 // lost (a fixture's own radius scale), which neither color nor font checks read.
 
 const sources = import.meta.glob<string>("./theme-fixtures/*.css", { query: "?raw", import: "default", eager: true });
@@ -45,14 +45,25 @@ export function topLevelBlocks(css: string): Array<{ prelude: string; body: stri
 /** Every custom property a stylesheet declares. */
 const declared = (css: string) => [...new Set([...withoutComments(css).matchAll(/(--[\w-]+)\s*:/g)].map((match) => match[1]!))];
 
+/** ouro-base's root type step: the `@media` blocks in its `@layer base`, which grow `html` past 2400px and 3200px. Every app's stylesheet has them, so a fixture keeps them. */
+function rootStepBlocks(): string[] {
+  const layer = topLevelBlocks(baseCss).find(({ prelude }) => prelude === "@layer base");
+  return topLevelBlocks(layer?.body ?? "")
+    .filter(({ prelude }) => prelude.startsWith("@media"))
+    .map(({ prelude, body }) => `${prelude} {${body}}`);
+}
+
 /** The CSS that puts a fixture in place of the Ouro look. */
 export function fixtureCss(name: string): string {
   const fixture = themeFixtures[name];
   if (fixture === undefined) throw new Error(`no theme fixture ${name}`);
   const unset = `:root, .dark { ${declared(ouroThemeCss).map((property) => `${property}: initial;`).join(" ")} }`;
-  const base = topLevelBlocks(baseCss)
-    .filter(({ prelude }) => prelude === ":root" || prelude === ".dark")
-    .map(({ prelude, body }) => `${prelude} {${body}}`);
+  const base = [
+    ...topLevelBlocks(baseCss)
+      .filter(({ prelude }) => prelude === ":root" || prelude === ".dark")
+      .map(({ prelude, body }) => `${prelude} {${body}}`),
+    ...rootStepBlocks(),
+  ];
   const own = topLevelBlocks(fixture).map(({ prelude, body }) => `${prelude === "@theme inline" ? ":root" : prelude} {${body}}`);
   return [unset, ...base, ...own].join("\n");
 }

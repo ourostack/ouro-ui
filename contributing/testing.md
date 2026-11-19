@@ -36,7 +36,7 @@ The test suites and lanes beyond a component's own tests: the conformance matrix
 
 ## Vitest projects
 
-- Test with Vitest browser mode. Projects: `ouro-chromium`, `ouro-webkit`, `ouro-touch` (files named `*.touch.test.ts(x)`, Chromium as a 390x844 touch phone), from `ouroTestProjects`, `visual` (files named `*.visual.test.ts(x)`, only when `CI_VISUAL=1`) and `themes` (`test/themes/`, Chromium, only when `OURO_THEMES=1`; it writes no motion evidence).[^a-projects]
+- Test with Vitest browser mode. Projects: `ouro-chromium`, `ouro-webkit`, `ouro-touch` (files named `*.touch.test.ts(x)`, Chromium as a 390x844 touch phone), from `ouroTestProjects`, `visual` (files named `*.visual.test.ts(x)`, only when `CI_VISUAL=1`) and `themes` (`test/themes/`, Chromium, only when `OURO_THEMES=1`; it writes no motion evidence). nova, shadcn's default preset, is also checked with Ouro check's rules over every story at 1280 and 2560 px, past the root type step (`test/themes/nova-check.test.tsx`).[^a-projects][^a-nova-check]
 
 ## End-to-end specs
 
@@ -57,6 +57,7 @@ The test suites and lanes beyond a component's own tests: the conformance matrix
 [^a-stories-glob]: test/stories.tsx verify:fileLine(test/stories.tsx, /are both \$\{key\} stories: rename one file/) verify:fileLine(test/stories.tsx, /import\.meta\.glob/)
 [^a-visual]: test/screenshots.visual.test.tsx; .github/workflows/visual-baselines.yml verify:fileLine(test/screenshots.visual.test.tsx, /light, dark and reduced motion, at 390px and/) verify:fileLine(.github/workflows/visual-baselines.yml, /on Linux/)
 [^a-projects]: registry/ouro/lib/ouro/testing/vitest.ts; vitest.config.ts verify:fileLine(registry/ouro/lib/ouro/testing/vitest.ts, /390x844/) verify:fileLine(vitest.config.ts, /OURO_THEMES/) verify:fileLine(vitest.config.ts, /CI_VISUAL/)
+[^a-nova-check]: test/themes/nova-check.test.tsx; scripts/shard.mjs verify:fileLine(test/themes/nova-check.test.tsx, /\[2560, 1440\]/) verify:fileLine(test/themes/nova-check.test.tsx, /sweepStoryCheck/) verify:fileLine(scripts/shard.mjs, /test\/themes\/nova-check\.test\.tsx/) verify:fileLine(registry/ouro/theme/ouro-base.css, /2400px/)
 [^a-sr-harness]: test:scripts/sr-classify.test.mjs::a command line Playwright refused is harness, not an accessibility finding (#1848) verify:testExists(scripts/sr-classify.test.mjs::a command line Playwright refused is harness, not an accessibility finding (#1848))
 [^a-sr-classify]: scripts/sr-classify.mjs verify:testExists(scripts/workflows.test.mjs::Release tags a commit of main whose push CI and screen-reader lane passed, and runs no rehearsal) verify:testExists(scripts/workflows.test.mjs::sr-infra-issue.sh opens the screen-reader-infra issue once, then comments on it, and prints it)
 [^a-touch-watchdog]: scripts/touch-watchdog.test.mjs verify:testExists(scripts/touch-watchdog.test.mjs::touchStep accepts touchcancel as the gesture's terminal event)
