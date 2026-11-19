@@ -38,7 +38,7 @@ export function tarball(files) {
 
 // ---- A GitHub in memory: one repository, its refs, commits, trees, blobs and pull requests ----------------
 
-export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r", queued = () => false, dispatch = 204 } = {}) {
+export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = null, name = "o/r", queued = () => false, dispatch = 204, review = 201, disarmFails = false } = {}) {
   let next = 1;
   const id = () => `${(next++).toString(16).padStart(40, "0")}`;
   const blobs = new Map();
@@ -144,10 +144,20 @@ export function fakeRepo(files, { mergeMethods = ["SQUASH"], latestRelease = nul
       calls.push(`repository_dispatch ${input.event_type} ${input.client_payload.sha}${dispatch < 400 ? "" : ` refused ${dispatch}`}`);
       return dispatch < 400 ? ok({}, dispatch) : ok({ message: "Resource not accessible by integration" }, dispatch);
     }
+    if ((match = /^repos\/o\/r\/pulls\/(\d+)\/requested_reviewers$/.exec(path)) && method === "POST") {
+      const refused = typeof review === "function" ? review() : review;
+      if (refused >= 400) return { status: refused, headers: new Map(), text: async () => JSON.stringify({ message: "Reviews may only be requested from collaborators" }) };
+      const pr = pulls[Number(match[1]) - 1];
+      pr.requested_teams = [...new Map([...(pr.requested_teams ?? []), ...input.team_reviewers.map((slug) => ({ slug }))].map((team) => [team.slug, team])).values()];
+      calls.push(`requested ${input.team_reviewers.join(",")} on ${pr.number}`);
+      return ok(pr, 201);
+    }
+    if (/^repos\/o\/r\/pulls\/\d+\/reviews$/.test(path) && method === "GET") return ok([]);
     if (/^repos\/o\/r\/issues\/\d+\/comments$/.test(path)) return ok({}, 201);
     if (path === "graphql") {
       const pr = pulls.find((item) => item.node_id === input.variables.id);
       if (input.query.includes("disablePullRequestAutoMerge")) {
+        if (disarmFails) return ok({ errors: [{ message: "Pull request is in a merge queue" }] });
         calls.push(`disarm ${pr.number} at ${refs.get(BRANCH)}`);
         pr.autoMerge = null;
         pr.auto_merge = null;
