@@ -75,7 +75,7 @@ describe("ConversationList hover", () => {
     const host = await render(list());
     const row = rowOf(host, "Trail crew");
     const more = moreOf(row)!;
-    const time = row.querySelector<HTMLElement>("[data-ouro-conversation-time]")!.parentElement!;
+    const time = row.querySelector<HTMLElement>("[data-ouro-conversation-time]")!;
     expect(moreOf(rowOf(host, "No menu here"))).toBeNull();
     expect(more.textContent).toContain("More options for Trail crew");
     expect(style(more).opacity).toBe("0");

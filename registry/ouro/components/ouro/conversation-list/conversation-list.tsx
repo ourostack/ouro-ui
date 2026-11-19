@@ -249,13 +249,13 @@ const quiet = "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foregr
 const controlClass =
   "press relative box-border flex w-full min-w-0 cursor-pointer items-center rounded-(--ouro-row-radius,var(--radius-ouro-md)) border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 " +
   "text-start text-foreground select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:hover:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:hover:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:hover:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
+  "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid pointer-coarse:min-h-11 pointer-fine:group-hover/row:bg-[color:var(--ouro-row-hover,color-mix(in_oklab,var(--muted)_60%,var(--background)))] pointer-fine:group-hover/row:shadow-(--ouro-row-hover-shadow,0_0_0_1px_var(--border)) forced-colors:pointer-fine:group-hover/row:border-[Highlight] active:bg-[color:var(--ouro-row-pressed,var(--muted))] pointer-fine:hover:active:bg-[color:var(--ouro-row-pressed,var(--muted))]";
 // A row opens and closes at once (`press` eases no colour): the open row is drawn in its accent on the first frame after
 // it becomes current, and the row that closes drops it on that frame.
 const rowClass = "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground forced-colors:aria-[current=true]:border-2";
 // The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
 // hover would make it look closed. These replace controlClass's hover and press colours.
-const currentClass = "pointer-fine:hover:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
+const currentClass = "pointer-fine:group-hover/row:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
 const headerClass = "gap-1.5 py-1.5 text-sm";
 const listClass = "m-0 flex list-none flex-col gap-0.5 p-0";
 
@@ -450,13 +450,19 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
               // and sits beside them on a coarse one. The slot is reserved either way, so the row never changes size.
               <span
                 className={cn(
-                  "flex shrink-0 items-center gap-2 transition-opacity duration-(--ouro-duration-fast) ease-[ease]",
-                  hasMenu(item) && "pointer-fine:min-w-7 pointer-fine:justify-end pointer-coarse:me-9",
-                  hasMenu(item) && "pointer-fine:group-hover/row:opacity-0 pointer-fine:group-focus-within/row:opacity-0",
+                  "flex shrink-0 items-center gap-2",
+                  hasMenu(item) && "pointer-fine:min-w-7 pointer-fine:justify-end pointer-coarse:me-9 [&>:not([data-ouro-conversation-time])]:order-first",
                 )}
               >
                 {shown(item.time) && (
-                  <span data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
+                  <span
+                    data-ouro-conversation-time=""
+                    className={cn(
+                      "shrink-0 text-xs tabular-nums transition-opacity duration-(--ouro-duration-fast) ease-[ease]",
+                      hasMenu(item) && "pointer-fine:group-hover/row:opacity-0 pointer-fine:group-focus-within/row:opacity-0",
+                      quiet,
+                    )}
+                  >
                     {item.time}
                   </span>
                 )}
@@ -1027,7 +1033,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       event.preventDefault();
       return openMenu(item, key, frozen(event.currentTarget));
     }
-    if (event.key === "ArrowRight" && hasMenu(itemOf(key)!)) {
+    const row = itemOf(key);
+    if (event.key === "ArrowRight" && row !== undefined && hasMenu(row)) {
       const more = event.currentTarget.nextElementSibling as HTMLElement | null;
       event.preventDefault();
       more?.focus();
