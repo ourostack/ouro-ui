@@ -758,7 +758,8 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
         onPointerMove={follow}
         // A finger lifted leaves the tooltip where it was read; a mouse that leaves takes it away.
         onPointerLeave={(event) => event.pointerType !== "touch" && setActive(null)}
-        onFocus={() => setActive((last) => last ?? (count > 0 ? { index: 0, x: x(0), y: top } : null))}
+        // An empty chart has no first category; the check above puts the tooltip away again.
+        onFocus={() => setActive((last) => last ?? { index: 0, x: x(0), y: top })}
         onBlur={() => setActive(null)}
         onKeyDown={(event) => {
           // Escape puts the tooltip away and goes no further, so a dialog around the chart stays open; with no tooltip, it reaches the dialog.

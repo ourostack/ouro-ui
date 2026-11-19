@@ -1035,17 +1035,137 @@ describe("Chart plot", () => {
     expect(chart.querySelector("[data-ouro-chart-line]")!.getAttribute("d")).toBe(curvePath([[(lone.left + lone.right) / 2, lone.y(5)]]));
   });
 
-  it("breaks a line and its area at each missing value, drawing each run between them once", async () => {
-    const gappy = [{ at: "A", value: 5 }, { at: "B" }, { at: "C" }, { at: "D", value: 7 }, { at: "E", value: 8 }, { at: "F" }];
-    const { chart } = await render(<Chart title="Gaps" type="area" data={gappy} categoryKey="at" config={one} />);
+  it("breaks a line and its area at each missing, NaN or infinite value, drawing each run between them once", async () => {
+    const error = vi.spyOn(console, "error");
+    const gappy = [
+      { at: "A", value: 5 },
+      { at: "B", value: Number.NaN },
+      { at: "C", value: Number.POSITIVE_INFINITY },
+      { at: "D", value: 7 },
+      { at: "E", value: 8 },
+      { at: "F", value: 6 },
+      { at: "G" },
+    ];
+    const { chart, rerender } = await render(<Chart title="Gaps" type="area" data={gappy} categoryKey="at" config={one} />);
     await drawn(chart);
     const { left, right, y } = scale(chart, niceTicks(0, 8));
-    const x = (category: number) => left + ((right - left) / 5) * category;
-    const runs = [[[x(0), y(5)]], [[x(3), y(7)], [x(4), y(8)]]] as const;
+    const x = (category: number) => left + ((right - left) / 6) * category;
+    const runs = [[[x(0), y(5)]], [[x(3), y(7)], [x(4), y(8)], [x(5), y(6)]]] as const;
     expect([...chart.querySelectorAll("[data-ouro-chart-line]")].map((line) => line.getAttribute("d"))).toEqual(runs.map((run) => curvePath(run)));
     expect([...chart.querySelectorAll("[data-ouro-chart-area]")].map((area) => area.getAttribute("d"))).toEqual(
       runs.map((run) => `${curvePath(run)}L${run.at(-1)![0]},${y(0)}L${run[0]![0]},${y(0)}Z`),
     );
+    // Each run's area has a key of its own.
+    expect(error).not.toHaveBeenCalled();
+    await rerender(<Chart title="Gaps" type="line" data={gappy} categoryKey="at" config={one} />);
+    await drawn(chart);
+    expect(chart.querySelectorAll("[data-ouro-chart-line]")).toHaveLength(2);
+    expect(chart.querySelector("[data-ouro-chart-area]"), "a line chart's area").toBeNull();
+  });
+
+  it("keeps the last category's label inside the plot's box", async () => {
+    const long = [{ at: "A", value: 1 }, { at: "The longest label of all", value: 2 }];
+    const { chart } = await render(<Chart title="Labels" type="line" data={long} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const { width } = scale(chart, niceTicks(0, 2));
+    const last = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="x"] text')].at(-1)!;
+    expect(last.textContent).toBe("The longest label of all");
+    expect(Math.abs(Number(last.getAttribute("x")) - (width - last.getComputedTextLength() / 2))).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps a category label exactly the gap from the next, and leaves out one that comes closer", async () => {
+    const blank = Array.from({ length: 5 }, () => ({ at: "", value: 1 }));
+    const { host, chart } = await render(<Chart title="Gaps" type="line" data={blank} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const labels = () => chart.querySelectorAll('[data-ouro-chart-axis="x"] text').length;
+    const span = () => {
+      const { left, right } = scale(chart, niceTicks(0, 1));
+      return right - left;
+    };
+    // Labels with no width, a step of 16px apart: each is exactly the gap from the next.
+    for (const [step, shown] of [[16, 5], [15, 3]] as const) {
+      host.style.width = `${host.getBoundingClientRect().width + step * 4 - span()}px`;
+      await expect.poll(span).toBe(step * 4);
+      expect(labels()).toBe(shown);
+    }
+  });
+
+  it("puts the cursor on the category under the tooltip: the band behind a bar, a line through a point", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const cursors = () => [...chart.querySelectorAll("[data-ouro-chart-cursor]")];
+    expect(cursors(), "a cursor with no tooltip").toEqual([]);
+    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+    await act(() => plot.focus());
+    await act(() => plot.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true })));
+    const bar = scale(chart, niceTicks(-5, 30));
+    const band = (bar.right - bar.left) / 3;
+    expect(cursors().map((cursor) => [cursor.tagName, ...numbers(cursor, "x", "y", "width", "height")])).toEqual([["rect", bar.left + band * 2, bar.top, band, bar.bottom - bar.top]]);
+    await rerender(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const line = scale(chart, niceTicks(-5, 30));
+    expect(cursors().map((cursor) => [cursor.tagName, ...numbers(cursor, "x1", "x2", "y1", "y2")])).toEqual([["line", line.right, line.right, line.top, line.bottom]]);
+  });
+
+  it("takes the arrow keys from the page's scrolling, and lets them on to what is around it", async () => {
+    const { chart } = await render(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const heard: string[] = [];
+    chart.addEventListener("keydown", (event) => heard.push(event.key));
+    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+    await act(() => plot.focus());
+    let kept = true;
+    await act(() => {
+      kept = plot.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    });
+    expect(kept, "the key's default").toBe(false);
+    expect(heard).toEqual(["ArrowRight"]);
+  });
+
+  it("shows the tooltip for the category under the pointer, from the plot's edges in and nowhere outside them", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+    const box = plot.getBoundingClientRect();
+    const shown = async (x: number, y: number) => {
+      await act(() => plot.dispatchEvent(new PointerEvent("pointermove", { clientX: box.left + x, clientY: box.top + y, bubbles: true })));
+      return chart.querySelector("[data-ouro-chart-tooltip]")?.textContent?.[0] ?? null;
+    };
+    const bar = scale(chart, niceTicks(-5, 30));
+    const band = (bar.right - bar.left) / 3;
+    const middle = (bar.top + bar.bottom) / 2;
+    // A bar's whole band is its category's.
+    expect(await shown(bar.left + band * 0.9, middle)).toBe("A");
+    expect(await shown(bar.left + band * 1.1, middle)).toBe("B");
+    // Its edges are inside; a pixel past any of them is not.
+    expect(await shown(bar.left, middle)).toBe("A");
+    for (const [x, y] of [[bar.left - 1, middle], [bar.right + 1, middle], [bar.left + 1, bar.top - 1], [bar.left + 1, bar.bottom + 1]] as const) expect(await shown(x, y), `${x},${y}`).toBeNull();
+    expect(await shown(bar.right, bar.bottom)).toBe("C");
+    // A line's nearest point is the category's.
+    await rerender(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const line = scale(chart, niceTicks(-5, 30));
+    const step = (line.right - line.left) / 2;
+    expect(await shown(line.left + step * 0.4, middle)).toBe("A");
+    expect(await shown(line.left + step * 0.6, middle)).toBe("B");
+  });
+
+  it("turns the tooltip card before the point once it would pass the plot's edge, and not before", async () => {
+    const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+    const box = plot.getBoundingClientRect();
+    const { width, right } = scale(chart, niceTicks(-5, 30));
+    const point = (x: number) => act(() => plot.dispatchEvent(new PointerEvent("pointermove", { clientX: box.left + x, clientY: box.top + 20, bubbles: true })));
+    const place = () => chart.querySelector<HTMLElement>("[data-ouro-chart-tooltip-place]")!;
+    await point(right - 1);
+    const card = place().offsetWidth;
+    const across = () => Number.parseFloat(place().style.translate);
+    // Exactly reaching the edge still fits; 5px past it, the card goes before the point.
+    await point(width - card - 10);
+    expect(across()).toBe(width - card);
+    await point(width - card - 5);
+    expect(across()).toBe(width - card - 5 - 10 - card);
   });
 
   it("keeps a plot too small for its axes a pixel wide and a pixel tall", async () => {
