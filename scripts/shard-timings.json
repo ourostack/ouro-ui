@@ -736,6 +736,7 @@
     "registry/ouro/e2e/ouro/accordion.spec.ts": 7897,
     "registry/ouro/e2e/ouro/agent-presence.spec.ts": 12864,
     "registry/ouro/e2e/ouro/alert.spec.ts": 6235,
+    "registry/ouro/e2e/ouro/app-window.spec.ts": 5000,
     "registry/ouro/e2e/ouro/aspect-ratio.spec.ts": 3751,
     "registry/ouro/e2e/ouro/attachment.spec.ts": 7050,
     "registry/ouro/e2e/ouro/attention-card.spec.ts": 2148,
