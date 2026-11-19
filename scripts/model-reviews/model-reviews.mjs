@@ -283,16 +283,33 @@ export function relayedSearch(events, query) {
   if (starts.length !== 1 || searches.length !== 1) throw new Error(`Search relay made ${searches.length} web searches and ${starts.length - searches.length} other tool calls; it must make exactly one web search`);
   const [start] = searches;
   // The relay's own words never reach a reviewer, not even in an error.
-  if (start.data.arguments?.query !== query) throw new Error("Search relay changed the query");
+  if (start.data.arguments?.query !== query) throw Object.assign(new Error("Search relay changed the query"), { detail: String(start.data.arguments?.query) });
   const done = events.find((event) => event.type === "tool.execution_complete" && event.data?.toolCallId === start.data.toolCallId);
-  if (!done?.data?.success) throw new Error("Copilot web search failed");
+  if (!done?.data?.success) throw Object.assign(new Error("Copilot web search failed"), { detail: done?.data?.error?.message ?? null });
   // structuredContent is the tool's result as data; content is its text, which can carry the same JSON twice.
   const result = done.data.result ?? {};
   return formatSearchResults(result.structuredContent && typeof result.structuredContent === "object" ? result.structuredContent : result.content);
 }
 
-/** Copilot's web search for one query, through a relay session with that one tool and nothing else of the runtime's. */
-export async function copilotSearch(client, sdk, query, { model = SEARCH_RELAY_MODEL, timeoutMs = 120_000 } = {}) {
+/**
+ * Copilot's web search for one query, tried up to `tries` times: a relay that misbehaves or a search that fails (searches
+ * run side by side fail now and then, and the same query then succeeds) is tried again after a pause. Only the fixed
+ * error message of the last try can reach a reviewer; each try's detail goes to `log`.
+ */
+export async function copilotSearch(client, sdk, query, { tries = 3, log = () => {}, pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), ...options } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await copilotSearchOnce(client, sdk, query, options);
+    } catch (error) {
+      log(`Search try ${attempt} of ${tries} failed: ${error.message}${error.detail ? ` (${error.detail})` : ""}`);
+      if (attempt >= tries) throw new Error(error.message);
+      await pause(attempt * 3000);
+    }
+  }
+}
+
+/** One try of a Copilot web search, through a relay session with that one tool and nothing else of the runtime's. */
+async function copilotSearchOnce(client, sdk, query, { model = SEARCH_RELAY_MODEL, timeoutMs = 120_000 } = {}) {
   const events = [];
   const session = await client.createSession({
     model,
@@ -1080,7 +1097,7 @@ export async function main(args = process.argv.slice(2)) {
       review.log = (message) => writeLog(redactSecrets(message, secrets));
     }
     const relay = limiter(3);
-    const search = Object.assign(options.search === "copilot" ? (query) => relay(() => copilotSearch(client, sdk, query)) : (query) => perplexitySearch(query, keys.perplexity), { backend: options.search });
+    const search = Object.assign(options.search === "copilot" ? (query) => relay(() => copilotSearch(client, sdk, query, { log: (message) => console.log(`  ${redactSecrets(message, secrets)}`) })) : (query) => perplexitySearch(query, keys.perplexity), { backend: options.search });
     results = await runPool(selected.map((review) => async () => {
       const transcript = [];
       try {

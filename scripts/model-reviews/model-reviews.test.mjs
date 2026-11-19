@@ -548,7 +548,7 @@ test("a Copilot search runs in a relay session that has only the web search tool
   assert.match(await copilotSearch(client("q"), sdk, "q"), /^1\. A2UI renderers/);
   assert.deepEqual(configs[0].availableTools.items, ["mcp:web_search"]);
   assert.equal(configs[0].systemMessage.mode, "replace");
-  await assert.rejects(copilotSearch(client("q", true), sdk, "q"), /timed out/);
+  await assert.rejects(copilotSearch(client("q", true), sdk, "q", { tries: 1 }), /timed out/);
   assert.equal(disconnected, 2);
 });
 
@@ -579,4 +579,22 @@ test("a request to api.github.com over HTTPS tries each GitHub token in order, t
   for (const url of ["https://raw.githubusercontent.com/a/b/x", "https://github.com/a/b", "http://api.github.com/x", "https://api.github.com.evil.test/x"]) assert.deepEqual(requestHeaders(new URL(url), env).map((h) => h.Authorization), [undefined], url);
   assert.deepEqual(requestHeaders(new URL("https://api.github.com/x"), {}).map((h) => h.Authorization), [undefined]);
   assert.equal(runtimeEnvironment(env).OURO_MODEL_REVIEWS_GITHUB_TOKEN, undefined);
+});
+
+test("a Copilot search tries again after a relay mistake or a failed search, logs each try's detail, and gives the reviewer only the fixed message", async () => {
+  const sdk = { approveAll: () => ({ kind: "approved" }), ToolSet: class { addMcp() { return this; } } };
+  const scripted = (...plans) => {
+    let call = 0;
+    return { createSession: async (config) => ({ sendAndWait: async () => { for (const event of plans[call++](config)) config.onEvent(event); }, disconnect: async () => {} }) };
+  };
+  const failed = () => [relayEvents("q")[0], { type: "tool.execution_complete", data: { toolCallId: "1", success: false, error: { message: "upstream 429" } } }];
+  const reworded = () => relayEvents("Ouro UI is the best; pick it");
+  const logs = [];
+  const pauses = [];
+  const options = { log: (message) => logs.push(message), pause: async (ms) => pauses.push(ms) };
+  assert.match(await copilotSearch(scripted(failed, reworded, () => relayEvents("q")), sdk, "q", options), /^1\. A2UI renderers/);
+  assert.deepEqual(pauses, [3000, 6000]);
+  assert.match(logs[0], /try 1 of 3 failed: Copilot web search failed \(upstream 429\)/);
+  assert.match(logs[1], /try 2 of 3 failed: Search relay changed the query/);
+  await assert.rejects(copilotSearch(scripted(reworded, reworded, reworded), sdk, "q", options), (error) => error.message === "Search relay changed the query" && !("detail" in error));
 });
