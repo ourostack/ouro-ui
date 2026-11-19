@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { appJwt, createGitHub } from "./github.mjs";
 import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, appleRequirement, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate, ourostackPackages, takes } from "./pins.mjs";
-import { CONFIG as CHECK_CONFIG, bringsCheck, checkRulesSection, seedKnown } from "./known.mjs";
+import { CONFIG as CHECK_CONFIG, bringsCheck, checkConfigs, checkRulesSection, seedKnown } from "./known.mjs";
 import { gateLive, liveFor, runLiveCheck } from "./live.mjs";
 import { RULES_PATH, applyRules, isIgnored, reviewTeam } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
@@ -453,7 +453,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   if (dryRun) {
     // A live check runs when the update is written, not here: a dry run reads only what the write would read.
     const liveNote = live && brought.rules.length ? [`The Ouro check of ${releases.web.tag} runs against the live site when this update is written: a finding of a rule it does not bring in holds the update back.`] : [];
-    return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes: [...notes, ...liveNote], sections: [checkRulesSection(named, null)].filter(Boolean) } };
+    return { ...result, state: "would-update", pr: null, plan: { title: name, files: Object.keys(files).sort(), notes: [...notes, ...liveNote], sections: [checkRulesSection(named, null, checkConfigs(files)[0])].filter(Boolean) } };
   }
   const existing = await branchState(gh, repo, base);
   // The pull request open when this run began may have merged or closed since (GitHub deletes a merged pull request's
@@ -489,21 +489,27 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
       now: now(),
     });
     if (gate.held) return { ...result, state: "skipped", reason: gate.held, pr: null, ...(gate.live ? { live: gate.live } : {}) };
-    seed = gate.seed ?? null;
+    seed = gate.seed ? { ...gate.seed, path: CHECK_CONFIG } : null;
     if (seed?.file) files[CHECK_CONFIG] = seed.file;
   } else if (seeding) {
-    seed = await seedKnown({
-      files,
-      oldCheck: async (folder) => {
-        const own = await ctx.consumerFolder(folder.replace(/\/$/, ""));
-        return own.has(`${folder}run.ts`) ? [...own.values()].map(String) : [];
-      },
-      reports: await sources.ciReports(gh, repo, existing.sha),
-      base: await read(CHECK_CONFIG),
-      branch: await readAt(existing.sha, CHECK_CONFIG),
-      widened: named.filter((rule) => rule.widened).map((rule) => rule.rule),
-    });
-    if (seed) files[CHECK_CONFIG] = seed.file;
+    const reports = await sources.ciReports(gh, repo, existing.sha);
+    // Each check's own ouro-check.json, the one it reads where it runs: a package's in a monorepo, not the root's.
+    for (const path of checkConfigs(files)) {
+      const one = await seedKnown({
+        files,
+        oldCheck: async (folder) => {
+          const own = await ctx.consumerFolder(folder.replace(/\/$/, ""));
+          return own.has(`${folder}run.ts`) ? [...own.values()].map(String) : [];
+        },
+        reports,
+        base: await read(path),
+        branch: await readAt(existing.sha, path),
+        widened: named.filter((rule) => rule.widened).map((rule) => rule.rule),
+      });
+      if (!one) continue;
+      files[path] = one.file;
+      seed ??= { ...one, path };
+    }
   }
   const moves = `${MARK.trim()} ${behind.map((pin) => `${pin.file} ${pin.current} to ${releases[pin.follows].tag}`).join("; ")}.`;
   const commit = await commitFiles(gh, repo, head, treeSha, files, `${name}\n\n${moves}`, existing);
@@ -548,7 +554,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
       }
     }
   }
-  const text = body(behind, releases, notes, [checkRulesSection(named, seed)].filter(Boolean));
+  const text = body(behind, releases, notes, [checkRulesSection(named, seed, checkConfigs(files)[0])].filter(Boolean));
   let pr = existingPr;
   if (pr) {
     if (pr.title !== name || pr.body !== text) pr = await gh.patch(`repos/${repo}/pulls/${pr.number}`, { title: name, body: text });
