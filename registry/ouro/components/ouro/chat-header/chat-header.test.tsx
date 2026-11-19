@@ -90,17 +90,17 @@ describe("ChatHeader", () => {
     expect(warn).toHaveBeenCalledWith(
       "[ouro-ui] ChatHeader: Ana Lind's presenceLabel is missing, so the header says no words for their dot. Fix: <ChatHeader members={[{ name: \"Ana Lind\", presence: \"busy\", presenceLabel: \"In a meeting\" }]} />.",
     );
-    // In a group, the message names the member whose words are missing, after one whose are there.
+    // In a group, the message names the member whose words are missing, after one whose are there and one with no dot.
     warn.mockClear();
-    await render(<ChatHeader title="Crew" members={[nemo, busy, { name: "Plain" }]} />);
+    await render(<ChatHeader title="Crew" members={[nemo, { name: "Plain" }, busy]} />);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("Ana Lind's presenceLabel is missing"));
     await userEvent.click(page.getByRole("button", { name: "3 members" }));
     const list = page.getByRole("dialog", { name: "Members" });
     await expect.element(list).toBeVisible();
     const rows = [...list.element().querySelectorAll("[data-ouro-chat-header-members] li")];
-    expect(rows[1]!.textContent).toBe("Ana Linddo not disturb");
+    expect(rows[2]!.textContent).toBe("Ana Linddo not disturb");
     // A member with neither a note nor a presence has their name alone, with no empty line under it.
-    expect(rows[2]!.querySelectorAll(":scope > span:last-child > span")).toHaveLength(1);
+    expect(rows[1]!.querySelectorAll(":scope > span:last-child > span")).toHaveLength(1);
   });
 
   it("shows a group chat as its members, says who is in it, and opens the member list from the count", async () => {
