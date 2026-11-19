@@ -92,7 +92,7 @@ export function ThemePicker(props: ThemePickerProps): JSX.Element {
             aria-label={item.label}
             aria-pressed={item.name === preset}
             onClick={() => setPreset(item.name)}
-            className="h-auto p-1"
+            className="h-auto p-1 forced-colors:aria-pressed:forced-color-adjust-none forced-colors:aria-pressed:[background-color:Highlight]"
           >
             <span
               data-theme={item.name}
