@@ -1420,6 +1420,22 @@ describe("Inspector", () => {
     expect(button.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
   });
 
+  it("centres the spotlit item as before when the focused opener is already off screen", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host, rerender } = await render(<Opened badgeTop={2400} />);
+    await drawn(2);
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    const badge = host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+    scrollTo({ top: 1200, behavior: "instant" });
+    expect(document.activeElement).toBe(button);
+    expect(button.getBoundingClientRect().bottom).toBeLessThan(0);
+    await rerender(<Opened badgeTop={2400} spotlight="badge" />);
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "smooth" }]);
+    expect(into.mock.contexts[0]).toBe(badge);
+  });
+
   it("scrolls back up only as far as keeps an opener on screen, when the spotlit item is above it", async () => {
     await page.viewport(390, 844);
     const into = vi.spyOn(Element.prototype, "scrollIntoView");

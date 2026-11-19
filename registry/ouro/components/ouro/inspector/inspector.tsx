@@ -158,6 +158,7 @@ function insideScrollContainer(element: Element): boolean {
   // The walk stops at body: body's overflow carries over to the viewport, whose scroll is the page's own, so a body with
   // overflow-x hidden (and so overflow-y auto) scrolls nothing itself.
   for (let node = element.parentElement; node !== document.body; node = node.parentElement) {
+    /* istanbul ignore if @preserve -- every element X-ray spotlights is in the page, so its walk meets body first */
     // Stryker disable next-line ConditionalExpression,BooleanLiteral: every element X-ray spotlights is in the page, so its walk meets body first; this guards one removed mid-walk.
     if (node === null) return false;
     if (/auto|scroll|overlay|hidden/.test(getComputedStyle(node).overflowY)) return true;
