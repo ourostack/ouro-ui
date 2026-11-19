@@ -11,7 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { REVIEW_MODELS, SUBJECT, evaluationSection } from "./model-reviews.mjs";
+import { BUDGET_REACHED, REVIEW_MODELS, SUBJECT, evaluationSection } from "./model-reviews.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = "https://github.com/ourostack/ouro-ui";
@@ -31,7 +31,8 @@ export function publishedRuns(dir = RESULTS_DIR) {
       for (const review of run.reviews ?? []) {
         const transcript = path.join(dir, folder, "transcripts", `${review.provider}.json`);
         if (!fs.existsSync(transcript)) continue;
-        const actions = (JSON.parse(fs.readFileSync(transcript, "utf8")).rounds ?? []).flatMap((round) => round.actions ?? []);
+        // A call the research budget refused read nothing, so it isn't counted.
+        const actions = (JSON.parse(fs.readFileSync(transcript, "utf8")).rounds ?? []).flatMap((round) => round.actions ?? []).filter((a) => a.result !== BUDGET_REACHED);
         review.research = { searches: actions.filter((a) => a.type === "search").length, fetches: actions.filter((a) => a.type === "fetch").length };
       }
       return run;
@@ -137,6 +138,13 @@ export function whatChanged(previous, latest, subject = SUBJECT, replays = []) {
   const sha = (series) => series.runs[0].candidates.find((c) => c.name === subject)?.sha;
   const [then, now] = [sha(previous), sha(latest)];
   if (then && now && then !== now) causes.push(`**${subject} itself:** it was read at [\`${then.slice(0, 8)}\`](${REPO}/tree/${then}) then and [\`${now.slice(0, 8)}\`](${REPO}/tree/${now}) now ([what changed](${REPO}/compare/${then}...${now})).`);
+  const shas = (series) => new Map(series.runs[0].candidates.filter((c) => c.sha && c.name !== subject).map((c) => [c.name, c.sha]));
+  const [othersThen, othersNow] = [shas(previous), shas(latest)];
+  const moved = [...othersNow].filter(([name, sha]) => othersThen.has(name) && othersThen.get(name) !== sha).map(([name]) => name);
+  if (moved.length) causes.push(`**The other candidates:** ${moved.length} other ${moved.length === 1 ? "candidate was" : "candidates were"} read at newer commits too: ${moved.join(", ")}.`);
+  const config = (series) => series.rows.find((row) => row.review?.configuration)?.review.configuration ?? {};
+  const [budgetThen, budgetNow] = [config(previous).researchBudget, config(latest).researchBudget];
+  if (budgetThen !== budgetNow) causes.push(`**The research budget:** ${budgetThen ? `${budgetThen.toLocaleString("en-US")} characters` : "none"} then, ${budgetNow ? `${budgetNow.toLocaleString("en-US")} characters` : "none"} now. The prompt tells each model its budget, and a session that stays inside it can finish without compacting, so a model that compacted before may give a verdict now.`);
   const names = (series) => new Map(series.rows.map((row) => [row.provider, row.displayName]));
   const [was, is] = [names(previous), names(latest)];
   const joined = [...is].filter(([p]) => !was.has(p)).map(([, n]) => n);
@@ -150,15 +158,19 @@ export function whatChanged(previous, latest, subject = SUBJECT, replays = []) {
     const replay = replays.find((r) => r.runIds?.some((id) => ids.has(id)));
     let replayed = "";
     if (replay) {
-      const done = replay.queries.filter((q) => !q.copilotError);
+      // Only queries that came back with results can say whether Copilot surfaces Ouro UI's pages.
+      const done = replay.queries.filter((q) => !q.copilotError && q.copilotResults > 0);
       const plain = done.filter((q) => !q.namesOuro);
       const named = done.filter((q) => q.namesOuro);
-      replayed = ` Replaying the ${date(previous)} review's ${replay.queries.length} searches through ${searchNow === "copilot" ? "Copilot" : searchNow} on ${replay.replayedAt} ([the record](${REPO}/blob/main/scripts/model-reviews/search-replay.json)): of the ${plain.length} that didn't name ${subject}, it returned a page of ${subject}'s for ${plain.filter((q) => q.copilotOuroPages > 0).length}, and the earlier answers mentioned ${subject} in ${plain.filter((q) => q.perplexityMentionsOuro).length} (judged from the first 500 characters the transcripts keep); of the ${named.length} that named it, ${named.filter((q) => q.copilotOuroPages > 0).length} and ${named.filter((q) => q.perplexityMentionsOuro).length}.${done.length < replay.queries.length ? ` ${replay.queries.length - done.length} could not be replayed.` : ""}`;
+      const results = done.reduce((sum, q) => sum + q.copilotResults, 0);
+      const missing = replay.queries.length - done.length;
+      replayed = ` Replaying all ${replay.queries.length} of the ${date(previous)} review's searches, including those from attempts that gave no verdict, through ${searchNow === "copilot" ? "Copilot" : searchNow} on ${replay.replayedAt} ([the record](${REPO}/blob/main/scripts/model-reviews/search-replay.json), [the script](${REPO}/blob/main/scripts/model-reviews/search-replay.mjs)): ${done.length} came back with results, ${(results / Math.max(done.length, 1)).toFixed(1)} on average. Of the ${plain.length} that didn't name ${subject}, Copilot returned a page of ${subject}'s for ${plain.filter((q) => q.copilotOuroPages > 0).length}, and the earlier answers mentioned ${subject} in ${plain.filter((q) => q.perplexityMentionsOuro).length} (judged from the first 500 characters the transcripts keep); of the ${named.length} that named it, ${named.filter((q) => q.copilotOuroPages > 0).length} and ${named.filter((q) => q.perplexityMentionsOuro).length}.${missing ? ` ${missing} came back with no results or failed.` : ""}`;
     }
     causes.push(`**Search:** then ${SEARCH_NAMES[searchThen]}; now ${SEARCH_NAMES[searchNow]}.${share}${replayed}`);
   }
-  if (!causes.length) return [];
-  return [`${causes.length > 1 ? `${causes.length} things` : "One thing"} besides the models changed between the two reviews, so a change in picks can't be credited to ${subject} alone:`, "", ...causes.map((cause) => `- ${cause}`)];
+  const [from, to] = [date(previous), date(latest)];
+  causes.push(`**The script:** [its changes between the two reviews](${REPO}/commits/main/scripts/model-reviews?since=${from}&until=${to}T23:59:59Z), such as how a refused verdict is explained to the model, aren't all in the records above.`);
+  return [`Besides the models, at least these changed between the two reviews, so a change in picks can't be credited to ${subject} alone:`, "", ...causes.map((cause) => `- ${cause}`)];
 }
 
 /** The page, from `runs` (publishedRuns()). */
@@ -243,7 +255,8 @@ export function renderPage(runs, subject = SUBJECT, replays = searchReplays()) {
   const firsts = latest.rows.filter((row) => row.review?.candidateOrder?.[0] === subject);
   if (firsts.length) out.push(`- ${firsts.map((row) => row.displayName).join(", ")} saw ${subject} first in ${firsts.length > 1 ? "their lists" : "its list"}. The methodology's rule 2 says ${subject} is never first, but the script didn't enforce it until 2026-11-19, and does now. ${firsts.length > 1 ? "Those reviews are" : "That review is"} kept and counted, and flagged here.`);
   out.push(`- One verdict per model is a sample, not a rate. A result is about the models that ran, on that date.`);
-  if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)})`).join("; ")}`);
+  const firstIn = (series) => series.rows.filter((row) => row.review?.candidateOrder?.[0] === subject).map((row) => row.displayName);
+  if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)}${firstIn(s).length ? ` ${firstIn(s).join(", ")} saw ${subject} first, which rule 2 forbids.` : ""})`).join("; ")}`);
   out.push("");
   return out.join("\n");
 }

@@ -621,16 +621,31 @@ test("the page names every change between two reviews besides the models: the su
   const before = { ...withSha(pageRun("2026-11-14-rerun--run-1", "2026-11-14T03:00:00Z", [pageReview("a", "A2UI"), pageReview("b", "A2UI")]), "1".repeat(40)), runId: "old-run" };
   const after = { ...withSha(pageRun("2026-11-19-x--run-1", "2026-11-19T03:00:00Z", [pageReview("a", "Ouro UI"), { ...pageReview("c", "Ouro UI"), candidateOrder: ["Ouro UI", "A2UI", "Flutter"] }]), "2".repeat(40)), runtime: { name: "GitHub Copilot CLI", search: { backend: "copilot" } } };
   const replay = { runIds: ["old-run"], replayedAt: "2026-11-19", queries: [
-    { query: "a2ui swiftui", namesOuro: false, perplexityMentionsOuro: false, copilotOuroPages: 0 },
-    { query: "ouro ui", namesOuro: true, perplexityMentionsOuro: true, copilotOuroPages: 1 },
+    { query: "a2ui swiftui", namesOuro: false, perplexityMentionsOuro: false, copilotResults: 2, copilotOuroPages: 0 },
+    { query: "ouro ui", namesOuro: true, perplexityMentionsOuro: true, copilotResults: 3, copilotOuroPages: 1 },
+    { query: "nothing", namesOuro: false, perplexityMentionsOuro: false, copilotResults: 0, copilotOuroPages: 0 },
     { query: "x", namesOuro: false, perplexityMentionsOuro: false, copilotError: "Copilot web search failed" },
   ] };
   const [previous, latest] = seriesOf([before, after]);
   const lines = whatChanged(previous, latest, "Ouro UI", [replay]).join("\n");
-  assert.match(lines, /^3 things besides the models changed between the two reviews, so a change in picks can't be credited to Ouro UI alone:/);
+  assert.match(lines, /^Besides the models, at least these changed between the two reviews, so a change in picks can't be credited to Ouro UI alone:/);
+  assert.match(lines, /\*\*The script:\*\* \[its changes between the two reviews\]\(https:\/\/github\.com\/ourostack\/ouro-ui\/commits\/main\/scripts\/model-reviews\?since=2026-11-14&until=2026-11-19T23:59:59Z\)/);
   assert.match(lines, /\*\*Ouro UI itself:\*\* it was read at \[`11111111`\][^\n]+compare\/1{40}\.\.\.2{40}/);
   assert.match(lines, /\*\*The panel:\*\* C joined; B left\./);
-  assert.match(lines, /of the 1 that didn't name Ouro UI, it returned a page of Ouro UI's for 0, and the earlier answers mentioned Ouro UI in 0 .*; of the 1 that named it, 1 and 1\. 1 could not be replayed\./);
-  assert.deepEqual(whatChanged(previous, seriesOf([before, { ...before, folder: "2026-11-19-x--run-1", startedAt: "2026-11-19T03:00:00Z" }])[1], "Ouro UI", [replay]), []);
+  assert.match(lines, /Of the 1 that didn't name Ouro UI, Copilot returned a page of Ouro UI's for 0, and the earlier answers mentioned Ouro UI in 0 .*; of the 1 that named it, 1 and 1\. 2 came back with no results or failed\./);
+  assert.match(lines, /Replaying all 4 of the 2026-11-14 review's searches, including those from attempts that gave no verdict, .+?\)\): 2 came back with results, 2\.5 on average\./);
+  // Nothing in the records changed: only the script's own history is named, since the records can't rule it out.
+  const same = whatChanged(previous, seriesOf([before, { ...before, folder: "2026-11-19-x--run-1", startedAt: "2026-11-19T03:00:00Z" }])[1], "Ouro UI", [replay]);
+  assert.equal(same.filter((line) => line.startsWith("- ")).length, 1);
+  assert.match(renderPage([before, after, { ...pageRun("2026-11-20-y--run-1", "2026-11-20T03:00:00Z", [pageReview("a", "A2UI")]), runtime: { name: "GitHub Copilot CLI", search: { backend: "copilot" } } }], "Ouro UI", [replay]), /2026-11-19 \(.* C saw Ouro UI first, which rule 2 forbids\.\)/);
   assert.match(renderPage([before, after], "Ouro UI", [replay]), /- C saw Ouro UI first in its list\. The methodology's rule 2 says Ouro UI is never first/);
+});
+
+test("a replay classifies each query by whether it names Ouro, what Copilot returned, and whether the earlier answer mentioned Ouro", async () => {
+  const { classifyReplay, OURO_PAGE } = await import("./search-replay.mjs");
+  const text = "1. Ouro UI\n   https://github.com/ourostack/ouro-ui\n   snippet\n\n2. A2UI\n   https://a2ui.org/\n   Ouro mentioned";
+  assert.deepEqual(classifyReplay({ model: "m", gaveVerdict: true, query: "Ouro UI agents", prefix: "Ouro UI is" }, text), { model: "m", gaveVerdict: true, query: "Ouro UI agents", namesOuro: true, perplexityMentionsOuro: true, copilotResults: 2, copilotOuroPages: 1, copilotMentionsOuro: true });
+  assert.equal(classifyReplay({ model: "m", gaveVerdict: false, query: "q", prefix: "" }, "", "Copilot web search failed").copilotError, "Copilot web search failed");
+  for (const url of ["https://github.com/ourostack/ouro-ui-core", "https://ui.ouroboros.bot/docs/", "https://ouroboros.bot/", "https://raw.githubusercontent.com/ourostack/ouro-ui/main/README.md"]) assert.match(url, OURO_PAGE, url);
+  for (const url of ["https://github.com/a2ui/a2ui", "https://example.com/ourostack/", "https://notouroboros.bot.example/"]) assert.doesNotMatch(url, OURO_PAGE, url);
 });

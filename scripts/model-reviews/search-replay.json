@@ -1,5 +1,5 @@
 {
-  "about": "The 2026-11-14 review's searches, replayed through GitHub Copilot's web search on 2026-11-19 by scripts/model-reviews/model-reviews.mjs copilotSearch. perplexityMentionsOuro reads only the first 500 characters of each Perplexity answer, which is all the published transcripts keep.",
+  "about": "The 2026-11-14-rerun review's searches, replayed through GitHub Copilot's web search by scripts/model-reviews/search-replay.mjs. perplexityMentionsOuro reads only the first 500 characters of each earlier answer, which is all the published transcripts keep.",
   "runIds": [
     "2716de02-d58a-4312-a0d2-103e468cbee7",
     "3d8d367a-2d7e-41d8-812f-3fd10102af83"
@@ -8,15 +8,17 @@
   "queries": [
     {
       "model": "claude-opus-5-5",
+      "gaveVerdict": false,
       "query": "ourostack ouro-ui Ouro AX agents",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
       "copilotResults": 2,
-      "copilotOuroPages": 1,
+      "copilotOuroPages": 0,
       "copilotMentionsOuro": true
     },
     {
       "model": "claude-opus-5-5",
+      "gaveVerdict": false,
       "query": "ui-sdk.dev \"Connect an Agent\" components actions WebMCP",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -26,6 +28,7 @@
     },
     {
       "model": "claude-opus-5-5",
+      "gaveVerdict": false,
       "query": "a2ui jetpack compose androidx a2ui release",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -35,15 +38,17 @@
     },
     {
       "model": "claude-opus-5",
+      "gaveVerdict": true,
       "query": "Ouro UI ourostack Ouro HX Ouro AX design system agents",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
       "copilotResults": 2,
-      "copilotOuroPages": 1,
+      "copilotOuroPages": 0,
       "copilotMentionsOuro": true
     },
     {
       "model": "claude-opus-5",
+      "gaveVerdict": true,
       "query": "A2UI project governance Google Linux Foundation 2026 announcement",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -53,15 +58,17 @@
     },
     {
       "model": "claude-opus-5",
+      "gaveVerdict": true,
       "query": "ourostack/ouro-ui github stars contributors releases v1.3",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
       "copilotResults": 2,
-      "copilotOuroPages": 2,
+      "copilotOuroPages": 1,
       "copilotMentionsOuro": true
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:developer.android.com \"Test A2UI interfaces\" OR \"Agentic capabilities\" compose",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -71,6 +78,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:developer.android.com \"androidx.a2ui.compose\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -80,6 +88,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:developer.apple.com \"App Intents\" SwiftUI \"Apple Intelligence\" OR \"Siri\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -89,6 +98,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:developer.android.com/develop/ui/compose \"a2ui\" overview",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -98,6 +108,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:docs.flutter.dev \"genui\" OR \"a2ui\" OR \"ai-toolkit\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -107,15 +118,17 @@
     },
     {
       "model": "gemini-4-hydrogen",
+      "gaveVerdict": true,
       "query": "\"ouro-ax\" \"ouro-ui\" github",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
       "copilotResults": 2,
-      "copilotOuroPages": 2,
+      "copilotOuroPages": 1,
       "copilotMentionsOuro": true
     },
     {
       "model": "gemini-4-hydrogen",
+      "gaveVerdict": true,
       "query": "site:ui.shadcn.com \"ai-elements\" OR \"react native\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -125,6 +138,7 @@
     },
     {
       "model": "gemini-4-hydrogen",
+      "gaveVerdict": true,
       "query": "\"SwiftUI\" \"App Intents\" agentic OR \"AppFunctions\" \"Jetpack Compose\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -134,6 +148,7 @@
     },
     {
       "model": "gemini-4-hydrogen",
+      "gaveVerdict": true,
       "query": "\"@chakra-ui/react-mcp\" OR \"chakra-ui\" mcp",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -143,6 +158,7 @@
     },
     {
       "model": "gemini-4-hydrogen",
+      "gaveVerdict": true,
       "query": "\"tamagui\" agentic OR \"mcp\" OR \"ai\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -152,6 +168,7 @@
     },
     {
       "model": "gemini-4-hydrogen",
+      "gaveVerdict": true,
       "query": "\"base-ui\" react native OR agentic OR mcp",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -161,6 +178,7 @@
     },
     {
       "model": "gemini-4-hydrogen",
+      "gaveVerdict": true,
       "query": "\"fluentui\" react native OR agentic OR mcp",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -170,6 +188,7 @@
     },
     {
       "model": "gpt-6-1-sol",
+      "gaveVerdict": true,
       "query": "site.ui-sdk.dev docs behaviors accessibility agents native",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -179,6 +198,7 @@
     },
     {
       "model": "gpt-6-1-sol",
+      "gaveVerdict": true,
       "query": "site:github.com/ourostack/ouro-ui \"Ouro AX\" \"outcome\"",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
@@ -188,6 +208,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:a2ui.org reference renderers SwiftUI Jetpack Compose support status 1.0",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -197,6 +218,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:github.com/ourostack/ouro-ui-core actions single declaration generated surfaces auth x-ray",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
@@ -206,6 +228,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:json-render.dev react native catalog actions validation security streaming",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -215,6 +238,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:docs.copilotkit.ai react native generative UI shared state A2UI frontend tools",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -224,6 +248,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:ui-sdk.dev docs behaviors primitive createPopup accessibility beta",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -233,6 +258,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:mui.com material ui design tokens accessibility native React",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -242,6 +268,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:docs.flutter.dev web accessibility semantics web renderer SEO",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -251,6 +278,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:base-ui.com react overview accessibility composition render prop",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -260,6 +288,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:github.com/microsoft/fluentui-react-native fluent UI native components platform",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -269,6 +298,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:chakra-ui.com docs theming semantic tokens recipes ark ui MCP server",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -278,6 +308,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:radix-ui.com primitives docs accessibility composition asChild",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -287,6 +318,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:tamagui.dev documentation native web compiler accessibility",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -296,6 +328,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:ui.shadcn.com docs base radix registry open code components",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -305,6 +338,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:react-spectrum.adobe.com react aria accessibility native React Stately",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -314,6 +348,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:developer.android.com jetpack compose material3 dynamic color theming semantics",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -323,6 +358,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:developer.apple.com human interface guidelines app intents swiftui design",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -332,6 +368,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:developers.openai.com apps sdk UI component library MCP apps ChatGPT host",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -341,6 +378,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:elements.ai-sdk.dev components reasoning tool message ai elements",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -350,6 +388,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:modelcontextprotocol.io extensions apps sandbox security tool ui resource",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -359,6 +398,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:agent-native.com docs actions authorization validation shared actions surfaces",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -368,6 +408,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:developer.android.com/develop/ui/compose \"Agentic capabilities\" A2UI v1.0 renderer",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -377,6 +418,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:ui-sdk.dev/docs \"Connect an Agent\" WebMCP components actions",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -386,6 +428,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:ui-sdk.dev/docs platform mobile react native support",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -395,6 +438,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:ui-sdk.dev \"Connect an Agent\" \"agent.snapshot\" URL",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -404,6 +448,7 @@
     },
     {
       "model": "gpt-6-1-terra",
+      "gaveVerdict": true,
       "query": "site:developer.android.com/develop/ui/compose/agentic \"A2UI\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -413,6 +458,7 @@
     },
     {
       "model": "gpt-6-astra",
+      "gaveVerdict": true,
       "query": "site.tamagui.dev accessibility Adapt native Select documentation",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -422,6 +468,7 @@
     },
     {
       "model": "gpt-6-astra",
+      "gaveVerdict": true,
       "query": "site:ui-sdk.dev docs behaviors architecture agent",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -431,6 +478,7 @@
     },
     {
       "model": "gpt-6-astra",
+      "gaveVerdict": true,
       "query": "site:ui.ouroboros.bot Ouro AX actions X-ray safety",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
@@ -440,6 +488,7 @@
     },
     {
       "model": "gpt-6-astra",
+      "gaveVerdict": true,
       "query": "site:docs.copilotkit.ai react native shared state human in the loop",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -449,6 +498,7 @@
     },
     {
       "model": "gpt-6-astra",
+      "gaveVerdict": true,
       "query": "site:mui.com MCP server material UI docs",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -458,6 +508,7 @@
     },
     {
       "model": "gpt-6-astra",
+      "gaveVerdict": true,
       "query": "site:developer.android.com \"Agentic capabilities\" \"A2UI\" Compose",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -467,15 +518,15 @@
     },
     {
       "model": "gpt-6-astra",
+      "gaveVerdict": true,
       "query": "\"site:developer.android.com\" \"A2UI\" \"renderer\" \"https://developer.android.com/develop\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
-      "copilotResults": 2,
-      "copilotOuroPages": 0,
-      "copilotMentionsOuro": false
+      "copilotError": "Search relay changed the query"
     },
     {
       "model": "grok-4-7",
+      "gaveVerdict": true,
       "query": "A2UI SwiftUI Jetpack Compose renderer support 2026",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -485,6 +536,7 @@
     },
     {
       "model": "grok-4-7",
+      "gaveVerdict": true,
       "query": "Ouro UI AX agents MCP WebMCP Apple Android architecture",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
@@ -494,6 +546,7 @@
     },
     {
       "model": "grok-4-7",
+      "gaveVerdict": true,
       "query": "site:github.com/vercel-labs/json-render react-native MCP catalog architecture",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -503,6 +556,7 @@
     },
     {
       "model": "grok-4-7",
+      "gaveVerdict": true,
       "query": "site:a2ui.org basic catalog components button text field",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -512,6 +566,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "A2UI protocol agent-to-user interface native renderers Flutter SwiftUI Jetpack Compose web",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -521,22 +576,27 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "Ouro UI Ouro HX Ouro AX \"for people\" \"for agents\" agents build components design system",
       "namesOuro": true,
       "perplexityMentionsOuro": true,
       "copilotResults": 2,
-      "copilotOuroPages": 1,
+      "copilotOuroPages": 0,
       "copilotMentionsOuro": true
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "A2UI v1.0 Basic Catalog Guide components Text Button TextField Column List a2ui.org",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
-      "copilotError": "Search relay changed the query"
+      "copilotResults": 2,
+      "copilotOuroPages": 0,
+      "copilotMentionsOuro": false
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "A2UI protocol security model sandboxing untrusted agent output a2ui.org",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -546,6 +606,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "json-render vercel labs docs catalogs react native renderer \"catalog\" custom components",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -555,6 +616,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "A2UI SwiftUI renderer swift package a2ui-project a2ui-swift",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -564,6 +626,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "github a2ui jetpack compose renderer \"androidx.a2ui\" material3-a2ui repository",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -573,6 +636,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:developer.android.com \"Agentic capabilities\" compose a2ui",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -582,6 +646,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:docs.flutter.dev \"GenUI SDK for Flutter\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -591,6 +656,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:react-spectrum.adobe.com \"StyleMacro\" OR \"MCP\" OR \"llms.txt\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -600,6 +666,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:react.fluentui.dev Griffel slots fluentui v9",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -609,6 +676,7 @@
     },
     {
       "model": "gemini-4-carbon",
+      "gaveVerdict": false,
       "query": "site:developer.android.com \"androidx.a2ui\" OR \"material3-a2ui\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -618,6 +686,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "Tamagui AI agent skills LLM generate UI documentation",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -627,6 +696,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "shadcn/ui AI Elements agent native design system 2026",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -636,6 +706,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "Android \"agentic capabilities\" Compose A2UI \"Render surfaces\" remote compose docs",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -645,6 +716,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "developer.android.com \"A2UI\" render surfaces Compose agentic capabilities",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -654,6 +726,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "Flutter SDK agent-driven UI generative AI 2026 official support",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -663,6 +736,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "Fluent UI agent-native AI components Copilot framework Microsoft 2026",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -672,6 +746,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "Base UI MUI React Aria agentic interface AI 2026",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -681,6 +756,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "\"developer.android.com\" A2UI \"Agentic capabilities\" overview catalog render surface",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -690,6 +766,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "\"Render A2UI surfaces in your app\" Android Jetpack Compose documentation",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -699,6 +776,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "json-render A2UI integration docs \"A2UI Integration\"",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
@@ -708,6 +786,7 @@
     },
     {
       "model": "minimax-m3",
+      "gaveVerdict": false,
       "query": "a2ui.org \"Authoring Universal Web Components\" guide",
       "namesOuro": false,
       "perplexityMentionsOuro": false,
