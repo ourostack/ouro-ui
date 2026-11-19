@@ -12,7 +12,7 @@ export function Settings() {
       <TextInput label="Display name" />
       <Select label="Language" data={["English", "Français"]} />
       <Switch label="Email me about changes" />
-      <Button {...controls["pay-invoice"].props} onClick={() => setStatus(payNext())}>{controls["pay-invoice"].label}</Button>
+      <Button color="blue.8" {...controls["pay-invoice"].props} onClick={() => setStatus(payNext())}>{controls["pay-invoice"].label}</Button>
       <p role="status">{status}</p>
       <Button color="blue.8" onClick={() => setOpen(true)}>Delete account</Button>
       <Modal opened={open} onClose={() => setOpen(false)} title="Delete account">

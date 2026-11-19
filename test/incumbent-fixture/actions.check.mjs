@@ -1,4 +1,5 @@
 import { chromium } from "@playwright/test";
+import { URL } from "node:url";
 import { readFileSync } from "node:fs";
 
 const base = process.argv[2];
