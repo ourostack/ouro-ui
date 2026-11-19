@@ -409,6 +409,42 @@ describe("the stage's controls", () => {
   });
 });
 
+describe("the console's instruments", () => {
+  it("are the porthole's brass and glass in every look: brass bezels on the sight glasses, a brass pipe and a brass-rimmed lamp", async () => {
+    await renderPage("/");
+    const context = document.createElement("canvas").getContext("2d")!;
+    const warmth = (color: string) => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      const [red, , blue] = context.getImageData(0, 0, 1, 1).data;
+      return red! - blue!;
+    };
+    for (const scheme of ["light", "dark"] as const) {
+      setScheme(scheme);
+      for (const preset of ["pearl", "abyss", "brass"]) {
+        root.setAttribute("data-theme", preset);
+        const where = `${preset} ${scheme}`;
+        expect(warmth(getComputedStyle(document.querySelector(".stage-gauge-bezel")!).stroke), `bezel, ${where}`).toBeGreaterThan(40);
+        // The pipe's brass is the gradient its border shows, the last of its backgrounds.
+        const pipe = getComputedStyle(document.querySelector(".stage-pipe")!).backgroundImage.split("linear-gradient").at(-1)!;
+        const tube = pipe.match(/(?:oklab|oklch|rgba?|color)\([^)]*\)/g) ?? [];
+        expect(tube.length, `pipe, ${where}`).toBeGreaterThan(1);
+        for (const color of tube) expect(warmth(color), `pipe, ${where}`).toBeGreaterThan(25);
+        expect(warmth(getComputedStyle(document.querySelector(".stage-lamp")!).borderTopColor), `lamp, ${where}`).toBeGreaterThan(40);
+      }
+    }
+  });
+
+  it("light the floodlight's lamp while the floodlights are on", async () => {
+    await renderPage("/");
+    const lamp = () => document.querySelector(".stage-lamp")!;
+    expect(lamp().hasAttribute("data-lit")).toBe(false);
+    await userEvent.click(page.getByRole("switch", { name: STAGE_COPY.lights }));
+    await expect.poll(() => lamp().hasAttribute("data-lit")).toBe(true);
+  });
+});
+
 describe("the porthole's picture", () => {
   it("is painted in the hero's frosted-glass world, each band of water with its night twin, the fish and the ship painted over it", async () => {
     await renderPage("/");
