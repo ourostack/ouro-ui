@@ -175,6 +175,19 @@ describe("Ouro check's design rules", () => {
     assert.deepEqual(quietly.findings.filter((f) => f.rule === "jank"), []);
   });
 
+  test("giant-text: mendelow.me's root type, grown with the screen to 24px, fails on a 4K display and not on a laptop; ouro-base's 125% step passes", async () => {
+    const words = "<p>Selected work, from the timeline to the tea. Each piece sits under a rule and reads top to bottom.</p><p>The words are the page's running text, drawn at the body size the root sets.</p>";
+    const style = (root: string) => `<style>main{max-width:36rem;margin:0 auto}body{font-size:1.125rem}h1{font-size:4rem;line-height:1}${root}</style>`;
+    const folder = site("giant-text", {
+      "grown.html": page(`<h1>Ari</h1>${words}`, style("@media (min-width: 1600px) { html { font-size: min(calc(0.45vw + 8.8px), 24px); } }")),
+      "stepped.html": page(`<h1>Ari</h1>${words}`, style("@media (width >= 150rem) { html { font-size: 112.5%; } } @media (width >= 200rem) { html { font-size: 125%; } }")),
+    });
+    const result = await check({ targets: [folder], out: dir("giant-text"), sizes: [[1440, 900], [3840, 2160]], themes: ["light"], chromium, log: quiet });
+    const giant = result.findings.filter((f) => f.rule === "giant-text");
+    assert.deepEqual(giant.map((f) => `${f.page} ${f.width} ${f.element}`), ["/grown.html 3840 the page's running text"]);
+    assert.match(giant[0]!.detail, /^most of it is drawn at 27px \(\d+ characters\); keep reading text to 24px or under at every screen size$/);
+  });
+
   test("judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step", async () => {
     // A button whose first click alone takes 400 ms; the veil covers it after that click, for 1200 ms or for good.
     const plan = (veil: string) => page(`<button id="open" type="button" aria-expanded="false">Show the plan</button><div id="panel" hidden>The plan.</div><div style="height:1200px"></div><script>const open = document.getElementById("open"); let clicks = 0; open.addEventListener("click", () => { clicks++; if (clicks === 1) { const start = performance.now(); while (performance.now() - start < 400); ${veil} } const shown = open.getAttribute("aria-expanded") === "true"; open.setAttribute("aria-expanded", String(!shown)); document.getElementById("panel").hidden = shown; });</script>`);
