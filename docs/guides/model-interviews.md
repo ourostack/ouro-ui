@@ -292,7 +292,7 @@ Claude Sonnet read only the first 10,000 of about 135,000 characters in all four
 
 #### Readers can't tell whether Windows and Android render agent cards: neither reads A2UI, and one model thought they draw no composed UI at all.
 
-Signal: past-behavior. Raised by 6 models: Claude Opus 5.5, GPT-6.2 Sol, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2310](https://github.com/ourostack/ouro-ui/issues/2310).
+Signal: past-behavior. Raised by 6 models: Claude Opus 5.5, GPT-6.2 Sol, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2310](https://github.com/ourostack/ouro-ui/issues/2310). What changed: Windows and Android now read A2UI: each draws an A2UI card through the same composed surface as Ouro's own cards, passes core's A2UI test cases, and says so in its README (ourostack/ouro-ui-windows#22, ourostack/ouro-ui-android#17).
 
 Six models noted that Ouro's A2UI adapter is web and Apple only, so agents emitting A2UI would need a translation step on Windows and Android. MAI went further and said composed UI renders only on web and Apple, while Sol read that the composed tree runs on all four kits, so the docs are being read two ways. Ouro should state, in one table per platform, what renders agent cards and in which format, and add the A2UI adapter to the Windows and Android kits.
 
@@ -303,7 +303,7 @@ Six models noted that Ouro's A2UI adapter is web and Apple only, so agents emitt
 
 #### Ouro reads as one person's fast-moving project: no second maintainer, a pre-1.0 core, versions that don't form one release set, and no support policy.
 
-Signal: past-behavior. Raised by 6 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2316](https://github.com/ourostack/ouro-ui/issues/2316).
+Signal: past-behavior. Raised by 6 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2316](https://github.com/ourostack/ouro-ui/issues/2316). What changed: A decision record sets release sets, the rule for core 1.0, a deprecation rule and a security policy (ourostack/ouro-ui-core#98), and core now writes which release of each kit meets which core (ourostack/ouro-ui-core#99). Core 1.0 waits for the first full release set.
 
 Six models found a single maintainer, 0 stars, a registry at v1.3.314, a pre-1.0 core, a decision record dated the day before, and kits pinned to different core versions; their default fear was that the project stalls or changes under them. Company-scale sessions also asked for what procurement needs: a support window, CVE response, an SBOM, and packages on nuget.org and Maven Central instead of a token-gated feed and GitHub Pages. Ouro should publish a second maintainer or backing organisation, a core 1.0 with a deprecation policy, one tested release set across the repositories, a support policy, and standard package registries.
 
