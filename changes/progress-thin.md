@@ -1,0 +1,1 @@
+- New: `Progress` takes `size="thin"`, a hairline bar for under a list header; it keeps its name and value.
