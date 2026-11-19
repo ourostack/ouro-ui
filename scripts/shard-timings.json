@@ -848,6 +848,7 @@
     "registry/ouro/e2e/ouro/text-field.spec.ts": 11805,
     "registry/ouro/e2e/ouro/text.spec.ts": 3896,
     "registry/ouro/e2e/ouro/thread-rail.spec.ts": 8225,
+    "registry/ouro/e2e/ouro/read-receipt.spec.ts": 8225,
     "registry/ouro/e2e/ouro/chat-header.spec.ts": 8225,
     "registry/ouro/e2e/ouro/typing-indicator.spec.ts": 8225,
     "registry/ouro/e2e/ouro/thread-layout.spec.ts": 8225,
