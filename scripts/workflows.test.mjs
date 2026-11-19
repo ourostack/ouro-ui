@@ -872,6 +872,42 @@ test("Required checks compares the file with main's live rules hourly, on a chan
   assert.match(report, /run: scripts\/scheduled-failure\.sh "[^"]+" "Required checks drifted" /);
 });
 
+test("pages-clear.sh cancels other builds' Pages deployments that did not succeed, waits for one in progress to settle, and leaves this one, succeeded ones and a broken gh alone (#2447)", () => {
+  const bin = scratchDir("ouro-gh-");
+  const log = join(bin, "calls.log");
+  const cancelled = join(bin, "cancelled");
+  // A stand-in gh: this run's deployment (cur), one GitHub still holds (old) until it is cancelled, one that reads cancelled
+  // already (gone), which once still held off deploys until it was cancelled again, and one that succeeded (done).
+  writeFileSync(
+    join(bin, "gh"),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${log}"\n[ -z "$BROKEN" ] || exit 1\ncase "$*" in\n  *"deployments?environment=github-pages"*) printf 'cur\\nold\\nold\\ngone\\ndone\\n' ;;\n  *"pages/deployments/gone/cancel"*) ;;\n  *"pages/deployments/gone --jq .status") echo deployment_cancelled ;;\n  *"pages/deployments/old/cancel"*) touch "${cancelled}" ;;\n  *"pages/deployments/old --jq .status") [ -e "${cancelled}" ] && echo deployment_cancelled || echo updating_pages ;;\n  *"pages/deployments/done --jq .status") echo succeed ;;\n  *) exit 99 ;;\nesac\n`,
+  );
+  chmodSync(join(bin, "gh"), 0o755);
+  const run = (env = {}) => spawnSync("bash", [join(root, "scripts/pages-clear.sh"), "cur"], { encoding: "utf8", env: sandboxEnv({ GH_REPO: "o/r", GH_TOKEN: "t", PAGES_CLEAR_SLEEP: "0", ...env }, [bin]) });
+  const cleared = run();
+  assert.equal(cleared.status, 0, cleared.stderr);
+  assert.match(cleared.stdout, /The Pages deployment of old is updating_pages: cancelling it/);
+  assert.match(cleared.stdout, /The Pages deployment of old is now deployment_cancelled\./);
+  const calls = readFileSync(log, "utf8").trim().split("\n");
+  assert.deepEqual(calls.filter((call) => call.includes("/cancel")), ["api -X POST repos/o/r/pages/deployments/old/cancel", "api -X POST repos/o/r/pages/deployments/gone/cancel"]);
+  assert.ok(!calls.some((call) => call.includes("pages/deployments/cur")), "this run's own deployment is never read or cancelled");
+  // A gh that answers nothing leaves the deploy to fail as before, without failing the job here.
+  const broken = run({ BROKEN: "1" });
+  assert.equal(broken.status, 0, broken.stderr);
+  assert.equal(broken.stdout, "");
+});
+
+test("Pages clears a deployment still in progress before it deploys, and deploys once more after clearing again when GitHub refuses it (#2447)", () => {
+  const deploy = workflow("pages.yml").split("\n  deploy:\n")[1];
+  const steps = deploy.slice(deploy.indexOf("    steps:"));
+  assert.match(deploy, /^ {6}url: \$\{\{ steps\.again\.outputs\.page_url \|\| steps\.deployment\.outputs\.page_url \}\}$/m);
+  const clear = steps.indexOf('- run: scripts/pages-clear.sh "$GITHUB_SHA"');
+  const first = steps.indexOf("- id: deployment\n        continue-on-error: true\n        uses: actions/deploy-pages@");
+  const again = steps.indexOf("- id: again\n        if: steps.deployment.outcome == 'failure'\n        uses: actions/deploy-pages@");
+  assert.ok(clear > 0 && first > clear && again > first, "clear, deploy, then deploy again only after a refusal");
+  assert.match(steps, /- if: steps\.deployment\.outcome == 'failure'\n {8}run: \|\n[^\n]*\n {10}scripts\/pages-clear\.sh "\$GITHUB_SHA"\n/);
+});
+
 test("scheduled-failure.sh comments with the text it is given, and says \"Failed again\" by default", () => {
   const bin = scratchDir("ouro-gh-");
   const log = join(bin, "calls.log");
