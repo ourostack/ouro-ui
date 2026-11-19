@@ -49,7 +49,7 @@ interface DesignOptions {
   maxWeights?: number;
   /** The limit on a page's distinct shadows. */
   maxShadows?: number;
-  /** The cap, in CSS pixels, on the size most of the page's running text is drawn at. */
+  /** The cap, in CSS pixels, on the page's reading size: the size that carries its running text. */
   readingPx?: number;
 }
 
