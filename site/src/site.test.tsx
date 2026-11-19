@@ -10,6 +10,7 @@ import { finishReveal } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
+import { phoneTime } from "./components/phone-status";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
@@ -809,6 +810,38 @@ describe("docs", () => {
     await page.viewport(390, 844);
     await renderPage("/docs/dialog/");
     expect(getComputedStyle(document.querySelector("[data-site-phone]")!).display).toBe("none");
+  });
+
+  it("tops the phone's frame with a status bar: the reader's own time, and under Live their own sky", async () => {
+    expect(phoneTime(new Date(2026, 10, 18, 21, 41), "en-US")).toBe("9:41");
+    expect(phoneTime(new Date(2026, 10, 18, 21, 41), "en-GB")).toBe("21:41");
+    const root = document.documentElement;
+    const attributes = ["data-live", "data-sky"].map((name) => [name, root.getAttribute(name)] as const);
+    try {
+      root.removeAttribute("data-live");
+      await page.viewport(1280, 900);
+      await renderPage("/docs/dialog/");
+      await userEvent.click(page.getByRole("button", { name: "Phone" }));
+      const bar = () => document.querySelector<HTMLElement>("[data-site-phone-status]")!;
+      await expect.poll(() => bar()?.textContent).toMatch(/^\d{1,2}:\d{2}$/);
+      expect([phoneTime(new Date(Date.now() - 60_000)), phoneTime(new Date())]).toContain(bar().textContent);
+      expect(bar().getAttribute("aria-hidden")).toBe("true");
+      // The frame's screen is a phone's width, under the bar.
+      expect((page.getByTitle("Dialog on a phone").element() as HTMLIFrameElement).getBoundingClientRect().width).toBeCloseTo(390, -1);
+      // No sky but Live's.
+      expect(bar().querySelector("svg")).toBeNull();
+      root.setAttribute("data-live", "");
+      root.setAttribute("data-sky", "night");
+      await expect.poll(() => bar().dataset["sitePhoneStatus"]).toBe("night");
+      expect(bar().querySelector("svg")).not.toBeNull();
+      root.setAttribute("data-sky", "dawn");
+      await expect.poll(() => bar().dataset["sitePhoneStatus"]).toBe("dawn");
+    } finally {
+      for (const [name, value] of attributes) {
+        if (value === null) root.removeAttribute(name);
+        else root.setAttribute(name, value);
+      }
+    }
   });
 
   it("follows a look chosen in another page of the site, as the phone's frame follows the page around it", async () => {

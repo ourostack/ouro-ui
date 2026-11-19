@@ -95,6 +95,7 @@
 @source not "../components/live-demo.tsx";
 @source not "../components/lost-at-sea.tsx";
 @source not "../components/phone-demo.tsx";
+@source not "../components/phone-status.tsx";
 @source not "../components/surprise-me.tsx";
 @source not "../docs/agent-prompt.ts";
 @source not "../docs/demos";
