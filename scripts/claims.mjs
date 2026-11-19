@@ -62,6 +62,13 @@ async function generatedFailures(root) {
       failures.push({ message: "docs/guides/model-reviews.md differs from what scripts/model-reviews/page.mjs renders from scripts/model-reviews/results/. Render it again: node scripts/model-reviews/page.mjs docs/guides/model-reviews.md." });
     }
   }
+  const interviewsPage = join(root, "docs/guides/model-interviews.md");
+  if (existsSync(join(root, "scripts/model-reviews/interviews-page.mjs")) && existsSync(interviewsPage)) {
+    const { renderInterviewsPage, publishedInterviews, readFindings } = await import(pathToFileURL(join(root, "scripts/model-reviews/interviews-page.mjs")).href);
+    if (readFileSync(interviewsPage, "utf8") !== renderInterviewsPage(publishedInterviews(join(root, "scripts/model-reviews/interviews-results")), readFindings(join(root, "scripts/model-reviews/findings.json")))) {
+      failures.push({ message: "docs/guides/model-interviews.md differs from what scripts/model-reviews/interviews-page.mjs renders from scripts/model-reviews/interviews-results/ and findings.json. Render it again: node scripts/model-reviews/interviews-page.mjs docs/guides/model-interviews.md." });
+    }
+  }
   return failures;
 }
 

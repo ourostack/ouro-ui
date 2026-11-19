@@ -209,8 +209,16 @@ export const BackgroundEventsDay: Story = {
 
 const toolbar: CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12, color: "var(--foreground)" };
 
+/**
+ * The toolbar's events: one a day and the all-day offsite, enough to see the dates move. The story scan opens each of
+ * the toolbar's three tooltips and scans the whole page every time, so a full week put it past its 30 s in WebKit
+ * (#2250); Playground scans that week.
+ */
+const toolbarWeek = week.filter((event) => ["offsite", "plan", "interview", "design", "launch", "demo"].includes(event.id));
+
 /** A toolbar around the grid: TimeGridNav's Today, Previous and Next move `date`, as Page Up, Page Down, ⌥↑, ⌥↓ and ⌥⇧Y do in the grid; the segmented control sets `view`. */
 export const WithToolbar: Story = {
+  args: { events: toolbarWeek },
   render: function Render(args): JSX.Element {
     const [date, setDate] = useState("2026-03-12");
     const [view, setView] = useState<TimeGridView>("work-week");

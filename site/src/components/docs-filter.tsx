@@ -2,6 +2,7 @@ import type { JSX, Ref } from "react";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
+import { AskFor } from "./ask-for";
 
 /**
  * The filter above the docs' links, in the sidebar. It narrows the components as you type, and `hint` says which
@@ -52,12 +53,17 @@ export function DocsFilter({
       />
       {(empty || hint !== undefined) && (
         <p role="status" className="m-0 text-sm text-muted-foreground">
-          {empty
-            ? claim("No component is called that.", {
+          {empty ? (
+            <>
+              {claim("No component is called that.", {
                 source: { file: "site/src/components/docs-filter.tsx" },
                 verify: { testExists: "site/src/site.test.tsx::docs > narrows the sidebar to the components a filter names, and says when none is called that" },
-              })
-            : hint}
+              })}
+              <AskFor query={value} />
+            </>
+          ) : (
+            hint
+          )}
         </p>
       )}
     </div>

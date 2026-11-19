@@ -13,11 +13,12 @@ import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block
 ```tsx
 <CodeBlock language="bash" code="npx shadcn@latest add button" />
 <CodeBlock title="vite.config.ts" code={config} className="max-h-80" />
+<CodeBlock language="ansi" title="What I saw" code={capture} copy={false} wrap />
 ```
 
 ## Usage
 
-It does not color the code; to highlight it, set colors on the `data-language` block from a highlighter of your own, or pass highlighted code to your own `<pre>`. With `catalogue`, the emoji characters in the code show as an image catalogue's pictures.
+It does not color code; to highlight it, set colors on the `data-language` block from a highlighter of your own, or pass highlighted code to your own `<pre>`. Terminal output is the exception: with `language="ansi"`, its escape codes color and dim it, on the server too. With `catalogue`, the emoji characters in the code show as an image catalogue's pictures.
 
 ## Use instead when
 
@@ -31,10 +32,10 @@ Type: `CodeBlockProps`.
 | --- | --- | --- | --- |
 | `catalogue` | `EmojiCatalogue` |  | An image emoji catalogue: emoji characters in the code that it lists show as its pictures, 1em square, over the characters themselves, which stay in place unseen. The lines keep their length and wrapping, and copying or selecting gives the code's own characters. `:shortcode:` text stays text, since in code it means something else. |
 | `className` | `string` |  | Layout only: margins, width, a maximum height that scrolls (`max-h-80`). Appearance classes warn in development. |
-| `code` (required) | `string` |  | The code, as plain text. It shows exactly as given, whitespace and all, and is what the copy button copies. |
+| `code` (required) | `string` |  | The code, as plain text. It shows exactly as given, whitespace and all, and is what the copy button copies. Terminal output with escape codes takes `language="ansi"`. |
 | `copy` | `boolean` | `true` | The copy button in the bar above the code. Turn it off for code nobody should paste, such as output. |
 | `copyLabel` | `string` | `"Copy code"` | The copy button's name for screen readers. |
-| `language` | `string` |  | The language, shown in the block's caption when there is no `title` and set as `data-language` on the block for a highlighter of your own: `language="bash"`. |
+| `language` | `string` |  | The language, shown in the block's caption when there is no `title` and set as `data-language` on the block for a highlighter of your own: `language="bash"`. `language="ansi"` reads `code` as terminal output, such as `tmux capture-pane -e` gives: its escape codes style the text instead of showing. Bold, dim, italic, underline, strikethrough and the 16 basic and bright foreground colors show, in colors mixed from the theme so they keep their contrast in light and dark; dim text is the theme's muted text color. Every other escape code is dropped, and copying gives the text without them. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `title` | `ReactNode` |  | A caption above the code, such as its file name: `title="vite.config.ts"`. |
 | `wrap` | `boolean` |  | Wraps long lines instead of scrolling them sideways. Scrolling keeps code as written, so leave it off for code and turn it on for prose-like text such as a long command. |

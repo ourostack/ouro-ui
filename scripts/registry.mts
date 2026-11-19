@@ -664,7 +664,9 @@ export function buildRegistry(root: string): Registry {
                   verify: [{ testExists: "scripts/claims.test.mjs::the claims checker ships in lib-claims and runs in an app" }, { urlOk: "https://nodejs.org/api/typescript.html#type-stripping" }],
                 },
               )} ${claim("No component imports it; add it by name.", { source: { test: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" }, verify: { testExists: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" } })} The helper lib/ouro/claims.ts and the script lib/ouro/claims-check.mjs.`
-            : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
+            : name === "lib-fragment-focus-script"
+              ? `${claim("fragmentFocusScript(), the inline script for the start of <body> that keeps focus in Safari on a page opened at a place on it while a stylesheet loads.", { source: { test: "site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, on a page opened at a place while its stylesheet loads" }, verify: { testExists: "site/e2e/fragment-focus.spec.ts::fragmentFocusScript > keeps focus as later styles load, on a page opened at a place while its stylesheet loads" } })} ${claim("No component imports it; add it by name.", { source: { test: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" }, verify: { testExists: "scripts/registry.test.mjs::registryDependencies are the same-repo items each item imports, as full unpinned addresses" } })} The helper lib/ouro/fragment-focus-script.ts.`
+              : `Installed with the components that import it; you don't need to add it. The helper lib/ouro/${libFile(name)}.`,
       docs: undefined as string | undefined,
     })),
     ...components.map((entry) => ({

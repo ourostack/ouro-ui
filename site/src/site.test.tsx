@@ -10,6 +10,7 @@ import { finishReveal } from "./voyage/theme-store";
 import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
 import { NO_PREVIEW } from "./components/catalog-preview";
+import { phoneTime } from "./components/phone-status";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
@@ -599,8 +600,29 @@ describe("docs", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["TextField"]);
     await expect.element(nav.getByRole("list", { name: "Forms", exact: true })).toBeVisible();
     await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "zzz");
-    expect(nav.getByRole("link").elements()).toHaveLength(0);
-    await expect.element(nav.getByRole("status")).toHaveTextContent("No component is called that.");
+    // No component's link; the line under the filter offers to ask for one.
+    expect(nav.getByRole("link").elements().filter((link) => !link.closest('[role="status"]'))).toHaveLength(0);
+    await expect.poll(() => nav.getByRole("status").query()?.textContent?.replace(/\s+/g, " ")).toMatch(/^No component is called that\. Want one\? Ask for “zzz”/);
+  });
+
+  it("turns a filter that finds nothing into a request for it, filled in on GitHub", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "  zzz   gizmo ");
+    const ask = nav.getByRole("status").getByRole("link", { name: /^Ask for “zzz gizmo”/ });
+    await expect.element(ask).toBeVisible();
+    const url = new URL(ask.element().getAttribute("href")!);
+    expect(`${url.origin}${url.pathname}`).toBe("https://github.com/ourostack/ouro-ui/issues/new");
+    expect(url.searchParams.get("title")).toBe("Component request: zzz gizmo");
+    expect(url.searchParams.get("body")).toContain('"zzz gizmo"');
+    await expect.element(ask).toHaveAttribute("target", "_blank");
+    // A long one is cut short in the sentence, never in the request.
+    const long = "a component that does a great many things at once";
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), long);
+    const cut = nav.getByRole("status").getByRole("link", { name: /^Ask for “.{31}…”/ });
+    await expect.element(cut).toBeVisible();
+    expect(new URL(cut.element().getAttribute("href")!).searchParams.get("title")).toBe(`Component request: ${long}`);
   });
 
   it("forgives one slip in a filter of four letters or more, after the names that hold it", async () => {
@@ -617,7 +639,8 @@ describe("docs", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toContain("Sheet");
     // Three letters must be exact.
     await userEvent.fill(filter, "dlg");
-    expect(nav.getByRole("link").elements()).toHaveLength(0);
+    // No component's link: only the line that offers to ask for one.
+    expect(nav.getByRole("link").elements().filter((link) => !link.closest('[role="status"]'))).toHaveLength(0);
   });
 
   it("finds a component by the name another kit gives it, and says what it is called here", async () => {
@@ -811,6 +834,38 @@ describe("docs", () => {
     expect(getComputedStyle(document.querySelector("[data-site-phone]")!).display).toBe("none");
   });
 
+  it("tops the phone's frame with a status bar: the reader's own time, and under Live their own sky", async () => {
+    expect(phoneTime(new Date(2026, 10, 18, 21, 41), "en-US")).toBe("9:41");
+    expect(phoneTime(new Date(2026, 10, 18, 21, 41), "en-GB")).toBe("21:41");
+    const root = document.documentElement;
+    const attributes = ["data-live", "data-sky"].map((name) => [name, root.getAttribute(name)] as const);
+    try {
+      root.removeAttribute("data-live");
+      await page.viewport(1280, 900);
+      await renderPage("/docs/dialog/");
+      await userEvent.click(page.getByRole("button", { name: "Phone" }));
+      const bar = () => document.querySelector<HTMLElement>("[data-site-phone-status]")!;
+      await expect.poll(() => bar()?.textContent).toMatch(/^\d{1,2}:\d{2}$/);
+      expect([phoneTime(new Date(Date.now() - 60_000)), phoneTime(new Date())]).toContain(bar().textContent);
+      expect(bar().getAttribute("aria-hidden")).toBe("true");
+      // The frame's screen is a phone's width, under the bar.
+      expect((page.getByTitle("Dialog on a phone").element() as HTMLIFrameElement).getBoundingClientRect().width).toBeCloseTo(390, -1);
+      // No sky but Live's.
+      expect(bar().querySelector("svg")).toBeNull();
+      root.setAttribute("data-live", "");
+      root.setAttribute("data-sky", "night");
+      await expect.poll(() => bar().dataset["sitePhoneStatus"]).toBe("night");
+      expect(bar().querySelector("svg")).not.toBeNull();
+      root.setAttribute("data-sky", "dawn");
+      await expect.poll(() => bar().dataset["sitePhoneStatus"]).toBe("dawn");
+    } finally {
+      for (const [name, value] of attributes) {
+        if (value === null) root.removeAttribute(name);
+        else root.setAttribute(name, value);
+      }
+    }
+  });
+
   it("follows a look chosen in another page of the site, as the phone's frame follows the page around it", async () => {
     const root = document.documentElement;
     const was = localStorage.getItem(THEME_KEY);
@@ -924,7 +979,9 @@ describe("docs", () => {
       await expect.element(main.getByRole("status")).toHaveTextContent("One page by that name.");
       await expect.element(main.getByRole("link", { name: "TextField", exact: true })).toHaveAttribute("href", href("/docs/text-field/"));
       await userEvent.fill(field, "zzz");
-      await expect.element(main.getByRole("status")).toHaveTextContent("Nothing on our charts by that name. Try a component, like Button.");
+      await expect.poll(() => main.getByRole("status").query()?.textContent?.replace(/\s+/g, " ")).toMatch(/^Nothing on our charts by that name\. Want one\? Ask for “zzz”/);
+      // The lost page asks for what it can't find, as the docs' searches do.
+      expect(new URL(main.getByRole("status").getByRole("link").element().getAttribute("href")!).searchParams.get("title")).toBe("Component request: zzz");
     } finally {
       history.replaceState(null, "", before);
     }

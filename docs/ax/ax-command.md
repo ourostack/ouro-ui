@@ -5,7 +5,7 @@
 One definition of a command: its words, effect, arguments and flags, examples and output. From it come the parser (whose refusals name the exact fix), the usage and help, `help --json` and the MCP tool's input schema, so the CLI and the MCP server can never disagree.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.314
+npx shadcn@latest add ourostack/ouro-ui/ax-command#v1.3.317
 ```
 
 It installs `lib/ouro/ax/command.ts`, with `ax-effects`, `ax-exit-codes`, `ax-outcome`, `ax-problem`, `ax-voice`, `ax-wait`. Its tests are `ax-command-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -33,12 +33,13 @@ interface ArgSpec {
   source?: string;
   missing?: string;
   values?: readonly string[];
+  default?: string;
 }
 ```
 
 ### `argUsage`
 
-`<name>`, `[<name>]` or `<name...>`, as usage shows an argument.
+`<name>`, `[<name>]`, `[<name>=<value>]` for a word with a default, or `<name...>`, as usage shows an argument.
 
 ```ts
 function argUsage(a: ArgSpec): string
@@ -184,6 +185,7 @@ interface FlagSpec {
   unless?: string | readonly string[];
   sensitive?: boolean;
   repeat?: true;
+  default?: string | number | boolean;
 }
 ```
 
@@ -257,6 +259,7 @@ interface JsonSchema {
   properties?: Record<string, JsonSchema>;
   required?: string[];
   additionalProperties?: boolean;
+  default?: string | number | boolean;
 }
 ```
 

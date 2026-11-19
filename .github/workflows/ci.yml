@@ -93,6 +93,7 @@ jobs:
           queued=$(gh api "repos/$REPO/actions/runs?status=queued&per_page=1" --jq .total_count) || queued="unknown (the API did not answer)"
           echo "Queued runs in $REPO: $queued"
           echo "**Queued runs** in $REPO as this run planned: $queued" >> "$GITHUB_STEP_SUMMARY"
+      # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -350,7 +351,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -359,6 +362,33 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - &checkout-tarball
+        # A last resort once every try has stalled (#1765): the commit's tarball from the API, unpacked into a repository of one
+        # commit, so the steps that read git's tree (HEAD^{tree}) still work. A job whose steps read history (HEAD^, a fetch from
+        # origin, a release tag, a commit by its sha) keeps its checkout as it was, with a comment saying why.
+        name: actions/checkout stalled three times; unpack the commit's tarball instead (#1765)
+        if: steps.checkout-last.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          echo "::warning title=actions/checkout stalled three times::Its fetch ran past 1 minute or failed on every try; unpacking the commit's tarball instead, which needs no git fetch (ourostack/ouro-ui#1765). The traces of its HTTP requests and packets follow."
+          tail -n 60 /tmp/ouro-checkout-trace.log || true
+          tail -n 60 /tmp/ouro-checkout-packets.log || true
+          find "${GITHUB_WORKSPACE:?}" -mindepth 1 -delete
+          curl -fsSL --retry 3 --retry-all-errors --connect-timeout 20 --max-time 300 -H "Authorization: Bearer $GH_TOKEN" -o "$RUNNER_TEMP/src.tar.gz" "https://api.github.com/repos/$REPO/tarball/$SHA"
+          tar -xzf "$RUNNER_TEMP/src.tar.gz" --strip-components=1 -C "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE" || exit 1
+          git init -q
+          git add --all --force
+          git -c "user.name=github-actions[bot]" -c "user.email=41898282+github-actions[bot]@users.noreply.github.com" -c commit.gpgsign=false commit -q -m "tarball of $SHA"
+          want=$(gh api "repos/$REPO/git/commits/$SHA" --jq .tree.sha)
+          got=$(git rev-parse 'HEAD^{tree}')
+          if [ "$got" != "$want" ]; then
+            echo "::error title=Tarball tree differs::The unpacked tree $got is not the tree of $SHA, $want (ourostack/ouro-ui#1765)."
+            exit 1
+          fi
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -393,6 +423,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
+      # Its pull request ratchets read the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -561,7 +592,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -570,6 +603,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -641,6 +675,7 @@ jobs:
       SHARD: ${{ matrix.shard }}/3
       TIMINGS: .tmp/timings/scripts-${{ matrix.shard }}of3.json
     steps:
+      # Its newest release tag comes from origin's history, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -756,7 +791,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -765,6 +802,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -859,7 +897,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -868,6 +908,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - if: env.BROWSER_RUN == 'true'
         id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
@@ -975,7 +1016,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -984,6 +1027,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -1028,6 +1072,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Its checkout needs every commit, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -1143,6 +1188,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8, fallback]
     name: design (${{ matrix.shard }}/8)
     steps:
+      # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -1308,7 +1354,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -1317,12 +1365,30 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
-      # The full suite's merge reads no package (scripts/coverage-merge.mjs), so this job installs none.
+      - *checkout-tarball
+      # The full suite's merge loads @vitest/coverage-istanbul's istanbul library (scripts/coverage-merge.mjs), so this job installs the packages (#2259).
       - if: env.FALLBACK == 'true'
+        id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
+      - if: env.FALLBACK == 'true'
+        id: node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        timeout-minutes: 3
+        continue-on-error: true
         with:
           node-version: 24
-          cache: ""
+          cache: pnpm
+      - *node-stalled
+      - *node-retry
+      - if: env.FALLBACK == 'true'
+        id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
       - if: env.FALLBACK == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -1382,7 +1448,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -1391,6 +1459,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       # scripts/motion-coverage.mts reads no package, so this job runs it with node, as the motion:coverage script does, and installs none.
       - if: env.BROWSER_RUN == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -1461,7 +1530,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -1470,6 +1541,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -1561,7 +1633,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -1570,6 +1644,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -1658,6 +1733,7 @@ jobs:
       count: ${{ steps.count.outputs.count }}
       shards: ${{ steps.count.outputs.shards }}
     steps:
+      # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -1786,6 +1862,7 @@ jobs:
         shard: ${{ fromJSON(needs.mutation-plan.outputs.shards) }}
     name: mutation (${{ matrix.shard }}/${{ needs.mutation-plan.outputs.count }})
     steps:
+      # Its checkout needs the base commit (HEAD^1), which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -1910,7 +1987,8 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
         continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -1920,6 +1998,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - if: env.KEY != ''
         continue-on-error: true
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -1983,7 +2062,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -1992,6 +2073,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -2060,7 +2142,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -2069,6 +2153,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -2135,6 +2220,7 @@ jobs:
       SHARD: ${{ matrix.shard }}/6
       OURO_E2E_TIMINGS: .tmp/timings/e2e-${{ matrix.shard }}of6.json
     steps:
+      # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -2239,6 +2325,7 @@ jobs:
       SHARD: ${{ matrix.shard }}/9
       OURO_E2E_TIMINGS: .tmp/timings/e2e-sweeps-${{ matrix.shard }}of9.json
     steps:
+      # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -2344,6 +2431,7 @@ jobs:
       env:
         OURO_SYSTEM_PACKAGES: image
     steps:
+      # pnpm site:build reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -2426,6 +2514,7 @@ jobs:
       env:
         OURO_SYSTEM_PACKAGES: image
     steps:
+      # Its Playwright web server runs pnpm site:build, which reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -2505,6 +2594,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # pnpm site:build reads the newest release's registry.json with git show, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -2592,6 +2682,7 @@ jobs:
       OURO_PRESET: ${{ matrix.preset }}
       OURO_APP: /tmp/ouro-app
     steps:
+      # Its ouro variant reads the commit's registry.json by its sha, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -2781,6 +2872,7 @@ jobs:
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
+      # Its ouro variant reads the commit's registry.json by its sha, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -2885,6 +2977,7 @@ jobs:
       OURO_PRESET: ${{ matrix.preset }}
       OURO_APP: /tmp/ouro-app
     steps:
+      # Its ouro variant reads the commit's registry.json by its sha, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -3014,6 +3107,7 @@ jobs:
     env:
       OURO_PRESET: ${{ matrix.preset }}
     steps:
+      # Its namespace variant fetches a release tag from origin, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -3117,7 +3211,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -3126,6 +3222,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -3173,7 +3270,9 @@ jobs:
         with:
           persist-credentials: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -3182,6 +3281,7 @@ jobs:
           GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
         with:
           persist-credentials: false
+      - *checkout-tarball
       - id: pnpm
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         continue-on-error: true
@@ -3221,6 +3321,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # Its current variant fetches a release tag from origin and archives it, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -3291,6 +3392,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Its github variant fetches a release tag from origin and archives it, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -3354,6 +3456,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      # Its checkout needs every commit of the pull request's head, which a tarball lacks, so it has no last resort: its last try may fail as before (#1765).
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
@@ -3480,7 +3583,9 @@ jobs:
             site/e2e/waivers.ts
           sparse-checkout-cone-mode: false
       - *checkout-stalled-again
-      - if: steps.checkout-again.outcome == 'failure'
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 1
         env:
@@ -3495,6 +3600,7 @@ jobs:
             scripts/waivers.mjs
             site/e2e/waivers.ts
           sparse-checkout-cone-mode: false
+      - *checkout-tarball
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24

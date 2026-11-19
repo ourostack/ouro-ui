@@ -1,6 +1,6 @@
 import { spring } from "motion";
 import { afterEach, describe, expect, it } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import ouroPlain from "./ouro-plain.css?inline";
 
@@ -142,6 +142,24 @@ describe("dark mode", () => {
     } finally {
       await commands.emulateMedia({ colorScheme: "light" });
     }
+  });
+});
+
+describe("wide-screen type", () => {
+  const rootPx = () => Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+  it("grows the root a step at 2400px and another at 3200px, then stops at 20px, so a 4K screen at 1x reads at a laptop's size", async () => {
+    const seen: number[] = [];
+    try {
+      for (const width of [1440, 2399, 2400, 3199, 3200, 3840, 5120]) {
+        await page.viewport(width, 900);
+        await expect.poll(() => window.innerWidth).toBe(width);
+        seen.push(rootPx());
+      }
+    } finally {
+      await page.viewport(414, 896);
+    }
+    expect(seen).toEqual([16, 16, 18, 18, 20, 20, 20]);
   });
 });
 

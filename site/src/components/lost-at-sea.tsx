@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore, type JSX } from "react";
+import { AskFor } from "./ask-for";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
@@ -151,7 +152,14 @@ export function LostAtSea(): JSX.Element {
         <TextField label="Find a page or component" type="search" clearable placeholder="A component or a guide" value={query} onChange={(event) => setQuery(event.currentTarget.value)} />
         {query.trim() !== "" && (
           <p role="status" className="m-0 text-sm text-muted-foreground">
-            {found.length === 0 ? "Nothing on our charts by that name. Try a component, like Button." : `${found.length === 1 ? "One page" : `${found.length} pages`} by that name.`}
+            {found.length === 0 ? (
+              <>
+                Nothing on our charts by that name.
+                <AskFor query={query} />
+              </>
+            ) : (
+              `${found.length === 1 ? "One page" : `${found.length} pages`} by that name.`
+            )}
           </p>
         )}
         {found.length > 0 && (
