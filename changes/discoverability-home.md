@@ -1,0 +1,1 @@
+- Changed: the home page's title and description now say what Ouro UI is and who it is for: a shadcn registry of React components with SwiftUI, WinUI and Compose kits, for agents building interfaces with A2UI and MCP Apps.

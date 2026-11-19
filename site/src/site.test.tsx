@@ -1122,6 +1122,12 @@ describe("head tags", () => {
     expect(homeStructuredData({ path: "/", title: "t", description: "a </script> b" })).not.toContain("</script>");
     expect(headTags(routes.find((route) => route.path === "/ax/")!, true).some((t) => t.includes("ld+json"))).toBe(false);
   });
+  it("give the home page the words a search for a shadcn registry, A2UI or MCP Apps would use", () => {
+    const home = routes.find((route) => route.path === "/")!;
+    for (const term of ["shadcn", "React", "SwiftUI", "A2UI", "MCP"]) {
+      expect(`${home.title} ${home.description}`).toContain(term);
+    }
+  });
   it("end a card's title with a full stop before its scene in the alt text, when the title has none", () => {
     const tags = headTags({ path: "/ax/", title: "Ouro AX", description: "A morning with an agent" }, true).join("\n");
     expect(tags).toContain('<meta property="og:image:alt" content="Ouro AX: A morning with an agent. Inside a sleek high-speed train in low golden morning sun, ');
