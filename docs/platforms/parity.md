@@ -10,11 +10,11 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 |---|---|---|---|---|
 | Kit | this repository | [ourostack/ouro-ui-apple v1.2.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.2.0") | [ourostack/ouro-ui-android v0.3.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.3.0") | [ourostack/ouro-ui-windows v0.3.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.3.0") |
 
-Components: Web has 130 of 130, Apple has 20 of 130, Android has 9 of 130, Windows has 9 of 130.[^matrix]
+Components: Web has 131 of 131, Apple has 20 of 131, Android has 9 of 131, Windows has 9 of 131.[^matrix]
 
 Claims covered: Web 7 of 13, Apple 13 of 13, Android 5 of 13, Windows 5 of 13.[^matrix]
 
-Gap cells: 374.[^matrix]
+Gap cells: 377.[^matrix]
 
 ### Components
 
@@ -150,6 +150,7 @@ Gap cells: 374.[^matrix]
 | [chat-header](https://ui.ouroboros.bot/docs/chat-header/) | `chat-header` | Not yet | Not yet | Not yet |
 | [typing-indicator](https://ui.ouroboros.bot/docs/typing-indicator/) | `typing-indicator` | Not yet | Not yet | Not yet |
 | [read-receipt](https://ui.ouroboros.bot/docs/read-receipt/) | `read-receipt` | Not yet | Not yet | Not yet |
+| [theme-picker](https://ui.ouroboros.bot/docs/theme-picker/) | `theme-picker` | Not yet | Not yet | Not yet |
 
 ### Claims
 

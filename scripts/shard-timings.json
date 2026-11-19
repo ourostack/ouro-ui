@@ -851,6 +851,7 @@
     "registry/ouro/e2e/ouro/read-receipt.spec.ts": 8225,
     "registry/ouro/e2e/ouro/chat-header.spec.ts": 8225,
     "registry/ouro/e2e/ouro/typing-indicator.spec.ts": 8225,
+    "registry/ouro/e2e/ouro/theme-picker.spec.ts": 8225,
     "registry/ouro/e2e/ouro/thread-layout.spec.ts": 8225,
     "registry/ouro/e2e/ouro/thread-summary.spec.ts": 3061,
     "registry/ouro/e2e/ouro/time-grid.spec.ts": 9725,
