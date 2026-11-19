@@ -321,7 +321,19 @@ test("on a phone the menu's Search, away from the docs, opens the bar's search p
   await expect(page.getByRole("option", { name: /Skill comparison/ }).first()).toBeVisible();
   await field.fill("no such page at all");
   // real clock: the empty line stays while the search finds nothing; no timer ends it.
-  await expect(page.getByRole("dialog", { name: "Command palette" }).getByText("Nothing aboard by that name. Try another?")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Command palette" }).getByText("Nothing aboard by that name. Want one?")).toBeVisible();
+  // The row under it asks for what was searched, on GitHub, filled in.
+  await page.evaluate(() => {
+    (window as unknown as { opened: string[] }).opened = [];
+    window.open = (url) => {
+      (window as unknown as { opened: string[] }).opened.push(String(url));
+      return null;
+    };
+  });
+  await page.getByRole("option", { name: /^Ask for a component/ }).click();
+  const opened = await page.evaluate(() => (window as unknown as { opened: string[] }).opened);
+  expect(opened).toHaveLength(1);
+  expect(new URL(opened[0]!).searchParams.get("title")).toBe("Component request: no such page at all");
 });
 
 test("on a phone the menu opens on the section you are in, its row just under the top, when its row is far down", async ({ page }) => {

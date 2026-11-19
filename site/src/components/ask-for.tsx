@@ -11,10 +11,11 @@ function wanted(query: string): string {
 /** A new issue on the repository, filled in: a request for what the search found nothing for. */
 export function askForUrl(query: string): string {
   const name = query.trim().replace(/\s+/g, " ");
-  const params = new URLSearchParams({
-    title: `Component request: ${name}`,
-    body: `I searched the Ouro UI docs for "${name}" and found nothing.\n\nWhat I want it to do:\n\n`,
-  });
+  const params = new URLSearchParams(
+    name === ""
+      ? { title: "Component request: ", body: "What I want it to do:\n\n" }
+      : { title: `Component request: ${name}`, body: `I searched the Ouro UI docs for "${name}" and found nothing.\n\nWhat I want it to do:\n\n` },
+  );
   return `${GITHUB}/issues/new?${params}`;
 }
 
