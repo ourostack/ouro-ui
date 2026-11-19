@@ -6,6 +6,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, FINDS, PLANNING, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
+import { crewFace } from "./crew-faces";
 import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 
 await loadPageCode("/nautilus/");
@@ -170,6 +171,24 @@ describe("the ship's radio", () => {
     const like = radio.getByRole("button", { name: "Like", exact: true });
     await userEvent.click(like);
     await expect.element(radio.getByRole("button", { name: "Like, 1" }).last()).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("draws the whole crew's chat from the crew's faces, as a group chat and not a channel, and says who is in it", async () => {
+    const radio = await openRadio();
+    const row = radio.getByRole("button", { name: /^The whole crew ?, group chat with Captain Nemo, Professor Aronnax and 2 others/ });
+    await expect.element(row).toBeInTheDocument();
+    const avatar = row.element().querySelector<HTMLElement>("[data-ouro='avatar']")!;
+    expect(avatar.getAttribute("data-shape")).toBe("group");
+    const slices = [...avatar.querySelectorAll("[data-ouro-avatar-slice]")];
+    // The captain's size beside it, so it shows three of the crew.
+    expect(slices).toHaveLength(3);
+    // The captain's row is the next one down.
+    const captain = document.querySelectorAll("[data-chapter-control='channels'] [data-ouro-part='row']")[1]!.querySelector("[data-ouro='avatar']")!;
+    expect(captain.getAttribute("aria-label")).toBe(RADIO.presence["Captain Nemo"].label);
+    expect(avatar.getBoundingClientRect().width).toBe(captain.getBoundingClientRect().width);
+    await expect.poll(() => slices.map((slice) => slice.querySelector("img")?.getAttribute("src"))).toEqual(
+      [crewFace("Captain Nemo", "md"), crewFace("Professor Aronnax", "md"), crewFace("Conseil", "md")].slice(0, slices.length),
+    );
   });
 
   it("shows the crew's presence on their lines, as in the list of who is on the air", async () => {
