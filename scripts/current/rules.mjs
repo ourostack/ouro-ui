@@ -4,7 +4,8 @@
 //   {
 //     "version": [{ "path": "Sources/App/Release.swift", "pattern": "static let version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"" }],
 //     "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" },
-//     "ignore": ["scripts/agent-benchmark/vendor/"]
+//     "ignore": ["scripts/agent-benchmark/vendor/"],
+//     "review": { "team": "acme/design-system" }
 //   }
 //
 // version: files that carry the app's version, each with a pattern whose first group is the version. When the
@@ -17,6 +18,8 @@
 //   `versions` array starts with the newest version (ourostack/ouroboros's changelog.json): the text is added to the
 //   entry for the app's version, which is put first when it is not there yet.
 // ignore: pin files to leave alone, each a path or a folder ending in `/`.
+// review: `{ "team": "<slug>" }` (or `"<organisation>/<slug>"`) leaves auto-merge off and asks that team to review the
+//   update pull request, for a repository whose governance wants a person to approve each change.
 
 export const RULES_PATH = ".github/ouro-current.json";
 
@@ -108,4 +111,18 @@ export async function applyRules(rules, { read, latestRelease, releases, newest 
 export function isIgnored(rules, path) {
   if (!Array.isArray(rules?.ignore)) return false;
   return rules.ignore.some((entry) => typeof entry === "string" && (entry === path || (entry.endsWith("/") && path.startsWith(entry))));
+}
+
+/**
+ * The team a repository's rules ask to review every update (`"review": { "team": "acme/design-system" }`), as the slug
+ * GitHub's review request takes, or null when the repository merges updates on its own. The organisation, when
+ * written, must be the repository's owner, since a team reviews only inside its own organisation.
+ */
+export function reviewTeam(rules, owner) {
+  if (rules?.review === undefined) return null;
+  const team = rules.review?.team;
+  const [org, slug, ...extra] = typeof team === "string" ? (team.includes("/") ? team.split("/") : [owner, team]) : [];
+  if (!slug || extra.length || !/^[A-Za-z0-9_.-]+$/.test(slug)) throw new Error(`${RULES_PATH}: "review" needs a "team", a team slug such as "design-system" or "${owner}/design-system"`);
+  if (org.toLowerCase() !== String(owner).toLowerCase()) throw new Error(`${RULES_PATH}: the review team ${team} is not in ${owner}, which owns this repository`);
+  return slug;
 }

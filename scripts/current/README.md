@@ -20,13 +20,16 @@ Ouro Current is our own Dependabot for Ouro UI. Install the [Ouro Current GitHub
   {
     "version": [{ "path": "Sources/App/Release.swift", "pattern": "static let version = \"([0-9]+\\.[0-9]+\\.[0-9]+)\"" }],
     "changelog": { "path": "changes/ouro-ui-{version}.md", "text": "Uses {releases}.\n" },
-    "ignore": ["scripts/agent-benchmark/vendor/"]
+    "ignore": ["scripts/agent-benchmark/vendor/"],
+    "review": { "team": "design-system" }
   }
   ```
 
   `ignore` lists pin files to leave alone, as a path or a folder ending in `/`, such as a copy a benchmark pins on purpose.[^ignore] A repository never follows itself, so Ouro UI's own copy of core's generator follows core alone.[^ignore]
 
-- **Turns on auto-merge**, squash where the repository allows it, else a merge commit.[^auto-merge] The repository's own checks decide whether it merges.
+  `review` is for a repository whose governance wants a person to approve each change: with `"review": { "team": "design-system" }` (or `"acme/design-system"`, the organisation that owns the repository), the update pull request is opened with auto-merge off, and that team is asked to review it when the pull request opens and after each push.[^review] A pull request that already had auto-merge on has it turned off, and a team GitHub refuses is named in the run's result while the update still opens, and is asked again on the next run if nobody has reviewed.[^review] An update that stays armed because GitHub would not turn auto-merge off fails that repository's run instead of reporting it off.[^review-armed] A team outside the repository's own organisation, or a `review` with no team, fails that repository's run with the fix.[^review-bad]
+
+- **Turns on auto-merge**, squash where the repository allows it, else a merge commit,[^auto-merge] unless the repository's rules name a review team. The repository's own checks decide whether it merges.
 
 ## What it leaves alone
 
@@ -98,3 +101,6 @@ GH_TOKEN=$(gh auth token) node scripts/current/current.mjs --with-token --only o
 [^full-run]: test:scripts/current/current.test.mjs::when a failing shard cancelled the others and the round pushes nothing, a full run is asked for with a repository_dispatch event, and a workflow without its trigger is named verify:testExists(scripts/current/current.test.mjs::when a failing shard cancelled the others and the round pushes nothing, a full run is asked for with a repository_dispatch event, and a workflow without its trigger is named) verify:testExists(scripts/current/current.test.mjs::ciCutShort names a check workflow whose run had a cancelled job, until a full run of it is dispatched on the commit or sent after it) verify:testExists(scripts/current/current.test.mjs::ciReports reads a full run's reports by the commit its artifacts name, and no other commit's)
 [^slug]: test:scripts/current/current.test.mjs::a fragment name can carry the version with dashes for dots (ourostack/gatefold) verify:testExists(scripts/current/current.test.mjs::a fragment name can carry the version with dashes for dots (ourostack/gatefold))
 [^swift-holds]: test:scripts/current/current.test.mjs::Ouro UI for Apple waits while an ourostack package the app resolves does not take the release verify:testExists(scripts/current/current.test.mjs::Ouro UI for Apple waits while an ourostack package the app resolves does not take the release)
+[^review]: test:scripts/current/current.test.mjs::a repository that names a review team gets its update with auto-merge off and that team asked to review (#2296) verify:testExists(scripts/current/current.test.mjs::a repository that names a review team gets its update with auto-merge off and that team asked to review (#2296)) verify:testExists(scripts/current/current.test.mjs::a repository that adds a review team has its armed update pull request disarmed, and not armed again (#2296)) verify:testExists(scripts/current/current.test.mjs::a review team GitHub will not take is named in the result, the update still opens, and the next run asks again (#2296))
+[^review-bad]: test:scripts/current/current.test.mjs::a review setting that is not a team in the repository's own organisation fails the repository with the fix (#2296) verify:testExists(scripts/current/current.test.mjs::a review setting that is not a team in the repository's own organisation fails the repository with the fix (#2296))
+[^review-armed]: test:scripts/current/current.test.mjs::an update pull request whose auto-merge GitHub will not turn off fails the run of a repository that asks for review (#2296) verify:testExists(scripts/current/current.test.mjs::an update pull request whose auto-merge GitHub will not turn off fails the run of a repository that asks for review (#2296))
