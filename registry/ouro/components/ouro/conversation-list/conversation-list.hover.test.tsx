@@ -125,6 +125,13 @@ describe("ConversationList hover", () => {
     const row = rowOf(host, "Ana Lind");
     const more = moreOf(row)!;
     expect(more.tabIndex).toBe(-1);
+    row.focus();
+    const right = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    await act(async () => {
+      row.dispatchEvent(right);
+    });
+    expect(right.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(more);
     for (const key of ["ArrowLeft", "Escape"]) {
       more.focus();
       const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
