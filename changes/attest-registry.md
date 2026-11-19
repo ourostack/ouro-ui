@@ -1,0 +1,1 @@
+- New: a release attaches its registry.json with a signed attestation, so the file an install reads can be traced to the workflow and commit that built it.
