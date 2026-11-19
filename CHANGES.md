@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `ThemePicker`, `useThemePreset` and `themePresetScript` let a person choose among an app's looks (a `data-theme` per preset), keep the choice and have it applied before first paint.
