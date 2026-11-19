@@ -10,8 +10,8 @@ import { compareFinding, themeFindings } from "./theme-findings.ts";
  * dark, closed and with each overlay open: the components read only shadcn's standard tokens, so
  * any theme's own pairs carry through. One file per fixture and scheme, so CI shards them and runs
  * two side by side (`pnpm test:themes --shard=<i>/<n>`, the `themes` project). At the desktop width
- * only: contrast does
- * not change with the width, and test/stories.test.tsx scans both widths under the Ouro theme.
+ * only: contrast does not change with the width. nova is also checked with Ouro check's rules, at
+ * 1280 and 2560 px, in test/themes/nova-check.test.tsx, which carries the scan past the root type step.
  */
 export function describeThemeAxe(name: string, scheme: "light" | "dark"): void {
   describe(`${name} theme`, () => {

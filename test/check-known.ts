@@ -3,6 +3,9 @@
 // finding not listed here, and on an entry no finding matches any more, so a fixed finding leaves this list with its fix.
 // Each entry is a story and a rule, whatever its size or scheme: the story shows the state, and the reason says what is on
 // screen. test/check-known.test.ts fails an entry with no positive issue number or no reason.
+// test/themes/nova-check.test.tsx runs the same rules under shadcn's nova theme (test/check-sweep.ts); its entries carry
+// `theme: "nova"`. An entry with no theme is the Ouro-theme run's: the nova run waives it too, since the story shows the
+// same state whatever the theme, but doesn't require it, since the nova run checks other sizes (sweepVerdict).
 
 export interface KnownFinding {
   /** The story's id, as Storybook names it (`Button/Disabled`). */
@@ -13,6 +16,8 @@ export interface KnownFinding {
   issue: number;
   /** Why the finding stays, and what would have to change for it to go. */
   reason: string;
+  /** The third-party theme fixture (test/theme-fixtures/<name>.css) whose run shows the finding; absent for the Ouro theme. */
+  theme?: string;
   /**
    * The finding shows on some runs and not others with nothing changed (a few pixels that depend on timing), so a run
    * without it is no sign it was fixed. Its reason says why; a new finding of another rule in the story still fails.
@@ -26,6 +31,25 @@ export const textWrapRules: readonly string[] = ["lone-word", "overlap", "narrow
 /** Whether a rule is judged on this host: every rule is, except the text-wrap rules off Linux, which neither count as a finding nor as a stale entry there. */
 export function judgedOn(rule: string, platform: string): boolean {
   return platform === "linux" || !textWrapRules.includes(rule);
+}
+
+/** The entries for a story in one run: the Ouro-theme run takes those with no theme, a fixture's run takes its own. */
+export function knownFor(entries: readonly KnownFinding[], story: string, theme?: string): KnownFinding[] {
+  return entries.filter((entry) => entry.story === story && entry.theme === theme);
+}
+
+/**
+ * A sweep's verdict: the findings no entry waives, and the run's own entries no finding matches any more. `inherited` are
+ * another run's entries for the story (the Ouro-theme run's, for a fixture's run): they waive a finding of their rule, but
+ * one that doesn't show here is no sign it was fixed, since that run checks other sizes.
+ */
+export function sweepVerdict<F extends { rule: string }>(
+  found: readonly F[],
+  own: readonly KnownFinding[],
+  inherited: readonly KnownFinding[] = [],
+): { unknown: F[]; stale: KnownFinding[] } {
+  const waived = [...own, ...inherited];
+  return { unknown: found.filter((finding) => !waived.some((entry) => entry.rule === finding.rule)), stale: staleEntries(own, found) };
 }
 
 /** The entries a run's findings no longer match, which a fix should remove: every entry with no finding of its rule, except one that shows only sometimes. */
@@ -52,6 +76,7 @@ const layoutWeights =
 
 const aloneReason =
   "The story shows the component alone on an empty page, so the page draws nothing else to read, press or wait for; its in-context story passes.";
+
 
 export const knownFindings: KnownFinding[] = [
   { story: "Accordion/Multiple", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },

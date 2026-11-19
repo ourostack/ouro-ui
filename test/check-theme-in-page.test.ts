@@ -210,6 +210,22 @@ describe("findThemeIssues: dark-miss", () => {
     }
   });
 
+  it("follows a token an element's own style re-points, as Message's bubble does, and finds one that leads to no dark value", () => {
+    dark();
+    const box = "width:200px;height:100px";
+    render(`<style>
+        :root { --t-primary: #171717; }
+        .dark { --t-primary: #d4d4d4; }
+        .t-bubble { background-color: var(--t-bubble); }
+      </style>
+      <div class="dark">
+        <article style="--t-bubble: var(--t-action, var(--t-primary))"><div class="t-bubble" style="${box}">Re-pointed to the theme</div></article>
+        <article style="--t-bubble: #e0e0e0"><div class="t-bubble" style="${box}">Re-pointed to a fixed colour</div></article>
+        <article style="--t-ring-a: var(--t-ring-b); --t-ring-b: var(--t-ring-a)"><div style="background:var(--t-ring-a, #e0e0e0);${box}">Re-pointed in a loop</div></article>
+      </div>`);
+    expect(of("dark-miss").map((issue) => issue.element)).toEqual(['div.t-bubble "Re-pointed to a fixed colour"', 'div "Re-pointed in a loop"']);
+  });
+
   it("leaves a light page alone, whatever it fills, and a page with no fill of its own is white", () => {
     render(`<div style="background:#fff;width:200px;height:100px">A white panel</div>`);
     expect(of("dark-miss")).toEqual([]);

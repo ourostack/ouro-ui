@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { judgedOn, knownFindings, knownProblems, staleEntries, type KnownFinding } from "./check-known.ts";
+import { judgedOn, knownFindings, knownFor, knownProblems, staleEntries, sweepVerdict, type KnownFinding } from "./check-known.ts";
 
 // Every known finding names the open issue that tracks it, by a positive issue number, and says why it stays. A cast or
 // a missing field must not get past the type, so the data itself is checked here, and the check is proved to fail.
@@ -28,6 +28,22 @@ describe("known findings name an issue and a reason", () => {
     expect(judgedOn("lone-word", "linux")).toBe(true);
     expect(judgedOn("lone-word", "darwin")).toBe(false);
     expect(judgedOn("disabled-no-reason", "darwin")).toBe(true);
+  });
+
+  it("gives a run the entries for its own theme: none for the Ouro theme, a fixture's for that fixture", () => {
+    const ouro = { story: "Button/Disabled", rule: "disabled-no-reason", issue: 1953, reason: "A reason." };
+    const nova = { ...ouro, rule: "nova-only-rule", theme: "nova" };
+    expect(knownFor([ouro, nova], "Button/Disabled")).toEqual([ouro]);
+    expect(knownFor([ouro, nova], "Button/Disabled", "nova")).toEqual([nova]);
+    expect(knownFor([ouro, nova], "Button/Disabled", "vega")).toEqual([]);
+  });
+
+  it("waives a finding with the Ouro-theme run's entry in a fixture's run, without requiring that entry to show there", () => {
+    const ouro = { story: "Button/Disabled", rule: "disabled-no-reason", issue: 1953, reason: "A reason." };
+    const nova = { ...ouro, rule: "dark-miss", theme: "nova" };
+    expect(sweepVerdict([{ rule: "disabled-no-reason" }, { rule: "dark-miss" }], [nova], [ouro])).toEqual({ unknown: [], stale: [] });
+    expect(sweepVerdict([], [nova], [ouro])).toEqual({ unknown: [], stale: [nova] });
+    expect(sweepVerdict([{ rule: "overlap" }], [nova], [ouro])).toEqual({ unknown: [{ rule: "overlap" }], stale: [nova] });
   });
 });
 
