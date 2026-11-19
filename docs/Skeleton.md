@@ -2,7 +2,7 @@
 
 # Skeleton
 
-A placeholder that breathes after a second in the shape and size of content that is still loading, so the content takes its place without moving anything. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. With reduced motion, or `shimmer={false}`, it holds still.
+A placeholder that breathes after a second in the shape and size of content that is still loading, so the content takes its place without moving anything. Screen readers skip it, so mark the region that is loading with `aria-busy` while it shows. Placeholders on the page breathe in the same step, so one that mounts or remounts later joins the others mid-breath instead of starting over. With reduced motion, or `shimmer={false}`, it holds still.
 
 ```tsx
 import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
