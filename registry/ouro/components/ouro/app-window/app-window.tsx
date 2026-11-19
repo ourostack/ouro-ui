@@ -99,8 +99,7 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
     "AppWindow",
     process.env.NODE_ENV !== "production"
       ? () => {
-          const names = (value: unknown) =>
-            `<AppWindow builtWith={[${(Array.isArray(value) && value.length > 0 && value.every((name) => typeof name === "string") ? value : ["Button", "Checklist"]).map((name) => JSON.stringify(name)).join(", ")}]} />`;
+          const names = (value: unknown) => `<AppWindow builtWith={[${(Array.isArray(value) ? value : ["Button", "Checklist"]).map((name) => JSON.stringify(name)).join(", ")}]} />`;
           return [
             label !== undefined && ["label is not a prop", `<AppWindow title="${typeof label === "string" ? label : "tea.tsx"}" />`],
             uses !== undefined && ["uses is not a prop", names(uses)],
@@ -136,7 +135,7 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
             {builtWithLabel}
           </span>
           {/* The list has no box of its own, so its badges wrap with the label as one row; the role keeps it a list to assistive technology. */}
-          <ul role="list" aria-labelledby={labelId} className="contents">
+          <ul role="list" aria-labelledby={labelId} className="contents list-none">
             {builtWith.map((name, index) => (
               <li key={`${index}:${name}`} className="flex">
                 <Badge tone="secondary" variant="outline">

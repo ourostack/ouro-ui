@@ -81,6 +81,15 @@ describe("AppWindow", () => {
     expect(bar.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
   });
 
+  it("keeps the actions at the bar's end when the title is short", async () => {
+    const { part } = await render(full);
+    const bar = part("bar")!.getBoundingClientRect();
+    const actions = part("actions")!.getBoundingClientRect();
+    expect(bar.right - actions.right).toBeCloseTo(Number.parseFloat(getComputedStyle(part("bar")!).paddingInlineEnd), 0);
+    expect(actions.left - part("title")!.getBoundingClientRect().right).toBeGreaterThan(100);
+    expect(Math.abs(actions.top + actions.height / 2 - (bar.top + bar.height / 2))).toBeLessThanOrEqual(1);
+  });
+
   it("is the card surface with a real border in the theme's colors, and a muted bar", async () => {
     const { frame, part } = await render(full);
     const root = getComputedStyle(frame);
@@ -106,6 +115,16 @@ describe("AppWindow", () => {
     for (const item of items) expect(item.querySelector('[data-ouro="badge"]')).not.toBeNull();
     const foot = part("built-with")!;
     expect(foot.textContent).toBe("Built withChecklistButton");
+    const label = getComputedStyle(foot.querySelector("span")!);
+    expect(label.color).toBe(themed("color", "var(--muted-foreground)"));
+    expect(Number.parseFloat(label.fontSize)).toBeLessThan(Number.parseFloat(getComputedStyle(document.body).fontSize));
+    // The list has no box, so its items join the label's row; the role keeps it a list where display: contents would drop it.
+    expect(getComputedStyle(list.element()).display).toBe("contents");
+    expect(list.element().getAttribute("role")).toBe("list");
+    for (const item of items) {
+      expect(getComputedStyle(item).listStyleType).toBe("none");
+      expect(item.getBoundingClientRect().height).toBeCloseTo(item.querySelector('[data-ouro="badge"]')!.getBoundingClientRect().height, 0);
+    }
     expect(foot.getBoundingClientRect().top).toBeGreaterThanOrEqual(part("body")!.getBoundingClientRect().bottom - 1);
     expect(getComputedStyle(foot).borderTopStyle).toBe("solid");
     expect(getComputedStyle(foot).borderTopColor).toBe(themed("borderTopColor", "var(--border)"));
@@ -194,7 +213,7 @@ describe("AppWindow", () => {
 
 describe("AppWindow development messages", () => {
   it.each([
-    ["label (a string)", { label: "tea.tsx" }, "label is not a prop", '<AppWindow title="tea.tsx" />'],
+    ["label (a string)", { label: "kettle.tsx" }, "label is not a prop", '<AppWindow title="kettle.tsx" />'],
     ["label (an element)", { label: <b>tea</b> }, "label is not a prop", '<AppWindow title="tea.tsx" />'],
     ["uses", { uses: ["Checklist"] }, "uses is not a prop", '<AppWindow builtWith={["Checklist"]} />'],
     ["components (a list)", { components: ["Button", "Slider"] }, "components is not a prop", '<AppWindow builtWith={["Button", "Slider"]} />'],
