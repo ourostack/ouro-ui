@@ -1,0 +1,3 @@
+# Changes in this release
+
+- TextField draws a plain field with fewer components: [the empty error slot is left out until the field has an error](registry/ouro/components/ouro/text-field/text-field.tsx "verify:fileLine(registry/ouro/components/ouro/text-field/text-field.tsx, /quietOwner/)").
