@@ -476,16 +476,24 @@ describe("the motion matrix", () => {
       collect(`${id} as it mounts`);
       await settle();
       collect(`${id} as rendered`);
-      const controls = [...document.querySelectorAll<HTMLElement>(`[data-ouro-control="${stem}"]`)].filter((element) => isVisible(element) && !element.closest('[aria-hidden="true"]') && element.tabIndex !== -1);
+      const controls = [...document.querySelectorAll<HTMLElement | SVGElement>(`[data-ouro-control="${stem}"]`)].filter((element) => isVisible(element) && !element.closest('[aria-hidden="true"]') && element.tabIndex !== -1);
       // A control that is a link (TabBar's tabs) would take the test's page away; the scan needs only the states its click leaves.
       // On the window, after the component's own handlers, so they see the click as a person's.
+      // An SVG control (Chart's plot) has no click(), so it gets a press at its middle, as a pointer would give it.
+      const press = (control: HTMLElement | SVGElement) => {
+        if (control instanceof HTMLElement) return control.click();
+        const box = control.getBoundingClientRect();
+        const at = { bubbles: true, cancelable: true, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 };
+        control.dispatchEvent(new PointerEvent("pointerdown", at));
+        control.dispatchEvent(new MouseEvent("click", at));
+      };
       const stay = (event: MouseEvent) => {
         if (event.target instanceof Element && event.target.closest("a[href]")) event.preventDefault();
       };
       window.addEventListener("click", stay);
       try {
         for (const [index, control] of controls.entries()) {
-          await act(() => control.click());
+          await act(() => press(control));
           await settle();
           collect(`${id} after clicking control ${index + 1}`);
         }

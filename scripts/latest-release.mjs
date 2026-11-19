@@ -15,6 +15,9 @@
 //
 //   node scripts/latest-release.mjs           print the tag
 //   node scripts/latest-release.mjs set <tag> set the tag in package.json
+//   node scripts/latest-release.mjs check     list the docs' literals that name another tag; exit 1 if any
+// docs-pin.yml runs `check` on each push to main, and the pin job points the docs at the tag when it fails.
+import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,6 +60,20 @@ export function releaseMismatches(text, tag) {
   return problems;
 }
 
+/** The public docs whose tag literals the release test and `check` read. */
+export const publicDocGlobs = ["README.md", "changes/*.md", "package.json", "docs/*.md", "site/public/*", "site/src/*.ts", "site/src/*.tsx", "site/index.html"];
+
+/** The tracked files that match publicDocGlobs. */
+export function publicDocs(dir = root) {
+  return execFileSync("git", ["ls-files", "--", ...publicDocGlobs], { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).split("\n").filter(Boolean);
+}
+
+/** The literals in `paths` (relative to `dir`) that name another tag than ouro.latestRelease, as "path:line: literal". */
+export function staleReferences(paths, dir = root) {
+  const tag = latestRelease(dir);
+  return paths.flatMap((path) => releaseMismatches(readFileSync(join(dir, path), "utf8"), tag).map((problem) => `${path}:${problem}`));
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [mode, tag] = process.argv.slice(2);
   if (mode === "set") {
@@ -65,6 +82,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const pkg = JSON.parse(readFileSync(path, "utf8"));
     pkg.ouro = { ...pkg.ouro, latestRelease: tag };
     writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`);
+  } else if (mode === "check") {
+    const stale = staleReferences(publicDocs());
+    for (const line of stale) console.log(line);
+    if (stale.length > 0) console.log(`Name ${latestRelease()} (package.json ouro.latestRelease), or run pnpm run docs.`);
+    process.exitCode = stale.length === 0 ? 0 : 1;
   } else {
     console.log(latestRelease());
   }

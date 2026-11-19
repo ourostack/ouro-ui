@@ -72,7 +72,7 @@ Sixteen of 32 chat decisions used A2UI, and every model used it at least once, f
 
 #### The agent doors aren't finished: Android refuses consequential actions, and ax-mcp, AppFunctions, the Siri AI SDK and WebMCP are previews.
 
-Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2295](https://github.com/ourostack/ouro-ui/issues/2295).
+Signal: past-behavior. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: in progress. [#2295](https://github.com/ourostack/ouro-ui/issues/2295). What changed: ax-mcp speaks MCP 2026-07-28 and the four revisions before it and is checked against the official TypeScript client, and the Ouro AX guide lists each agent door's maturity and the platform API under it (#2361); Android's confirmation of a consequential action is still to come.
 
 Seven models noticed that on Android a consequential action is refused instead of confirmed, which breaks 'the same action refuses or confirms the same way everywhere'. All four models that picked Ouro for agent tooling at product-team scale flagged ax-mcp's preview label on the surface that job depends on, and five feared building on preview OS agent APIs. Ouro should ship the Android confirmation flow, take ax-mcp out of preview, and publish each door's maturity.
 
