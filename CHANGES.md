@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: Ouro check's `dark-miss` [no longer flags a fill from a token the theme gives a dark value](scripts/check/check-rules.test.mts "verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > dark-miss leaves a fill from a token the theme gives a dark value, as nova's near-white primary, and still finds one with no dark value (#2363))"), such as nova's near-white dark primary on a sent message or a primary badge.
+- Fixed: Ouro check's `giant-text` [counts no emoji as running text](scripts/check/check-rules.test.mts "verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > giant-text counts no emoji: a picker's grid drawn large on a 4K display is no running text (#2363))"), so an emoji picker's grid on a wide screen passes.
