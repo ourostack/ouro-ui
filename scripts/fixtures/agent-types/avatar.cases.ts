@@ -2,7 +2,8 @@ import { type AgentCase, notAssignable, hint } from "./shared.ts";
 
 const sizes = `AvatarSize | (string & { 'Use "xs", "sm", "md", "lg", "xl", "2xl" or "3xl"': never; }) | undefined`;
 const presences = `AvatarPresence | (string & { 'dnd is "do-not-disturb"; ooo is "out-of-office"': never; }) | undefined`;
-const shapes = `AvatarShape | (string & { 'Use "circle", "square" or "agent"; rounded is "square", hexagon is "agent"': never; }) | undefined`;
+const shapes = `AvatarShape | (string & { 'Use "circle", "square" or "agent"; rounded is "square", hexagon is "agent", a group chat is members': never; }) | undefined`;
+const members = '<Avatar name="Crew" members={[{ name: "Ana Lind", src: ana }]} />';
 const initials = '<Avatar name="Ana Lind" initials="AL" />';
 
 /** The avatar snippets in avatar.snippets.tsx that make mistakes, in file order. */
@@ -45,7 +46,24 @@ export const agentCases: AgentCase[] = [
   },
   { id: "avatar07", habit: "a rounded shape", tsc: [notAssignable('"rounded"', shapes)], dev: '<Avatar shape="square">', names: ["tsc", "dev"] },
   { id: "avatar08", habit: "a hexagon shape", tsc: [notAssignable('"hexagon"', shapes)], dev: '<Avatar shape="agent">', names: ["tsc", "dev"] },
+  {
+    id: "avatar09",
+    habit: "participants for a group chat's people",
+    tsc: [
+      `error TS2741: Property ''Use members={[{ name, src }]}'' is missing in type '{ name: string; }[]' but required in type '{ 'Use members={[{ name, src }]}': never; }'.`,
+    ],
+    dev: members,
+    names: ["tsc", "dev"],
+  },
+  {
+    id: "avatar10",
+    habit: "a group shape for a group chat",
+    tsc: [notAssignable('"group"', shapes)],
+    dev: '<Avatar name="The whole crew" members={[{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }]} />',
+    names: ["tsc", "dev"],
+  },
+  { id: "avatar11", habit: "a channel's square on a group chat", tsc: [], dev: '<Avatar name="The whole crew" members={members} />', names: ["dev"] },
 ];
 
 /** Valid avatar snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["avatarOk01", "avatarOk02", "avatarOk03", "avatarOk04"];
+export const validSnippets: string[] = ["avatarOk01", "avatarOk02", "avatarOk03", "avatarOk04", "avatarOk05"];

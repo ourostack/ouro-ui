@@ -19,7 +19,14 @@ export const agentCases: AgentCase[] = [
     dev: '<ConversationList sections={[{ id: "pinned", title: "Pinned" }]} items={[{ ...row, section: "pinned" }]}>',
     names: ["tsc", "dev"],
   },
+  {
+    id: "conversationList04",
+    habit: "an AvatarGroup for a group chat's avatar",
+    tsc: [],
+    dev: '{ id: "crew", title: "Crew", members: [{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }] }',
+    names: ["dev"],
+  },
 ];
 
 /** Valid conversation-list snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["conversationListOk01", "conversationListOk02"];
+export const validSnippets: string[] = ["conversationListOk01", "conversationListOk02", "conversationListOk03"];

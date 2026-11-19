@@ -4,6 +4,7 @@ import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { ConversationList, type ConversationListItem, type ConversationListProps } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -801,6 +802,59 @@ describe("ConversationList sections", () => {
     const header = headers(host)[0]!;
     expect(getComputedStyle(header).paddingTop).toBe("6px");
     expect(getComputedStyle(header).fontSize).toBe("14px");
+  });
+});
+
+describe("ConversationList group chats", () => {
+  const crew = [{ name: "Captain Nemo" }, { name: "Professor Aronnax" }, { name: "Conseil" }, { name: "Ned Land" }];
+  const rows: ConversationListItem[] = [
+    { id: "crew", title: "The whole crew", subtitle: "Four aboard", members: crew },
+    { id: "nemo", title: "Captain Nemo" },
+    { id: "radio", title: "Radio room", avatar: <Avatar name="Radio room" shape="square" alt="" /> },
+  ];
+
+  it("draws a group chat's avatar from its members, at the list's size", async () => {
+    for (const [density, width, slices] of [
+      ["comfortable", 32, 2],
+      ["compact", 24, 2],
+    ] as const) {
+      const { host } = await render(<ConversationList label="Chats" items={rows} density={density} onSelect={() => {}} />);
+      const [group, person, channel] = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+      // A group chat is the group, a person their own avatar, and a channel the square: three different shapes.
+      expect([group!.dataset["shape"], person!.dataset["shape"], channel!.dataset["shape"]]).toEqual(["group", "circle", "square"]);
+      expect(group!.getBoundingClientRect().width).toBe(width);
+      expect(group!.getBoundingClientRect().width).toBe(person!.getBoundingClientRect().width);
+      expect(group!.querySelectorAll("[data-ouro-avatar-slice]")).toHaveLength(slices);
+      expect(group!.getAttribute("aria-hidden")).toBe("true");
+      host.remove();
+    }
+    // Screen readers hear who is in it after the title.
+    await render(<ConversationList label="Chats" items={rows} onSelect={() => {}} />);
+    await expect.element(page.getByRole("button", { name: /^The whole crew ?, group chat with Captain Nemo, Professor Aronnax and 2 others Four aboard$/ })).toBeVisible();
+    await render(<ConversationList label="Discussions" items={rows} membersLabel={(names) => `discussion à ${names.length}`} onSelect={() => {}} />);
+    await expect.element(page.getByRole("button", { name: /^The whole crew ?, discussion à 4 Four aboard$/ })).toBeVisible();
+    // A picture the group set for itself, given as the avatar, still draws the group until it loads.
+    const own = await render(<ConversationList label="Chats" items={[{ id: "crew", title: "The whole crew", members: crew, avatar: "data:image/png;base64,broken" }]} onSelect={() => {}} />);
+    await expect.poll(() => own.host.querySelector('[data-ouro="avatar"]')!.getAttribute("data-image")).toBe("error");
+    expect(own.host.querySelectorAll("[data-ouro-avatar-slice]")).toHaveLength(2);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("names members when a row's avatar is an AvatarGroup", async () => {
+    const stacked: ConversationListItem = {
+      id: "crew",
+      title: "The whole crew",
+      avatar: (
+        <AvatarGroup label="Crew" size="sm">
+          <Avatar name="Captain Nemo" />
+          <Avatar name="Ned Land" />
+        </AvatarGroup>
+      ),
+    };
+    await render(<ConversationList label="Chats" items={[stacked]} onSelect={() => {}} />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] ConversationList: the row "crew" shows an AvatarGroup, a row of faces wider than an avatar; a group chat\'s avatar is its members. Fix: { id: "crew", title: "Crew", members: [{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }] }.',
+    );
   });
 });
 

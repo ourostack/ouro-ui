@@ -31,6 +31,7 @@ Type: `ConversationListProps`.
 | `empty` | `ReactNode` | `"Nothing here yet"` | What shows when `items` is empty. |
 | `items` (required) | `readonly ConversationListItem[]` |  | The conversations, in the order they show. |
 | `label` (required) | `string` |  | What the list is, for screen readers ("Conversations"). Required, so the list has a name. |
+| `membersLabel` | `((names: readonly string[]) => string)` | `"group chat with"` the first two names, then the rest's count ("and 2 others") | What screen readers hear after a group chat's title, from its `members`' names, for other languages. |
 | `onSectionOpenChange` | `((id: string, open: boolean) => void)` |  | Called with a section's `id` and whether it is now open, when its header is pressed. |
 | `onSelect` (required) | `(id: string, event: MouseEvent<HTMLButtonElement>) => void` |  | Called with a row's `id` when it is chosen by a click, a tap, Enter or Space. A handler that takes a second parameter also gets the click, so the app can check `event.isTrusted` or `event.metaKey`; a one-parameter handler or a server action gets the `id` alone. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
@@ -61,6 +62,23 @@ Appearance comes from props, not classes. In development, a class that sets appe
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Types
+
+### `AvatarMember`
+
+One member of a group chat, as Avatar's `members` takes them.
+
+```ts
+interface AvatarMember {
+  /** The member's name: their initial comes from it, and screen readers hear it in the group's name. */
+  name: string;
+  /** The member's picture. Until it loads, and if it fails, their initial shows in their hue. */
+  src?: string | undefined;
+  /** What their hue is picked from, when it should not be `name`, as Avatar's `idForColor`. */
+  idForColor?: string | undefined;
+  /** The letters to take their initial from, when it should not come from `name`. */
+  initials?: string | undefined;
+}
+```
 
 ### `ConversationListContentTitle`
 
@@ -139,10 +157,18 @@ interface ConversationListItemFields {
    */
   mark?: ReactNode;
   /**
-   * The avatar: a picture's URL, or an element to show instead, such as an `<Avatar>` with the person's presence or an
-   * `<AvatarGroup>`. Without it the avatar shows the title's initials; `false` hides the avatar.
+   * The avatar: a picture's URL, or an element to show instead, such as an `<Avatar>` with the person's presence.
+   * Without it the avatar shows the title's initials; `false` hides the avatar. A person gets their `<Avatar>`, a
+   * group chat its `members` (with `avatar` as a picture the group set for itself), and a team or a channel
+   * `<Avatar shape="square">`, so a group chat never looks like a channel. An `<AvatarGroup>` is a row of faces,
+   * wider than the avatar: it warns in development and names `members`.
    */
   avatar?: string | ReactElement | false | undefined;
+  /**
+   * A group chat's members: the row's avatar is the group, drawn from their pictures or initials as
+   * `<Avatar members>` draws it, at the list's size. Screen readers hear who is in it after the title.
+   */
+  members?: readonly AvatarMember[] | undefined;
   /** The `id` of the section in `sections` the row shows under. Rows without a section come first, before the headers. */
   section?: string | undefined;
   /**

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  isValidElement,
   memo,
   useCallback,
   useEffect,
@@ -19,7 +20,8 @@ import {
   type Ref,
 } from "react";
 import { flushSync } from "react-dom";
-import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Avatar, AvatarGroup, type AvatarMember } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { groupChatWith } from "@/registry/ouro/components/ouro/avatar/avatar-styles";
 import type { MenuAnchor, MenuEntry } from "@/registry/ouro/components/ouro/menu/menu";
 import { UnreadDot } from "@/registry/ouro/components/ouro/unread-dot/unread-dot";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -102,10 +104,21 @@ export interface ConversationListItemFields {
    */
   mark?: ReactNode;
   /**
-   * The avatar: a picture's URL, or an element to show instead, such as an `<Avatar>` with the person's presence or an
-   * `<AvatarGroup>`. Without it the avatar shows the title's initials; `false` hides the avatar.
+   * The avatar: a picture's URL, or an element to show instead, such as an `<Avatar>` with the person's presence.
+   * Without it the avatar shows the title's initials; `false` hides the avatar. A person gets their `<Avatar>`, a
+   * group chat its `members` (with `avatar` as a picture the group set for itself), and a team or a channel
+   * `<Avatar shape="square">`, so a group chat never looks like a channel. An `<AvatarGroup>` is a row of faces,
+   * wider than the avatar: it warns in development and names `members`.
+   * @claim "so a group chat never looks like a channel" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList group chats > draws a group chat's avatar from its members, at the list's size)
+   * @claim "it warns in development and names `members`" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList group chats > names members when a row's avatar is an AvatarGroup)
    */
   avatar?: string | ReactElement | false | undefined;
+  /**
+   * A group chat's members: the row's avatar is the group, drawn from their pictures or initials as
+   * `<Avatar members>` draws it, at the list's size. Screen readers hear who is in it after the title.
+   * @claim "the row's avatar is the group" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList group chats > draws a group chat's avatar from its members, at the list's size)
+   */
+  members?: readonly AvatarMember[] | undefined;
   /** The `id` of the section in `sections` the row shows under. Rows without a section come first, before the headers. */
   section?: string | undefined;
   /**
@@ -187,6 +200,12 @@ export interface ConversationListOwnProps {
   unreadLabel?: string | undefined;
   /** The words before a row's `draft`, for other languages. @default "Draft:" */
   draftLabel?: string | undefined;
+  /**
+   * What screen readers hear after a group chat's title, from its `members`' names, for other languages.
+   * @default "group chat with" the first two names, then the rest's count ("and 2 others")
+   * @claim "the first two names, then the rest's count" registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.test.tsx::ConversationList group chats > draws a group chat's avatar from its members, at the list's size)
+   */
+  membersLabel?: ((names: readonly string[]) => string) | undefined;
   /** Layout only: width, margins, grid placement (`w-80`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
@@ -305,6 +324,8 @@ type RowProps = {
   density: ConversationListDensity;
   unreadLabel: string;
   draftLabel: string;
+  /** Who is in a group chat, as screen readers hear it after the title: a string, so an inline `membersLabel` keeps rows memoized. */
+  membersText: string | undefined;
   selected: boolean;
   tabStop: boolean;
   windowed: boolean;
@@ -320,7 +341,7 @@ type RowProps = {
 
 // A row renders again only when its own conversation, place or state changes, so opening another conversation renders
 // the row that closes and the row that opens, not the list.
-const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive }: RowProps): JSX.Element {
+const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, membersText, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive }: RowProps): JSX.Element {
   const drafted = shown(item.draft);
   const withPreview = density === "comfortable" && (drafted || shown(item.preview));
   // The mark and the unread dot end the last line: the preview's, else the context's, else the subtitle's, else the title's.
@@ -362,7 +383,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
             {item.avatar}
           </span>
         ) : (
-          <Avatar name={item.name ?? (item.title as string)} src={item.avatar} alt="" size={density === "compact" ? "xs" : "sm"} />
+          <Avatar name={item.name ?? (item.title as string)} src={item.avatar} members={item.members} alt="" size={density === "compact" ? "xs" : "sm"} />
         )}
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-2">
@@ -381,6 +402,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
                     <span className="sr-only">{item.name}</span>
                   </>
                 )}
+                {membersText !== undefined && <span className="sr-only">, {membersText}</span>}
               </span>
               {item.nameTag && (
                 <span data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
@@ -496,6 +518,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     density: densityProp = "comfortable",
     unreadLabel = "Unread",
     draftLabel = "Draft:",
+    membersLabel = groupChatWith,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     value,
@@ -542,6 +565,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const keepInView = useRef<{ key: string; block: "nearest" | "center" } | null>(null);
   const known = useMemo(() => new Set<string | undefined>(sections.map((section) => section.id)), [sections]);
   const stray = items.find((item) => item.section !== undefined && !known.has(item.section));
+  const grouped = process.env.NODE_ENV !== "production" ? items.find((item) => isValidElement(item.avatar) && (item.avatar as ReactElement).type === AvatarGroup) : undefined;
   useAppearanceClassNameCheck(
     "ConversationList",
     className,
@@ -563,6 +587,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
           stray !== undefined && [
             `the row "${stray.id}" names section "${String(stray.section)}", which is not in sections, so it shows first`,
             `<ConversationList sections={[{ id: "${String(stray.section)}", title: "Pinned" }]}>`,
+          ],
+          grouped !== undefined && [
+            `the row "${grouped.id}" shows an AvatarGroup, a row of faces wider than an avatar; a group chat's avatar is its members`,
+            `{ id: "${grouped.id}", title: "Crew", members: [{ name: "Ana Lind", src: ana }, { name: "Ben Ito" }] }`,
           ],
           sections.some((section) => section.open !== undefined) &&
             onSectionOpenChange === undefined && ["a section's open is set without onSectionOpenChange, so its header cannot open or close it", "<ConversationList onSectionOpenChange={(id, open) => setOpen(id, open)}>"],
@@ -955,6 +983,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         density={density}
         unreadLabel={unreadLabel}
         draftLabel={draftLabel}
+        membersText={item.members !== undefined && item.members.length > 0 ? membersLabel(item.members.map((member) => member.name)) : undefined}
         selected={item.id === selectedId}
         tabStop={key === tabStop}
         windowed={windowed}

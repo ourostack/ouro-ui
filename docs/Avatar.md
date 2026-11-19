@@ -2,7 +2,7 @@
 
 # Avatar
 
-A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), and `shape="square"` marks a team, a channel, an app or a bot, and `shape="agent"` an AI agent. Server HTML holds the initials, and the picture replaces them at full strength the moment it loads, with no fade: a picture already in the browser's cache is there on the avatar's first frame.
+A person's picture, or their initials until it loads or when it fails, in a color picked from the name. `name` is required: screen readers hear it, and the initials come from it. `presence` adds a status dot that says what it shows (`presenceLabel`), `shape="square"` marks a team, a channel, an app or a bot, and `shape="agent"` an AI agent. `members` draws a group chat from its members' pictures or initials, so a group chat never looks like a channel. Server HTML holds the initials, and the picture replaces them at full strength the moment it loads, with no fade: a picture already in the browser's cache is there on the avatar's first frame.
 
 ```tsx
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
@@ -14,6 +14,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 <Avatar name="Ana Lind" src={user.photoUrl} presence="busy" presenceLabel="In a meeting" />
 <Avatar name="Grace Hopper" size="lg" idForColor={user.id} />
 <Avatar name="Design reviews" shape="square" />
+<Avatar name="The whole crew" members={crew.map((person) => ({ name: person.name, src: person.photoUrl }))} />
 <Avatar name="Halden" shape="agent" src={agent.photoUrl} />
 <span className="flex items-center gap-2"><Avatar name={user.name} alt="" size="sm" />{user.name}</span>
 ```
@@ -24,7 +25,7 @@ The initials are drawn, not written: CSS generated content from a data attribute
 
 ## Use instead when
 
-- Use `AvatarGroup` instead to stack several, and `Badge` for a status label that isn't a person.
+- Use `AvatarGroup` instead to show several people side by side (the cooks on a recipe), and `Badge` for a status label that isn't a person.
 
 ## Props
 
@@ -38,6 +39,8 @@ The props the modes share. Type: `AvatarProps`.
 | `icon` | `ReactNode` |  | An icon to show in place of the initials, such as a calendar for a meeting or a note for notes to self. It is decorative: the avatar's label stays `name`. |
 | `idForColor` | `string` |  | What `color="colorful"` picks the hue from, when it should not be `name`: a stable id, so people who share a name can differ and a rename keeps the color. |
 | `initials` | `string` |  | The letters to show instead of the ones taken from `name`, such as "AnL". Like the initials taken from `name`, they are drawn (CSS generated content), not written as text. |
+| `members` | `readonly AvatarMember[]` |  | A group chat's members, which draw the avatar as the group: the person's squircle cut into slices, one per member shown, with a gap between them that lets what lies behind show through. Below 40px it shows the first two, side by side; from 40px up, the first three (one half and two quarters). Each slice is the member's picture, or their initial in their own hue. One member fills the whole avatar. A group draws no presence dot and takes no `shape`: a person is the circle, a group chat `members`, and a team, a channel, an app or a bot `shape="square"`. Screen readers hear the group's name and who is in it: "The whole crew, group chat with Captain Nemo, Professor Aronnax and 2 others" (`membersLabel` for other languages). Pass `src` for a picture the group set for itself, which shows in place of the slices once it loads. |
+| `membersLabel` | `((names: readonly string[]) => string)` | `"group chat with"` the first two names, then the rest's count ("and 2 others") | The words screen readers hear after a group's name, for other languages, from its members' names. |
 | `name` (required) | `string \| null` |  | The person's or thing's name. Screen readers hear it, and the initials come from it (the first letters of the first and last words) until the image loads, or when it fails. Required, so no avatar is silent. Pass `null` while the name is still loading: the avatar keeps its size and shape and shimmers as a Skeleton, and screen readers hear `nameLoadingLabel`. |
 | `nameLoadingLabel` | `string` | `"Name loading"` | What screen readers hear while `name` is `null`, for other languages. |
 | `ref` | `Ref<HTMLSpanElement>` |  | Reaches the rendered element. |
@@ -76,6 +79,9 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `children`: Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`.
 - `fallback`: Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`.
+- `participants`: Not a prop. A group chat's people are `members`: `<Avatar name="Crew" members={[{ name: "Ana Lind", src }]} />`.
+- `people`: Not a prop. A group chat's people are `members`: `<Avatar name="Crew" members={[{ name: "Ana Lind", src }]} />`.
+- `users`: Not a prop. A group chat's people are `members`: `<Avatar name="Crew" members={[{ name: "Ana Lind", src }]} />`.
 
 ## `className` is for layout only
 
@@ -84,5 +90,24 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`). Your cl
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Types
+
+### `AvatarMember`
+
+One member of a group chat, as Avatar's `members` takes them.
+
+```ts
+interface AvatarMember {
+  /** The member's name: their initial comes from it, and screen readers hear it in the group's name. */
+  name: string;
+  /** The member's picture. Until it loads, and if it fails, their initial shows in their hue. */
+  src?: string | undefined;
+  /** What their hue is picked from, when it should not be `name`, as Avatar's `idForColor`. */
+  idForColor?: string | undefined;
+  /** The letters to take their initial from, when it should not come from `name`. */
+  initials?: string | undefined;
+}
+```
 
 [^layout-classes]: test:registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/avatar/avatar.test.tsx::Avatar > forwards a ref and lets app layout classes win)

@@ -20,6 +20,11 @@ export default function AvatarDemo(): JSX.Element {
         <Avatar name="Halden" size="lg" shape="agent" presence="available" presenceLabel="Available" />
         <Avatar name="Platform" size="lg" shape="square" src={coverArt} />
       </div>
+      <div className="flex items-center gap-3">
+        <Avatar name="Launch crew" size="lg" members={[{ name: "Ana Lind" }, { name: "Grace Hopper" }, { name: "Alan Turing" }, { name: "Katherine Johnson" }]} />
+        <Avatar name="Pair" size="lg" members={[{ name: "Ana Lind" }, { name: "Edsger Dijkstra" }]} />
+        <Avatar name="Night shift" size="sm" members={[{ name: "Grace Hopper" }, { name: "Alan Turing" }, { name: "Ana Lind" }]} />
+      </div>
       <AvatarGroup label="Cooks on this recipe" max={3}>
         <Avatar name="Ana Lind" />
         <Avatar name="Grace Hopper" />
