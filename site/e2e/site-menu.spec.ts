@@ -229,7 +229,8 @@ test("on a docs page the menu holds every component, with a search for any docs 
   await search.fill("docs");
   await expect(sheet(page).getByRole("link", { name: "Theming", exact: true })).toHaveCount(0);
   await search.fill("no such page at all");
-  await expect(sheet(page).getByRole("status")).toHaveText("Nothing aboard by that name. Try another?");
+  await expect(sheet(page).getByRole("status")).toHaveText("Nothing aboard by that name. Want one? Ask for “no such page at all” (opens in a new tab)");
+  await expect(sheet(page).getByRole("status").getByRole("link")).toHaveAttribute("href", /\/issues\/new\?title=Component\+request%3A\+no\+such\+page\+at\+all&/);
   // Escape clears a search before it closes the menu.
   await search.press("Escape");
   await expect(search).toHaveValue("");
