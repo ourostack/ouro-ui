@@ -302,7 +302,7 @@ export async function copilotSearch(client, sdk, query, { tries = 3, log = () =>
       return await copilotSearchOnce(client, sdk, query, options);
     } catch (error) {
       log(`Search try ${attempt} of ${tries} failed: ${error.message}${error.detail ? ` (${error.detail})` : ""}`);
-      if (attempt >= tries) throw new Error(error.message);
+      if (attempt >= tries) throw new Error(error.message, { cause: error });
       await pause(attempt * 3000);
     }
   }
