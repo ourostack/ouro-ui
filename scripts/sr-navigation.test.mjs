@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { NAVIGATION_HUNG, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, navigateWithRetry, voiceOverGone, waitUntil } from "../registry/ouro/e2e/screen-reader/navigation.ts";
+import { NAVIGATION_HUNG, NAVIGATION_OUTSIDE, NAVIGATION_RETRY_PREFIX, NAVIGATION_TIMEOUT_MS, navigateWithRetry, voiceOverGone, waitUntil } from "../registry/ouro/e2e/screen-reader/navigation.ts";
 import { classify, navigationSummary, why } from "./sr-classify.mjs";
 
 // The bounded navigation to the page (registry/ouro/e2e/screen-reader/navigation.ts), with VoiceOver
@@ -104,6 +104,30 @@ test("navigateWithRetry: VoiceOver gone on both tries fails as infrastructure, a
   assert.deepEqual(voiceOver.order, ["navigate", "stop", "settle", "start", "navigate"]);
   const log = `${voiceOver.lines[0]}\n  ✘   8 [voiceover] › registry/ouro/e2e/screen-reader/dialog.sr.spec.ts:8:1 › Dialog\n    Error: ${error.message}\n  1 failed`;
   assert.equal(classify(log, 1), "infrastructure");
+});
+
+test("navigateWithRetry: a navigation that leaves VoiceOver outside the web area navigates once more, without restarting it", async () => {
+  const voiceOver = fakeVoiceOver("ok", "ok");
+  const said = ["", "Button Save to cookbook"];
+  const outside = async () => (said.shift() === "" ? 'VoiceOver stayed outside the page\'s web area (it said "")' : null);
+  await navigateWithRetry({ ...voiceOver, outside, timeoutMs: 20 });
+  assert.deepEqual(voiceOver.order, ["navigate", "navigate"]);
+  assert.equal(voiceOver.lines.length, 1);
+  assert.match(voiceOver.lines[0], new RegExp(`^${NAVIGATION_RETRY_PREFIX.replace(/[[\]]/g, "\\$&")} VoiceOver stayed outside the page's web area \\(it said ""\\) on try 1 of 2; navigating again\\.$`));
+});
+
+test("navigateWithRetry: VoiceOver outside the web area on both tries fails as infrastructure, and is not navigated a third time", async () => {
+  const voiceOver = fakeVoiceOver("ok", "ok", "ok");
+  const outside = async () => 'VoiceOver stayed outside the page\'s web area (it said "You are currently on web content.")';
+  const failure = await navigateWithRetry({ ...voiceOver, outside, timeoutMs: 20 }).then(
+    () => null,
+    (error) => error.message,
+  );
+  assert.deepEqual(voiceOver.order, ["navigate", "navigate"]);
+  assert.ok(failure.startsWith(`${NAVIGATION_OUTSIDE}: `), failure);
+  const log = `  ✘   2 [voiceover] › registry/ouro/e2e/screen-reader/button.sr.spec.ts:8:1 › Button\n    Error: ${failure}\n`;
+  assert.equal(classify(log, 1), "infrastructure");
+  assert.match(why(log), /VoiceOver never entered the page's web area/);
 });
 
 test("voiceOverGone: AppleScript's -600 is VoiceOver gone; a test's own error is not", () => {

@@ -51,6 +51,8 @@ const infrastructure = [
   [/VoiceOver (cannot be started|failed to start|could not be started|did not start|is not supported)|Timed out waiting for VoiceOver to be running|Failed to mount Guidepup preferences/i, DID_NOT_START],
   // The navigation hung on every try (navigation.ts): VoiceOver stopped answering on the page.
   [/VoiceOver stopped answering while it reached the page/, STOPPED],
+  // The navigation finished on every try with VoiceOver still outside the page's web area (navigation.ts).
+  [/VoiceOver never entered the page's web area/, "VoiceOver never entered the page's web area"],
   // VoiceOver's "not running": from a stop, or a call on a VoiceOver that is no longer started. Before the page was reached, a start that did not finish.
   [/VoiceOver (not running|is not running)|Timed out waiting for VoiceOver to not be running/i, (findings) => (reachedPage(findings) ? STOPPED : DID_NOT_START)],
   [/NVDA (cannot be started|failed to start|could not be started|did not start|is not running|is not installed|is not supported)|Cannot connect to NVDA|Timed out waiting for NVDA|Failed to create Guidepup preferences/i, "NVDA did not start"],
