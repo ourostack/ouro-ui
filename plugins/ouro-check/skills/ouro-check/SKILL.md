@@ -48,7 +48,7 @@ Fix from `rule`, `element` and `detail`. A finding inside an Ouro component is y
 
 ## Let text use its column
 
-Let prose use the width its column gives it. Don't cap it with a reading measure (`max-width: 65ch`, `max-w-prose`, `46rem`) unless the design sets one; if it does, declare it at 40ch or wider, and the check leaves that text alone: read the cap from a `--measure-*` token (`max-w-(--measure-lede)`), add `data-ouro-measure` to the text, or set `measure` in `ouro-check.json`. `narrow-text` reports a cap that holds prose under three quarters of a column at least 900px wide, and names the rule that set the cap.[^skill-narrow-text]
+Let prose use the width its column gives it. Don't cap it with a reading measure (`max-width: 65ch`, `max-w-prose`, `46rem`) unless the design sets one; if it does, declare it at 40ch or wider, and the check leaves that text alone: read the cap from a custom property whose name begins `measure-`, add `data-ouro-measure` to the text, or set `measure` in `ouro-check.json`. `narrow-text` reports a cap that holds prose under three quarters of a column at least 900px wide, and names the rule that set the cap.[^skill-narrow-text]
 
 ## Fix, then prove it
 
