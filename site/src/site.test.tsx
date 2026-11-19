@@ -493,8 +493,12 @@ describe("docs", () => {
     expect(opener.dataset.brandScene).toBe("ouro-ui-core");
     const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
     await expect.poll(() => day!.currentSrc).toMatch(/\/brand\/storybook\/phone\/ouro-ui-core-\d+\.(avif|webp)$/);
-    const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!.getBoundingClientRect();
-    expect(media.width / media.height).toBeCloseTo(768 / SCENES["ouro-ui-core"].phoneHeight, 1);
+    // The box takes the phone source's shape once the browser lays it out, which can come a frame after currentSrc (#2353).
+    const shape = () => {
+      const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!.getBoundingClientRect();
+      return Math.round((media.width / media.height) * 10) / 10;
+    };
+    await expect.poll(shape).toBe(Math.round((768 / SCENES["ouro-ui-core"].phoneHeight) * 10) / 10);
     const nightPhone = night!.closest("picture")!.querySelector<HTMLSourceElement>('source[media="(max-width: 640px)"]')!;
     expect(nightPhone.srcset).toContain("phone/ouro-ui-core-dark-768.");
   });
