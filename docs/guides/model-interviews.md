@@ -314,7 +314,7 @@ Six models found a single maintainer, 0 stars, a registry at v1.3.314, a pre-1.0
 
 #### Challenges the native decision: Flutter with a2ui_flutter gives one agent-card renderer instead of one per platform.
 
-Signal: goal. Raised by 6 models: Claude Opus 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Grok 4.7, MAI Code 2. Status: open. [#2303](https://github.com/ourostack/ouro-ui/issues/2303).
+Signal: goal. Raised by 6 models: Claude Opus 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Grok 4.7, MAI Code 2. Status: in progress. [#2303](https://github.com/ourostack/ouro-ui/issues/2303).
 
 Models picked Flutter partly because the official a2ui_flutter renderer lets one card implementation serve all five clients, with the Flutter team an A2UI protocol partner; with native kits, every card renderer, and every card bug, exists once per platform. This is an argument for one renderer, not a gap in a kit. Ouro's answer has to be that card validation and behaviour are shared and tested identically on every kit, shown by one card passing the same behaviour test on all four.
 
