@@ -150,15 +150,14 @@ function judge(label: string, samples: number[], ceiling: number | null, basis: 
 for (const [name, baselines] of Object.entries(BASELINES)) {
   test(`${name} paints first within its ceiling on a phone, at ${LATENCY.throttle}× slower CPU`, async ({ context }) => {
     const chart = "plot" in baselines;
-    // From the document's start: the time after the frame that first shows Chart's plot at its real size with its
-    // series drawn. Recharts first adds a 1×1 placeholder surface, and sizes it once it has measured its box, so the
-    // observer watches the surface's size too, and waits for a path in its layers.
+    // From the document's start: the time after the frame that first shows Chart's plot with its series drawn. Chart
+    // measures its box before it draws, so the first surface is at its real size.
     if (chart)
       await context.addInitScript(() => {
         (window as unknown as { __plotDrawn: Promise<number> }).__plotDrawn = new Promise((resolve) => {
           const drawn = () => {
-            const surface = document.querySelector("[data-ouro-chart-plot] svg.recharts-surface");
-            return !!surface && Number(surface.getAttribute("width")) > 1 && !!surface.querySelector(".recharts-layer path");
+            const surface = document.querySelector("[data-ouro-chart-plot] svg[data-ouro-chart-surface]");
+            return !!surface && Number(surface.getAttribute("width")) > 1 && !!surface.querySelector("[data-ouro-chart-series] > *");
           };
           const observer = new MutationObserver(() => {
             if (!drawn()) return;
@@ -216,42 +215,32 @@ for (const [name, baselines] of Object.entries(BASELINES)) {
   });
 }
 
-test("dashboard-page paints its frame, the chart's title and the room for its plot before Recharts has loaded", async ({ page }) => {
+test("dashboard-page paints its frame, the chart's title and its plot together, and never loads Recharts", async ({ page }) => {
   await page.setViewportSize(PHONE);
-  // Every script but the page's entry waits until the page has painted: Chart loads Recharts in a chunk of its own after
-  // the first paint, so the page paints without it.
-  const held: string[] = [];
-  let release!: () => void;
-  const released = new Promise<void>((done) => (release = done));
-  await page.route(/\/dashboard-page\/dist\/assets\/(?!index\.js$)[^/]+\.js$/, async (route) => {
-    held.push(new URL(route.request().url()).pathname);
-    await released;
-    await route.continue();
+  // Chart draws a chart with `type` as its own SVG, so no script the page loads, at once or later, is Recharts' (whose
+  // code names its wrapper's class).
+  const scripts: Promise<string>[] = [];
+  page.on("response", (response) => {
+    if (/\/dashboard-page\/dist\/assets\/[^/]+\.js$/.test(response.url())) scripts.push(response.text());
   });
-  try {
-    await page.goto("dashboard-page/dist/");
-    const paint = await page.evaluate(
-      () =>
-        new Promise<number>((resolve) => {
-          new PerformanceObserver((list) => {
-            const entry = list.getEntriesByName("first-contentful-paint")[0];
-            if (entry) resolve(entry.startTime);
-          }).observe({ type: "paint", buffered: true });
-        }),
-    );
-    expect(paint).toBeGreaterThan(0);
-    const chart = page.locator('[data-ouro="chart"]');
-    await expect(chart.locator("figcaption")).toBeVisible();
-    await expect.poll(() => held.length, { message: "Recharts is asked for in a chunk of its own, once the page has painted" }).toBeGreaterThan(0);
-    expect(await chart.locator("svg.recharts-surface").count(), "nothing drew the plot without Recharts").toBe(0);
-    // What is under the plot stays where it is when the plot arrives.
-    const before = await chart.locator("[data-ouro-chart-plot]").boundingBox();
-    const tableTop = (await page.locator('[data-ouro="table"]').first().boundingBox())?.y;
-    release();
-    await expect(chart.locator("[data-ouro-chart-plot] svg.recharts-surface")).toBeVisible();
-    expect(await chart.locator("[data-ouro-chart-plot]").boundingBox()).toEqual(before);
-    expect((await page.locator('[data-ouro="table"]').first().boundingBox())?.y).toBe(tableTop);
-  } finally {
-    release();
-  }
+  // Watched from before the page's first script: when the chart's title first enters the page, before the browser
+  // can paint it, the plot is already drawn beside it.
+  await page.addInitScript(() => {
+    new MutationObserver((_, observer) => {
+      const figure = document.querySelector('[data-ouro="chart"]');
+      if (!figure?.querySelector("figcaption")) return;
+      observer.disconnect();
+      (window as unknown as { together: boolean }).together = !!figure.querySelector("[data-ouro-chart-plot] svg[data-ouro-chart-surface] [data-ouro-chart-series] > *");
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await page.goto("dashboard-page/dist/");
+  const chart = page.locator('[data-ouro="chart"]');
+  await expect(chart.locator("figcaption")).toBeVisible();
+  const together = await page.evaluate(() => (window as unknown as { together?: boolean }).together);
+  expect(together, "the plot draws with the chart's title").toBe(true);
+  await expect(chart.locator("svg[data-ouro-chart-surface]")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  expect(scripts.length).toBeGreaterThan(0);
+  const texts = await Promise.all(scripts);
+  expect(texts.filter((text) => text.includes("recharts-wrapper")), "no script the page loads is Recharts'").toEqual([]);
 });

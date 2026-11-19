@@ -10,7 +10,7 @@ import { watchToasts } from "./toasts";
 // CI"): each control in CHAPTER_TWO_CONTROLS has a test named "control: <id>" that operates it and
 // asserts what it visibly changes (site/scripts/stage-census.test.mjs fails when one is missing),
 // every operable element in the chapter is one of those controls, the chapter is server-rendered
-// and loads its code (Recharts with it) only as it nears the screen, X-ray finds its HX components,
+// and loads its code only as it nears the screen, X-ray finds its HX components,
 // phones work by touch, and under reduced motion nothing moves. Each control's latency is
 // chapter-two.latency.spec.ts's.
 
@@ -200,10 +200,10 @@ test.describe("each control in Chapter II", () => {
     await expect(legs.locator("[data-ouro-chart-tooltip]")).toContainText("Crespo");
     await planShortest(page);
     await expect(table.first()).toContainText("Atlantis");
-    await expect(legs.locator(".recharts-bar-rectangle")).toHaveCount(START_ROUTE.length - 1);
+    await expect(legs.locator("[data-ouro-chart-bar]")).toHaveCount(START_ROUTE.length - 1);
     // Each leg's label is HTML under its bar, not the chart's SVG text (useAxisLabels).
     await expect(legs.locator("[data-chapter-axis]")).toContainText("Atlantis");
-    await expect(legs.locator(".recharts-cartesian-axis-tick-value").first()).toBeHidden();
+    await expect(legs.locator("[data-ouro-chart-tick]").first()).toBeHidden();
   });
 
   test("control: sort orders the specimens by name, group or depth", async ({ page }) => {
@@ -288,7 +288,7 @@ test("every operable element in Chapter II is one of its listed controls, in pag
   expect(found.order).toEqual([...CHAPTER_TWO_CONTROLS]);
 });
 
-test("Chapter II is in the server HTML, and its code, Recharts with it, loads only as it nears the screen", async ({ page }) => {
+test("Chapter II is in the server HTML, and its code loads only as it nears the screen", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const chunks: string[] = [];
   page.on("request", (request) => {
