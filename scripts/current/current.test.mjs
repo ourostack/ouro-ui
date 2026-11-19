@@ -1313,6 +1313,72 @@ test("auto-merge falls back to a merge method the repository allows", async () =
   assert.equal(repo.pulls[0].autoMerge, "MERGE");
 });
 
+test("a repository that names a review team gets its update with auto-merge off and that team asked to review (#2296)", async () => {
+  const rules = JSON.stringify({ review: { team: "design-system" } });
+  const repo = fakeRepo({ "Package.swift": SWIFT, ".github/ouro-current.json": rules });
+  const first = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(first.state, "pr");
+  assert.equal(first.pr.autoMerge, false);
+  assert.equal(first.pr.review, "o/design-system");
+  assert.match(first.pr.note, /review requested from o\/design-system/);
+  assert.deepEqual(repo.pulls[0].requested_teams, [{ slug: "design-system" }]);
+  assert.ok(!repo.calls.some((call) => call.startsWith("arm ")), "auto-merge is never turned on");
+  assert.match(repo.pulls[0].body, /Auto-merge is off: this repository asks `o\/design-system` to review the update\./);
+  assert.deepEqual(lintMarkdown(repo.pulls[0].body, { file: "pull request body" }), []);
+
+  // Nothing new to push: the team is not asked again.
+  const again = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(again.pr.pushed, false);
+  assert.equal(repo.calls.filter((call) => call.endsWith("/requested_reviewers")).length, 1);
+  assert.match(again.pr.note, /already asked/);
+
+  // A newer release pushes to the same pull request, and asks again.
+  await keepRepo(repo.gh, "o/r", { ...RELEASES, apple: { ...RELEASES.apple, tag: "v0.10.0", sha: "f".repeat(40) } }, {});
+  assert.equal(repo.calls.filter((call) => call.endsWith("/requested_reviewers")).length, 2);
+  assert.equal(repo.pulls.length, 1);
+});
+
+test("a repository that adds a review team has its armed update pull request disarmed, and not armed again (#2296)", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT });
+  await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.ok(repo.pulls[0].auto_merge, "armed while the repository asks for no review");
+  repo.setMain({ ".github/ouro-current.json": JSON.stringify({ review: { team: "o/design-system" } }) });
+  const result = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(result.pr.autoMerge, false);
+  assert.equal(repo.pulls[0].auto_merge, null);
+  assert.equal(repo.calls.filter((call) => call.startsWith("arm ")).length, 1);
+  assert.deepEqual(repo.pulls[0].requested_teams, [{ slug: "design-system" }]);
+});
+
+test("a review team GitHub will not take is named in the result, the update still opens, and the next run asks again (#2296)", async () => {
+  let status = 422;
+  const repo = fakeRepo({ "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify({ review: { team: "nobody" } }) }, { review: () => status });
+  const result = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(result.state, "pr");
+  assert.equal(result.pr.autoMerge, false);
+  assert.match(result.pr.note, /could not request review from o\/nobody \(422\)/);
+
+  // Nothing to push, nobody waiting and nobody has reviewed: asked again, now that GitHub takes the team.
+  status = 201;
+  const again = await keepRepo(repo.gh, "o/r", RELEASES, {});
+  assert.equal(again.pr.pushed, false);
+  assert.equal(again.pr.note, "review requested from o/nobody");
+  assert.deepEqual(repo.pulls[0].requested_teams, [{ slug: "nobody" }]);
+});
+
+test("an update pull request whose auto-merge GitHub will not turn off fails the run of a repository that asks for review (#2296)", async () => {
+  const repo = fakeRepo({ "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify({ review: { team: "design-system" } }) }, { disarmFails: true });
+  repo.pulls.push({ number: 1, node_id: "PR1", html_url: "https://example.test/pull/1", state: "open", title: "x", body: "x", auto_merge: { merge_method: "squash" } });
+  await assert.rejects(keepRepo(repo.gh, "o/r", RELEASES, {}), /would not turn it off, so it could merge without review by o\/design-system/);
+});
+
+test("a review setting that is not a team in the repository's own organisation fails the repository with the fix (#2296)", async () => {
+  const files = (review) => ({ "Package.swift": SWIFT, ".github/ouro-current.json": JSON.stringify({ review }) });
+  await assert.rejects(keepRepo(fakeRepo(files({ team: "other/design-system" })).gh, "o/r", RELEASES, {}), /review team other\/design-system is not in o/);
+  await assert.rejects(keepRepo(fakeRepo(files({})).gh, "o/r", RELEASES, {}), /"review" needs a "team", a team slug such as "design-system" or "o\/design-system"/);
+  await assert.rejects(keepRepo(fakeRepo(files({ team: "a b" })).gh, "o/r", RELEASES, {}), /"review" needs a "team"/);
+});
+
 test("a repository with no pin file gets nothing", async () => {
   const repo = fakeRepo({ "README.md": "hi" });
   const result = await keepRepo(repo.gh, "o/r", RELEASES, {});

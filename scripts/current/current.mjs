@@ -1,6 +1,6 @@
 // Ouro Current: our own Dependabot for Ouro UI pins. For every repository the Ouro Current GitHub App is installed on,
 // it finds the Ouro UI pin files by name, and when one is behind the newest release it follows, opens or updates one
-// pull request, "Update to Ouro UI vX", on the branch `ouro-current/update`, with auto-merge on. See scripts/current/README.md.
+// pull request, "Update to Ouro UI vX", on the branch `ouro-current/update`, with auto-merge on (or, where the repository's `.github/ouro-current.json` names a review team, off and with that team asked to review). See scripts/current/README.md.
 //
 //   OURO_CURRENT_APP_ID=… OURO_CURRENT_PRIVATE_KEY=… node scripts/current/current.mjs [--out current.json] [--only owner/repo]
 //   GH_TOKEN=… node scripts/current/current.mjs --dry-run --only owner/repo   # what it would change; writes nothing
@@ -18,7 +18,7 @@ import { appJwt, createGitHub } from "./github.mjs";
 import { NAMES, REPOS, UPDATERS, WORKFLOWS_PERMISSION, appleRequirement, asBytes, findPins, hxStylesheetBehind, isBehind, isCandidate, ourostackPackages, takes } from "./pins.mjs";
 import { CONFIG as CHECK_CONFIG, bringsCheck, checkRulesSection, seedKnown } from "./known.mjs";
 import { gateLive, liveFor, runLiveCheck } from "./live.mjs";
-import { RULES_PATH, applyRules, isIgnored } from "./rules.mjs";
+import { RULES_PATH, applyRules, isIgnored, reviewTeam } from "./rules.mjs";
 import { readTarball } from "./tar.mjs";
 
 export const BRANCH = "ouro-current/update";
@@ -363,6 +363,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   const read = (path) => readAt(head, path);
   const rulesText = found.pins.length ? await read(RULES_PATH) : null;
   const rules = rulesText === null ? null : JSON.parse(rulesText);
+  const review = reviewTeam(rules, info.owner.login);
   // A repository never follows itself (Ouro UI's own copy of core's generator follows core, not Ouro UI), and a pin
   // the repository's rules ignore stays where it is.
   const pins = found.pins.filter((pin) => REPOS[pin.follows] !== repo && !isIgnored(rules, pin.file));
@@ -448,6 +449,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
   notes.splice(0, notes.length, ...new Set(notes));
   // Every updater held back (a set that moves together or not at all): there is nothing to propose, and the notes say why.
   if (Object.keys(files).length === 0) return { ...result, state: "skipped", reason: notes.join(" "), pr: null };
+  if (review) notes.push(`Auto-merge is off: this repository asks \`${info.owner.login}/${review}\` to review the update.`);
   if (dryRun) {
     // A live check runs when the update is written, not here: a dry run reads only what the write would read.
     const liveNote = live && brought.rules.length ? [`The Ouro check of ${releases.web.tag} runs against the live site when this update is written: a finding of a rule it does not bring in holds the update back.`] : [];
@@ -522,7 +524,7 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
       // GitHub keeps the branch of a pull request in a merge queue as it is: the queued update merges, or leaves the
       // queue, and the next run brings it up to date (ourostack/ouro-ui#1809).
       if (!(existing && existingPr && error.status === 422 && /merge queue/i.test(error.message))) throw error;
-      if (disarmed) await autoMerge(gh, existingPr, moves);
+      if (disarmed && !review) await autoMerge(gh, existingPr, moves);
       return { ...result, state: "pr", pr: { number: existingPr.number, url: existingPr.html_url, title: existingPr.title, autoMerge: Boolean(existingPr.auto_merge), note: "in the merge queue, so left as it is until it merges or leaves the queue", pushed: false } };
     }
   }
@@ -552,6 +554,25 @@ export async function keepRepo(gh, repo, releases, sources, { dryRun = false, li
     if (pr.title !== name || pr.body !== text) pr = await gh.patch(`repos/${repo}/pulls/${pr.number}`, { title: name, body: text });
   } else {
     pr = await gh.post(`repos/${repo}/pulls`, { title: name, body: text, head: BRANCH, base });
+  }
+  if (review) {
+    // A repository that asked for review after the pull request armed auto-merge has it turned off, so a person decides.
+    // One that stays armed would merge without the review, so the run fails rather than report it off.
+    if (pr.auto_merge && !disarmed && !(await disarm(gh, pr))) throw new Error(`#${pr.number} has auto-merge on and GitHub would not turn it off, so it could merge without review by ${info.owner.login}/${review}`);
+    const team = `${info.owner.login}/${review}`;
+    // Asked when the pull request opens and after each push; between pushes, only if the team is not waiting and nobody
+    // has reviewed yet (a request that failed before), so a team that already reviewed is not asked again for nothing.
+    const waiting = Boolean(existingPr?.requested_teams?.some((item) => item.slug === review));
+    const ask = !existingPr || commit.changed || (!waiting && (await gh.get(`repos/${repo}/pulls/${pr.number}/reviews`)).length === 0);
+    let note = ask ? `review requested from ${team}` : `review left to ${team}, already asked`;
+    if (ask) {
+      try {
+        await gh.post(`repos/${repo}/pulls/${pr.number}/requested_reviewers`, { team_reviewers: [review] });
+      } catch (error) {
+        note = `could not request review from ${team} (${error.status ?? error.message}), which needs to be a team with access to this repository`;
+      }
+    }
+    return { ...result, state: "pr", pr: { number: pr.number, url: pr.html_url, title: name, autoMerge: false, note, pushed: commit.changed, review: team, ...(fullRun ? { fullRun } : {}) } };
   }
   const merge = await autoMerge(gh, pr, moves);
   return { ...result, state: "pr", pr: { number: pr.number, url: pr.html_url, title: name, autoMerge: merge.on, note: merge.note, pushed: commit.changed, ...(fullRun ? { fullRun } : {}) } };
