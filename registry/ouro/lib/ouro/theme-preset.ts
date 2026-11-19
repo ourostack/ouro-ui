@@ -26,7 +26,7 @@ function stored(key: string, presets: readonly string[], fallback: string): stri
       // Storage is refused: there is no kept choice to read.
     }
   }
-  return value !== null && presets.includes(value) ? value : fallback;
+  return presets.find((name) => name === value) ?? fallback;
 }
 
 function subscribe(listener: () => void): () => void {
