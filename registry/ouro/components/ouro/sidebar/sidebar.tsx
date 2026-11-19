@@ -32,7 +32,7 @@ interface SidebarItemBase {
    * A short count or tag after the label: `badge: 12`, `badge: "New"`, drawn as a muted tag. An
    * element (`badge: <Badge tone="warning">Busy</Badge>`) is drawn as it is, with no tag around it.
    * It is read as part of the item's name, and hidden from sight when the sidebar is collapsed.
-   * @claim "element (`badge: <Badge" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar items > draws a badge given as an element as it is, with no muted tag around it, so no corner nests in another at any root size)
+   * @claim "element (`badge: <Badge" registry/ouro/components/ouro/sidebar/sidebar.test.tsx verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar items > draws a badge given as an element as it is, with no muted tag around it, at the row's end)
    */
   badge?: ReactNode;
 }

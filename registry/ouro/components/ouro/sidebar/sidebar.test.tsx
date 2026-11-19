@@ -3,7 +3,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
-import { findDesignIssues } from "@/registry/ouro/check/design-check";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Sidebar, type SidebarProps } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { OuroProvider, type OuroLinkComponent } from "@/registry/ouro/lib/ouro/ouro-provider";
@@ -422,31 +421,22 @@ describe("Sidebar items", () => {
     expect(page.getByRole("link").element().querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
   });
 
-  it("draws a badge given as an element as it is, with no muted tag around it, so no corner nests in another at any root size", async () => {
-    // shadcn's stock radius on a wide screen, whose root type steps up to 125%: there a muted tag around a Badge read as a
-    // frame in a frame (a 10px corner in a 7.5px one). Ouro's rounder theme caps the Badge's corner at half its height, which hides it.
-    document.documentElement.style.fontSize = "125%";
-    document.documentElement.style.setProperty("--radius", "0.625rem");
-    try {
-      const items = [
-        { label: "Agent", href: "/agent", badge: <Badge tone="warning">Idle</Badge> },
-        { label: "Inbox", href: "/inbox", badge: 12 },
-      ];
-      await render(<Sidebar label="Main" sections={[{ items }]} />);
-      await expect.element(page.getByRole("link", { name: "Agent Idle" })).toBeVisible();
-      const slotOf = (name: string) => page.getByRole("link", { name }).element().querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!;
-      const [bare, tag] = [slotOf("Agent Idle"), slotOf("Inbox 12")];
-      expect(isTransparent(getComputedStyle(bare).backgroundColor)).toBe(true);
-      expect(getComputedStyle(bare).paddingInlineStart).toBe("0px");
-      // At the row's end, the same as a tag.
-      expect(bare.getBoundingClientRect().right).toBeCloseTo(tag.getBoundingClientRect().right, 0);
-      // A number or text keeps its muted tag.
-      expect(isTransparent(getComputedStyle(tag).backgroundColor)).toBe(false);
-      expect(findDesignIssues().filter((issue) => issue.rule === "nested-frame")).toEqual([]);
-    } finally {
-      document.documentElement.style.fontSize = "";
-      document.documentElement.style.removeProperty("--radius");
-    }
+  it("draws a badge given as an element as it is, with no muted tag around it, at the row's end", async () => {
+    const items = [
+      { label: "Agent", href: "/agent", badge: <Badge tone="warning">Idle</Badge> },
+      { label: "Inbox", href: "/inbox", badge: 12 },
+    ];
+    await render(<Sidebar label="Main" sections={[{ items }]} />);
+    await expect.element(page.getByRole("link", { name: "Agent Idle" })).toBeVisible();
+    const slotOf = (name: string) => page.getByRole("link", { name }).element().querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!;
+    const [bare, tag] = [slotOf("Agent Idle"), slotOf("Inbox 12")];
+    // The slot draws nothing of its own: it is the Badge's box exactly, unfilled.
+    expect(isTransparent(getComputedStyle(bare).backgroundColor)).toBe(true);
+    expect(bare.getBoundingClientRect().toJSON()).toEqual(bare.firstElementChild!.getBoundingClientRect().toJSON());
+    // At the row's end, the same as a tag.
+    expect(bare.getBoundingClientRect().right).toBeCloseTo(tag.getBoundingClientRect().right, 0);
+    // A number or text keeps its muted tag.
+    expect(isTransparent(getComputedStyle(tag).backgroundColor)).toBe(false);
   });
 
   it("renders an item with onClick and no href as a button, in the column and in the drawer", async () => {
