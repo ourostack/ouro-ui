@@ -2346,6 +2346,78 @@
     {
       "file": "scenes/nautilus-organ-asleep-dark-960.webp",
       "sha256": "116a5c70ca784e6985bd7c58299a3b447c5e65106d959a89c8ea7aa5cac17d2f"
+    },
+    {
+      "file": "stage/anglerfish-160.webp",
+      "sha256": "cea3026c44e0164ca95d8c6fe86e2bbc5722ef49c28dbb31131ddd18a893a607"
+    },
+    {
+      "file": "stage/bg-midnight-480.webp",
+      "sha256": "1d6a3f5f631c4feaa74a7a9f85a0039be2dd59c7358a85347b0e8a680ef77815"
+    },
+    {
+      "file": "stage/bg-midnight-720.webp",
+      "sha256": "d010b1b7e80c9a0a78c33a52dd59e2317f14af818d4febac0b5c8611dbf8a656"
+    },
+    {
+      "file": "stage/bg-sunlit-480.webp",
+      "sha256": "4b926f4c6e4ef7f02dfa7c060eda69335e8fb429a666d268f8e7ae265f2e6398"
+    },
+    {
+      "file": "stage/bg-sunlit-720.webp",
+      "sha256": "3b2fca60fec5563fdc5fbc7429fe4fe3157b2abfc443e702fc700c01dc8e0a84"
+    },
+    {
+      "file": "stage/bg-sunlit-dark-480.webp",
+      "sha256": "9fa36c7000efd355697ed8c378f2516d4826ccfc9cc97f19ad061ab72ec12b80"
+    },
+    {
+      "file": "stage/bg-sunlit-dark-720.webp",
+      "sha256": "edc4ba2eb53bfb48457ff89763672f38885073f1441f5151e3a4e6aa903e7442"
+    },
+    {
+      "file": "stage/bg-twilight-480.webp",
+      "sha256": "de2c5f8a5102e5d286d6df032e73f2b99491c48f15ec20c5f813827bfc5ec842"
+    },
+    {
+      "file": "stage/bg-twilight-720.webp",
+      "sha256": "b25cbc284333cd9e006d9753ced9af1f207fbfbc947d05d8ff11aa2bf9baee69"
+    },
+    {
+      "file": "stage/bg-twilight-dark-480.webp",
+      "sha256": "e1335655307fb9fe3b1ed2c5ef22c2e5704b979bd3bc74ccf34b4fa96910d59b"
+    },
+    {
+      "file": "stage/bg-twilight-dark-720.webp",
+      "sha256": "18578146174ce0137ce1abbf91689690ec8740ff0d5094a491d32ceb5915adad"
+    },
+    {
+      "file": "stage/jellyfish-64.webp",
+      "sha256": "7dbd345ce190b387ecc7d628059dce4ae80e9cb1335511452cf389db9f19660b"
+    },
+    {
+      "file": "stage/lanternfish-56.webp",
+      "sha256": "98f572b0f3d7829f37c6bc974354cf04d2f81ecfbe7f569e57304dfc89f26e57"
+    },
+    {
+      "file": "stage/nautilus-660.webp",
+      "sha256": "8c7a1f7a0f21e043e4e84fe88ee9794f37f73c0c7efe6d5402fa920eda273ef4"
+    },
+    {
+      "file": "stage/nautilus-lit-660.webp",
+      "sha256": "f613d18b3d09d3db82b85f2667a7bd825c9ee0d12bdd4281a21491a5c01e8add"
+    },
+    {
+      "file": "stage/octopus-112.webp",
+      "sha256": "fe0f7116df58f4206bc56d5ca5746c4ed8cba12f9b3473c327750792215c03ef"
+    },
+    {
+      "file": "stage/ray-256.webp",
+      "sha256": "e28fbb68283c19c4a72ff48a2d19851f372e3890cbbd8c750720225631b503d3"
+    },
+    {
+      "file": "stage/sardine-72.webp",
+      "sha256": "ef8c5475f985b7de4d8d18d8703e82cbee68d0d06434a897c683bc52bacadba5"
     }
   ]
 }
