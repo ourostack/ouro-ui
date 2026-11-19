@@ -80,12 +80,13 @@ export function measure(repos) {
       const bump = stat(repos[kit], `${pin.sha}^..${pin.sha}`);
       const firstTag = git(repos[kit], "tag", "--contains", pin.sha, "--sort=creatordate")
         .split("\n")
-        .find(Boolean);
+        .find((t) => t && !t.includes("-"));
       const releaseLagDays = firstTag
-        ? Math.round(((Date.parse(git(repos[kit], "log", "-1", "--format=%cI", `refs/tags/${firstTag}`)) - Date.parse(coreDate)) / 864e5) * 10) / 10
+        ? Math.round(((Date.parse(git(repos[kit], "for-each-ref", "--format=%(creatordate:iso-strict)", `refs/tags/${firstTag}`)) - Date.parse(coreDate)) / 864e5) * 10) / 10
         : null;
       rows.push({
         kit,
+        adoption: i === 0,
         tag: pin.tag,
         coreDate,
         pinDate: pin.date,
@@ -110,15 +111,19 @@ export function median(values) {
 
 export function summary(rows) {
   return Object.keys(pinFiles).map((kit) => {
-    const mine = rows.filter((r) => r.kit === kit);
+    const all = rows.filter((r) => r.kit === kit);
+    const mine = all.filter((r) => !r.adoption);
     return {
       kit,
-      pins: mine.length,
-      medianLagDays: median(mine.map((r) => r.lagDays)),
-      maxLagDays: Math.max(...mine.map((r) => r.lagDays)),
-      medianReleaseLagDays: median(mine.map((r) => r.releaseLagDays)),
-      maxReleaseLagDays: Math.max(...mine.map((r) => r.releaseLagDays ?? 0)),
-      pinsReleased: mine.filter((r) => r.kitRelease).length,
+      pins: all.length,
+      bumps: mine.length,
+      currentPin: all[all.length - 1].tag,
+      medianLagDays: median(all.map((r) => r.lagDays)),
+      maxLagDays: Math.max(...all.map((r) => r.lagDays)),
+      medianReleaseLagDays: median(all.map((r) => r.releaseLagDays)),
+      maxReleaseLagDays: Math.max(...all.map((r) => r.releaseLagDays ?? 0)),
+      pinsReleased: all.filter((r) => r.kitRelease).length,
+      maxBumpLines: Math.max(...mine.map((r) => r.bumpLines)),
       medianBumpFiles: median(mine.map((r) => r.bumpFiles)),
       medianBumpLines: median(mine.map((r) => r.bumpLines)),
       medianCommitsBetweenPins: median(mine.map((r) => r.commitsSincePreviousPin)),
@@ -139,7 +144,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
   const result = measure(args);
-  const out = { summary: summary(result.rows), ...result };
+  const latest = result.releases[result.releases.length - 1].tag;
+  const out = { latestCoreTag: latest, releasesTotal: result.releases.length, summary: summary(result.rows), ...result };
   if (args.out) writeFileSync(args.out, JSON.stringify(out, null, 2) + "\n");
   else console.log(JSON.stringify(out, null, 2));
 }
