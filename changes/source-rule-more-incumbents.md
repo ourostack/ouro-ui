@@ -1,0 +1,1 @@
+- The source rule finds controls from Mantine, Fluent UI (its component packages, not its icons), HeroUI, NextUI, Blueprint, React Spectrum, Carbon, Ant Design, PrimeReact and React Bootstrap, so an app beside one of them baselines them and fails a new one.

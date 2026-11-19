@@ -1,0 +1,9 @@
+/* The incumbent's own tokens: the app's brand, not shadcn's names. */
+:root {
+  --acme-ink: #1b2a41;
+  --acme-paper: #f7f5f0;
+  --acme-brand: #0b6e4f;
+  --acme-brand-contrast: #ffffff;
+  --acme-line: #d9d4c7;
+  --acme-radius: 6px;
+}
