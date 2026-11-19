@@ -1497,6 +1497,22 @@ test("an Ouro check rule an update brings in has the findings the pull request's
   assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), seeded);
 });
 
+test("a check vendored in a monorepo's package has its findings recorded in that package's ouro-check.json, the one it reads, not the root's", async () => {
+  const lockOf = (commit, text) => JSON.stringify({ schemaVersion: 1, sources: [{ id: "check", repository: "ourostack/ouro-ui", commit, files: [{ sourcePath: "registry/ouro/check/run.ts", generatedPath: "packages/app/scripts/ouro/check/run.ts", sha256: sha256(text) }] }] }, null, 2);
+  const old = 'const RULES = ["overlap"];\n';
+  // Like ourostack/ouroboros: the package runs its check from its own folder, and keeps no ouro-check.json yet.
+  const repo = fakeRepo({ "upstream-sources.lock.json": lockOf("old", old), "packages/app/scripts/ouro/check/run.ts": old });
+  const tarball = async () => new Map([["registry/ouro/check/run.ts", Buffer.from('const RULES = ["overlap", "fragment-focus"];\n')]]);
+  let reports = [];
+  const sources = { tarball, ciReports: async (gh, name, sha) => (sha === repo.refs.get(BRANCH) ? reports : []) };
+  await keepRepo(repo.gh, "o/r", RELEASES, sources);
+  reports = [{ findings: [{ rule: "fragment-focus", detail: "Safari takes focus as stylesheets load, on this page opened at a place on it, without fragmentFocusScript" }] }];
+  await keepRepo(repo.gh, "o/r", RELEASES, sources);
+  assert.deepEqual(JSON.parse(repo.fileAt(BRANCH, "packages/app/ouro-check.json")).known, { "fragment-focus": ["Safari takes focus as stylesheets load, on this page opened at a place on it, without fragmentFocusScript"] });
+  assert.equal(repo.fileAt(BRANCH, "ouro-check.json"), undefined, "the root's is no check's");
+  assert.match(repo.pulls[0].body, /`1` findings this app already has are recorded in `packages\/app\/ouro-check\.json`'s `known`/);
+});
+
 test("a rule the release declares widened has the findings the pull request's checks reported recorded as known, as a new rule's are, and an existing rule it does not declare has none", async () => {
   const lockOf = (commit, text) => JSON.stringify({ schemaVersion: 1, sources: [{ id: "check", repository: "ourostack/ouro-ui", commit, files: [{ sourcePath: "registry/ouro/check/run.ts", generatedPath: "scripts/ouro/check/run.ts", sha256: sha256(text) }] }] }, null, 2);
   const code = 'const RULES = ["overlap", "off-scale"];\n';

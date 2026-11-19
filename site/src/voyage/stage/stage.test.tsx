@@ -126,21 +126,21 @@ describe("the hero", () => {
     await renderPage("/");
     const link = page.getByRole("link", { name: HANDOFF.commands.text, exact: true });
     await expect.element(link).toHaveAttribute("href", "#install");
-    expect(link.element().closest("[data-site-handoff-caption]")).not.toBeNull();
+    expect(link.element().closest("[data-site-handoff] [data-slot='caption']")).not.toBeNull();
     expect(document.getElementById("install")).not.toBeNull();
     // On a phone it waits: a phone's reader hands Ouro UI to an agent, and the release sits on the label's line.
     const anchor = link.element();
     await page.viewport(390, 844);
     await expect.poll(() => anchor.checkVisibility()).toBe(false);
-    const label = document.getElementById("site-handoff-label")!.getBoundingClientRect();
+    const label = document.querySelector<HTMLElement>("[data-site-handoff] [data-slot='label']")!.getBoundingClientRect();
     const release = document.querySelector<HTMLElement>("[data-site-release]")!.getBoundingClientRect();
     expect(release.top).toBeLessThan(label.bottom);
   });
 
   it("puts Copy under the hand-off's line on a phone, beside it on a wide screen, and breaks the web address only after a slash", async () => {
     await renderPage("/");
-    const prompt = document.querySelector<HTMLElement>("[data-site-handoff-prompt]")!;
-    const copy = () => document.querySelector("[data-site-handoff] .site-install-copy")!.getBoundingClientRect();
+    const prompt = document.querySelector<HTMLElement>("[data-site-handoff] [data-slot='prompt']")!;
+    const copy = () => document.querySelector("[data-site-handoff] [data-ouro='copy-button']")!.getBoundingClientRect();
     expect(copy().top).toBeLessThan(prompt.getBoundingClientRect().bottom);
     await page.viewport(390, 844);
     await expect.poll(() => copy().top).toBeGreaterThanOrEqual(prompt.getBoundingClientRect().bottom);
@@ -161,7 +161,7 @@ describe("the hero", () => {
       await expect.element(page.getByRole("group", { name: HANDOFF.label })).toBeVisible();
       // real clock: the hero's prompt, which stays.
       await expect.element(page.getByText(HANDOFF.prompt, { exact: true })).toBeVisible();
-      const prompt = document.querySelector<HTMLElement>("[data-site-handoff-prompt]")!;
+      const prompt = document.querySelector<HTMLElement>("[data-site-handoff] [data-slot='prompt']")!;
       expect(prompt.scrollWidth).toBeLessThanOrEqual(prompt.clientWidth);
       // On the first screen, under the lede, before the art; and the hero asks the person to run nothing: the commands
       // wait in the install section.

@@ -20,6 +20,7 @@ import {
   mainRect,
   mainWindow,
   outsidePoint,
+  pageIndicator,
   pane,
   progressOf,
   StateWatch,
@@ -135,6 +136,87 @@ describe("first-run harness: the judges", () => {
     assert.equal(dead.ok, true);
     assert.equal(dead.place, "progress");
     assert.equal(dead.evidence, "under way: Getting your chats…");
+  });
+
+  test("a progress bar beside the main landmark, as a sign-in form shows while it checks an account, keeps a page from being a dead end, and without it the page is one (#2351)", () => {
+    const signIn = (bar: Spec[]) =>
+      snap([
+        [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+        [1, "AXWebArea", undefined, { w: 1000, h: 700 }],
+        [2, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 500 }],
+        [3, "AXTextField", "ari@example.com"],
+        [3, "AXButton", "Next", { enabled: false }],
+        ...bar,
+      ]);
+    const waiting = judgeDeadEnd(signIn([[2, "AXProgressIndicator", "Please wait", { x: 80, y: 600, w: 440, h: 6 }]]), { vocabulary: VOCABULARY });
+    assert.equal(waiting.ok, true);
+    assert.equal(waiting.place, "progress");
+    assert.equal(waiting.evidence, "under way: a progress indicator (Please wait)");
+    assert.equal(judgeDeadEnd(signIn([]), { vocabulary: VOCABULARY }).place, "dead-end");
+    // Off the screen past any edge, or too small to see, it shows nothing under way.
+    for (const at of [{ x: 2000, y: 600 }, { x: -600, y: 600 }, { x: 80, y: 2000 }, { x: 80, y: -100 }]) {
+      assert.equal(judgeDeadEnd(signIn([[2, "AXProgressIndicator", "Please wait", { ...at, w: 440, h: 6 }]]), { vocabulary: VOCABULARY }).place, "dead-end", JSON.stringify(at));
+    }
+    // A bar the tree gives no position stands at the window's corner, on screen.
+    assert.equal(judgeDeadEnd(signIn([[2, "AXProgressIndicator", "Please wait", { w: 440, h: 6 }]]), { vocabulary: VOCABULARY }).place, "progress");
+    assert.equal(judgeDeadEnd(signIn([[2, "AXProgressIndicator", "Please wait", { x: 80, y: 600, w: 440, h: 0 }]]), { vocabulary: VOCABULARY }).place, "dead-end");
+    // A native main pane with no web area around it has no page to look across.
+    const native = snap([
+      [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+      [1, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 500 }],
+      [2, "AXButton", "Next", { enabled: false }],
+      [1, "AXProgressIndicator", "Please wait", { x: 80, y: 600, w: 440, h: 6 }],
+    ]);
+    assert.equal(judgeDeadEnd(native, { vocabulary: VOCABULARY }).place, "dead-end");
+    // With two web areas (a page and a small frame), the bar is looked for in the larger, the page.
+    const framed = snap([
+      [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+      [1, "AXWebArea", undefined, { w: 200, h: 100 }],
+      [2, "AXProgressIndicator", "Loading an ad", { x: 10, y: 10, w: 100, h: 6 }],
+      [1, "AXWebArea", undefined, { w: 1000, h: 700 }],
+      [2, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 500 }],
+      [3, "AXButton", "Next", { enabled: false }],
+      [2, "AXProgressIndicator", "Please wait", { x: 80, y: 600, w: 440, h: 6 }],
+    ]);
+    assert.equal(pageIndicator(framed), "a progress indicator (Please wait)");
+    // No window, no page.
+    assert.equal(pageIndicator({ at: 0, windows: [], signedIn: null }), null);
+  });
+
+  test("signed in, a card the person opened over the app is no dead end, since Escape puts it away; signed out or unknown it still is (#2359)", () => {
+    const card = (signedIn: boolean | null) =>
+      snap(
+        [
+          [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+          [1, "AXWebArea", undefined, { w: 1000, h: 700 }],
+          [2, "AXGroup", undefined, { subrole: "AXLandmarkMain", x: 80, y: 80, w: 900, h: 600 }],
+          [3, "AXStaticText", "Your chats"],
+          [2, "AXGroup", undefined, { subrole: "AXApplicationDialog", x: 256, y: 100, w: 512, h: 400 }],
+          [3, "AXHeading", "Account"],
+          [3, "AXStaticText", "ari@example.com"],
+        ],
+        { signedIn },
+      );
+    const signedIn = judgeDeadEnd(card(true), { vocabulary: VOCABULARY });
+    assert.equal(signedIn.ok, true);
+    assert.equal(signedIn.place, "forward");
+    assert.equal(signedIn.evidence, 'signed in, a card over the app ("Account"), put away with Escape');
+    // Signed in with no card open, the page is judged as any other.
+    const bare = snap([[0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }], [1, "AXWebArea", undefined, { w: 1000, h: 700 }], [2, "AXStaticText", "Your chats"]], { signedIn: true });
+    assert.equal(judgeDeadEnd(bare, { vocabulary: VOCABULARY }).place, "dead-end");
+    // A card with no name of its own is still put away.
+    const unnamed = snap(
+      [
+        [0, "AXWindow", "App", { w: 1024, h: 768, x: 0, y: 0 }],
+        [1, "AXWebArea", undefined, { w: 1000, h: 700 }],
+        [2, "AXGroup", undefined, { subrole: "AXApplicationDialog", x: 256, y: 100, w: 512, h: 400 }],
+        [3, "AXImage", undefined, { w: 64, h: 64 }],
+      ],
+      { signedIn: true },
+    );
+    assert.equal(judgeDeadEnd(unnamed, { vocabulary: VOCABULARY }).evidence, 'signed in, a card over the app ("a dialog"), put away with Escape');
+    assert.equal(judgeDeadEnd(card(false), { vocabulary: VOCABULARY }).place, "dead-end");
+    assert.equal(judgeDeadEnd(card(null), { vocabulary: VOCABULARY }).place, "dead-end");
   });
 
   test("words over a pane of one shade are still blank, but a sparse page is not", () => {

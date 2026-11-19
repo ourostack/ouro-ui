@@ -1179,7 +1179,8 @@ function NotSentIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
   );
 }
 
-const typingDot = "size-1.5 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current";
+// Forced colours paint every background as the page, so the dots take the text's system colour there.
+const typingDot = "size-1.5 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current forced-colors:bg-[CanvasText]";
 
 /**
  * Three dots that pulse in turn (opacity only, so reduced motion keeps them), with a spoken label.

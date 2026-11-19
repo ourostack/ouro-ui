@@ -29,7 +29,7 @@ Type: `RowProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end" \| "stretch" \| "baseline"` | `"center"` | Where the children sit up and down the Row. `baseline` lines up their text. |
-| `as` | `"form" \| "div" \| "aside" \| "fieldset" \| "footer" \| "header" \| "main" \| "nav" \| "ol" \| "section" \| "ul"` | `"div"` | The element to render. A `ul` or `ol` loses its bullets and indent, a `fieldset` its border. |
+| `as` | `"aside" \| "form" \| "div" \| "fieldset" \| "footer" \| "header" \| "main" \| "nav" \| "ol" \| "section" \| "ul"` | `"div"` | The element to render. A `ul` or `ol` loses its bullets and indent, a `fieldset` its border. |
 | `children` | `ReactNode` |  | The children, laid out side by side in writing direction. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development: a Row has no look; use `Card` for a surface. So do the flex classes the props own: use `gap`, `align`, `justify`, `wrap` and `stackBelow`, not `gap-*`, `items-*`, `justify-*`, `flex-wrap` or `max-sm:flex-col`. |
 | `gap` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "none"` | `"sm"` | Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px. |
