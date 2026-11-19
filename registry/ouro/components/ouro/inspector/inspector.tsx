@@ -155,7 +155,11 @@ const showsIn = (box: Edges, port: Edges) => box.top < port.bottom && box.bottom
 
 /** Whether an element sits in a box that scrolls it, so the page's own scroll does not bring it into view. */
 function insideScrollContainer(element: Element): boolean {
-  for (let node = element.parentElement; node && node !== document.body && node !== document.documentElement; node = node.parentElement) {
+  // The walk stops at body: body's overflow carries over to the viewport, whose scroll is the page's own, so a body with
+  // overflow-x hidden (and so overflow-y auto) scrolls nothing itself.
+  for (let node = element.parentElement; node !== document.body; node = node.parentElement) {
+    // Stryker disable next-line ConditionalExpression: every element X-ray spotlights is in the page, so its walk meets body first; this guards one removed mid-walk.
+    if (node === null) return false;
     if (/auto|scroll|overlay|hidden/.test(getComputedStyle(node).overflowY)) return true;
   }
   return false;

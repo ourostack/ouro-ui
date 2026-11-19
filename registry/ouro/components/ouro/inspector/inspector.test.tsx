@@ -1374,6 +1374,25 @@ describe("Inspector", () => {
     expect(badge.getBoundingClientRect().top).toBeLessThan(innerHeight);
   });
 
+  it("keeps the opener on screen on a page whose body hides sideways overflow, which body's overflow-y then reads as auto", async () => {
+    await page.viewport(390, 844);
+    document.body.style.overflowX = "hidden";
+    try {
+      expect(getComputedStyle(document.body).overflowY).toBe("auto");
+      const into = vi.spyOn(Element.prototype, "scrollIntoView");
+      const { host } = await render(<Opened badgeTop={880} spotlight="badge" />);
+      await drawn(2);
+      const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+      const badge = host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+      const buttonAt = button.getBoundingClientRect().top + scrollY;
+      await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, badge)).toBe(true);
+      await expect.poll(() => Math.abs(scrollY - buttonAt) <= 1).toBe(true);
+      expect(into).not.toHaveBeenCalled();
+    } finally {
+      document.body.style.overflowX = "";
+    }
+  });
+
   it("does not scroll at all when the spotlit item already shows beside a focused opener", async () => {
     await page.viewport(390, 844);
     const into = vi.spyOn(Element.prototype, "scrollIntoView");
