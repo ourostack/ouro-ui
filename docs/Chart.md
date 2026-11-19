@@ -23,7 +23,7 @@ import { Chart } from "@/registry/ouro/components/ouro/chart/chart";
 
 Pass `type` for bars, lines or areas, one per series in `config`. For anything else, pass a recharts chart as children with `<ChartTooltip />` and `<ChartLegend />` inside it, as in shadcn's charts; it draws with `var(--color-<key>)`. The marks Chart draws itself appear at once; your own `<Line>` or `<Bar>` keeps recharts' draw-in unless you pass `isAnimationActive={false}`.
 
-With `type`, Chart draws the plot as its own SVG and never loads recharts: it adds about 15 KB gzip to an app's production build (Vite, React aside), all of it with the page. The plot draws before the page's first paint, in the room its box keeps.
+With `type`, Chart draws the plot as its own SVG and never loads recharts: it adds about 15 KB gzip to an app's production build (Vite, React aside), all of it with the page. The plot draws before the first paint of a client render, in the room its box keeps. In server HTML the box is there but empty, and the plot draws as the page hydrates.
 
 Only `ChartTooltip` and `ChartLegend` load recharts' parts, in a chunk of their own after the page has painted; a recharts chart passed as children draws in the task after the first paint, so the rest of a page shows without waiting for recharts to lay it out. Recharts itself comes with the app's own import of it; Bundlephobia measures the whole package at about 150 KB gzip (566 KB minified).
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, cloneElement, createContext, isValidElement, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Children, cloneElement, createContext, isValidElement, memo, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, HTMLAttributes, JSX, PointerEvent, ReactElement, ReactNode, Ref, RefObject } from "react";
 import type * as Recharts from "recharts";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -68,8 +68,15 @@ interface PartTag {
   load: () => Promise<unknown>;
 }
 
-/** The tag of a part, read off its element's type, so Chart finds the parts without naming them (and Recharts) itself. */
-const partTag = (type: unknown): PartTag | undefined => (typeof type === "function" ? (type as { ouroChartPart?: PartTag }).ouroChartPart : undefined);
+/**
+ * The tag of a part, read off its element's `memo` type or the tagged function it wraps (which a part's own body names),
+ * so Chart finds the parts without naming them (and Recharts) itself. A part is a `memo` export, which an app's linter
+ * takes for a component as it does not a bare `Object.assign` call.
+ */
+const partTag = (type: unknown): PartTag | undefined => {
+  const tagged = type as { ouroChartPart?: PartTag; type?: { ouroChartPart?: PartTag } };
+  return tagged.type?.ouroChartPart ?? tagged.ouroChartPart;
+};
 
 /** One series in a chart's `config`: its label and the theme tone it is drawn in. */
 export interface ChartSeries {
@@ -278,7 +285,8 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  *
  * With `type`, Chart draws the plot as its own SVG and never loads recharts: it adds about
  * 15 KB gzip to an app's production build (Vite, React aside), all of it with the page. The
- * plot draws before the page's first paint, in the room its box keeps.
+ * plot draws before the first paint of a client render, in the room its box keeps. In server
+ * HTML the box is there but empty, and the plot draws as the page hydrates.
  *
  * Only `ChartTooltip` and `ChartLegend` load recharts' parts, in a chunk of their own after the
  * page has painted; a recharts chart passed as children draws in the task after the first
@@ -313,7 +321,8 @@ function chartWarnings(props: ChartProps<Record<string, unknown>>, series: Serie
  * @claim "With `type`, Chart draws the plot" scripts/chart-weight.test.mjs verify:testExists(scripts/chart-weight.test.mjs::a chart drawn with type adds about 15 KB gzip to an app's build, with no recharts in any chunk)
  * @claim "With `type`, Chart draws the plot" registry/ouro/components/ouro/chart/chart.load.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.load.test.tsx::draws a chart with type without ever importing recharts)
  * @claim "With `type`, Chart draws the plot" site/e2e/patterns.latency.spec.ts verify:testExists(site/e2e/patterns.latency.spec.ts::dashboard-page paints its frame, the chart's title and its plot together, and never loads Recharts)
- * @claim "The plot draws before the page's" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws its plot with the page, in the frame the figure first shows, and nothing under it moves)
+ * @claim "In server HTML the box is" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > renders its title, summary and table in server HTML and hydrates without a warning)
+ * @claim "The plot draws before the first" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws its plot with the page, in the frame the figure first shows, and nothing under it moves)
  * @claim "Only `ChartTooltip` and `ChartLegend` load" scripts/chart-weight.test.mjs verify:testExists(scripts/chart-weight.test.mjs::ChartTooltip and ChartLegend load recharts in a chunk of its own, after the page (control))
  * @claim "Only `ChartTooltip` and `ChartLegend` load" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws a recharts chart passed as children after the first paint, in the room the plot box keeps)
  * @claim "Bundlephobia measures the whole package" https://bundlephobia.com/package/recharts@3.10.1 verify:urlOk(https://bundlephobia.com/package/recharts@3.10.1)
@@ -612,7 +621,8 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
   }, [data, series, categoryKey, formatValue, type, count, width, height, font]);
   const { ticks, labels, left, right, top, bottom, y, band, step, x, categories } = layout;
   const [active, setActive] = useState<Active | null>(null);
-  // A tooltip at a category the data no longer has shows nothing.
+  // A tooltip at a category the data no longer has is put away, so it cannot come back when the data grows again.
+  if (active && active.index >= count) setActive(null);
   const index = active && active.index < count ? active.index : null;
   const card = useRef<HTMLDivElement>(null);
   const [cardWidth, setCardWidth] = useState(0);
@@ -654,53 +664,56 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
     );
   // The ticks always reach 0, so bars and areas grow from it.
   const zero = y(0);
-  const slots = barSlots(band, series.length);
-  const marks = series.map((item, place) => {
-    const color = `var(--color-${item.key})`;
-    if (type === "bar") {
+  // The marks do not change as the tooltip moves, so a pointer move redraws only the cursor, the points and the card.
+  const marks = useMemo(() => {
+    const slots = barSlots(band, series.length);
+    return series.map((item, place) => {
+      const color = `var(--color-${item.key})`;
+      if (type === "bar") {
+        return (
+          <g key={item.key} data-ouro-chart-series={item.key} className={`ouro-chart-series-${item.key}`}>
+            {data.map((row, category) => {
+              const value = row[item.key];
+              if (!isValue(value)) return null;
+              const slot = slots[place]!;
+              const [from, to] = [zero, y(value)];
+              return (
+                <rect
+                  key={category}
+                  data-ouro-chart-bar=""
+                  x={left + band * category + slot.x}
+                  y={Math.min(from, to)}
+                  width={slot.width}
+                  height={Math.abs(to - from)}
+                  rx={4}
+                  fill={color}
+                />
+              );
+            })}
+          </g>
+        );
+      }
+      // A missing value breaks the line, as Recharts' does without connectNulls.
+      const runs: Array<Array<readonly [number, number]>> = [[]];
+      data.forEach((row, category) => {
+        const value = row[item.key];
+        if (isValue(value)) runs.at(-1)!.push([x(category), y(value)]);
+        else if (runs.at(-1)!.length > 0) runs.push([]);
+      });
+      const lines = runs.filter((run) => run.length > 0);
       return (
         <g key={item.key} data-ouro-chart-series={item.key} className={`ouro-chart-series-${item.key}`}>
-          {data.map((row, category) => {
-            const value = row[item.key];
-            if (!isValue(value)) return null;
-            const slot = slots[place]!;
-            const [from, to] = [zero, y(value)];
-            return (
-              <rect
-                key={category}
-                data-ouro-chart-bar=""
-                x={left + band * category + slot.x}
-                y={Math.min(from, to)}
-                width={slot.width}
-                height={Math.abs(to - from)}
-                rx={4}
-                fill={color}
-              />
-            );
-          })}
+          {type === "area" &&
+            lines.map((run, number) => (
+              <path key={`area-${number}`} data-ouro-chart-area="" d={`${curvePath(run)}L${run.at(-1)![0]},${zero}L${run[0]![0]},${zero}Z`} fill={color} fillOpacity={0.2} />
+            ))}
+          {lines.map((run, number) => (
+            <path key={number} data-ouro-chart-line="" d={curvePath(run)} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          ))}
         </g>
       );
-    }
-    // A missing value breaks the line, as Recharts' does without connectNulls.
-    const runs: Array<Array<readonly [number, number]>> = [[]];
-    data.forEach((row, category) => {
-      const value = row[item.key];
-      if (isValue(value)) runs.at(-1)!.push([x(category), y(value)]);
-      else if (runs.at(-1)!.length > 0) runs.push([]);
     });
-    const lines = runs.filter((run) => run.length > 0);
-    return (
-      <g key={item.key} data-ouro-chart-series={item.key} className={`ouro-chart-series-${item.key}`}>
-        {type === "area" &&
-          lines.map((run, number) => (
-            <path key={`area-${number}`} data-ouro-chart-area="" d={`${curvePath(run)}L${run.at(-1)![0]},${zero}L${run[0]![0]},${zero}Z`} fill={color} fillOpacity={0.2} />
-          ))}
-        {lines.map((run, number) => (
-          <path key={number} data-ouro-chart-line="" d={curvePath(run)} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-        ))}
-      </g>
-    );
-  });
+  }, [series, data, type, band, left, x, y, zero]);
   const dots =
     type === "bar"
       ? null
@@ -712,12 +725,12 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
                   key={category}
                   data-ouro-chart-dot={item.shape}
                   data-ouro-chart-series={item.key}
-                  data-active={category === index ? "" : undefined}
+                  data-highlighted={category === index ? "" : undefined}
                   transform={`translate(${x(category)} ${y(row[item.key] as number)})`}
                   color={`var(--color-${item.key})`}
                 >
                   {/* The point under the tooltip grows, so the eye finds it; with reduced motion it changes size at once. */}
-                  <g className="[transform-box:fill-box] origin-center transition-[scale] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) in-data-active:scale-140 motion-reduce:transition-none">
+                  <g data-ouro-part="dot" className="[transform-box:fill-box] origin-center transition-[scale] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) in-data-highlighted:scale-140 motion-reduce:transition-none">
                     <MarkerPath shape={item.shape} size={9} />
                   </g>
                 </g>
@@ -746,7 +759,11 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
         onFocus={() => setActive((last) => last ?? (count > 0 ? { index: 0, x: x(0), y: top } : null))}
         onBlur={() => setActive(null)}
         onKeyDown={(event) => {
-          if (event.key === "Escape") setActive(null);
+          // Escape puts the tooltip away and goes no further, so a dialog around the chart stays open; with no tooltip, it reaches the dialog.
+          if (event.key === "Escape" && index !== null) {
+            event.stopPropagation();
+            setActive(null);
+          }
           const move = keys[event.key];
           if (!move || count === 0) return;
           event.preventDefault();
@@ -782,6 +799,7 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
         // Fades in where it first shows, then glides from point to point; with reduced motion it only fades.
         <div
           ref={card}
+          data-ouro-part="tooltip"
           data-ouro-chart-tooltip-place=""
           className="pointer-events-none absolute top-0 transition-[opacity,translate] duration-(--ouro-duration-fast) ease-(--ouro-ease-out) starting:opacity-0 motion-reduce:transition-opacity"
           style={{ left: 0, translate: `${beside(active!.x, cardWidth, width)}px ${beside(active!.y, cardHeight, height)}px` }}
@@ -922,8 +940,8 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
  * @claim "The tooltip for a recharts chart" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > colors each series from the theme's chart tokens, in light and dark)
  */
 // A pure call with its tag inside it, so an app that never renders the part leaves it, and Recharts, out of its build.
-export const ChartTooltip = /* @__PURE__ */ Object.assign(
-  function ChartTooltip(props: ChartTooltipProps): JSX.Element | null {
+export const ChartTooltip = /* @__PURE__ */ memo(
+  /* @__PURE__ */ Object.assign(function ChartTooltip(props: ChartTooltipProps): JSX.Element | null {
     const { warnKey } = useChartPart("ChartTooltip");
     const parts = useRecharts();
     useEffect(() => {
@@ -932,8 +950,7 @@ export const ChartTooltip = /* @__PURE__ */ Object.assign(
     });
     if (!parts) return null;
     return <parts.Tooltip cursor content={(tooltip) => <TooltipContent active={tooltip.active} payload={tooltip.payload as readonly TooltipEntry[]} label={tooltip.label} />} />;
-  },
-  { ouroChartPart: { name: "ChartTooltip", load: loadRecharts } satisfies PartTag },
+  }, { ouroChartPart: { name: "ChartTooltip", load: loadRecharts } satisfies PartTag }),
 );
 
 /**
@@ -960,21 +977,20 @@ export const ChartTooltip = /* @__PURE__ */ Object.assign(
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > leaves out the legend for a single series, which the title already names)
  * @claim "`Chart` adds it for you with" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > draws lines with a different point shape per series)
  */
-export const ChartLegend = /* @__PURE__ */ Object.assign(
-  function ChartLegend(props: ChartLegendProps): JSX.Element | null {
-  const { legendTarget, warnKey } = useChartPart("ChartLegend");
-  const parts = useRecharts();
-  useEffect(() => {
-    /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
-    if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props, warnKey);
-  });
-  // Recharts measures the plot before it renders its children, by which time the slot is mounted. A null
-  // target would make Legend fall back to the list inside the chart's own wrapper, so render nothing then.
-  /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */
-  // Stryker disable next-line ConditionalExpression: the slot mounts before Recharts measures the plot, so this never runs with a null target and forcing it false changes nothing.
-  if (legendTarget === null) return null;
-  if (!parts) return null;
-  return <parts.Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
-  },
-  { ouroChartPart: { name: "ChartLegend", load: loadRecharts } satisfies PartTag },
+export const ChartLegend = /* @__PURE__ */ memo(
+  /* @__PURE__ */ Object.assign(function ChartLegend(props: ChartLegendProps): JSX.Element | null {
+    const { legendTarget, warnKey } = useChartPart("ChartLegend");
+    const parts = useRecharts();
+    useEffect(() => {
+      /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
+      if (process.env.NODE_ENV !== "production") checkPartContent(ChartLegend, props, warnKey);
+    });
+    // Recharts measures the plot before it renders its children, by which time the slot is mounted. A null
+    // target would make Legend fall back to the list inside the chart's own wrapper, so render nothing then.
+    /* istanbul ignore if @preserve -- the slot mounts before Recharts measures the plot, so a target is always set when this renders */
+    // Stryker disable next-line ConditionalExpression: the slot mounts before Recharts measures the plot, so this never runs with a null target and forcing it false changes nothing.
+    if (legendTarget === null) return null;
+    if (!parts) return null;
+    return <parts.Legend verticalAlign="bottom" portal={legendTarget} content={(legend) => <LegendContent payload={legend.payload as readonly { dataKey?: unknown }[]} />} />;
+  }, { ouroChartPart: { name: "ChartLegend", load: loadRecharts } satisfies PartTag }),
 );

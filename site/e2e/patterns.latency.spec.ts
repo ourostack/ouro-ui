@@ -223,20 +223,20 @@ test("dashboard-page paints its frame, the chart's title and its plot together, 
   page.on("response", (response) => {
     if (/\/dashboard-page\/dist\/assets\/[^/]+\.js$/.test(response.url())) scripts.push(response.text());
   });
+  // Watched from before the page's first script: when the chart's title first enters the page, before the browser
+  // can paint it, the plot is already drawn beside it.
+  await page.addInitScript(() => {
+    new MutationObserver((_, observer) => {
+      const figure = document.querySelector('[data-ouro="chart"]');
+      if (!figure?.querySelector("figcaption")) return;
+      observer.disconnect();
+      (window as unknown as { together: boolean }).together = !!figure.querySelector("[data-ouro-chart-plot] svg[data-ouro-chart-surface] [data-ouro-chart-series] > *");
+    }).observe(document, { childList: true, subtree: true });
+  });
   await page.goto("dashboard-page/dist/");
   const chart = page.locator('[data-ouro="chart"]');
-  // The plot is drawn in the commit that puts the chart in the page: by the frame its title shows, so is the plot.
-  const together = await page.evaluate(
-    () =>
-      new Promise<boolean>((resolve) => {
-        const check = () => {
-          const figure = document.querySelector('[data-ouro="chart"]');
-          if (!figure?.querySelector("figcaption")) return requestAnimationFrame(check);
-          resolve(!!figure.querySelector("[data-ouro-chart-plot] svg[data-ouro-chart-surface] [data-ouro-chart-series] > *"));
-        };
-        check();
-      }),
-  );
+  await expect(chart.locator("figcaption")).toBeVisible();
+  const together = await page.evaluate(() => (window as unknown as { together?: boolean }).together);
   expect(together, "the plot draws with the chart's title").toBe(true);
   await expect(chart.locator("svg[data-ouro-chart-surface]")).toBeVisible();
   await page.waitForLoadState("networkidle");

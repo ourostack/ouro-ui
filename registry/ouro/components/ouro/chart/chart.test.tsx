@@ -7,6 +7,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Chart, ChartContainer, ChartLegend, ChartTooltip, type ChartConfig } from "@/registry/ouro/components/ouro/chart/chart";
 import { barSlots, curvePath, niceTicks } from "@/registry/ouro/components/ouro/chart/chart-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
@@ -524,14 +525,33 @@ describe("Chart", () => {
     await expect.poll(() => tooltip()?.textContent).toMatch(/^January/);
     await userEvent.keyboard("{ArrowRight}");
     await expect.poll(() => tooltip()?.textContent).toMatch(/^February/);
-    // Data with fewer points than the one it showed shows none, and the plot losing focus puts it away.
+    // Data with fewer points than the one it showed puts it away, and it stays away when the data grows back; the
+    // plot losing focus puts it away too.
     await rerender(<Chart title="Cooking" data={rows.slice(0, 1)} categoryKey="month" config={config} />);
     expect(tooltip()).toBeNull();
     await rerender(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    expect(tooltip()).toBeNull();
     await userEvent.keyboard("{Home}");
     await expect.poll(() => tooltip()?.textContent).toMatch(/^January/);
     await act(async () => surface(chart)!.blur());
     expect(tooltip()).toBeNull();
+  });
+
+  it("keeps Escape from what is around it while it puts the tooltip away, and lets it through when there is none", async () => {
+    const around = vi.fn();
+    const { chart } = await render(
+      <div onKeyDown={(event) => event.key === "Escape" && around()}>
+        <Chart title="Cooking" data={rows} categoryKey="month" config={config} />
+      </div>,
+    );
+    await drawn(chart);
+    await act(() => surface(chart)!.focus());
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).toBeNull();
+    expect(around).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    expect(around).toHaveBeenCalledOnce();
   });
 
   it("shows the tooltip when the pointer is over a bar", async () => {
@@ -582,22 +602,29 @@ describe("Chart", () => {
     expect(tooltip()).toBeNull();
   });
 
-  it("grows the point under the tooltip, and only fades with reduced motion", async () => {
-    const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
-    await drawn(chart);
-    await userEvent.hover(chart.querySelector("figcaption")!, { position: { x: 2, y: 2 } });
-    await pressTab();
-    const dot = () => chart.querySelector('[data-ouro-chart-dot][data-ouro-chart-series="cooked"][data-active]');
-    await expect.poll(() => dot()).not.toBeNull();
-    const grow = dot()!.firstElementChild!;
-    await expect.poll(() => getComputedStyle(grow).scale).toBe("1.4");
-    expect(getComputedStyle(grow).transitionProperty).toBe("scale");
-    await commands.emulateMedia({ reducedMotion: "reduce" });
-    try {
-      expect(getComputedStyle(grow).transitionProperty).toBe("none");
-      expect(getComputedStyle(chart.querySelector("[data-ouro-chart-tooltip-place]")!).transitionProperty).toBe("opacity");
-    } finally {
-      await commands.emulateMedia({ reducedMotion: "no-preference" });
+  it("grows the point under the tooltip over the fast duration, and at once with reduced motion", async () => {
+    const fast = parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      try {
+        const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
+        await drawn(chart);
+        const plot = chart.querySelector<HTMLElement>("[data-ouro-part='plot']")!;
+        await act(() => plot.focus());
+        const grow = () => chart.querySelectorAll('[data-ouro-chart-dot][data-ouro-chart-series="cooked"] > [data-ouro-part="dot"]')[1]!;
+        void getComputedStyle(grow()).scale;
+        await act(() => plot.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+        if (reduced) {
+          await expectNoMotion(grow(), { stem: "chart", state: "data-highlighted", reduced });
+          // The tooltip card only fades as it moves.
+          expect(getComputedStyle(chart.querySelector("[data-ouro-part='tooltip']")!).transitionProperty).toBe("opacity");
+        } else {
+          await expectMotion(grow(), { stem: "chart", state: "data-highlighted", properties: { scale: fast }, reduced });
+        }
+        expect(getComputedStyle(grow()).scale).toBe("1.4");
+      } finally {
+        await commands.emulateMedia({ reducedMotion: "no-preference" });
+      }
     }
   });
 
@@ -736,6 +763,9 @@ describe("Chart", () => {
     expect(html).toContain("Cooking");
     expect(html).toContain("<table");
     expect(html).toContain("1,250");
+    // The plot box is in the HTML, empty, and the plot draws as the page hydrates.
+    expect(html).toContain("data-ouro-chart-plot");
+    expect(html).not.toContain("data-ouro-chart-bar");
     const host = document.createElement("div");
     host.style.width = "600px";
     host.innerHTML = html;
@@ -748,6 +778,7 @@ describe("Chart", () => {
     });
     roots.push(root);
     await drawn(host.querySelector<HTMLElement>('[data-ouro="chart"]')!);
+    expect(host.querySelectorAll("[data-ouro-chart-bar]").length).toBeGreaterThan(0);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });

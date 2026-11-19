@@ -5,5 +5,18 @@
     "chart": [
       {"part": "plot", "role": "application", "portal": false}
     ]
+  },
+  "motion": {
+    "chart": {
+      "states": {
+        "data-highlighted": {
+          "kind": "motion",
+          "parts": {
+            "dot": {"properties": ["scale"], "reduced": []}
+          },
+          "tests": ["registry/ouro/components/ouro/chart/chart.test.tsx::Chart > grows the point under the tooltip over the fast duration, and at once with reduced motion"]
+        }
+      }
+    }
   }
 }
