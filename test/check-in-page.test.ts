@@ -1220,6 +1220,9 @@ describe("findFragmentFocusIssues", () => {
   });
 
   it("reads an allow of every rule on <body>, needs its reason, and judges a record with no script, or a stylesheet in <body> after the script", () => {
+    // A page with no stylesheet to load has nothing for Safari to wait on.
+    expect(document.querySelector('link[rel~="stylesheet"][href]')).toBeNull();
+    expect(findFragmentFocusIssues()).toEqual([]);
     sheet();
     document.body.setAttribute("data-ouro-allow", "all");
     try {
