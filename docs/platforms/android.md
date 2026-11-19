@@ -8,7 +8,7 @@ Nobody here owns an Android phone or tablet. The kit is checked on emulators in 
 
 Release [v0.3.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0) meets core v0.19.0: its tokens, component specs and action generator are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
-The kit has eight of core's components as composables, where web has [127 components](registry.json "verify:count(registry:ui)=127"): `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
+The kit has eight of core's components as composables, where web has [129 components](registry.json "verify:count(registry:ui)=129"): `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`, inside `OuroTheme`, which carries core's six themes in light and dark, increased contrast and reduced motion.[^readme]
 
 `OuroComposedSurface` draws Ouro's [composed tree](../guides/composed-ui.md), the card an agent composes, from an MCP tool result's `structuredContent.ouro` (`OuroComposed.read`). Fields write the data model, a consequential button asks the person first, and a person-only one hands them to the app. To change a card it already shows, the agent sends only what changed, an update in `structuredContent.ouro.update`, and `OuroComposedState` applies it, keeping what the person entered except where the agent set the value. It reads no A2UI messages: send the tree.[^readme]
 
@@ -28,7 +28,7 @@ AppFunctions need compileSdk 37 and AGP 9.1 or later, and Google still calls the
 ## What is still missing
 
 - **A real device.** Only emulators so far, and the X-ray runs on Google's API 37 test image, because the full Google APIs image crashes its compositor under software rendering.[^ci]
-- **Components.** Web has [127 components](registry.json "verify:count(registry:ui)=127"), and this kit has eight.[^decision]
+- **Components.** Web has [129 components](registry.json "verify:count(registry:ui)=129"), and this kit has eight.[^decision]
 - **Asking the person.** A consequential action is refused for now; a PendingIntent confirmation, as Google's sample agent expects, is next.[^decision]
 - **Maven Central.** It needs a Sonatype account, so the kit uses GitHub Pages for now.[^releasing]
 
