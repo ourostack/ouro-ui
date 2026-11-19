@@ -562,7 +562,7 @@ function Saloon(): JSX.Element {
             </span>
           </div>
           <span className="grid" data-chapter-control="handoff">
-            <HandOff id="saloon-handoff-label" full={false} />
+            <HandOff full={false} />
           </span>
           <div className="flex flex-wrap gap-3">
             <span data-chapter-control="components">

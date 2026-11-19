@@ -734,6 +734,7 @@
     "registry/ouro/e2e/mcp-app-host/ouro-mcp-app-host.spec.ts": 12077,
     "registry/ouro/e2e/ouro/a2ui-surface.spec.ts": 11394,
     "registry/ouro/e2e/ouro/accordion.spec.ts": 7897,
+    "registry/ouro/e2e/ouro/agent-handoff.spec.ts": 5000,
     "registry/ouro/e2e/ouro/agent-presence.spec.ts": 12864,
     "registry/ouro/e2e/ouro/alert.spec.ts": 6235,
     "registry/ouro/e2e/ouro/app-window.spec.ts": 5000,

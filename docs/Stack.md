@@ -29,7 +29,7 @@ Type: `StackProps`.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `align` | `"start" \| "center" \| "end" \| "stretch"` | `"stretch"` | Where the children sit across the Stack. `stretch` makes each child full width. |
-| `as` | `"form" \| "div" \| "aside" \| "fieldset" \| "footer" \| "header" \| "main" \| "nav" \| "ol" \| "section" \| "ul"` | `"div"` | The element to render. A `ul` or `ol` loses its bullets and indent, a `fieldset` its border. |
+| `as` | `"aside" \| "form" \| "div" \| "fieldset" \| "footer" \| "header" \| "main" \| "nav" \| "ol" \| "section" \| "ul"` | `"div"` | The element to render. A `ul` or `ol` loses its bullets and indent, a `fieldset` its border. |
 | `children` | `ReactNode` |  | The children, laid out top to bottom. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`, `max-w-md`). Appearance classes warn in development: a Stack has no look; use `Card` for a surface. So do the flex classes the props own: use `gap`, `align` and `justify`, not `gap-*`, `items-*` or `justify-*`, and `<Row>`, not `flex-row`. |
 | `gap` | `"sm" \| "md" \| "lg" \| "xs" \| "xl" \| "none"` | `"md"` | Space between the children: `xs` 4px, `sm` 8px, `md` 16px, `lg` 24px, `xl` 32px. |

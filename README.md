@@ -400,6 +400,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 Components:
 `a2ui-surface`,
 `accordion`,
+`agent-handoff`,
 `agent-presence`,
 `alert`,
 `app-window`,
@@ -658,6 +659,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Actions
 
+- **AgentHandoff** — What a person does once they have seen something built for agents: hand it to their coding agent, as one line to paste, with Copy beside it. [Docs](docs/AgentHandoff.md)
 - **Button** — A button, or a link styled as one. [Docs](docs/Button.md)
 - **ButtonGroup** — Related buttons joined into one control, such as Previous, a page number and Next, or a split button. [Docs](docs/ButtonGroup.md)
 - **canShare** — Whether the browser has a share sheet for this data: most phones and Safari do, most desktop browsers do not. [Docs](docs/canShare.md)
