@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const kits = [
-  { kit: "web", repo: "ourostack/ouro-ui", dir: "test/fixtures/a2ui/cases", job: /^ci$/i },
+  { kit: "web", repo: "ourostack/ouro-ui", dir: "test/fixtures/a2ui/cases", job: /^ci$/i, logJob: /^scripts/ },
   { kit: "apple", repo: "ourostack/ouro-ui-apple", dir: "Tests/OuroA2UITests/Conformance/cases", job: /^Build, test, DocC and gallery/ },
   { kit: "windows", repo: "ourostack/ouro-ui-windows", dir: "vendor/core/a2ui/conformance/cases", job: /^windows$/ },
   { kit: "android", repo: "ourostack/ouro-ui-android", dir: "vendor/core/composed/cases", job: /^build$/ },
@@ -18,6 +18,27 @@ export function sameCases(coreDir, kitDir) {
   const kit = new Map(readdirSync(kitDir).filter((f) => f.endsWith(".json")).map((f) => [f, hash(join(kitDir, f))]));
   const differing = [...core.keys()].filter((f) => kit.get(f) !== core.get(f));
   return { cases: core.size, same: core.size - differing.length, differing };
+}
+
+/** Each kit's CI log names every core case and its result; the readers below turn a log into Map(case file -> "pass" | "FAIL"). */
+const readers = {
+  web: (log) => [...log.matchAll(/(✔|✖) core case (\S+\.json) resolves to its expect/g)].map((m) => [m[2], m[1] === "✔"]),
+  windows: (log) => [...log.matchAll(/\b(Passed|Failed) Ouro\.Tests\.A2UITests\.Each_case_resolves_to_its_expect\(name: "([^"]+\.json)"\)/g)].map((m) => [m[2], m[1] === "Passed"]),
+  apple: (log) => [...log.matchAll(/\| (\S+\.json) \| (pass|FAIL) \|/g)].map((m) => [m[1], m[2] === "pass"]),
+  android: (log) => [...log.matchAll(/\| (\S+\.json) \| (pass|FAIL) \|/g)].map((m) => [m[1], m[2] === "pass"]),
+};
+
+export function parseCases(kit, log) {
+  const out = new Map();
+  for (const [name, passed] of readers[kit](log)) out.set(name, (out.get(name) ?? true) && passed);
+  return out;
+}
+
+/** One row per core case, one column per kit: pass, FAIL, or "-" where that kit's log names no such case. */
+export function caseTable(caseNames, results) {
+  const names = Object.keys(results);
+  return ["| Case | " + names.join(" | ") + " |", "|---|" + names.map(() => "---|").join(""),
+    ...caseNames.map((c) => `| ${c} | ` + names.map((k) => (results[k].has(c) ? (results[k].get(c) ? "pass" : "FAIL") : "-")).join(" | ") + " |")].join("\n");
 }
 
 const gh = (...args) => JSON.parse(execFileSync("gh", args, { encoding: "utf8" }));
@@ -41,6 +62,26 @@ function readLatest(repo, job) {
   return { result: "unknown", url: "", sha: "" };
 }
 
+function latestCases(k) {
+  const merged = new Map();
+  try {
+    const runs = gh("run", "list", "-R", k.repo, "-b", "main", "-w", "CI", "-L", "10", "--json", "databaseId,conclusion");
+    const run = runs.find((r) => r.conclusion && r.conclusion !== "skipped" && parseJobs(k, r.databaseId, merged));
+    return run ? merged : new Map();
+  } catch {
+    return new Map();
+  }
+}
+
+function parseJobs(k, runId, merged) {
+  const jobs = gh("run", "view", String(runId), "-R", k.repo, "--json", "jobs").jobs;
+  for (const j of jobs.filter((j) => (k.logJob ?? k.job).test(j.name))) {
+    const log = execFileSync("gh", ["run", "view", "--job", String(j.databaseId), "-R", k.repo, "--log"], { encoding: "utf8", maxBuffer: 1 << 28 });
+    for (const [name, passed] of parseCases(k.kit, log)) merged.set(name, (merged.get(name) ?? true) && passed);
+  }
+  return merged.size > 0;
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [coreRoot, ...roots] = process.argv.slice(2);
   const coreDir = join(coreRoot, "standard/hx/a2ui/conformance/cases");
@@ -48,4 +89,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const table = ["| Kit | Cases identical to core | Latest main CI job running them | Commit |", "|---|---|---|---|",
     ...rows.map((r) => `| ${r.kit} | ${r.same}/${r.cases} | [${r.result}](${r.url}) | ${r.sha} |`)].join("\n");
   console.log(table);
+  const results = {};
+  for (const k of kits) results[k.kit] = latestCases(k);
+  console.log("\n" + caseTable(readdirSync(coreDir).filter((f) => f.endsWith(".json")).sort(), results));
 }
