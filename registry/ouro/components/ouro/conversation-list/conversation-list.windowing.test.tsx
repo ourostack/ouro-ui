@@ -435,11 +435,16 @@ describe("ConversationList windowing", () => {
     const last = rows().at(-1)!;
     const reached = `c${Number(titleOf(last)!.slice(1)) + 1}`;
     await act(async () => last.focus());
-    await userEvent.keyboard("{ArrowDown}");
+    // Two keys with no frame between them, as a key held down or a fast runner sends them: the second moves focus on
+    // before a quiet frame lets go of the first's reach.
+    const down = () => document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    await act(async () => down());
     expect(titleOf(document.activeElement)).toBe(reached);
-    await userEvent.keyboard("{ArrowDown}");
-    // The pane moves on past both rows before the rows it brings in are measured.
-    await scrollPane(pane, 2000);
+    await act(async () => {
+      down();
+      pane.scrollTop = 2000;
+      pane.dispatchEvent(new Event("scroll"));
+    });
     await frames();
     expect(pane.scrollTop).toBe(2000);
   });
