@@ -87,6 +87,7 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
     ...rest
   } = props;
   const labelId = useId();
+  const hasFoot = builtWith !== undefined && builtWith.length > 0;
   useAppearanceClassNameCheck(
     "AppWindow",
     className,
@@ -114,9 +115,12 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
     <div
       {...rest}
       data-ouro="app-window"
-      className={cn("min-w-0 overflow-hidden rounded-ouro-xl border border-solid border-border bg-card text-card-foreground shadow-(--shadow-lg)", className)}
+      // The window doesn't clip what is in it: clipping a whole live demo to a squircle repaints all of it on each press
+      // (Event Timing on the Nautilus's Sign went from 56 ms to 80 ms). The bar and the foot round their own outer
+      // corners to the window's radius less its border instead, and only an edge-to-edge body that ends the window clips.
+      className={cn("min-w-0 rounded-ouro-xl border border-solid border-border bg-card text-card-foreground shadow-(--shadow-lg)", className)}
     >
-      <div data-slot="bar" className="flex min-h-11 items-center gap-3 border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
+      <div data-slot="bar" className="flex min-h-11 items-center gap-3 rounded-t-[calc(var(--radius-ouro-xl)-1px)] border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
         <span data-slot="title" className="min-w-0 truncate font-mono text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
           {title}
         </span>
@@ -126,11 +130,11 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
           </div>
         ) : null}
       </div>
-      <div data-slot="body" className={cn(inset && "px-4 sm:px-6")}>
+      <div data-slot="body" className={cn(inset ? "px-4 sm:px-6" : !hasFoot && "overflow-clip rounded-b-[calc(var(--radius-ouro-xl)-1px)]")}>
         {children}
       </div>
-      {builtWith && builtWith.length > 0 ? (
-        <div data-slot="built-with" className="flex flex-wrap items-center gap-1.5 border-0 border-t border-solid border-border px-4 py-3 sm:px-6">
+      {hasFoot ? (
+        <div data-slot="built-with" className="flex flex-wrap items-center gap-1.5 rounded-b-[calc(var(--radius-ouro-xl)-1px)] border-0 border-t border-solid border-border px-4 py-3 sm:px-6">
           <span id={labelId} className="me-1 text-xs text-muted-foreground">
             {builtWithLabel}
           </span>
