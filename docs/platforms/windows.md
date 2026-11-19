@@ -6,7 +6,7 @@ Ouro's look and manners in WinUI, for Windows apps, plus the agent doors Windows
 
 Release [v0.3.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0) meets core v0.19.0: its tokens and component specs are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
-The kit has eight of core's components as WinUI 3 controls, where web has [129 components](registry.json "verify:count(registry:ui)=129"): `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`.[^readme] The controls follow light and dark mode, a Windows contrast theme, the text size and the animation setting, and draw from core's tokens through one colour path. An `OuroButton` with an `Action` runs it through `Ouro.Actions`.[^readme]
+The kit has eight of core's components as WinUI 3 controls, where web has every component in the catalog ([the parity matrix](parity.md) counts them): `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`.[^readme] The controls follow light and dark mode, a Windows contrast theme, the text size and the animation setting, and draw from core's tokens through one colour path. An `OuroButton` with an `Action` runs it through `Ouro.Actions`.[^readme]
 
 `OuroComposedSurface` draws Ouro's [composed tree](../guides/composed-ui.md), the card an agent composes, from an MCP tool result's `structuredContent.ouro` (`OuroComposedResult.From`). Fields write the data model, a consequential button asks the person first, and a person-only one hands them to the app. To change a card it already shows, the agent sends only what changed, an update in `structuredContent.ouro.update`, and the surface applies it, keeping what the person entered except where the agent set the value. It reads no A2UI messages: send the tree.[^readme]
 
@@ -27,7 +27,7 @@ An unpackaged app also needs `<EnableMsixTooling>true</EnableMsixTooling>` in it
 
 ## What is still missing
 
-- **Components.** Web has [129 components](registry.json "verify:count(registry:ui)=129"), and this kit has eight. Core's decision record plans v0.1.0 as the components Apple shipped first, and the rest have no Windows version yet.[^decision]
+- **Components.** [The parity matrix](parity.md) lists which of web's components this kit has. Core's decision record plans v0.1.0 as the components Apple shipped first, and the rest have no Windows version yet.[^decision]
 - **A client machine.** The free runner is Windows Server, and it lacks an App Actions runtime, an On-device Agent Registry and Mica. CI proves the package registers both agent doors and that they behave, but not that Windows lists them to agents.[^release]
 - **The person check.** Requiring Windows Hello before a person-only action is built and off by default. Whether to turn it on is Ari's decision, and [the person-check note](https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/docs/person-check.md) sets out the question.[^person]
 - **Contrast themes.** Under a contrast theme the controls draw the person's system colours, so status tones look alike, and their meaning must also be in words.[^readme]

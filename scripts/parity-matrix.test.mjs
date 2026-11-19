@@ -11,7 +11,7 @@ test("the parity page shows what its data renders", () => {
 
 test("the hourly Apple release check reads GitHub again for the parity matrix, and a change to it runs that check", () => {
   const workflow = real(".github/workflows/apple-release.yml");
-  assert.match(workflow, /run: node scripts\/parity-matrix\.mjs --live/);
+  assert.match(workflow, /node scripts\/parity-matrix\.mjs --live/);
   for (const path of ["docs/platforms/parity.md", "scripts/parity-matrix.mjs"]) {
     assert.equal(workflow.split(`\n      - ${path}\n`).length - 1, 2, `${path} in the push and pull_request paths`);
     assert.ok(workflow.includes(`\n            ${path}\n`), `${path} in the sparse checkout`);

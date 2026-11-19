@@ -13,6 +13,7 @@
 //   node scripts/parity-matrix.mjs           fail when the page differs from what the data renders (offline)
 //   node scripts/parity-matrix.mjs --render  rewrite the page from the data as it is, with no network (the Pages build runs it last)
 //   node scripts/parity-matrix.mjs --live    also fail when platforms.json's Apple components differ from the release versions.json pins (network)
+//   node scripts/parity-matrix.mjs --live --pins  only that: on main, Core pin re-renders a page a race left behind (core-pin.yml)
 //   node scripts/parity-matrix.mjs --write   read GitHub, then rewrite platforms.json and the page (network; the Pages build runs it)
 //
 //   --live holds only what is pinned. The kits' newest releases are not checked: --write reads them when the Pages build
@@ -319,7 +320,10 @@ async function main(args) {
       return unreadable(error);
     }
     const problems = pinnedDrift(JSON.parse(read(PLATFORMS)), apple);
-    if (problems.length > 0) return report(problems);
+    if (problems.length > 0 || args.includes("--pins")) {
+      if (problems.length === 0) console.log(`${PLATFORMS}'s Apple components are ${apple.tag}'s on GitHub.`);
+      return report(problems);
+    }
   }
   const problems = renderPage(read(PAGE), readData(read)) === read(PAGE) ? [] : [`${PAGE} differs from what its data renders. ${FIX}`];
   if (problems.length === 0) console.log(`${PAGE} shows what its data says.`);
