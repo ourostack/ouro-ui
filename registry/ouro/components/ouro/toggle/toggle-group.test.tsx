@@ -73,6 +73,22 @@ describe("ToggleGroup", () => {
     expect(toggles.every((toggle) => toggle.type === "button")).toBe(true);
   });
 
+  it("passes an item's data attributes to its button and keeps Ouro's own markers", async () => {
+    const { toggles } = await render(
+      <ToggleGroup
+        label="Text style"
+        items={[
+          { value: "bold", label: "Bold", "data-testid": "bold", "data-ouro-part": "mine", "data-ouro-control": "mine" },
+          { value: "italic", label: "Italic" },
+        ]}
+      />,
+    );
+    expect(toggles[0]!.getAttribute("data-testid")).toBe("bold");
+    expect(toggles[0]!.getAttribute("data-ouro-part")).toBe("item");
+    expect(toggles[0]!.getAttribute("data-ouro-control")).toBe("toggle-group");
+    expect(toggles[1]!.hasAttribute("data-testid")).toBe(false);
+  });
+
   it("names each toggle's variant in data-variant", async () => {
     const { toggles } = await render(<ToggleGroup label="Alignment" items={align} variant="outline" />);
     expect(toggles.map((toggle) => toggle.getAttribute("data-variant"))).toEqual(["outline", "outline", "outline"]);
