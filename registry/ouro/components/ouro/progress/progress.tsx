@@ -50,6 +50,17 @@ export interface ProgressProps {
     | "warning"
     | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
     | undefined;
+  /**
+   * How tall the bar is: `"thin"` is a hairline, for under a list header or the edge of a
+   * panel; the default is the usual bar. The label and value stay as they are, and a thin
+   * bar is still a `progressbar` with its name.
+   * @default "default"
+   */
+  size?:
+    | "default"
+    | "thin"
+    | (string & { 'xs, sm and small are "thin"; md, lg and large are "default"': never })
+    | undefined;
   /** Layout only: margins, width, grid placement (`mt-4`, `max-w-sm`). Appearance classes warn in development; use `tone`. */
   className?: string | undefined;
   /** The progress bar's id, for `aria-describedby` or `aria-controls` elsewhere on the page. */
@@ -114,6 +125,7 @@ export function Progress(props: ProgressProps): JSX.Element {
     format,
     indeterminateText = "Loading",
     tone: toneProp = "primary",
+    size: sizeProp = "default",
     className,
     id,
     ref,
@@ -128,6 +140,7 @@ export function Progress(props: ProgressProps): JSX.Element {
   // An empty or backwards range (max equal to min, say while a total is still 0) shows an empty bar.
   const fraction = value === null || !(span > 0) ? 0 : Math.min(Math.max((value - low) / span, 0), 1);
   const tone = Object.hasOwn(tones, toneProp) ? (toneProp as keyof typeof tones) : "primary";
+  const size = sizeProp === "thin" ? "thin" : "default";
   // Base UI links the label in an effect, after the first render; an id of our own puts
   // aria-labelledby in the server HTML too.
   const labelId = `${useId()}-label`;
@@ -141,6 +154,11 @@ export function Progress(props: ProgressProps): JSX.Element {
     process.env.NODE_ENV !== "production"
       ? () => [
           tone !== toneProp && toneWarning("Progress", String(toneProp), Object.keys(tones)),
+          sizeProp !== "default" &&
+            sizeProp !== "thin" && [
+              `size="${String(sizeProp)}" is not a size`,
+              '<Progress size="thin"> for 2px, or leave size off for 8px',
+            ],
           indeterminate !== undefined && ["indeterminate is not a prop", "<Progress value={null}>"],
           isIndeterminate !== undefined && ["isIndeterminate is not a prop", "<Progress value={null}>"],
           variant !== undefined && [
@@ -182,7 +200,7 @@ export function Progress(props: ProgressProps): JSX.Element {
           <BaseProgress.Value data-ouro-progress-value="" className="text-muted-foreground tabular-nums" />
         )}
       </div>
-      <BaseProgress.Track data-ouro-progress-track="" className="relative block h-2 w-full overflow-hidden rounded-full bg-secondary">
+      <BaseProgress.Track data-ouro-progress-track="" className={cn("relative block w-full overflow-hidden rounded-full bg-secondary", size === "thin" ? "h-0.5" : "h-2")}>
         <BaseProgress.Indicator
           data-ouro-progress-indicator=""
           className={cn(indicatorClass, tones[tone])}

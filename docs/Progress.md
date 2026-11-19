@@ -35,6 +35,7 @@ Type: `ProgressProps`.
 | `min` | `number` | `0` | The value at the start of the bar. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 | `showValue` | `boolean` |  | Shows the value beside the label, as a percentage unless `format` says otherwise. |
+| `size` | `"default" \| "thin"` | `"default"` | How tall the bar is: `"thin"` is a hairline, for under a list header or the edge of a panel; the default is the usual bar. The label and value stay as they are, and a thin bar is still a `progressbar` with its name. |
 | `tone` | `"primary" \| "secondary" \| "destructive" \| "success" \| "warning"` | `"primary"` | Color role from the theme for the filled part, named after its token. `secondary` is the muted foreground. |
 | `value` (required) | `number \| null` |  | How far along the work is, from `min` to `max`. `null` while you don't know: the bar is indeterminate and slides instead of filling. |
 
