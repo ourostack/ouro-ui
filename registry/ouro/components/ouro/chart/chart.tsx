@@ -561,7 +561,8 @@ const minTickGap = 16;
 /** How far the tooltip card sits from the point it describes. */
 const cardOffset = 10;
 
-const isValue = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+/** A number that can be drawn: `Number.isFinite` is false for anything else, a string of digits included. */
+const isValue = (value: unknown): value is number => Number.isFinite(value);
 
 interface SeriesPlotProps {
   type: ChartType;

@@ -1110,16 +1110,32 @@ describe("Chart plot", () => {
   it("takes the arrow keys from the page's scrolling, and lets them on to what is around it", async () => {
     const { chart } = await render(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
     await drawn(chart);
+    // Above React's root, where a key the plot stops never arrives.
     const heard: string[] = [];
-    chart.addEventListener("keydown", (event) => heard.push(event.key));
-    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
-    await act(() => plot.focus());
-    let kept = true;
-    await act(() => {
-      kept = plot.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
-    });
-    expect(kept, "the key's default").toBe(false);
-    expect(heard).toEqual(["ArrowRight"]);
+    const hear = (event: KeyboardEvent) => heard.push(event.key);
+    document.addEventListener("keydown", hear);
+    try {
+      const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+      await act(() => plot.focus());
+      const press = async (key: string) => {
+        let kept = true;
+        await act(() => {
+          kept = plot.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        });
+        return kept;
+      };
+      const category = () => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent?.[0];
+      expect(await press("ArrowRight"), "the key's default").toBe(false);
+      expect(await press("ArrowRight")).toBe(false);
+      expect(category()).toBe("C");
+      expect(await press("ArrowLeft")).toBe(false);
+      expect(category()).toBe("B");
+      expect(await press("Home")).toBe(false);
+      expect(category()).toBe("A");
+      expect(heard).toEqual(["ArrowRight", "ArrowRight", "ArrowLeft", "Home"]);
+    } finally {
+      document.removeEventListener("keydown", hear);
+    }
   });
 
   it("shows the tooltip for the category under the pointer, from the plot's edges in and nowhere outside them", async () => {
@@ -1196,14 +1212,18 @@ describe("Chart plot", () => {
   });
 
   it("follows its box as it resizes, and stops watching it when it unmounts", async () => {
+    const observe = vi.spyOn(ResizeObserver.prototype, "observe");
     const disconnect = vi.spyOn(ResizeObserver.prototype, "disconnect");
     const { host, chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
     await drawn(chart);
+    const box = chart.querySelector("[data-ouro-chart-plot]")!;
+    const watcher = observe.mock.contexts[observe.mock.calls.findIndex(([target]) => target === box)];
+    expect(watcher).toBeDefined();
     host.style.width = "400px";
     await expect.poll(() => scale(chart, niceTicks(-5, 30)).right).toBe(chart.querySelector("[data-ouro-chart-plot]")!.clientWidth - 8);
-    expect(disconnect).not.toHaveBeenCalled();
+    expect(disconnect.mock.contexts).not.toContain(watcher);
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));
-    expect(disconnect).toHaveBeenCalled();
+    expect(disconnect.mock.contexts).toContain(watcher);
   });
 
   it("leaves a recharts chart's box to recharts, and measures it once the chart draws by type", async () => {
@@ -1223,5 +1243,18 @@ describe("Chart plot", () => {
     await drawn(chart);
     expect(observe.mock.calls.map(([target]) => target)).toContain(box);
     expect(bars(chart, "value")).toHaveLength(3);
+  });
+
+  it("draws a recharts chart passed as children to a chart that first drew by type", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    await rerender(
+      <Chart title="Scale" data={values} categoryKey="at" config={one}>
+        <LineChart>
+          <Line dataKey="value" />
+        </LineChart>
+      </Chart>,
+    );
+    await expect.poll(() => chart.querySelector(".recharts-surface")).not.toBeNull();
   });
 });
