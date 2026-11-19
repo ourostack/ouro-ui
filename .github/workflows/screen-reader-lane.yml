@@ -109,7 +109,18 @@ jobs:
       # Two phases, in this order: `setup --ci` configures the OS (macOS: VoiceOver's AppleScript
       # control and TCC automation; Windows: the registry keys NVDA needs), then `install`
       # downloads the screen reader assets this @guidepup/guidepup version needs (portable NVDA).
-      - name: Set up the OS for screen reader automation
+      # A setup retry, never a timing one: macOS at times refuses the keystrokes Guidepup's setup sends to turn on Do Not
+      # Disturb ("osascript is not allowed to send keystrokes", ourostack/ouro-ui#2396), and the lane then never runs a test.
+      - id: os
+        name: Set up the OS for screen reader automation
+        continue-on-error: true
+        env:
+          GUIDEPUP: ${{ steps.guidepup.outputs.bin }}
+        run: pnpm exec "$GUIDEPUP" setup --ci
+      - name: Guidepup's OS setup failed; trying it once more (#2396)
+        if: steps.os.outcome == 'failure'
+        run: echo "::warning title=Guidepup setup failed::Guidepup's OS setup failed, as when macOS refuses osascript's keystrokes for Do Not Disturb (ourostack/ouro-ui#2396); setting up once more."
+      - if: steps.os.outcome == 'failure'
         env:
           GUIDEPUP: ${{ steps.guidepup.outputs.bin }}
         run: pnpm exec "$GUIDEPUP" setup --ci

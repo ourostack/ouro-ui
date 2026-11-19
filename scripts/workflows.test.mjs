@@ -2464,6 +2464,14 @@ test("the screen-reader lane sets up Guidepup in two phases, setup --ci then ins
   assert.match(lane, /^ {8}if: always\(\) && steps\.guard\.outcome == 'success'$/m);
 });
 
+test("the screen-reader lane tries Guidepup's OS setup once more when it fails, with a warning naming why (#2396)", () => {
+  const lane = srJobs().lane;
+  assert.match(lane, /^ {6}- id: os\n {8}name: Set up the OS for screen reader automation\n {8}continue-on-error: true\n/m);
+  assert.match(lane, /^ {6}- name: Guidepup's OS setup failed; trying it once more \(#2396\)\n {8}if: steps\.os\.outcome == 'failure'\n {8}run: echo "::warning title=Guidepup setup failed::/m);
+  assert.match(lane, /^ {6}- if: steps\.os\.outcome == 'failure'\n {8}env:\n {10}GUIDEPUP: \$\{\{ steps\.guidepup\.outputs\.bin \}\}\n {8}run: pnpm exec "\$GUIDEPUP" setup --ci$/m);
+  assert.equal(lane.split('run: pnpm exec "$GUIDEPUP" setup --ci').length - 1, 2, "one try and one retry, no more");
+});
+
 test("the lane runs the specs its input names before --project, or every spec when there are none, within its own hour", () => {
   const lane = srJobs().lane;
   assert.match(lane, /^ {6}SPECS: \$\{\{ inputs\.specs \|\| 'all' \}\}$/m);
