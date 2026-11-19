@@ -196,21 +196,27 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
   const styleRules: CSSStyleRule[] = [];
   const refsOf = new Map<string, Set<string>>();
   const varNames = (value: string) => [...value.matchAll(/var\(\s*(--[\w-]+)/g)].map((m) => m[1]!);
+  const declare = (style: CSSStyleDeclaration, dark: boolean) => {
+    for (const name of style) {
+      if (!name.startsWith("--")) continue;
+      if (dark) darkTokens.add(name);
+      const refs = refsOf.get(name) ?? new Set<string>();
+      for (const ref of varNames(style.getPropertyValue(name))) refs.add(ref);
+      refsOf.set(name, refs);
+    }
+  };
   const walk = (rules: CSSRuleList, dark: boolean) => {
     for (const rule of rules) {
       if (rule instanceof CSSStyleRule) {
         const inDark = dark || /dark/i.test(rule.selectorText);
         styleRules.push(rule);
-        for (const name of rule.style) {
-          if (!name.startsWith("--")) continue;
-          if (inDark) darkTokens.add(name);
-          const refs = refsOf.get(name) ?? new Set<string>();
-          for (const ref of varNames(rule.style.getPropertyValue(name))) refs.add(ref);
-          refsOf.set(name, refs);
-        }
+        declare(rule.style, inDark);
         if (rule.cssRules.length) walk(rule.cssRules, inDark);
       } else if (rule instanceof CSSMediaRule) walk(rule.cssRules, dark || /prefers-color-scheme\s*:\s*dark/.test(rule.conditionText));
       else if (rule instanceof CSSGroupingRule) walk(rule.cssRules, dark);
+      // Declarations nested in a query inside a style rule are a rule of their own (CSSNestedDeclarations), under that rule's
+      // selector.
+      else if ("style" in rule) declare((rule as CSSStyleRule).style, dark);
     }
   };
   for (const sheet of document.styleSheets) {
@@ -222,6 +228,13 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
   }
   const darkToken = (names: string[], seen = new Set<string>()): boolean =>
     names.some((name) => !seen.has(name) && (seen.add(name), darkTokens.has(name) || darkToken([...(refsOf.get(name) ?? [])], seen)));
+  const matching = (el: Element, selector: string) => {
+    try {
+      return el.matches(selector);
+    } catch /* istanbul ignore next @preserve -- no selector a stylesheet accepts is known to make matches() throw; a guard so one never stops the check */ {
+      return false;
+    }
+  };
   // Whether the element's background is set from a token with a dark value, by its own style or a rule that matches it.
   const themedFill = (el: Element) => {
     const fills = (style: CSSStyleDeclaration) => varNames(`${style.getPropertyValue("background-color")} ${style.getPropertyValue("background")}`);
@@ -229,13 +242,7 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
     for (const rule of styleRules) {
       const names = fills(rule.style);
       if (!names.length) continue;
-      let matches = false;
-      try {
-        matches = el.matches(rule.selectorText);
-      } catch {
-        // A selector matches() can't take, such as one with a pseudo-element.
-      }
-      if (matches && darkToken(names)) return true;
+      if (matching(el, rule.selectorText) && darkToken(names)) return true;
     }
     return false;
   };
