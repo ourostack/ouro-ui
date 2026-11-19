@@ -709,7 +709,7 @@ describe("Tabs as links", () => {
   it("puts the links and the current page in server HTML and hydrates without a mismatch", async () => {
     const node = <Tabs label="Recipes" items={pages} currentPath="/saved-recipes" />;
     const html = renderToString(node);
-    expect(html).toContain('<nav aria-label="Recipes"');
+    expect(html).toContain('<nav data-slot="tabs-nav" aria-label="Recipes"');
     expect(html).toMatch(/aria-current="page"[^>]*>.*Saved/);
     const host = document.createElement("div");
     host.innerHTML = html;
