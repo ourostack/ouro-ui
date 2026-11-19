@@ -35,6 +35,7 @@ import {
   requestPerplexity,
   resolveResearchUrl,
   resolveTransports,
+  reachablePanel,
   runPool,
   runtimeEnvironment,
   shuffle,
@@ -648,4 +649,33 @@ test("a replay classifies each query by whether it names Ouro, what Copilot retu
   assert.equal(classifyReplay({ model: "m", gaveVerdict: false, query: "q", prefix: "" }, "", "Copilot web search failed").copilotError, "Copilot web search failed");
   for (const url of ["https://github.com/ourostack/ouro-ui-core", "https://ui.ouroboros.bot/docs/", "https://ouroboros.bot/", "https://raw.githubusercontent.com/ourostack/ouro-ui/main/README.md"]) assert.match(url, OURO_PAGE, url);
   for (const url of ["https://github.com/a2ui/a2ui", "https://example.com/ourostack/", "https://notouroboros.bot.example/"]) assert.doesNotMatch(url, OURO_PAGE, url);
+});
+
+test("the whole panel runs every model it can reach and records the rest as skipped; a model named with --models must be reachable", () => {
+  const panel = REVIEW_MODELS.filter(({ provider }) => ["grok-4-7", "minimax-m3"].includes(provider));
+  const { selected, skipped } = reachablePanel(panel, new Set(["grok-4.7"]), {}, "copilot-first", false);
+  assert.deepEqual(selected.map(({ provider }) => provider), ["grok-4-7"]);
+  assert.deepEqual(skipped, [{ provider: "minimax-m3", displayName: "MiniMax M3", reason: "MiniMax-M3 requires MINIMAX_API_KEY for copilot-first inference" }]);
+  assert.throws(() => reachablePanel(panel, new Set(["grok-4.7"]), {}, "copilot-first", true), /MINIMAX_API_KEY/);
+  assert.throws(() => reachablePanel(panel, new Set(), {}, "copilot-first", false), /No model of the panel is reachable/);
+});
+
+test("Run it yourself shows a prompt only when it is exactly the one a model got, and the commands the methodology gives", async () => {
+  const { runItYourself, RUN_COMMANDS, seriesOf } = await import("./page.mjs");
+  const { readFileSync } = await import("node:fs");
+  const asOf = "2026-11-19T00:00:00Z";
+  const order = ["A2UI", "Ouro UI", "Flutter"];
+  const prompt = renderSystemPrompt(order.map((name) => pageCandidates.find((c) => c.name === name)), asOf);
+  const sha = crypto.createHash("sha256").update(prompt).digest("hex");
+  const run = (promptSha256) => ({ ...pageRun("2026-11-19-x--run-1", asOf, [{ ...pageReview("a", "Ouro UI"), candidateOrder: order, promptSha256 }]), asOf });
+  const [series] = seriesOf([run(sha)]);
+  const section = runItYourself(series).join("\n");
+  assert.ok(section.includes(prompt));
+  assert.match(section, /^## Run it yourself\n\n### Quick: ask your own agent\n\nThis is the system prompt A got in this review, word for word/);
+  assert.match(section, /Its answer is one chat, not the controlled run/);
+  for (const command of RUN_COMMANDS) assert.ok(section.includes(command), command);
+  assert.throws(() => runItYourself(seriesOf([run("0".repeat(64))])[0]), /differs from the one its record hashed/);
+  const methodology = readFileSync(new URL("./METHODOLOGY.md", import.meta.url), "utf8");
+  for (const command of RUN_COMMANDS.slice(0, 2)) assert.ok(methodology.includes(command), command);
+  for (const command of RUN_COMMANDS.slice(2)) assert.ok(methodology.includes(command.replace("../my-review", "<new folder>")), command);
 });

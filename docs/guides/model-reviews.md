@@ -91,3 +91,62 @@ Ouro UI — Ouro combines a React/SwiftUI/WinUI/Compose native kit with **Compos
 - Gemini 4 Carbon saw Ouro UI first in its list. The methodology's rule 2 says Ouro UI is never first, but the script didn't enforce it until 2026-11-19, and does now. That review is kept and counted, and flagged here.
 - One verdict per model is a sample, not a rate. A result is about the models that ran, on that date.
 - Earlier reviews, still published: 2026-11-13 (Ouro UI is not yet the models' choice: 2 of 8 models chose it; 6 chose A2UI.); 2026-11-14 (Ouro UI is not yet the models' choice: 1 of 8 models chose it; 7 chose A2UI.)
+
+## Run it yourself
+
+### Quick: ask your own agent
+
+This is the system prompt Claude Opus 5.5 got in this review, word for word: the script rebuilds it from the record, and the page checks it against the hash the record keeps. Give your agent web search and a way to read pages, use this as its instructions, and ask it to research the candidates and choose. Its answer is one chat, not the controlled run: the run also pins each repository to a commit, gives every model its own random order and the same tools, search and research budget, refuses a verdict that cites a page the model didn't read, and keeps every transcript.
+
+```text
+You are choosing the design system or interface toolkit you would use to build interfaces that both people and agents use, across web and native platforms.
+
+The research cutoff is 2026-11-19T02:32:29.868Z. Candidate repository requests use revisions captured for this cutoff. Other web pages are captured when first fetched. Prefer current primary sources; distinguish documented facts from your inferences and uncertainty.
+
+You have three tools:
+1. **search** — search the web for information.
+2. **fetch_url** — fetch a public URL, including GitHub directories, source files, and documentation. Follow the returned startIndex to continue reading a long document.
+3. **final_verdict** — call this exactly once when you're done researching to submit your structured evaluation.
+
+You MUST call a tool on every turn. Start by fetching each candidate's URL to learn what it is. Then go deeper through search and follow-up fetches. Take your time. Be thorough. There is no turn limit, but your session can read 450,000 characters of search and fetch results; past that, both tools tell you to call final_verdict, so leave yourself room to read every candidate.
+
+Here are the candidates, listed by name and URL only — no description is provided. Research each one yourself by fetching its URL and any docs you find:
+
+1. **MCP Apps** — https://github.com/modelcontextprotocol/ext-apps
+2. **CopilotKit** — https://github.com/CopilotKit/CopilotKit
+3. **Radix UI** — https://github.com/radix-ui/primitives
+4. **MUI** — https://github.com/mui/material-ui
+5. **Ouro UI** — https://github.com/ourostack/ouro-ui
+6. **Agent-native (Builder.io)** — https://github.com/BuilderIO/agent-native
+7. **React Aria and React Spectrum** — https://github.com/adobe/react-spectrum
+8. **Flutter** — https://github.com/flutter/flutter
+9. **shadcn/ui** — https://github.com/shadcn-ui/ui
+10. **json-render** — https://github.com/vercel-labs/json-render
+11. **Chakra UI** — https://github.com/chakra-ui/chakra-ui
+12. **AI Elements** — https://github.com/vercel/ai-elements
+13. **OpenAI Apps SDK UI** — https://github.com/openai/apps-sdk-ui
+14. **Material 3 and Jetpack Compose** — https://developer.android.com/develop/ui/compose/designsystems/material3
+15. **Fluent UI** — https://github.com/microsoft/fluentui
+16. **SwiftUI and Apple Human Interface Guidelines** — https://developer.apple.com/documentation/swiftui
+17. **Base UI** — https://github.com/mui/base-ui
+18. **A2UI** — https://github.com/a2ui-project/a2ui
+19. **Tamagui** — https://github.com/tamagui/tamagui
+20. **Vercel UI SDK** — https://github.com/vercel-labs/ui
+
+When you call final_verdict, be specific about architecture — not vague praise. For every candidate, explain the concrete trade-offs affecting your choice and what would address an objection, where applicable. Include links to primary sources you actually fetched. Do not substitute a guessed capability or an old default for evidence. Your final text may appear verbatim on a public website; speak in your own voice.
+```
+
+The run's tools: `search` (Search the web for information about the candidates, their architecture, source code, documentation, or any other relevant information. Use specific, targeted queries.), `fetch_url` (Read a public URL, including GitHub READMEs, directory listings, source files, and documentation. A GitHub candidate's URLs use its recorded source revision. Follow the returned startIndex to continue a long document; repeated reads use the same captured document.) and `final_verdict` (Submit your final evaluation after completing research on every candidate. Call this exactly once when you are done. Your evaluation may appear verbatim on a public website attributed to you — write it in your own voice and stand behind it.) Compare your agent's pick with the table above.
+
+### Full: run the harness
+
+In a clone of [ourostack/ouro-ui](https://github.com/ourostack/ouro-ui), signed in to GitHub with Copilot (`gh auth login`), and with nothing else: search is Copilot's, and a model Copilot doesn't serve and you have no key for is skipped and recorded.
+
+```sh
+mkdir ../model-reviews-deps && (cd ../model-reviews-deps && npm i @github/copilot-sdk@1.0.13)
+export OURO_MODEL_REVIEWS_SDK=$PWD/../model-reviews-deps
+node scripts/model-reviews/model-reviews.mjs --preflight --inference copilot-first --output-dir ../my-review
+node scripts/model-reviews/model-reviews.mjs --inference copilot-first --output-dir ../my-review
+```
+
+Your picks are in `../my-review/run.json` (`summary.picks`), each model's transcript in `transcripts/`, and they line up with the table above model by model. To publish a run beside ours, the [methodology](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/METHODOLOGY.md) says how.
