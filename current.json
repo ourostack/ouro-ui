@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-19T10:26:52.277Z",
+  "generatedAt": "2026-11-19T10:56:15.627Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -264,8 +264,8 @@
         }
       ],
       "pr": {
-        "number": 53,
-        "url": "https://github.com/ourostack/ouro-native-apple-app-shell/pull/53"
+        "number": 56,
+        "url": "https://github.com/ourostack/ouro-native-apple-app-shell/pull/56"
       }
     },
     {
