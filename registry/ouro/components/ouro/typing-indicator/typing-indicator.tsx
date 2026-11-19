@@ -39,7 +39,8 @@ export interface TypingIndicatorOwnProps {
 /** Props for {@link TypingIndicator}: its own props and the `<div>` attributes it passes through. */
 export type TypingIndicatorProps = Omit<HTMLAttributes<HTMLDivElement>, keyof TypingIndicatorOwnProps | "role"> & TypingIndicatorOwnProps;
 
-const dot = "size-1 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current";
+// Forced colours paint every background as the page, so the dots take the text's system colour there.
+const dot = "size-1 animate-[ouro-pulse_1.2s_ease-in-out_infinite] rounded-full bg-current forced-colors:bg-[CanvasText]";
 
 /**
  * The line under a chat that says who is writing: their faces, pulsing dots and "Ned Land is writing…". It is a
@@ -97,7 +98,7 @@ export function TypingIndicator(props: TypingIndicatorProps): JSX.Element {
         <>
           <span aria-hidden="true" className="flex shrink-0 items-center *:shadow-[0_0_0_2px_var(--ouro-avatar-ring,var(--background))] *:not-first:-ms-1.5">
             {people.slice(0, 3).map((person, index) => (
-              <Avatar key={`${person.name}-${index}`} name={person.name} src={person.src} idForColor={person.idForColor} initials={[...(person.initials ?? person.name.trim())][0]} size="xs" alt="" />
+              <Avatar key={`${person.name}-${index}`} name={person.name} src={person.src} idForColor={person.idForColor} initials={[...(person.initials ?? person.name.trim().toUpperCase())][0]} size="xs" alt="" />
             ))}
           </span>
           <span aria-hidden="true" data-ouro-typing-dots="" className="inline-flex shrink-0 items-center gap-0.5">

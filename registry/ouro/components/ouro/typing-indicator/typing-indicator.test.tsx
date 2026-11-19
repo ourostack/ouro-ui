@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
 import { TypingIndicator } from "@/registry/ouro/components/ouro/typing-indicator/typing-indicator";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -48,6 +49,9 @@ describe("TypingIndicator", () => {
     const faces = [...line.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     expect(faces).toHaveLength(3);
     expect(faces.map((face) => face.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials"))).toEqual(["N", "C", "C"]);
+    // A handle written in lowercase still shows a capital, as the person's own avatar does.
+    const handle = (await render(<TypingIndicator people={[{ name: "ned" }]} />)).line;
+    expect(handle.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("N");
     expect(faces.every((face) => face.getBoundingClientRect().width === 24)).toBe(true);
     // Each face after the first overlaps the one before.
     expect(faces[1]!.getBoundingClientRect().left).toBeLessThan(faces[0]!.getBoundingClientRect().right);
@@ -81,8 +85,23 @@ describe("TypingIndicator", () => {
   it("is a polite status that says the words once per change, with the faces and dots hidden", async () => {
     const view = await render(<TypingIndicator people={[]} />);
     await expect.element(page.getByRole("status")).toBeInTheDocument();
+    const heard = watchAnnouncements();
+    try {
+      await view.rerender(<TypingIndicator people={[ned]} />);
+      await expect.element(page.getByRole("status")).toHaveTextContent("Ned Land is writing…");
+      await expect.poll(() => heard.count("Ned Land is writing…")).toBe(1);
+      // The same writer in a new array, a fourth writer past "several", and nobody: nothing new to hear.
+      await view.rerender(<TypingIndicator people={[{ ...ned }]} />);
+      await view.rerender(<TypingIndicator people={crew.slice(0, 3)} />);
+      await expect.poll(() => heard.count("Several people are writing…")).toBe(1);
+      await view.rerender(<TypingIndicator people={crew} />);
+      await view.rerender(<TypingIndicator people={[]} />);
+      await act(async () => {});
+      expect(heard.changes.map((change) => change.text)).toEqual(["Ned Land is writing…", "Several people are writing…"]);
+    } finally {
+      heard.stop();
+    }
     await view.rerender(<TypingIndicator people={[ned]} />);
-    await expect.element(page.getByRole("status")).toHaveTextContent("Ned Land is writing…");
     for (const hidden of view.line.querySelectorAll(":scope > [aria-hidden]")) expect(hidden.getAttribute("aria-hidden")).toBe("true");
     expect(view.line.querySelectorAll(":scope > [aria-hidden]")).toHaveLength(2);
     // The faces are hidden, so the status reads the words alone.
@@ -103,6 +122,21 @@ describe("TypingIndicator", () => {
       } finally {
         await commands.emulateMedia({ reducedMotion: "no-preference" });
       }
+    }
+  });
+
+  it("draws its dots in the text's colour under forced colours, so they never vanish into the page", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { line } = await render(<TypingIndicator people={[ned]} />);
+      const probe = document.createElement("span");
+      probe.style.color = "CanvasText";
+      document.body.append(probe);
+      const canvasText = getComputedStyle(probe).color;
+      probe.remove();
+      for (const dot of line.querySelectorAll<HTMLElement>("[data-ouro-typing-dots] > span")) expect(getComputedStyle(dot).backgroundColor).toBe(canvasText);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
     }
   });
 
