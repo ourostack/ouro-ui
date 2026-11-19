@@ -29,6 +29,7 @@ Type: `ConversationListProps`.
 | `density` | `"comfortable" \| "compact"` | `"comfortable"` | `compact` drops the preview line and uses a smaller avatar. |
 | `draftLabel` | `string` | `"Draft:"` | The words before a row's `draft`, for other languages. |
 | `empty` | `ReactNode` | `"Nothing here yet"` | What shows when `items` is empty. |
+| `estimatedRowHeight` | `number` | `58` for `comfortable` and 34 for `compact` | How tall a row is, in pixels, before it is measured: the first render mounts as many rows as fill the view at this height, and the space of rows not drawn is counted with it. Set it when your rows are shorter than the defaults, so the first view mounts no more rows than it shows; rows taller than it are measured and shift the rows below. |
 | `firstViewHeight` | `number` |  | How tall the list's first view is, in pixels: a long list's first render mounts the rows that fit it. Set it when the list sits in a panel much shorter than the window; leave it out and the window's height is used, which is an upper bound. |
 | `items` (required) | `readonly ConversationListItem[]` |  | The conversations, in the order they show. |
 | `label` (required) | `string` |  | What the list is, for screen readers ("Conversations"). Required, so the list has a name. |

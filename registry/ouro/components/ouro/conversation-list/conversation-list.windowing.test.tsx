@@ -369,8 +369,8 @@ describe("ConversationList windowing", () => {
     host.innerHTML = renderToString(node);
     document.body.append(host);
     mounted.push(host);
-    // As many rows as the first 1000 pixels hold at the first frame's assumed height, before anything is measured.
-    expect(host.querySelectorAll('[data-ouro-part="row"]')).toHaveLength(25);
+    // As many rows as the first 1000 pixels hold at a comfortable row's 58 pixels, before anything is measured.
+    expect(host.querySelectorAll('[data-ouro-part="row"]')).toHaveLength(18);
     const error = vi.spyOn(console, "error");
     const recoverable = vi.fn();
     await act(async () => {
@@ -715,7 +715,8 @@ describe("ConversationList windowing with sections", () => {
     mounted.push(pane);
     const root = createRoot(pane);
     roots.push(root);
-    flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />));
+    // The 44px rows are estimated at 40, so the first frame's rows reach as far as the settled screen's overscan does.
+    flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} estimatedRowHeight={40} onSelect={() => {}} />));
     const everything = () => pane.querySelectorAll("*").length;
     const first = everything();
     await frames();
@@ -742,7 +743,7 @@ describe("ConversationList windowing with sections", () => {
         pane.append(above, host);
         document.body.append(pane);
         const root = createRoot(host);
-        flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />));
+        flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} estimatedRowHeight={44} onSelect={() => {}} />));
         const first = [...host.querySelectorAll("*")];
         await frames();
         await frames();
@@ -770,7 +771,7 @@ describe("ConversationList windowing with sections", () => {
       pane.style.cssText = `width: 360px; height: ${paneHeight}px; overflow-y: scroll`;
       document.body.append(pane);
       const root = createRoot(pane);
-      flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />));
+      flushSync(() => root.render(<ConversationList label="Chats" items={items} sections={sections} estimatedRowHeight={56} onSelect={() => {}} />));
       const where = () => new Map([...pane.querySelectorAll("*")].map((node) => [node, `${node.getBoundingClientRect().top},${node.getBoundingClientRect().left}`]));
       const first = where();
       await frames();
@@ -899,8 +900,8 @@ describe("ConversationList windowing with sections", () => {
     roots.push(root);
     flushSync(() => root.render(<ConversationList label="Chats" items={many(500)} onSelect={() => {}} />));
     const first = [...pane.querySelectorAll<HTMLElement>('[data-ouro-part="row"]')];
-    // The window's height at the first frame's assumed 40 pixels a row: an upper bound on the list's own height.
-    expect(first).toHaveLength(Math.ceil(innerHeight / 40));
+    // The window's height at a comfortable row's 58 pixels: an upper bound on the list's own height.
+    expect(first).toHaveLength(Math.ceil(innerHeight / 58));
     expect(first.map((row) => row.closest("li")!.getAttribute("aria-posinset"))).toEqual(first.map((_, at) => String(at + 1)));
     expect(new Set(first.map((row) => row.closest("li")!.getAttribute("aria-setsize")))).toEqual(new Set(["500"]));
     // The first frame's rows already fill the pane, so nothing is blank before the first callback sets the window.
@@ -933,8 +934,8 @@ describe("ConversationList windowing with sections", () => {
     expect(names).toEqual([]);
     expect(commits).toBe(1);
     const rows = [...pane.querySelectorAll<HTMLElement>('[data-ouro-part="row"]')];
-    expect(rows.length).toBeLessThanOrEqual(Math.ceil(innerHeight / 40) + Math.ceil(320 / 40));
-    expect(rows.length).toBeGreaterThanOrEqual(Math.floor(400 / 40));
+    expect(rows.length).toBeLessThanOrEqual(Math.ceil(innerHeight / 58) + Math.ceil(320 / 58));
+    expect(rows.length).toBeGreaterThanOrEqual(Math.floor(400 / 58));
     expect(rows.map((row) => row.closest("li")!.getAttribute("aria-posinset"))).toEqual(rows.map((_, at) => String(at + 1)));
     expect(new Set(rows.map((row) => row.closest("li")!.getAttribute("aria-setsize")))).toEqual(new Set(["500"]));
   });
@@ -955,14 +956,31 @@ describe("ConversationList windowing with sections", () => {
       ),
     );
     expect(commits).toBe(1);
-    expect(pane.querySelectorAll('[data-ouro-part="row"]')).toHaveLength(5);
+    expect(pane.querySelectorAll('[data-ouro-part="row"]')).toHaveLength(4);
   });
 
+  it("mounts ceil(view height / row height) rows on the first frame for each density and for estimatedRowHeight, not the rows of a shorter assumed height", () => {
+    const count = (props: { density?: "comfortable" | "compact"; estimatedRowHeight?: number }) => {
+      const pane = document.createElement("div");
+      pane.style.cssText = "width: 360px; height: 400px; overflow-y: auto";
+      document.body.append(pane);
+      const root = createRoot(pane);
+      flushSync(() => root.render(<ConversationList label="Chats" items={many(200)} firstViewHeight={900} onSelect={() => {}} {...props} />));
+      const rows = pane.querySelectorAll('[data-ouro-part="row"]').length;
+      flushSync(() => root.unmount());
+      pane.remove();
+      return rows;
+    };
+    expect(count({})).toBe(Math.ceil(900 / 58));
+    expect(count({ density: "compact" })).toBe(Math.ceil(900 / 34));
+    expect(count({ estimatedRowHeight: 44 })).toBe(Math.ceil(900 / 44));
+    expect(count({ density: "compact", estimatedRowHeight: 50 })).toBe(Math.ceil(900 / 50));
+  });
   it("renders exactly the rows that start inside the first view on a short list's first commit", () => {
     const count = (density: "comfortable" | "compact") =>
       renderToString(<ConversationList label="Chats" items={many(50)} density={density} onSelect={() => {}} />).split('data-ouro-part="row"').length - 1;
-    // The first frame assumes rows of at most 40 and 34 pixels, so the first 1000 pixels start 25 and 30 of them.
-    expect(count("comfortable")).toBe(25);
+    // The first frame assumes rows of 58 and 34 pixels, so the first 1000 pixels start 18 and 30 of them.
+    expect(count("comfortable")).toBe(18);
     expect(count("compact")).toBe(30);
   });
 
