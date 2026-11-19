@@ -8,7 +8,7 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v1.2.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.2.0") | [ourostack/ouro-ui-android v0.3.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.3.0") | [ourostack/ouro-ui-windows v0.3.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.3.0") |
+| Kit | this repository | [ourostack/ouro-ui-apple v1.3.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.3.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.3.0") | [ourostack/ouro-ui-android v0.6.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.6.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.6.0") | [ourostack/ouro-ui-windows v0.5.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.5.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.5.0") |
 
 Components: Web has 132 of 132, Apple has 20 of 132, Android has 9 of 132, Windows has 9 of 132.[^matrix]
 
