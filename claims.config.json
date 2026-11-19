@@ -42,6 +42,11 @@
       "reason": "scripts/model-reviews/page.mjs renders it from the published runs in scripts/model-reviews/results/; pnpm claims:check renders it again and compares"
     },
     {
+      "match": "^docs/guides/model-interviews\\.md$",
+      "mode": "generated",
+      "reason": "scripts/model-reviews/interviews-page.mjs renders it from the published runs in scripts/model-reviews/interviews-results/ and the synthesis in scripts/model-reviews/findings.json; pnpm claims:check renders it again and compares"
+    },
+    {
       "match": "^scripts/agent-usability/runs/",
       "mode": "evidence",
       "reason": "a scored run's record, written by the agent-usability harness"
@@ -64,7 +69,7 @@
     {
       "match": "^scripts/model-reviews/METHODOLOGY\\.md$",
       "mode": "input",
-      "reason": "the rules of a measurement protocol, which scripts/model-reviews/model-reviews.test.mjs checks one by one; it states what the script does, so it makes no claim about the product"
+      "reason": "the rules of a measurement protocol, which scripts/model-reviews/model-reviews.test.mjs and scripts/model-reviews/interviews.test.mjs check one by one; it states what the scripts do, so it makes no claim about the product"
     },
     {
       "match": "^scripts/agent-benchmark/METHODOLOGY\\.md$",
@@ -80,6 +85,11 @@
       "match": "^scripts/model-reviews/results/",
       "mode": "evidence",
       "reason": "a model reviews run's record (run.json and transcripts), written by scripts/model-reviews/model-reviews.mjs and copied unchanged"
+    },
+    {
+      "match": "^scripts/model-reviews/interviews-results/",
+      "mode": "evidence",
+      "reason": "a model interviews run's record (run.json and transcripts), written by scripts/model-reviews/interviews.mjs and copied unchanged"
     },
     {
       "match": "^scripts/agent-usability/(screens|arms)/",

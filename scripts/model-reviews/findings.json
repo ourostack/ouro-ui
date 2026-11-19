@@ -1,0 +1,5 @@
+{
+  "$comment": "The model interviews' synthesis, filled in after a run and rendered by scripts/model-reviews/interviews-page.mjs (METHODOLOGY.md, \"The interviews series\"). `problem`: for each session's first answer, whether it said building good human interfaces is a problem ({ model, arm, scale, said: problem | not-a-problem | unclear, quote }). `findings`: statements clustered into findings ({ id, finding, signal, summary, models, quotes: [{ model, text, transcript }], issue, status, change }), each quote verbatim and linked to its transcript.",
+  "problem": [],
+  "findings": []
+}

@@ -97,3 +97,38 @@ In the output folder:
 
 1. Copy the run's `run.json` and `transcripts/` (never `raw/`) to `scripts/model-reviews/results/<series>--<run>/`, unchanged. A series is one review of the panel, named by its date and a word (`2026-11-14-rerun`); a retry of a model that gave no verdict is another run in the same series (`2026-11-14-rerun--run-2-gemini-4-carbon-retry`). The page refuses two verdicts from one model in a series.
 2. `node scripts/model-reviews/page.mjs docs/guides/model-reviews.md` renders the page from every published run: the headline and table from the latest series, the comparison with the series before it over the models both answered, and each model's verbatim evaluation of Ouro UI. `pnpm claims:check` renders it again and fails when the committed page differs.
+
+## The interviews series
+
+A second series runs beside the question above and never mixes with its counts: the model interviews, registered before any run in Ouro UI core's decision record, [Ask models what they'd build with as customer interviews](https://github.com/ourostack/ouro-ui-core/blob/bf4539aad126b1d6999883eb84149f86b6acd567/docs/decisions/2026-11-19-model-interviews.md). The record fixes every question's wording, the jobs, the scales, the arms, the tools and the budget; a change to any of them starts a new series. Each model is a customer interviewed by the [Mom Test](https://www.momtestbook.com/): its own practice before any toolkit is named, a real job before any opinion, and what it does weighed above what it says.
+
+[`interviews.mjs`](interviews.mjs) runs it, importing this script's runtime, `search`, `fetch_url`, pinned sources, research budget mechanism, transcripts, redaction and private output folder, so every rule above holds. Its strings are the record's, and `interviews.test.mjs` pins them.
+
+### Four sessions per model, one script
+
+Each model gets four sessions: the listed and open arms, each at a product team's scale and a large company's. The **listed arm measures merit**: each job lists the same 20 candidates, by name and link only, in a fresh random order for each session, the same order for the session's three jobs. Ouro UI is never first ([`orderListedCandidates`](interviews.mjs), the same rule as rule 2): when the shuffle puts it first, it trades places with another candidate chosen at random. The **open arm measures discoverability**: each job says "Find the options yourself." and lists nothing, so a loss there is a finding about how agents find Ouro UI, never about its merit.
+
+Every session runs the same six questions, word for word, each ending in a tool call:
+
+1. **Look before you zoom** (`answer`): the model's own practice, and whether building good human interfaces is a problem for it at all.
+2. **The three jobs** (`record_decision`, once each, in a fresh random order for each session): a chat app, a consumer cooking app and agent tooling. Each job's text ends with "and show it's good for the people who'll use it.", then comes the scale, then the arm's list or "Find the options yourself.", then "Research what you need with search and fetch_url, then call record_decision." The decision records the primary pick (free text, which may name something no list names), what it would pair with it, why, how it would show the result is good for the people who'll use it, what it's unsure of, and the pages it relied on, each one a page it fetched in the session.
+3. **Regret** (`answer`): a year later the choices went badly; what went wrong, and what slowed it down while it researched.
+4. **Ouro, named last** (`answer`): Ouro UI is named, with its link, only here. Before it, no prompt, tool description or nudge names or describes Ouro UI; in the listed arm it is one entry of the list, like any candidate.
+
+A call to the wrong tool for the question, or a decision that breaks a rule (an empty field, a source it never fetched), is refused with the reason, and the model can fix it and call again (rule 6). A turn that ends without its tool call gets the same nudges as a verdict, up to five times, for every model. A session can read 900,000 characters of search and fetch results, because it researches three jobs; past that, both tools say so with one message, "Research budget reached: call record_decision or answer, whichever the question asks for, with what you have." The system prompt names the tools and the budget and nothing about any job or toolkit, and it's the same for every session.
+
+### What a session records
+
+Each session's record, in `run.json` (with `series: "interviews"`) and `transcripts/<provider>--<arm>--<scale>.json`, keeps its job order and candidate order, the hash of its whole script (`promptSha256`, re-rendered from the recorded order when the run is checked), every decision and answer verbatim, which candidates it fetched in each job and overall, and `foundOuro`: whether, before the last question, it fetched a page under github.com/ourostack, raw.githubusercontent.com/ourostack or api.github.com/repos/ourostack, or on ouroboros.bot or ouro.bot, or named Ouro in a decision or an answer. That is the open arm's "found Ouro before being told".
+
+### Running and publishing it
+
+```sh
+node scripts/model-reviews/interviews.mjs --preflight --inference copilot-first --output-dir <new folder>
+node scripts/model-reviews/interviews.mjs --inference copilot-first --concurrency 4 --max-load 60 --output-dir <new folder>
+node scripts/model-reviews/interviews.mjs --inference copilot-first --models grok-4-7 --arms listed --scales product-team --output-dir <new folder>   # one session
+```
+
+`--arms` and `--scales` narrow a run to some sessions, for a trial or to run again a session that gave no answer; `--concurrency` counts sessions. Publish a run as for the original series, but to `scripts/model-reviews/interviews-results/<series>--<run>/`, and render [the interviews page](../../docs/guides/model-interviews.md) with `node scripts/model-reviews/interviews-page.mjs docs/guides/model-interviews.md`. The page refuses a run without the interviews marker, and the reviews page refuses one with it.
+
+The findings are synthesis, filled in after a run in [`findings.json`](findings.json): for each session's first answer, whether it said building good human interfaces is a problem; and each finding, with its Mom Test signal, the models that raised it, their verbatim quotes linked to transcripts, its `model-review` issue, its status and the change that answered it. The page renders an empty or partial file, lists findings by how many models raised them, and shows not-a-pain and surprise findings as their own group.

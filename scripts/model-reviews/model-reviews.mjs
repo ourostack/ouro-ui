@@ -607,10 +607,10 @@ export function snapshotFingerprint(candidates) {
 
 // ---- tools and verdict -------------------------------------------------------------------------
 
-const SEARCH_DESC = "Search the web for information about the candidates, their architecture, source code, documentation, or any other relevant information. Use specific, targeted queries.";
-const SEARCH_PARAMS = { type: "object", properties: { query: { type: "string", description: "The search query" } }, required: ["query"], additionalProperties: false };
-const FETCH_DESC = "Read a public URL, including GitHub READMEs, directory listings, source files, and documentation. A GitHub candidate's URLs use its recorded source revision. Follow the returned startIndex to continue a long document; repeated reads use the same captured document.";
-const FETCH_PARAMS = {
+export const SEARCH_DESC = "Search the web for information about the candidates, their architecture, source code, documentation, or any other relevant information. Use specific, targeted queries.";
+export const SEARCH_PARAMS = { type: "object", properties: { query: { type: "string", description: "The search query" } }, required: ["query"], additionalProperties: false };
+export const FETCH_DESC = "Read a public URL, including GitHub READMEs, directory listings, source files, and documentation. A GitHub candidate's URLs use its recorded source revision. Follow the returned startIndex to continue a long document; repeated reads use the same captured document.";
+export const FETCH_PARAMS = {
   type: "object",
   properties: {
     url: { type: "string", description: "The URL to fetch" },
@@ -794,16 +794,16 @@ export function handleVerdict(args, invocation, { research, collector, onVerdict
 /**
  * search's and fetch_url's handler. Once the session has read RESEARCH_BUDGET characters of results, the tool returns
  * BUDGET_REACHED and reads nothing more, the same for every model (METHODOLOGY.md, rule 9). The result that crosses
- * the budget is returned whole.
+ * the budget is returned whole. Another series passes its own `budget` and `budgetMessage`, the same for each of its sessions.
  */
-export async function handleResearch(toolName, args, invocation, { collector, log, read }) {
+export async function handleResearch(toolName, args, invocation, { collector, log, read, budget = RESEARCH_BUDGET, budgetMessage = BUDGET_REACHED }) {
   const type = toolName === "search" ? "search" : "fetch";
   collector.ensureAction(invocation.toolCallId, toolName, args);
   log(type === "search" ? `Search: "${args.query}"` : `Fetch: ${args.url} (startIndex=${args.startIndex ?? 0})`);
-  if (collector.researched >= RESEARCH_BUDGET) {
-    collector.recordError(invocation.toolCallId, new Error("Research budget reached"), BUDGET_REACHED);
+  if (collector.researched >= budget) {
+    collector.recordError(invocation.toolCallId, new Error("Research budget reached"), budgetMessage);
     log("  BUDGET REACHED");
-    return BUDGET_REACHED;
+    return budgetMessage;
   }
   try {
     const { text, source } = await read();
@@ -845,15 +845,16 @@ function createTools(sdk, collector, search, onVerdict, log, research, candidate
   ];
 }
 
-async function runEvaluation(client, sdk, review, search, log, experiment, research, transcript) {
-  const { prompt, candidateOrder, promptSha256 } = buildSystemPrompt(experiment);
-  const collector = createTranscriptCollector(log, transcript);
-  let verdict = null;
-  const session = await client.createSession({
+/**
+ * A review session's configuration: the stripped runtime (METHODOLOGY.md, rule 3) with `prompt` as the whole system
+ * message and `tools` as the only tools. Every series' sessions use it, so no series gets a different runtime.
+ */
+export function sessionOptions(sdk, review, prompt, tools, onEvent) {
+  return {
     model: review.model,
     provider: review.providerConfig,
     systemMessage: { mode: "replace", content: prompt },
-    tools: createTools(sdk, collector, search, (value) => { verdict = value; }, log, research, candidateOrder),
+    tools,
     availableTools: new sdk.ToolSet().addCustom("*"),
     toolSearch: { enabled: false },
     contextTier: "default",
@@ -876,8 +877,15 @@ async function runEvaluation(client, sdk, review, search, log, experiment, resea
     customAgentsLocalOnly: true,
     remoteSession: "off",
     streaming: false,
-    onEvent: collector.onEvent,
-  });
+    onEvent,
+  };
+}
+
+async function runEvaluation(client, sdk, review, search, log, experiment, research, transcript) {
+  const { prompt, candidateOrder, promptSha256 } = buildSystemPrompt(experiment);
+  const collector = createTranscriptCollector(log, transcript);
+  let verdict = null;
+  const session = await client.createSession(sessionOptions(sdk, review, prompt, createTools(sdk, collector, search, (value) => { verdict = value; }, log, research, candidateOrder), collector.onEvent));
   try {
     for (let attempt = 0; attempt <= MAX_NUDGES && !verdict; attempt++) {
       const promptText = attempt === 0
@@ -928,9 +936,9 @@ export function validateResult(result, selected, experiment) {
   validateResearch(result.transcript, result.evaluations, experiment.candidates);
 }
 
-/** The searches a run's models made and how many failed, budget refusals aside: a run whose every search failed had no search. */
-export function searchHealth(results) {
-  const searches = results.flatMap((result) => result.transcript ?? []).flatMap((round) => round.actions ?? []).filter((action) => action.type === "search" && action.result !== BUDGET_REACHED);
+/** The searches a run's models made and how many failed, budget refusals (`budgetMessage`, the series' own) aside: a run whose every search failed had no search. */
+export function searchHealth(results, budgetMessage = BUDGET_REACHED) {
+  const searches = results.flatMap((result) => result.transcript ?? []).flatMap((round) => round.actions ?? []).filter((action) => action.type === "search" && action.result !== budgetMessage);
   const failed = searches.filter((action) => action.error).length;
   return { made: searches.length, failed };
 }
@@ -963,10 +971,12 @@ export function compactTranscript(transcript, previewChars = 500) {
 
 export const serializeJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
-export function parseOptions(args) {
+/** The command line's options. `extra` adds another series' own options, which come back as `extra`. */
+export function parseOptions(args, extra = {}) {
   const { values } = parseArgs({
     args,
     options: {
+      ...extra,
       headless: { type: "boolean", default: true },
       "output-dir": { type: "string" },
       preflight: { type: "boolean", default: false },
@@ -990,7 +1000,7 @@ export function parseOptions(args) {
   const search = values.search ?? (inferenceMode === "copilot-first" ? "copilot" : "perplexity");
   if (!SEARCH_BACKENDS.includes(search)) throw new Error(`--search must be ${SEARCH_BACKENDS.join(" or ")}`);
   if (search === "copilot" && inferenceMode !== "copilot-first") throw new Error("--search copilot runs through GitHub Copilot: use --inference copilot-first, or --search perplexity");
-  return { outputDir: values["output-dir"], preflight: values.preflight, inferenceMode, models, concurrency, maxLoad, search };
+  return { outputDir: values["output-dir"], preflight: values.preflight, inferenceMode, models, concurrency, maxLoad, search, ...(Object.keys(extra).length ? { extra: Object.fromEntries(Object.keys(extra).map((key) => [key, values[key]])) } : {}) };
 }
 
 /**
@@ -1034,10 +1044,62 @@ export function assertPrivateOutputDirectory(directory, repositoryRoots = [path.
   return resolved;
 }
 
-async function loadSdk() {
+export async function loadSdk() {
   const dir = process.env["OURO_MODEL_REVIEWS_SDK"];
   if (!dir) return import("@github/copilot-sdk");
   return import(pathToFileURL(path.join(dir, "node_modules", "@github", "copilot-sdk", "dist", "index.js")).href);
+}
+
+/**
+ * Starts the shared runtime for a run: the credentials, the stripped Copilot client, the panel's transports, a canary
+ * search and each candidate's pinned source. `handles` gets the client and its scratch folder as soon as they exist,
+ * so `stopRuntime(handles)` cleans up whatever started, even after a failure.
+ */
+export async function startRuntime(options, experiment, research, secrets, handles) {
+  const copilotFirst = options.inferenceMode === "copilot-first";
+  const explicitToken = copilotFirst ? process.env["COPILOT_GITHUB_TOKEN"] || process.env["GH_TOKEN"] || process.env["GITHUB_TOKEN"] : undefined;
+  secrets.push(explicitToken, ...githubTokens());
+  const keys = discoverKeys();
+  secrets.push(...Object.values(keys));
+  if (options.search === "perplexity" && !keys.perplexity) throw new Error("PERPLEXITY_API_KEY is required for --search perplexity");
+  const sdk = await loadSdk();
+  const runtimeRoot = handles.runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "model-reviews-runtime-"));
+  fs.mkdirSync(path.join(runtimeRoot, "copilot-home"));
+  fs.mkdirSync(path.join(runtimeRoot, "work"));
+  const client = handles.client = new sdk.CopilotClient({ mode: "empty", baseDirectory: path.join(runtimeRoot, "copilot-home"), workingDirectory: path.join(runtimeRoot, "work"), env: runtimeEnvironment(), gitHubToken: explicitToken, useLoggedInUser: copilotFirst && !explicitToken, logLevel: "error" });
+  await client.start();
+  if (copilotFirst) {
+    const auth = await client.getAuthStatus();
+    if (!auth.isAuthenticated) throw new Error(`GitHub Copilot authentication failed: ${auth.statusMessage || "run copilot login or set COPILOT_GITHUB_TOKEN"}`);
+  }
+  const [status, availableModels] = await Promise.all([client.getStatus(), copilotFirst ? client.listModels() : []]);
+  const panel = options.models ? REVIEW_MODELS.filter(({ provider }) => options.models.includes(provider)) : REVIEW_MODELS;
+  const selected = resolveTransports(panel, new Set(availableModels.map(({ id }) => id)), keys, options.inferenceMode);
+  const runtime = { name: "GitHub Copilot CLI", version: status.version, protocolVersion: status.protocolVersion, sdk: "@github/copilot-sdk", mode: "empty", inferenceMode: options.inferenceMode, infiniteSessions: false, largeOutputIndirection: false, concurrency: Number.isFinite(options.concurrency) ? options.concurrency : "all", maxLoad: Number.isFinite(options.maxLoad) ? options.maxLoad : null, search: options.search === "copilot" ? { backend: "copilot", tool: "github-mcp-server web_search", relayModel: SEARCH_RELAY_MODEL } : { backend: "perplexity", model: "sonar" } };
+
+  console.log("Selected models:");
+  for (const review of selected) console.log(`  ${review.displayName}: ${review.transport === "copilot" ? "GitHub Copilot inference" : `direct ${review.vendor} API (${mask(keys[review.fallback.key])})`}`);
+  if (options.search === "copilot") {
+    if (!availableModels.some(({ id }) => id === SEARCH_RELAY_MODEL)) throw new Error(`Copilot search needs ${SEARCH_RELAY_MODEL}, the relay model, which this account's Copilot catalog lacks`);
+    const canary = await copilotSearch(client, sdk, "Ouro UI");
+    if (canary === "(no results)") throw new Error("Copilot web search answered the canary query with no results");
+  }
+  console.log(options.search === "copilot" ? `  Search: GitHub Copilot web search, relayed by ${SEARCH_RELAY_MODEL}` : `  Search: Perplexity sonar (${mask(keys.perplexity)})`);
+  experiment.candidates = await snapshotCandidates(experiment.asOf);
+  research.candidates = experiment.candidates;
+  console.log(`  Source snapshots: ${experiment.candidates.length} candidates`);
+  const relay = limiter(3);
+  const search = Object.assign(options.search === "copilot" ? (query) => relay(() => copilotSearch(client, sdk, query, { log: (message) => console.log(`  ${redactSecrets(message, secrets)}`) })) : (query) => perplexitySearch(query, keys.perplexity), { backend: options.search });
+  return { sdk, client, keys, selected, runtime, search };
+}
+
+/** Stops what startRuntime started. */
+export async function stopRuntime(handles) {
+  try {
+    if (handles.client) await handles.client.stop();
+  } finally {
+    if (handles.runtimeRoot) fs.rmSync(handles.runtimeRoot, { recursive: true, force: true });
+  }
 }
 
 export async function main(args = process.argv.slice(2)) {
@@ -1048,44 +1110,12 @@ export async function main(args = process.argv.slice(2)) {
   if (fs.existsSync(outputDirectory)) throw new Error(`Run directory already exists; choose a new one: ${outputDirectory}`);
   fs.mkdirSync(path.join(outputDirectory, "raw"), { recursive: true });
 
-  const copilotFirst = options.inferenceMode === "copilot-first";
-  const explicitToken = copilotFirst ? process.env["COPILOT_GITHUB_TOKEN"] || process.env["GH_TOKEN"] || process.env["GITHUB_TOKEN"] : undefined;
-  const secrets = [explicitToken, ...githubTokens()];
+  const secrets = [];
   const research = { candidates: [], documents: new Map() };
-  let selected = [];
+  const handles = {};
   let results;
-  let client;
-  let runtimeRoot;
   try {
-    const keys = discoverKeys();
-    secrets.push(...Object.values(keys));
-    if (options.search === "perplexity" && !keys.perplexity) throw new Error("PERPLEXITY_API_KEY is required for --search perplexity");
-    const sdk = await loadSdk();
-    runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "model-reviews-runtime-"));
-    fs.mkdirSync(path.join(runtimeRoot, "copilot-home"));
-    fs.mkdirSync(path.join(runtimeRoot, "work"));
-    client = new sdk.CopilotClient({ mode: "empty", baseDirectory: path.join(runtimeRoot, "copilot-home"), workingDirectory: path.join(runtimeRoot, "work"), env: runtimeEnvironment(), gitHubToken: explicitToken, useLoggedInUser: copilotFirst && !explicitToken, logLevel: "error" });
-    await client.start();
-    if (copilotFirst) {
-      const auth = await client.getAuthStatus();
-      if (!auth.isAuthenticated) throw new Error(`GitHub Copilot authentication failed: ${auth.statusMessage || "run copilot login or set COPILOT_GITHUB_TOKEN"}`);
-    }
-    const [status, availableModels] = await Promise.all([client.getStatus(), copilotFirst ? client.listModels() : []]);
-    const panel = options.models ? REVIEW_MODELS.filter(({ provider }) => options.models.includes(provider)) : REVIEW_MODELS;
-    selected = resolveTransports(panel, new Set(availableModels.map(({ id }) => id)), keys, options.inferenceMode);
-    const runtime = { name: "GitHub Copilot CLI", version: status.version, protocolVersion: status.protocolVersion, sdk: "@github/copilot-sdk", mode: "empty", inferenceMode: options.inferenceMode, infiniteSessions: false, largeOutputIndirection: false, concurrency: Number.isFinite(options.concurrency) ? options.concurrency : "all", maxLoad: Number.isFinite(options.maxLoad) ? options.maxLoad : null, search: options.search === "copilot" ? { backend: "copilot", tool: "github-mcp-server web_search", relayModel: SEARCH_RELAY_MODEL } : { backend: "perplexity", model: "sonar" } };
-
-    console.log("Selected models:");
-    for (const review of selected) console.log(`  ${review.displayName}: ${review.transport === "copilot" ? "GitHub Copilot inference" : `direct ${review.vendor} API (${mask(keys[review.fallback.key])})`}`);
-    if (options.search === "copilot") {
-      if (!availableModels.some(({ id }) => id === SEARCH_RELAY_MODEL)) throw new Error(`Copilot search needs ${SEARCH_RELAY_MODEL}, the relay model, which this account's Copilot catalog lacks`);
-      const canary = await copilotSearch(client, sdk, "Ouro UI");
-      if (canary === "(no results)") throw new Error("Copilot web search answered the canary query with no results");
-    }
-    console.log(options.search === "copilot" ? `  Search: GitHub Copilot web search, relayed by ${SEARCH_RELAY_MODEL}` : `  Search: Perplexity sonar (${mask(keys.perplexity)})`);
-    experiment.candidates = await snapshotCandidates(experiment.asOf);
-    research.candidates = experiment.candidates;
-    console.log(`  Source snapshots: ${experiment.candidates.length} candidates`);
+    const { sdk, client, selected, runtime, search } = await startRuntime(options, experiment, research, secrets, handles);
     fs.writeFileSync(path.join(outputDirectory, "run.json"), serializeJson({ status: options.preflight ? "preflight" : "running", ...experiment, runtime, reviewers: selected.map((review) => without(review, ["providerConfig", "fallback", "logFile", "log"])) }));
     if (options.preflight) {
       console.log("Access preflight complete: one search ran, and no model reviewed anything.");
@@ -1096,8 +1126,6 @@ export async function main(args = process.argv.slice(2)) {
       const writeLog = createLogger(path.join(outputDirectory, "raw", `${review.provider}.log`));
       review.log = (message) => writeLog(redactSecrets(message, secrets));
     }
-    const relay = limiter(3);
-    const search = Object.assign(options.search === "copilot" ? (query) => relay(() => copilotSearch(client, sdk, query, { log: (message) => console.log(`  ${redactSecrets(message, secrets)}`) })) : (query) => perplexitySearch(query, keys.perplexity), { backend: options.search });
     results = await runPool(selected.map((review) => async () => {
       const transcript = [];
       try {
@@ -1131,11 +1159,7 @@ export async function main(args = process.argv.slice(2)) {
     console.log(`Saved run: ${path.join(outputDirectory, "run.json")}`);
     console.log(`Picks: ${JSON.stringify(summary.picks)}`);
   } finally {
-    try {
-      if (client) await client.stop();
-    } finally {
-      if (runtimeRoot) fs.rmSync(runtimeRoot, { recursive: true, force: true });
-    }
+    await stopRuntime(handles);
   }
 }
 
