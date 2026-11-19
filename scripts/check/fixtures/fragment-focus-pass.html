@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="data:text/css,main%7Bmax-width:36rem;margin:0%20auto%7D">
 <style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}</style>
 <body>
-<!-- Stands in for fragmentFocusScript(), first in <body>, after the stylesheet: Ouro check knows it by the flag it sets. -->
-<script>/* window.__ouroFragmentFocus */</script>
+<!-- Stands in for fragmentFocusScript(), first in <body>, after the stylesheet: Ouro check reads what it records as it runs. -->
+<script>window.__ouroFragmentFocus = { parsed: document.readyState === "loading", script: document.currentScript };</script>
 <main data-app-ready="true"><h1>Fragment focus</h1><p>The page's fragmentFocusScript comes after its stylesheet, so Safari keeps focus as later stylesheets load.</p></main>
 </body>

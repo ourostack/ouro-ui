@@ -1148,24 +1148,30 @@ describe("runAxe", () => {
 
 describe("findFragmentFocusIssues", () => {
   const added: Element[] = [];
+  const page = window as unknown as { __ouroFragmentFocus?: { parsed: boolean; script: Element | null } };
   afterEach(() => {
     for (const element of added.splice(0)) element.remove();
+    delete page.__ouroFragmentFocus;
     document.body.removeAttribute("data-ouro-check-ref");
     document.documentElement.removeAttribute("data-ouro-allow");
     document.documentElement.removeAttribute("data-ouro-allow-why");
   });
-  /** Adds a stylesheet link to <head>, or a script that holds fragmentFocusScript's flag, at the start of <body> or the end of <head>. */
+  /** Adds a stylesheet link to <head>. */
   const sheet = (href = "data:text/css,i{}") => {
     const link = Object.assign(document.createElement("link"), { rel: "stylesheet", href });
     document.head.append(link);
     added.push(link);
   };
-  const script = (where: "body" | "head", type = "") => {
-    const element = Object.assign(document.createElement("script"), { text: "/* window.__ouroFragmentFocus */", type });
-    if (where === "body") document.body.prepend(element);
-    else document.head.append(element);
-    added.push(element);
+  /** What fragmentFocusScript records as it runs: here, an element at the start of <body> or the end of <head>. */
+  const ran = (parsed: boolean, where: "body" | "head" = "body") => {
+    const script = document.createElement("script");
+    if (where === "body") document.body.prepend(script);
+    else document.head.append(script);
+    added.push(script);
+    page.__ouroFragmentFocus = { parsed, script };
+    return script;
   };
+  const details = () => findFragmentFocusIssues().map((issue) => issue.detail);
 
   it("finds a page with a stylesheet and no fragmentFocusScript, marked on the page", () => {
     sheet();
@@ -1176,29 +1182,35 @@ describe("findFragmentFocusIssues", () => {
     expect(document.body.getAttribute("data-ouro-check-ref")).toBe(issue!.ref);
   });
 
-  it("finds fragmentFocusScript before a stylesheet in <head>, and a copy that is a module", () => {
-    script("head");
-    sheet("data:text/css,b{}");
-    expect(findFragmentFocusIssues().map((issue) => issue.detail)).toEqual(["fragmentFocusScript comes before the stylesheet data:text/css,b{}, so Safari can still take focus as stylesheets load"]);
-    for (const element of added.splice(0)) element.remove();
+  it("finds fragmentFocusScript that ran after the page was parsed, as one a script adds does", () => {
     sheet();
-    script("body", "module");
-    expect(findFragmentFocusIssues().map((issue) => issue.rule)).toEqual(["fragment-focus"]);
+    ran(false);
+    expect(details()).toEqual(["fragmentFocusScript ran after the page was parsed, too late to hold it: render it as a plain inline <script>, not one a script adds"]);
   });
 
-  it("passes fragmentFocusScript after every stylesheet, a stylesheet link with no address, and a page allowed fragment-focus with a reason", () => {
+  it("finds fragmentFocusScript before a stylesheet in <head>", () => {
+    ran(true, "head");
+    sheet("data:text/css,b{}");
+    expect(details()).toEqual(["fragmentFocusScript comes before the stylesheet data:text/css,b{}, so Safari can still take focus as stylesheets load"]);
+  });
+
+  it("passes fragmentFocusScript run as the page was parsed after every stylesheet, or taken out since, a stylesheet link with no address, and a page allowed fragment-focus with a reason", () => {
     sheet();
-    script("body");
+    ran(true);
+    expect(findFragmentFocusIssues()).toEqual([]);
+    ran(true, "head").remove();
+    sheet("data:text/css,b{}");
     expect(findFragmentFocusIssues()).toEqual([]);
     for (const element of added.splice(0)) element.remove();
-    // A link with no address loads nothing, so the script before it in <head> is still after every stylesheet.
+    // A link with no address loads nothing, so a script before it in <head> is still after every stylesheet.
     sheet();
-    script("head");
+    ran(true, "head");
     const empty = Object.assign(document.createElement("link"), { rel: "stylesheet" });
     document.head.append(empty);
     added.push(empty);
     expect(findFragmentFocusIssues()).toEqual([]);
     for (const element of added.splice(0)) element.remove();
+    delete page.__ouroFragmentFocus;
     sheet();
     document.documentElement.setAttribute("data-ouro-allow", "fragment-focus");
     document.documentElement.setAttribute("data-ouro-allow-why", "   ");
