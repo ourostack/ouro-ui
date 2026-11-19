@@ -502,8 +502,23 @@ function guidanceSections(described: Described, required: boolean): string[] {
   ];
 }
 
-function functionDeclaration(symbol: ts.Symbol): ts.FunctionDeclaration {
-  const declaration = symbol.declarations?.find(ts.isFunctionDeclaration);
+/**
+ * The function an export is: a function declaration, or a function a const takes from a pure `Object.assign(function
+ * Name() {…}, { tag })`, the form a component that carries a tag takes so a build that never renders it can drop it.
+ */
+function exportedFunction(symbol: ts.Symbol): ts.SignatureDeclaration | undefined {
+  for (const declaration of symbol.declarations ?? []) {
+    if (ts.isFunctionDeclaration(declaration)) return declaration;
+    const call = ts.isVariableDeclaration(declaration) ? declaration.initializer : undefined;
+    if (call && ts.isCallExpression(call) && call.expression.getText() === "Object.assign" && call.arguments[0] && ts.isFunctionExpression(call.arguments[0])) return call.arguments[0];
+  }
+  return undefined;
+}
+
+const isExportedFunction = (symbol: ts.Symbol): boolean => exportedFunction(symbol) !== undefined;
+
+function functionDeclaration(symbol: ts.Symbol): ts.SignatureDeclaration {
+  const declaration = exportedFunction(symbol);
   if (!declaration) throw new Error(`${symbol.getName()} is not a function declaration`);
   return declaration;
 }
@@ -587,7 +602,7 @@ function partsPage(families: string[]): string {
   const notes = new Footnotes();
   for (const family of families) {
     const members = exportsOf(partFiles[family]!)
-      .filter((symbol) => symbol.declarations?.some(ts.isFunctionDeclaration) && symbol.getName().startsWith(family))
+      .filter((symbol) => isExportedFunction(symbol) && symbol.getName().startsWith(family))
       .sort((a, b) => a.getName().localeCompare(b.getName(), "en"));
     // A family with a root (`DialogRoot`) rebuilds the component; one without (`SelectItem`)
     // goes inside the component itself as children, and its first part's example shows how.
@@ -625,7 +640,7 @@ const pages: Page[] = [];
 const symbols = new Map<string, ts.Symbol>();
 for (const file of componentFiles) {
   for (const symbol of exportsOf(file)) {
-    if (!symbol.declarations?.some(ts.isFunctionDeclaration)) continue;
+    if (!isExportedFunction(symbol)) continue;
     const name = symbol.getName();
     const group = tag(symbol, "group");
     if (!group) {

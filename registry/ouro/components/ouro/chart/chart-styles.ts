@@ -1,4 +1,4 @@
-export { chartTones, defaultFormatValue, defaultSummary, isCssName, markerShapes, plotClass, toneVar };
+export { barSlots, chartTones, curvePath, defaultFormatValue, defaultSummary, isCssName, markerShapes, niceTicks, plotClass, toneVar };
 export type { ChartMarkerShape, ChartSummaryInfo, ChartTone, ChartType };
 
 // The export list comes first because the shadcn CLI drops comments before a file's
@@ -120,13 +120,14 @@ function defaultSummary({ type, series, category, count }: ChartSummaryInfo): st
 }
 
 /**
- * The plot area: recharts' default grays replaced with theme tokens, a visible focus ring on
- * the plot (which takes the arrow keys), and no focus outline on the shapes inside it.
+ * The plot box, which Chart's own SVG fills. For a recharts chart passed as children, it
+ * replaces recharts' default grays with theme tokens, rings the plot (which takes the arrow
+ * keys) when it has keyboard focus, and hides the focus outline of the shapes inside it.
  *
  * @internal
- * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > shows the tooltip from the keyboard: Tab to the plot, then the arrow keys)
- * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > takes a recharts chart as children, giving it the data, the name and the theme)
- * @claim "The plot area: recharts' default grays" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > writes the axis labels in the theme's muted text color, not recharts' gray, in light and dark)
+ * @claim "For a recharts chart passed as" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > shows the tooltip from the keyboard: Tab to the plot, then the arrow keys)
+ * @claim "For a recharts chart passed as" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > takes a recharts chart as children, giving it the data, the name and the theme)
+ * @claim "For a recharts chart passed as" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart > writes the axis labels in the theme's muted text color, not recharts' gray, in light and dark)
  */
 const plotClass =
   "relative aspect-video min-h-0 w-full flex-1 text-xs " +
@@ -141,3 +142,88 @@ const plotClass =
   "[&_.recharts-surface]:overflow-visible " +
   "[&_.recharts-surface]:rounded-ouro-md [&_.recharts-surface]:outline-ring [&_.recharts-surface]:outline-offset-2 " +
   "[&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-solid";
+
+/** A number rounded to hundredths, short enough for an SVG attribute. */
+const short = (value: number): number => Math.round(value * 100) / 100;
+
+/**
+ * The y axis' ticks for values from `min` to `max` (a range that holds 0): `count` ticks, from 0 or a round number below
+ * it to a round number above the largest value, each step rounded up to a twentieth of its power of ten (a tenth for
+ * steps under 10), as Recharts' axis picks them, so a chart reads the same as it did when Recharts drew it.
+ *
+ * @internal
+ * @claim "The y axis' ticks for values" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart geometry > picks five round ticks from 0 past the largest value, below 0 for negative values)
+ */
+function niceTicks(min: number, max: number, count = 5): number[] {
+  const low = Math.min(min, 0);
+  // A chart of zeros still has an axis to read them on.
+  const high = Math.max(max, 0) === low ? low + 1 : Math.max(max, 0);
+  for (let correction = 0; ; correction++) {
+    const rough = (high - low) / (count - 1);
+    const digits = Math.floor(Math.log10(rough)) + 1;
+    const unit = 10 ** digits;
+    const scale = digits === 1 ? 0.1 : 0.05;
+    // The small allowance keeps a ratio that floating point puts a hair over a step (0.1 / 0.05) on that step.
+    const step = (Math.ceil(rough / unit / scale - 1e-9) + correction) * scale * unit;
+    let below = Math.ceil(-low / step - 1e-9);
+    let above = Math.ceil(high / step - 1e-9);
+    const total = below + above + 1;
+    if (total > count) continue;
+    if (high > 0) above += count - total;
+    else below += count - total;
+    return Array.from({ length: below + above + 1 }, (_, index) => Number(((index - below) * step).toPrecision(12)) || 0);
+  }
+}
+
+/**
+ * A smooth line through points in order of x, which never overshoots a point (monotone in x, after Steffen 1990, as
+ * d3's curveMonotoneX draws it): a cubic Bézier per segment, with each point's slope taken from its neighbours.
+ *
+ * @internal
+ * @claim "A smooth line through points in" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart geometry > draws a monotone curve through every point that never overshoots one)
+ */
+function curvePath(points: ReadonlyArray<readonly [number, number]>): string {
+  const xs = points.map((point) => point[0]);
+  const ys = points.map((point) => point[1]);
+  const last = points.length - 1;
+  if (last < 0) return "";
+  const start = `M${short(xs[0]!)},${short(ys[0]!)}`;
+  if (last === 0) return start;
+  if (last === 1) return `${start}L${short(xs[1]!)},${short(ys[1]!)}`;
+  const widths = xs.slice(1).map((x, index) => x - xs[index]!);
+  const slopes = widths.map((width, index) => (ys[index + 1]! - ys[index]!) / width);
+  const sign = (value: number) => (value < 0 ? -1 : 1);
+  const tangents = xs.map((_, index) => {
+    if (index === 0 || index === last) return 0;
+    const [h0, h1, s0, s1] = [widths[index - 1]!, widths[index]!, slopes[index - 1]!, slopes[index]!];
+    const through = (s0 * h1 + s1 * h0) / (h0 + h1);
+    return (sign(s0) + sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(through));
+  });
+  tangents[0] = (3 * slopes[0]! - tangents[1]!) / 2;
+  tangents[last] = (3 * slopes[last - 1]! - tangents[last - 1]!) / 2;
+  let path = start;
+  for (let index = 0; index < last; index++) {
+    const third = widths[index]! / 3;
+    path +=
+      `C${short(xs[index]! + third)},${short(ys[index]! + third * tangents[index]!)} ` +
+      `${short(xs[index + 1]! - third)},${short(ys[index + 1]! - third * tangents[index + 1]!)} ` +
+      `${short(xs[index + 1]!)},${short(ys[index + 1]!)}`;
+  }
+  return path;
+}
+
+/**
+ * Where each of `count` bars sits in a category `width` wide, from the category's start: a tenth of the category free at
+ * each side and 4px between bars, as Recharts lays a bar group out.
+ *
+ * @internal
+ * @claim "Where each of `count` bars sits" registry/ouro/components/ouro/chart/chart.test.tsx verify:testExists(registry/ouro/components/ouro/chart/chart.test.tsx::Chart geometry > lays bars out in their category with a tenth free at each side and 4px between)
+ */
+function barSlots(width: number, count: number): Array<{ x: number; width: number }> {
+  const side = width * 0.1;
+  const room = width - side * 2;
+  // Bars too thin for the gap between them touch instead.
+  const gap = count > 1 && room - (count - 1) * 4 >= count ? 4 : 0;
+  const bar = Math.max((room - (count - 1) * gap) / count, 0);
+  return Array.from({ length: count }, (_, index) => ({ x: side + index * (bar + gap), width: bar }));
+}

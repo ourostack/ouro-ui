@@ -364,12 +364,10 @@ const ISLAND_CEILING = 60 * 1024;
 const rechartsIn = (modules: readonly string[]) => modules.some((module) => module.startsWith("node_modules/recharts/"));
 
 /**
- * The chapters, each its own island. Chapter II draws an HX Chart, so
- * its closure, and only its, holds
- * Recharts, which Chart loads by a dynamic import once the page has painted; the budget counts what the island adds without that chunk and without shared HX chunks
- * (site-design.md, Budgets: "Each chapter island ≤ 60 KB gzip excluding shared HX chunks; Chart's
- * Recharts chunk only in Chapter II's closure, never in the initial closure (asserted by module
- * name)"). A shared HX chunk holds only HX's own modules and the Base UI they are built on
+ * The chapters, each its own island. Chapter II draws an HX Chart with `type`, which draws its own SVG, so no island
+ * loads Recharts (an island that did would mark it `recharts: true`, and the budget would count what it adds without
+ * that chunk); the budget leaves out shared HX chunks (site-design.md, Budgets: "Each chapter island ≤ 60 KB gzip
+ * excluding shared HX chunks"). Recharts is never in the initial closure (asserted by module name). A shared HX chunk holds only HX's own modules and the Base UI they are built on
  * (HX_MODULES), and is imported from outside the island too (another chapter, a docs page): an HX
  * component's chunk carries its Base UI parts with it, so it is still HX's, not the chapter's.
  */
@@ -377,7 +375,7 @@ const HX_MODULES = ["registry/", "node_modules/@base-ui/"] as const;
 
 const ISLANDS = [
   { chapter: "Chapter I", entry: "src/voyage/chapters/chapter-one.tsx", source: "site/src/voyage/chapters/chapter-one", recharts: false },
-  { chapter: "Chapter II", entry: "src/voyage/chapters/chapter-two.tsx", source: "site/src/voyage/chapters/chapter-two", recharts: true },
+  { chapter: "Chapter II", entry: "src/voyage/chapters/chapter-two.tsx", source: "site/src/voyage/chapters/chapter-two", recharts: false },
   { chapter: "Chapter III", entry: "src/voyage/chapters/chapter-three.tsx", source: "site/src/voyage/chapters/chapter-three", recharts: false },
   // The Ouro UI for Apple pages (site/src/apple/), each an island of its own.
   { chapter: "Apple's overview", entry: "src/apple/home.tsx", source: "site/src/apple/", recharts: false },
