@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { CANDIDATES, SEARCH_DESC, FETCH_DESC, createTranscriptCollector, handleResearch, snapshotFingerprint } from "./model-reviews.mjs";
+import { CANDIDATES, SEARCH_DESC, FETCH_DESC, createTranscriptCollector, handleResearch, searchHealth, snapshotFingerprint } from "./model-reviews.mjs";
 import { renderPage, publishedRuns } from "./page.mjs";
 import {
   ANSWER_PARAMS,
@@ -24,6 +24,7 @@ import {
   interviewTools,
   isOuroUrl,
   nudge,
+  orderListedCandidates,
   parseInterviewOptions,
   renderInterviewSystemPrompt,
   renderScript,
@@ -155,6 +156,25 @@ test("each turn takes only its own tool, and a decision cites only pages the ses
   assert.deepEqual(rounds.flatMap(({ actions }) => actions).filter(({ type }) => type === "decision").map(({ turn }) => turn), ["job:chat", "job:consumer"]);
 });
 
+test("Ouro UI is never first in the listed arm's list, in any job, and every other place stays open to it", () => {
+  const seeded = (seed) => {
+    const random = () => crypto.createHash("sha256").update(`${seed}:${(random.calls = (random.calls ?? 0) + 1)}`).digest().readUInt32BE(0) / 2 ** 32;
+    return random;
+  };
+  const places = new Set();
+  for (let seed = 0; seed < 400; seed++) {
+    const script = buildScript(experiment, "listed", seed % 2 ? "product-team" : "large-company", seeded(seed));
+    assert.deepEqual([...script.candidateOrder].sort(), CANDIDATES.map(({ name }) => name).sort());
+    places.add(script.candidateOrder.indexOf("Ouro UI"));
+    for (const turn of script.turns.filter(({ kind }) => kind === "job")) assert.doesNotMatch(turn.prompt.split("\n").find((line) => line.startsWith("1. ")), /Ouro/);
+  }
+  assert.ok(!places.has(0));
+  assert.equal(places.size, CANDIDATES.length - 1);
+  // A shuffle that would put it first moves it elsewhere instead, and a script that lists it first is refused.
+  assert.notEqual(orderListedCandidates(pinned, "Ouro UI", () => 0.999)[0].name, "Ouro UI");
+  assert.throws(() => renderScript({ asOf, arm: "listed", scale: "product-team", jobOrder: JOB_IDS, candidates: pinned }), /never first/);
+});
+
 test("a session reads 900,000 characters of results, then both research tools say so", async () => {
   const { collector } = harness();
   const read = async () => ({ text: "x".repeat(450_000) });
@@ -162,6 +182,8 @@ test("a session reads 900,000 characters of results, then both research tools sa
   for (const id of ["s1", "s2"]) assert.equal((await handleResearch("search", { query: "q" }, { toolCallId: id }, options)).length, 450_000);
   assert.equal(await handleResearch("search", { query: "q" }, { toolCallId: "s3" }, options), INTERVIEW_BUDGET_REACHED);
   assert.equal(await handleResearch("fetch_url", { url: "https://example.com/" }, { toolCallId: "f1" }, options), INTERVIEW_BUDGET_REACHED);
+  // A search the budget refused is no failed search.
+  assert.deepEqual(searchHealth([{ transcript: collector.rounds }], INTERVIEW_BUDGET_REACHED), { made: 2, failed: 0 });
   assert.match(nudge("record_decision", true), /budget is spent: call record_decision/);
   assert.match(nudge("answer", true), /budget is spent: call answer/);
 });

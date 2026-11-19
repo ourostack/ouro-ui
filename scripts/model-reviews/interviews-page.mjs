@@ -227,7 +227,7 @@ export function renderInterviewsPage(runs, findings = { problem: [], findings: [
   out.push("");
   out.push(`Each frontier model is interviewed as a customer, by the Mom Test: its own practice before any toolkit is named, then three real jobs, each at a product team's scale and a large company's, then what went wrong a year later, and ${SUBJECT} named only in the last question. The questions were [registered before any run](${RECORD}) and don't change between runs; a change starts a new series. This series is kept apart from the [model reviews](model-reviews.md), which ask one question, and its counts never mix with theirs.`);
   out.push("");
-  out.push(`Two research arms answer different questions. The **listed arm measures merit**: each job lists the same 20 candidates as the model reviews, by name and link only, in a fresh random order for each session. The **open arm measures discoverability**: the job lists nothing ("Find the options yourself."), so a loss there says agents don't find ${SUBJECT}, not that it's worse. Every pick, count and answer here is computed from the runs' records by a script.`);
+  out.push(`Two research arms answer different questions. The **listed arm measures merit**: each job lists the same 20 candidates as the model reviews, by name and link only, in a fresh random order for each session, with ${SUBJECT} never first. The **open arm measures discoverability**: the job lists nothing ("Find the options yourself."), so a loss there says agents don't find ${SUBJECT}, not that it's worse. Every pick, count and answer here is computed from the runs' records by a script.`);
   out.push("");
   renderFindings(out, checked.findings);
   if (latest) {
@@ -243,7 +243,7 @@ export function renderInterviewsPage(runs, findings = { problem: [], findings: [
     out.push("");
     for (const scale of SCALE_IDS) {
       const answered = open.filter((row) => row.scale === scale && row.session);
-      out.push(`- ${SCALES[scale].title}: ${answered.filter((row) => row.session.foundOuro.found).length} of ${plural(answered.length, "model")} found it before being told.`);
+      out.push(answered.length ? `- ${SCALES[scale].title}: ${answered.filter((row) => row.session.foundOuro.found).length} of ${plural(answered.length, "model")} found it before being told.` : `- ${SCALES[scale].title}: no model has answered here yet.`);
     }
     out.push("");
     const providers = [...new Map(open.map((row) => [row.provider, row])).values()];

@@ -21,6 +21,7 @@ import {
   FETCH_PARAMS,
   MAX_NUDGES,
   SEARCH_DESC,
+  SUBJECT,
   SEARCH_PARAMS,
   assertPrivateOutputDirectory,
   compactTranscript,
@@ -113,6 +114,7 @@ export function renderScript({ asOf, arm, scale, jobOrder, candidates }) {
   if (!SCALE_IDS.includes(scale)) throw new Error(`Unknown scale ${scale}`);
   if (arm === "listed" && !candidates?.length) throw new Error("The listed arm lists the candidates");
   if (arm === "open" && candidates) throw new Error("The open arm lists nothing");
+  if (candidates?.[0]?.name === SUBJECT) throw new Error(`${SUBJECT} is never first in a list`);
   const system = renderInterviewSystemPrompt(asOf);
   const turns = [
     { id: "look", kind: "look", tool: "answer", prompt: LOOK_BEFORE_YOU_ZOOM },
@@ -124,10 +126,24 @@ export function renderScript({ asOf, arm, scale, jobOrder, candidates }) {
   return { system, turns, promptSha256 };
 }
 
-/** A session's script in a fresh random order: the jobs, and in the listed arm the candidates. */
+/**
+ * The listed arm's order for one session: a uniform shuffle, except that Ouro UI is never first (METHODOLOGY.md,
+ * rule 2). When the shuffle puts it first, it trades places with one of the others, chosen at random, so every other
+ * place stays equally likely for it. It's the same rule as the original series' `orderCandidates`.
+ */
+export function orderListedCandidates(candidates, subject = SUBJECT, random = Math.random) {
+  const order = shuffle(candidates, random);
+  if (order.length > 1 && order[0].name === subject) {
+    const other = 1 + Math.floor(random() * (order.length - 1));
+    [order[0], order[other]] = [order[other], order[0]];
+  }
+  return order;
+}
+
+/** A session's script in a fresh random order: the jobs, and in the listed arm the candidates, with Ouro UI never first. */
 export function buildScript(experiment, arm, scale, random = Math.random) {
   const jobOrder = shuffle(JOB_IDS, random);
-  const candidates = arm === "listed" ? shuffle(experiment.candidates, random) : null;
+  const candidates = arm === "listed" ? orderListedCandidates(experiment.candidates, SUBJECT, random) : null;
   return { ...renderScript({ asOf: experiment.asOf, arm, scale, jobOrder, candidates }), jobOrder, candidateOrder: candidates ? candidates.map(({ name }) => name) : null };
 }
 
@@ -443,7 +459,7 @@ export async function main(args = process.argv.slice(2)) {
       if (redactSecrets(compact, secrets) !== compact) throw new Error("Refusing to save a transcript containing a configured credential");
       fs.writeFileSync(path.join(outputDirectory, "transcripts", `${sessionKey(result)}.json`), compact);
     }
-    runtime.searches = searchHealth(results);
+    runtime.searches = searchHealth(results, INTERVIEW_BUDGET_REACHED);
     if (runtime.searches.made > 0 && runtime.searches.failed === runtime.searches.made) throw new Error(`Every one of the run's ${runtime.searches.made} searches failed, so it is not saved as a finished run`);
     const complete = results.filter((result) => !result.error);
     const summary = summarizeInterviews(complete);

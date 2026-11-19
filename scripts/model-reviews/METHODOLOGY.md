@@ -106,7 +106,7 @@ A second series runs beside the question above and never mixes with its counts: 
 
 ### Four sessions per model, one script
 
-Each model gets four sessions: the listed and open arms, each at a product team's scale and a large company's. The **listed arm measures merit**: each job lists the same 20 candidates, by name and link only, in a fresh random order for each session, the same order for the session's three jobs. The **open arm measures discoverability**: each job says "Find the options yourself." and lists nothing, so a loss there is a finding about how agents find Ouro UI, never about its merit.
+Each model gets four sessions: the listed and open arms, each at a product team's scale and a large company's. The **listed arm measures merit**: each job lists the same 20 candidates, by name and link only, in a fresh random order for each session, the same order for the session's three jobs. Ouro UI is never first ([`orderListedCandidates`](interviews.mjs), the same rule as rule 2): when the shuffle puts it first, it trades places with another candidate chosen at random. The **open arm measures discoverability**: each job says "Find the options yourself." and lists nothing, so a loss there is a finding about how agents find Ouro UI, never about its merit.
 
 Every session runs the same six questions, word for word, each ending in a tool call:
 

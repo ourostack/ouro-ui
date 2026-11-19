@@ -936,9 +936,9 @@ export function validateResult(result, selected, experiment) {
   validateResearch(result.transcript, result.evaluations, experiment.candidates);
 }
 
-/** The searches a run's models made and how many failed, budget refusals aside: a run whose every search failed had no search. */
-export function searchHealth(results) {
-  const searches = results.flatMap((result) => result.transcript ?? []).flatMap((round) => round.actions ?? []).filter((action) => action.type === "search" && action.result !== BUDGET_REACHED);
+/** The searches a run's models made and how many failed, budget refusals (`budgetMessage`, the series' own) aside: a run whose every search failed had no search. */
+export function searchHealth(results, budgetMessage = BUDGET_REACHED) {
+  const searches = results.flatMap((result) => result.transcript ?? []).flatMap((round) => round.actions ?? []).filter((action) => action.type === "search" && action.result !== budgetMessage);
   const failed = searches.filter((action) => action.error).length;
   return { made: searches.length, failed };
 }
