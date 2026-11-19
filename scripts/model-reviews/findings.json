@@ -618,8 +618,8 @@
         }
       ],
       "issue": 2296,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "Ouro Current can leave auto-merge off and ask a named review team (#2338), a mirror script builds a company-owned registry under its own namespace and records each item's source tag and hash (#2342), and a drift report and a company guide show who is behind and who has edited what (#2347)."
     },
     {
       "id": "windows-android-eight-components",

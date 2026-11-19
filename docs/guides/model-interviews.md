@@ -226,7 +226,7 @@ All eight models said green tests, clean accessibility scans and polished screen
 
 #### Copy-in source makes every team a fork owner, and auto-merged updates don't satisfy company governance.
 
-Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2296](https://github.com/ourostack/ouro-ui/issues/2296).
+Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2296](https://github.com/ourostack/ouro-ui/issues/2296). What changed: Ouro Current can leave auto-merge off and ask a named review team (#2338), a mirror script builds a company-owned registry under its own namespace and records each item's source tag and hash (#2342), and a drift report and a company guide show who is behind and who has edited what (#2347).
 
 All eight models raised the copy-in model: fine for one team, a governance problem for twenty, with forks, local edits and manual upgrades; in the pre-mortem Grok and Gemini described the registry pinned in one app and forked in the others. Three also objected to updates that auto-merge, because governance wants a human gate. Ouro should offer one versioned, centrally owned package with reviewed updates, and show a second team upgrading a customised copy and rolling back.
 
