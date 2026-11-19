@@ -265,9 +265,11 @@ const windowAbove = 20;
 const overscan = 320;
 // How much of the list renders before the view is known, as in server HTML, in pixels.
 const firstView = 1000;
+// Stryker disable next-line ArrowFunction: the window's height is read once and never subscribed to, so an empty unsubscribe changes nothing a test can see.
 const subscribeNothing = () => () => {};
 const firstViewNow = () => firstView;
 // The window's height bounds the list's: the visual viewport's, which the browser answers without laying the page out (`innerHeight` makes it).
+// Stryker disable next-line OptionalChaining: every browser tests run in has a visual viewport, so the fallback to innerHeight is unreachable there.
 const windowHeightNow = () => Math.max(1, Math.min(firstView, Math.ceil(window.visualViewport?.height ?? innerHeight)));
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
