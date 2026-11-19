@@ -1334,6 +1334,114 @@ describe("Inspector", () => {
     expect(into.mock.calls[1]![0]).toEqual(expect.objectContaining({ behavior: "smooth" }));
   });
 
+  /** A phone's page: an opener button at `buttonTop` and a badge at `badgeTop`, both fixed to the page, so the spotlit badge's place is exact. */
+  const Opened = ({ buttonTop = 120, badgeTop, spotlight }: { buttonTop?: number; badgeTop: number; spotlight?: string }) => (
+    <div style={{ position: "relative", height: 3400 }}>
+      <div style={{ position: "absolute", top: buttonTop, left: 16, display: "flex" }}>
+        <Button autoFocus>Show me the parts</Button>
+      </div>
+      <div style={{ position: "absolute", top: badgeTop, left: 16, display: "flex" }}>
+        <Badge>Spotlit</Badge>
+      </div>
+      <Inspector open onOpenChange={() => {}} docsHref={docsHref} spotlight={spotlight} />
+    </div>
+  );
+  const frames = async () => {
+    await frame();
+    await frame();
+  };
+
+  it("keeps the opener on screen when the spotlit item is far below it, scrolling only as far as that keeps it there", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host } = await render(<Opened badgeTop={880} spotlight="badge" />);
+    await drawn(2);
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    const badge = host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+    // Positions in the page do not change as it scrolls, so these are where the button and badge start.
+    const buttonAt = button.getBoundingClientRect().top + scrollY;
+    expect(badge.getBoundingClientRect().top + scrollY).toBeGreaterThanOrEqual(innerHeight);
+    // Centring the badge would scroll the button past the top of the screen, so the page stops with the button at its top edge.
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, badge)).toBe(true);
+    await expect.poll(() => Math.abs(scrollY - buttonAt) <= 1).toBe(true);
+    await frames();
+    expect(Math.abs(scrollY - buttonAt)).toBeLessThanOrEqual(1);
+    expect(into).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(button);
+    const shown = button.getBoundingClientRect();
+    expect(shown.top).toBeGreaterThanOrEqual(-1);
+    expect(shown.bottom).toBeLessThanOrEqual(innerHeight + 1);
+    expect(badge.getBoundingClientRect().top).toBeLessThan(innerHeight);
+  });
+
+  it("does not scroll at all when the spotlit item already shows beside a focused opener", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host } = await render(<Opened badgeTop={780} spotlight="badge" />);
+    await drawn(2);
+    const badge = host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+    await expect.poll(() => spotlit().length === 1 && onTarget(spotlit()[0]!, badge)).toBe(true);
+    await frames();
+    expect(scrollY).toBe(0);
+    expect(into).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(host.querySelector('[data-ouro="button"]'));
+  });
+
+  it("still centres the spotlit item when the opener stays on screen after it", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host } = await render(<Opened buttonTop={500} badgeTop={900} spotlight="badge" />);
+    await drawn(2);
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    const badge = host.querySelector<HTMLElement>('[data-ouro="badge"]')!;
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.calls[0]).toEqual([{ block: "center", inline: "nearest", behavior: "smooth" }]);
+    expect(into.mock.contexts[0]).toBe(badge);
+    await expect.poll(() => Math.abs(badge.getBoundingClientRect().top + badge.getBoundingClientRect().height / 2 - scrollportMiddle()) < 2).toBe(true);
+    expect(button.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+  });
+
+  it("scrolls back up only as far as keeps an opener on screen, when the spotlit item is above it", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host, rerender } = await render(<Opened buttonTop={1980} badgeTop={200} />);
+    await drawn(2);
+    const button = host.querySelector<HTMLElement>('[data-ouro="button"]')!;
+    // Scrolled so the button sits near the bottom of the screen, with the badge well above it.
+    scrollTo({ top: 1200, behavior: "instant" });
+    await expect.poll(() => scrollY).toBe(1200);
+    const bottom = button.getBoundingClientRect().bottom;
+    const expected = scrollY - (innerHeight - bottom);
+    await rerender(<Opened buttonTop={1980} badgeTop={200} spotlight="badge" />);
+    await expect.poll(() => Math.abs(scrollY - expected) <= 1).toBe(true);
+    await frames();
+    expect(Math.abs(scrollY - expected)).toBeLessThanOrEqual(1);
+    expect(into).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(button);
+    expect(button.getBoundingClientRect().bottom).toBeLessThanOrEqual(innerHeight + 1);
+  });
+
+  it("leaves a spotlit item inside its own scroll container to scrollIntoView's nearest, with an opener focused", async () => {
+    await page.viewport(390, 844);
+    const into = vi.spyOn(Element.prototype, "scrollIntoView");
+    const { host } = await render(
+      <div style={{ position: "relative", height: 3400 }}>
+        <div style={{ position: "absolute", top: 120, left: 16, display: "flex" }}>
+          <Button autoFocus>Show me the parts</Button>
+        </div>
+        <div style={{ position: "absolute", top: 200, left: 0, width: 300, height: 300, overflowY: "auto" }}>
+          <div style={{ height: 900 }} />
+          <Badge>Inside</Badge>
+        </div>
+        <Inspector open onOpenChange={() => {}} docsHref={docsHref} spotlight="badge" />
+      </div>,
+    );
+    await drawn(2);
+    await expect.poll(() => into.mock.calls.length).toBe(1);
+    expect(into.mock.calls[0]).toEqual([{ block: "nearest", inline: "nearest", behavior: "smooth" }]);
+    expect(into.mock.contexts[0]).toBe(host.querySelector('[data-ouro="badge"]'));
+  });
+
   it("says when the page has no spotlit item, and points one out when it appears", async () => {
     const into = vi.spyOn(Element.prototype, "scrollIntoView");
     const { rerender, host } = await render(<Far spotlight="checkbox" />);
