@@ -64,7 +64,7 @@ jobs:
             exit 0
           fi
           # The pull request changes ouro.latestRelease, so main's still names the release it replaces: the refresh uses the pull request's.
-          tag=$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json?ref=$BRANCH" --jq .content | base64 -d | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).ouro?.latestRelease') || { echo "::error::Could not read the pin pull request's package.json."; exit 1; }
+          tag=$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json?ref=$BRANCH" --jq .content | base64 -d | node -e 'let s = ""; process.stdin.on("data", (c) => (s += c)).on("end", () => console.log(JSON.parse(s).ouro?.latestRelease ?? ""))') || { echo "::error::Could not read the pin pull request's package.json."; exit 1; }
           [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The pin pull request's ouro.latestRelease is not a release tag: '$tag'."; exit 1; }
           echo "refresh=true" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"

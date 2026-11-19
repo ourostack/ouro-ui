@@ -118,7 +118,8 @@ const FAKE_GH = `import { appendFileSync, readFileSync } from "node:fs";
 const args = process.argv.slice(2);
 const method = args.includes("-X") ? args[args.indexOf("-X") + 1] : "GET";
 const path = args.find((arg) => arg.startsWith("repos/"));
-const body = args.includes("--input") ? readFileSync(0, "utf8") : "";
+let body = "";
+if (args.includes("--input")) for await (const chunk of process.stdin) body += chunk;
 appendFileSync(process.env.CALLS, \`\${method} \${path}\${body ? \` \${body}\` : ""}\\n\`);
 const route = JSON.parse(readFileSync(process.env.ROUTES, "utf8"))[\`\${method} \${path}\`];
 if (route === undefined || route === "fail") {
