@@ -2,7 +2,7 @@
 
 # AgentHandoff
 
-What a person does once they have seen something built for agents: hand it to their coding agent, as one line to paste, with Copy beside it. The line is in the page's own type, never a terminal's, and a web address in it breaks only after a "/". Copy is CopyButton, which says it copied on itself, where the person is looking. In a narrow column Copy goes under the line, so the line keeps its words whole. It takes its container's width.
+What a person does once they have seen something built for agents: hand it to their coding agent, as one line to paste, with Copy beside it. The line is in the page's own type, never a terminal's, and a web address in it can break after each "/". Copy is CopyButton, which says it copied on itself, where the person is looking. In a narrow column Copy goes under the line, so the line has the column's whole width. It takes its container's width.
 
 ```tsx
 import { AgentHandoff } from "@/registry/ouro/components/ouro/agent-handoff/agent-handoff";
@@ -35,7 +35,7 @@ Type: `AgentHandoffProps`.
 | `copyLabel` | `string` | `"Copy"` | The Copy button's label. |
 | `failedMessage` | `string` | `"The browser blocked copying. Select the line and copy it yourself."` | What screen readers hear, and the Copy button's tooltip says, when the browser refused to copy. |
 | `label` (required) | `ReactNode` |  | What the person does with the line, above it, which also names the group: "Hand it to your agent". |
-| `prompt` (required) | `string` |  | The one line to paste into a coding agent's chat, in the page's own type. A web address in it breaks only between its parts, after a "/". |
+| `prompt` (required) | `string` |  | The one line to paste into a coding agent's chat, in the page's own type. A web address in it can break after each "/", between its parts, but not inside "//". |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
 
 ## Native attributes

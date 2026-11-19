@@ -14,9 +14,9 @@ export interface AgentHandoffOwnProps {
    */
   label: ReactNode;
   /**
-   * The one line to paste into a coding agent's chat, in the page's own type. A web address in it breaks only between
-   * its parts, after a "/".
-   * @claim "A web address in it breaks only between" registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx verify:testExists(registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx::AgentHandoff > lets the line break after each slash of a web address, and never between the two of its scheme)
+   * The one line to paste into a coding agent's chat, in the page's own type. A web address in it can break after each
+   * "/", between its parts, but not inside "//".
+   * @claim "A web address in it can break after each" registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx verify:testExists(registry/ouro/components/ouro/agent-handoff/agent-handoff.test.tsx::AgentHandoff > lets the line break after each slash of a web address, and never between the two of its scheme)
    */
   prompt: string;
   /** Under the line, such as "Paste it into your coding agent's chat." */
@@ -60,9 +60,9 @@ function promptParts(prompt: string): string[] {
 
 /**
  * What a person does once they have seen something built for agents: hand it to their coding agent, as one line to
- * paste, with Copy beside it. The line is in the page's own type, never a terminal's, and a web address in it breaks
- * only after a "/". Copy is CopyButton, which says it copied on itself, where the person is looking. In a narrow
- * column Copy goes under the line, so the line keeps its words whole. It takes its container's width.
+ * paste, with Copy beside it. The line is in the page's own type, never a terminal's, and a web address in it can
+ * break after each "/". Copy is CopyButton, which says it copied on itself, where the person is looking. In a narrow
+ * column Copy goes under the line, so the line has the column's whole width. It takes its container's width.
  *
  * Use `CopyButton` instead for a value that isn't an instruction to an agent, and `CodeBlock` instead for a command
  * to run in a terminal.
@@ -128,7 +128,7 @@ export function AgentHandoff(props: AgentHandoffProps): JSX.Element {
   return (
     <div {...rest} data-ouro="agent-handoff" role="group" aria-labelledby={labelId} className={cn("@container grid min-w-0 gap-2", className)}>
       <div data-slot="head" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-        <p id={labelId} data-slot="label" className="m-0 text-sm font-semibold text-foreground">
+        <p id={labelId} data-slot="label" className="m-0 text-(length:--text-sm) font-semibold text-foreground">
           {label}
         </p>
         {aside != null ? (
@@ -162,7 +162,7 @@ export function AgentHandoff(props: AgentHandoffProps): JSX.Element {
         />
       </div>
       {caption != null ? (
-        <p data-slot="caption" className="m-0 text-sm text-muted-foreground">
+        <p data-slot="caption" className="m-0 text-(length:--text-sm) text-muted-foreground">
           {caption}
         </p>
       ) : null}

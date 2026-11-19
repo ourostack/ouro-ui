@@ -86,7 +86,7 @@ describe("AgentHandoff", () => {
   });
 
   it("draws the line in the page's own type, on the card surface with a border in the theme's colors", async () => {
-    const { part } = await render(full);
+    const { part } = await render(<div style={{ lineHeight: 1.6 }}>{full}</div>);
     const prompt = getComputedStyle(part("prompt")!);
     expect(prompt.fontFamily).toBe(getComputedStyle(document.body).fontFamily);
     expect(prompt.fontFamily).not.toBe(themed("fontFamily", "var(--font-mono)"));
@@ -102,6 +102,12 @@ describe("AgentHandoff", () => {
     expect(line.overflow).toBe("visible");
     expect(getComputedStyle(part("label")!).color).toBe(themed("color", "var(--foreground)"));
     expect(getComputedStyle(part("caption")!).color).toBe(themed("color", "var(--muted-foreground)"));
+    // The label and the caption are smaller than the line, and keep the page's line height.
+    for (const name of ["label", "caption"]) {
+      const style = getComputedStyle(part(name)!);
+      expect(Number.parseFloat(style.fontSize)).toBeLessThan(Number.parseFloat(prompt.fontSize));
+      expect(Number.parseFloat(style.lineHeight)).toBeCloseTo(Number.parseFloat(style.fontSize) * 1.6, 1);
+    }
   });
 
   it("lets the line break after each slash of a web address, and never between the two of its scheme", async () => {
