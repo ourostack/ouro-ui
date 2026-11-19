@@ -22,9 +22,6 @@
 :root {
   color-scheme: light;
   --site-code: color-mix(in oklab, var(--muted) 70%, var(--background));
-  /* The docs pages' intro measure, a deliberate line length that Ouro check's narrow-text accepts as declared. Each other
-     page declares its own measures in its own stylesheet, so a page loads only the ones it uses. */
-  --measure-intro: 40rem;
 }
 
 .dark {
