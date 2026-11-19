@@ -392,6 +392,7 @@ Components:
 `accordion`,
 `agent-presence`,
 `alert`,
+`app-window`,
 `aspect-ratio`,
 `attachment`,
 `attention-card`,
@@ -754,6 +755,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 - **A2UISurface** — Shows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, its fields starting from the surface's data model, and sends a press as A2UI's action message, with what the person entered in a field a button's input is bound to. [Docs](docs/A2UISurface.md)
 - **Alert** — An inline message in the page: something saved, something failed, something to know before going on. [Docs](docs/Alert.md)
+- **AppWindow** — A live piece of interface framed as an application's window: a title bar with a label (such as the file the demo lives in) and actions at its end, the working content inside, and the Ouro HX components it is built from along its foot. [Docs](docs/AppWindow.md)
 - **Avatar** — A person's picture, or their initials until it loads or when it fails, in a color picked from the name. [Docs](docs/Avatar.md)
 - **AvatarGroup** — Avatars stacked with a slight overlap, such as the cooks on a recipe, with a "+N" count after `max`. [Docs](docs/AvatarGroup.md)
 - **Badge** — A short label for a status, category or count: "Draft", "Vegan", "3". [Docs](docs/Badge.md)
