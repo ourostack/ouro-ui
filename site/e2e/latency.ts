@@ -1,5 +1,6 @@
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
+import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
@@ -534,6 +535,17 @@ let measured = 0;
 let missedAtCap = 0;
 /** The control whose re-measures found this worker's runner steadily too slow, and the probe reads that did. */
 let steadySlowRun: { label: string; reads: readonly number[] } | undefined;
+/**
+ * Where the run keeps that verdict: Playwright starts a new worker after a failed test, which would forget it and measure
+ * every later control again, re-measures and waits included, until a slow runner ran the job out of time (main's run
+ * 44566696721, ourostack/ouro-ui#2114). The project's output folder is emptied when a run starts, so no run inherits one.
+ */
+const steadyFile = () => join(test.info().project.outputDir, "latency-steady-slow.json");
+/** The verdict this run found, whichever worker found it. */
+function steadyVerdict(): typeof steadySlowRun {
+  if (!steadySlowRun && existsSync(steadyFile())) steadySlowRun = JSON.parse(readFileSync(steadyFile(), "utf8")) as NonNullable<typeof steadySlowRun>;
+  return steadySlowRun;
+}
 /** The controls whose quiet-runner p95 was within 10% of its bound (thinMargin), as `label p95/bound`, for the job summary. */
 const thinMargins: string[] = [];
 /** Appends a line to the CI job's summary, where there is one. */
@@ -548,9 +560,13 @@ process.once("exit", () => {
   if (measured > 0) summary(thinMargins.length > 0 ? `Latency: thin margins on a quiet runner (p95 within 10% of its bound): ${thinMargins.join(", ")}.` : "Latency: no thin margins on a quiet runner.");
 });
 
-/** Clears this worker's steady-runner verdict, for the rules spec, whose tests share a worker: a later test starts with the runner judged afresh. */
-export function forgetSteadySlowRunner(): void {
+/**
+ * Clears the steady-runner verdict, for the rules spec, whose tests share a worker: a later test starts with the runner
+ * judged afresh. `"worker"` clears only this worker's copy, as a new worker starts, so the run's own record is read again.
+ */
+export function forgetSteadySlowRunner(scope: "run" | "worker" = "run"): void {
   steadySlowRun = undefined;
+  if (scope === "run") rmSync(steadyFile(), { force: true });
 }
 
 /**
@@ -576,7 +592,7 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
   const reads = [median(result.probe)];
   // Each measurement's presses carry on from the last index of the ones before it.
   let pressed = result.presses;
-  while (pastCap(result.probe) && reads.length < LATENCY.loadTries && !steadySlow(reads) && !steadySlowRun) {
+  while (pastCap(result.probe) && reads.length < LATENCY.loadTries && !steadySlow(reads) && !steadyVerdict()) {
     test.info().setTimeout(test.info().timeout + LATENCY.loadWaitMs + Math.ceil(took * 1.5));
     await page.waitForTimeout(LATENCY.loadWaitMs);
     result = await measure(page, `${label} (again)`, presses, LATENCY.throttle, more, pressed);
@@ -591,8 +607,11 @@ export async function expectPressesWithinBudget(page: Page, label: string, press
     summary(`- ${line}`);
   }
   // A runner found steadily too slow, by this control or an earlier one in this worker, while it still reads past the cap.
-  if (steadySlow(reads)) steadySlowRun ??= { label, reads };
-  const steady = pastCap(result.probe) ? steadySlowRun : undefined;
+  if (steadySlow(reads) && !steadyVerdict()) {
+    steadySlowRun = { label, reads };
+    writeFileSync(steadyFile(), JSON.stringify(steadySlowRun));
+  }
+  const steady = pastCap(result.probe) ? steadyVerdict() : undefined;
   if (steady) {
     if (!withinBudget(result.samples, baseline, result.factor)) {
       missedAtCap += 1;

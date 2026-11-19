@@ -199,7 +199,9 @@ test.describe("a runner the probe reads past the cap", () => {
       // Steady: measured twice, then judged at the cap, which a fast control meets.
       expect(pressed.length).toBe(2 * one);
       const limitAfterFirst = test.info().timeout;
-      // A later control is measured once, never re-measured, its time limit unchanged, and judged at the cap too.
+      // A later control is measured once, never re-measured, its time limit unchanged, and judged at the cap too, even in
+      // the new worker Playwright starts after a failed test, which reads the run's verdict back.
+      forgetSteadySlowRunner("worker");
       const later: number[] = [];
       expect(await outcome("later", later, 48)).toBeNull();
       expect(later.length).toBe(one);
