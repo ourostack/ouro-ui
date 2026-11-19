@@ -428,11 +428,20 @@ describe("Sidebar items", () => {
     document.documentElement.style.fontSize = "125%";
     document.documentElement.style.setProperty("--radius", "0.625rem");
     try {
-      await render(<Sidebar label="Main" sections={[{ items: [{ label: "Agent", href: "/agent", badge: <Badge tone="warning">Idle</Badge> }] }]} />);
+      const items = [
+        { label: "Agent", href: "/agent", badge: <Badge tone="warning">Idle</Badge> },
+        { label: "Inbox", href: "/inbox", badge: 12 },
+      ];
+      await render(<Sidebar label="Main" sections={[{ items }]} />);
       await expect.element(page.getByRole("link", { name: "Agent Idle" })).toBeVisible();
-      const slot = page.getByRole("link").element().querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!;
-      expect(isTransparent(getComputedStyle(slot).backgroundColor)).toBe(true);
-      expect(getComputedStyle(slot).paddingInlineStart).toBe("0px");
+      const slotOf = (name: string) => page.getByRole("link", { name }).element().querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!;
+      const [bare, tag] = [slotOf("Agent Idle"), slotOf("Inbox 12")];
+      expect(isTransparent(getComputedStyle(bare).backgroundColor)).toBe(true);
+      expect(getComputedStyle(bare).paddingInlineStart).toBe("0px");
+      // At the row's end, the same as a tag.
+      expect(bare.getBoundingClientRect().right).toBeCloseTo(tag.getBoundingClientRect().right, 0);
+      // A number or text keeps its muted tag.
+      expect(isTransparent(getComputedStyle(tag).backgroundColor)).toBe(false);
       expect(findDesignIssues().filter((issue) => issue.rule === "nested-frame")).toEqual([]);
     } finally {
       document.documentElement.style.fontSize = "";
