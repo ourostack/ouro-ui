@@ -133,6 +133,8 @@ function CodeWithEmoji({ code, catalogue }: { code: string; catalogue: EmojiCata
 /**
  * Terminal output drawn from its SGR codes: each run of one style is a span with that style's
  * classes, and its text goes through the emoji catalogue when there is one.
+ * @claim "each run of one style is a span" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock terminal output > styles bold, dim, italic, underline, strikethrough and the basic and bright colors from SGR codes, and drops the codes)
+ * @claim "its text goes through the emoji catalogue" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock terminal output > draws a catalogue's emoji inside styled output)
  */
 function AnsiCode({ code, catalogue }: { code: string; catalogue: EmojiCatalogue | undefined }): ReactNode {
   return parseAnsi(code).map((run, index) => {

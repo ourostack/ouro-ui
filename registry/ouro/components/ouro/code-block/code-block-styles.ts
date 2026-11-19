@@ -6,6 +6,7 @@ export type { AnsiRun, AnsiStyle };
 /**
  * How a run of terminal output looks: the SGR attributes CodeBlock draws. `color` is one of the
  * 16 basic colours, 0 to 7 normal and 8 to 15 bright, or null for the text's own color.
+ * @claim "`color` is one of the 16 basic colours" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::parseAnsi > maps each basic and bright color code to its color, and 39 back to none)
  * @internal
  */
 interface AnsiStyle {
@@ -28,6 +29,7 @@ interface AnsiRun {
  * cursor and erase codes), a string sequence (OSC, such as a hyperlink, DCS, APC, PM or SOS)
  * ended by BEL or ST, and the short escapes (`ESC=`, `ESC7`, `ESC(B`). A lone ESC at the end
  * matches too.
+ * @claim "Every escape sequence a terminal capture can hold" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::parseAnsi > styles only from SGR, dropping every other sequence whole)
  */
 // eslint-disable-next-line no-control-regex -- terminal escape codes start with ESC, and OSC ends with BEL
 const ansiEscapePattern = /\x1b(?:\[([0-?]*)([ -/]*)([@-~])|[\]PX^_][\s\S]*?(?:\x07|\x1b\\|$)|[ -/]*[0-~]|$)/g;
@@ -43,7 +45,10 @@ function isPlain(style: AnsiStyle): boolean {
   return !style.bold && !style.dim && !style.italic && !style.underline && !style.strike && style.color === null;
 }
 
-/** A basic color from an extended one: the 256-color table's first 16, and nothing else (a missing value is NaN). */
+/**
+ * A basic color from an extended one: the 256-color table's first 16, and nothing else (a missing value is NaN).
+ * @claim "A basic color from an extended one" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::parseAnsi > reads an extended color's parameters and skips them, keeping only a foreground from the table's first 16)
+ */
 function extendedColor(mode: number, value: number): number | null {
   return mode === 5 && value < 16 ? value : null;
 }
@@ -91,6 +96,9 @@ function applySgr(style: AnsiStyle, parameters: string): AnsiStyle {
  * Splits terminal output into runs of one style, reading its SGR codes (`ESC[…m`) and dropping
  * every other escape sequence. Backgrounds and colors outside the basic 16 are dropped, so the
  * text keeps the block's surface and its contrast.
+ * @claim "dropping every other escape sequence" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::parseAnsi > styles only from SGR, dropping every other sequence whole)
+ * @claim "Backgrounds and colors outside the basic 16 are dropped" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::parseAnsi > ignores the codes it does not draw: blink, backgrounds and the rest)
+ * @claim "Backgrounds and colors outside the basic 16 are dropped" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::parseAnsi > reads an extended color's parameters and skips them, keeping only a foreground from the table's first 16)
  * @internal
  */
 function parseAnsi(text: string): AnsiRun[] {
@@ -114,26 +122,27 @@ function parseAnsi(text: string): AnsiRun[] {
   return runs;
 }
 
-// Each color is a hue at oklch(0.58 0.18 h) mixed into the theme's foreground, 60% for the normal
-// colors and 72% for the bright ones, so it darkens on a light theme and lightens on a dark one,
-// and keeps at least 5:1 on the block's muted surface. Black is the muted text color and white the
+// Each color is a hue at oklch(0.58 0.18 h) mixed 55% into the theme's foreground, and a bright one
+// the same hue at 1.5 times the chroma, so it darkens on a light theme and lightens on a dark one,
+// and keeps 4.5:1 on the block's muted surface, in third-party themes too (CodeBlock's contrast
+// test and the theme stories). Black is the muted text color and white the
 // foreground, so neither disappears on either theme.
 const colors = [
   "[--ouro-ansi:color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_25)_60%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_145)_60%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_90)_60%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_260)_60%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_330)_60%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_200)_60%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_25)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_145)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_90)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_260)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_330)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_200)_55%,var(--foreground))]",
   "[--ouro-ansi:var(--foreground)]",
   "[--ouro-ansi:color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_25)_72%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_145)_72%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_90)_72%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_260)_72%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_330)_72%,var(--foreground))]",
-  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.18_200)_72%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.27_25)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.27_145)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.27_90)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.27_260)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.27_330)_55%,var(--foreground))]",
+  "[--ouro-ansi:color-mix(in_oklab,oklch(0.58_0.27_200)_55%,var(--foreground))]",
   "[--ouro-ansi:var(--foreground)]",
 ] as const;
 
@@ -141,6 +150,8 @@ const colors = [
  * The classes for a run's style. Dim text is the muted text color mixed 20% toward the
  * foreground, as muted text on a muted surface is everywhere in Ouro, and a dim color is that
  * color halfway to it.
+ * @claim "Dim text is the muted text color mixed 20% toward the" registry/ouro/components/ouro/code-block/code-block.test.tsx verify:testExists(registry/ouro/components/ouro/code-block/code-block.test.tsx::CodeBlock terminal output > keeps every color and dim at 4.5:1 on the block in light and dark, with dim text muted beside the rest)
+ * @claim "Dim text is the muted text color mixed 20% toward the" registry/ouro/components/ouro/code-block/code-block-styles.ts verify:fileLine(registry/ouro/components/ouro/code-block/code-block-styles.ts, /: style\.dim && "text-\[color-mix\(in_oklab,var\(--muted-foreground\)_80%,var\(--foreground\)\)\]"/)
  * @internal
  */
 function ansiClassName(style: AnsiStyle): string {
