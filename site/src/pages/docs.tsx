@@ -15,7 +15,7 @@ import { SurpriseMe } from "../components/surprise-me";
 import type { SceneName } from "../storybook";
 import { DemoFrame, DemoStage } from "../components/phone-demo";
 import { tries } from "../docs/tries";
-import { componentPrompt } from "../docs/agent-prompt";
+import { componentPrompt, guidePrompt } from "../docs/agent-prompt";
 import { siteGroups, type SiteGroup } from "../../../scripts/catalog-groups.mts";
 import { loadMarkdown, markdown } from "../docs/content";
 import { docsItems, GITHUB, installedPaths, itemFiles, itemMarkdown, partsSection, type DocsItem } from "../docs/items";
@@ -279,12 +279,19 @@ export function DocsPageView({ page }: { page: DocsPage }): JSX.Element {
   const [, lead, ...body] = parse(installedPaths(pageMarkdown(page)));
   if (lead?.kind !== "paragraph") throw new Error(`${page.file} must start with a title and a one-paragraph summary`);
   const link = (target: string) => siteLink(target, page.file);
+  const prompt = page.kind === "guide" ? guidePrompt(page.name) : undefined;
   return (
     <DocsShell
       current={`/docs/${page.name}/`}
       opener={{ scene: sceneFor(page), eyebrow: page.group, title: page.kind === "platform" ? <PlatformTitle title={page.title} /> : page.title, tall: page.kind === "platform" }}
     >
       <Lead>{prose(lead.text, link)}</Lead>
+      {/* A guide an agent can act on hands it the task first, as a component page does under Install. */}
+      {prompt !== undefined && (
+        <div className="mb-10">
+          <CodeBlock code={prompt} label="Hand it to your agent" copy wrap />
+        </div>
+      )}
       <Markdown blocks={body} link={link} />
       <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
         <Link href={`${GITHUB}/blob/main/${page.file}`} tone="secondary">
