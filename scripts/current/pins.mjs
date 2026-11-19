@@ -208,7 +208,7 @@ function looseJson(text) {
  * The app's `components.json`, as the CLI finds it: in the folder it runs in, which holds the installed files (a
  * package in a monorepo, `packages/web/`, or the repository's root). The folder that holds the most of them wins.
  */
-function findComponentsJson(consumer, installed) {
+export function findComponentsJson(consumer, installed) {
   let best = null;
   for (const path of consumer.keys()) {
     if (posix.basename(path) !== "components.json") continue;
@@ -223,7 +223,7 @@ function findComponentsJson(consumer, installed) {
  * Where the app's own aliases put a registry alias (`@lib` at `src/lib/` when components.json says `@/lib` and the
  * tsconfig maps `@/*` to `./src/*`), as the CLI resolves them. A new file goes there, so its imports resolve.
  */
-function declaredRoots(found, consumer) {
+export function declaredRoots(found, consumer) {
   if (!found) return {};
   // `~/` is the folder the CLI runs in, which holds components.json: a package's own folder in a monorepo.
   const home = { "~": found.dir };
@@ -267,7 +267,7 @@ const installPath = (target, found, roots) => (target.startsWith("~/") ? (found 
  * where the record says, even when the app keeps it apart from the rest of its alias (Ouro check in `lib/ouro/check/`
  * beside components in `src/`); a file the record lacks goes beside its item's other files, else under its alias.
  */
-function installedPaths(tarball, installed, declared = {}) {
+export function installedPaths(tarball, installed, declared = {}) {
   const targets = presentTargets(tarball);
   const roots = rootsOf(targets, installed, declared);
   const byPath = new Map();
