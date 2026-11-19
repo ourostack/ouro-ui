@@ -99,7 +99,23 @@ describe("fragmentFocusScript", () => {
     }
   });
 
-  it("says whether it ran as the page was parsed, and which element it is, for Ouro check", () => {
+  it("says whether the parser ran it, and which element it is, for Ouro check: not a copy a script adds, or one run by hand", async () => {
+    /** A page with the script in it, as `html` places it; resolves with what the script recorded and its element. */
+    const page = async (html: string) => {
+      const frame = document.createElement("iframe");
+      frame.srcdoc = html.replace("SCRIPT", fragmentFocusScript().replaceAll("</", "<\\/"));
+      const loaded = new Promise((done) => frame.addEventListener("load", done, { once: true }));
+      document.body.append(frame);
+      made.push(frame);
+      await loaded;
+      const view = frame.contentWindow as Window & typeof globalThis;
+      const record = (view as unknown as { __ouroFragmentFocus: { parsed: boolean; script: Element | null } }).__ouroFragmentFocus;
+      return { parsed: record.parsed, isFirst: record.script === view.document.querySelector("script"), inHead: record.script?.parentNode === view.document.head };
+    };
+    expect(await page("<!doctype html><head><title>t</title></head><body><script>SCRIPT</script><p>Page</p></body>")).toEqual({ parsed: true, isFirst: true, inHead: false });
+    expect(
+      await page('<!doctype html><head><title>t</title></head><body><p>Page</p><script type="text/plain" id="copy">SCRIPT</script><script>const copy = document.createElement("script"); copy.text = document.getElementById("copy").text; document.head.append(copy);</script><p>More</p></body>'),
+    ).toMatchObject({ parsed: false, inHead: true });
     const frame = document.createElement("iframe");
     document.body.append(frame);
     made.push(frame);
