@@ -4,7 +4,7 @@ Ouro's look and manners in WinUI, for Windows apps, plus the agent doors Windows
 
 ## What ships today
 
-Release [v0.3.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0) meets core v0.19.0: its tokens and component specs are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
+Release [v0.5.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.5.0) meets core v0.21.0: its tokens and component specs are core's, byte for byte, and its CI checks the hashes in `core-provenance.json`.[^core]
 
 The kit has eight of core's components as WinUI 3 controls, where web has every component in the catalog ([the parity matrix](parity.md) counts them): `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`.[^readme] The controls follow light and dark mode, a Windows contrast theme, the text size and the animation setting, and draw from core's tokens through one colour path. An `OuroButton` with an `Action` runs it through `Ouro.Actions`.[^readme]
 
@@ -44,7 +44,7 @@ CI runs on GitHub's free `windows-latest` runners, and in its `actions` job on U
 
 A new platform starts from [the guide for platform builders](contributing.md) instead.
 
-[^core]: https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0; https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/core-provenance.json; https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml#L37-L48 verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0) verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml#L37-L48) verify:equals(scripts/parity-data/versions.json#windows.coreTag)=v0.19.0
+[^core]: https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.5.0; https://github.com/ourostack/ouro-ui-windows/blob/5adcd329bc0ed4b0cdebd1e2dc10a77404b9682f/core-provenance.json; https://github.com/ourostack/ouro-ui-windows/blob/5adcd329bc0ed4b0cdebd1e2dc10a77404b9682f/.github/workflows/ci.yml#L37-L48 verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.5.0) verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/5adcd329bc0ed4b0cdebd1e2dc10a77404b9682f/core-provenance.json) verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/5adcd329bc0ed4b0cdebd1e2dc10a77404b9682f/.github/workflows/ci.yml#L37-L48) verify:equals(scripts/parity-data/versions.json#windows.coreTag)=v0.21.0
 [^readme]: https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/README.md verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/README.md)
 [^release]: https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0 verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0)
 [^ci]: https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml)
