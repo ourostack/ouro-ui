@@ -62,7 +62,9 @@ export function useThemePreset(presets: readonly string[], options: ThemePresetO
   const list = presets.join("\n");
   const read = () => stored(key, presets, fallback);
   // Stryker disable next-line all: the server snapshot never runs in a browser test
-  const preset = useSyncExternalStore(subscribe, read, () => fallback);
+  /* istanbul ignore next @preserve -- the server snapshot never runs in a browser test */
+  const serverSnapshot = () => fallback;
+  const preset = useSyncExternalStore(subscribe, read, serverSnapshot);
   const setPreset = useCallback(
     (next: string) => {
       if (!list.split("\n").includes(next)) return;

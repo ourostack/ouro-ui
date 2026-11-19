@@ -33,6 +33,16 @@ afterEach(async () => {
 });
 
 describe("useThemePreset", () => {
+  it("works with no options at all", async () => {
+    const seen: ThemePresetValue[] = [];
+    function Bare() {
+      seen.push(useThemePreset(presets));
+      return null;
+    }
+    await render(<Bare />);
+    expect(seen.at(-1)?.preset).toBe("pearl");
+  });
+
   it("reports the first preset until a choice is kept, and a kept one after", async () => {
     const seen: ThemePresetValue[] = [];
     await render(<Probe seen={seen} />);
