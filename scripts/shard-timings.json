@@ -864,6 +864,7 @@
     "site/e2e/consistency.spec.ts": 162808,
     "site/e2e/dive.spec.ts": 41466,
     "site/e2e/early-input.spec.ts": 29576,
+    "site/e2e/fragment-focus.spec.ts": 20000,
     "site/e2e/frames.spec.ts": 7230,
     "site/e2e/latency-rules.spec.ts": 66632,
     "site/e2e/sameness-dark-chromium.spec.ts": 264984,

@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { fragmentFocusScript } from "../../registry/ouro/lib/ouro/fragment-focus-script.ts";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const dist = join(repo, "site/dist");
@@ -35,7 +36,7 @@ const { render, routes, redirects, redirectPage, docsItems, docsPages, published
 };
 
 const template = readFileSync(join(dist, "index.html"), "utf8");
-if (!template.includes("<!--app-->") || !template.includes("<!--head-->")) throw new Error("site/dist/index.html has no <!--app--> or <!--head--> marker");
+if (!template.includes("<!--app-->") || !template.includes("<!--head-->") || !template.includes("<!--fragment-focus-->")) throw new Error("site/dist/index.html has no <!--app-->, <!--head--> or <!--fragment-focus--> marker");
 
 interface ManifestEntry {
   file: string;
@@ -113,6 +114,7 @@ async function page(route: Route, path: string, canonical: boolean): Promise<str
   return template
     .replace("<!--head-->", () => head)
     .replace("</head>", () => `  ${assets}\n  </head>`)
+    .replace("<!--fragment-focus-->", () => `<script>${fragmentFocusScript()}</script>`)
     .replace("<!--app-->", () => html);
 }
 

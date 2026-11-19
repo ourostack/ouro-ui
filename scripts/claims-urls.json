@@ -167,6 +167,18 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://github.com/WebKit/WebKit/blob/33376d8886bfa102fc0164d9081cace28aea10d9/Source/WebCore/dom/Document.cpp": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/WebKit/WebKit/blob/33376d8886bfa102fc0164d9081cace28aea10d9/Source/WebCore/loader/FrameLoader.cpp": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/WebKit/WebKit/blob/33376d8886bfa102fc0164d9081cace28aea10d9/Source/WebCore/page/LocalFrameView.cpp": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
   "https://github.com/actions/setup-node/blob/949feb2413d6458794dcd2491c4babbbce0c15c1/action.yml#L21": {
     "status": 200,
     "checked": "2026-11-18"
