@@ -9,5 +9,5 @@ export const breathMs = 2400;
 export function joinWave(now: number, breathing: number, emptiedAt: number, waveStart: number): { start: number; delay: string } {
   const start = breathing === 0 && now - emptiedAt > stillMs ? now : waveStart;
   const elapsed = now - start;
-  return { start, delay: `${elapsed < stillMs ? stillMs - elapsed : -((elapsed - stillMs) % breathMs)}ms` };
+  return { start, delay: `${-((elapsed - stillMs) % breathMs)}ms` };
 }
