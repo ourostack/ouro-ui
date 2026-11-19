@@ -199,6 +199,26 @@ export default defineConfig({
                 },
               },
             },
+            // The components' shipped contrast tests (a name with "contrast" or a ratio such as "4.5:1") under Spoonjoy's
+            // cookbook theme, whose dark text is brighter than Ouro's: apps vendor these tests and run them in their own
+            // theme, so one that holds only in Ouro's palette fails here first (spoonjoy/spoonjoy-v2#784, #770).
+            {
+              extends: true as const,
+              test: {
+                name: "themes-contrast",
+                expect: { poll: { timeout: 10_000 } },
+                setupFiles: [css, "./registry/ouro/lib/ouro/testing/setup.ts", "./test/themes/cookbook-contrast-setup.ts"],
+                include: ["registry/ouro/components/**/*.test.tsx"],
+                testNamePattern: /contrast|\d:1\b/i,
+                browser: {
+                  enabled: true,
+                  headless: true,
+                  provider: playwright(),
+                  instances: [{ browser: "chromium" as const }],
+                  commands,
+                },
+              },
+            },
           ]
         : []),
       ...(conformance
