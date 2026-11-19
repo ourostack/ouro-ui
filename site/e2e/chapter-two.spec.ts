@@ -120,6 +120,18 @@ test.describe("each control in Chapter II", () => {
     await expect(newest.getByRole("button", { name: /^Love, 1/ })).toHaveCount(0);
   });
 
+  test("control: members lists who is in the crew's chat and where each of them is", async ({ page }) => {
+    await open(page);
+    await expect(radio(page).getByRole("heading", { level: 4, name: RADIO.crew })).toBeVisible();
+    await radio(page).getByRole("button", { name: "4 members" }).click();
+    const list = page.getByRole("dialog", { name: "Members" });
+    await expect(list).toContainText("Ned Land");
+    await expect(list).toContainText(RADIO.presence["Ned Land"].label);
+    await page.keyboard.press("Escape");
+    await expect(list).toBeHidden();
+    await expect(radio(page).getByRole("button", { name: "4 members" })).toBeFocused();
+  });
+
   test("control: channels switches who you talk to, and someone new calls once you mention the squid", async ({ page }) => {
     await open(page);
     const list = radio(page).getByRole("list", { name: RADIO.channels });

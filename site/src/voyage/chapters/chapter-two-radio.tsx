@@ -160,7 +160,9 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
         </div>
       </div>
       <div className="grid min-w-0 content-start gap-3">
-        <ChatHeader title={title} members={members} level={4} data-chapter-chat-header={channel} />
+        <div data-chapter-control="members">
+          <ChatHeader title={title} members={members} level={4} data-chapter-chat-header={channel} />
+        </div>
         <div data-chapter-control="react">
         <MessageList key={channel} label={RADIO.list(title)} className="h-80" data-chapter-messages={channel}>
           {lines[channel].map((line, index, all) => (

@@ -31,7 +31,7 @@ export interface RadioLive {
  * site/e2e/chapter-two.spec.ts operates each in a test named "control: <id>" and asserts what it
  * changes; site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const CHAPTER_TWO_CONTROLS = ["chart-room-code", "ports", "departure", "legs", "catalogue-code", "sort", "filter", "notes", "classify", "museum", "radio-code", "channels", "react", "compose"] as const;
+export const CHAPTER_TWO_CONTROLS = ["chart-room-code", "ports", "departure", "legs", "catalogue-code", "sort", "filter", "notes", "classify", "museum", "radio-code", "channels", "members", "react", "compose"] as const;
 export type ChapterTwoControl = (typeof CHAPTER_TWO_CONTROLS)[number];
 
 export const CHAPTER_TWO = {
