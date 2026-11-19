@@ -47,7 +47,7 @@ Headings are set a little tighter at each larger size, which suits a sans-serif.
 
 ### Hover, pressed and selected
 
-These variables set how a row looks hovered, pressed and selected. `ouro-theme` sets them for light and dark.
+These variables set how a row looks hovered, pressed and selected. `ouro-base` defines them from shadcn's own `--foreground`, `--background` and `--accent`, so a theme without `ouro-theme` still has them. `ouro-theme` tunes them for the Ouro look.
 
 | Variable | Sets |
 | --- | --- |
