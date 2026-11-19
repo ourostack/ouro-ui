@@ -574,6 +574,31 @@ function Articles(): JSX.Element {
             />
           ) : null}
         </ItemGroup>
+        {you || pending ? null : (
+          // Your row's place, kept below the list while you aren't aboard: signing and leaving swap it for your row rather
+          // than growing and shrinking the list, so the page below doesn't move and need painting again on each press (#2348).
+          // Outside the list, so the list's rows are only the crew's.
+          <div aria-hidden="true" inert style={{ visibility: "hidden", borderTop: "1px solid transparent" }} data-chapter-berth="">
+              <Item
+                  size="sm"
+                media={<Avatar name={ARTICLES.you} alt="" />}
+                title={ARTICLES.you}
+                description={
+                  <span className="inline-flex flex-wrap gap-1.5">
+                    <Badge tone="primary">{ARTICLES.you}</Badge>
+                    <Badge tone="secondary" variant="soft">
+                      {TRADES[0]!.label}
+                    </Badge>
+                  </span>
+                }
+                actions={
+                  <Button variant="plain" tone="secondary" size="sm" tabIndex={-1}>
+                    {ARTICLES.leave}
+                  </Button>
+                }
+              />
+          </div>
+        )}
         <Crew line={line} />
       </div>
     </div>
