@@ -10,11 +10,11 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 |---|---|---|---|---|
 | Kit | this repository | [ourostack/ouro-ui-apple v1.2.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.2.0") | [ourostack/ouro-ui-android v0.3.0](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.3.0") | [ourostack/ouro-ui-windows v0.3.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.3.0") |
 
-Components: Web has 126 of 126, Apple has 20 of 126, Android has 9 of 126, Windows has 9 of 126.[^matrix]
+Components: Web has 127 of 127, Apple has 20 of 127, Android has 9 of 127, Windows has 9 of 127.[^matrix]
 
 Claims covered: Web 7 of 13, Apple 13 of 13, Android 5 of 13, Windows 5 of 13.[^matrix]
 
-Gap cells: 362.[^matrix]
+Gap cells: 365.[^matrix]
 
 ### Components
 
@@ -146,6 +146,7 @@ Gap cells: 362.[^matrix]
 | [cover](https://ui.ouroboros.bot/docs/cover/) | `cover` | Not yet | Not yet | Not yet |
 | [section-header](https://ui.ouroboros.bot/docs/section-header/) | `section-header` | Not yet | Not yet | Not yet |
 | [thread-layout](https://ui.ouroboros.bot/docs/thread-layout/) | `thread-layout` | Not yet | Not yet | Not yet |
+| [chat-header](https://ui.ouroboros.bot/docs/chat-header/) | `chat-header` | Not yet | Not yet | Not yet |
 
 ### Claims
 

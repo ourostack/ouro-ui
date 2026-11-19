@@ -138,7 +138,8 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
     className,
     process.env.NODE_ENV !== "production"
       ? (token: string) => `remove "${token}"; ChatHeader takes its colors from the theme`
-      : /* istanbul ignore next @preserve -- production only */ "",
+      : // Stryker disable next-line StringLiteral: production only; the check never runs there.
+        /* istanbul ignore next @preserve -- production only */ "",
   );
   useDevWarnings(
     "ChatHeader",
@@ -162,8 +163,9 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
   // An app's own line, unless it is empty or false (`subtitle={typing && "Ned Land is writing…"}`).
   const own = subtitle != null && subtitle !== false && subtitle !== "";
   const line = own ? subtitle : group ? othersLabel(members.map((member) => member.name)) : person?.presence !== undefined ? wordsOf(person) : undefined;
-  // The avatar says nothing the title and the line under it don't, unless an app's own line takes the presence's place.
-  const quiet = person?.presence === undefined || !own;
+  // The avatar says nothing the title and the line under it don't, unless an app's own line takes the presence's place
+  // (an avatar without a presence, with alt="", is hidden either way).
+  const quiet = !own;
   return (
     <div {...rest} data-ouro="chat-header" data-group={group ? "" : undefined} className={cn("box-border flex min-w-0 items-center gap-3", className)}>
       {onBack !== undefined && (

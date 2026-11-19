@@ -53,6 +53,8 @@ describe("ChatHeader", () => {
     expect(subtitleOf(header)).toBe("On the bridge");
     expect(header.hasAttribute("data-group")).toBe(false);
     expect(header.querySelector('[data-ouro-part="members"]')).toBeNull();
+    // Nothing at the end without a member list or actions: the avatar and the words only.
+    expect(header.children).toHaveLength(2);
     // Without a presence there is no line under the title.
     const plain = (await render(<ChatHeader title="Conseil" members={[{ name: "Conseil" }]} />)).header;
     expect(subtitleOf(plain)).toBeNull();
@@ -88,11 +90,17 @@ describe("ChatHeader", () => {
     expect(warn).toHaveBeenCalledWith(
       "[ouro-ui] ChatHeader: Ana Lind's presenceLabel is missing, so the header says no words for their dot. Fix: <ChatHeader members={[{ name: \"Ana Lind\", presence: \"busy\", presenceLabel: \"In a meeting\" }]} />.",
     );
-    await render(<ChatHeader title="Crew" members={[busy, crew[3]!]} />);
-    await userEvent.click(page.getByRole("button", { name: "2 members" }));
+    // In a group, the message names the member whose words are missing, after one whose are there.
+    warn.mockClear();
+    await render(<ChatHeader title="Crew" members={[nemo, busy, { name: "Plain" }]} />);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Ana Lind's presenceLabel is missing"));
+    await userEvent.click(page.getByRole("button", { name: "3 members" }));
     const list = page.getByRole("dialog", { name: "Members" });
     await expect.element(list).toBeVisible();
-    expect(list.element().querySelector("[data-ouro-chat-header-members] li")!.textContent).toBe("Ana Linddo not disturb");
+    const rows = [...list.element().querySelectorAll("[data-ouro-chat-header-members] li")];
+    expect(rows[1]!.textContent).toBe("Ana Linddo not disturb");
+    // A member with neither a note nor a presence has their name alone, with no empty line under it.
+    expect(rows[2]!.querySelectorAll(":scope > span:last-child > span")).toHaveLength(1);
   });
 
   it("shows a group chat as its members, says who is in it, and opens the member list from the count", async () => {
@@ -101,10 +109,11 @@ describe("ChatHeader", () => {
     expect(avatar.getAttribute("data-shape")).toBe("group");
     expect(avatar.querySelectorAll("[data-ouro-avatar-slice]")).toHaveLength(3);
     expect(avatar.getAttribute("aria-hidden")).toBe("true");
-    expect(header.hasAttribute("data-group")).toBe(true);
+    expect(header.getAttribute("data-group")).toBe("");
     expect(subtitleOf(header)).toBe("Captain Nemo and 3 others");
     const button = page.getByRole("button", { name: "4 members" });
     await expect.element(button).toHaveTextContent("4");
+    expect(button.element().querySelector("svg path")).not.toBeNull();
     await userEvent.click(button);
     const list = page.getByRole("dialog", { name: "Members" });
     await expect.element(list).toBeVisible();
