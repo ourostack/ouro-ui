@@ -60,7 +60,7 @@ export function fixtureCss(name: string): string {
   const unset = `:root, .dark { ${declared(ouroThemeCss).map((property) => `${property}: initial;`).join(" ")} }`;
   const base = [
     ...topLevelBlocks(baseCss)
-      .filter(({ prelude }) => prelude === ":root" || prelude === ".dark")
+      .filter(({ prelude }) => prelude === ":root" || prelude === ".dark" || prelude.replace(/\s+/g, " ") === ":root, .dark")
       .map(({ prelude, body }) => `${prelude} {${body}}`),
     ...rootStepBlocks(),
   ];
