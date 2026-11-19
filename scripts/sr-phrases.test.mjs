@@ -294,7 +294,7 @@ test("a miss lists what VoiceOver said, so a wrong state it said fails instead o
   assert.equal(hint.some((phrase) => inOneSentence(phrase, CHECKED) || UNCHECKED.test(phrase)), false);
 });
 
-test("the describe fallback is the Checkbox and Checklist toggles' (#118) and the Dialog opening's (#119) alone, once each", () => {
+test("the describe fallback is the Checkbox and Checklist toggles' (#118), the Dialog opening's (#119), and the hint-only Select focus and Menu opening (#2085) alone, once each", () => {
   const dir = join(import.meta.dirname, "../registry/ouro/e2e/screen-reader");
   const uses = Object.fromEntries(
     readdirSync(dir)
@@ -302,11 +302,17 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118) and th
       .map((file) => [file, (readFileSync(join(dir, file), "utf8").match(/heardOrDescribed\(/g) ?? []).length])
       .filter(([, count]) => count > 0),
   );
-  assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1 });
+  assert.deepEqual(uses, { "checkbox.sr.spec.ts": 1, "checklist.sr.spec.ts": 1, "dialog.sr.spec.ts": 1, "menu.sr.spec.ts": 1, "select.sr.spec.ts": 1 });
   // The Menu's opening is only logged on macOS 15's VoiceOver, and must be read everywhere else (#1721).
   const menuSpec = readFileSync(join(dir, "menu.sr.spec.ts"), "utf8");
   assert.match(menuSpec, /if \(onOlderMacOS\(\)\) \{\n {4}await said\(sr, open,/);
-  assert.match(menuSpec, /\} else \{\n {4}await heard\(sr, open,/);
+  assert.match(menuSpec, /\} else \{\n {4}\/\/[^\n]*\n {4}await heardOrDescribed\(sr, open,/);
+  // #2085's fallback is for a miss in which macOS 26's VoiceOver said nothing but hints: any other phrase fails as it is.
+  const selectSpec = readFileSync(join(dir, "select.sr.spec.ts"), "utf8");
+  for (const spec of [menuSpec, selectSpec]) {
+    assert.match(spec, /finding: "ourostack\/ouro-ui#2085",\n {4,6}contradicts: \(phrase\) => withoutHints\(phrase\) !== "",/);
+    assert.doesNotMatch(spec, /from: "container"|olderMacOS: true/);
+  }
   // A field Form focuses after a submit needs no fallback: Form's alert says the error for every reader (#1720).
   const textField = readFileSync(join(dir, "text-field.sr.spec.ts"), "utf8");
   assert.match(textField, /heard\(sr, submit, \(phrase\) => inOneSentence\(phrase, \/\\bcouldn't save\\b\/i/);
@@ -328,6 +334,7 @@ test("the describe fallback is the Checkbox and Checklist toggles' (#118) and th
   assert.match(guide, /ourostack\/ouro-ui#118/);
   assert.match(guide, /ourostack\/ouro-ui#119/);
   assert.match(guide, /ourostack\/ouro-ui#1720/);
+  assert.match(guide, /ourostack\/ouro-ui#2085/);
 });
 
 test("the opened dialog, described, must name it as a web dialog in one sentence (#119)", () => {

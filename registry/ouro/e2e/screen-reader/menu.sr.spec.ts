@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
-import { inOneSentence, nameAndRole } from "./phrases";
-import { heard, onOlderMacOS, said, startReading, test } from "./screen-reader";
+import { inOneSentence, nameAndRole, withoutHints } from "./phrases";
+import { heard, heardOrDescribed, onOlderMacOS, said, startReading, test } from "./screen-reader";
 import { storyIds } from "./stories";
 
 test.use({ storyId: storyIds.menu });
@@ -23,7 +23,11 @@ test("Menu is announced from its trigger, reads each item the arrow keys reach, 
     await said(sr, open, "as the menu opens on Edit");
     console.log("[sr] finding (ourostack/ouro-ui#1721): VoiceOver on macOS 15 does not read a menu's first item as the menu opens; macOS 26 does");
   } else {
-    await heard(sr, open, (phrase) => inOneSentence(phrase, /\bedit\b/i), '"Edit", the first item, as the menu opens');
+    // Now and then macOS 26 says only the item's hint (ourostack/ouro-ui#2085); then the focused item, described, must be Edit.
+    await heardOrDescribed(sr, open, (phrase) => inOneSentence(phrase, /\bedit\b/i), (phrase) => inOneSentence(phrase, /\bedit\b/i), '"Edit", the first item, as the menu opens', {
+      finding: "ourostack/ouro-ui#2085",
+      contradicts: (phrase) => withoutHints(phrase) !== "",
+    });
   }
   await menu.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)));
   await heard(sr, () => page.keyboard.press("ArrowDown"), (phrase) => inOneSentence(phrase, /\bduplicate\b/i), '"Duplicate", the next item');
