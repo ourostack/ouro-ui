@@ -112,32 +112,33 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
   );
   return (
     <div
+      data-slot="app-window"
       {...rest}
       data-ouro="app-window"
       className={cn("min-w-0 overflow-hidden rounded-ouro-xl border border-solid border-border bg-card text-card-foreground shadow-(--shadow-lg)", className)}
     >
-      <div data-slot="bar" className="flex min-h-11 items-center gap-3 border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
-        <span data-slot="title" className="min-w-0 truncate font-mono text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+      <div data-slot="app-window-bar" className="flex min-h-11 items-center gap-3 border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
+        <span data-slot="app-window-title" className="min-w-0 truncate font-mono text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
           {title}
         </span>
         {actions != null ? (
-          <div data-slot="actions" className="ms-auto flex shrink-0 items-center gap-2">
+          <div data-slot="app-window-actions" className="ms-auto flex shrink-0 items-center gap-2">
             {actions}
           </div>
         ) : null}
       </div>
-      <div data-slot="body" className={cn(inset && "px-4 sm:px-6")}>
+      <div data-slot="app-window-body" className={cn(inset && "px-4 sm:px-6")}>
         {children}
       </div>
       {builtWith && builtWith.length > 0 ? (
-        <div data-slot="built-with" className="flex flex-wrap items-center gap-1.5 border-0 border-t border-solid border-border px-4 py-3 sm:px-6">
-          <span id={labelId} className="me-1 text-xs text-muted-foreground">
+        <div data-slot="app-window-built-with" className="flex flex-wrap items-center gap-1.5 border-0 border-t border-solid border-border px-4 py-3 sm:px-6">
+          <span data-slot="app-window-built-with-label" id={labelId} className="me-1 text-xs text-muted-foreground">
             {builtWithLabel}
           </span>
           {/* The list has no box of its own, so its badges wrap with the label as one row; the role keeps it a list to assistive technology. */}
-          <ul role="list" aria-labelledby={labelId} className="contents list-none">
+          <ul data-slot="app-window-built-with-list" role="list" aria-labelledby={labelId} className="contents list-none">
             {builtWith.map((name, index) => (
-              <li key={`${index}:${name}`} className="flex">
+              <li data-slot="app-window-built-with-item" key={`${index}:${name}`} className="flex">
                 <Badge tone="secondary" variant="outline">
                   {name}
                 </Badge>

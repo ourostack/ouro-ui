@@ -56,3 +56,7 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 Appearance comes from props, not classes. In development, a class that sets appearance logs one warning per component instance, naming the prop to use instead. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `app-window`, `app-window-actions`, `app-window-bar`, `app-window-body`, `app-window-built-with`, `app-window-built-with-item`, `app-window-built-with-label`, `app-window-built-with-list`, `app-window-title`.

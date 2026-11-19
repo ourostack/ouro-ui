@@ -40,7 +40,7 @@ test("--check fails on a doc for a component that no longer exists", () => {
 test("an export with no @group, or an unknown one, fails the generator with the fix", () => {
   // A copy of the repository's inputs, where Link's JSDoc loses its group.
   const copy = scratchDir("ouro-docs-root-");
-  for (const path of ["registry", "scripts", "docs", "site/public", "README.md", "UPGRADING.md", "package.json", "tsconfig.json"]) {
+  for (const path of ["registry", "scripts", "docs", "site/public", "README.md", "UPGRADING.md", "package.json", "tsconfig.json", ".gitignore"]) {
     mkdirSync(dirname(join(copy, path)), { recursive: true });
     copyTree(join(root, path), join(copy, path));
   }

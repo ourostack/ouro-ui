@@ -292,6 +292,15 @@ describe("CopyButton", () => {
     expect(getComputedStyle(wrapper).marginInlineStart).toBe("16px");
   });
 
+  it("names its root copy-button, or the part a parent names it, and its button copy-button-trigger either way", async () => {
+    const own = await render(<CopyButton value="x" />);
+    expect(own.wrapper.getAttribute("data-slot")).toBe("copy-button");
+    expect(own.button.getAttribute("data-slot")).toBe("copy-button-trigger");
+    const named = await render(<CopyButton value="x" data-slot="recipe-copy" />);
+    expect(named.wrapper.getAttribute("data-slot")).toBe("recipe-copy");
+    expect(named.button.getAttribute("data-slot")).toBe("copy-button-trigger");
+  });
+
   it("stops its timer when it unmounts before the confirmation ends", async () => {
     const schedule = vi.spyOn(globalThis, "setTimeout");
     const clear = vi.spyOn(globalThis, "clearTimeout");

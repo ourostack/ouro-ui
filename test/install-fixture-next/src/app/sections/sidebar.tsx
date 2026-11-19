@@ -1,7 +1,7 @@
 import { Sidebar } from "@/components/ouro/sidebar/sidebar";
 
 // expect: data-ouro="sidebar"
-// expect: <nav aria-label="Ouro sidebar"
+// expect: <nav [^>]*aria-label="Ouro sidebar"
 // expect: Ouro sidebar library
 // The current page is marked in the server HTML, from currentPath.
 // expect: aria-current="page"

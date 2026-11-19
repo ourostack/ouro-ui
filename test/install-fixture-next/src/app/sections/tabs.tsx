@@ -6,7 +6,7 @@ import { Tabs } from "@/components/ouro/tabs/tabs";
 // expect: aria-controls="[^"]*panel0"
 // expect: aria-labelledby="[^"]*tab0"
 // Tabs that are links: a nav whose current link is marked in the server HTML.
-// expect: <nav aria-label="Ouro link tabs"
+// expect: <nav [^>]*aria-label="Ouro link tabs"
 // expect: aria-current="page"[^>]*>.*Ouro link tab two
 export default function TabsSection() {
   return (

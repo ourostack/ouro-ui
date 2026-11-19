@@ -22,7 +22,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLElement>('[data-ouro="app-window"]')!;
     },
     part(name: string) {
-      return host.querySelector<HTMLElement>(`[data-ouro="app-window"] [data-slot="${name}"]`);
+      return host.querySelector<HTMLElement>(`[data-ouro="app-window"] [data-slot="app-window-${name}"]`);
     },
   };
 }
@@ -166,9 +166,9 @@ describe("AppWindow", () => {
         </AppWindow>
       </>,
     );
-    expect(host.querySelectorAll('[data-slot="built-with"]')).toHaveLength(0);
+    expect(host.querySelectorAll('[data-slot="app-window-built-with"]')).toHaveLength(0);
     expect(host.querySelectorAll("ul")).toHaveLength(0);
-    expect(host.querySelectorAll('[data-slot="actions"]')).toHaveLength(0);
+    expect(host.querySelectorAll('[data-slot="app-window-actions"]')).toHaveLength(0);
   });
 
   it("pads the content by default, and runs it edge to edge with inset false", async () => {
@@ -182,7 +182,7 @@ describe("AppWindow", () => {
         </AppWindow>
       </div>,
     );
-    const [padded, edge] = [...host.querySelectorAll<HTMLElement>('[data-slot="body"]')];
+    const [padded, edge] = [...host.querySelectorAll<HTMLElement>('[data-slot="app-window-body"]')];
     expect(padded!.querySelector('[data-test-content="padded"]')!.textContent).toBe("Warm the pot.");
     expect(getComputedStyle(padded!).paddingInlineStart).toBe("16px");
     expect(getComputedStyle(padded!).paddingInlineEnd).toBe("16px");
