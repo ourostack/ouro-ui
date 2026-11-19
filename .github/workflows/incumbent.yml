@@ -45,5 +45,6 @@ jobs:
           targets: test/incumbent-fixture/dist
           sizes: 390x844,1440x900
           script: registry/ouro/check/check.ts
+          config: test/incumbent-fixture/ouro-check.json
           artifact: incumbent-check
           install-browser: "false"
