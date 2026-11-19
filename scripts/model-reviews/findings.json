@@ -577,8 +577,8 @@
         }
       ],
       "issue": 2295,
-      "status": "in progress",
-      "change": "ax-mcp speaks MCP 2026-07-28 and the four revisions before it and is checked against the official TypeScript client, and the Ouro AX guide lists each agent door's maturity and the platform API under it (#2361); Android's confirmation of a consequential action is still to come."
+      "status": "changed",
+      "change": "ax-mcp is out of preview, speaking MCP 2026-07-28 and the four revisions before it, and the Ouro AX guide lists each agent door's maturity and the platform API under it (#2361), and on Android an agent's consequential call now asks the person with a built-in confirmation instead of being refused (ourostack/ouro-ui-android#22, released in v0.5.0)."
     },
     {
       "id": "copy-in-forks-per-team",
