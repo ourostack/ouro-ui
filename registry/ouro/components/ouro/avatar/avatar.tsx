@@ -653,9 +653,9 @@ export function Avatar(props: AvatarProps): JSX.Element {
         data-ouro-avatar-surface=""
         className={cn(
           "absolute inset-0 rounded-[inherit]",
-          // The slices are clipped to the squircle, where corner-shape draws it as where the clip path does.
-          // A group's slices: a half each, or a half and two quarters, with a hole between them.
-          group && image !== "loaded" ? "grid gap-[max(1px,calc(var(--ouro-edge)*0.6))] overflow-hidden" : "flex items-center justify-center",
+          // A group's slices: a half each, or a half and two quarters, with a hole between them, clipped to the
+          // squircle where corner-shape draws it as where the clip path does. Its own picture fills the one cell.
+          group ? "grid gap-[max(1px,calc(var(--ouro-edge)*0.6))] overflow-hidden" : "flex items-center justify-center",
           shape === "circle" ? "[--ouro-sq-r:44%]" : "[--ouro-sq-r:24%]",
           shape === "agent" ? agentTileClass : !nameLoading && !group && fill,
           group && image !== "loaded" && slices.length > 1 && "grid-cols-2",

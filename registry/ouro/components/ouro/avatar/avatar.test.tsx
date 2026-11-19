@@ -1261,7 +1261,10 @@ describe("Avatar group chats", () => {
     const { avatar } = await render(<Avatar name="The whole crew" src={src} members={crew} />);
     await whenLoaded(avatar);
     expect(slicesOf(avatar)).toHaveLength(0);
-    expect(surface(avatar).querySelector("img")!.getAttribute("src")).toBe(src);
+    const picture = surface(avatar).querySelector("img")!;
+    expect(picture.getAttribute("src")).toBe(src);
+    const [box, at] = [avatar.getBoundingClientRect(), picture.getBoundingClientRect()];
+    expect([at.left, at.top, at.width, at.height]).toEqual([box.left, box.top, box.width, box.height]);
     expect(avatar.getAttribute("aria-label")).toBe("The whole crew, group chat with Captain Nemo, Professor Aronnax and 2 others");
     const failing = (await render(<Avatar name="The whole crew" src={broken} members={crew} />)).avatar;
     await expect.poll(() => failing.getAttribute("data-image")).toBe("error");
