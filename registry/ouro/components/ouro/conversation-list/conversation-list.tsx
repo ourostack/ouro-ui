@@ -744,8 +744,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     }
     // Stryker disable next-line ArithmeticOperator: the list sits at the top of the test panes, so the offset it subtracts is zero there.
     setFirstHeight(Math.max(1, Math.min(firstView, Math.ceil(bottom - top))));
+  },
   // Stryker disable next-line ArrayDeclaration: the windowed flag is fixed while a list is mounted, so the effect runs once either way.
-  }, [windowed]);
+  [windowed]);
   // The boxes that clip the list, which scroll it and whose size sets its view, and the box that scrolls it.
   // Nothing is read while the list mounts: the first rows render in flow at their estimates, and the observer's first
   // callback, which comes with the page already laid out, finds the boxes, measures the rows and sets the window.
