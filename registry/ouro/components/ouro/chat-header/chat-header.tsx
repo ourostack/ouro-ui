@@ -10,13 +10,25 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
 /** Someone in a chat, as ChatHeader takes them: an Avatar's member, with their presence and a note. */
-export interface ChatMember extends AvatarMember {
-  /** Their presence, as a dot on their avatar in a one-to-one chat's header and in the member list. Pass it with `presenceLabel`. */
-  presence?: AvatarPresence | undefined;
-  /** What the dot says ("In a meeting"). A one-to-one chat's header shows it under the title. */
-  presenceLabel?: string | undefined;
+export type ChatMember = AvatarMember & {
   /** A short line under their name in the member list, such as their role ("the harpooner"). */
   note?: string | undefined;
+} & (ChatMemberPresence | ChatMemberNoPresence);
+
+/** A member with a presence dot and the words it says. */
+export interface ChatMemberPresence {
+  /** Their presence, as a dot on their avatar in a one-to-one chat's header and in the member list. */
+  presence: AvatarPresence;
+  /** What the dot says ("In a meeting"): a one-to-one chat's header shows it under the title. Required with `presence`, so no dot is silent. */
+  presenceLabel: string;
+}
+
+/** A member without a presence dot. */
+export interface ChatMemberNoPresence {
+  /** Leave it out for no dot; pass it with `presenceLabel` to show one. */
+  presence?: undefined;
+  /** Read only with `presence`. */
+  presenceLabel?: string | undefined;
 }
 
 /** The props ChatHeader adds to the `<div>` attributes it passes through. */
@@ -129,6 +141,10 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
     "ChatHeader",
     process.env.NODE_ENV !== "production"
       ? () => [
+          members.some((member) => member.presence !== undefined && !member.presenceLabel) && [
+            `${members.find((member) => member.presence !== undefined && !member.presenceLabel)!.name}'s presenceLabel is missing, so the header says no words for their dot`,
+            '<ChatHeader members={[{ name: "Ana Lind", presence: "busy", presenceLabel: "In a meeting" }]} />',
+          ],
           members.length === 0 && ["members is empty, so the header shows no one", `<ChatHeader title="${title}" members={[{ name: "${title}" }]} />`],
           level !== levelProp && [`level={${String(levelProp)}} is not a level; use 1, 2 or 3`, "<ChatHeader level={2} />"],
           (participants !== undefined || people !== undefined) && [
@@ -140,9 +156,11 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const line = subtitle ?? (group ? othersLabel(members.map((member) => member.name)) : person?.presenceLabel);
-  // The avatar says nothing the title and the line under it don't, unless an app's own line hides the presence.
-  const quiet = subtitle === undefined || person?.presence === undefined;
+  // An app's own line, unless it is empty or false (`subtitle={typing && "Ned Land is writing…"}`).
+  const own = subtitle != null && subtitle !== false && subtitle !== "";
+  const line = own ? subtitle : group ? othersLabel(members.map((member) => member.name)) : person?.presence !== undefined ? wordsOf(person) : undefined;
+  // The avatar says nothing the title and the line under it don't, unless an app's own line takes the presence's place.
+  const quiet = person?.presence === undefined || !own;
   return (
     <div {...rest} data-ouro="chat-header" data-group={group ? "" : undefined} className={cn("box-border flex min-w-0 items-center gap-3", className)}>
       {onBack !== undefined && (
@@ -162,7 +180,7 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <Title className="m-0 truncate text-base leading-6 font-semibold font-[family-name:var(--font-heading,inherit)]">{title}</Title>
-        {line != null && line !== "" && (
+        {line !== undefined && (
           <p data-ouro-chat-header-subtitle="" className="m-0 truncate text-sm leading-5 text-muted-foreground">
             {line}
           </p>
@@ -183,19 +201,12 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
               <ul data-ouro-chat-header-members="" className="m-0 grid list-none gap-3 p-0">
                 {members.map((member, index) => (
                   <li key={`${member.name}-${index}`} className="flex min-w-0 items-center gap-3">
-                    <Avatar
-                      name={member.name}
-                      src={member.src}
-                      idForColor={member.idForColor}
-                      initials={member.initials}
-                      size="sm"
-                      alt=""
-                      {...dotOf(member)}
-                    />
+                    {/* The presence's words are written beside the face, so the face says nothing more. */}
+                    <Avatar name={member.name} src={member.src} idForColor={member.idForColor} initials={member.initials} size="sm" alt="" aria-hidden {...dotOf(member)} />
                     <span className="flex min-w-0 flex-col">
                       <span className="truncate text-sm font-medium">{member.name}</span>
-                      {(member.note !== undefined || member.presenceLabel !== undefined) && (
-                        <span className="truncate text-xs text-muted-foreground">{[member.note, member.presenceLabel].filter(Boolean).join(" · ")}</span>
+                      {(member.note !== undefined || member.presence !== undefined) && (
+                        <span className="truncate text-xs text-muted-foreground">{[member.note, member.presence !== undefined ? wordsOf(member) : undefined].filter(Boolean).join(" · ")}</span>
                       )}
                     </span>
                   </li>
@@ -210,9 +221,14 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
   );
 }
 
+/** What a member's dot says: their `presenceLabel`, else the presence in words ("do not disturb"). */
+function wordsOf(member: ChatMemberPresence): string {
+  return member.presenceLabel || member.presence.replaceAll("-", " ");
+}
+
 /** A member's presence dot as Avatar takes it: the presence with its words, else an empty object. */
 function dotOf(member: ChatMember | undefined): AvatarPresenceProps | AvatarNoPresenceProps {
-  return member?.presence === undefined ? {} : { presence: member.presence, presenceLabel: member.presenceLabel ?? "" };
+  return member?.presence === undefined ? {} : { presence: member.presence, presenceLabel: wordsOf(member) };
 }
 
 /** A pair of people: the member list. */

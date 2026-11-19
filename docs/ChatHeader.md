@@ -92,12 +92,34 @@ type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offlin
 Someone in a chat, as ChatHeader takes them: an Avatar's member, with their presence and a note.
 
 ```ts
-interface ChatMember extends AvatarMember {
-  /** Their presence, as a dot on their avatar in a one-to-one chat's header and in the member list. Pass it with `presenceLabel`. */
-  presence?: AvatarPresence | undefined;
-  /** What the dot says ("In a meeting"). A one-to-one chat's header shows it under the title. */
-  presenceLabel?: string | undefined;
+type ChatMember = AvatarMember & {
   /** A short line under their name in the member list, such as their role ("the harpooner"). */
   note?: string | undefined;
+} & (ChatMemberPresence | ChatMemberNoPresence);
+```
+
+### `ChatMemberNoPresence`
+
+A member without a presence dot.
+
+```ts
+interface ChatMemberNoPresence {
+  /** Leave it out for no dot; pass it with `presenceLabel` to show one. */
+  presence?: undefined;
+  /** Read only with `presence`. */
+  presenceLabel?: string | undefined;
+}
+```
+
+### `ChatMemberPresence`
+
+A member with a presence dot and the words it says.
+
+```ts
+interface ChatMemberPresence {
+  /** Their presence, as a dot on their avatar in a one-to-one chat's header and in the member list. */
+  presence: AvatarPresence;
+  /** What the dot says ("In a meeting"): a one-to-one chat's header shows it under the title. Required with `presence`, so no dot is silent. */
+  presenceLabel: string;
 }
 ```

@@ -68,6 +68,33 @@ describe("ChatHeader", () => {
     expect(subtitleOf(header)).toBe("Captain Nemo is writing…");
   });
 
+  it("keeps the presence line when an app's own line is false, null or empty, as a typing line that stops leaves it", async () => {
+    for (const subtitle of [false, null, ""]) {
+      const { header } = await render(<ChatHeader title="Captain Nemo" members={[nemo]} subtitle={subtitle} />);
+      expect(subtitleOf(header)).toBe("On the bridge");
+      expect(header.querySelectorAll("[data-ouro-chat-header-subtitle]")).toHaveLength(1);
+      expect(header.querySelector('[data-ouro="avatar"]')!.getAttribute("aria-hidden")).toBe("true");
+    }
+    const group = (await render(<ChatHeader title="Crew" members={crew} subtitle={false} />)).header;
+    expect(subtitleOf(group)).toBe("Captain Nemo and 3 others");
+  });
+
+  it("says a dot without its words in plain words, and names the fix in ChatHeader's terms", async () => {
+    const busy = { name: "Ana Lind", presence: "do-not-disturb" } as unknown as ChatMember;
+    const { header } = await render(<ChatHeader title="Ana Lind" members={[busy]} />);
+    expect(subtitleOf(header)).toBe("do not disturb");
+    expect(header.querySelector('[data-ouro="avatar"]')!.getAttribute("data-presence")).toBe("do-not-disturb");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      "[ouro-ui] ChatHeader: Ana Lind's presenceLabel is missing, so the header says no words for their dot. Fix: <ChatHeader members={[{ name: \"Ana Lind\", presence: \"busy\", presenceLabel: \"In a meeting\" }]} />.",
+    );
+    await render(<ChatHeader title="Crew" members={[busy, crew[3]!]} />);
+    await userEvent.click(page.getByRole("button", { name: "2 members" }));
+    const list = page.getByRole("dialog", { name: "Members" });
+    await expect.element(list).toBeVisible();
+    expect(list.element().querySelector("[data-ouro-chat-header-members] li")!.textContent).toBe("Ana Linddo not disturb");
+  });
+
   it("shows a group chat as its members, says who is in it, and opens the member list from the count", async () => {
     const { header } = await render(<ChatHeader title="The whole crew" members={crew} />);
     const avatar = header.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
@@ -89,8 +116,8 @@ describe("ChatHeader", () => {
       "Ned LandNapping",
     ]);
     expect(rows.map((row) => row.querySelector('[data-ouro="avatar"]')!.getAttribute("data-presence"))).toEqual(["available", "busy", null, "away"]);
-    // The list says each presence to screen readers, and the name is written beside the face.
-    expect(rows[0]!.querySelector('[data-ouro="avatar"]')!.getAttribute("aria-label")).toBe("On the bridge");
+    // Each presence is written beside the face, so the face is quiet and nothing is read twice.
+    expect(rows.map((row) => row.querySelector('[data-ouro="avatar"]')!.getAttribute("aria-hidden"))).toEqual(["true", "true", "true", "true"]);
     await userEvent.keyboard("{Escape}");
     await expect.element(list).not.toBeInTheDocument();
     expect(warn).not.toHaveBeenCalled();
