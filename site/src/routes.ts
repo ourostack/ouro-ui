@@ -55,11 +55,11 @@ export const guessedAddresses: Array<{ from: string; to: string; note?: string }
 export const redirects: Array<{ from: string; to: string; note?: string }> = [{ from: "/voyage/", to: "/" }, ...guessedAddresses];
 
 // The words a person or an agent searches with, near the front: what it is (a shadcn registry of React components on Base UI and Tailwind, with SwiftUI, WinUI and Compose kits), and what it is for (agents building interfaces, A2UI, MCP Apps).
-const DESCRIPTION = claim("Ouro UI is a shadcn registry of accessible React components on Base UI and Tailwind, with SwiftUI, WinUI and Jetpack Compose kits, for AI agents building interfaces: A2UI and MCP Apps cards, one action that is a button and an MCP tool, and accessibility checks.", {
+const DESCRIPTION = claim("A shadcn registry of accessible React components (Base UI, Tailwind) with SwiftUI, WinUI and Compose kits, for AI agents building A2UI and MCP Apps interfaces.", {
   source: { file: "test/stories.test.tsx" },
   verify: { testExists: "test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open" },
 });
-const HOME_TITLE = "Ouro UI: shadcn registry and native kits for AI agents building interfaces";
+const HOME_TITLE = "Ouro UI: shadcn registry and native kits for AI agents";
 // NAUTILUS_PAGE.intro (voyage/copy.ts), written out so the docs, which import this file, do not load the voyage's words.
 const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on a far-off island. Help him get her ready, then sail with him. A story told with Ouro HX components: build the Nautilus, plan her voyage, and meet a very friendly squid.`;
 

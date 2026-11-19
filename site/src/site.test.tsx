@@ -115,8 +115,10 @@ describe("home page", () => {
     expect(document.querySelector("[data-site-demo]")).toBeNull();
   });
 
-  it("titles the home page with Ouro UI's name and the six-word story, which a search result shows", () => {
-    expect(routes.find((route) => route.path === "/")?.title).toBe(`Ouro UI: ${VOYAGE_HERO.title.join(" ")}`);
+  it("titles the home page with Ouro UI's name and what it is, short enough for a search result to show whole", () => {
+    const title = routes.find((route) => route.path === "/")!.title;
+    expect(title).toMatch(/^Ouro UI: /);
+    expect(title.length).toBeLessThanOrEqual(60);
   });
 
   it("counts no components anywhere a visitor reads, and no longer says under construction", async () => {
@@ -231,8 +233,8 @@ describe("home page", () => {
     expect(image!.getBoundingClientRect().height).toBe(32);
   });
 
-  it("describes itself with the hero's words, and README and llms.txt keep their shared first lines", () => {
-    expect(routes[0]!.description.startsWith(VOYAGE_HERO.title.join(" "))).toBe(true);
+  it("keeps README and llms.txt's shared first lines, and describes the home page in a search result's length", () => {
+    expect(routes[0]!.description.length).toBeLessThanOrEqual(160);
     expect(readme).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     expect(llms).toContain(`${HERO_TITLE} ${HERO_SUBLINE}`);
     for (const text of [readme, llms, routes[0]!.description]) {
