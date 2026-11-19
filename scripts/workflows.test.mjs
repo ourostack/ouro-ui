@@ -3116,6 +3116,35 @@ test("Docs pin's pull request body asks no one for anything, since the workflow 
   assert.equal(result.output.number, "7");
 });
 
+test("Docs pin and Core pin try again to turn auto-merge on after a server error, and pass once GitHub shows it on or merged", () => {
+  for (const file of ["docs-pin.yml", "core-pin.yml"]) {
+    const pin = workflow(file).split("\n  pin:\n")[1];
+    const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
+    // merges: what each \`gh pr merge\` does in turn (the last repeats); views: what each look at the pull request finds.
+    const run = (merges, views) => {
+      const dir = scratchDir("ouro-pin-merge-");
+      writeFileSync(join(dir, "m"), "0");
+      writeFileSync(join(dir, "v"), "0");
+      const gh = `gh() {
+  printf 'gh %s\\n' "$*" >> "$LOG"
+  case "$*" in
+    "pr list"*) echo 7 ;;
+    "pr merge"*) n=$(cat "${dir}/m"); echo $((n + 1)) > "${dir}/m"; set -- ${merges.join(" ")}; shift $(( n < $# ? n : $# - 1 )); [ "$1" = ok ] ;;
+    "pr view"*autoMergeRequest*) n=$(cat "${dir}/v"); echo $((n + 1)) > "${dir}/v"; set -- ${views.join(" ") || "off"}; shift $(( n < $# ? n : $# - 1 )); echo "$1" ;;
+  esac
+}`;
+      const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md"), MERGE_RETRY_SECONDS: "0" });
+      return { ...result, merges: (readFileSync(join(dir, "gh.log"), "utf8").match(/^gh pr merge /gm) ?? []).length };
+    };
+    const retried = run(["fail", "ok"], ["off"]);
+    assert.equal(retried.status, 0, `${file}: ${retried.stdout}`);
+    assert.equal(retried.merges, 2, file);
+    const tookEffect = run(["fail"], ["on"]);
+    assert.equal(tookEffect.status, 0, `${file}: ${tookEffect.stdout}`);
+    assert.equal(tookEffect.merges, 1, file);
+  }
+});
+
 /** Runs Docs pin's CI step with a stand-in gh whose run list for the pushed commit is `runs` on each read in turn (the last repeats). */
 function startCi(...runs) {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
@@ -3208,9 +3237,10 @@ test("Docs pin fails, and names the pull request, when GitHub will not turn auto
     "pr view"*) echo OPEN ;;
   esac
 }`;
-  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
+  const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md"), MERGE_RETRY_SECONDS: "0" });
   assert.equal(result.status, 1, result.stdout + result.calls);
-  assert.match(result.stdout, /::error::Could not turn auto-merge on for #7\./);
+  assert.match(result.stdout, /::error::Could not turn auto-merge on for #7 after 5 tries\./);
+  assert.equal((readFileSync(join(dir, "gh.log"), "utf8").match(/^gh pr merge /gm) ?? []).length, 5);
 });
 
 test("Main green posts its status after each CI run on main, when a pull request into main changes, and by hand, with the pull request's number passed through env", () => {
