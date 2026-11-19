@@ -43,7 +43,9 @@ describe("TextField's weight", () => {
   });
 });
 
-// Mounting is timed against bare inputs drawn the same way, so the ratio holds on a slow or busy host.
+// Mounting is timed per instance against bare elements drawn the same way, so the ratio holds on a slow or busy host.
+// Each side is warmed once and timed at its best of three, and the bare side is drawn 5,000 times, so its time is
+// tens of milliseconds or more rather than one, which a single scheduler pause would multiply.
 async function mountMs(render: () => ReactElement, count: number): Promise<number> {
   const host = document.createElement("div");
   host.dataset["testHarness"] = "";
@@ -55,6 +57,14 @@ async function mountMs(render: () => ReactElement, count: number): Promise<numbe
   await act(async () => root.unmount());
   host.remove();
   return took;
+}
+
+/** The best of three timed mounts of `count` copies, after one to warm up, per copy. */
+async function perCopyMs(render: () => ReactElement, count: number): Promise<number> {
+  await mountMs(render, count);
+  const runs: number[] = [];
+  for (let run = 0; run < 3; run++) runs.push(await mountMs(render, count));
+  return Math.min(...runs) / count;
 }
 
 const constraints: { constraint: string; field: ReactElement }[] = [
@@ -108,12 +118,9 @@ describe("TextField's commits on mount", () => {
 });
 
 describe("TextField's mount time", () => {
-  it("mounts 40 plain fields in a bounded multiple of the time 40 bare inputs take", async () => {
-    await mountMs(() => <TextField label="Name" />, 40);
-    const runs: number[] = [];
-    for (let run = 0; run < 3; run++) runs.push(await mountMs(() => <TextField label="Name" />, 40));
-    const field = Math.min(...runs);
-    const bare = Math.max(1, await mountMs(() => <label>Name<input /></label>, 40));
-    expect(field / bare, `ratio (field ${field.toFixed(1)} ms, bare ${bare.toFixed(1)} ms)`).toBeLessThan(RATIO);
+  it("mounts a plain field, one of 100, in a bounded multiple of the time a bare input takes, one of 5,000", async () => {
+    const field = await perCopyMs(() => <TextField label="Name" />, 100);
+    const bare = await perCopyMs(() => <label>Name<input /></label>, 5000);
+    expect(field / bare, `ratio (field ${(field * 1000).toFixed(0)} µs, bare ${(bare * 1000).toFixed(0)} µs)`).toBeLessThan(RATIO);
   });
 });
