@@ -391,6 +391,10 @@
     "status": 200,
     "checked": "2026-11-19"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#L26": {
     "status": 200,
     "checked": "2026-11-19"
@@ -404,10 +408,6 @@
     "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#whats-in-the-box": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -495,11 +495,11 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -523,6 +523,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/bf3190fdb220c2187bf47c83965b5f85e001f848/parity.json": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/docs/decisions/2026-11-18-composed-tree-updates.md": {
     "status": 200,
     "checked": "2026-11-18"
@@ -531,21 +535,17 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/d4e9e81336b0a03e0797e0d787f67b78f7369865/parity.json": {
-    "status": 200,
-    "checked": "2026-11-19"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/e2ab6ea4072dff1674cecf1b1df70933e4c0f0f9/docs/decisions/2026-11-14-native-kits.md#windows-v010": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md": {
     "status": 200,
     "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md#L20": {
     "status": 200,
     "checked": "2026-11-19"
-  },
-  "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md": {
-    "status": 200,
-    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
     "status": 200,
@@ -567,7 +567,7 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.21.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.0.0": {
     "status": 200,
     "checked": "2026-11-19"
   },
