@@ -572,7 +572,32 @@ function Articles(): JSX.Element {
                 </Badge>
               }
             />
-          ) : null}
+          ) : (
+            // Your row's place, kept while you aren't aboard: signing and leaving swap what is in it rather than growing and
+            // shrinking the list, so the page below doesn't move and need painting again on each press (#2348).
+            <Item
+              key="you"
+              size="sm"
+              aria-hidden="true"
+              inert
+              style={{ visibility: "hidden" }}
+              media={<Avatar name={ARTICLES.you} alt="" />}
+              title={ARTICLES.you}
+              description={
+                <span className="inline-flex flex-wrap gap-1.5">
+                  <Badge tone="primary">{ARTICLES.you}</Badge>
+                  <Badge tone="secondary" variant="soft">
+                    {TRADES[0]!.label}
+                  </Badge>
+                </span>
+              }
+              actions={
+                <Button variant="plain" tone="secondary" size="sm" tabIndex={-1}>
+                  {ARTICLES.leave}
+                </Button>
+              }
+            />
+          )}
         </ItemGroup>
         <Crew line={line} />
       </div>
