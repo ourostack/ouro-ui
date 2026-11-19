@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
+import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 
@@ -127,6 +128,27 @@ export const Items: Story = {
   parameters: { screenshot: { name: "sidebar-items" } },
   render: (args) => (
     <Surface height={420}>
+      <Sidebar {...args} />
+    </Surface>
+  ),
+};
+
+/** A badge given as an element, drawn as it is at the row's end, beside a count. */
+export const StatusBadges: Story = {
+  args: {
+    currentPath: "/agents/scout",
+    sections: [
+      {
+        label: "Agents",
+        items: [
+          { label: "Scout", href: "/agents/scout", icon: <BookIcon />, badge: <Badge tone="warning">Idle</Badge> },
+          { label: "Inbox", href: "/inbox", icon: <StackIcon />, badge: 12 },
+        ],
+      },
+    ],
+  },
+  render: (args) => (
+    <Surface height={300}>
       <Sidebar {...args} />
     </Surface>
   ),
