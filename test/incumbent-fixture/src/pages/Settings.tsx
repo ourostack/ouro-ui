@@ -11,7 +11,7 @@ export function Settings() {
       <Switch label="Email me about changes" />
       <Button onClick={() => setOpen(true)}>Delete account</Button>
       <Modal opened={open} onClose={() => setOpen(false)} title="Delete account">
-        <Button color="red">Delete</Button>
+        <Button color="red.8">Delete</Button>
       </Modal>
     </section>
   );
