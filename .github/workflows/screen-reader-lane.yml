@@ -2,8 +2,8 @@ name: Screen reader lane
 # The screen-reader lane itself. Real screen readers read the components: VoiceOver on macOS (WebKit) and
 # NVDA on Windows (Chromium), through Guidepup (playwright.screen-reader.config.ts, registry/ouro/e2e/screen-reader/).
 # Only a workflow_call starts it: screen-reader.yml calls it on every push to main, nightly, and by dispatch,
-# and ci.yml calls it for a pull request from this repository whose change reaches a spec (scripts/sr-impact.mjs
-# names the specs). release.yml tags a commit of main only when this passed on a push of that exact commit.
+# and ci.yml's screen-reader job calls it when its plan selects specs, which it does for no pull request today
+# (docs/guides/screen-reader-lane.md). release.yml tags a commit of main only when this passed on a push of that exact commit.
 # scripts/sr-classify.mjs sorts a failure into accessibility (an utterance missing or wrong: it blocks a release)
 # and infrastructure (the runner could not drive its screen reader: a release retries once, and a nightly run or a
 # push to main opens or updates one `screen-reader-infra` issue from screen-reader.yml's report job), and harness
@@ -150,9 +150,17 @@ jobs:
         if: always() && steps.guard.outcome == 'success'
         env:
           EXIT: ${{ steps.sr.outputs.exit }}
+        # Main's red-main auto-revert (ourostack/.github, tools/red-main) never reverts a job annotated `title=infra`, so a
+        # failure that is not an accessibility finding (infrastructure, harness, or no verdict at all) is annotated: only a
+        # finding about the components reverts the commit behind it.
         run: |
-          node scripts/sr-classify.mjs "$RUNNER_TEMP/sr.log" "$EXIT" | tee "$RUNNER_TEMP/sr-class.txt"
-          exit "${PIPESTATUS[0]}"
+          status=0
+          node scripts/sr-classify.mjs "$RUNNER_TEMP/sr.log" "$EXIT" | tee "$RUNNER_TEMP/sr-class.txt" || status=$?
+          class="$(sed -n 's/^SR_CLASS=//p' "$RUNNER_TEMP/sr-class.txt")"
+          if [ "$status" != 0 ] && [ "$class" != accessibility ]; then
+            echo "::error title=infra::Screen-reader lane: ${class:-no verdict}, not a finding about the components, so auto-revert leaves this commit."
+          fi
+          exit "$status"
       # The report is for reading a failure, and nothing downloads it: the classify step above is the verdict. An upload
       # the runner cannot make (ENOTFOUND on GitHub's artifact service, #2254) is tried once more, then left as a warning.
       - id: upload
