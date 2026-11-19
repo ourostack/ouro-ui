@@ -226,8 +226,6 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
       // Another origin's stylesheet.
     }
   }
-  const darkToken = (names: string[], seen = new Set<string>()): boolean =>
-    names.some((name) => !seen.has(name) && (seen.add(name), darkTokens.has(name) || darkToken([...(refsOf.get(name) ?? [])], seen)));
   const matching = (el: Element, selector: string) => {
     try {
       return el.matches(selector);
@@ -247,7 +245,7 @@ function findThemeIssues({ maxControls = 60, minWidth = 48, minHeight = 24, ligh
         const value = (at as HTMLElement).style.getPropertyValue(name);
         if (value) return scopedDark(at, varNames(value), seen);
       }
-      return darkTokens.has(name) || darkToken([...(refsOf.get(name) ?? [])], seen);
+      return darkTokens.has(name) || scopedDark(from, [...(refsOf.get(name) ?? [])], seen);
     });
   const themedFill = (el: Element) => {
     const fills = (style: CSSStyleDeclaration) => varNames(`${style.getPropertyValue("background-color")} ${style.getPropertyValue("background")}`);
