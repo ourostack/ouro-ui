@@ -1055,7 +1055,8 @@ test("Pages writes core's newest release into the Platforms pages before it buil
 test("the scheduled Apple check holds only what is pinned, through --live, and only Pages writes core's release and the kits' newest releases", () => {
   const apple = workflow("apple-release.yml");
   assert.match(apple, /run: node scripts\/platform-versions\.mjs --live$/m);
-  assert.match(apple, /run: node scripts\/parity-matrix\.mjs --live$/m);
+  assert.match(apple, /^ {12}node scripts\/parity-matrix\.mjs --live$/m);
+  assert.match(apple, /^ {12}node scripts\/parity-matrix\.mjs --live --pins$/m);
   assert.doesNotMatch(apple, /platform-versions\.mjs --(write|render|apple)/);
   assert.doesNotMatch(apple, /run: node scripts\/parity-matrix\.mjs --(write|render)/);
   assert.match(workflow("pages.yml"), /node scripts\/platform-versions\.mjs --write/);
@@ -3078,7 +3079,7 @@ test("Docs pin points main's docs at the newest release through one pull request
 test("Core pin points main's Platforms pages at core's newest release through its own pull request, never Docs pin's, and turns auto-merge on", () => {
   const corePin = workflow("core-pin.yml");
   assert.match(corePin, /^permissions: \{\}$/m);
-  assert.match(corePin, /^on:\n {2}schedule:\n {4}- cron: "[^"]+"\n {2}workflow_dispatch:$/m);
+  assert.match(corePin, /^on:\n {2}schedule:\n {4}- cron: "[^"]+"\n {2}push:\n {4}branches: \[main\]\n {4}paths:\n(?: {6}- \S+\n)+ {2}workflow_dispatch:$/m);
   assert.match(corePin, /^concurrency:\n {2}group: core-pin\n {2}cancel-in-progress: false$/m);
   const pin = corePin.split("\n  pin:\n")[1];
   assert.deepEqual(permissionsOf(pin), { actions: "write", contents: "write", "pull-requests": "write" });
@@ -3114,6 +3115,21 @@ test("Docs pin's pull request body asks no one for anything, since the workflow 
   assert.match(calls, /Release opened this pull request after it tagged v1\.3\.56/);
   assert.doesNotMatch(calls, /empty commit|DOCS_PIN_TOKEN/);
   assert.equal(result.output.number, "7");
+});
+
+test("Core pin re-renders the parity matrix on each push to main that changes its data, so Apple release holds only the pins on main and the whole page on a pull request", () => {
+  const corePin = workflow("core-pin.yml");
+  const paths = corePin.split("\n  push:\n")[1].split("\n  workflow_dispatch:")[0];
+  for (const path of ["registry/ouro/components/ouro/*/component.json", "scripts/parity-data/**", "scripts/parity-matrix.mjs", "scripts/parity-rows.mjs", "docs/platforms/parity.md"]) {
+    assert.ok(paths.includes(`\n      - ${path}`), path);
+  }
+  assert.ok(stepScript(corePin.split("\n  pin:\n")[1], "Point the Platforms pages at core's newest release").includes("node scripts/parity-matrix.mjs --render"));
+  const step = stepScript(workflow("apple-release.yml"), "The parity matrix's pinned Apple components are GitHub's");
+  for (const [event, args] of [["pull_request", "scripts/parity-matrix.mjs --live"], ["push", "scripts/parity-matrix.mjs --live --pins"], ["schedule", "scripts/parity-matrix.mjs --live --pins"]]) {
+    const result = runStep(step, { EVENT: event });
+    assert.equal(result.status, 0, result.stdout);
+    assert.deepEqual(result.calls.split("\n").filter((line) => line.startsWith("CALL node")), [`CALL node ${args}`], event);
+  }
 });
 
 test("Docs pin and Core pin try again to turn auto-merge on after a server error, and pass once GitHub shows it on or merged", () => {
