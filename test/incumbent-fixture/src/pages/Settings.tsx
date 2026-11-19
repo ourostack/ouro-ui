@@ -9,7 +9,7 @@ export function Settings() {
       <TextInput label="Display name" />
       <Select label="Language" data={["English", "Français"]} />
       <Switch label="Email me about changes" />
-      <Button onClick={() => setOpen(true)}>Delete account</Button>
+      <Button color="blue.8" onClick={() => setOpen(true)}>Delete account</Button>
       <Modal opened={open} onClose={() => setOpen(false)} title="Delete account">
         <Button color="red.8">Delete</Button>
       </Modal>
