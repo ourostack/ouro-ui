@@ -7,6 +7,7 @@ export type Waiver = {
   component: string;
   part: string;
   variant: string;
+  /** The state it covers: "" for the page at rest, "hover", "active" or "focus", or "*" for every state. */
   state: string;
   page: string;
   property: string;
@@ -19,7 +20,8 @@ export const WAIVERS: Waiver[] = [
     component: "switch",
     part: "track",
     variant: "",
-    state: "",
+    // The duel's colour is the page's in every state, so a hover or a press reads it too (#2249).
+    state: "*",
     page: "/apple/feel/",
     property: "border",
     reason: "the hero's duel sits on the glow, so its quiet text, which the off switch's outline reads, takes a step toward the foreground",
@@ -39,16 +41,35 @@ export function waived(line: string): boolean {
   const only = pages.split(", ");
   return WAIVERS.some((w, i) => {
     const ok =
-      parts[0] === w.component &&
-      parts[1] === w.part &&
-      (w.variant === "" || (parts[3] ?? "").includes(`data-variant=${w.variant}`)) &&
-      (w.state === "" ? !["hover", "active", "focus"].includes(parts[parts.length - 1]!) : parts[parts.length - 1] === w.state) &&
-      only.length === 1 &&
-      only[0] === w.page &&
+      covers(w, parts, only) &&
       (w.property === "pixels" ? pixels !== null : property.split(" ; ").every((p) => p.startsWith(w.property)));
     if (ok) matched.add(i);
     return ok;
   });
+}
+
+const states = ["hover", "active", "focus"];
+
+/** Whether a waiver is for this look (its key's parts) on exactly these pages, whatever property differs. */
+function covers(w: Waiver, parts: string[], pages: string[]): boolean {
+  const state = parts[parts.length - 1]!;
+  return (
+    parts[0] === w.component &&
+    parts[1] === w.part &&
+    (w.variant === "" || (parts[3] ?? "").includes(`data-variant=${w.variant}`)) &&
+    (w.state === "*" || (w.state === "" ? !states.includes(state) : state === w.state)) &&
+    pages.length === 1 &&
+    pages[0] === w.page
+  );
+}
+
+/**
+ * Whether a waiver is for a look's key on these pages. A sweep that took two samples of a look, one on a waived page,
+ * makes the waived page the odd one out, so the finding names it and the waiver can match (#2249).
+ */
+export function waivedPages(key: string, pages: string[]): boolean {
+  const parts = key.replace(/^grouped /, "").split("|");
+  return WAIVERS.some((w) => covers(w, parts, [...new Set(pages)]));
 }
 
 // Each sweep writes the waivers it used beside the timings CI uploads; scripts/waivers.mjs fails on one no run used.
