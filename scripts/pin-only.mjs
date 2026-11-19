@@ -22,6 +22,11 @@ export function isPinFile(path) {
   return pinFiles.includes(path) || (/^docs\/.+\.md$/.test(path) && !/^docs\/decisions\//.test(path));
 }
 
+/** Whether `before` and `after` are both present and differ only in their version literals, which a pin changes. */
+export function onlyVersionLiterals(before, after) {
+  return before !== null && after !== null && before.replace(literal, (_, mark) => `${mark}VERSION`) === after.replace(literal, (_, mark) => `${mark}VERSION`);
+}
+
 /** package.json without the two fields the pin sets. */
 function withoutPin(pkg) {
   const rest = { ...pkg };
@@ -50,7 +55,7 @@ export function pinProblems(files) {
     if (path === "package.json") continue;
     if (!isPinFile(path)) problems.push(`${path} is not a file the docs pin changes`);
     else if (before === null || after === null) problems.push(`${path} is added or removed`);
-    else if (before.replace(literal, (_, mark) => `${mark}VERSION`) !== after.replace(literal, (_, mark) => `${mark}VERSION`)) problems.push(`${path} changes more than a version literal`);
+    else if (!onlyVersionLiterals(before, after)) problems.push(`${path} changes more than a version literal`);
   }
   return problems;
 }

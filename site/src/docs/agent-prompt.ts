@@ -12,6 +12,28 @@ export function componentPrompt(title: string, name: string): string {
 }
 
 /**
+ * The guides an agent can act on, each with the task to hand it, said as the reader would ask. A guide that explains or
+ * compares (the skill comparisons, the model reviews) has none: there is nothing for an agent to do with it.
+ */
+export const GUIDE_TASKS: Readonly<Record<string, string>> = {
+  installing: "Add Ouro UI to this app.",
+  "agent-quickstart": "Start a new Vite and React app with Ouro UI.",
+  theming: "Give this app its own Ouro UI theme.",
+  forms: "Build this app's forms with Ouro UI.",
+  patterns: "Build this page from an Ouro UI pattern.",
+  "status-dashboards": "Build a status dashboard with Ouro UI.",
+  testing: "Run Ouro UI's tests in this app.",
+  guardrails: "Hold this app to Ouro UI with the guardrail kits.",
+  "ax-adopt": "Make this app's command line pass Ouro AX.",
+};
+
+/** What to paste into a coding agent's chat for a guide it can act on, or undefined for one it can't. */
+export function guidePrompt(name: string): string | undefined {
+  const task = GUIDE_TASKS[name];
+  return task === undefined ? undefined : `${task} Read ${PROMPT_SITE}/docs/${name}.md first and follow it.`;
+}
+
+/**
  * A component's published Markdown (/docs/<name>.md) with its install steps, the commands its HTML page shows, put before
  * the import line, so an agent that follows the page installs the component before it imports it.
  */

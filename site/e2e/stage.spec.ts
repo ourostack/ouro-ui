@@ -153,6 +153,20 @@ test.describe("each control on the stage", () => {
     await expect.poll(height).toBe(0);
   });
 
+  test("every crew line wears its speaker's painted face, under the porthole and in the log", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page);
+    const face = (name: string) => new RegExp(`/crew/${name}-96\\.webp$`);
+    await expect(page.locator("[data-stage-crew] [data-ouro='avatar'] img")).toHaveAttribute("src", face("nemo"));
+    await page.getByRole("radio", { name: "Full" }).click();
+    await page.getByRole("button", { name: STAGE_COPY.bell }).click();
+    await page.getByRole("button", { name: /^Ship's log \(/ }).click();
+    const faces = page.locator(".stage-log [data-ouro='avatar']");
+    await expect(faces).toHaveCount(3);
+    for (const avatar of await faces.all()) await expect(avatar.locator("img")).toHaveAttribute("src", /\/crew\/(nemo|aronnax|conseil|ned)-96\.webp$/);
+    await expect(page.locator(".stage-log [data-ouro-avatar-initials], [data-stage-crew] [data-ouro-avatar-initials]")).toHaveCount(0);
+  });
+
   test("control: bell rings, the crew answers in its own line with no toast, and rings go through the water", async ({ page }) => {
     await open(page);
     const started = await recordAnimations(page);

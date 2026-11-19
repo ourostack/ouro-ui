@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { Command, type CommandEntry } from "@/registry/ouro/components/ouro/command/command";
 import { comparisons, componentGroups, guides, platforms } from "../components/docs-sections";
+import { askForUrl } from "../components/ask-for";
 import { bare, otherNames } from "../components/other-names";
 import { href } from "../paths";
 import { choiceList } from "./presets";
@@ -22,6 +23,13 @@ const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
 };
 
 const go = (url: string) => () => window.location.assign(url);
+
+/**
+ * The open palette's search as it stands. A command runs within the press that picks it, while the field still holds the
+ * words; a palette that is closed (a docs demo's) draws no box, so it is passed over.
+ */
+const searched = () =>
+  [...document.querySelectorAll<HTMLInputElement>('input[data-ouro-control="command"][data-ouro-part="input"]')].find((input) => input.getClientRects().length > 0)?.value ?? "";
 
 export default function SitePalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }): JSX.Element {
   const { setPreset, setMode } = useSiteTheme();
@@ -65,6 +73,8 @@ export default function SitePalette({ open, onOpenChange }: { open: boolean; onO
       ],
     },
     { label: "Tools", items: [{ label: "X-ray", onSelect: openXray, keywords: ["inspector", "outline", "components"] }] },
+    // Last whatever the search is: what the search was for, asked for on GitHub, in a new tab.
+    { label: "Ask for a component", description: "On GitHub", onSelect: () => void window.open(askForUrl(searched()), "_blank", "noopener"), alwaysShown: true },
   ];
-  return <Command title="Command palette" open={open} onOpenChange={onOpenChange} placeholder="Dive, repaint, or find a page…" emptyLabel="Nothing aboard by that name. Try another?" items={items} />;
+  return <Command title="Command palette" open={open} onOpenChange={onOpenChange} placeholder="Dive, repaint, or find a page…" emptyLabel="Nothing aboard by that name. Want one?" items={items} />;
 }
