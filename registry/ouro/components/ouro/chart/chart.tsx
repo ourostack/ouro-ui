@@ -52,14 +52,17 @@ function loadRecharts(): Promise<RechartsParts> {
 function useRecharts(): RechartsParts | undefined {
   const [, setLoaded] = useState(recharts);
   // Once Recharts is loaded, this sets the state to what it already holds, which renders nothing again.
-  useEffect(() => {
-    loadRecharts().then(setLoaded, (error: unknown) =>
-      setLoaded(() => {
-        throw error;
-      }),
-    );
+  useEffect(
+    () => {
+      loadRecharts().then(setLoaded, (error: unknown) =>
+        setLoaded(() => {
+          throw error;
+        }),
+      );
+    },
     // Stryker disable next-line ArrayDeclaration: a dependency list that never changes runs the effect once, as an empty one does
-  }, []);
+    [],
+  );
   return recharts;
 }
 
