@@ -1,0 +1,1 @@
+- Added: the home page carries schema.org structured data (JSON-LD) naming Ouro UI's repository, licence, languages and keywords, so search engines can say what it is.
