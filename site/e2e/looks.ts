@@ -457,12 +457,42 @@ function same(a: Crop, b: Crop): boolean {
 export async function settled(page: Page): Promise<void> {
   await siteReady(page);
   let last = "";
-  await expect
-    .poll(async () => {
-      const now = JSON.stringify((await page.evaluate(describe, { selector: LOOK_SELECTOR })).looks.map((l) => l.sig));
-      const same = now === last;
-      last = now;
-      return same;
-    })
-    .toBe(true);
+  let before: Look[] = [];
+  let after: Look[] = [];
+  try {
+    await expect
+      .poll(async () => {
+        before = after;
+        after = (await page.evaluate(describe, { selector: LOOK_SELECTOR })).looks;
+        const now = JSON.stringify(after.map((l) => l.sig));
+        const same = now === last;
+        last = now;
+        return same;
+      })
+      .toBe(true);
+  } catch (error) {
+    // Which looks kept changing, so a page that never settles names what moved (ourostack/ouro-ui#2428).
+    (error as Error).message += `\n\nThe page never settled (ourostack/ouro-ui#2428): ${page.url()}\n${changedLooks(before, after)}`;
+    throw error;
+  }
+}
+
+/**
+ * The looks that differ between two reads of a page, up to three, each with the parts of its signature that changed, and
+ * how many looks the page gained or lost.
+ */
+export function changedLooks(before: readonly Look[], after: readonly Look[]): string {
+  const was = new Map(before.map((look) => [look.key, look.sig]));
+  const changed = after.filter((look) => was.has(look.key) && was.get(look.key) !== look.sig);
+  const lines = changed.slice(0, 3).map((look) => {
+    const old = was.get(look.key)!.split(" ; ");
+    const now = look.sig.split(" ; ");
+    return `  ${look.key}: ${now.filter((part) => !old.includes(part)).join(" ; ")} (was ${old.filter((part) => !now.includes(part)).join(" ; ")})`;
+  });
+  if (changed.length > 3) lines.push(`  and ${changed.length - 3} more`);
+  const keys = new Set(after.map((look) => look.key));
+  const gone = before.filter((look) => !keys.has(look.key)).length;
+  const added = after.filter((look) => !was.has(look.key)).length;
+  if (gone || added) lines.push(`  ${added} looks appeared and ${gone} went between the last two reads`);
+  return lines.length > 0 ? lines.join("\n") : "  the last two reads differed only in the order of the looks";
 }

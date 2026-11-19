@@ -451,6 +451,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/2fab8a308f72381f0bcb244722cc10976fd27d14/parity.json": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/3ff42918ed91d5b99930d31a04b751b5c9e8551d/README.md": {
     "status": 200,
     "checked": "2026-11-18"
@@ -523,10 +527,6 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/bf3190fdb220c2187bf47c83965b5f85e001f848/parity.json": {
-    "status": 200,
-    "checked": "2026-11-19"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/docs/decisions/2026-11-18-composed-tree-updates.md": {
     "status": 200,
     "checked": "2026-11-18"
@@ -572,6 +572,10 @@
     "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.0.0": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v1.1.0": {
     "status": 200,
     "checked": "2026-11-19"
   },

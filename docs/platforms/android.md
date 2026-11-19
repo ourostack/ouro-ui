@@ -31,6 +31,15 @@ AppFunctions need compileSdk 37 and AGP 9.1 or later, and Google still calls the
 - **Components.** Web has every component in the catalog, which [the parity matrix](parity.md) counts, and this kit has eight.[^decision]
 - **Maven Central.** It needs a Sonatype account, so the kit uses GitHub Pages for now.[^releasing]
 
+## What to use meanwhile
+
+Until the kit has the screens you need, pick one of these, and say which in your plan:
+
+- **Ouro HX on web, in a WebView.** The web kit has the whole catalog: navigation, sheets, dialogs, lists, forms and a composer. The same React app runs on the web and in the shell, with the web kit's own checks. The cost is that it is a web app in a shell, not Jetpack Compose controls. Ouro does not document a shell yet, so you own that wrapper.
+- **The native kit plus plain Jetpack Compose.** Use the kit's components where it has them, and draw the rest in Jetpack Compose from core's tokens, which the kit vendors. The kit's checks cover only its own components, so check the rest by hand and keep what you add small.
+
+Don't mix the two in one screen.
+
 ## How it is checked
 
 The `build` job runs core's component claims in Robolectric, reading the semantics tree and sampling pixels, and checks the snapshots. The `emulator` job runs the sample's X-ray on an Android emulator: the AppFunctions Android indexed against the declarations, the buttons on screen, an agent's add through the handler a person presses, an agent's share asking the person (Allow, Don't, Back and the notification), and the person-only refusal. The `generated` job checks the vendored core files' hashes and that the sample's generated Kotlin matches its declarations.[^ci]
