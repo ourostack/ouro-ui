@@ -8,6 +8,16 @@
 
 **Delightful interfaces, by agents, for everyone.**[^for-everyone] Ouro UI is a complete kit for agents to build interfaces for people and for other agents. An agent composes an interface as data that Ouro draws natively, and every button in it is an action declared once, which a person presses and an agent calls as a tool, with consent built in and an X-ray to check both.[^composed]
 
+**At a glance.** The short version. The sections below have the detail, and the live site is https://ui.ouroboros.bot/.
+
+- **Licence:** MIT ([LICENSE](LICENSE)). Maintained by Ari Mendelow, who holds its copyright.[^glance-licence]
+- **Web** (React, this repository): the components in [the catalog](#components).
+- **Apple** (SwiftUI, [ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple)): [20 components](site/src/apple/kit.json "verify:count(site/src/apple/kit.json#components)=20").[^glance-apple]
+- **Windows** (WinUI 3, [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows)): 8 of core's components, [per the Windows page](docs/platforms/windows.md).[^glance-windows]
+- **Android** (Compose, [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android)): 8 of core's components, checked on emulators in GitHub's CI and not on a real device.[^glance-android]
+- **Accessibility:** every story passes axe.[^glance-axe] VoiceOver on macOS and NVDA on Windows read the components before every release, and a release is tagged only when that passes.[^glance-sr]
+- **Open questions:** outside shipping, audit or reproduction ([#2315](https://github.com/ourostack/ouro-ui/issues/2315)), and Android on real devices ([#2294](https://github.com/ourostack/ouro-ui/issues/2294)).[^glance-open]
+
 - **Composed UI.** An agent composes a card as data in Ouro's own tree, validated against your catalog: Ouro HX's components, and buttons that can only be your declared actions. A tree that relabels a button or loosens its consent is refused, and every kit draws the rest natively, on the web, Apple, Windows and Android ([the guide](https://ui.ouroboros.bot/docs/composed-ui/)).[^composed] To change a card it shows, an agent sends only what changed, and the person's answers stay; the web, Apple, Windows and Android apply such updates today.[^composed-update]
 
 - **One action declaration.** Declare an action once, and core's generator writes its CLI command, MCP and WebMCP tools, web control, App Intent, SwiftUI button and Reins action, with a check that fails your CI when a generated file drifts.[^one-action]
@@ -892,6 +902,13 @@ The rules:
 
 MIT
 
+[^glance-licence]: LICENSE verify:fileLine(LICENSE, /^MIT License$/) verify:fileLine(LICENSE, /Copyright \(c\) 2026 Ari Mendelow/)
+[^glance-apple]: site/src/apple/kit.json verify:fileLine(site/src/apple/kit.json, /"components"/)
+[^glance-windows]: docs/platforms/windows.md verify:fileLine(docs/platforms/windows.md, /The kit has eight of core's components as WinUI 3 controls/)
+[^glance-android]: docs/platforms/android.md verify:fileLine(docs/platforms/android.md, /The kit has eight of core's components as composables/) verify:fileLine(docs/platforms/android.md, /checked on emulators in GitHub's CI, not on a real device/)
+[^glance-axe]: test:test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open verify:testExists(test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open)
+[^glance-sr]: docs/guides/screen-reader-lane.md verify:fileLine(docs/guides/screen-reader-lane.md, /VoiceOver on macOS and NVDA on Windows/) verify:fileLine(docs/guides/screen-reader-lane.md, /before every release/) verify:fileLine(.github/workflows/screen-reader-lane.yml, /release\.yml tags a commit of main only when this passed/)
+[^glance-open]: https://github.com/ourostack/ouro-ui/issues/2315; https://github.com/ourostack/ouro-ui/issues/2294 verify:urlOk(https://github.com/ourostack/ouro-ui/issues/2315) verify:urlOk(https://github.com/ourostack/ouro-ui/issues/2294)
 [^tailwind-4]: test/install-fixture/package.json verify:fileLine(test/install-fixture/package.json, /"tailwindcss": "\^4\./) verify:ciJob(install)
 [^runtime-deps]: package.json; registry.json verify:fileLine(test/install-fixture/package.json, /"react": "\^19\./) verify:fileLine(registry.json, /"@base-ui\/react@/) verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
 [^ouro-base-only]: scripts/registry.mts verify:testExists(scripts/registry.test.mjs::only ouro-base, ouro-plain and ouro-theme touch the app's stylesheet, and no other item installs them)
