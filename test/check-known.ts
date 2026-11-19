@@ -4,7 +4,8 @@
 // Each entry is a story and a rule, whatever its size or scheme: the story shows the state, and the reason says what is on
 // screen. test/check-known.test.ts fails an entry with no positive issue number or no reason.
 // test/themes/nova-check.test.tsx runs the same rules under shadcn's nova theme (test/check-sweep.ts); its entries carry
-// `theme: "nova"`, and an entry with no theme applies to the Ouro-theme run only.
+// `theme: "nova"`. An entry with no theme is the Ouro-theme run's: the nova run waives it too, since the story shows the
+// same state whatever the theme, but doesn't require it, since the nova run checks other sizes (sweepVerdict).
 
 export interface KnownFinding {
   /** The story's id, as Storybook names it (`Button/Disabled`). */
@@ -37,6 +38,20 @@ export function knownFor(entries: readonly KnownFinding[], story: string, theme?
   return entries.filter((entry) => entry.story === story && entry.theme === theme);
 }
 
+/**
+ * A sweep's verdict: the findings no entry waives, and the run's own entries no finding matches any more. `inherited` are
+ * another run's entries for the story (the Ouro-theme run's, for a fixture's run): they waive a finding of their rule, but
+ * one that doesn't show here is no sign it was fixed, since that run checks other sizes.
+ */
+export function sweepVerdict<F extends { rule: string }>(
+  found: readonly F[],
+  own: readonly KnownFinding[],
+  inherited: readonly KnownFinding[] = [],
+): { unknown: F[]; stale: KnownFinding[] } {
+  const waived = [...own, ...inherited];
+  return { unknown: found.filter((finding) => !waived.some((entry) => entry.rule === finding.rule)), stale: staleEntries(own, found) };
+}
+
 /** The entries a run's findings no longer match, which a fix should remove: every entry with no finding of its rule, except one that shows only sometimes. */
 export function staleEntries(known: readonly KnownFinding[], found: readonly { rule: string }[]): KnownFinding[] {
   return known.filter((entry) => !entry.sometimes && !found.some((finding) => finding.rule === entry.rule));
@@ -61,6 +76,11 @@ const layoutWeights =
 
 const aloneReason =
   "The story shows the component alone on an empty page, so the page draws nothing else to read, press or wait for; its in-context story passes.";
+
+const novaDarkPrimary =
+  "Under nova's dark scheme the theme's own primary is a near-white grey (#e5e5e5), and this surface fills with bg-primary, so dark-miss reads it as a light fill left on a dark page. The fill follows the theme; the rule is to learn that (#2363).";
+const novaEmojiGrid =
+  "At 2560 px the root type steps up to 112.5%, and the rule counts the picker's emoji grid as running text drawn at 27px. Emoji are not reading text; the rule is to learn that (#2363).";
 
 export const knownFindings: KnownFinding[] = [
   { story: "Accordion/Multiple", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
@@ -259,4 +279,30 @@ export const knownFindings: KnownFinding[] = [
     issue: 1998,
     reason: "The lightbox opens over a story page with nothing behind it, so putting it away leaves a blank page; in an app the gallery is behind it.",
   },
+  { story: "Badge/Tones", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/Agent", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/Chat", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/FlatChannel", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/NotSent", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/Pending", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/Quote", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/ReplyInThread", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/Roles", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "Message/WithAttachments", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/Actions", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/ActionsMenu", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/Conversation", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/Live", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/LoadingOlder", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/LongConversation", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/OlderHistory", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/OpenedAtMessage", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/ReadingWidth", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/ScrolledBack", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/Springs", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "MessageList/Switching", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "ThreadLayout/Default", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "ThreadLayout/Narrow", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "ThreadRail/Playground", rule: "dark-miss", issue: 2363, reason: novaDarkPrimary, theme: "nova" },
+  { story: "EmojiPicker/ChoosingSkinTone", rule: "giant-text", issue: 2363, reason: novaEmojiGrid, theme: "nova" },
 ];

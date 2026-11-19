@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import { inject } from "vitest";
 import { page, server } from "vitest/browser";
 import { checkStory } from "./check-story.ts";
-import { judgedOn, staleEntries, type KnownFinding } from "./check-known.ts";
+import { judgedOn, sweepVerdict, type KnownFinding } from "./check-known.ts";
 import { parkPointer } from "./story-axe.ts";
 import { cleanupStories, setScheme, type ComposedStory } from "./stories.tsx";
 
@@ -33,6 +33,8 @@ export interface SweepOptions {
   schemes: readonly ("light" | "dark")[];
   /** The known findings for this story in this run (check-known.ts's `knownFor`). */
   known: readonly KnownFinding[];
+  /** Another run's entries for this story, which waive a finding but needn't show (check-known.ts's `sweepVerdict`). */
+  inherited?: readonly KnownFinding[];
   /** The viewport the page is left at, as width and height. */
   restore: readonly [number, number];
 }
@@ -47,7 +49,7 @@ function pageState(): { hovered: string; focused: string } {
 }
 
 /** Sweeps one story and fails on any finding its known list does not waive, or a waived one that no longer shows. */
-export async function sweepStoryCheck({ id, Story, sizes, schemes, known, restore }: SweepOptions): Promise<void> {
+export async function sweepStoryCheck({ id, Story, sizes, schemes, known, inherited = [], restore }: SweepOptions): Promise<void> {
   // Chromium only, the browser Ouro check runs in: the other projects have no page to check here.
   if (server.browser !== "chromium") return;
   const platform = inject("hostPlatform");
@@ -68,9 +70,8 @@ export async function sweepStoryCheck({ id, Story, sizes, schemes, known, restor
   } finally {
     await page.viewport(restore[0], restore[1]);
   }
-  const waived = known.filter((entry) => judgedOn(entry.rule, platform));
-  const unknown = found.filter((finding) => !waived.some((entry) => entry.rule === finding.rule));
+  const judged = (entries: readonly KnownFinding[]) => entries.filter((entry) => judgedOn(entry.rule, platform));
+  const { unknown, stale } = sweepVerdict(found, judged(known), judged(inherited));
   if (unknown.length > 0) throw new Error(`findings not in check-known.ts, as JSON:\n${JSON.stringify(unknown, null, 2)}`);
-  const stale = staleEntries(waived, found);
   if (stale.length > 0) throw new Error(`known findings that no longer show: remove them from check-known.ts, as JSON:\n${JSON.stringify(stale, null, 2)}`);
 }

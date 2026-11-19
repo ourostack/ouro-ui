@@ -10,7 +10,8 @@ import { applyThemeFixture } from "../theme-fixtures.ts";
 // Ouro check's rules over every story under nova, shadcn's default preset, light and dark, at a desktop width and past the
 // root type step: ouro-base.css steps the root font size up from 2400px wide (112.5%) and again from 3200px (125%), so 2560px
 // is a page whose every rem size and radius is larger, which test/stories.test.tsx (390 and 1280 px, the Ouro theme) never
-// reaches. The entries for nova are the ones whose `theme` is "nova" in check-known.ts. The axe scan of the same fixture is
+// reaches. The entries for nova are the ones whose `theme` is "nova" in check-known.ts, and the Ouro-theme run's entries
+// for the story waive here too. The axe scan of the same fixture is
 // test/themes/nova-light.test.ts and nova-dark.test.ts; this file is a sliced suite (scripts/shard.mjs), so each shard runs
 // its share of every story here, and a whole file would load one shard alone.
 describe("nova theme, Ouro check", () => {
@@ -33,7 +34,7 @@ describe("nova theme, Ouro check", () => {
     it.each(sliced(selectedStories, `nova ${scheme}: check`))(
       `$id passes Ouro check's rules under nova (${scheme}) at 1280 and 2560 px, except its known findings`,
       async ({ id, Story }) => {
-        await sweepStoryCheck({ id, Story, sizes: [[1280, 800], [2560, 1440]], schemes: [scheme], known: knownFor(knownFindings, id, "nova"), restore: [1280, 800] });
+        await sweepStoryCheck({ id, Story, sizes: [[1280, 800], [2560, 1440]], schemes: [scheme], known: knownFor(knownFindings, id, "nova"), inherited: knownFor(knownFindings, id), restore: [1280, 800] });
       },
       checkTimeout,
     );
