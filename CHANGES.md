@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [an Ouro AX command other people see asks for `--why` before it refuses a word outside an argument's values](registry/ouro/ax/command.test.mts "verify:testExists(registry/ouro/ax/command.test.mts::a command other people see asks for --why before it refuses a word outside an argument's values, as ax-xray's probe expects)"), so ax-xray's `cli.others-need-why` passes on a command whose argument has values.
