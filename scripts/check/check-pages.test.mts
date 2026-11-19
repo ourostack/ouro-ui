@@ -348,7 +348,7 @@ describe("Ouro check", () => {
     const found = await check({ ...options, out: dir("narrow-text") });
     const narrow = found.findings.filter((f) => f.rule === "narrow-text");
     assert.deepEqual(narrow.map((f) => [f.page, f.element.split(" ")[0]]), [["/narrow-text-fail.html", "p"]]);
-    assert.match(narrow[0]!.detail, /^This paragraph wraps at \d+px in a 1200px column, leaving the rest empty\. Let it use the width it has: remove `\.about p \{ max-width: 46rem \}`\. If the design sets a measure on purpose, declare it in ouro-check\.json \("measure"\)\.$/);
+    assert.match(narrow[0]!.detail, /^This paragraph wraps at \d+px in a 1200px column, leaving the rest empty\. Let it use the width it has: remove `\.about p \{ max-width: 46rem \}`\. If the design sets a measure on purpose, declare it at 40ch or wider: read the max-width from a --measure-\* token, add data-ouro-measure to the text, or set "measure" in ouro-check\.json\.$/);
     const declared = await check({ ...options, out: dir("narrow-text-declared"), config: { measure: { "**": "72ch" } } });
     assert.deepEqual(declared.findings.filter((f) => f.rule === "narrow-text"), []);
   });
