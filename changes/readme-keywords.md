@@ -1,0 +1,1 @@
+- Added: the README's at-a-glance list says what Ouro UI is in the words people search with: a shadcn registry and design system for React, with SwiftUI, WinUI and Compose kits, for A2UI and MCP Apps.

@@ -201,6 +201,12 @@ describe("home page", () => {
     }
   });
 
+  it("says in the README's at-a-glance list what Ouro UI is, in the words a search for it uses", () => {
+    for (const term of ["shadcn registry", "design system", "A2UI", "MCP Apps", "SwiftUI", "WinUI", "Jetpack Compose"]) {
+      expect(readme).toContain(term);
+    }
+  });
+
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
     await renderPage("/");
     const home = page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true }).element();
