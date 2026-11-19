@@ -1,0 +1,1 @@
+- New: `PageShell` and `PageSection` give a site its page column (72rem, a gutter that grows with the screen, wider from 2000px) and the rhythm between its sections.
