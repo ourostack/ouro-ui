@@ -130,13 +130,16 @@ test("navigateWithRetry: VoiceOver outside the web area on both tries fails as i
   assert.match(why(log), /VoiceOver never entered the page's web area/);
 });
 
-test("voiceOverGone: AppleScript's -600, and -609 for a lost connection to System Events, are VoiceOver gone; a test's own error is not", () => {
+test("voiceOverGone: AppleScript's -600, -609 for a lost connection to System Events, and -2741 when VoiceOver's terms cannot load, are VoiceOver gone; a test's own error is not", () => {
   assert.equal(voiceOverGone(new Error("System Events got an error: Application isn’t running. (-600)")), true);
   assert.equal(voiceOverGone(new Error("Application isn't running")), true);
   assert.equal(voiceOverGone(new Error("locator.focus: element is detached")), false);
   assert.equal(voiceOverGone("(-600)"), true);
   // Main's run 44605928118 (#2453): osascript lost System Events while the navigation pressed VoiceOver's keys.
   assert.equal(voiceOverGone(new Error("Unable to send keys: to application: VoiceOver\nCommand failed: /usr/bin/osascript\n60:71: execution error: System Events got an error: Connection is invalid. (-609)")), true);
+  // Main's run 44622775423 (#2465): Guidepup's key-press script failed to compile because VoiceOver's scripting terms could not load.
+  assert.equal(voiceOverGone(new Error("Unable to send keys: to application: VoiceOver\nCommand failed: /usr/bin/osascript\n64:68: syntax error: Expected end of line, etc. but found identifier. (-2741)")), true);
+  assert.equal(voiceOverGone(new Error("syntax error: A identifier can't go after this identifier. (-2740)")), false);
 });
 
 test("navigateWithRetry: a stop that fails is logged, and VoiceOver still starts again", async () => {
