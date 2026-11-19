@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 
 export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SITE = "https://ui.ouroboros.bot";
-const PROTOCOL = "2025-06-18";
+const MODERN = "2026-07-28";
+const LEGACY = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
+const META = "io.modelcontextprotocol/";
+const CACHE = { ttlMs: 3_600_000, cacheScope: "public" };
 
 export interface RegistryItem {
   name: string;
@@ -121,19 +124,27 @@ interface Request {
 /** Answers one JSON-RPC message; undefined for a notification, which takes no answer. */
 export async function handleMessage(ctx: Context, message: Request): Promise<Record<string, unknown> | undefined> {
   if (message.id === undefined) return undefined;
-  const reply = (result: unknown) => ({ jsonrpc: "2.0", id: message.id, result });
+  const serverInfo = { name: "ouro-ui-registry", version: ctx.release };
+  // A request that names its version in _meta is MCP 2026-07-28's and stands alone; one without is an older client's, after initialize.
+  const asked = (message.params?.["_meta"] as Record<string, unknown> | undefined)?.[`${META}protocolVersion`];
+  const modern = asked !== undefined;
+  const reply = (result: Record<string, unknown>) => ({ jsonrpc: "2.0", id: message.id, result: modern ? { resultType: "complete", ...result, _meta: { [`${META}serverInfo`]: serverInfo } } : result });
   try {
+    if (modern && asked !== MODERN) {
+      throw new RpcError(-32022, `Unsupported protocol version: ${String(asked)}. Send "${MODERN}" in _meta; the older versions open with initialize instead.`);
+    }
     switch (message.method) {
-      case "initialize":
-        return reply({
-          protocolVersion: typeof message.params?.["protocolVersion"] === "string" ? message.params["protocolVersion"] : PROTOCOL,
-          capabilities: { tools: {} },
-          serverInfo: { name: "ouro-ui-registry", version: ctx.release },
-        });
+      case "server/discover":
+        if (!modern) throw new RpcError(-32602, `Invalid params: send _meta["${META}protocolVersion"]: "${MODERN}" and _meta["${META}clientCapabilities"]: {} with server/discover.`);
+        return reply({ supportedVersions: [MODERN, ...LEGACY], capabilities: { tools: {} }, ...CACHE });
+      case "initialize": {
+        const requested = message.params?.["protocolVersion"];
+        return reply({ protocolVersion: LEGACY.find((v) => v === requested) ?? LEGACY[0], capabilities: { tools: {} }, serverInfo });
+      }
       case "ping":
         return reply({});
       case "tools/list":
-        return reply({ tools: ctx.tools });
+        return reply({ tools: ctx.tools, ...(modern ? CACHE : {}) });
       case "tools/call": {
         const call = (message.params ?? {}) as Call;
         return reply(await callTool(ctx, String(call.name), call.arguments ?? {}));

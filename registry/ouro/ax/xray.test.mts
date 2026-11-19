@@ -495,6 +495,20 @@ test("an HTTP API whose reads write, whose writes need no why, and whose answers
   assert.match(renderMarkdown(none), /^# AX X-ray: http:\/\/127\.0\.0\.1/);
 });
 
+test("the MCP probe uses 2026-07-28 against a server that speaks only that, falls back to initialize against one that speaks only 2025-06-18, and names the revision it used", async () => {
+  const modern = await xray(base({ mcp: fixture("mcp-server.mjs"), env: { MCP_MODE: "modern" } }));
+  assert.equal(modern.target.mcp?.revision, "2026-07-28");
+  assert.equal(modern.target.mcp?.tools, 2);
+  assert.equal(holds(modern, "mcp.tools-list"), true);
+  assert.equal(holds(modern, "mcp.unknown-tool"), true);
+  assert.match(renderMarkdown(modern), /MCP 2026-07-28 \(2 tools\)/);
+  const legacy = await xray(base({ mcp: fixture("mcp-server.mjs") }));
+  assert.equal(legacy.target.mcp?.revision, "2025-06-18");
+  assert.equal(legacy.target.mcp?.tools, 2);
+  const kit = await xray(base({ mcp: fixture("notes-mcp.mts") }));
+  assert.equal(kit.target.mcp?.revision, "2026-07-28");
+});
+
 test("MCP servers that refuse to start, list no tools, or have tools without a description or schema", async () => {
   const noinit = await xray(base({ mcp: fixture("mcp-server.mjs"), env: { MCP_MODE: "noinit" } }));
   assert.match(noinit.results[0]!.note, /"message":"not today","data":\{"why":"a fixture"\}/);

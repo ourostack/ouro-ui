@@ -2,7 +2,8 @@
 // A tiny stdio MCP server for xray.test.mts: `look` holds every MCP claim; `poke` has no annotations and runs a call
 // that is missing its required argument instead of refusing it. $MCP_MODE picks a broken variant: "noinit" refuses to
 // initialize, "notools" lists no tools array, "loose" has tools without a description or schema, runs unknown tools,
-// and writes a line that is not JSON-RPC first.
+// and writes a line that is not JSON-RPC first, "modern" speaks only MCP 2026-07-28: it answers server/discover and
+// requests that carry the version in _meta, and refuses initialize.
 import readline from "node:readline";
 
 const mode = process.env.MCP_MODE ?? "";
@@ -27,6 +28,11 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
     return;
   }
   if (m.id === undefined) return;
+  if (mode === "modern") {
+    const versioned = m.params?._meta?.["io.modelcontextprotocol/protocolVersion"] === "2026-07-28";
+    if (m.method === "server/discover" && versioned) return send({ id: m.id, result: { resultType: "complete", supportedVersions: ["2026-07-28"], capabilities: { tools: {} } } });
+    if (!versioned) return send({ id: m.id, error: { code: -32602, message: "send the version in _meta" } });
+  }
   if (m.method === "initialize") return mode === "noinit" ? send({ id: m.id, error: { code: -32603, message: "not today", data: { why: "a fixture" } } }) : send({ id: m.id, result: { protocolVersion: "2025-06-18", capabilities: { tools: {} }, serverInfo: { name: "fixture", version: "0" } } });
   if (m.method === "tools/list") return send({ id: m.id, result: mode === "notools" ? {} : { tools: TOOLS } });
   if (m.method === "tools/call") {
