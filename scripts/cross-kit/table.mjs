@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const kits = [
   { kit: "web", repo: "ourostack/ouro-ui", dir: "test/fixtures/a2ui/cases", job: /^ci$/i },
@@ -22,6 +23,14 @@ export function sameCases(coreDir, kitDir) {
 const gh = (...args) => JSON.parse(execFileSync("gh", args, { encoding: "utf8" }));
 
 function latestMain(repo, job) {
+  try {
+    return readLatest(repo, job);
+  } catch {
+    return { result: "unknown", url: "", sha: "" };
+  }
+}
+
+function readLatest(repo, job) {
   const runs = gh("run", "list", "-R", repo, "-b", "main", "-w", "CI", "-L", "10", "--json", "databaseId,conclusion,headSha,url");
   for (const run of runs) {
     if (!run.conclusion || run.conclusion === "skipped") continue;
@@ -32,7 +41,7 @@ function latestMain(repo, job) {
   return { result: "unknown", url: "", sha: "" };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [coreRoot, ...roots] = process.argv.slice(2);
   const coreDir = join(coreRoot, "standard/hx/a2ui/conformance/cases");
   const rows = kits.map((k, i) => ({ kit: k.kit, ...sameCases(coreDir, join(roots[i], k.dir)), ...latestMain(k.repo, k.job) }));
