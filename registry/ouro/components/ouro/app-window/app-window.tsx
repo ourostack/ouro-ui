@@ -117,7 +117,7 @@ export function AppWindow(props: AppWindowProps): JSX.Element {
       className={cn("min-w-0 overflow-hidden rounded-ouro-xl border border-solid border-border bg-card text-card-foreground shadow-(--shadow-lg)", className)}
     >
       <div data-slot="bar" className="flex min-h-11 items-center gap-3 border-0 border-b border-solid border-border bg-muted ps-4 pe-2">
-        <span data-slot="title" className="min-w-0 truncate font-mono text-xs text-muted-foreground">
+        <span data-slot="title" className="min-w-0 truncate font-mono text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
           {title}
         </span>
         {actions != null ? (

@@ -69,7 +69,8 @@ describe("AppWindow", () => {
     expect(bar.contains(title)).toBe(true);
     const style = getComputedStyle(title);
     expect(style.fontFamily).toBe(themed("fontFamily", "var(--font-mono)"));
-    expect(style.color).toBe(themed("color", "var(--muted-foreground)"));
+    // Muted text on the muted bar mixes 20% toward the foreground: shadcn's stock pair is 4.34:1.
+    expect(style.color).toBe(themed("color", "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))"));
     expect(Number.parseFloat(style.fontSize)).toBeLessThan(Number.parseFloat(getComputedStyle(document.body).fontSize));
     expect(style.textOverflow).toBe("ellipsis");
     expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
