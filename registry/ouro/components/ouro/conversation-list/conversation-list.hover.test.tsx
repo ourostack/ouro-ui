@@ -102,7 +102,8 @@ describe("ConversationList hover", () => {
     expect([box(row), box(time), box(rowOf(host, "Ana Lind"))]).toEqual(before);
     const slot = box(moreOf(row)!);
     expect(slot[0]! + slot[2]!).toBeLessThanOrEqual(before[0]![0]! + before[0]![2]!);
-    expect(slot[0]!).toBeGreaterThanOrEqual(before[1]![0]! - 2);
+    // The button sits over the time's slot: its end edge is the time's, whatever the font makes of the time's width.
+    expect(Math.abs(slot[0]! + slot[2]! - (before[1]![0]! + before[1]![2]!))).toBeLessThanOrEqual(2);
   });
 
   it("opens the row's menu from the more button, by keyboard too", async () => {
