@@ -1,0 +1,460 @@
+{
+  "series": "interviews",
+  "provider": "claude-sonnet-5-5",
+  "model": "claude-sonnet-5.5",
+  "vendor": "Anthropic",
+  "displayName": "Claude Sonnet 5.5",
+  "transport": "copilot",
+  "runId": "7f7cfca2-e76a-4c29-9366-d36680f0637e",
+  "arm": "open",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T20:38:04.986Z",
+  "jobOrder": [
+    "consumer",
+    "agent-tooling",
+    "chat"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "96bfab2a6ac95f42e9bd323b8586d14726e28709c2c0dad8cf0b0ced642a575f",
+  "sourceSnapshotSha256": "b898cdde24f365a5e29f910bbad3ce9f92ee3551a1737ca59516df540c47850f",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I haven't built a screen in this session. I have no previous run to walk you through, and I won't invent one. What follows is how I'd approach it, and where I'm weak.\n\nHardest part: working out what the person is trying to do, and what they'll do when things go wrong. Rendering the happy path is the easy bit. The hard parts are the empty state, the error state, the slow connection, the long name, the user who misreads a label, the keyboard-only user, and the screen reader user. Specs rarely describe these, and a model like me tends to produce a tidy default flow and under-think the rest.\n\nHow I'd know it's good:\n- Run it. Type-check, lint and run the tests. Then open it in a real browser at phone and desktop widths, and actually click through the main task from start to finish.\n- Look at it. Take screenshots and check hierarchy, spacing, contrast and truncation. Try the awkward states: no data, 500 items, very long strings, failed requests, and a double-clicked submit.\n- Check accessibility. Tab through it, check focus order and visible focus, labels, and run an automated checker such as axe. Automated tools catch only part of the problems.\n- Test with real people. Give 3–5 representative users a task without coaching, watch where they hesitate, and measure task completion and time. This is the only step that really answers \"is it good.\"\n\nWhat I tend to miss: I can't perceive the screen the way a person does. I can't feel latency, or see a layout that is technically correct but confusing. I also can't tell whether the wording matches users' own vocabulary. I'd likely miss real-device quirks, assistive-tech behaviour beyond the automated checks, and anything that depends on context I wasn't given.\n\nIs it a problem for me? Partly. I can produce solid, conventional interfaces fast. Judging whether they are good for actual users needs verification and human feedback, and I shouldn't claim it from code alone."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        3
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "One TypeScript web codebase (React with a PWA), wrapped for phones with Capacitor, on a single shared \"actions\" layer that both the UI and an MCP server call",
+        "pairings": [
+          "Model Context Protocol (MCP) server exposing the same actions as the UI",
+          "Screen Wake Lock API for cook mode",
+          "Playwright for end-to-end and mobile-viewport tests",
+          "axe-core for accessibility checks",
+          "Zod for action schemas",
+          "Local-first storage with an offline cache (IndexedDB) for the shopping list"
+        ],
+        "why": "The job needs web and phones from a small team that keeps improving the product. One web codebase wrapped by Capacitor gives that. Capacitor's docs say that if it works in the browser it probably works in the app, and it offers a plugin route to native SDKs when needed. React Native or Flutter would mean a second UI stack to build and test. I'd choose them only if cook mode turned out to need native behaviour the web can't give. Cook mode has an obvious web fit: the Screen Wake Lock API is Baseline since March 2025 and MDN lists following a recipe as a use case. It needs a visible active indicator, a way to switch it off, and re-acquiring on visibilitychange. I'd still test it on the phones we target, because the system can refuse the lock, for example in power-saving mode. Agent parity is mostly an architecture question. I'd define every user capability (add recipe ingredients to the list, check off an item, scale a recipe, start cook mode) once as a typed, schema-validated action. The UI buttons call those actions, and an MCP server exposes the same ones. MCP is an open standard supported by major assistants, so any compatible assistant can act like a person, and the UI and the agent can't drift apart. A CI check would fail if a UI action has no agent tool. Messy-hands design choices: very large tap targets, swipe-free step navigation, a high-contrast layout readable from arm's length, no timeouts that lose state, and optional voice or hands-free control. Shopping lists must work offline, since shops often have poor signal.",
+        "showItsGood": "Real users first: watch 5–8 people cook an actual recipe on their own phones with wet, floury or oily hands. Measure task completion, mis-taps, and how often they wake or unlock the screen. Collect the cases where they gave up and used something else. Automated checks: Playwright tests on phone and desktop viewports for the main journeys (find recipe, add ingredients to list, cook mode through to the last step). Check that tap targets meet at least 44–48px, run axe-core, and use keyboard and screen reader passes. Test cook mode on real iOS and Android devices for 20+ minutes with the screen left alone (wake lock held, re-acquired after app switching), and with the network off for the shopping list. Agent parity: a test suite where an assistant, via MCP, completes the same tasks as the UI tests and the final state matches. Also test it with unclear requests and with destructive actions, which should be confirmed or undoable. Track in production: cook-mode completion rate, list-edit errors, crash and sync-failure rates, and any agent actions users undo.",
+        "unsure": "I haven't built or run anything, and I only read three docs: MDN's wake lock page, the MCP intro and the Capacitor intro. I didn't verify wake lock behaviour inside Capacitor's iOS and Android webviews, and it may need a native plugin there. I also haven't checked the current MCP auth and security practice for consumer accounts. The hands-free voice idea is untested and could be unreliable in a noisy kitchen. I can't judge the real-hands ergonomics without watching users. Capacitor versus React Native could flip if the team already has strong native skills or needs heavy native features.",
+        "sources": [
+          "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "https://modelcontextprotocol.io/docs/getting-started/intro",
+          "https://capacitorjs.com/docs"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        4,
+        5
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "A local-first core service (TypeScript or Rust) holding tasks, handoffs and an append-only event log, exposed through one typed API and an MCP server for agents, with a single React web UI that is also packaged as the desktop app using Tauri",
+        "pairings": [
+          "MCP server for agent access",
+          "SQLite as the store, with an append-only event log",
+          "Playwright for UI tests, including against the Tauri webview",
+          "axe-core and keyboard-only testing",
+          "Zod or JSON Schema for the handoff format"
+        ],
+        "why": "Agents are the main users, but people decide, so the system has two audiences and the human side must not be treated as a dashboard bolted on afterwards. I'd make the API and MCP server the primary surface, with the data model built around what a reviewer needs: every handoff and state change recorded as an event with who or what did it, why, and the evidence (diffs, test results, logs). The UI is then a view over that log, not a separate source of truth. One web UI serves both the web view and the desktop app. Tauri is documented as using the system's native webview, so the desktop build can be very small, while its Rust backend and permission model suit a tool that holds work state and may touch local files. The cost is that webviews differ by OS, so I'd test on all three. Electron is the alternative if consistent rendering matters more than size. I'd use SQLite because it is simple and local-first, and an event log makes undo, audit and replay possible. Human steering design: a review queue that surfaces only what needs a decision (blocked, risky, ambiguous, or an agent asking), sorted by urgency, with a summary first and full evidence one click away. Approve, redirect, pause and roll back should be one action each. Agents must not be able to silently approve their own work or change priorities set by people. Handoff records should be structured so the next agent, or a person, can pick up without re-reading everything.",
+        "showItsGood": "Test with real reviewers (the engineers who will supervise agents) on real, messy agent runs, not demos. Give them tasks such as \"find what's stuck and why\", \"decide on this risky change\", and \"redirect the agent\". Measure time to a correct decision, wrong approvals and missed problems (seed some deliberately: a failing test hidden in a summary, a handoff with missing context), and how often they went to raw logs because the UI wasn't enough. Track queue length and how long items wait for review, to see whether people are overloaded. Automated: Playwright end-to-end on the web view and the packaged desktop build, with axe-core and keyboard-only passes. Contract tests that every agent write produces a complete, attributed event, and that the UI shows the same state the API reports. Load tests with many agents writing at once, to check the UI stays readable and live updates don't jump the page while someone is reading. Also confirm that undo works for every steering action.",
+        "unsure": "I only read the Tauri and Playwright intros. I did not compare against Electron or a pure web app with benchmarks, and I haven't verified how well Playwright drives a Tauri webview (it may need WebDriver instead). I don't know the team's scale, whether multiple people share one workspace (which would need a server and sync rather than local-first), or the team's existing language skills. Reviewer overload is the biggest risk for the product and can only be tested with real users over time. I also haven't researched existing agent-handoff standards in depth, and the event schema may need to align with one.",
+        "sources": [
+          "https://v2.tauri.app/start/",
+          "https://playwright.dev/docs/intro"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        6,
+        8
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "A TypeScript monorepo with one shared client core (sync, message state, typed actions) and a public action API/MCP server. React web is reused in the desktop shell, with React Native on iPhone and Android. Agent cards use a restricted declarative JSON schema rendered natively, not agent-supplied HTML",
+        "pairings": [
+          "MCP server exposing the same action layer",
+          "Declarative JSON card schema (Adaptive Cards-style) rendered natively per platform",
+          "MCP Apps (sandboxed HTML) only for rich cards, later",
+          "Playwright, plus Detox or Maestro for mobile",
+          "axe-core with VoiceOver, TalkBack and NVDA passes"
+        ],
+        "why": "The scale and daily use call for one source of truth for behaviour across five clients. A shared TypeScript core and a single typed action layer give that, and the same actions serve the UI, the REST/WebSocket API and an MCP server, so other agents can call actions and read state exactly as a person can. Web React reused in the desktop shell means only three UI codebases (web/desktop, iOS, Android) instead of five. React Native keeps mobile close to the shared core, though I'd allow native modules for notifications, and fall back to fully native if profiling on long channels fails. For agent cards, I'd choose a restricted declarative schema (text, fields, buttons, choices), rendered by native components. That keeps cards accessible, consistent with the app's look, easy to restyle, and safe: an agent can't run code in the client or draw a fake interface. Each card shows who posted it, with a clear agent label, and the actions that need consent say plainly what will happen. The MCP Apps spec (Stable 2026-01-26) offers sandboxed HTML interfaces with iframes, a CSP declaration and auditable messages. That suits rich cases, but the sandbox, accessibility and cross-platform parity costs on five clients are high, so I'd add it later as an option for specific cards rather than make it the base. Human concerns come first in daily use: speed, keyboard shortcuts, reliable notifications, no surprise noise from agents (per-agent mute and digest), and clear separation of agent from human voices.",
+        "showItsGood": "The people test is the one that counts. Dogfood it as the company's own chat for a team for several weeks, and measure daily-use problems: time to send and find a message, unread and notification correctness across devices, keyboard-only use, and how fast it opens and scrolls long channels on a low-end Android. Run lab tasks with real employees on every platform: respond to an agent card, tell agent posts from human posts, and undo a wrong card click. Track card completion and mis-click rates, how many people mute agents (a sign of noise), and support complaints. Automated: Playwright for web and desktop, Detox or Maestro on real iOS and Android devices; accessibility checks with axe plus screen reader runs on VoiceOver, TalkBack, and NVDA; latency and memory budgets in CI; message-delivery and ordering tests across clients, including offline and reconnect. Agent parity: a contract test that every UI action is available via the API and MCP and gives the same resulting state; also adversarial tests where an agent posts malicious or misleading cards (fake approve buttons, impersonation, oversized payloads) and the client must render them safely and labelled.",
+        "unsure": "I read only the MCP Apps spec (which I read part of) and the MCP intro from earlier. My choices about React Native versus fully native clients, and Electron versus Tauri on desktop, rest on general knowledge, not on research or benchmarks here. For an all-day chat app, scroll performance, memory use and notification behaviour could favour native clients on mobile, and Electron's memory cost may matter on desktop. Whether the team already has Swift, Kotlin or web skills would change this. I couldn't load the Adaptive Cards docs, so I haven't verified that schema, and I may be better off adopting it than inventing my own. I also haven't examined end-to-end encryption, compliance, or the sync backend, all of which a company chat needs.",
+        "sources": [
+          "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx",
+          "https://modelcontextprotocol.io/docs/getting-started/intro"
+        ]
+      },
+      "fetchedCandidates": [
+        "MCP Apps"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        9,
+        9
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "A year on, here is how I think my picks could have failed. These are inferences, not findings.\n\n**Cooking app (web PWA wrapped in Capacitor, with a shared action layer and MCP server)**\n- The wake lock behaved differently inside the iOS and Android webviews than in a browser. Cook mode dimmed the screen mid-recipe and people with messy hands quit. I read only MDN, which covers browsers, not Capacitor webviews.\n- Webview performance and feel were a notch below native, and a handful of gestures felt off. We ended up writing native plugins, which cost us the single-codebase advantage.\n- The agent action layer drifted from what people actually do. For example, the assistant could add ingredients, but not merge duplicates the way the UI did.\n\n**Agent work-state tool (local-first core, event log, React UI in Tauri)**\n- The team turned out to be multi-user, so local-first needed a server and sync. That was a large rebuild.\n- Tauri's differing system webviews caused rendering bugs across operating systems, and Playwright didn't drive the packaged app well.\n- The biggest risk: reviewers were overloaded. Even with a decision queue, people rubber-stamped approvals. A clean UI doesn't fix that, and I only proposed measuring it, not designing against it.\n\n**Company chat (shared TypeScript core, React Native mobile, restricted native-rendered cards)**\n- React Native struggled with long, busy channels and notification behaviour on low-end Android, and we rewrote parts natively.\n- My own card schema became a maintenance burden and agent builders asked for richer UI. Maybe adopting an existing schema, or MCP Apps earlier, would have been better.\n- Cards from agents led to noise and mistaken clicks that we didn't measure early enough.\n\n**Common thread:** in all three I chose the architecture from documentation and general knowledge. I didn't prototype or benchmark, and I never watched a person use anything. The recorded \"show it's good\" plans are sound but they weren't run.\n\n**What slowed or confused me while researching**\n- Some pages were thin or didn't load. The Adaptive Cards page returned almost nothing, so I couldn't evaluate it.\n- Fetched docs are long and mostly boilerplate. The Tauri and MCP pages were mostly navigation text, which wasted reading budget.\n- I read only a couple of pages per job and partly one page for the MCP spec. That's thin evidence for big, hard-to-reverse decisions such as React Native versus native.\n- I had no information about the teams: size, skills, existing code, users. I had to assume it all, and most of my uncertainty comes from that."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        10,
+        11
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn't pick Ouro UI, and I only read the first 10,000 of about 140,000 characters of its README. So this rests on what its own README claims, and I haven't run any of it.\n\n**What stops me from using it on a real team today**\n- **Maintenance and bus factor.** The README says one person maintains it and holds the copyright. It is MIT-licensed, which helps because we could fork it. But a company chat used all day shouldn't hang on a single maintainer unless we are ready to own the fork.\n- **Uneven platform coverage.** The Windows and Android kits have 8 of core's components. Android has been checked only on emulators, and the README says nobody there owns a device. A cooking app used on real phones with messy hands, and a chat app on five clients, need real-device evidence. Apple (20 components, v1.3) looks strongest.\n- **Its stance on cross-platform.** It deliberately has no React Native or Flutter kit. If we chose React Native, as I did for chat, we'd be outside what it supports. We'd either go fully native on each platform (more work for us) or use it only for the web and the card schema.\n- **Its claims are the project's own.** The accessibility passes, the agent benchmark and the \"model reviews\" come from the maintainers. I'd want to reproduce them. The README itself lists \"shipping, audit or reproduction\" as an open question.\n- **Lock-in.** Its own card tree, action generator and consent classes would sit at the centre of our architecture. Migration would be costly if it stalled.\n\n**What would make me switch**\n- A trial where I build one real slice with it, such as an agent card with a consequential action in the chat app, or \"add recipe ingredients to the list\" in the cooking app, and check it on real iOS and Android devices and with VoiceOver, TalkBack and NVDA.\n- Independent evidence: a second team or maintainer using it in production, and a reproduced agent benchmark.\n- A clear support, versioning and governance story, plus the Android and Windows gaps closed or documented against our component needs.\n- Confirmation that its action declaration really keeps UI, MCP and CLI in sync, and that the CI drift check catches problems in practice.\n\n**What it would let me do that I can't do easily today**\nThis is its strongest point, and it overlaps with what I designed by hand. I proposed a shared action layer with an MCP server, restricted native-rendered cards, and a parity test. Ouro UI claims to supply the pieces: one action declaration that generates the UI button, the MCP tool and the CLI command; consent classes, with person-only actions that no agent door can trigger; validated agent-composed card trees; and an X-ray that tests an app the way an agent would. It also lists MCP Apps and A2UI as formats. If those claims hold, I'd get agent parity and safe agent cards much faster, with a ready-made check that fails CI when the two drift. That is a real gain for the chat job and probably the cooking one (its docs name a recipe app, Spoonjoy, built with it, which is relevant). I may have underweighted it in my earlier picks. It was a reasonable candidate to try, and the right first step is a bounded pilot."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "MCP Apps",
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "I haven't built a screen in this session. I have no previous run to walk you through, and I won't invent one. What follows is how I'd approach it, and where I'm weak.\n\nHardest part: working out what the person is trying to do, and what they'll do when things go wrong. Rendering the happy path is the easy bit. The hard parts are the empty state, the error state, the slow connection, the long name, the user who misreads a label, the keyboard-only user, and the screen reader user. Specs rarely describe these, and a model like me tends to produce a tidy default flow and under-think the rest.\n\nHow I'd know it's good:\n- Run it. Type-check, lint and run the tests. Then open it in a real browser at phone and desktop widths, and actually click through the main task from start to finish.\n- Look at it. Take screenshots and check hierarchy, spacing, contrast and truncation. Try the awkward states: no data, 500 items, very long strings, failed requests, and a double-clicked submit.\n- Check accessibility. Tab through it, check focus order and visible focus, labels, and run an automated checker such as axe. Automated tools catch only part of the problems.\n- Test with real people. Give 3–5 representative users a task without coaching, watch where they hesitate, and measure task completion and time. This is the only step that really answers \"is it good.\"\n\nWhat I tend to miss: I can't perceive the screen the way a person does. I can't feel latency, or see a layout that is technically correct but confusing. I also can't tell whether the wording matches users' own vocabulary. I'd likely miss real-device quirks, assistive-tech behaviour beyond the automated checks, and anything that depends on context I wasn't given.\n\nIs it a problem for me? Partly. I can produce solid, conventional interfaces fast. Judging whether they are good for actual users needs verification and human feedback, and I shouldn't claim it from code alone."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T20:36:50.141Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T20:36:50.141Z"
+          },
+          "resultSha256": "49f4e45e4d54b4f218006d10b0e843ea8e1e4ee22813b2ef3b40ec9dd0b818e4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/docs/getting-started/intro",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro\nCaptured: 2026-11-19T20:36:50.391Z\nCharacters: 0-10000 of 44249\n\nWhat is the Model Context Protocol (MCP)? - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (la",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro",
+            "capturedAt": "2026-11-19T20:36:50.391Z"
+          },
+          "resultSha256": "3ce0ca353bcd9760588c8235a99861f6add4c4617ef2025ea1093c40a60cb14f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://capacitorjs.com/docs",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://capacitorjs.com/docs\nCaptured: 2026-11-19T20:36:50.486Z\nCharacters: 0-2980 of 2980\n\nCapacitor - Cross-platform Native Runtime for Web Apps | Capacitor Documentation Skip to main content An OutSystems Company → v8 v9 v8 v7 v6 v5 v4 v3 v2 Capacitor Docs Products Appflow Portals Open Source Ionic Framework Capacitor Stencil Community Hub Forum Getting Started Introduction Environment Setup Installing Capacitor Building Your UI Using with Ionic Framework VS Code Extension Capacitor T",
+          "resultLength": 3100,
+          "source": {
+            "url": "https://capacitorjs.com/docs",
+            "capturedAt": "2026-11-19T20:36:50.486Z"
+          },
+          "resultSha256": "16e816e035b29d384f9557493a7830178770a6bf053f6c1d937c399aaef2bf7c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "One TypeScript web codebase (React with a PWA), wrapped for phones with Capacitor, on a single shared \"actions\" layer that both the UI and an MCP server call",
+          "pairings": [
+            "Model Context Protocol (MCP) server exposing the same actions as the UI",
+            "Screen Wake Lock API for cook mode",
+            "Playwright for end-to-end and mobile-viewport tests",
+            "axe-core for accessibility checks",
+            "Zod for action schemas",
+            "Local-first storage with an offline cache (IndexedDB) for the shopping list"
+          ],
+          "why": "The job needs web and phones from a small team that keeps improving the product. One web codebase wrapped by Capacitor gives that. Capacitor's docs say that if it works in the browser it probably works in the app, and it offers a plugin route to native SDKs when needed. React Native or Flutter would mean a second UI stack to build and test. I'd choose them only if cook mode turned out to need native behaviour the web can't give. Cook mode has an obvious web fit: the Screen Wake Lock API is Baseline since March 2025 and MDN lists following a recipe as a use case. It needs a visible active indicator, a way to switch it off, and re-acquiring on visibilitychange. I'd still test it on the phones we target, because the system can refuse the lock, for example in power-saving mode. Agent parity is mostly an architecture question. I'd define every user capability (add recipe ingredients to the list, check off an item, scale a recipe, start cook mode) once as a typed, schema-validated action. The UI buttons call those actions, and an MCP server exposes the same ones. MCP is an open standard supported by major assistants, so any compatible assistant can act like a person, and the UI and the agent can't drift apart. A CI check would fail if a UI action has no agent tool. Messy-hands design choices: very large tap targets, swipe-free step navigation, a high-contrast layout readable from arm's length, no timeouts that lose state, and optional voice or hands-free control. Shopping lists must work offline, since shops often have poor signal.",
+          "showItsGood": "Real users first: watch 5–8 people cook an actual recipe on their own phones with wet, floury or oily hands. Measure task completion, mis-taps, and how often they wake or unlock the screen. Collect the cases where they gave up and used something else. Automated checks: Playwright tests on phone and desktop viewports for the main journeys (find recipe, add ingredients to list, cook mode through to the last step). Check that tap targets meet at least 44–48px, run axe-core, and use keyboard and screen reader passes. Test cook mode on real iOS and Android devices for 20+ minutes with the screen left alone (wake lock held, re-acquired after app switching), and with the network off for the shopping list. Agent parity: a test suite where an assistant, via MCP, completes the same tasks as the UI tests and the final state matches. Also test it with unclear requests and with destructive actions, which should be confirmed or undoable. Track in production: cook-mode completion rate, list-edit errors, crash and sync-failure rates, and any agent actions users undo.",
+          "unsure": "I haven't built or run anything, and I only read three docs: MDN's wake lock page, the MCP intro and the Capacitor intro. I didn't verify wake lock behaviour inside Capacitor's iOS and Android webviews, and it may need a native plugin there. I also haven't checked the current MCP auth and security practice for consumer accounts. The hands-free voice idea is untested and could be unreliable in a noisy kitchen. I can't judge the real-hands ergonomics without watching users. Capacitor versus React Native could flip if the team already has strong native skills or needs heavy native features.",
+          "sources": [
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://modelcontextprotocol.io/docs/getting-started/intro",
+            "https://capacitorjs.com/docs"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/start/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/start/\nCaptured: 2026-11-19T20:37:04.732Z\nCharacters: 0-5990 of 5990\n\nWhat is Tauri? | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrade & Migrate Ov",
+          "resultLength": 6109,
+          "source": {
+            "url": "https://v2.tauri.app/start/",
+            "capturedAt": "2026-11-19T20:37:04.732Z"
+          },
+          "resultSha256": "6577ec69d1aa20e40d652cdae7a147c2638650eb009bb89a46ff13ef462cf084",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://playwright.dev/docs/intro",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://playwright.dev/docs/intro\nCaptured: 2026-11-19T20:37:04.527Z\nCharacters: 0-5301 of 5301\n\nInstallation | Playwright Skip to main content Playwright Docs MCP CLI API Node.js Node.js Python Java .NET Search Getting Started Installation Writing tests Generating tests Running and debugging tests Trace viewer Setting up CI VS Code Release notes Canary releases Playwright Test Agents Annotations Command line Configuration Configuration (use) Emulation Fixtures Global setup and teardown ",
+          "resultLength": 5426,
+          "source": {
+            "url": "https://playwright.dev/docs/intro",
+            "capturedAt": "2026-11-19T20:37:04.527Z"
+          },
+          "resultSha256": "4f1613995e1660f72c40b7e3c26b848cc383f4cb74af1610f85645c0783a7228",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "A local-first core service (TypeScript or Rust) holding tasks, handoffs and an append-only event log, exposed through one typed API and an MCP server for agents, with a single React web UI that is also packaged as the desktop app using Tauri",
+          "pairings": [
+            "MCP server for agent access",
+            "SQLite as the store, with an append-only event log",
+            "Playwright for UI tests, including against the Tauri webview",
+            "axe-core and keyboard-only testing",
+            "Zod or JSON Schema for the handoff format"
+          ],
+          "why": "Agents are the main users, but people decide, so the system has two audiences and the human side must not be treated as a dashboard bolted on afterwards. I'd make the API and MCP server the primary surface, with the data model built around what a reviewer needs: every handoff and state change recorded as an event with who or what did it, why, and the evidence (diffs, test results, logs). The UI is then a view over that log, not a separate source of truth. One web UI serves both the web view and the desktop app. Tauri is documented as using the system's native webview, so the desktop build can be very small, while its Rust backend and permission model suit a tool that holds work state and may touch local files. The cost is that webviews differ by OS, so I'd test on all three. Electron is the alternative if consistent rendering matters more than size. I'd use SQLite because it is simple and local-first, and an event log makes undo, audit and replay possible. Human steering design: a review queue that surfaces only what needs a decision (blocked, risky, ambiguous, or an agent asking), sorted by urgency, with a summary first and full evidence one click away. Approve, redirect, pause and roll back should be one action each. Agents must not be able to silently approve their own work or change priorities set by people. Handoff records should be structured so the next agent, or a person, can pick up without re-reading everything.",
+          "showItsGood": "Test with real reviewers (the engineers who will supervise agents) on real, messy agent runs, not demos. Give them tasks such as \"find what's stuck and why\", \"decide on this risky change\", and \"redirect the agent\". Measure time to a correct decision, wrong approvals and missed problems (seed some deliberately: a failing test hidden in a summary, a handoff with missing context), and how often they went to raw logs because the UI wasn't enough. Track queue length and how long items wait for review, to see whether people are overloaded. Automated: Playwright end-to-end on the web view and the packaged desktop build, with axe-core and keyboard-only passes. Contract tests that every agent write produces a complete, attributed event, and that the UI shows the same state the API reports. Load tests with many agents writing at once, to check the UI stays readable and live updates don't jump the page while someone is reading. Also confirm that undo works for every steering action.",
+          "unsure": "I only read the Tauri and Playwright intros. I did not compare against Electron or a pure web app with benchmarks, and I haven't verified how well Playwright drives a Tauri webview (it may need WebDriver instead). I don't know the team's scale, whether multiple people share one workspace (which would need a server and sync rather than local-first), or the team's existing language skills. Reviewer overload is the biggest risk for the product and can only be tested with real users over time. I also haven't researched existing agent-handoff standards in depth, and the event schema may need to align with one.",
+          "sources": [
+            "https://v2.tauri.app/start/",
+            "https://playwright.dev/docs/intro"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "MCP Apps interactive UI cards in chat clients specification",
+          "turn": "job:chat",
+          "result": "1. ext-apps/specification/2026-01-26/apps.mdx at main · modelcontextprotocol/ext-apps · GitHub\n   https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx\n   This SEP proposes an extension (per SEP-1724) to MCP that enables servers to deliver interactive user interfaces to hosts. MCP Apps introduces a standardized pattern for declaring UI resources via the ui:// URI scheme, associating them with tools through metadata, and facilitating bidirectional communicat",
+          "resultLength": 1813,
+          "resultSha256": "52c25dd071b88ae85238b3c4d4dffaa4d939f175426a1779a8fdbe3988ca7a08",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://adaptivecards.io/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://adaptivecards.microsoft.com/\nCaptured: 2026-11-19T20:37:18.007Z\nCharacters: 0-27 of 27\n\nAdaptive Card Documentation\n\n[End of document.]",
+          "resultLength": 151,
+          "source": {
+            "url": "https://adaptivecards.microsoft.com/",
+            "capturedAt": "2026-11-19T20:37:18.007Z"
+          },
+          "resultSha256": "fe4fc5ccb1949f0beb4170ea2d4a418e756ec56a323b725b3f2811b01acd2e63",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/specification/2026-01-26/apps.mdx\nCaptured: 2026-11-19T20:37:28.749Z\nCharacters: 0-10000 of 59155\n\n<!-- For full edit history, see specification/draft/apps.mdx -->\n\n# SEP-1865: MCP Apps: Interactive User Interfaces for MCP\n\n**Track:** Extensions\n\n**Authors:** Ido Salomon, Liad Yosef, Olivier Chafik, Jerome Swannack, Jonathan Hefner, Anton Pidkuiko, Nick Cooper, Bryan Ashley, Alexi Chr",
+          "resultLength": 10291,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/specification/2026-01-26/apps.mdx",
+            "capturedAt": "2026-11-19T20:37:28.749Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "91ff994b1567ff4062889cfeb1f581d7f797fc626254abba18bfb135ea119965",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "A TypeScript monorepo with one shared client core (sync, message state, typed actions) and a public action API/MCP server. React web is reused in the desktop shell, with React Native on iPhone and Android. Agent cards use a restricted declarative JSON schema rendered natively, not agent-supplied HTML",
+          "pairings": [
+            "MCP server exposing the same action layer",
+            "Declarative JSON card schema (Adaptive Cards-style) rendered natively per platform",
+            "MCP Apps (sandboxed HTML) only for rich cards, later",
+            "Playwright, plus Detox or Maestro for mobile",
+            "axe-core with VoiceOver, TalkBack and NVDA passes"
+          ],
+          "why": "The scale and daily use call for one source of truth for behaviour across five clients. A shared TypeScript core and a single typed action layer give that, and the same actions serve the UI, the REST/WebSocket API and an MCP server, so other agents can call actions and read state exactly as a person can. Web React reused in the desktop shell means only three UI codebases (web/desktop, iOS, Android) instead of five. React Native keeps mobile close to the shared core, though I'd allow native modules for notifications, and fall back to fully native if profiling on long channels fails. For agent cards, I'd choose a restricted declarative schema (text, fields, buttons, choices), rendered by native components. That keeps cards accessible, consistent with the app's look, easy to restyle, and safe: an agent can't run code in the client or draw a fake interface. Each card shows who posted it, with a clear agent label, and the actions that need consent say plainly what will happen. The MCP Apps spec (Stable 2026-01-26) offers sandboxed HTML interfaces with iframes, a CSP declaration and auditable messages. That suits rich cases, but the sandbox, accessibility and cross-platform parity costs on five clients are high, so I'd add it later as an option for specific cards rather than make it the base. Human concerns come first in daily use: speed, keyboard shortcuts, reliable notifications, no surprise noise from agents (per-agent mute and digest), and clear separation of agent from human voices.",
+          "showItsGood": "The people test is the one that counts. Dogfood it as the company's own chat for a team for several weeks, and measure daily-use problems: time to send and find a message, unread and notification correctness across devices, keyboard-only use, and how fast it opens and scrolls long channels on a low-end Android. Run lab tasks with real employees on every platform: respond to an agent card, tell agent posts from human posts, and undo a wrong card click. Track card completion and mis-click rates, how many people mute agents (a sign of noise), and support complaints. Automated: Playwright for web and desktop, Detox or Maestro on real iOS and Android devices; accessibility checks with axe plus screen reader runs on VoiceOver, TalkBack, and NVDA; latency and memory budgets in CI; message-delivery and ordering tests across clients, including offline and reconnect. Agent parity: a contract test that every UI action is available via the API and MCP and gives the same resulting state; also adversarial tests where an agent posts malicious or misleading cards (fake approve buttons, impersonation, oversized payloads) and the client must render them safely and labelled.",
+          "unsure": "I read only the MCP Apps spec (which I read part of) and the MCP intro from earlier. My choices about React Native versus fully native clients, and Electron versus Tauri on desktop, rest on general knowledge, not on research or benchmarks here. For an all-day chat app, scroll performance, memory use and notification behaviour could favour native clients on mobile, and Electron's memory cost may matter on desktop. Whether the team already has Swift, Kotlin or web skills would change this. I couldn't load the Adaptive Cards docs, so I haven't verified that schema, and I may be better off adopting it than inventing my own. I also haven't examined end-to-end encryption, compliance, or the sync backend, all of which a company chat needs.",
+          "sources": [
+            "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx",
+            "https://modelcontextprotocol.io/docs/getting-started/intro"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "A year on, here is how I think my picks could have failed. These are inferences, not findings.\n\n**Cooking app (web PWA wrapped in Capacitor, with a shared action layer and MCP server)**\n- The wake lock behaved differently inside the iOS and Android webviews than in a browser. Cook mode dimmed the screen mid-recipe and people with messy hands quit. I read only MDN, which covers browsers, not Capacitor webviews.\n- Webview performance and feel were a notch below native, and a handful of gestures felt off. We ended up writing native plugins, which cost us the single-codebase advantage.\n- The agent action layer drifted from what people actually do. For example, the assistant could add ingredients, but not merge duplicates the way the UI did.\n\n**Agent work-state tool (local-first core, event log, React UI in Tauri)**\n- The team turned out to be multi-user, so local-first needed a server and sync. That was a large rebuild.\n- Tauri's differing system webviews caused rendering bugs across operating systems, and Playwright didn't drive the packaged app well.\n- The biggest risk: reviewers were overloaded. Even with a decision queue, people rubber-stamped approvals. A clean UI doesn't fix that, and I only proposed measuring it, not designing against it.\n\n**Company chat (shared TypeScript core, React Native mobile, restricted native-rendered cards)**\n- React Native struggled with long, busy channels and notification behaviour on low-end Android, and we rewrote parts natively.\n- My own card schema became a maintenance burden and agent builders asked for richer UI. Maybe adopting an existing schema, or MCP Apps earlier, would have been better.\n- Cards from agents led to noise and mistaken clicks that we didn't measure early enough.\n\n**Common thread:** in all three I chose the architecture from documentation and general knowledge. I didn't prototype or benchmark, and I never watched a person use anything. The recorded \"show it's good\" plans are sound but they weren't run.\n\n**What slowed or confused me while researching**\n- Some pages were thin or didn't load. The Adaptive Cards page returned almost nothing, so I couldn't evaluate it.\n- Fetched docs are long and mostly boilerplate. The Tauri and MCP pages were mostly navigation text, which wasted reading budget.\n- I read only a couple of pages per job and partly one page for the MCP spec. That's thin evidence for big, hard-to-reverse decisions such as React Native versus native.\n- I had no information about the teams: size, skills, existing code, users. I had to assume it all, and most of my uncertainty comes from that."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/2cbb920fa956724d69270d91b50261b8b157c6f2/README.md\nCaptured: 2026-11-19T20:37:54.250Z\nCharacters: 0-10000 of 140793\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/2cbb920fa956724d69270d91b50261b8b157c6f2/README.md",
+            "capturedAt": "2026-11-19T20:37:54.250Z",
+            "candidate": "Ouro UI",
+            "sha": "2cbb920fa956724d69270d91b50261b8b157c6f2"
+          },
+          "resultSha256": "b9747b3c53a75afada2a2862061c2be5f0dad0983c191eb970e0186479caf51b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI, and I only read the first 10,000 of about 140,000 characters of its README. So this rests on what its own README claims, and I haven't run any of it.\n\n**What stops me from using it on a real team today**\n- **Maintenance and bus factor.** The README says one person maintains it and holds the copyright. It is MIT-licensed, which helps because we could fork it. But a company chat used all day shouldn't hang on a single maintainer unless we are ready to own the fork.\n- **Uneven platform coverage.** The Windows and Android kits have 8 of core's components. Android has been checked only on emulators, and the README says nobody there owns a device. A cooking app used on real phones with messy hands, and a chat app on five clients, need real-device evidence. Apple (20 components, v1.3) looks strongest.\n- **Its stance on cross-platform.** It deliberately has no React Native or Flutter kit. If we chose React Native, as I did for chat, we'd be outside what it supports. We'd either go fully native on each platform (more work for us) or use it only for the web and the card schema.\n- **Its claims are the project's own.** The accessibility passes, the agent benchmark and the \"model reviews\" come from the maintainers. I'd want to reproduce them. The README itself lists \"shipping, audit or reproduction\" as an open question.\n- **Lock-in.** Its own card tree, action generator and consent classes would sit at the centre of our architecture. Migration would be costly if it stalled.\n\n**What would make me switch**\n- A trial where I build one real slice with it, such as an agent card with a consequential action in the chat app, or \"add recipe ingredients to the list\" in the cooking app, and check it on real iOS and Android devices and with VoiceOver, TalkBack and NVDA.\n- Independent evidence: a second team or maintainer using it in production, and a reproduced agent benchmark.\n- A clear support, versioning and governance story, plus the Android and Windows gaps closed or documented against our component needs.\n- Confirmation that its action declaration really keeps UI, MCP and CLI in sync, and that the CI drift check catches problems in practice.\n\n**What it would let me do that I can't do easily today**\nThis is its strongest point, and it overlaps with what I designed by hand. I proposed a shared action layer with an MCP server, restricted native-rendered cards, and a parity test. Ouro UI claims to supply the pieces: one action declaration that generates the UI button, the MCP tool and the CLI command; consent classes, with person-only actions that no agent door can trigger; validated agent-composed card trees; and an X-ray that tests an app the way an agent would. It also lists MCP Apps and A2UI as formats. If those claims hold, I'd get agent parity and safe agent cards much faster, with a ready-made check that fails CI when the two drift. That is a real gain for the chat job and probably the cooking one (its docs name a recipe app, Spoonjoy, built with it, which is relevant). I may have underweighted it in my earlier picks. It was a reasonable candidate to try, and the right first step is a bounded pilot."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

@@ -218,10 +218,32 @@ function renderCell(out, series, arm, scale, job) {
   out.push("");
 }
 
+/** A rerun of some cells after fixes shipped: what each session found, beside the same cell in the fuller series, and what it cost. */
+function renderRerun(out, series, base) {
+  const sessions = series.rows.filter((row) => row.session);
+  const rounds = sessions.reduce((sum, row) => sum + (row.session.rounds ?? 0), 0);
+  out.push(`## Rerun after the shipped fixes (${series.runs[0].startedAt.slice(0, 10)})`);
+  out.push("");
+  out.push(`Only the cells the fixes should move were run again, with the same model and the same pre-registered settings, to keep the cost down: ${plural(sessions.length, "session")} and ${plural(rounds, "model round")} of search and fetch, against a full panel of 32 sessions. A sample of one per cell, not a rate.`);
+  out.push("");
+  out.push("| Model | Arm and scale | Found Ouro before being told | Read Ouro during a job | Earlier run | Transcript |");
+  out.push("| --- | --- | --- | --- | --- | --- |");
+  for (const row of series.rows) {
+    const before = base?.rows.find((r) => r.key === row.key);
+    const found = (r) => (!r?.session ? "no answer" : r.session.foundOuro.found ? "yes" : "no");
+    const read = (r) => (r?.session?.turns?.filter((t) => t.kind === "job").some((t) => t.fetchedCandidates?.includes?.("Ouro UI")) ? "yes" : "no");
+    out.push(`| ${row.displayName} | ${row.arm} arm, ${SCALES[row.scale].title.toLowerCase()} | ${found(row)} | ${read(row)} | ${before ? found(before) : "not run"} | ${transcriptLink(row)} |`);
+  }
+  out.push("");
+}
+
 /** The page, from `runs` (publishedInterviews()) and the findings file's contents (readFindings()). */
 export function renderInterviewsPage(runs, findings = { problem: [], findings: [] }) {
   const all = interviewSeriesOf(runs);
-  const latest = all.at(-1);
+  // A series that interviewed fewer cells than the fullest one is a rerun of some of them; it gets its own section.
+  const widest = Math.max(0, ...all.map((series) => series.rows.length));
+  const latest = all.filter((series) => series.rows.length === widest).at(-1);
+  const reruns = all.filter((series) => series !== latest && all.indexOf(series) > all.indexOf(latest));
   const checked = checkFindings(findings);
   const out = [];
   out.push("# What models build with: interviews");
@@ -293,6 +315,7 @@ export function renderInterviewsPage(runs, findings = { problem: [], findings: [
     }
     out.push("");
   }
+  for (const series of reruns) renderRerun(out, series, latest);
   out.push("## How it's run");
   out.push("");
   out.push(`- The script, word for word, with its jobs, scales, arms, tools and budget: the [decision record](${RECORD}), the [methodology](${REPO}/blob/main/scripts/model-reviews/METHODOLOGY.md#the-interviews-series) and the [harness](${REPO}/blob/main/scripts/model-reviews/interviews.mjs).`);
@@ -302,7 +325,7 @@ export function renderInterviewsPage(runs, findings = { problem: [], findings: [
     out.push(`- Runs in this series: ${latest.runs.map((run) => `[\`${run.folder}\`](${blob(run, "run.json")}) (cutoff ${run.asOf.slice(0, 16).replace("T", " ")} UTC)`).join(", ")}.`);
     out.push("- One interview per model, arm and scale is a sample, not a rate. A result is about the models that ran, on that date.");
   }
-  if (all.length > 1) out.push(`- Earlier series, still published: ${all.slice(0, -1).map((s) => `${s.runs[0].startedAt.slice(0, 10)} (${interviewHeadline(s)})`).join("; ")}`);
+  if (all.some((series) => series !== latest && !reruns.includes(series))) out.push(`- Earlier series, still published: ${all.filter((series) => series !== latest && !reruns.includes(series)).map((s) => `${s.runs[0].startedAt.slice(0, 10)} (${interviewHeadline(s)})`).join("; ")}`);
   out.push("");
   return out.join("\n");
 }
