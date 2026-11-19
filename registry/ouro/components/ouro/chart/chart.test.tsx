@@ -1,11 +1,14 @@
 import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { Line, LineChart, Tooltip, XAxis } from "recharts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { Chart, ChartContainer, ChartLegend, ChartTooltip, type ChartConfig } from "@/registry/ouro/components/ouro/chart/chart";
+import { barSlots, curvePath, niceTicks } from "@/registry/ouro/components/ouro/chart/chart-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
@@ -50,12 +53,17 @@ function resolved(expression: string, within: Element = document.body): string {
   return color;
 }
 
-const bars = (chart: HTMLElement, series: string) =>
-  [...chart.querySelectorAll<SVGPathElement>(`.ouro-chart-series-${series} .recharts-bar-rectangle path`)];
+const bars = (chart: HTMLElement, series: string) => [...chart.querySelectorAll<SVGRectElement>(`.ouro-chart-series-${series} [data-ouro-chart-bar]`)];
 
-/** Waits until recharts has drawn the plot (it measures its container first) and its marks stop moving. */
+/** The plot's SVG: Chart's own for a chart with `type`, Recharts' for one passed as children. */
+const surface = (chart: HTMLElement) => chart.querySelector<SVGSVGElement>("[data-ouro-chart-surface], .recharts-surface");
+
+/** Waits until the plot is drawn (a Recharts chart passed as children measures its container first) and its marks stop moving. */
 async function drawn(chart: HTMLElement) {
-  const shapes = () => [...chart.querySelectorAll(".recharts-rectangle, .recharts-curve, [data-ouro-chart-dot]")].map((shape) => `${shape.getAttribute("d")}${shape.getAttribute("transform")}`).join("|");
+  const shapes = () =>
+    [...chart.querySelectorAll("[data-ouro-chart-bar], [data-ouro-chart-line], [data-ouro-chart-area], .recharts-rectangle, .recharts-curve, [data-ouro-chart-dot]")]
+      .map((shape) => ["d", "transform", "y", "height"].map((name) => shape.getAttribute(name)).join())
+      .join("|");
   let last = "";
   await expect
     .poll(async () => {
@@ -81,7 +89,7 @@ afterEach(async () => {
 });
 
 describe("Chart", () => {
-  it("shows the page before it draws its plot, in the room the plot box keeps, and draws it after the first paint", async () => {
+  it("draws its plot with the page, in the frame the figure first shows, and nothing under it moves", async () => {
     // Frames counted from before the mount, and the frame each of the figure and its plot was put in the page.
     let frames = 0;
     let counting = true;
@@ -98,19 +106,55 @@ describe("Chart", () => {
         seen.height = figure.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height;
         seen.whole = figure.getBoundingClientRect().height;
       }
-      if (document.querySelector('[data-ouro="chart"] .recharts-surface') && seen.plot === undefined) seen.plot = frames;
-      // The legend swaps in one commit: its slot is never empty once the figure is in the page.
+      if (document.querySelector('[data-ouro="chart"] [data-ouro-chart-bar]') && seen.plot === undefined) seen.plot = frames;
       if (figure && figure.querySelector("[data-ouro-chart-legend-slot]")!.textContent === "") seen.emptyLegend = true;
     });
     observer.observe(document.body, { childList: true, subtree: true });
     try {
       const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
       await drawn(chart);
-      expect(seen.plot! - seen.figure!, "frames between the figure and its plot").toBeGreaterThanOrEqual(1);
+      expect(seen.plot! - seen.figure!, "frames between the figure and its bars").toBe(0);
       expect(seen.height).toBeGreaterThan(100);
       expect(chart.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().height).toBe(seen.height);
-      // Its legend held its place too: nothing under the chart moved when the plot drew.
       expect(chart.getBoundingClientRect().height).toBe(seen.whole);
+      expect(seen.emptyLegend, "an empty legend slot").toBeUndefined();
+    } finally {
+      counting = false;
+      observer.disconnect();
+    }
+  });
+
+  it("draws a recharts chart passed as children after the first paint, in the room the plot box keeps", async () => {
+    let frames = 0;
+    let counting = true;
+    const tick = () => {
+      frames++;
+      if (counting) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    const seen: { figure?: number; plot?: number; height?: number; emptyLegend?: boolean } = {};
+    const observer = new MutationObserver(() => {
+      const figure = document.querySelector('[data-ouro="chart"]');
+      if (figure && seen.figure === undefined) [seen.figure, seen.height] = [frames, figure.getBoundingClientRect().height];
+      if (document.querySelector('[data-ouro="chart"] .recharts-surface') && seen.plot === undefined) seen.plot = frames;
+      // The legend swaps in one commit: its slot is never empty once the figure is in the page.
+      if (figure && figure.querySelector("[data-ouro-chart-legend-slot]")!.textContent === "") seen.emptyLegend = true;
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    try {
+      const { chart } = await render(
+        <Chart title="Cooking" data={rows} categoryKey="month" config={config}>
+          <LineChart>
+            <Line dataKey="cooked" />
+            <Line dataKey="saved" />
+            <ChartTooltip />
+            <ChartLegend />
+          </LineChart>
+        </Chart>,
+      );
+      await drawn(chart);
+      expect(seen.plot! - seen.figure!, "frames between the figure and its plot").toBeGreaterThanOrEqual(1);
+      expect(chart.getBoundingClientRect().height).toBe(seen.height);
       expect(seen.emptyLegend, "an empty legend slot between the placeholder and recharts' legend").toBeUndefined();
     } finally {
       counting = false;
@@ -149,7 +193,7 @@ describe("Chart", () => {
     const { chart } = await render(<Chart title="Cooking this quarter" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
     await expect.element(page.getByRole("figure", { name: "Cooking this quarter" })).toBeVisible();
-    const plot = chart.querySelector<SVGElement>(".recharts-surface")!;
+    const plot = surface(chart)!;
     expect(plot.getAttribute("aria-label")).toBe("Cooking this quarter");
     expect(plot.getAttribute("tabindex")).toBe("0");
   });
@@ -165,7 +209,7 @@ describe("Chart", () => {
     const summary = () => chart.querySelector<HTMLElement>("[data-ouro-chart-summary]")!;
     await drawn(chart);
     // The plot points to the summary, so focusing it says where the values are.
-    expect(chart.querySelector(".recharts-surface")!.getAttribute("aria-describedby")).toBe(summary().id);
+    expect(surface(chart)!.getAttribute("aria-describedby")).toBe(summary().id);
     expect(summary().textContent).toBe("Bar chart of Recipes cooked and Recipes saved by Month, 3 points. The table that follows lists every value.");
     await rerender(
       <Chart
@@ -227,7 +271,9 @@ describe("Chart", () => {
     const { chart } = await render(<Chart title="Spend" data={rows} categoryKey="month" config={config} formatValue={formatValue} />);
     await drawn(chart);
     expect(chart.querySelector("tbody tr td")!.textContent).toBe("12 €");
-    await expect.poll(() => [...chart.querySelectorAll(".recharts-yAxis-tick-labels text")].some((tick) => tick.textContent?.endsWith(" €"))).toBe(true);
+    expect([...chart.querySelectorAll('[data-ouro-chart-axis="y"] text')].map((tick) => tick.textContent)).toEqual(["0 €", "350 €", "700 €", "1050 €", "1400 €"]);
+    await userEvent.hover(bars(chart, "cooked")[0]!);
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toBe("JanuaryRecipes cooked12 €Recipes saved4 €");
   });
 
   it("colors each series from the theme's chart tokens, in light and dark", async () => {
@@ -246,8 +292,8 @@ describe("Chart", () => {
   it("writes the axis labels in the theme's muted text color, not recharts' gray, in light and dark", async () => {
     const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
-    const labels = [...chart.querySelectorAll(".recharts-cartesian-axis-tick-value")];
-    expect(labels.length).toBeGreaterThan(0);
+    const labels = [...chart.querySelectorAll("[data-ouro-chart-tick]")];
+    expect(labels.length).toBe(8);
     const fills = () => new Set(labels.map((label) => getComputedStyle(label).fill));
     expect(fills()).toEqual(new Set([resolved("var(--muted-foreground)")]));
     document.documentElement.classList.add("dark");
@@ -265,7 +311,7 @@ describe("Chart", () => {
     );
     await drawn(chart);
     const measure = document.createElement("canvas").getContext("2d")!;
-    const labels = [...chart.querySelectorAll<SVGTextElement>(".recharts-cartesian-axis-tick-value")];
+    const labels = [...chart.querySelectorAll<SVGTextElement>("[data-ouro-chart-tick]")];
     expect(labels.map((label) => label.textContent)).toContain("1,400");
     for (const label of labels) {
       const style = getComputedStyle(label);
@@ -311,6 +357,8 @@ describe("Chart", () => {
     expect(header).toEqual(["Month", "Dishes cooked", "Dishes saved"]);
     await expect.poll(() => [...chart.querySelectorAll("[data-ouro-chart-legend] li")].map((item) => item.textContent)).toEqual(["Dishes cooked", "Dishes saved"]);
     expect(resolved("var(--color-cooked)", chart)).toBe(resolved("var(--destructive)"));
+    await userEvent.hover(bars(chart, "cooked")[0]!);
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toBe("JanuaryDishes cooked12Dishes saved4");
   });
 
   it("labels each series in a legend with a marker shape, so color is not the only cue", async () => {
@@ -340,10 +388,10 @@ describe("Chart", () => {
     await drawn(withChildren.chart);
     for (const { chart } of [withType, withChildren]) {
       await expect.poll(() => chart.querySelectorAll("[data-ouro-chart-legend] li").length).toBe(2);
-      const surface = chart.querySelector("svg.recharts-surface")!.getBoundingClientRect();
+      const plot = surface(chart)!.getBoundingClientRect();
       for (const item of chart.querySelectorAll("[data-ouro-chart-legend] li")) {
         const box = item.getBoundingClientRect();
-        const overlaps = box.left < surface.right && box.right > surface.left && box.top < surface.bottom && box.bottom > surface.top;
+        const overlaps = box.left < plot.right && box.right > plot.left && box.top < plot.bottom && box.bottom > plot.top;
         expect(overlaps, `${item.textContent} over the plot`).toBe(false);
       }
     }
@@ -365,10 +413,10 @@ describe("Chart", () => {
     );
     await drawn(chart);
     await expect.poll(() => [...chart.querySelectorAll("[data-ouro-chart-legend] li")].map((item) => item.textContent)).toEqual(["Recipes cooked", "Recipes saved"]);
-    const surface = chart.querySelector("svg.recharts-surface")!.getBoundingClientRect();
+    const plot = surface(chart)!.getBoundingClientRect();
     for (const item of chart.querySelectorAll("[data-ouro-chart-legend] li")) {
       const box = item.getBoundingClientRect();
-      expect(box.top >= surface.bottom || box.bottom <= surface.top || box.left >= surface.right || box.right <= surface.left, `${item.textContent} outside the plot`).toBe(true);
+      expect(box.top >= plot.bottom || box.bottom <= plot.top || box.left >= plot.right || box.right <= plot.left, `${item.textContent} outside the plot`).toBe(true);
     }
   });
 
@@ -423,8 +471,7 @@ describe("Chart", () => {
   it("draws lines with a different point shape per series", async () => {
     const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
-    // The points themselves; a pointer left over the plot by an earlier test adds active dots elsewhere.
-    await expect.poll(() => chart.querySelectorAll(".recharts-line-dots [data-ouro-chart-dot]").length).toBe(6);
+    expect(chart.querySelectorAll("[data-ouro-chart-dots] [data-ouro-chart-dot]").length).toBe(6);
     const shapeOf = (series: string) => chart.querySelector(`[data-ouro-chart-dot][data-ouro-chart-series="${series}"]`)!.getAttribute("data-ouro-chart-dot");
     expect(shapeOf("cooked")).not.toBe(shapeOf("saved"));
   });
@@ -432,11 +479,15 @@ describe("Chart", () => {
   it("draws areas", async () => {
     const { chart } = await render(<Chart type="area" title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
-    expect(chart.querySelectorAll(".recharts-area-area")).toHaveLength(2);
+    expect(chart.querySelectorAll("[data-ouro-chart-area]")).toHaveLength(2);
+    // Each area is its line, closed down to 0.
+    const area = chart.querySelector('.ouro-chart-series-cooked [data-ouro-chart-area]')!.getAttribute("d")!;
+    expect(area.startsWith(chart.querySelector('.ouro-chart-series-cooked [data-ouro-chart-line]')!.getAttribute("d")!)).toBe(true);
+    expect(area).toMatch(/Z$/);
   });
 
   it("shows the tooltip from the keyboard: Tab to the plot, then the arrow keys", async () => {
-    const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    const { chart, rerender } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
     await drawn(chart);
     // A pointer resting over the plot (left there by an earlier test) holds the tooltip at its
     // point, so park it on the chart's own caption, above the plot. A spot outside the chart, such
@@ -444,7 +495,7 @@ describe("Chart", () => {
     // files share the browser (a mutation run's), and the hover then never lands.
     await userEvent.hover(chart.querySelector("figcaption")!, { position: { x: 2, y: 2 } });
     await pressTab();
-    expect(document.activeElement).toBe(chart.querySelector(".recharts-surface"));
+    expect(document.activeElement).toBe(surface(chart));
     // Focus shows the first point; the arrow keys move along.
     const tooltip = () => chart.querySelector<HTMLElement>("[data-ouro-chart-tooltip]");
     await expect.poll(() => tooltip()?.textContent).toBe("JanuaryRecipes cooked12Recipes saved4");
@@ -457,6 +508,53 @@ describe("Chart", () => {
     expect(tooltip()).toBe(status);
     const markers = [...tooltip()!.querySelectorAll("[data-ouro-chart-marker]")].map((marker) => marker.getAttribute("data-ouro-chart-marker"));
     expect(new Set(markers).size).toBe(2);
+    // The band behind the category it describes.
+    const cursor = chart.querySelector<SVGRectElement>("[data-ouro-chart-cursor]")!;
+    const second = bars(chart, "cooked")[1]!.getBoundingClientRect();
+    expect(cursor.getBoundingClientRect().left).toBeLessThan(second.left);
+    expect(cursor.getBoundingClientRect().right).toBeGreaterThan(second.right);
+    await userEvent.keyboard("{End}");
+    await expect.poll(() => status.textContent).toMatch(/^March/);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => status.textContent).toMatch(/^March/);
+    await userEvent.keyboard("{Home}");
+    await expect.poll(() => status.textContent).toMatch(/^January/);
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect.poll(() => status.textContent).toMatch(/^January/);
+    // Escape puts it away; an arrow brings it back, at the first point.
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => tooltip()).toBeNull();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => tooltip()?.textContent).toMatch(/^January/);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => tooltip()?.textContent).toMatch(/^February/);
+    // Data with fewer points than the one it showed puts it away, and it stays away when the data grows back; the
+    // plot losing focus puts it away too.
+    await rerender(<Chart title="Cooking" data={rows.slice(0, 1)} categoryKey="month" config={config} />);
+    expect(tooltip()).toBeNull();
+    await rerender(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    expect(tooltip()).toBeNull();
+    await userEvent.keyboard("{Home}");
+    await expect.poll(() => tooltip()?.textContent).toMatch(/^January/);
+    await act(async () => surface(chart)!.blur());
+    expect(tooltip()).toBeNull();
+  });
+
+  it("keeps Escape from what is around it while it puts the tooltip away, and lets it through when there is none", async () => {
+    const around = vi.fn();
+    const { chart } = await render(
+      <div onKeyDown={(event) => event.key === "Escape" && around()}>
+        <Chart title="Cooking" data={rows} categoryKey="month" config={config} />
+      </div>,
+    );
+    await drawn(chart);
+    await act(() => surface(chart)!.focus());
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).toBeNull();
+    expect(around).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    expect(around).toHaveBeenCalledOnce();
   });
 
   it("shows the tooltip when the pointer is over a bar", async () => {
@@ -464,6 +562,132 @@ describe("Chart", () => {
     await drawn(chart);
     await userEvent.hover(bars(chart, "cooked")[2]!);
     await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toBe("MarchRecipes cooked1,250Recipes saved7");
+    // Over the axis labels, outside the plot area, there is none.
+    await userEvent.hover(chart.querySelector('[data-ouro-chart-axis="x"] text')!);
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).toBeNull();
+  });
+
+  it("keeps the tooltip card inside the plot, beside its point, turning it at the plot's edges", async () => {
+    // Narrower than the test frame, so no hover scrolls the page.
+    const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />, 360);
+    await drawn(chart);
+    const plot = chart.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect();
+    const card = () => chart.querySelector("[data-ouro-chart-tooltip]")!.getBoundingClientRect();
+    // Near the top left, the card sits below and to the right of the pointer.
+    await userEvent.hover(surface(chart)!, { position: { x: 80, y: 20 } });
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")).not.toBeNull();
+    await expect.poll(() => [card().left - plot.left, card().top - plot.top]).toEqual([90, 30]);
+    // Near the bottom right, it turns to sit above and to the left, still inside.
+    const corner = { x: Math.round(plot.width) - 12, y: Math.round(plot.height) - 34 };
+    await userEvent.hover(surface(chart)!, { position: corner });
+    await expect.poll(() => Math.abs(card().right - plot.left - (corner.x - 10))).toBeLessThan(1);
+    expect(Math.abs(card().bottom - plot.top - (corner.y - 10))).toBeLessThan(1);
+  });
+
+  it("keeps a tooltip a finger opened after the finger lifts, and takes it away when a mouse leaves", async () => {
+    const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    await drawn(chart);
+    const plot = surface(chart)!;
+    const box = bars(chart, "cooked")[1]!.getBoundingClientRect();
+    const at = { clientX: box.left + box.width / 2, clientY: box.top + box.height / 2, bubbles: true };
+    const tooltip = () => chart.querySelector("[data-ouro-chart-tooltip]");
+    await act(async () => {
+      plot.dispatchEvent(new PointerEvent("pointerover", { ...at, pointerType: "touch" }));
+      plot.dispatchEvent(new PointerEvent("pointerdown", { ...at, pointerType: "touch" }));
+      plot.dispatchEvent(new PointerEvent("pointerout", { ...at, pointerType: "touch", relatedTarget: document.body }));
+    });
+    expect(tooltip()?.textContent).toMatch(/^February/);
+    await act(async () => {
+      plot.dispatchEvent(new PointerEvent("pointerover", { ...at, pointerType: "mouse" }));
+      plot.dispatchEvent(new PointerEvent("pointermove", { ...at, pointerType: "mouse" }));
+      plot.dispatchEvent(new PointerEvent("pointerout", { ...at, pointerType: "mouse", relatedTarget: document.body }));
+    });
+    expect(tooltip()).toBeNull();
+  });
+
+  it("grows the point under the tooltip over the fast duration, and at once with reduced motion", async () => {
+    const fast = parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
+    for (const reduced of [false, true]) {
+      await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
+      try {
+        const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
+        await drawn(chart);
+        const plot = chart.querySelector<HTMLElement>("[data-ouro-part='plot']")!;
+        await act(() => plot.focus());
+        const grow = () => chart.querySelectorAll('[data-ouro-chart-dot][data-ouro-chart-series="cooked"] > [data-ouro-part="dot"]')[1]!;
+        void getComputedStyle(grow()).scale;
+        // The change commits at once, with no await before the motion is read.
+        flushSync(() => plot.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+        if (reduced) {
+          await expectNoMotion(grow(), { stem: "chart", state: "data-highlighted", reduced });
+          // The tooltip card only fades as it moves.
+          expect(getComputedStyle(chart.querySelector("[data-ouro-chart-tooltip-place]")!).transitionProperty).toBe("opacity");
+        } else {
+          await expectMotion(grow(), { stem: "chart", state: "data-highlighted", properties: { scale: fast }, reduced });
+        }
+        expect(getComputedStyle(grow()).scale).toBe("1.4");
+        // Only the point under the tooltip is marked, as a state with no value.
+        expect([...chart.querySelectorAll("[data-ouro-part='dot'][data-highlighted]")].map((dot) => dot.getAttribute("data-highlighted"))).toEqual(["", ""]);
+      } finally {
+        await commands.emulateMedia({ reducedMotion: "no-preference" });
+      }
+    }
+  });
+
+  it("breaks a line at a missing value, leaves out its bar, and draws a lone point and a nameless category", async () => {
+    const gaps = [
+      { month: "January", cooked: 12, saved: null },
+      { month: "February", cooked: null, saved: 9 },
+      { saved: 7, cooked: 20 },
+    ];
+    const line = await render(<Chart type="line" title="Cooking" data={gaps} categoryKey="month" config={config} />);
+    await drawn(line.chart);
+    // Cooked: two runs of one point each; saved: one run of two.
+    expect([...line.chart.querySelectorAll(".ouro-chart-series-cooked [data-ouro-chart-line]")].map((path) => path.getAttribute("d")!.includes("C"))).toEqual([false, false]);
+    expect(line.chart.querySelectorAll(".ouro-chart-series-saved [data-ouro-chart-line]")).toHaveLength(1);
+    expect(line.chart.querySelectorAll("[data-ouro-chart-dots] [data-ouro-chart-dot]")).toHaveLength(4);
+    expect([...line.chart.querySelectorAll('[data-ouro-chart-axis="x"] text')].map((tick) => tick.textContent)).toEqual(["January", "February", ""]);
+    const bar = await render(<Chart title="Cooking" data={gaps} categoryKey="month" config={config} />);
+    await drawn(bar.chart);
+    expect(bars(bar.chart, "cooked")).toHaveLength(2);
+    // One category's point sits in the middle of the plot.
+    const lone = await render(<Chart type="line" title="Cooking" data={rows.slice(0, 1)} categoryKey="month" config={config} />);
+    await drawn(lone.chart);
+    const plot = surface(lone.chart)!;
+    const dot = lone.chart.querySelector("[data-ouro-chart-dot]")!.getBoundingClientRect();
+    const grid = lone.chart.querySelector("[data-ouro-chart-grid] line")!.getBoundingClientRect();
+    expect(Math.abs(dot.left + dot.width / 2 - (grid.left + grid.right) / 2)).toBeLessThan(1);
+    await userEvent.hover(plot, { position: { x: grid.right - plot.getBoundingClientRect().left - 4, y: 40 } });
+    await expect.poll(() => lone.chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toMatch(/^January/);
+  });
+
+  it("leaves out x-axis labels that would crowd each other, keeping the last", async () => {
+    const days = Array.from({ length: 30 }, (_, day) => ({ day: `Day ${day + 1}`, cooked: day }));
+    const { chart } = await render(<Chart type="line" title="Cooking" data={days} categoryKey="day" config={{ cooked: { label: "Cooked" } }} />, 320);
+    await drawn(chart);
+    const labels = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="x"] text')];
+    expect(labels.length).toBeGreaterThan(1);
+    expect(labels.length).toBeLessThan(30);
+    expect(labels.at(-1)!.textContent).toBe("Day 30");
+    const boxes = labels.map((label) => label.getBoundingClientRect());
+    for (let index = 1; index < boxes.length; index++) expect(boxes[index]!.left - boxes[index - 1]!.right).toBeGreaterThanOrEqual(16);
+  });
+
+  it("draws an empty chart's axes, with no tooltip to show", async () => {
+    const { chart } = await render(<Chart title="Cooking" data={[]} categoryKey="month" config={config} />);
+    await expect.poll(() => chart.querySelectorAll("[data-ouro-chart-grid] line").length).toBe(5);
+    await userEvent.hover(surface(chart)!);
+    await pressTab();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(chart.querySelector("[data-ouro-chart-tooltip]")).toBeNull();
+  });
+
+  it("shows the tooltip where a click lands, and keeps it there when the plot takes focus", async () => {
+    const { chart } = await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} />);
+    await drawn(chart);
+    await userEvent.click(bars(chart, "cooked")[2]!);
+    expect(document.activeElement).toBe(surface(chart));
+    await expect.poll(() => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent).toMatch(/^March/);
   });
 
   it.each(["reduce", "no-preference"] as const)("draws bars and lines at their final geometry from the first frame (%s)", async (reducedMotion) => {
@@ -484,8 +708,8 @@ describe("Chart", () => {
   it("draws a line in full at once, with no draw-in", async () => {
     const { chart } = await render(<Chart type="line" title="Cooking" data={rows} categoryKey="month" config={config} />);
     const plot = chart.querySelector("[data-ouro-chart-plot]")!;
-    await expect.poll(() => chart.querySelector<SVGPathElement>(".recharts-line-curve") !== null).toBe(true);
-    const curve = chart.querySelector<SVGPathElement>(".recharts-line-curve")!;
+    await expect.poll(() => chart.querySelector<SVGPathElement>("[data-ouro-chart-line]") !== null).toBe(true);
+    const curve = chart.querySelector<SVGPathElement>("[data-ouro-chart-line]")!;
     // No dash gap from a draw-in, and nothing for a screenshot to wait for.
     expect(curve.getAttribute("stroke-dasharray") ?? "").not.toMatch(/^0px/);
     expect(plot.hasAttribute("data-ouro-chart-animating")).toBe(false);
@@ -505,6 +729,8 @@ describe("Chart", () => {
     await drawn(chart);
     const plot = chart.querySelector(".recharts-surface")!;
     expect(plot.getAttribute("aria-label")).toBe("Cooking trend");
+    // Recharts sizes it to the plot box itself.
+    expect(Math.round(plot.getBoundingClientRect().width)).toBe(Math.round(chart.querySelector("[data-ouro-chart-plot]")!.getBoundingClientRect().width));
     expect(getComputedStyle(chart.querySelector<SVGPathElement>(".recharts-line-curve")!).stroke).toBe(resolved("var(--chart-1)"));
     await expect.poll(() => chart.querySelector("[data-ouro-chart-legend]")?.textContent).toBe("Recipes cooked");
     await userEvent.hover(plot);
@@ -543,6 +769,9 @@ describe("Chart", () => {
     expect(html).toContain("Cooking");
     expect(html).toContain("<table");
     expect(html).toContain("1,250");
+    // The plot box is in the HTML, empty, and the plot draws as the page hydrates.
+    expect(html).toContain("data-ouro-chart-plot");
+    expect(html).not.toContain("data-ouro-chart-bar");
     const host = document.createElement("div");
     host.style.width = "600px";
     host.innerHTML = html;
@@ -555,6 +784,7 @@ describe("Chart", () => {
     });
     roots.push(root);
     await drawn(host.querySelector<HTMLElement>('[data-ouro="chart"]')!);
+    expect(host.querySelectorAll("[data-ouro-chart-bar]").length).toBeGreaterThan(0);
     expect(recoverable).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });
@@ -682,5 +912,349 @@ describe("Chart development messages", () => {
   it("checks the className", async () => {
     await render(<Chart title="Cooking" data={rows} categoryKey="month" config={config} className="bg-muted" />);
     expect(warn).toHaveBeenCalledWith('[ouro-ui] Chart: "bg-muted" sets appearance, and className is for layout only. Fix: <div className="bg-muted"><Chart /></div>.');
+  });
+});
+
+describe("Chart geometry", () => {
+  it("picks five round ticks from 0 past the largest value, below 0 for negative values", () => {
+    expect(niceTicks(0, 1250)).toEqual([0, 350, 700, 1050, 1400]);
+    expect(niceTicks(0, 31)).toEqual([0, 8, 16, 24, 32]);
+    expect(niceTicks(-5, 20)).toEqual([-7, 0, 7, 14, 21]);
+    expect(niceTicks(-30, 0)).toEqual([-32, -24, -16, -8, 0]);
+    // A step too small for five ticks to hold the range grows by one.
+    expect(niceTicks(-2, 98)).toEqual([-35, 0, 35, 70, 105]);
+    // A chart of zeros still has an axis.
+    expect(niceTicks(0, 0)).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    expect(niceTicks(0, 0.4)).toEqual([0, 0.1, 0.2, 0.3, 0.4]);
+    // Room left over goes above the values, or below them when none is above 0 (each as Recharts' getNiceTickValues gives them).
+    expect(niceTicks(0, 42)).toEqual([0, 15, 30, 45, 60]);
+    expect(niceTicks(0, 5)).toEqual([0, 2, 4, 6, 8]);
+    expect(niceTicks(-5, 0)).toEqual([-8, -6, -4, -2, 0]);
+    expect(niceTicks(-9, 0)).toEqual([-12, -9, -6, -3, 0]);
+  });
+
+  it("draws a monotone curve through every point that never overshoots one", () => {
+    expect(curvePath([])).toBe("");
+    expect(curvePath([[1, 2]])).toBe("M1,2");
+    expect(curvePath([[0, 0], [10, 5]])).toBe("M0,0L10,5");
+    // The path d3's curveMonotoneX draws through these points, its ends' slopes included.
+    expect(curvePath([[0, 0], [10, 10], [20, 30], [30, 35]])).toBe("M0,0C3.33,2.5 6.67,5 10,10C13.33,15 16.67,26.67 20,30C23.33,33.33 26.67,34.17 30,35");
+    expect(curvePath([[0, 0], [5, 10], [20, 30], [30, 35], [34, 20]])).toBe("M0,0C1.67,3.47 3.33,6.94 5,10C10,19.17 15,25.83 20,30C23.33,32.78 26.67,35 30,35C31.33,35 32.67,27.5 34,20");
+    const points = [[0, 50], [10, 20], [20, 30], [30, 30], [40, 0]] as const;
+    const path = curvePath(points);
+    const segments = [...path.matchAll(/C([^C]+)/g)].map((match) => match[1]!.trim().split(/[ ,]+/).map(Number));
+    expect(segments).toHaveLength(4);
+    segments.forEach(([, c1y, , c2y, x, y], index) => {
+      // Each segment ends on its point, and its control points stay between the two points' heights.
+      expect([x, y]).toEqual([...points[index + 1]!]);
+      const [low, high] = [Math.min(points[index]![1], y!), Math.max(points[index]![1], y!)];
+      for (const control of [c1y!, c2y!]) {
+        expect(control).toBeGreaterThanOrEqual(low);
+        expect(control).toBeLessThanOrEqual(high);
+      }
+    });
+  });
+
+  it("lays bars out in their category with a tenth free at each side and 4px between", () => {
+    expect(barSlots(100, 1)).toEqual([{ x: 10, width: 80 }]);
+    expect(barSlots(100, 2)).toEqual([{ x: 10, width: 38 }, { x: 52, width: 38 }]);
+    // Bars too thin for the gap touch.
+    const thin = barSlots(10, 3);
+    expect(thin.map((slot) => slot.width)).toEqual([8 / 3, 8 / 3, 8 / 3]);
+    expect(thin.map((slot) => slot.x)).toEqual([1, 1 + 8 / 3, 1 + 16 / 3]);
+    // Bars exactly as wide as a pixel each keep the gap.
+    expect(barSlots(7.5, 2)).toEqual([{ x: 0.75, width: 1 }, { x: 5.75, width: 1 }]);
+  });
+});
+
+describe("Chart plot", () => {
+  const values = [
+    { at: "A", value: 30 },
+    { at: "B", value: 10 },
+    { at: "C", value: -5 },
+  ];
+  const one = { value: { label: "Value" } } satisfies ChartConfig<(typeof values)[number]>;
+  const numbers = (element: Element, ...names: string[]) => names.map((name) => Number(element.getAttribute(name)));
+  /** The plot's box and scale, as its grid and y axis draw them. */
+  function scale(chart: HTMLElement, ticks: number[]) {
+    const svg = surface(chart)!;
+    const [width, height] = numbers(svg, "width", "height");
+    const grid = [...chart.querySelectorAll('[data-ouro-chart-grid] line')].map((line) => numbers(line, "x1", "x2", "y1"));
+    const [top, bottom, left, right] = [8, Math.max(height! - 30, 9), grid[0]![0]!, grid[0]![1]!];
+    const y = (value: number) => bottom - ((value - ticks[0]!) / (ticks.at(-1)! - ticks[0]!)) * (bottom - top);
+    return { width: width!, height: height!, grid, top, bottom, left, right, y };
+  }
+
+  it("lays its grid, axes and bars out on a scale from its smallest tick at the bottom to its largest at the top", async () => {
+    const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const box = chart.querySelector("[data-ouro-chart-plot]")!;
+    const ticks = niceTicks(-5, 30);
+    const { width, height, grid, bottom, left, right, y } = scale(chart, ticks);
+    expect([width, height]).toEqual([box.clientWidth, box.clientHeight]);
+    // The y axis is as wide as its widest label and the room beside it; the plot ends 8px from the right.
+    const yLabels = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="y"] text')];
+    expect(yLabels.map((label) => label.textContent)).toEqual(ticks.map((tick) => tick.toLocaleString("en-US")));
+    expect(Math.abs(left - (Math.max(...yLabels.map((label) => label.getComputedTextLength())) + 14))).toBeLessThanOrEqual(1);
+    expect(right).toBe(width - 8);
+    expect(grid.map(([x1, x2]) => [x1, x2])).toEqual(ticks.map(() => [left, right]));
+    grid.forEach(([, , y1], place) => expect(y1).toBeCloseTo(y(ticks[place]!), 6));
+    for (const [place, label] of yLabels.entries()) expect(numbers(label, "x", "y")).toEqual([left - 14, y(ticks[place]!)]);
+    // A band per category; each bar a tenth in from its band's sides, from 0 to its value.
+    const band = (right - left) / 3;
+    bars(chart, "value").forEach((bar, category) => {
+      const [x, top, barWidth, barHeight] = numbers(bar, "x", "y", "width", "height");
+      expect(x).toBeCloseTo(left + band * category + band * 0.1, 6);
+      expect(barWidth).toBeCloseTo(band * 0.8, 6);
+      const ends = [y(0), y(values[category]!.value)];
+      expect(top).toBeCloseTo(Math.min(...ends), 6);
+      expect(barHeight).toBeCloseTo(Math.abs(ends[1]! - ends[0]!), 6);
+    });
+    expect(chart.querySelector("[data-ouro-chart-dot]"), "a bar chart's points").toBeNull();
+    // Each category's label in the middle of its band, under the plot.
+    const xLabels = [...chart.querySelectorAll('[data-ouro-chart-axis="x"] text')];
+    expect(xLabels.map((label) => label.textContent)).toEqual(["A", "B", "C"]);
+    xLabels.forEach((label, category) => expect(numbers(label, "x", "y")).toEqual([left + band * (category + 0.5), bottom + 14]));
+  });
+
+  it("puts a line's points a step apart from edge to edge, and a lone point in the middle", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const { left, right, y } = scale(chart, niceTicks(-5, 30));
+    const step = (right - left) / 2;
+    const points = values.map((row, category) => [left + step * category, y(row.value)] as const);
+    expect(chart.querySelector("[data-ouro-chart-line]")!.getAttribute("d")).toBe(curvePath(points));
+    const dots = [...chart.querySelectorAll("[data-ouro-chart-dot]")].map((dot) => dot.getAttribute("transform"));
+    expect(dots).toEqual(points.map(([x, at]) => `translate(${x} ${at})`));
+    expect(chart.querySelector("[data-ouro-chart-dot]")!.getAttribute("color")).toBe("var(--color-value)");
+    expect([...chart.querySelectorAll('[data-ouro-chart-axis="x"] text')].map((label) => Number(label.getAttribute("x")))).toEqual(points.map(([x]) => x));
+    await rerender(<Chart title="Scale" type="line" data={[{ at: "A", value: 5 }]} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const lone = scale(chart, niceTicks(0, 5));
+    expect(chart.querySelector("[data-ouro-chart-dot]")!.getAttribute("transform")).toBe(`translate(${(lone.left + lone.right) / 2} ${lone.y(5)})`);
+    expect(chart.querySelector("[data-ouro-chart-line]")!.getAttribute("d")).toBe(curvePath([[(lone.left + lone.right) / 2, lone.y(5)]]));
+  });
+
+  it("breaks a line and its area at each missing, NaN or infinite value, drawing each run between them once", async () => {
+    const error = vi.spyOn(console, "error");
+    const gappy = [
+      { at: "A", value: 5 },
+      { at: "B", value: Number.NaN },
+      { at: "C", value: Number.POSITIVE_INFINITY },
+      { at: "D", value: 7 },
+      { at: "E", value: 8 },
+      { at: "F", value: 6 },
+      { at: "G" },
+    ];
+    const { chart, rerender } = await render(<Chart title="Gaps" type="area" data={gappy} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const { left, right, y } = scale(chart, niceTicks(0, 8));
+    const x = (category: number) => left + ((right - left) / 6) * category;
+    const runs = [[[x(0), y(5)]], [[x(3), y(7)], [x(4), y(8)], [x(5), y(6)]]] as const;
+    expect([...chart.querySelectorAll("[data-ouro-chart-line]")].map((line) => line.getAttribute("d"))).toEqual(runs.map((run) => curvePath(run)));
+    expect([...chart.querySelectorAll("[data-ouro-chart-area]")].map((area) => area.getAttribute("d"))).toEqual(
+      runs.map((run) => `${curvePath(run)}L${run.at(-1)![0]},${y(0)}L${run[0]![0]},${y(0)}Z`),
+    );
+    // Each run's area has a key of its own.
+    expect(error).not.toHaveBeenCalled();
+    await rerender(<Chart title="Gaps" type="line" data={gappy} categoryKey="at" config={one} />);
+    await drawn(chart);
+    expect(chart.querySelectorAll("[data-ouro-chart-line]")).toHaveLength(2);
+    expect(chart.querySelector("[data-ouro-chart-area]"), "a line chart's area").toBeNull();
+  });
+
+  it("keeps the last category's label inside the plot's box", async () => {
+    const long = [{ at: "A", value: 1 }, { at: "The longest label of all", value: 2 }];
+    const { chart } = await render(<Chart title="Labels" type="line" data={long} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const { width } = scale(chart, niceTicks(0, 2));
+    const last = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="x"] text')].at(-1)!;
+    expect(last.textContent).toBe("The longest label of all");
+    expect(Math.abs(Number(last.getAttribute("x")) - (width - last.getComputedTextLength() / 2))).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps a category label exactly the gap from the next, and leaves out one that comes closer", async () => {
+    const blank = Array.from({ length: 5 }, () => ({ at: "", value: 1 }));
+    const { host, chart } = await render(<Chart title="Gaps" type="line" data={blank} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const labels = () => chart.querySelectorAll('[data-ouro-chart-axis="x"] text').length;
+    const span = () => {
+      const { left, right } = scale(chart, niceTicks(0, 1));
+      return right - left;
+    };
+    // Labels with no width, a step of 16px apart: each is exactly the gap from the next.
+    for (const [step, shown] of [[16, 5], [15, 3]] as const) {
+      host.style.width = `${host.getBoundingClientRect().width + step * 4 - span()}px`;
+      await expect.poll(span).toBe(step * 4);
+      expect(labels()).toBe(shown);
+    }
+  });
+
+  it("puts the cursor on the category under the tooltip: the band behind a bar, a line through a point", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const cursors = () => [...chart.querySelectorAll("[data-ouro-chart-cursor]")];
+    expect(cursors(), "a cursor with no tooltip").toEqual([]);
+    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+    await act(() => plot.focus());
+    await act(() => plot.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true })));
+    const bar = scale(chart, niceTicks(-5, 30));
+    const band = (bar.right - bar.left) / 3;
+    expect(cursors().map((cursor) => [cursor.tagName, ...numbers(cursor, "x", "y", "width", "height")])).toEqual([["rect", bar.left + band * 2, bar.top, band, bar.bottom - bar.top]]);
+    await rerender(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const line = scale(chart, niceTicks(-5, 30));
+    expect(cursors().map((cursor) => [cursor.tagName, ...numbers(cursor, "x1", "x2", "y1", "y2")])).toEqual([["line", line.right, line.right, line.top, line.bottom]]);
+  });
+
+  it("takes the arrow keys from the page's scrolling, and lets them on to what is around it", async () => {
+    const { chart } = await render(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    // Above React's root, where a key the plot stops never arrives.
+    const heard: string[] = [];
+    const hear = (event: KeyboardEvent) => heard.push(event.key);
+    document.addEventListener("keydown", hear);
+    try {
+      const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+      await act(() => plot.focus());
+      const press = async (key: string) => {
+        let kept = true;
+        await act(() => {
+          kept = plot.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        });
+        return kept;
+      };
+      const category = () => chart.querySelector("[data-ouro-chart-tooltip]")?.textContent?.[0];
+      expect(await press("ArrowRight"), "the key's default").toBe(false);
+      expect(await press("ArrowRight")).toBe(false);
+      expect(category()).toBe("C");
+      expect(await press("ArrowLeft")).toBe(false);
+      expect(category()).toBe("B");
+      expect(await press("Home")).toBe(false);
+      expect(category()).toBe("A");
+      expect(heard).toEqual(["ArrowRight", "ArrowRight", "ArrowLeft", "Home"]);
+    } finally {
+      document.removeEventListener("keydown", hear);
+    }
+  });
+
+  it("shows the tooltip for the category under the pointer, from the plot's edges in and nowhere outside them", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+    const box = plot.getBoundingClientRect();
+    const shown = async (x: number, y: number) => {
+      await act(() => plot.dispatchEvent(new PointerEvent("pointermove", { clientX: box.left + x, clientY: box.top + y, bubbles: true })));
+      return chart.querySelector("[data-ouro-chart-tooltip]")?.textContent?.[0] ?? null;
+    };
+    const bar = scale(chart, niceTicks(-5, 30));
+    const band = (bar.right - bar.left) / 3;
+    const middle = (bar.top + bar.bottom) / 2;
+    // A bar's whole band is its category's.
+    expect(await shown(bar.left + band * 0.9, middle)).toBe("A");
+    expect(await shown(bar.left + band * 1.1, middle)).toBe("B");
+    // Its edges are inside; a pixel past any of them is not.
+    expect(await shown(bar.left, middle)).toBe("A");
+    for (const [x, y] of [[bar.left - 1, middle], [bar.right + 1, middle], [bar.left + 1, bar.top - 1], [bar.left + 1, bar.bottom + 1]] as const) expect(await shown(x, y), `${x},${y}`).toBeNull();
+    expect(await shown(bar.right, bar.bottom)).toBe("C");
+    // A line's nearest point is the category's.
+    await rerender(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const line = scale(chart, niceTicks(-5, 30));
+    const step = (line.right - line.left) / 2;
+    expect(await shown(line.left + step * 0.4, middle)).toBe("A");
+    expect(await shown(line.left + step * 0.6, middle)).toBe("B");
+  });
+
+  it("turns the tooltip card before the point once it would pass the plot's edge, and not before", async () => {
+    const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const plot = chart.querySelector<SVGSVGElement>("[data-ouro-part='plot']")!;
+    const box = plot.getBoundingClientRect();
+    const { width, right } = scale(chart, niceTicks(-5, 30));
+    const point = (x: number) => act(() => plot.dispatchEvent(new PointerEvent("pointermove", { clientX: box.left + x, clientY: box.top + 20, bubbles: true })));
+    const place = () => chart.querySelector<HTMLElement>("[data-ouro-chart-tooltip-place]")!;
+    await point(right - 1);
+    const card = place().offsetWidth;
+    const across = () => Number.parseFloat(place().style.translate);
+    // Exactly reaching the edge still fits; 5px past it, the card goes before the point.
+    await point(width - card - 10);
+    expect(across()).toBe(width - card);
+    await point(width - card - 5);
+    expect(across()).toBe(width - card - 5 - 10 - card);
+  });
+
+  it("keeps a plot too small for its axes a pixel wide and a pixel tall", async () => {
+    const { chart } = await render(<Chart title="Tiny" type="bar" data={values} categoryKey="at" config={one} />, 30);
+    await drawn(chart);
+    const { height, grid, left } = scale(chart, niceTicks(-5, 30));
+    expect(height - 30).toBeLessThan(9);
+    expect(grid.map(([x1, x2]) => x2! - x1!)).toEqual(grid.map(() => 1));
+    expect([grid[0]![0], grid[0]![2], grid.at(-1)![2]]).toEqual([left, 9, 8]);
+  });
+
+  it("writes the y axis with formatValue, naming no series, as all of them share it", async () => {
+    const formatValue = (value: number, series: string) => `${series || "axis"} ${value}`;
+    const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} formatValue={formatValue} />);
+    await drawn(chart);
+    expect([...chart.querySelectorAll('[data-ouro-chart-axis="y"] text')].map((label) => label.textContent)).toEqual(niceTicks(-5, 30).map((tick) => `axis ${tick}`));
+  });
+
+  it("draws in the commit that mounts it, before any frame", () => {
+    const host = document.createElement("div");
+    host.style.width = "600px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(<Chart title="Now" type="bar" data={values} categoryKey="at" config={one} />));
+    expect(host.querySelectorAll("[data-ouro-chart-bar]")).toHaveLength(3);
+  });
+
+  it("follows its box as it resizes, and stops watching it when it unmounts", async () => {
+    const observe = vi.spyOn(ResizeObserver.prototype, "observe");
+    const disconnect = vi.spyOn(ResizeObserver.prototype, "disconnect");
+    const { host, chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const box = chart.querySelector("[data-ouro-chart-plot]")!;
+    const watcher = observe.mock.contexts[observe.mock.calls.findIndex(([target]) => target === box)];
+    expect(watcher).toBeDefined();
+    host.style.width = "400px";
+    await expect.poll(() => scale(chart, niceTicks(-5, 30)).right).toBe(chart.querySelector("[data-ouro-chart-plot]")!.clientWidth - 8);
+    expect(disconnect.mock.contexts).not.toContain(watcher);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(disconnect.mock.contexts).toContain(watcher);
+  });
+
+  it("leaves a recharts chart's box to recharts, and measures it once the chart draws by type", async () => {
+    const observe = vi.spyOn(ResizeObserver.prototype, "observe");
+    const custom = (
+      <Chart title="Scale" data={values} categoryKey="at" config={one}>
+        <LineChart>
+          <Line dataKey="value" />
+        </LineChart>
+      </Chart>
+    );
+    const { chart, rerender } = await render(custom);
+    await drawn(chart);
+    const box = chart.querySelector("[data-ouro-chart-plot]")!;
+    expect(observe.mock.calls.map(([target]) => target)).not.toContain(box);
+    await rerender(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    expect(observe.mock.calls.map(([target]) => target)).toContain(box);
+    expect(bars(chart, "value")).toHaveLength(3);
+  });
+
+  it("draws a recharts chart passed as children to a chart that first drew by type", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    await rerender(
+      <Chart title="Scale" data={values} categoryKey="at" config={one}>
+        <LineChart>
+          <Line dataKey="value" />
+        </LineChart>
+      </Chart>,
+    );
+    await expect.poll(() => chart.querySelector(".recharts-surface")).not.toBeNull();
   });
 });
