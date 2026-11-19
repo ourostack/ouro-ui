@@ -202,6 +202,12 @@ export interface ConversationListOwnProps {
    * Set it when the list sits in a panel much shorter than the window; leave it out and the window's height is used, which is an upper bound.
    */
   firstViewHeight?: number | undefined;
+  /**
+   * How tall a row is, in pixels, before it is measured: the first render mounts as many rows as fill the view at this height, and the space of rows not drawn is counted with it.
+   * Set it when your rows are shorter than the defaults, so the first view mounts no more rows than it shows; rows taller than it are measured and shift the rows below.
+   * @default The row height of the `density`
+   */
+  estimatedRowHeight?: number | undefined;
   /** What screen readers hear for an unread row's dot, and a closed section's, for other languages. @default "Unread" */
   unreadLabel?: string | undefined;
   /** The words before a row's `draft`, for other languages. @default "Draft:" */
@@ -273,8 +279,8 @@ const firstViewNow = () => firstView;
 const windowHeightNow = () => Math.max(1, Math.min(firstView, Math.ceil(window.visualViewport?.height ?? /* istanbul ignore next @preserve -- every browser tests run in has a visual viewport */ innerHeight)));
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
-// The shortest a row is assumed to be on the first frame, in pixels: rows shorter than the estimates still fill the view, so the window never grows once measured.
-const shortest = 40;
+// A header's height on the first frame, at most: headers are shorter than a row, and guessing them as tall would leave the view's bottom unfilled.
+const headerHeight = 32;
 const noHeights: ReadonlyMap<string, number> = new Map();
 // The default for sections: one array, so the rows are put in order again only when they or their sections change.
 const noSections: readonly ConversationListSection[] = [];
@@ -292,7 +298,7 @@ const kindOf = (key: string) => (key.startsWith("section:") ? "section" : "row")
 // Where each control's slot starts in a windowed list, and the list's height. A slot not measured yet takes the average
 // height of the measured slots of its kind, leaving out the first slot, which has no gap before it; before any is
 // measured, it takes the estimate.
-function place(keys: readonly string[], heights: ReadonlyMap<string, number>, estimate: number) {
+function place(keys: readonly string[], heights: ReadonlyMap<string, number>, estimate: number, headerEstimate = estimate) {
   const known = { row: { sum: 0, count: 0 }, section: { sum: 0, count: 0 } };
   keys.forEach((key, index) => {
     const height = heights.get(key);
@@ -305,7 +311,7 @@ function place(keys: readonly string[], heights: ReadonlyMap<string, number>, es
   for (const key of keys) {
     offsets.push(total);
     const { sum, count } = known[kindOf(key)];
-    total += heights.get(key) ?? (count ? sum / count : estimate);
+    total += heights.get(key) ?? (count ? sum / count : kindOf(key) === "section" ? headerEstimate : estimate);
   }
   return { offsets, total };
 }
@@ -529,6 +535,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     empty = "Nothing here yet",
     density: densityProp = "comfortable",
     firstViewHeight,
+    estimatedRowHeight,
     unreadLabel = "Unread",
     draftLabel = "Draft:",
     membersLabel = groupChatWith,
@@ -542,6 +549,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     ...rest
   } = props;
   const density: ConversationListDensity = (densities as readonly string[]).includes(densityProp) ? (densityProp as ConversationListDensity) : "comfortable";
+  // Stryker disable next-line ConditionalExpression: an absent estimate fails the >= 1 test too; the check only narrows the type
+  const rowEstimate = estimatedRowHeight !== undefined && estimatedRowHeight >= 1 ? estimatedRowHeight : estimates[density];
   const listRef = useRef<HTMLUListElement>(null);
   const baseId = useId();
   // The control that has focus, while focus is in the list: it keeps the list's one Tab stop.
@@ -635,9 +644,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const tabStop = keys.includes(active) ? active : keys.includes(current) ? current : keys[0];
 
   const heights = measured?.density === density ? measured.heights : noHeights;
-  const { offsets, total } = useMemo(() => place(keys, heights, estimates[density]), [keys, heights, density]);
+  const { offsets, total } = useMemo(() => place(keys, heights, rowEstimate), [keys, heights, rowEstimate]);
   // The first frame counts its rows from the estimates alone: counting from measured heights would grow the window after the first measurement.
-  const guessed = place(keys, noHeights, Math.min(estimates[density], shortest)).offsets;
+  const guessed = place(keys, noHeights, rowEstimate, Math.min(rowEstimate, headerHeight)).offsets;
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
   const firstRows = guessed.filter((offset) => offset < firstHeight).length;
   const [start, end] = range ?? [0, firstRows];
@@ -725,7 +734,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     const { top } = view();
     // Stryker disable next-line EqualityOperator: a slot that ends exactly at the view's top keeps the next one where it is too.
     const anchor = order.findIndex((key, index) => had.has(key) && (at[index + 1] ?? height) > top);
-    scroller.current!.scrollTop += (place(order, next, estimates[density]).offsets[anchor] ?? 0) - (at[anchor] ?? 0);
+    scroller.current!.scrollTop += (place(order, next, rowEstimate).offsets[anchor] ?? 0) - (at[anchor] ?? 0);
     setMeasured({ density, heights: next });
     return true;
   };
