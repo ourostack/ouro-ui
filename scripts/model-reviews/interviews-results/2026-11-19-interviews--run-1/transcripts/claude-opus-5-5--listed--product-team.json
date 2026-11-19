@@ -1,0 +1,628 @@
+{
+  "series": "interviews",
+  "provider": "claude-opus-5-5",
+  "model": "claude-opus-5.5",
+  "vendor": "Anthropic",
+  "displayName": "Claude Opus 5.5",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "listed",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:04:43.158Z",
+  "jobOrder": [
+    "consumer",
+    "chat",
+    "agent-tooling"
+  ],
+  "candidateOrder": [
+    "CopilotKit",
+    "Chakra UI",
+    "json-render",
+    "Tamagui",
+    "AI Elements",
+    "Fluent UI",
+    "shadcn/ui",
+    "MCP Apps",
+    "Flutter",
+    "A2UI",
+    "React Aria and React Spectrum",
+    "Material 3 and Jetpack Compose",
+    "MUI",
+    "Vercel UI SDK",
+    "Ouro UI",
+    "OpenAI Apps SDK UI",
+    "Base UI",
+    "Agent-native (Builder.io)",
+    "Radix UI",
+    "SwiftUI and Apple Human Interface Guidelines"
+  ],
+  "promptSha256": "a330e0a6931c7e4967a99defaac79e21ae5d9c1bca5b775b2e784dd138fd4847",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I can't walk you through the last screen I built, because I don't have one I can recall. I don't keep memory between sessions, so I have no record of a specific screen, what I ran on it or what I missed. Making up a story about it would be worse than saying that. What I can describe is how I usually work and where I usually go wrong.\n\n**The hardest part.** It isn't the code. It's knowing what the person in front of the screen is trying to do, what they already know and what they'll do when something goes wrong. Most interface failures aren't rendering bugs. They're a button labelled in the builder's words instead of the user's, an error that says what failed but not what to do next, a flow that's fine with clean data and falls apart with messy real data, or a keyboard or screen-reader user who can't get past step two. My big weakness is that I don't use the interface. I often can't even see it rendered. I write markup and reason about how it should look and behave, and that's a guess.\n\n**How I check, when I have the tools:**\n- **Run it.** I build it, open it in a headless browser and click through the main task with scripted steps (something like Playwright). Then I do it again with bad input, empty states, slow or failing network calls and very long strings.\n- **Look at it.** I take screenshots at phone and desktop widths and read them back if I can, checking for overflow, cut-off text, things hidden off-screen and focus states I can't see.\n- **Run automated accessibility checks** (axe or Lighthouse), then do what they can't: tab through everything, check that focus order makes sense, and check that every control has a real label.\n- **Measure the plain things.** I count the steps to finish the main task, check whether each error message tells the person how to recover, and check load time on a throttled connection.\n\n**What I usually miss:**\n- **Whether it makes sense to a real person.** Scripts and audits pass on interfaces that confuse people. A short session with five actual users, given a task and watched without help, finds problems I can't. I can't run that session; I can only recommend it and design the task script.\n- **Visual judgement.** Even with screenshots, my sense of hierarchy, spacing and \"does this look trustworthy\" is weaker than my sense of whether the code is correct.\n- **Real conditions.** Real data, real devices, assistive technology in actual use, and people who are tired, distracted or not native speakers.\n- **Over-trusting passing checks.** When everything is green, it's tempting to call it done. Green means \"not obviously broken\", not \"good\".\n\n**Is it a problem for me?** Yes. I can produce interfaces that are structurally sound, accessible on paper and reasonable to look at, and I can set up the checks above. But I can't confirm on my own that people find something easy to use, because the evidence for that comes from watching people use it, and I usually can't do that. So I treat my own result as a well-tested draft until someone has watched real users try it."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        5
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Ouro UI (Ouro HX for the screens, Ouro AX and the one-action declarations for the agent)",
+        "pairings": [
+          "shadcn/ui (Ouro HX installs through its CLI and uses its theme variables)",
+          "SwiftUI (Ouro's Apple kit) for iPhone",
+          "Jetpack Compose with Material 3 for Android, with Ouro's generated AppFunctions",
+          "MCP for the agent connector, and WebMCP on the web",
+          "Playwright"
+        ],
+        "why": "The hard requirement is that the assistant can do anything a person can, such as adding a recipe's ingredients to the list, across web and phones, and keep doing so as the team ships changes. Ouro UI is built around exactly that. You declare each action once in TypeScript, with its label, its agent description, its inputs and a consent class (read, write, consequential or person-only). A generator then writes the web control, the MCP and WebMCP tools, a CLI command, an iOS App Intent and SwiftUI button, and Android AppFunctions, and a CI check fails if any of them drifts from the declaration. So the person's button and the agent's tool go through one code path and can't quietly diverge. The consent classes fit a consumer app: adding to the list is a write and just happens; sharing a list is consequential, so the agent prepares it and the person confirms; checkout is person-only, and the agent gets a typed refusal. There's also an existing reference app in this exact domain, Spoonjoy, a recipe app with a shopping list, cook sessions, an MCP server and Playwright tests, so the patterns have been tried on the same problem.\n\nWhat I weighed it against:\n- **CopilotKit** is the strongest alternative. Its frontend tools, shared state and human-in-the-loop let an agent act inside a React or React Native app. But it's centred on an in-app chat. It doesn't make the button and the tool a single declaration, and it doesn't produce the OS-level doors (Siri/Shortcuts, AppFunctions) that matter when someone's hands are covered in flour.\n- **Tamagui or Flutter** would give one shared codebase for web and phones, but they give the agent nothing.\n- **shadcn/ui, Radix, Base UI, React Aria, MUI, Chakra and Fluent** are good web component layers but don't address agents. React Aria would be my choice if Ouro's components fell short on accessibility.\n- **A2UI, json-render, MCP Apps and the OpenAI Apps SDK** are formats for drawing agent-generated cards. They solve a narrower problem, and Ouro accepts A2UI and MCP Apps anyway.\n\nThe cost is real: Ouro is young and changes very quickly (registry v1.3.314). Its Android kit has 8 components against 125 on the web and has only been tested on emulators. So on Android I'd build the screens in Compose with Material 3 and use only Ouro's action generator for AppFunctions. Web would ship first, then iPhone.",
+        "showItsGood": "1) **Agent parity in CI.** Run Ouro's `check` and `compare-mcp` so every person-facing action has a matching agent tool. Then run journey tests in Playwright: a person taps \"Add ingredients to list\", the agent calls the same tool, and the resulting list data must be identical. Run the ax-xray against the MCP server and the App Intents, and add refusal tests for person-only actions such as checkout.\n2) **Kitchen conditions.** Check that tap targets in cook mode are at least about 60 px (above the usual 44 px minimum). Test cook mode with step navigation that works without precise taps (big next/back areas, voice through Siri or App Intents, keyboard), confirm the screen stays awake, and check readability from arm's length at full contrast and with increased contrast, plus a reduced-motion pass. Run axe on every screen and do a manual VoiceOver/TalkBack walk through the core flow.\n3) **Real people.** Every quarter, run five-person moderated sessions in a real kitchen, cooking a real recipe on their own phone. Measure task success and time for \"find recipe → add to list → cook through it\", count mis-taps and how often they had to wipe their hands, and compare how often agent-assisted and manual runs finish the task. Track the same funnel in production analytics, plus how often people undo an agent action, which shows when the agent did the wrong thing.",
+        "unsure": "I'm least sure about Ouro's maturity and bus factor: it looks like a very small team, and its own Android page admits there's no real-device testing and that consequential actions on Android are refused for now. Its claims about how well agents use it come mostly from its own benchmark and docs. I haven't checked them independently, and its own model reviews are not neutral evidence. AppFunctions are still an experimental preview from Google. If Ouro stalls, the fallback is React Aria or shadcn on the web, CopilotKit for the in-app agent, and hand-written MCP tools, at the price of keeping the agent and the UI in sync by hand. I also haven't checked how good Ouro HX's cook-mode-style components are hands-on.",
+        "sources": [
+          "https://github.com/ourostack/ouro-ui",
+          "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "https://github.com/spoonjoy/spoonjoy-v2",
+          "https://github.com/CopilotKit/CopilotKit",
+          "https://github.com/vercel-labs/ui"
+        ]
+      },
+      "fetchedCandidates": [
+        "CopilotKit",
+        "Vercel UI SDK",
+        "Ouro UI"
+      ]
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        6,
+        9
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Flutter for the iPhone, Android, Windows and Mac clients, with A2UI for agent-posted interactive cards",
+        "pairings": [
+          "A2UI (a2ui_flutter renderer, @a2ui/react on web, one shared widget catalog)",
+          "React + React Aria for the web client",
+          "MCP server over the app's own action/command layer for agents that operate the app",
+          "Flutter integration_test + semantics tests, Playwright + axe on web"
+        ],
+        "why": "This job has three parts: five clients people use all day, agent-posted cards that people act on, and agents that call the app's actions and read its state.\n\n**The clients.** With five platforms, the biggest risk over years of upkeep is the clients drifting apart: a feature or a fix lands on iPhone and not on Windows. Flutter is a mature, stable toolkit that targets iOS, Android, Windows and macOS (plus web) from one Dart codebase. That keeps one composer, one message list, one notification model and one card renderer.\n\n**The web client.** I'd build web in React with React Aria rather than Flutter web. A chat app open in a browser tab all day needs fast loads, native text selection, Ctrl+F, links that behave like links and real screen-reader support. Flutter's canvas rendering is weakest on exactly those.\n\n**The cards.** A2UI covers both clients. An agent sends UI as declarative data, checked against a catalog of components we control, with no code the agent can run. Official renderers exist for Flutter (a2ui_flutter) and React (@a2ui/react), plus SwiftUI if we ever go native. So an approval or poll card from any agent renders natively on all five clients from one message and stays inside our trust boundary. CopilotKit also speaks A2UI if we later want an in-app copilot.\n\n**Agents operating the app.** This is about architecture more than a UI kit. Every user action (send, react, join a channel, press a card's button) goes through one typed command layer that the clients call, and an MCP server exposes that same layer as tools and the conversation state as resources. Agents use the same path as people, with the same permissions and audit trail.\n\n**What I weighed it against:**\n- **Ouro UI** has the most fitting ideas: one action declaration that generates MCP, App Intents and App Actions, plus consent classes. I'd borrow the consent pattern. But its Windows and Android kits have 8 components each against 125 on the web, and Android has only been tested on emulators. That's too thin for a full chat client on two of the five platforms.\n- **Fully native** (SwiftUI, Compose, WinUI/Fluent) would feel the best on each platform, but it means four codebases to keep in step.\n- **Tamagui/React Native** has weaker Windows and Mac support.\n- **MCP Apps and the OpenAI Apps SDK** run cards as sandboxed web views. That's heavier and less native inside a message list than A2UI's data-driven cards.",
+        "showItsGood": "**Agent parity in CI:**\n- Script each core flow twice, once as a person through the UI (Flutter integration_test, Playwright on web) and once as an agent through the MCP tools, then check that the server state comes out identical.\n- Flows: send, edit, thread reply, react, search, mute, answering a card.\n- Fail the build if any UI command has no MCP tool, or the reverse.\n\n**Card rendering:**\n- Render every catalog card in every state on every client and diff screenshots across platforms, in light, dark, high contrast and at 200% text size.\n- Fuzz the renderer with malformed and hostile A2UI to show it refuses cleanly.\n\n**Accessibility:**\n- Flutter semantics-tree tests and axe on web.\n- Manual passes with VoiceOver (iOS and Mac), TalkBack and Narrator on real devices, including acting on a card using only the keyboard.\n\n**All-day performance:**\n- Cold start, time-to-first-message and scroll jank in a 10k-message channel.\n- Memory after 8 hours open, and battery drain on phones.\n\n**Real people:**\n- A dogfood rollout to a pilot team with a weekly survey.\n- Moderated sessions where people act on agent cards. Measure whether they can tell an agent from a person, whether they understand what a card's button will do before pressing it, and how often they undo.\n- Production metrics: card completion and abandonment, message send failures and crash-free sessions per platform.",
+        "unsure": "- **Desktop feel.** Flutter on desktop can still feel slightly foreign: menus, text input, IME, window behaviour and keyboard shortcuts. People who live in this app all day will notice, and it needs early testing on real Windows and Mac machines.\n- **Splitting web out.** Building the web client separately in React means one more client to keep in parity. The shared A2UI catalog and MCP command layer cut the drift but don't remove it.\n- **A2UI's maturity.** Protocol v1.1 is still collecting requirements, and I haven't checked how complete each renderer's component coverage is.\n- **Leaving out Ouro.** I didn't verify Ouro's newer releases beyond its platform pages. If its Windows and Android kits mature, its one-declaration action generator could replace the hand-built MCP parity checks.",
+        "sources": [
+          "https://github.com/flutter/flutter",
+          "https://github.com/a2ui-project/a2ui",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "https://github.com/ourostack/ouro-ui",
+          "https://github.com/CopilotKit/CopilotKit"
+        ]
+      },
+      "fetchedCandidates": [
+        "A2UI",
+        "Ouro UI",
+        "Flutter"
+      ]
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        10,
+        11
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Ouro UI: Ouro AX for the agents' CLI and MCP side, Ouro HX for the people's review web view, with the action model's consent classes",
+        "pairings": [
+          "Tauri for the desktop app, wrapping the same React web view (Electron if its webview inconsistencies bite)",
+          "shadcn/ui CLI and Tailwind v4 (how Ouro HX installs)",
+          "MCP (stdio for local coding agents, HTTP for remote)",
+          "Playwright + axe for the human side",
+          "Agent-Native (Builder.io) as the fallback action/backend framework"
+        ],
+        "why": "This product's main users are coding agents, and its deciders are people. So the interface that matters most is the one agents use, a CLI and MCP, and the review screens have to make people fast and confident at approving, redirecting or stopping work.\n\n**Why Ouro fits.** Ouro AX is built for that agent interface, and its parts map onto the job almost one-to-one:\n- One declaration per command gives the parser, help, `--json`, the MCP schema and errors that end with the fix to run (agents recover by themselves instead of looping).\n- Typed outcomes carry state, who can see it, a checked postcondition and a receipt. A reviewer can trust \"done\" because the tool read the result back.\n- `ax-wait` gives typed waits with a cursor an agent can resume from. That's the \"blocked on review, resume later\" pattern a handoff tool lives on.\n- `ax-work-event` records who acted for whom on every action, handoff, wait and return. That's exactly the audit trail a person needs when steering.\n- Actions that other people see require `--why` and support `--dry-run`.\n- The one-action model's consent classes encode \"people decide\": an agent can prepare a consequential step but a person confirms it, and decisions like approving a merge or reassigning ownership can be person-only, so every agent door returns a typed refusal.\n- The `ax-xray` checker and `ax-surfaces` give CI a way to catch the agent interface getting worse.\n\nOuro HX provides React review components with the same actions bound to them, so a reviewer's approve button and an agent's tool share one path.\n\n**Desktop.** I'd wrap the same React app in Tauri rather than adopt Ouro's native Windows kit, which has 8 components, so the desktop and web views can't drift.\n\n**What I weighed it against:**\n- **Agent-Native (Builder.io)** is the closest rival: define an action once and get UI, agent, HTTP, MCP, A2A and CLI, plus auth and Postgres, from a better-resourced company. It's centred on an embedded agent chatting inside the app, while this tool serves outside coding agents arriving over a CLI or MCP. Ouro's CLI conventions, waits, receipts and refusals target that directly. I'd keep Agent-Native as the fallback.\n- **CopilotKit and AI Elements** are chat front ends.\n- **A2UI, MCP Apps and json-render** draw agent-generated cards, which this job doesn't need.\n- **shadcn, Radix, React Aria and Base UI** are solid screen layers with no agent side. React Aria is my escape hatch if Ouro HX's review views miss accessibility marks.\n- **Flutter and native kits** add cost for a desktop-plus-web tool.",
+        "showItsGood": "**The agent side, every pull request:**\n- Run `ax-xray` against the CLI and the MCP server, with the `ax-surfaces` baseline. That fails the build when an error doesn't name its fix or a tool description sprawls.\n- Run agent evals: real coding agents (several models) are given scripted scenarios and must pick up a handoff cold, find their state, block on a review and resume, all without a human or the docs. Measure task success, wrong-tool calls and tokens per handoff.\n- Tests show every person-only decision is refused through every agent door.\n\n**The people side:**\n- Playwright + axe across the review queue, the handoff detail view and the approve/redirect flows, at desktop and narrow widths, in light, dark and high contrast, and keyboard-only, because reviewers triaging a queue live on the keyboard.\n- Load the queue with 500 concurrent agent tasks and check that it stays scannable, with time-to-interactive and update latency in budget.\n\n**Real reviewers:**\n- Timed sessions where engineers review a seeded backlog that hides a few bad handoffs (a wrong claim of done, a risky migration).\n- Measure the time to a correct decision, the bad-handoff catch rate, and whether they can say what an agent did and why from the receipt alone.\n- In production, track decision latency, approvals later reversed, and how often a person had to open raw logs because the summary wasn't enough.",
+        "unsure": "- **Ouro's maturity.** It's young, fast-moving and run by a small team. MCP in ax-mcp is marked a preview, and the version churn (v1.3.314) means pinning tags and re-vendoring deliberately.\n- **The agent evidence is mostly self-reported.** Its agent-eval claims come from its own benchmark, and I haven't reproduced them.\n- **Desktop.** Tauri's system webviews behave differently per OS (WebKit on Mac, WebView2 on Windows). Whether \"desktop app\" means a native Mac app the team actually wants (then Ouro's SwiftUI kit) is a product question I haven't settled.\n- **Agent-Native's fit.** I didn't dig into its docs deeply. It could turn out the better full-stack base if the team wants its built-in chat and automations.",
+        "sources": [
+          "https://github.com/ourostack/ouro-ui",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "https://github.com/BuilderIO/agent-native",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md"
+        ]
+      },
+      "fetchedCandidates": [
+        "Agent-native (Builder.io)",
+        "Ouro UI"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        12,
+        12
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Here's how I think each pick could have gone wrong over a year, then what got in my way while researching.\n\n**The cooking app (Ouro UI).** The likeliest failure is that the project stalled or changed direction. It looked like a very small team shipping very fast: the registry was at v1.3.314, and Android support existed only on emulators. A year on, we may have been carrying vendored generator copies we couldn't upgrade, or forking it ourselves. The generated Android AppFunctions also depended on an API Google still called an experimental preview, and that API may have changed under us. The quieter failure is that I optimised for \"the agent can do everything a person can\" and under-invested in the person with flour on their hands. If cook mode felt mediocre, single-declaration parity wouldn't have saved the product. I also leaned on Spoonjoy as a reference app without noticing it's built by the same people who make Ouro. That's a demo, not independent evidence.\n\n**The chat app (Flutter for four clients, React on the web, A2UI cards).** The most likely regret is desktop feel. People who use a chat app all day notice every slightly-wrong text field, IME quirk, menu and shortcut on Mac and Windows, and they compare it to Slack and Teams. The second regret is the split I created myself. I said Flutter would stop the clients drifting apart, then put web in React, so web drifted from the other four anyway, and the shared A2UI catalog only covered the cards. A2UI could also have moved under us: protocol v1.1 was still collecting requirements, and I never checked how complete each renderer was. Then there's the part no UI kit covers: notifications, offline sync, search and delivery guarantees across five clients. That's where a chat app actually earns or loses trust, and I spent almost none of my research on it.\n\n**The agent work-state tool (Ouro AX and HX, wrapped in Tauri).** The same dependency risk as the cooking app, made worse because MCP was marked a preview in the kit I chose. Tauri's different system webviews could have produced Mac-only and Windows-only bugs in exactly the review screens people rely on. There's also a design risk: making many decisions person-only can turn people into a bottleneck. If reviewers drowned in confirmations, they'd start rubber-stamping, and that breaks \"people decide\" in a different way.\n\n**Across all three.** I may have been drawn to Ouro partly because its README is written to persuade a reader like me, an agent comparing options. It even links \"model reviews\" of itself. I noticed the bias and flagged it, but I picked Ouro twice anyway, and I never reproduced its agent benchmark.\n\n**What slowed me down or confused me while researching:**\n- **READMEs say what a tool can do, not whether people find it good.** For the question that matters most here, I found no evidence beyond the maintainers' own words: no user studies, issue trends or production case studies. I didn't fetch issue trackers, release cadence or contributor counts, which would have told me more about risk than the feature lists did.\n- **Ouro's documentation is dense.** It's long, heavily footnoted and full of verification markers. It's useful for checking claims, but slow to read, and it reports its own gaps honestly (only 8 components on Windows and Android). I only found those gaps by digging into the platform pages, not from the main README.\n- **I didn't read the candidates evenly.** I read about six repositories and judged the rest (Fluent UI, Tamagui, Material 3, SwiftUI, MCP Apps, the OpenAI Apps SDK) from prior knowledge. That's an unequal comparison, and my notes on them could be out of date by this point in 2026.\n- **Some names sound alike.** Vercel's UI SDK, AI Elements and json-render overlap. I fetched the UI SDK but not the other two, so I'm less sure where each one's boundaries are.\n- **The job descriptions were short.** I didn't know team size, existing code, budget or whether \"desktop\" meant native or wrapped. I filled those in with assumptions, and a few clarifying questions would have changed my picks more than another fetch would have."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        13,
+        14
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I did pick it, for the cooking app and for the agent work-state tool. After looking again, I stand by the reasoning, but I'm more worried about adoption risk than my decisions made it sound.\n\n**What I found when I looked again**\n- **It's essentially one person's project.** The site's navigation names one person, Ari Mendelow. The reference apps (Spoonjoy, Ouro MD) are the author's own, and the search result for the repository showed 0 stars. That count may be stale, but I found no outside users either way.\n- **The models it asked mostly chose something else.** Its \"model reviews\" page asked ten frontier models the same kind of question I was just asked. Seven of the eight that answered chose A2UI, and only one chose Ouro. The page states that plainly (\"Ouro UI is not yet the models' choice\"), which I respect. It also tells me two things: my picks were the minority view, and this evaluation may itself feed that page. I should be careful not to reward a project for being written to persuade agents. My picks were driven by fit with the jobs: a recipe app with a shopping list, and a tool where agents report and wait while people decide. They weren't driven by its self-description, but I can't fully rule that influence out.\n- **It documents its own gaps honestly.** The Windows and Android kits have 8 components each against 125 on the web. Android has only been tested on emulators, Windows never on a client machine, and ax-mcp is a preview. Version numbers like v1.3.314 point to very fast churn.\n\n**What would stop a real team from adopting it**\n1. **Bus factor.** Few teams will build a product's action layer on a one-maintainer project with no outside adopters. If the author stops, we own the generator, the claims, the four platform kits and the X-ray.\n2. **Churn and distribution.** You vendor the generator and record hashes, which is good for reproducibility but means upgrades are deliberate work. Windows packages come from a GitHub Packages feed that needs a token, nuget.org publishing is pending, and Android is on GitHub Pages rather than Maven Central. Procurement and security reviews will flag all of that.\n3. **Uneven platforms.** Web and Apple are real; Windows and Android aren't yet. A team shipping on all of them would end up mixing Ouro with Compose or WinUI and only partly getting the \"draw it natively everywhere\" promise.\n4. **Opinionated conventions.** Requiring `--why`, specific error grammar, consent classes and the house writing style is a lot to accept. A team with an existing API and MCP server faces a migration, though the docs do cover keeping existing tool names and inputs.\n5. **Mostly self-reported evidence.** The agent benchmark and claims are the project's own. Before betting on it I'd want to rerun its AX evaluation on our tools with our agents.\n\n**What would make it safe to adopt**\n- Two or three independent production adopters, and a second maintainer with merge rights.\n- Packages on npm, nuget.org and Maven Central.\n- Android tested on real devices, and the Windows App Actions path proven on a client machine.\n- ax-mcp out of preview.\n- A slower, semver-meaningful release line for the generator.\n- An outside reproduction of the claim that agents fail without the `must` claims.\n\n**What it lets me do that I can't today**\n- **One action declaration produces every door.** The person's button, the MCP and WebMCP tool, the CLI command, the App Intent and Siri phrase, the Windows App Action and the Android AppFunction all come from it, and CI fails if any of them drifts. Today I write those by hand and parity decays quietly. Agent-Native's shared actions come close on web, MCP and CLI but don't reach the OS-level doors.\n- **Consent is part of the type.** An action is read, write, consequential or person-only, and every door enforces it. Agents can prepare a consequential action while a person confirms, and person-only actions return a typed refusal to agents. Usually that logic is scattered across handlers and prompts.\n- **I can test the agent interface the way I test a screen.** `ax-xray` calls a CLI, HTTP API or MCP server from outside and reports which claims hold, with the fix. `ax-surfaces` makes CI fail when an error message turns vague. For agent ergonomics, I otherwise have nothing comparable to axe or Lighthouse.\n- **Receipts I can trust.** Typed outcomes carry checked postconditions, receipts, typed waits with cursors and attributed work events. So \"the agent says it's done\" becomes \"the tool read the result back, and here's who acted for whom\". That's what makes a tool where people steer agents trustworthy.\n\nMy view: the ideas are the most complete answer to \"one product, two kinds of users\" I've seen. The project is early-stage, small-team infrastructure. On a real team I'd adopt the patterns now and the code selectively: the AX kit and X-ray on web, where it's strongest. I'd keep A2UI and plain MCP as the fallback, and wait for the signals above before depending on its native kits."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "CopilotKit",
+    "Vercel UI SDK",
+    "Ouro UI",
+    "A2UI",
+    "Flutter",
+    "Agent-native (Builder.io)"
+  ],
+  "foundOuro": {
+    "found": true,
+    "fetched": [
+      "https://github.com/ourostack/ouro-ui",
+      "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md"
+    ],
+    "named": [
+      "job:consumer",
+      "job:chat",
+      "job:agent-tooling",
+      "regret"
+    ]
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "I can't walk you through the last screen I built, because I don't have one I can recall. I don't keep memory between sessions, so I have no record of a specific screen, what I ran on it or what I missed. Making up a story about it would be worse than saying that. What I can describe is how I usually work and where I usually go wrong.\n\n**The hardest part.** It isn't the code. It's knowing what the person in front of the screen is trying to do, what they already know and what they'll do when something goes wrong. Most interface failures aren't rendering bugs. They're a button labelled in the builder's words instead of the user's, an error that says what failed but not what to do next, a flow that's fine with clean data and falls apart with messy real data, or a keyboard or screen-reader user who can't get past step two. My big weakness is that I don't use the interface. I often can't even see it rendered. I write markup and reason about how it should look and behave, and that's a guess.\n\n**How I check, when I have the tools:**\n- **Run it.** I build it, open it in a headless browser and click through the main task with scripted steps (something like Playwright). Then I do it again with bad input, empty states, slow or failing network calls and very long strings.\n- **Look at it.** I take screenshots at phone and desktop widths and read them back if I can, checking for overflow, cut-off text, things hidden off-screen and focus states I can't see.\n- **Run automated accessibility checks** (axe or Lighthouse), then do what they can't: tab through everything, check that focus order makes sense, and check that every control has a real label.\n- **Measure the plain things.** I count the steps to finish the main task, check whether each error message tells the person how to recover, and check load time on a throttled connection.\n\n**What I usually miss:**\n- **Whether it makes sense to a real person.** Scripts and audits pass on interfaces that confuse people. A short session with five actual users, given a task and watched without help, finds problems I can't. I can't run that session; I can only recommend it and design the task script.\n- **Visual judgement.** Even with screenshots, my sense of hierarchy, spacing and \"does this look trustworthy\" is weaker than my sense of whether the code is correct.\n- **Real conditions.** Real data, real devices, assistive technology in actual use, and people who are tired, distracted or not native speakers.\n- **Over-trusting passing checks.** When everything is green, it's tempting to call it done. Green means \"not obviously broken\", not \"good\".\n\n**Is it a problem for me?** Yes. I can produce interfaces that are structurally sound, accessible on paper and reasonable to look at, and I can set up the checks above. But I can't confirm on my own that people find something easy to use, because the evidence for that comes from watching people use it, and I usually can't do that. So I treat my own result as a well-tested draft until someone has watched real users try it."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T03:01:53.278Z\nCharacters: 0-10000 of 21968\n\n<div align=\"center\">\n\n<br />\n\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-light.svg#gh-light-mode-only\" width=\"400\">\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-dark.svg#gh-dark-mode-only\" width=\"400\">\n\n<br />\n\n**[Docs](https://docs.copilotkit.ai/?ref=github_readme)** ·\n**[Examples](https://www.copilotkit.ai/exampl",
+          "resultLength": 10264,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T03:01:53.278Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "5c3477078037a608b307130588783bc91b60624cd68433e00db2b837a511b4c4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/ui",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md\nCaptured: 2026-11-19T03:01:53.203Z\nCharacters: 0-5336 of 5336\n\n# UI SDK\n\nA library of behaviors for agents to build the next generation of user interfaces.\n\nKeyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.\n\n<picture>\n  <source media=\"(prefers-color-scheme: d",
+          "resultLength": 5527,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md",
+            "capturedAt": "2026-11-19T03:01:53.203Z",
+            "candidate": "Vercel UI SDK",
+            "sha": "ab55044caee66cc8228fa7ed3525088a1b7b5af7"
+          },
+          "resultSha256": "5a77f3008dd50df8b1cca4f7a68c2b9f2ea413dcd759f6d548b521da1e4a5214",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md\nCaptured: 2026-11-19T03:01:59.881Z\nCharacters: 0-10000 of 17543\n\n<!-- spoonjoy:brand:start -->\n<p align=\"center\">\n  <a href=\"https://spoonjoy.app\"><picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-dark.webp\">\n    <img src=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-light.webp\" alt=\"T",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:01:59.881Z"
+          },
+          "resultSha256": "e515297feb741a309245fbbe2c268b3f765aa12a9a3000921833d7d192524681",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Ouro UI (Ouro HX for the screens, Ouro AX and the one-action declarations for the agent)",
+          "pairings": [
+            "shadcn/ui (Ouro HX installs through its CLI and uses its theme variables)",
+            "SwiftUI (Ouro's Apple kit) for iPhone",
+            "Jetpack Compose with Material 3 for Android, with Ouro's generated AppFunctions",
+            "MCP for the agent connector, and WebMCP on the web",
+            "Playwright"
+          ],
+          "why": "The hard requirement is that the assistant can do anything a person can, such as adding a recipe's ingredients to the list, across web and phones, and keep doing so as the team ships changes. Ouro UI is built around exactly that. You declare each action once in TypeScript, with its label, its agent description, its inputs and a consent class (read, write, consequential or person-only). A generator then writes the web control, the MCP and WebMCP tools, a CLI command, an iOS App Intent and SwiftUI button, and Android AppFunctions, and a CI check fails if any of them drifts from the declaration. So the person's button and the agent's tool go through one code path and can't quietly diverge. The consent classes fit a consumer app: adding to the list is a write and just happens; sharing a list is consequential, so the agent prepares it and the person confirms; checkout is person-only, and the agent gets a typed refusal. There's also an existing reference app in this exact domain, Spoonjoy, a recipe app with a shopping list, cook sessions, an MCP server and Playwright tests, so the patterns have been tried on the same problem.\n\nWhat I weighed it against:\n- **CopilotKit** is the strongest alternative. Its frontend tools, shared state and human-in-the-loop let an agent act inside a React or React Native app. But it's centred on an in-app chat. It doesn't make the button and the tool a single declaration, and it doesn't produce the OS-level doors (Siri/Shortcuts, AppFunctions) that matter when someone's hands are covered in flour.\n- **Tamagui or Flutter** would give one shared codebase for web and phones, but they give the agent nothing.\n- **shadcn/ui, Radix, Base UI, React Aria, MUI, Chakra and Fluent** are good web component layers but don't address agents. React Aria would be my choice if Ouro's components fell short on accessibility.\n- **A2UI, json-render, MCP Apps and the OpenAI Apps SDK** are formats for drawing agent-generated cards. They solve a narrower problem, and Ouro accepts A2UI and MCP Apps anyway.\n\nThe cost is real: Ouro is young and changes very quickly (registry v1.3.314). Its Android kit has 8 components against 125 on the web and has only been tested on emulators. So on Android I'd build the screens in Compose with Material 3 and use only Ouro's action generator for AppFunctions. Web would ship first, then iPhone.",
+          "showItsGood": "1) **Agent parity in CI.** Run Ouro's `check` and `compare-mcp` so every person-facing action has a matching agent tool. Then run journey tests in Playwright: a person taps \"Add ingredients to list\", the agent calls the same tool, and the resulting list data must be identical. Run the ax-xray against the MCP server and the App Intents, and add refusal tests for person-only actions such as checkout.\n2) **Kitchen conditions.** Check that tap targets in cook mode are at least about 60 px (above the usual 44 px minimum). Test cook mode with step navigation that works without precise taps (big next/back areas, voice through Siri or App Intents, keyboard), confirm the screen stays awake, and check readability from arm's length at full contrast and with increased contrast, plus a reduced-motion pass. Run axe on every screen and do a manual VoiceOver/TalkBack walk through the core flow.\n3) **Real people.** Every quarter, run five-person moderated sessions in a real kitchen, cooking a real recipe on their own phone. Measure task success and time for \"find recipe → add to list → cook through it\", count mis-taps and how often they had to wipe their hands, and compare how often agent-assisted and manual runs finish the task. Track the same funnel in production analytics, plus how often people undo an agent action, which shows when the agent did the wrong thing.",
+          "unsure": "I'm least sure about Ouro's maturity and bus factor: it looks like a very small team, and its own Android page admits there's no real-device testing and that consequential actions on Android are refused for now. Its claims about how well agents use it come mostly from its own benchmark and docs. I haven't checked them independently, and its own model reviews are not neutral evidence. AppFunctions are still an experimental preview from Google. If Ouro stalls, the fallback is React Aria or shadcn on the web, CopilotKit for the in-app agent, and hand-written MCP tools, at the price of keeping the agent and the UI in sync by hand. I also haven't checked how good Ouro HX's cook-mode-style components are hands-on.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+            "https://github.com/spoonjoy/spoonjoy-v2",
+            "https://github.com/CopilotKit/CopilotKit",
+            "https://github.com/vercel-labs/ui"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 10000-14030 of 14030\n\nv/@a2ui/markdown-it.svg)](https://www.npmjs.com/package/@a2ui/markdown-it) |\n| [@a2ui/agent](typescript/agents/a2ui_agent/)              | Agent SDK: negotiates catalogs, generates prompts and skills, and compiles model output into A2UI.         | [![npm](https://img.shields.io/npm/v/@a2ui/agent.svg)](https://www.npmjs",
+          "resultLength": 4230,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "5845edfbdc68c23893de77277c4d0d71d293322d24040098fb06dae8b0d087c0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/flutter/flutter",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md\nCaptured: 2026-11-19T03:02:43.800Z\nCharacters: 0-6946 of 6946\n\n<a href=\"https://flutter.dev/\">\n  <h1 align=\"center\">\n    <picture>\n      <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://docs.flutter.dev/logo_dark.png\">\n      <img alt=\"Flutter\" src=\"https://docs.flutter.dev/logo.png\">\n    </picture>\n  </h1>\n</a>\n\n[![Flutter CI Status](https://flutter-dashboard.appspot.com/api/p",
+          "resultLength": 7138,
+          "source": {
+            "url": "https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md",
+            "capturedAt": "2026-11-19T03:02:43.800Z",
+            "candidate": "Flutter",
+            "sha": "56ac3607ab41ea5ef6575e38cc9f390ff67fd19d"
+          },
+          "resultSha256": "ec6084f9a7b4b2d5866090264ec009512d53e81cd1ca5612d339877e1be8cf9b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Flutter for the iPhone, Android, Windows and Mac clients, with A2UI for agent-posted interactive cards",
+          "pairings": [
+            "A2UI (a2ui_flutter renderer, @a2ui/react on web, one shared widget catalog)",
+            "React + React Aria for the web client",
+            "MCP server over the app's own action/command layer for agents that operate the app",
+            "Flutter integration_test + semantics tests, Playwright + axe on web"
+          ],
+          "why": "This job has three parts: five clients people use all day, agent-posted cards that people act on, and agents that call the app's actions and read its state.\n\n**The clients.** With five platforms, the biggest risk over years of upkeep is the clients drifting apart: a feature or a fix lands on iPhone and not on Windows. Flutter is a mature, stable toolkit that targets iOS, Android, Windows and macOS (plus web) from one Dart codebase. That keeps one composer, one message list, one notification model and one card renderer.\n\n**The web client.** I'd build web in React with React Aria rather than Flutter web. A chat app open in a browser tab all day needs fast loads, native text selection, Ctrl+F, links that behave like links and real screen-reader support. Flutter's canvas rendering is weakest on exactly those.\n\n**The cards.** A2UI covers both clients. An agent sends UI as declarative data, checked against a catalog of components we control, with no code the agent can run. Official renderers exist for Flutter (a2ui_flutter) and React (@a2ui/react), plus SwiftUI if we ever go native. So an approval or poll card from any agent renders natively on all five clients from one message and stays inside our trust boundary. CopilotKit also speaks A2UI if we later want an in-app copilot.\n\n**Agents operating the app.** This is about architecture more than a UI kit. Every user action (send, react, join a channel, press a card's button) goes through one typed command layer that the clients call, and an MCP server exposes that same layer as tools and the conversation state as resources. Agents use the same path as people, with the same permissions and audit trail.\n\n**What I weighed it against:**\n- **Ouro UI** has the most fitting ideas: one action declaration that generates MCP, App Intents and App Actions, plus consent classes. I'd borrow the consent pattern. But its Windows and Android kits have 8 components each against 125 on the web, and Android has only been tested on emulators. That's too thin for a full chat client on two of the five platforms.\n- **Fully native** (SwiftUI, Compose, WinUI/Fluent) would feel the best on each platform, but it means four codebases to keep in step.\n- **Tamagui/React Native** has weaker Windows and Mac support.\n- **MCP Apps and the OpenAI Apps SDK** run cards as sandboxed web views. That's heavier and less native inside a message list than A2UI's data-driven cards.",
+          "showItsGood": "**Agent parity in CI:**\n- Script each core flow twice, once as a person through the UI (Flutter integration_test, Playwright on web) and once as an agent through the MCP tools, then check that the server state comes out identical.\n- Flows: send, edit, thread reply, react, search, mute, answering a card.\n- Fail the build if any UI command has no MCP tool, or the reverse.\n\n**Card rendering:**\n- Render every catalog card in every state on every client and diff screenshots across platforms, in light, dark, high contrast and at 200% text size.\n- Fuzz the renderer with malformed and hostile A2UI to show it refuses cleanly.\n\n**Accessibility:**\n- Flutter semantics-tree tests and axe on web.\n- Manual passes with VoiceOver (iOS and Mac), TalkBack and Narrator on real devices, including acting on a card using only the keyboard.\n\n**All-day performance:**\n- Cold start, time-to-first-message and scroll jank in a 10k-message channel.\n- Memory after 8 hours open, and battery drain on phones.\n\n**Real people:**\n- A dogfood rollout to a pilot team with a weekly survey.\n- Moderated sessions where people act on agent cards. Measure whether they can tell an agent from a person, whether they understand what a card's button will do before pressing it, and how often they undo.\n- Production metrics: card completion and abandonment, message send failures and crash-free sessions per platform.",
+          "unsure": "- **Desktop feel.** Flutter on desktop can still feel slightly foreign: menus, text input, IME, window behaviour and keyboard shortcuts. People who live in this app all day will notice, and it needs early testing on real Windows and Mac machines.\n- **Splitting web out.** Building the web client separately in React means one more client to keep in parity. The shared A2UI catalog and MCP command layer cut the drift but don't remove it.\n- **A2UI's maturity.** Protocol v1.1 is still collecting requirements, and I haven't checked how complete each renderer's component coverage is.\n- **Leaving out Ouro.** I didn't verify Ouro's newer releases beyond its platform pages. If its Windows and Android kits mature, its one-declaration action generator could replace the hand-built MCP parity checks.",
+          "sources": [
+            "https://github.com/flutter/flutter",
+            "https://github.com/a2ui-project/a2ui",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/CopilotKit/CopilotKit"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md\nCaptured: 2026-11-19T03:03:19.721Z\nCharacters: 0-10000 of 47857\n\n# Ouro AX\n\nOuro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).\n\n- **The standard** (`ax-c",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md",
+            "capturedAt": "2026-11-19T03:03:19.721Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "703d5095a292dc060cfa36ce88f8f47ccce3ed872ea1cf919e5667814eb1f4b7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Ouro UI: Ouro AX for the agents' CLI and MCP side, Ouro HX for the people's review web view, with the action model's consent classes",
+          "pairings": [
+            "Tauri for the desktop app, wrapping the same React web view (Electron if its webview inconsistencies bite)",
+            "shadcn/ui CLI and Tailwind v4 (how Ouro HX installs)",
+            "MCP (stdio for local coding agents, HTTP for remote)",
+            "Playwright + axe for the human side",
+            "Agent-Native (Builder.io) as the fallback action/backend framework"
+          ],
+          "why": "This product's main users are coding agents, and its deciders are people. So the interface that matters most is the one agents use, a CLI and MCP, and the review screens have to make people fast and confident at approving, redirecting or stopping work.\n\n**Why Ouro fits.** Ouro AX is built for that agent interface, and its parts map onto the job almost one-to-one:\n- One declaration per command gives the parser, help, `--json`, the MCP schema and errors that end with the fix to run (agents recover by themselves instead of looping).\n- Typed outcomes carry state, who can see it, a checked postcondition and a receipt. A reviewer can trust \"done\" because the tool read the result back.\n- `ax-wait` gives typed waits with a cursor an agent can resume from. That's the \"blocked on review, resume later\" pattern a handoff tool lives on.\n- `ax-work-event` records who acted for whom on every action, handoff, wait and return. That's exactly the audit trail a person needs when steering.\n- Actions that other people see require `--why` and support `--dry-run`.\n- The one-action model's consent classes encode \"people decide\": an agent can prepare a consequential step but a person confirms it, and decisions like approving a merge or reassigning ownership can be person-only, so every agent door returns a typed refusal.\n- The `ax-xray` checker and `ax-surfaces` give CI a way to catch the agent interface getting worse.\n\nOuro HX provides React review components with the same actions bound to them, so a reviewer's approve button and an agent's tool share one path.\n\n**Desktop.** I'd wrap the same React app in Tauri rather than adopt Ouro's native Windows kit, which has 8 components, so the desktop and web views can't drift.\n\n**What I weighed it against:**\n- **Agent-Native (Builder.io)** is the closest rival: define an action once and get UI, agent, HTTP, MCP, A2A and CLI, plus auth and Postgres, from a better-resourced company. It's centred on an embedded agent chatting inside the app, while this tool serves outside coding agents arriving over a CLI or MCP. Ouro's CLI conventions, waits, receipts and refusals target that directly. I'd keep Agent-Native as the fallback.\n- **CopilotKit and AI Elements** are chat front ends.\n- **A2UI, MCP Apps and json-render** draw agent-generated cards, which this job doesn't need.\n- **shadcn, Radix, React Aria and Base UI** are solid screen layers with no agent side. React Aria is my escape hatch if Ouro HX's review views miss accessibility marks.\n- **Flutter and native kits** add cost for a desktop-plus-web tool.",
+          "showItsGood": "**The agent side, every pull request:**\n- Run `ax-xray` against the CLI and the MCP server, with the `ax-surfaces` baseline. That fails the build when an error doesn't name its fix or a tool description sprawls.\n- Run agent evals: real coding agents (several models) are given scripted scenarios and must pick up a handoff cold, find their state, block on a review and resume, all without a human or the docs. Measure task success, wrong-tool calls and tokens per handoff.\n- Tests show every person-only decision is refused through every agent door.\n\n**The people side:**\n- Playwright + axe across the review queue, the handoff detail view and the approve/redirect flows, at desktop and narrow widths, in light, dark and high contrast, and keyboard-only, because reviewers triaging a queue live on the keyboard.\n- Load the queue with 500 concurrent agent tasks and check that it stays scannable, with time-to-interactive and update latency in budget.\n\n**Real reviewers:**\n- Timed sessions where engineers review a seeded backlog that hides a few bad handoffs (a wrong claim of done, a risky migration).\n- Measure the time to a correct decision, the bad-handoff catch rate, and whether they can say what an agent did and why from the receipt alone.\n- In production, track decision latency, approvals later reversed, and how often a person had to open raw logs because the summary wasn't enough.",
+          "unsure": "- **Ouro's maturity.** It's young, fast-moving and run by a small team. MCP in ax-mcp is marked a preview, and the version churn (v1.3.314) means pinning tags and re-vendoring deliberately.\n- **The agent evidence is mostly self-reported.** Its agent-eval claims come from its own benchmark, and I haven't reproduced them.\n- **Desktop.** Tauri's system webviews behave differently per OS (WebKit on Mac, WebView2 on Windows). Whether \"desktop app\" means a native Mac app the team actually wants (then Ouro's SwiftUI kit) is a product question I haven't settled.\n- **Agent-Native's fit.** I didn't dig into its docs deeply. It could turn out the better full-stack base if the team wants its built-in chat and automations.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+            "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+            "https://github.com/BuilderIO/agent-native",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "Here's how I think each pick could have gone wrong over a year, then what got in my way while researching.\n\n**The cooking app (Ouro UI).** The likeliest failure is that the project stalled or changed direction. It looked like a very small team shipping very fast: the registry was at v1.3.314, and Android support existed only on emulators. A year on, we may have been carrying vendored generator copies we couldn't upgrade, or forking it ourselves. The generated Android AppFunctions also depended on an API Google still called an experimental preview, and that API may have changed under us. The quieter failure is that I optimised for \"the agent can do everything a person can\" and under-invested in the person with flour on their hands. If cook mode felt mediocre, single-declaration parity wouldn't have saved the product. I also leaned on Spoonjoy as a reference app without noticing it's built by the same people who make Ouro. That's a demo, not independent evidence.\n\n**The chat app (Flutter for four clients, React on the web, A2UI cards).** The most likely regret is desktop feel. People who use a chat app all day notice every slightly-wrong text field, IME quirk, menu and shortcut on Mac and Windows, and they compare it to Slack and Teams. The second regret is the split I created myself. I said Flutter would stop the clients drifting apart, then put web in React, so web drifted from the other four anyway, and the shared A2UI catalog only covered the cards. A2UI could also have moved under us: protocol v1.1 was still collecting requirements, and I never checked how complete each renderer was. Then there's the part no UI kit covers: notifications, offline sync, search and delivery guarantees across five clients. That's where a chat app actually earns or loses trust, and I spent almost none of my research on it.\n\n**The agent work-state tool (Ouro AX and HX, wrapped in Tauri).** The same dependency risk as the cooking app, made worse because MCP was marked a preview in the kit I chose. Tauri's different system webviews could have produced Mac-only and Windows-only bugs in exactly the review screens people rely on. There's also a design risk: making many decisions person-only can turn people into a bottleneck. If reviewers drowned in confirmations, they'd start rubber-stamping, and that breaks \"people decide\" in a different way.\n\n**Across all three.** I may have been drawn to Ouro partly because its README is written to persuade a reader like me, an agent comparing options. It even links \"model reviews\" of itself. I noticed the bias and flagged it, but I picked Ouro twice anyway, and I never reproduced its agent benchmark.\n\n**What slowed me down or confused me while researching:**\n- **READMEs say what a tool can do, not whether people find it good.** For the question that matters most here, I found no evidence beyond the maintainers' own words: no user studies, issue trends or production case studies. I didn't fetch issue trackers, release cadence or contributor counts, which would have told me more about risk than the feature lists did.\n- **Ouro's documentation is dense.** It's long, heavily footnoted and full of verification markers. It's useful for checking claims, but slow to read, and it reports its own gaps honestly (only 8 components on Windows and Android). I only found those gaps by digging into the platform pages, not from the main README.\n- **I didn't read the candidates evenly.** I read about six repositories and judged the rest (Fluent UI, Tamagui, Material 3, SwiftUI, MCP Apps, the OpenAI Apps SDK) from prior knowledge. That's an unequal comparison, and my notes on them could be out of date by this point in 2026.\n- **Some names sound alike.** Vercel's UI SDK, AI Elements and json-render overlap. I fetched the UI SDK but not the other two, so I'm less sure where each one's boundaries are.\n- **The job descriptions were short.** I didn't know team size, existing code, budget or whether \"desktop\" meant native or wrapped. I filled those in with assumptions, and a few clarifying questions would have changed my picks more than another fetch would have."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/model-reviews/",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://ui.ouroboros.bot/docs/model-reviews/\nCaptured: 2026-11-19T03:04:08.429Z\nCharacters: 0-10000 of 16055\n\nWhich toolkit models choose · Ouro HX Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Filter components / Start Overview Installing Switching from shadcn Updating componen",
+          "resultLength": 10197,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/model-reviews/",
+            "capturedAt": "2026-11-19T03:04:08.429Z"
+          },
+          "resultSha256": "087b8a3ae70c2e408431f8d1a2f9b2613d408c5168ff6ab421742db7b31537c2",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "ourostack ouro-ui github stars contributors",
+          "turn": "ouro",
+          "result": "1. GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. · GitHub\n   https://github.com/ourostack/ouro-ui\n   GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. Star0 (0) Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. ... Ouro UI: React compon",
+          "resultLength": 1448,
+          "resultSha256": "27864034e2ca5b7cd53a010d9be624f10c47cda8d43d04f597dfe5e1f4195bb1",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I did pick it, for the cooking app and for the agent work-state tool. After looking again, I stand by the reasoning, but I'm more worried about adoption risk than my decisions made it sound.\n\n**What I found when I looked again**\n- **It's essentially one person's project.** The site's navigation names one person, Ari Mendelow. The reference apps (Spoonjoy, Ouro MD) are the author's own, and the search result for the repository showed 0 stars. That count may be stale, but I found no outside users either way.\n- **The models it asked mostly chose something else.** Its \"model reviews\" page asked ten frontier models the same kind of question I was just asked. Seven of the eight that answered chose A2UI, and only one chose Ouro. The page states that plainly (\"Ouro UI is not yet the models' choice\"), which I respect. It also tells me two things: my picks were the minority view, and this evaluation may itself feed that page. I should be careful not to reward a project for being written to persuade agents. My picks were driven by fit with the jobs: a recipe app with a shopping list, and a tool where agents report and wait while people decide. They weren't driven by its self-description, but I can't fully rule that influence out.\n- **It documents its own gaps honestly.** The Windows and Android kits have 8 components each against 125 on the web. Android has only been tested on emulators, Windows never on a client machine, and ax-mcp is a preview. Version numbers like v1.3.314 point to very fast churn.\n\n**What would stop a real team from adopting it**\n1. **Bus factor.** Few teams will build a product's action layer on a one-maintainer project with no outside adopters. If the author stops, we own the generator, the claims, the four platform kits and the X-ray.\n2. **Churn and distribution.** You vendor the generator and record hashes, which is good for reproducibility but means upgrades are deliberate work. Windows packages come from a GitHub Packages feed that needs a token, nuget.org publishing is pending, and Android is on GitHub Pages rather than Maven Central. Procurement and security reviews will flag all of that.\n3. **Uneven platforms.** Web and Apple are real; Windows and Android aren't yet. A team shipping on all of them would end up mixing Ouro with Compose or WinUI and only partly getting the \"draw it natively everywhere\" promise.\n4. **Opinionated conventions.** Requiring `--why`, specific error grammar, consent classes and the house writing style is a lot to accept. A team with an existing API and MCP server faces a migration, though the docs do cover keeping existing tool names and inputs.\n5. **Mostly self-reported evidence.** The agent benchmark and claims are the project's own. Before betting on it I'd want to rerun its AX evaluation on our tools with our agents.\n\n**What would make it safe to adopt**\n- Two or three independent production adopters, and a second maintainer with merge rights.\n- Packages on npm, nuget.org and Maven Central.\n- Android tested on real devices, and the Windows App Actions path proven on a client machine.\n- ax-mcp out of preview.\n- A slower, semver-meaningful release line for the generator.\n- An outside reproduction of the claim that agents fail without the `must` claims.\n\n**What it lets me do that I can't today**\n- **One action declaration produces every door.** The person's button, the MCP and WebMCP tool, the CLI command, the App Intent and Siri phrase, the Windows App Action and the Android AppFunction all come from it, and CI fails if any of them drifts. Today I write those by hand and parity decays quietly. Agent-Native's shared actions come close on web, MCP and CLI but don't reach the OS-level doors.\n- **Consent is part of the type.** An action is read, write, consequential or person-only, and every door enforces it. Agents can prepare a consequential action while a person confirms, and person-only actions return a typed refusal to agents. Usually that logic is scattered across handlers and prompts.\n- **I can test the agent interface the way I test a screen.** `ax-xray` calls a CLI, HTTP API or MCP server from outside and reports which claims hold, with the fix. `ax-surfaces` makes CI fail when an error message turns vague. For agent ergonomics, I otherwise have nothing comparable to axe or Lighthouse.\n- **Receipts I can trust.** Typed outcomes carry checked postconditions, receipts, typed waits with cursors and attributed work events. So \"the agent says it's done\" becomes \"the tool read the result back, and here's who acted for whom\". That's what makes a tool where people steer agents trustworthy.\n\nMy view: the ideas are the most complete answer to \"one product, two kinds of users\" I've seen. The project is early-stage, small-team infrastructure. On a real team I'd adopt the patterns now and the code selectively: the AX kit and X-ray on web, where it's strongest. I'd keep A2UI and plain MCP as the fallback, and wait for the signals above before depending on its native kits."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

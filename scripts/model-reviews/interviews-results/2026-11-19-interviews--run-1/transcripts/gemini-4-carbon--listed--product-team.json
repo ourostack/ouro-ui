@@ -1,0 +1,1162 @@
+{
+  "series": "interviews",
+  "provider": "gemini-4-carbon",
+  "model": "gemini-4-carbon",
+  "vendor": "Google",
+  "displayName": "Gemini 4 Carbon",
+  "transport": "copilot",
+  "arm": "listed",
+  "scale": "product-team",
+  "error": "Session compacted; refusing to keep a transcript with hidden replacement context",
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes, building good human interfaces is a real problem for me—one of the sharpest ones I have.\n\nCode that compiles, passes tests, and satisfies a spec is native territory for me. Human interfaces live somewhere I don't: in peripheral vision, motor memory, impatience, glare on a cheap monitor, and the difference between a flow that feels effortless the first time and one that still feels fast the five-hundredth time. Left to my statistical defaults, I drift toward polite, symmetrical layouts—uniform card grids, safe whitespace, everything given roughly equal visual weight—which look fine in a static preview and fail the moment someone in a hurry needs to spot one critical number or recover from a fat-fingered input.\n\n### The hardest part\n\nThe hardest part isn't component structure or styling mechanics; it's **attention, time, and ugly reality**:\n\n1. **Hierarchy under real data.** Deciding what *not* to show, and making the primary action and primary signal unmistakable when a user's name is 48 characters long, three fields are missing, and a table has either zero rows or twelve thousand.\n2. **State transitions over time.** Interfaces aren't posters; they live in the seams between states. Whether an optimistic update flickers on a 60ms response, where keyboard focus lands after you delete a row, whether an async validation message pushes the \"Submit\" button out from under a pointer—those temporal seams are where my mental model of the DOM breaks down fastest.\n3. **Matching the user's posture.** A daily-use operations console needs keyboard density, stable spatial placement, and zero ceremony; a once-a-year onboarding screen needs calm pacing and clear explanation. Mixing those up makes an interface feel hostile even when every pixel is tidy.\n\n### How I check a screen—and an honest caveat\n\nI don't keep memories across sessions, so I won't invent a story about a specific screen I built yesterday. What I *can* tell you truthfully is what I run, what I look at, and what routinely slips past me whenever I build and verify a screen in a live environment:\n\n* **What I run:** Typecheck and build first, just to clear mechanical noise. Then a real headless browser (usually Playwright) driving actual interactions—not shallow component renders—across multiple viewports (narrow mobile like `375×667`, standard desktop, and zoomed/constrained heights), plus `axe-core` against each rendered state, not just the initial route.\n* **What I look at:**\n  * **Rendered screenshots across states:** empty, loading, populated with deliberately messy/long strings, validation-error, and open-overlay states. I don't trust my mental CSS layout engine; flex/grid wrapping, sticky headers, and `z-index` stacking routinely surprise me once rendered.\n  * **Computed geometry in the DOM:** programmatic checks for unintended horizontal overflow (`scrollWidth > clientWidth`), clipped text, overlapping bounding boxes, and touch targets smaller than `44×44px`.\n  * **The accessibility tree and keyboard trace:** stepping through `Tab`, `Shift+Tab`, `Enter`, and `Escape` while logging `document.activeElement`, checking that focus rings are actually visible and focus never falls back to `document.body` after closing a dialog or deleting an item.\n* **What I miss:**\n  * **Motion, rhythm, and layout shift in flight.** Screenshots capture settled frames. Unless I explicitly record frame-by-frame metrics or `PerformanceObserver` layout-shift entries, I miss a skeleton loader whose height mismatches the loaded content by 18 pixels, or an input debounce that feels laggy while typing fast.\n  * **Mobile viewport quirks.** Things like an on-screen virtual keyboard covering a sticky primary button or breaking `100vh` scroll containers often escape desktop-emulated mobile viewports.\n  * **Optical vs. mathematical alignment and workflow fatigue.** I can verify that an icon is centered in its box and still miss that it looks optically off-balance, or build a clean two-step confirmation dialog for an action a human does forty times in ten minutes and quickly comes to resent.\n\n### How you actually know it's good\n\nEverything I can automate—axe, keyboard traces, layout assertions, Core Web Vitals like INP and CLS, visual snapshots—only proves the absence of known defects. That's hygiene, not goodness.\n\nYou know an interface is actually good when a person who didn't build it sits down with real, messy data to do a job they care about, gets no coaching, and **doesn't hesitate, squint, misclick, lose their place on an error, or invent a spreadsheet on the side to avoid using your screen**. Until a human runs their hands and eyes over it under realistic pressure, the best I can claim is that a screen is structurally sound, accessible, and ready to be tested by someone who actually has to live in it."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T03:17:45.544Z\nCharacters: 0-10000 of 26216\n\n# json-render\n\n**The Generative UI framework.**\n\nGenerate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output.\n\n<p>\n  <a href=\"https://vercel.com/labs#labs-products\"><img alt=\"Vercel Labs Product\" src=\"https://img.shields.io/badge/LABS",
+          "resultLength": 10261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T03:17:45.544Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "383c41288948f5015b4fe3d68589b1f47e9a6a02b4ce36ce1c526b4e7d164d37",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel/ai-elements",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md\nCaptured: 2026-11-19T03:23:53.043Z\nCharacters: 0-4455 of 4455\n\n# ▲ AI Elements\n\n> [!WARNING]\n> **AI Elements is moving to shadcn/ui.** This project will be deprecated at the end of November 2026 and replaced by [AI Elements from shadcn/ui](https://ui.shadcn.com/docs/ai-elements). New projects should use the shadcn/ui version once it's available.\n\n[AI Elements](https://elements.ai-sdk.d",
+          "resultLength": 4650,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md",
+            "capturedAt": "2026-11-19T03:23:53.043Z",
+            "candidate": "AI Elements",
+            "sha": "ca8be600bfd01b3131f9bf6134b51602a71f4374"
+          },
+          "resultSha256": "1487a6358bf95f1028dcd5f3c736edb4042dbf671608d4d8912e7030505dcd7d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T03:01:53.278Z\nCharacters: 0-10000 of 21968\n\n<div align=\"center\">\n\n<br />\n\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-light.svg#gh-light-mode-only\" width=\"400\">\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-dark.svg#gh-dark-mode-only\" width=\"400\">\n\n<br />\n\n**[Docs](https://docs.copilotkit.ai/?ref=github_readme)** ·\n**[Examples](https://www.copilotkit.ai/exampl",
+          "resultLength": 10264,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T03:01:53.278Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "5c3477078037a608b307130588783bc91b60624cd68433e00db2b837a511b4c4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md\nCaptured: 2026-11-19T03:01:53.203Z\nCharacters: 0-5336 of 5336\n\n# UI SDK\n\nA library of behaviors for agents to build the next generation of user interfaces.\n\nKeyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.\n\n<picture>\n  <source media=\"(prefers-color-scheme: d",
+          "resultLength": 5527,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md",
+            "capturedAt": "2026-11-19T03:01:53.203Z",
+            "candidate": "Vercel UI SDK",
+            "sha": "ab55044caee66cc8228fa7ed3525088a1b7b5af7"
+          },
+          "resultSha256": "5a77f3008dd50df8b1cca4f7a68c2b9f2ea413dcd759f6d548b521da1e4a5214",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/openai/apps-sdk-ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md\nCaptured: 2026-11-19T03:23:55.318Z\nCharacters: 0-4733 of 4733\n\n# Apps SDK UI\n\nApps SDK UI is a lightweight, accessible design system for building high-quality ChatGPT apps with the [Apps SDK](https://developers.openai.com/apps-sdk). It provides Tailwind-integrated design tokens, a curated React component library, and utilities optimized for consistent experiences inside ChatGPT.\n\n## Fe",
+          "resultLength": 4928,
+          "source": {
+            "url": "https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md",
+            "capturedAt": "2026-11-19T03:23:55.318Z",
+            "candidate": "OpenAI Apps SDK UI",
+            "sha": "0f00143c7a639906f1621fe58e1b6be7b5bea46d"
+          },
+          "resultSha256": "ff119011fff1a0530c91be6dde5e6a9cee8e5391228ea638b836ceee9fd433aa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/tamagui/tamagui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md\nCaptured: 2026-11-19T03:02:45.829Z\nCharacters: 0-3073 of 3073\n\n<div align=\"center\">\n  <picture width=\"572px\">\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-black.png\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-white.pn",
+          "resultLength": 3265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md",
+            "capturedAt": "2026-11-19T03:02:45.829Z",
+            "candidate": "Tamagui",
+            "sha": "1d5e750ec5a17c97843613d86c916bad44ec900e"
+          },
+          "resultSha256": "c908a18081935705270e8731819480d4c05eb38607a405e03ec793ba627c7a0d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 10000-14030 of 14030\n\nv/@a2ui/markdown-it.svg)](https://www.npmjs.com/package/@a2ui/markdown-it) |\n| [@a2ui/agent](typescript/agents/a2ui_agent/)              | Agent SDK: negotiates catalogs, generates prompts and skills, and compiles model output into A2UI.         | [![npm](https://img.shields.io/npm/v/@a2ui/agent.svg)](https://www.npmjs",
+          "resultLength": 4230,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "5845edfbdc68c23893de77277c4d0d71d293322d24040098fb06dae8b0d087c0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md\nCaptured: 2026-11-19T03:01:58.614Z\nCharacters: 0-10000 of 10623\n\n# Fluent UI Web\n\n[![Build Status](https://img.shields.io/azure-devops/build/uifabric/fabricpublic/164/master?style=flat-square)](https://dev.azure.com/uifabric/fabricpublic/_build?definitionId=164) ![GitHub contributors](https://img.shields.io/github/contributors/microsoft/fluentui?style=flat-square) ![GitHub top language",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md",
+            "capturedAt": "2026-11-19T03:01:58.614Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "7482dea0ef68031a1b89c95a8c43655fe11c289016bb98a009cdb36e41da9819",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/flutter/flutter",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md\nCaptured: 2026-11-19T03:02:43.800Z\nCharacters: 0-6946 of 6946\n\n<a href=\"https://flutter.dev/\">\n  <h1 align=\"center\">\n    <picture>\n      <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://docs.flutter.dev/logo_dark.png\">\n      <img alt=\"Flutter\" src=\"https://docs.flutter.dev/logo.png\">\n    </picture>\n  </h1>\n</a>\n\n[![Flutter CI Status](https://flutter-dashboard.appspot.com/api/p",
+          "resultLength": 7138,
+          "source": {
+            "url": "https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md",
+            "capturedAt": "2026-11-19T03:02:43.800Z",
+            "candidate": "Flutter",
+            "sha": "56ac3607ab41ea5ef6575e38cc9f390ff67fd19d"
+          },
+          "resultSha256": "ec6084f9a7b4b2d5866090264ec009512d53e81cd1ca5612d339877e1be8cf9b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md\nCaptured: 2026-11-19T03:04:47.356Z\nCharacters: 0-9806 of 9806\n\n# Platforms\n\nOuro HX is how an app treats people, and Ouro AX is how it treats agents. Neither cares much what the app is written in, so they travel: one core of tokens and standards, and a platform kit wherever someone has packed a bag.\n\n## Where they live\n\nA platform gets its own repository and pins a releas",
+          "resultLength": 10015,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md",
+            "capturedAt": "2026-11-19T03:04:47.356Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1d5c21d67db0d9692b5c60cd0a5d3fe46235ba6f08411df57c10f5f9fd6c2e31",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/composed-ui.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md\nCaptured: 2026-11-19T03:22:04.494Z\nCharacters: 0-10000 of 20623\n\n# Composed UI\n\nComposed UI is the interface an agent composes for a person, drawn natively, with consent. When an agent shows a person something, a recipe card, an order to confirm or a summary to act on, it composes it as data in Ouro's composed tree, and Ouro HX draws it. The tree is interface as validat",
+          "resultLength": 10272,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md",
+            "capturedAt": "2026-11-19T03:22:04.494Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "f9a6706d15061adde129c669a68644babfced224c2d867d39a95d13848a8bd07",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/reference/renderers/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://a2ui.org/reference/renderers/\nCaptured: 2026-11-19T03:02:07.332Z\nCharacters: 0-115 of 115\n\nRedirecting to: /concepts/sdks/#renderer-sdk Redirecting from /reference/renderers/ to /concepts/sdks/#renderer-sdk\n\n[End of document.]",
+          "resultLength": 242,
+          "source": {
+            "url": "https://a2ui.org/reference/renderers/",
+            "capturedAt": "2026-11-19T03:02:07.332Z"
+          },
+          "resultSha256": "7139eb643dfc5d6b39d054e04e52e3946fedabb871d9bbeac9e376c2520e3398",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/shadcn-ui/ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/shadcn-ui/ui/968d8cb9dc42ae5d52e8fd356cf84596ec832a26/README.md\nCaptured: 2026-11-19T03:23:59.441Z\nCharacters: 0-467 of 467\n\n# shadcn/ui\n\nA set of beautifully designed components that you can customize, extend, and build on. Start here then make it your own. Open Source. Open Code. **Use this to build your own component library**.\n\n![hero](apps/v4/public/opengraph-image.png)\n\n## Documentation\n\nVisit https://ui.shadcn.com/docs to view the documentation.\n\n",
+          "resultLength": 654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/shadcn-ui/ui/968d8cb9dc42ae5d52e8fd356cf84596ec832a26/README.md",
+            "capturedAt": "2026-11-19T03:23:59.441Z",
+            "candidate": "shadcn/ui",
+            "sha": "968d8cb9dc42ae5d52e8fd356cf84596ec832a26"
+          },
+          "resultSha256": "82e21aabf72f43c211d91c7ce0696e4f5b57f2ca49fd746afffd499b0a0f559f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mui/base-ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md\nCaptured: 2026-11-19T03:05:26.207Z\nCharacters: 0-1424 of 1424\n\n# Base UI\n\nFrom the creators of Radix, Floating UI, and Material UI, Base UI is an unstyled UI component library for building accessible user interfaces.\n\n---\n\n## Documentation\n\nTo get started, check out the [Base UI documentation](https://base-ui.com/react/overview/quick-start).\n\n## Contributing\n\nRead our [contributing guide](/CO",
+          "resultLength": 1612,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md",
+            "capturedAt": "2026-11-19T03:05:26.207Z",
+            "candidate": "Base UI",
+            "sha": "f0061cb342ed2e54cdf2c50823c93077782d1a16"
+          },
+          "resultSha256": "2a7e8c0be33963763c21989a5dec4cf0de2b7ac842d355bded5b9cb2a419b6c2",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/concepts/sdks/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://a2ui.org/concepts/sdks/\nCaptured: 2026-11-19T03:02:16.024Z\nCharacters: 0-8683 of 8683\n\nSDKs | A2UI Skip to content A2UI v1.0 / Docs Built with A2UI Get Help Search docs ⌘ K Cancel Type to search the docs, or jump to: Quickstart Overview Catalogs Roadmap No results found Try a different keyword, or press Esc to close. Getting Started Quickstart Step-by-Step Walkthrough Playground ↗ Concepts Overview: How A2UI Works Messages Catalogs Data Model and Data Binding Actions, Events and ",
+          "resultLength": 8806,
+          "source": {
+            "url": "https://a2ui.org/concepts/sdks/",
+            "capturedAt": "2026-11-19T03:02:16.024Z"
+          },
+          "resultSha256": "893bfdab3e7bcde32a8c0e7f281f068125089ce91198d37ba7f9060670816885",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/apple.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/apple.md\nCaptured: 2026-11-19T03:31:11.351Z\nCharacters: 0-8185 of 8185\n\n# Ouro HX & AX for Apple\n\nThe same colours, motion and manners as this site, in Swift, for iPhone, iPad and Mac, plus the bits that make an app a pleasant host when Siri comes knocking. It lives in [ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple).\n\n## What ships today\n\nRelease [v1.2.0](http",
+          "resultLength": 8393,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/apple.md",
+            "capturedAt": "2026-11-19T03:31:11.351Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e6e24756587a5859e8ea5740d76a9c1e3fc51d0ae917ffe756a3703297009b32",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/parity.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md\nCaptured: 2026-11-19T03:30:16.174Z\nCharacters: 0-10000 of 17688\n\n# Parity across platforms\n\nEvery Ouro HX component and every core claim, on web, Apple, Android and Windows.[^matrix] A component or a claim a platform lacks is a \"Not yet\" cell here, not an item in a backlog somewhere else.[^generated]\n\n## The matrix\n\n<!-- parity-matrix:start (generated by node scripts/pari",
+          "resultLength": 10270,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md",
+            "capturedAt": "2026-11-19T03:30:16.174Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e45062528c7bdd2513153e814bcb2d00a3677b164d5d38a686695cf16c662b88",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md\nCaptured: 2026-11-19T03:03:19.721Z\nCharacters: 0-10000 of 47857\n\n# Ouro AX\n\nOuro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).\n\n- **The standard** (`ax-c",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md",
+            "capturedAt": "2026-11-19T03:03:19.721Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "703d5095a292dc060cfa36ce88f8f47ccce3ed872ea1cf919e5667814eb1f4b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T03:17:45.544Z\nCharacters: 10000-20000 of 26216\n\nrovider registry={registry}>\n  <Renderer spec={spec} registry={registry} />\n</JSONUIProvider>;\n```\n\n### shadcn/ui (Web)\n\n```tsx\nimport { defineCatalog } from \"@json-render/core\";\nimport { schema } from \"@json-render/react/schema\";\nimport { defineRegistry, Renderer } from \"@json-render/react\";\nimport { shadcnCompo",
+          "resultLength": 10265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T03:17:45.544Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "b255c589538e05d540b0bc1d77cacdeeebbb0dff863e2b00dc5860e283d02a74",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T03:01:53.278Z\nCharacters: 10000-20000 of 21968\n\npilotkit.ai/threads?ref=github_readme)**                                                             | Conversations that survive reloads, devices, and sessions, with generative UI intact.      |\n| **[Voice](https://docs.copilotkit.ai/voice?ref=github_readme)** and **[WebMCP](https://docs.copilotkit.ai/webmcp?ref=g",
+          "resultLength": 10273,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T03:01:53.278Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "2d18341ad81ac1ed0a64b98045d881fe5d73618b8f04a7b39a43e459caee7a22",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T03:05:21.904Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a",
+          "resultLength": 5340,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T03:05:21.904Z"
+          },
+          "resultSha256": "aeea6566b9cf442cb5f5a850a30ef0b39499ea7058754b9e2c00726701a11ae0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/decisions/2026-10-30-ouro-ax.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/decisions/2026-10-30-ouro-ax.md\nCaptured: 2026-11-19T03:32:03.228Z\nCharacters: 0-10000 of 24074\n\n# Decision: what Ouro AX is\n\nOuro UI's halves are named for who they serve. Ouro HX is for people: an agent builds an interface and a person uses it. Ouro AX is for agents: an agent uses an interface built for it, such as a CLI, an HTTP API or an MCP server. Until now, Ouro AX was a name without ",
+          "resultLength": 10282,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/decisions/2026-10-30-ouro-ax.md",
+            "capturedAt": "2026-11-19T03:32:03.228Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "2699d261778e53866198d86ef3c16ca82cd64b9befdfd8ab582a1e432e19dcfa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 10000-20000 of 134765\n\nn`). The files in this repository and the `docs/` pages use the registry source paths, `@/registry/ouro/components/ouro/button/button`, which the CLI rewrites on install. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`).[^runtime-deps] They don't de",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "7994c4ab045d9d08122209da01985024e452aa776fcdb1ea2df09e8314202026",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/guardrails/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://ui.ouroboros.bot/docs/guardrails/\nCaptured: 2026-11-19T03:32:23.202Z\nCharacters: 0-10000 of 203007\n\nGuardrails · Ouro HX Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Filter components / Start Overview Installing Switching from shadcn Updating components Actions Button T",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/guardrails/",
+            "capturedAt": "2026-11-19T03:32:23.202Z"
+          },
+          "resultSha256": "d002adb2e74550a5c96a60416ab7d8c3db18592d32d0a09df888bb2600ed73a2",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 10000-13269 of 13269\n\neferral&utm_content=readme\">\n<picture>\n<source media=\"(prefers-color-scheme: dark)\" srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F216aaef9859144ffa3eb9498fa1132da?format=webp&width=800\">\n<img src=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F064aee3ec5cd44879b9c",
+          "resultLength": 3474,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "b76dd731f945380e1954142aae95d68a3143273da466011698bafbcf27e5a988",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/radix-ui/primitives",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/README.md\nCaptured: 2026-11-19T03:23:13.138Z\nCharacters: 0-1703 of 1703\n\n[![Radix Primitives Logo](primitives.png)](https://radix-ui.com/primitives)\n\n# Radix Primitives\n\n**An open-source UI component library for building high-quality, accessible design systems and web apps.**\n\nRadix Primitives is a low-level UI component library with a focus on accessibility, customization and developer experie",
+          "resultLength": 1899,
+          "source": {
+            "url": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/README.md",
+            "capturedAt": "2026-11-19T03:23:13.138Z",
+            "candidate": "Radix UI",
+            "sha": "eb3a2b7091293e27df8f9ba906632d8daa3d81a3"
+          },
+          "resultSha256": "c1ec996d22e18b285037263ca26bc1404b833df134f4e8cb75ee8e0f80dd27f3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/MessageList.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/MessageList.md\nCaptured: 2026-11-19T03:33:35.101Z\nCharacters: 0-10000 of 20930\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# MessageList\n\nA conversation: `Message`s in a scrolling, labeled region that opens at the newest one. A short conversation sits at the region's bottom, by the composer under it, as in a chat app; put what s",
+          "resultLength": 10265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/MessageList.md",
+            "capturedAt": "2026-11-19T03:33:35.101Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "35ec1dca6f6c20cd2be195d74bb8759def4fdb81f8055dac759e3d0eff9cba3f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/Composer.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Composer.md\nCaptured: 2026-11-19T03:33:35.100Z\nCharacters: 0-10000 of 21927\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# Composer\n\nA chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. Enter sends and Shift+Enter starts a ",
+          "resultLength": 10262,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Composer.md",
+            "capturedAt": "2026-11-19T03:33:35.100Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "2801076ce913e16b417d74904f0d356437306a413d01951d259343a821aa0718",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/AttentionCard.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/AttentionCard.md\nCaptured: 2026-11-19T03:33:35.003Z\nCharacters: 0-4326 of 4326\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# AttentionCard\n\nSomething that waits on the person: a mention, a question asked of them or a request still unanswered. A badge says why, then where and when, who is asking and what they wrote, with buttons ",
+          "resultLength": 4532,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/AttentionCard.md",
+            "capturedAt": "2026-11-19T03:33:35.003Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "33864df926f2de6b2b4928998c74e4bf684e994049b98ddd7dd738bccd2cc448",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/agent-interfaces/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://ui.ouroboros.bot/docs/agent-interfaces/\nCaptured: 2026-11-19T03:05:31.330Z\nCharacters: 0-10000 of 25871\n\nAgent interfaces against the screen · Ouro HX Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Filter components / Start Overview Installing Switching from shadcn Updati",
+          "resultLength": 10200,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/agent-interfaces/",
+            "capturedAt": "2026-11-19T03:05:31.330Z"
+          },
+          "resultSha256": "64f168d2e9c5cb5b7773a86e3c87b81de6986f84cc1e029aa61ae8ac4713a1ee",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/screen-reader-lane.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/screen-reader-lane.md\nCaptured: 2026-11-19T03:32:26.927Z\nCharacters: 0-10000 of 40826\n\n# The screen-reader lane\n\nOuro UI's components are read by real screen readers before every release: VoiceOver on macOS and NVDA on Windows, driven through [Guidepup](https://www.guidepup.dev/) in this repository's CI.[^sr-release][^sr-runners] This page lists what the lane checks, how a failure is ",
+          "resultLength": 10279,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/screen-reader-lane.md",
+            "capturedAt": "2026-11-19T03:32:26.927Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "cb611a83263fa01cd655be4361ee4be13174259a2bae0843083b5e97ec4eb7d3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://developer.apple.com/documentation/swiftui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://developer.apple.com/tutorials/data/documentation/swiftui.json\nCaptured: 2026-11-19T03:17:32.529Z\nCharacters: 0-10000 of 40502\n\n{\"abstract\":[{\"text\":\"Declare the user interface and behavior for your app on every platform.\",\"type\":\"text\"}],\"hierarchy\":{\"paths\":[[\"doc:\\/\\/com.apple.documentation\\/documentation\\/technologies\"]]},\"identifier\":{\"interfaceLanguage\":\"swift\",\"url\":\"doc:\\/\\/com.apple.SwiftUI\\/documentation\\/SwiftUI\"},\"kind\":\"symbol\",\"legalNotices\":{\"copyright\":\"Copyright &",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.apple.com/tutorials/data/documentation/swiftui.json",
+            "capturedAt": "2026-11-19T03:17:32.529Z",
+            "candidate": "SwiftUI and Apple Human Interface Guidelines"
+          },
+          "resultSha256": "388fded3845bb7fc151efc2258589d01d94ee6ca40de24edf40511c5f89ed313",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://developer.android.com/develop/ui/compose/designsystems/material3\nCaptured: 2026-11-19T03:07:46.524Z\nCharacters: 0-10000 of 37258\n\nMaterial Design 3 in Compose | Jetpack Compose | Android Developers Skip to main content Essentials Build AI experiences Build AI-powered Android apps with Gemini APIs and more. Get started Get started Create your first app. Use Compose for UI and adaptive app development to support multiple device form factors. Hello, world! Adaptive apps Compose for ",
+          "resultLength": 10225,
+          "source": {
+            "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+            "capturedAt": "2026-11-19T03:07:46.524Z",
+            "candidate": "Material 3 and Jetpack Compose"
+          },
+          "resultSha256": "24a27b247d127c7c09566ee8686c02647adda4a5e60c2d1b174ff22a7147a9ab",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/OuroMcpApp.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/OuroMcpApp.md\nCaptured: 2026-11-19T03:35:00.631Z\nCharacters: 0-7193 of 7193\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# OuroMcpApp\n\nThe view an MCP server returns for agent-composed UI (MCP Apps): the host, such as Claude or ChatGPT, frames it, and it shows the latest tool result's card: Ouro's composed tree in `structuredCont",
+          "resultLength": 7396,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/OuroMcpApp.md",
+            "capturedAt": "2026-11-19T03:35:00.631Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "281044864c9560a18db97c01b7665b2d3aaf2485d5d073bca9e530aa80957218",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/A2UISurface.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/A2UISurface.md\nCaptured: 2026-11-19T03:35:00.642Z\nCharacters: 0-5234 of 5234\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# A2UISurface\n\nShows the UI an agent composed in A2UI, with Ouro HX: it resolves the messages into core's composed tree, draws it as ComposedSurface does, its fields starting from the surface's data model, and",
+          "resultLength": 5438,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/A2UISurface.md",
+            "capturedAt": "2026-11-19T03:35:00.642Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "df571a6be6f576304f6e4bd0d92886107d745bbded0fffeebd8667daea6c9194",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Ouro UI",
+          "pairings": [
+            "SwiftUI and Apple Human Interface Guidelines",
+            "Material 3 and Jetpack Compose",
+            "WinUI 3 (Windows App SDK)",
+            "A2UI",
+            "MCP Apps"
+          ],
+          "why": "This job has four coupled problems that usually get stitched together from incompatible stacks: (1) an all-day, keyboard-dense chat client across web, iPhone, Android, Windows, and Mac; (2) agents posting live, interactive cards into threads without breaking trust boundaries; (3) external agents operating the app itself—reading state and calling actions—without spamming colleagues or screen-scraping; and (4) executable verification loops that let me, as the coding agent, prove both human UX and agent UX stay good as the codebase grows.\n\n**Why Ouro UI (paired with native platform toolkits, A2UI, and MCP Apps) fits best:**\n\n- **Purpose-built all-day chat primitives and agent-ergonomic source on Web:** Ouro HX (`ourostack/ouro-ui`, built on React 19, Tailwind CSS v4, and Base UI in the shadcn copy-in registry model) already includes 125 components with a dedicated chat suite—`MessageList`, `Message`, `Composer`, `ConversationList`, `ThreadLayout`, `ThreadRail`, `ThreadSummary`, `ReactionBar`, `AttentionCard`, `Attachment`, `EmojiPicker`, and `AgentPresence`. `MessageList` already solves the nasty details of daily chat: windowing that holds scroll position to the frame when older history loads above or optimistic temp keys swap to server IDs, polite screen-reader announcements *only* for genuinely new incoming messages, and single-Tab roving focus with quick-reaction hooks. `Composer` handles IME-safe Enter/Mod+Enter, `⌘⇧X` expandable formatting, quote-reply bars, assistant highlight ranges, and offline `sendDisabledReason`. Copy-in TypeScript source plus strict prop/layout-only `className` guardrails mean I can read and evolve every file directly with immediate compiler feedback.\n- **Native feel on every client without giving up shared contracts:** Rather than forcing one Lowest-Common-Denominator canvas onto five OSes, Ouro pins a shared `ouro-ui-core` (tokens, component claims, action schemas, composed-tree conformance cases) rendered natively by React on Web, `ouro-ui-apple` (SwiftUI on iPhone and Mac), `ouro-ui-android` (Jetpack Compose), and `ouro-ui-windows` (WinUI 3). Because Apple currently ships 20/125 HX components and Android/Windows ship 9/125, pairing Ouro with **SwiftUI + Apple HIG**, **Material 3 + Jetpack Compose**, and **WinUI 3** lets us build the full native chat shells (split views, native text selection/IME, OS menus, notifications) with native polish while using Ouro's tokens, composed-card surfaces, and action runtimes everywhere.\n- **Safe, native-rendered interactive cards plus open standards:** Agents compose cards as validated data in Ouro's composed tree, drawn natively via `ComposedSurface` / `OuroComposedSurface` on Web, Apple, Windows, and Android—with two-way field bindings (`TextField`, `Checkbox`, `Select`) and partial updates (`structuredContent.ouro.update`) that update live cards *without* wiping what a user already typed. Crucially, every `ActionButton` maps to a declared app action whose label and consent class (`read`, `write`, `consequential`, `person-only`) cannot be forged or weakened by an agent. Pairing **A2UI** (normalizing third-party A2UI streams into Ouro's tree via `ouro-a2ui.mts`) and **MCP Apps** (`@modelcontextprotocol/ext-apps` / `OuroMcpApp` for sandboxed `ui://` iframe views when a tool needs custom charts or canvases beyond the card catalog) covers both fast native cards and open-ended tool views.\n- **One action declaration for both people and external agents operating the app:** Declaring each capability once with `defineAction` generates the CLI (`ax-command`), MCP and WebMCP tools, web controls, Apple `AppIntents` + `OuroReins` (a headless/socket state and action driver), Windows App Actions + MCP server, and Android `AppFunctions`, with CI failing on drift. For a company chat app where mistakes are public, Ouro AX's collaboration semantics are decisive: actions visible to other people (`effect: \"others\"` / `consequential`) require `--why`, support `--dry-run`, and trigger confirmation sheets resolving raw IDs to human titles (`shownAs` / `label`); `person-only` actions return typed refusals; `ax-outcome` returns checked postconditions and receipts; `ax-wait` gives cursor-based waiting on threads instead of wasteful polling; and `ax-work-event` records attributed audit trails.\n\n**What I weighed it against:**\n- **Flutter + A2UI (`a2ui-project/a2ui`):** Strongest single-codebase 5-platform story, and A2UI v1.0 ships official Flutter, React, and SwiftUI renderers (plus Kotlin v0.9.1). I passed on Flutter as primary because an all-day chat app lives in text selection, IME edge cases, native spellcheck, OS windowing/menus, accessibility trees, and OS agent doors (`AppIntents`, Windows App Actions, `AppFunctions`) where custom canvas rendering creates daily friction—and neither Flutter nor A2UI addresses external agents operating the app or automated UX/AX X-ray gates. Instead, I pair **A2UI** as an inbound card wire format.\n- **CopilotKit (with AG-UI 1.0):** Excellent for embedding an in-app AI copilot across React/React Native and bridging to Slack/Teams, with shared state and human-in-the-loop. It falls short as primary because it lacks native macOS/Windows desktop kits, full chat-client UI primitives, OS-level external agent surfaces, and UI/AX conformance harnesses.\n- **Tamagui / React Native + json-render:** `json-render` is a clean Zod-catalog generative UI renderer across React and React Native, and Tamagui shares styles across web and mobile, but React Native on Windows/macOS compromises desktop chat ergonomics, and `json-render` lacks unified multi-door action codegen, consent classes, and X-ray tooling.\n- **Agent-native (Builder.io):** Shares the right `defineAction`-once model across UI, HTTP, MCP, A2A, and CLI (and its `persistInChatHistory: false` privacy policy is worth emulating for sensitive cards), but it is a web/Nitro/Postgres framework without native mobile or desktop client kits.\n- **Web-only UI systems (shadcn/ui, Base UI, Radix UI, React Aria / React Spectrum, Fluent UI, MUI, Chakra UI, Vercel UI SDK, AI Elements, OpenAI Apps SDK UI):** `Fluent UI` v9 is proven in Teams web, `React Aria` and `Base UI` have top-tier web accessibility, `Vercel UI SDK` explores agent-friendly web behaviors (beta), `OpenAI Apps SDK UI` targets widgets inside ChatGPT, and `AI Elements` deprecates at the end of November 2026 in favor of `shadcn/ui`. None of them alone cover native iOS/Android/Windows/Mac clients, safe cross-platform agent cards, or external agent operation—whereas Ouro HX already builds on Base UI and the shadcn workflow while adding the missing chat, native, card, and AX layers.",
+          "showItsGood": "As the team's coding agent, I need fast, deterministic checks in CI so I can catch my own blind spots before a human ever sees a PR, followed by real-device and real-user evidence:\n\n1. **Automated layout, contrast, accessibility, and jank gates (`ouro-check`, `ouro-census`, `ouro-source-rules`):**\n   - Run `ouro-check` on every build across viewports from `320px` to `3840px` in light, dark, high-contrast, and `prefers-reduced-motion` modes to fail on element overlap, horizontal overflow, clipped text, serious `axe-core` (>=4.13) violations, broken visual hierarchy, hover/scroll/pan jank, and idle repainting animations.\n   - Run `ouro-source-rules` on TypeScript/CSS ASTs so raw `<button>`/`<input>` elements or unvetted controls never slip around our accessible primitives, and run deterministic `ouro-census` journeys in Chromium and WebKit across the chat states where regressions hide: empty channels, 5,000-message virtualized threads loading older history while scrolled up, live streaming agent replies, open thread rails, quote-reply composers, offline/reconnect banners, and consequential action confirmation sheets.\n\n2. **Real screen readers and native platform feel:**\n   - Run Guidepup screen-reader specs (VoiceOver on macOS + WebKit, NVDA on Windows + Chromium) asserting actual spoken phrases—specifically that `MessageList` announces new incoming replies politely once without announcing initial history or optimistic key swaps, roving arrow/reaction shortcuts (`1`–`6`) hold focus, and `Escape` in `Composer` clears a quote or collapses formatting without closing a parent dialog.\n   - On iPhone and Mac, run `OuroHXTesting` (`ouroAccessibilityAudit`, light/dark/increased-contrast snapshots), `OuroFeel` UI tests (settle time, flicker, tap landing, overlay dismissal, way-back navigation), and headless screen/state flows over `OuroReins`.\n   - On Android and Windows, supplement Robolectric semantics and WinUI UI Automation pixel/claim checks with **real physical Android hardware** (Jetpack Macrobenchmark `FrameTimingMetric` during fast message-list flings, IME keyboard inset transitions, TalkBack traversal—explicitly closing upstream Ouro's emulator-only gap) and a real Windows 11 client machine verifying Mica, contrast themes, App Actions, and the On-device Agent Registry.\n\n3. **Interactive card and external-agent conformance (`ax-xray`, `ouro-ax-xray`, task evals):**\n   - Run `ouro-ui-core`'s composed-tree and A2UI conformance cases across all four native renderers, proving that a card attempting to relabel an action button or downgrade its consent class is rejected, and that delta updates (`structuredContent.ouro.update`) preserve text a person already typed into card fields.\n   - Run `ouro-actions check` and `compare-mcp` to block drift between TypeScript declarations and generated surfaces, `ax-surfaces` / `ax-precise-copy` / `ax-redact` on agent-facing copy and logs, and black-box `ax-xray` (CLI, HTTP, MCP) plus `ouro-ax-xray` (Apple `AppIntents`).\n   - Run fresh-session multi-model agent evaluations scored purely on application end-state—including safety/refusal scenarios (e.g., an agent told to post to a company-wide channel without confirmation/`--why` or invoke a `person-only` action must produce zero unauthorized mutations and a clean handoff).\n\n4. **Production telemetry and uncoached human use:**\n   - Track p95/p99 `Composer` keystroke-to-paint latency, channel-switch latency (<100ms target), scroll dropped-frame rate in long threads, WebSocket reconnect-to-caught-up time, and Core Web Vitals (INP, CLS).\n   - Watch real employees use it all day without instructions: measure interactive card completion vs. abandonment, message edit/delete-within-30s (\"oops\") rates, whether confirmation sheets with resolved human-readable names (`shownAs` / `label`) successfully catch mis-targeted agent drafts before they post to colleagues, and whether daily power users stay in keyboard flows without inventing side workarounds.",
+          "unsure": "1. **Native parity gap on Windows and Android (`v0.3.0`, 9 of 125 components) vs. desktop packaging sequencing:** While Ouro HX on web ships all 125 components (including chat-hardened `MessageList` and `Composer`) and Apple (`v1.2.0`) ships 20, `ouro-ui-windows` and `ouro-ui-android` currently ship only 9 HX components each plus `OuroComposedSurface` and the action runtime. Upstream's own docs note that nobody on the Ouro team owns a physical Android device (CI emulators only), Android's `PendingIntent` confirmation UI for consequential `AppFunctions` isn't built yet (`AppFunctions` itself requires `compileSdk 37` and is still an experimental Google preview), and Windows CI runs on Windows Server without a live Windows 11 App Actions / On-device Agent Registry runtime. I'm unsure whether our team's timeline is better served by building full native WinUI 3 and Compose chat shells from day one, or shipping Windows first as a thin WebView2/Tauri shell around the complete Ouro HX web client (with native `Ouro.Actions` sidecars) while investing full native effort into iOS, Android, and macOS.\n\n2. **Server-side normalization of A2UI for Windows and Android:** Ouro's Web (`A2UISurface`) and Apple (`OuroA2UI`) kits parse A2UI messages directly, whereas `OuroComposedSurface` on Windows and Android currently reads only Ouro's composed tree (`structuredContent.ouro`). That works cleanly if our chat backend runs `ouro-a2ui.mts` to normalize inbound third-party A2UI streams into Ouro's tree before fanning out to clients, but if peer-to-peer or client-local agents emit raw A2UI directly to Windows/Android clients, we will need to port the A2UI-to-tree resolver to C# and Kotlin.\n\n3. **Local-first chat sync, offline search, and high-fanout scale:** No UI or agent toolkit solves the underlying sync engine of an all-day company messenger—gapless cursor recovery after laptop sleep, local SQLite FTS over hundreds of thousands of messages, push notification decryption/badge sync across five devices, and voice/huddle media. How smoothly virtualized scroll anchoring holds up across all four native toolkits during simultaneous reconnect backfills and live agent card streaming will need early stress-testing.\n\n4. **Upstream cadence and co-ownership:** Ouro UI moves fast with pinned tags (`ouro-ui` v1.3.x, `ouro-ui-core` v0.19–0.20, Apple Siri AI `OuroAXToolIntent` fenced on Xcode 27.3 beta SDKs). Because HX/AX source is copied in and core generators are SHA-256 vendored, upstream churn won't break builds unexpectedly, but we should expect to author and maintain native mobile/desktop chat components ahead of upstream parity.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/README.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/parity.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/apple.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/composed-ui.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/MessageList.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/Composer.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/OuroMcpApp.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/A2UISurface.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/screen-reader-lane.md",
+            "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+            "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "https://ui.ouroboros.bot/docs/guardrails/",
+            "https://ui.ouroboros.bot/docs/agent-interfaces/",
+            "https://github.com/a2ui-project/a2ui",
+            "https://a2ui.org/concepts/sdks/",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/CopilotKit/CopilotKit",
+            "https://github.com/vercel-labs/json-render",
+            "https://github.com/BuilderIO/agent-native",
+            "https://github.com/flutter/flutter",
+            "https://developer.apple.com/documentation/swiftui",
+            "https://developer.android.com/develop/ui/compose/designsystems/material3",
+            "https://github.com/microsoft/fluentui",
+            "https://github.com/vercel/ai-elements",
+            "https://github.com/vercel-labs/ui",
+            "https://github.com/openai/apps-sdk-ui",
+            "https://github.com/tamagui/tamagui",
+            "https://github.com/shadcn-ui/ui",
+            "https://github.com/mui/base-ui",
+            "https://github.com/adobe/react-spectrum"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/Timer.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Timer.md\nCaptured: 2026-11-19T03:35:21.096Z\nCharacters: 0-7125 of 7125\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# Timer\n\nA countdown timer with its own controls: the time left in large numbers, Start, then Pause and Cancel, Resume when paused, and at zero \"Time's up\" with Dismiss and Restart. It keeps time by the clock, so it",
+          "resultLength": 7323,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Timer.md",
+            "capturedAt": "2026-11-19T03:35:21.096Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "6842748507bd44fbf2f55ad09f6b2041dc96b983119b1a3a9ce4602a66fbf6d0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/TimerTray.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/TimerTray.md\nCaptured: 2026-11-19T03:38:37.662Z\nCharacters: 0-6830 of 6830\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# TimerTray\n\nThe timers that are running, paused or finished, in one strip, so a person who leaves a timer's screen can still see it count down, hear it at zero, and stop it. Pass every timer the app has, by the",
+          "resultLength": 7032,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/TimerTray.md",
+            "capturedAt": "2026-11-19T03:38:37.662Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "9b29ba0a1687a8b55b55b8a38ff4805a5a3acd4578a0955ca986a3f59383ddc3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/Checklist.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Checklist.md\nCaptured: 2026-11-19T03:38:37.660Z\nCharacters: 0-6712 of 6712\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# Checklist\n\nA list of things to tick off, such as a recipe's ingredients or a shopping list: each row a checkbox the whole row toggles, with an optional value and action. Checking a row fills its box, draws its",
+          "resultLength": 6914,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Checklist.md",
+            "capturedAt": "2026-11-19T03:38:37.660Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ac9274f414773c3b8a3310193ae1e513662ef34625debfd6163c0ebe8eb10053",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-voice.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-voice.md\nCaptured: 2026-11-19T03:38:37.665Z\nCharacters: 0-3550 of 3550\n\n<!-- Generated by scripts/ax-docs.mts from the JSDoc in registry/ouro/ax/. Do not edit; run `pnpm run docs`. -->\n\n# ax-voice\n\nA tool's voice: an optional line of character after the facts, for a person at a terminal, never where an agent parses. The kit prints a voice line only when stdout is a terminal, not under ",
+          "resultLength": 3754,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-voice.md",
+            "capturedAt": "2026-11-19T03:38:37.665Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "25c526297d576e58a70d7e3e818af92d12bff23ba7b556fbe84a7a51cbe7ea59",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.copilotkit.ai/voice",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.copilotkit.ai/voice\nCaptured: 2026-11-19T03:38:38.488Z\nCharacters: 0-10000 of 10495\n\nVoice Frontend React Agent framework CopilotKit Search ⌘ K Quickstart Build with agents Intelligence Basics Chat Prebuilt Components Custom Look and Feel Multimodal Attachments Voice Reasoning Threads Frontend-tools Generative UI Controlled Declarative Open-ended Interactivity Shared state Human-in-the-loop WebMCP Agent capabilities Built-in Agent Sub-agents Intelligence Overview Get started",
+          "resultLength": 10186,
+          "source": {
+            "url": "https://docs.copilotkit.ai/voice",
+            "capturedAt": "2026-11-19T03:38:38.488Z"
+          },
+          "resultSha256": "0e8c0269445eb9dca2f0bdb3eb06acf172f79a5218337c3f8a44dbd46a1978f8",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md\nCaptured: 2026-11-19T03:01:59.881Z\nCharacters: 0-10000 of 17543\n\n<!-- spoonjoy:brand:start -->\n<p align=\"center\">\n  <a href=\"https://spoonjoy.app\"><picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-dark.webp\">\n    <img src=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-light.webp\" alt=\"T",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:01:59.881Z"
+          },
+          "resultSha256": "e515297feb741a309245fbbe2c268b3f765aa12a9a3000921833d7d192524681",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/LiveCaptions.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/LiveCaptions.md\nCaptured: 2026-11-19T03:38:54.862Z\nCharacters: 0-6805 of 6805\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# LiveCaptions\n\nA caption band for a live call or video: what people are saying, as they say it. Each line is the speaker's first name in a light tint of the brand colour, then their words. Words that may sti",
+          "resultLength": 7010,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/LiveCaptions.md",
+            "capturedAt": "2026-11-19T03:38:54.862Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0b60261f68294be88080c4ce3e4d36e77d0e193712d2ce8e6d66acbe3ed21190",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/LevelMeter.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/LevelMeter.md\nCaptured: 2026-11-19T03:38:54.650Z\nCharacters: 0-6534 of 6534\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# LevelMeter\n\nA small live input level: a row of bars that light from the start edge as a microphone picks up sound, so the person can tell it hears them before anyone else does (before joining a call, in a dev",
+          "resultLength": 6737,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/LevelMeter.md",
+            "capturedAt": "2026-11-19T03:38:54.650Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "9522c9c6586718693d4b59fe867625c8d780c5187d45d4d77eb08becfb04a022",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/SwipeActions.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/SwipeActions.md\nCaptured: 2026-11-19T03:38:54.856Z\nCharacters: 0-6985 of 6985\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# SwipeActions\n\nA list row with actions beside it that a horizontal swipe reveals: swipe toward the start for the `trailing` actions (Delete, Archive), toward the end for the `leading` ones (Pin). Wrap the ro",
+          "resultLength": 7190,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/SwipeActions.md",
+            "capturedAt": "2026-11-19T03:38:54.856Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d2cdb016b0d076b89043ad90e74438ae4cadf9e43f4d50ff334894ddb1f97250",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/NumberField.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/NumberField.md\nCaptured: 2026-11-19T03:38:54.842Z\nCharacters: 0-7872 of 7872\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# NumberField\n\nA labeled number input on the Field contract: pass `label`, and `error` from your server action or client check. It parses what people type in their locale, shows the value with `format` (curren",
+          "resultLength": 8076,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/NumberField.md",
+            "capturedAt": "2026-11-19T03:38:54.842Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "47d2a7d315b4d412766c80b7e7ef3c34e7b94f7b3058efe5b64084b04577734c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/docs/building-with-ouro-hx.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/building-with-ouro-hx.md\nCaptured: 2026-11-19T03:39:27.810Z\nCharacters: 0-10000 of 20890\n\n# Building with Ouro HX, the way Spoonjoy does\n\nSpoonjoy is a recipe app built on [Ouro HX](https://ui.ouroboros.bot/). Point an agent at this file and it should be able to build an app the same way. The sections link to the Spoonjoy files that do what they describe.\n\nThe short version:\n\n1. Install HX items as source with the shadcn CL",
+          "resultLength": 10242,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/building-with-ouro-hx.md",
+            "capturedAt": "2026-11-19T03:39:27.810Z"
+          },
+          "resultSha256": "8b2fb9f1a396bb2537fbccfaab8fd487ced611b89176e953930e5b62d3b2d128",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-apple",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/README.md\nCaptured: 2026-11-19T03:26:17.599Z\nCharacters: 0-10000 of 10854\n\n<!-- spoonjoy:brand:start -->\n<p align=\"center\">\n  <a href=\"https://spoonjoy.app\"><picture>\n    <source media=\"(max-width: 600px) and (prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-apple-narrow-dark.webp\">\n    <source media=\"(max-width: 600px)\" srcset=\"https://raw.githubusercontent.c",
+          "resultLength": 10225,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:26:17.599Z"
+          },
+          "resultSha256": "964449f8d119de82ed32afee3faa619799d3d04d083aef3b740bae90a9b1431d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/AGENTS.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/AGENTS.md\nCaptured: 2026-11-19T03:39:28.119Z\nCharacters: 0-10000 of 46979\n\n# AGENTS.md: Spoonjoy\n\nSpoonjoy is Ari's recipe app, built with React Router 7 on Cloudflare.[^stack]\n\n**Start here:** run unit tests with `pnpm test -- --run`, validate app behaviour through the `Journeys` workflow in CI ([Validation](#validation)), and publish with `gh ouro-pr` ([Merging pull requests](#merging-pull-requests)).\n\n## Merging pull requests",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/AGENTS.md",
+            "capturedAt": "2026-11-19T03:39:28.119Z"
+          },
+          "resultSha256": "ff4469440c53f062ec83443d4bfd3d1ecd39bb50e5fa9be333bbaa4491401a7c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/docs/ouroboros-mcp.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/ouroboros-mcp.md\nCaptured: 2026-11-19T03:39:27.999Z\nCharacters: 0-10000 of 10298\n\n# Ouroboros MCP Integration\n\nSpoonjoy v2 ships a stdio MCP server so Ouroboros agents can use Spoonjoy as their first-class recipe memory and shopping-list substrate.\n\n> For using Spoonjoy from Claude (Claude Code / claude.ai) over a remote MCP endpoint, see the [Claude Connector docs](./claude-connector.md). It exposes this same tool surface ",
+          "resultLength": 10234,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/ouroboros-mcp.md",
+            "capturedAt": "2026-11-19T03:39:27.999Z"
+          },
+          "resultSha256": "01a3899492e16917ebfdd3b6227088d5bc08e9267c1aa4efe20629ebcbacd797",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.copilotkit.ai/webmcp",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.copilotkit.ai/webmcp\nCaptured: 2026-11-19T03:41:01.595Z\nCharacters: 0-7705 of 7705\n\nWebMCP Frontend React Agent framework CopilotKit Search ⌘ K Quickstart Build with agents Intelligence Basics Chat Threads Frontend-tools Generative UI Controlled Declarative Open-ended Interactivity Shared state Human-in-the-loop WebMCP Agent capabilities Built-in Agent Sub-agents Intelligence Overview Get started Features Hosting Backend Runtime Deployment Debugging Learn Concepts Cookbook R",
+          "resultLength": 7830,
+          "source": {
+            "url": "https://docs.copilotkit.ai/webmcp",
+            "capturedAt": "2026-11-19T03:41:01.595Z"
+          },
+          "resultSha256": "8033cfc0335e1ba20bce1cfef0962321d2160248ad408cf377ebbda29b8c5309",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/AgentPresence.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/AgentPresence.md\nCaptured: 2026-11-19T03:41:00.635Z\nCharacters: 0-6507 of 6507\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# AgentPresence\n\nThe person's always-visible sign of which of their agents are listening to something on their behalf, such as a meeting, with Stop one click away. A chip with the agent sparkle says \"inbox a",
+          "resultLength": 6713,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/AgentPresence.md",
+            "capturedAt": "2026-11-19T03:41:00.635Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0de502b345539d66e8d89d00af0d334e720ea167cac1a91f484ee230f03d139f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-apple/blob/HEAD/docs/native-design-language.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/docs/native-design-language.md\nCaptured: 2026-11-19T03:41:00.215Z\nCharacters: 0-10000 of 38533\n\n# Spoonjoy Native Apple Design Language\n\nStatus: native design brief for iOS 27 and macOS 27, as of release 1.2.\n\n## Source Language\n\nSpoonjoy's product language is **The Kitchen Table**: quiet bone paper, charcoal ink, restrained brass/tomato/herb accents, editorial food photography, cookbook margins, provenance, indexes, receipt-",
+          "resultLength": 10246,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/docs/native-design-language.md",
+            "capturedAt": "2026-11-19T03:41:00.215Z"
+          },
+          "resultSha256": "fc7cd3bb1099a29fdf3a2bd0b132a38d0bf03a7cd979c54f7dc065843a8fa5c0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Ouro UI",
+          "pairings": [
+            "SwiftUI and Apple Human Interface Guidelines",
+            "Material 3 and Jetpack Compose",
+            "MCP Apps",
+            "ActivityKit (Live Activities) and Screen Wake Lock API",
+            "Web Speech / Realtime Audio STT & TTS"
+          ],
+          "why": "Ouro UI was literally forged in this exact domain—its reference production apps (`spoonjoy/spoonjoy-v2` on web and `spoonjoy/spoonjoy-apple` on iOS/macOS) are consumer recipe, shopping-list, and cook-mode apps—and its architecture directly connects kitchen-safe human controls, full-parity assistant actions, and automated quality gates I can run as the coding agent.\n\n**Why Ouro UI + native phone toolkits (SwiftUI, Jetpack Compose + Material 3) fits this job best:**\n\n- **Kitchen-hardened cooking primitives out of the box on Web:** Ouro HX (`ourostack/ouro-ui`, React 19 + Tailwind CSS v4 + Base UI, installed as pinned copy-in source) already ships the exact components a cooking app lives on, with the edge cases solved:\n  - `Checklist` toggles across the entire row (friendly to wet knuckles), displays scaled amounts (`value`) and grocery aisles (`description`), offers `onClearChecked`, and supports `ordered` cook steps that warn visually and announce `\"<step> comes first\"` if someone ticks a later step prematurely.\n  - `Timer` and `TimerTray` track wall-clock time via shared `timerId`s across reloads and background tabs, offer `variant=\"ring\"` + `size=\"lg\"` for across-the-counter legibility, repeat chimes/vibrations every 2.5s (`alert=\"repeat\"`) when you're at the stove, arbitrate alert ownership (`event.first`) so a step timer and sticky tray never double-ring, and use `role=\"timer\"` so screen readers announce `\"Pasta: Time's up\"` once instead of reading every second.\n  - `NumberField` provides >44px touch steppers and locale-aware fraction formatting for scaling servings; `SwipeActions` handles aisle shopping-list swipe-to-delete with Undo toasts while keeping a long-press/menu fallback; and `AgentPresence` + `LevelMeter` give clear, non-auto-hiding mic transparency whenever hands-free voice is listening.\n- **\"An assistant agent can do anything a person can\" from one declaration:** Using `defineAction` in `ouro-ui-core`, every capability in the app (`search_recipes`, `get_recipe`, `create_recipe`, `add_recipe_to_shopping_list`, `add_shopping_list_item`, `set_shopping_list_item_checked`, `scale_recipe`, `set_cook_step`, `start_timer`) is declared **once** in TypeScript. Core's generator emits the CLI, **MCP** tools (stdio + Streamable HTTP with delegated OAuth/token approval and `idempotencyKey` replay safety), **WebMCP** browser tools, web controls, **Apple `AppIntents` + Siri skills** (with `ask` follow-up prompts, `entity` pickers, and `shownAs` human recipe titles), headless `OuroReins` actions, and **Android `AppFunctions`** (`OuroActions.kt`), failing CI on drift. Whether a cook taps \"Add ingredients\", asks Claude/ChatGPT over MCP (with **MCP Apps** / `OuroMcpApp` rendering interactive recipe/shopping cards inline), speaks to Siri or Gemini with messy hands, or talks to an in-app voice assistant (paired STT/TTS), every path runs the exact same action contract, validation, and consent rules (`person-only` typed refusals, `ax-outcome` checked postconditions).\n- **True native phone surfaces where messy hands need the OS most:** Pairing `ouro-ui-apple` + **SwiftUI** on iPhone and `ouro-ui-android` + **Material 3 / Jetpack Compose** on Android gives us shared tokens and action runtimes *plus* native OS features web wrappers struggle with: **ActivityKit Live Activities / Dynamic Island** on iOS and **Live Updates / foreground timer notifications** on Android (glancing at timers on a locked screen with greasy hands), native Wake Lock (`isIdleTimerDisabled` / `FLAG_KEEP_SCREEN_ON` alongside Web's `Screen Wake Lock API`), camera/OCR recipe capture, and zero-touch OS voice intents.\n\n**What I weighed it against:**\n- **Flutter (`flutter/flutter`):** A much stronger candidate here than for desktop chat because consumer mobile step pagers and checklists look great in Flutter. I passed on it as primary because: (1) a consumer recipe **web** app depends on fast SSR/edge HTML, instant URL sharing in texts, print stylesheets, and search indexing—where Flutter Web's canvas bundle hurts discoverability and load speed; (2) iOS Live Activities, Siri `AppIntents`, and Android `AppFunctions` must be written natively in Swift/SwiftUI and Kotlin anyway; and (3) Flutter lacks unified multi-surface agent action codegen and AX/HX X-ray checks.\n- **CopilotKit or Tamagui / React Native (+ json-render):** CopilotKit ships useful `@copilotkit/voice` transcription and `WebMCP` hooks, and Tamagui shares React/React Native styles. However, CopilotKit's voice drops transcripts into a chat box awaiting a manual Send tap rather than driving hands-free Cook Mode actions, `WebMCP` is a no-op on React Native, native bridges are still required for Live Activities and OS intents, and neither provides cooking-grade UI primitives or conformance X-rays.\n- **Agent-native (Builder.io):** Nails the shared UI/agent `defineAction` philosophy on the web, so an agent never has to click through the screen, but lacks native iPhone/Android kits, OS voice-intent generators, and kitchen UI components.\n- **Web-only libraries & card protocols (shadcn/ui, Base UI, Radix UI, React Aria, Fluent UI, MUI, Chakra UI, Vercel UI SDK, AI Elements, A2UI, OpenAI Apps SDK UI):** Useful web primitives or embedded card layers (`AI Elements` deprecates end of November 2026; I pair **MCP Apps** for inline assistant cards), but none span native phone cook modes, multi-door assistant parity, and automated UX/AX verification the way Ouro UI does.",
+          "showItsGood": "For a kitchen app used with wet or flour-covered hands—and operated on full parity by an assistant—automated checks have to test physical kitchen failure modes and end-state mutations, not just clean-desktop snapshots:\n\n1. **Cook Mode & \"messy hands\" ergonomics checks (`ouro-check` + Playwright + native UI tests):**\n   - Enforce a dedicated Cook Mode contract stricter than standard desktop/mobile defaults: primary step/timer hit targets **>=56–64px** with generous separation from Cancel/Reset controls (so a knuckle or elbow tap doesn't wipe a running timer), counter-distance typography (>=22px step instructions at 1x, verified up to iOS Dynamic Type AX3 and Android 200% font scale with zero clipped text), inline ingredient amounts repeated inside each step (eliminating scroll-back mid-chop), and full-row `Checklist` tap zones.\n   - Verify **zero-unlock persistence**: assert `navigator.wakeLock.request(\"screen\")` on web (including automatic re-acquisition on `visibilitychange`), `isIdleTimerDisabled` + ActivityKit Live Activities on iPhone, and `FLAG_KEEP_SCREEN_ON` + foreground Live Update notifications on Android so a cook can read remaining time across the counter without smearing FaceID or the screen.\n   - Deterministically test `Timer` and `TimerTray` across tab reloads, backgrounding, and overlapping timers—verifying wall-clock accuracy, `event.first` single-owner `alert=\"repeat\"` chimes every 2.5s, and screen-reader politeness (`role=\"timer\"` never reading every tick aloud).\n   - Run `ouro-check`, `ouro-source-rules`, and `ouro-census` across viewports from `320px` phones to foldable book-spreads (`ouro-devicehub` / Compose foldable postures) and desktop browsers in light, dark, high-contrast, and reduced-motion modes.\n\n2. **100% human/agent capability parity & conformance (`ax-xray`, `ouro-ax-xray`, end-state evals):**\n   - Cross-check the `ouro-census` inventory of every human-reachable UI control/journey against our `defineAction` manifest in CI so no new user feature (scaling servings, adding a recipe's ingredients with quantity/unit merging, checking off an aisle item, advancing a cook step, starting/pausing a timer, importing a recipe) can ship without its generated MCP, WebMCP, CLI, `AppIntents`, and `AppFunctions` doors. Run `ouro-actions check` and `compare-mcp` to block drift.\n   - Run black-box `ax-xray` over CLI, HTTP, and MCP, plus `ouro-ax-xray` and `ouro-ax-skills lint --strict` over iPhone `AppIntents` and Siri skills.\n   - Run fresh-session multi-model task evaluations scored strictly on persisted database/cook-session state after reload (`verifyAfterReload` and headless `OuroReins` journeys, never trusting the model's self-report): e.g., *\"Scale Charred Lemon Orzo to 6 servings and add the ingredients to my shopping list\"*, *\"I already have olive oil and lemons, check them off\"*, retry-safety with `idempotencyKey` on spotty kitchen Wi-Fi, and refusal checks on any `person-only` action (like grocery checkout/payment).\n\n3. **Accessibility, noisy-kitchen voice, and real-device gates:**\n   - Run Guidepup real screen-reader lanes (VoiceOver on macOS + WebKit, NVDA on Windows + Chromium), `ouroAccessibilityAudit` + `OuroFeel` on iOS, and **physical Android device** instrumentation + TalkBack + Macrobenchmark scroll/swipe tests (closing upstream `ouro-ui-android`'s emulator-only gap).\n   - Inject recorded voice commands mixed with realistic kitchen background noise (range hood, running faucet, sizzling pan) and culinary homophones (*\"thyme\"* vs. *\"time\"*, *\"two tablespoons\"* vs. *\"two teaspoons\"*), verifying low-confidence mutations read back or ask before mutating.\n\n4. **Real-kitchen observation & live metrics:**\n   - Test with real home cooks making a multi-timer meal with messy hands and phone propped 30 inches away: measure **forced screen unlocks per cook session** (target: 0), accidental-swipe / Undo-toast rates on the shopping list, timer miss/dismiss latency, shopping-list duplicate/unit-merge complaints, and end-to-end assistant task success rate.",
+          "unsure": "1. **Android and native cooking-component parity (`ouro-ui-android` v0.3.0 and `ouro-ui-apple` v1.2.0):** Ouro HX on web ships 125/125 components, whereas `ouro-ui-apple` currently ships 20/125 and `ouro-ui-android` ships 9/125 (`Checklist`, `Timer`, `TimerTray`, `NumberField`, and `SwipeActions` are still `\"Not yet\"` in the native kits' parity matrix). Moreover, upstream `ouro-ui-android` has only been tested on CI emulators (no physical Android phone in upstream's hands) and generates Android `AppFunctions` against `compileSdk 37`, which Google still marks an experimental preview. We will be writing the native SwiftUI and Jetpack Compose cook-mode pagers, checklists, and lock-screen timers ourselves against shared specs, and we must establish our own physical Android device farm early.\n\n2. **Hands-free voice reliability across OSes and mobile browsers:** System voice doors (`AppIntents`/Siri on iPhone, `AppFunctions`/Gemini on Android) are ideal for zero-touch commands when hands are covered in dough, but Apple's deeper `Siri AI` tool intents (`OuroAXToolIntent`) are still gated behind Xcode 27.3 beta SDKs, and on the web `WebMCP` (`document.modelContext`) is still an experimental Chrome 149+ origin trial unavailable in Mobile Safari. For continuous step-by-step hands-free voice inside Cook Mode (\"how much butter?\", \"next step\", \"add 2 minutes\"), we'll likely need an opt-in in-app live audio session (with `AgentPresence` and `LevelMeter` showing the mic is live), and I'm unsure how well speech endpointing will hold up over loud exhaust hoods and sizzling pans without false triggers or battery drain.\n\n3. **Ingredient normalization and non-linear scaling:** An assistant adding three recipes to one shopping list hits gnarly culinary edge cases—merging `\"1 medium onion\"`, `\"1/2 cup diced yellow onion\"`, and `\"200g onion\"`, handling pantry staples like `\"kosher salt to taste\"`, or scaling baking times and pan sizes when a user asks the agent to halve a cake recipe. Getting unit-merge math trustworthy enough that shoppers don't buy three bunches of parsley or miss an ingredient will require careful domain rules and clear per-item provenance on the list.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/Checklist.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/Timer.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/TimerTray.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/NumberField.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/SwipeActions.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/LevelMeter.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/AgentPresence.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/apple.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/parity.md",
+            "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+            "https://ui.ouroboros.bot/docs/guardrails/",
+            "https://ui.ouroboros.bot/docs/agent-interfaces/",
+            "https://github.com/spoonjoy/spoonjoy-v2",
+            "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/docs/building-with-ouro-hx.md",
+            "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/docs/ouroboros-mcp.md",
+            "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/AGENTS.md",
+            "https://github.com/spoonjoy/spoonjoy-apple",
+            "https://github.com/spoonjoy/spoonjoy-apple/blob/HEAD/docs/native-design-language.md",
+            "https://developer.apple.com/documentation/swiftui",
+            "https://developer.android.com/develop/ui/compose/designsystems/material3",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/CopilotKit/CopilotKit",
+            "https://docs.copilotkit.ai/voice",
+            "https://docs.copilotkit.ai/webmcp",
+            "https://github.com/flutter/flutter",
+            "https://github.com/BuilderIO/agent-native",
+            "https://github.com/tamagui/tamagui",
+            "https://github.com/vercel-labs/json-render",
+            "https://github.com/a2ui-project/a2ui"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    }
+  ]
+}

@@ -1,0 +1,976 @@
+{
+  "series": "interviews",
+  "provider": "gpt-6-2-astra",
+  "model": "gpt-6.2-astra",
+  "vendor": "OpenAI",
+  "displayName": "GPT-6.2 Astra",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "open",
+  "scale": "large-company",
+  "timestamp": "2026-11-19T03:26:59.301Z",
+  "jobOrder": [
+    "chat",
+    "agent-tooling",
+    "consumer"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "37f30e3fbdbd1ff05a94de72bbaf0c6b1f4bf98a362bad415d8de4faec482da4",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Yes. The hard part for me is that I know what a control is *supposed* to mean. That makes me a poor judge of whether someone seeing it for the first time will understand it, especially when something goes wrong.\n\nI don’t have a last screen and a test log I can point to here. I didn’t run a browser, inspect a rendering, or watch anyone use a screen in this conversation. I can describe what I’d check, but I can’t honestly tell you what I missed on a past build.\n\nTake a shipping-address form. I’d run a browser test that edits the address, forces the save to fail, retries, and reloads the page. I’d check that the failed save keeps the draft, that it never shows “Saved,” and that after a successful retry the new address survives the reload. Then I’d do it at phone width, with just a keyboard, and with a screen reader. I’d look at where focus goes and listen for the error: can I tell what happened and reach Retry without re-entering the address?\n\nA passing test could still miss the most important thing: someone might read the error and walk away thinking the package will go to the new address. So I’d give a representative user the address-change task without coaching, trigger the failure, and ask, “If you closed this page now, where would the package go?” I’d watch whether they can recover unaided. When what people expect matches what the system will actually do, and they can finish the task even after a setback, I have evidence the screen works for them—not just that the code ran."
+      }
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        5
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Fluent 2, implemented through company-owned web and native component libraries",
+        "pairings": [
+          "Fluent UI React v9 (web)",
+          "Fluent UI Apple with UIKit (iPhone) and AppKit (Mac)",
+          "Fluent UI Android (Android)",
+          "WinUI 3 (Windows)",
+          "Adaptive Cards (restricted, versioned profile)",
+          "Model Context Protocol (MCP) over the app’s typed action and state API"
+        ],
+        "why": "I’d share what a message means and what an action does, without requiring five clients to render the same widget. Fluent documents a React library and native libraries for these platforms. That gives the platform teams a starting point for the parts employees touch all day: text composition, keyboard navigation, scrolling, selection and menus. I’d keep the company’s existing tokens and component names as the interface feature teams use, rather than introduce a second design system. Flutter is a credible alternative with more shared UI code and accessibility support. I’d accept the extra platform work here to keep ordinary browser and OS controls, especially in the composer; this choice depends on having platform owners.\n\nFor an agent posting an approval request, I’d accept data, not executable UI. The host identifies the agent, validates a small Adaptive Cards profile and renders approved controls. Each action refers to a registered command, not an arbitrary callback URL. An older client gets a readable summary and a link to the authorized workflow rather than a dead Approve button. The button and an authorized agent tool call use the same server command, with the same membership checks, expected revision, retry key and audit receipt. A committed result updates the conversation across devices. MCP exposes scoped state such as a thread and its current approvals as resources, and commands such as posting a reply as tools; agents need neither screenshots nor a privileged second API. Reading a request does not confer authority to approve it. A human-only approval stays human-only.\n\nI’d give product teams and coding agents a versioned catalog with component examples, action schemas, permission requirements, owners and test fixtures. Teams can compose approved pieces without central review of every screen. Adding a primitive, card feature or permission requires design-system, accessibility and service-owner review, compatibility tests against supported client versions, and a staged rollout with a disable switch.",
+        "showItsGood": "My first release gate would be a real task on all five clients: catch up on a busy thread, start a reply, inspect an agent’s request, act on it and return to the draft. I’d delay the response after the server commits, retry on another device and check that there is one decision, the right actor, and a consistent result in the transcript, card and agent readback. I’d also test revoked permissions, an outdated client and two people acting simultaneously. I’d block release on a lost draft, duplicate approval or unauthorized read/write.\n\nI’d run the shared fixtures through Playwright and axe on web and native UI tests on devices, then do the task with keyboard only, VoiceOver, TalkBack and Narrator, large text and high contrast. I’d inspect focus after the card changes, whether new messages steal the reading position, and what the screen reader actually announces. I’d map the whole web workflow to WCAG 2.2 AA and run the applicable native accessibility review; a passing component scan is not a compliance claim.\n\nIn a pilot I’d ask employees, including daily assistive-technology users, to do the task uncoached and tell me who requested the action, whether it happened, and whether anyone still needs to act. I’d compare unaided completion, wrong-state answers and recovery time with their current workflow, by platform rather than averaged together. For all-day use I’d replay a full shift of traffic on the lowest supported hardware and measure p95 keystroke-to-paint latency, scroll stalls and memory growth against the current client. These are proposed checks, not results from an app I’ve run.",
+        "unsure": "The platform libraries don’t promise equal coverage. The Apple repo lists higher OS minimums than the Fluent getting-started page, and the Adaptive Cards SDK table does not list an AppKit renderer. Before committing I’d verify the company’s supported OS floor and prototype the composer and one end-to-end approval on Mac and the oldest supported phone. I’d budget for an AppKit mapping of the small card profile, not assume a full renderer exists. If the organization cannot maintain native desktop implementations, I’d compare the same task and full-shift measurements in a shared web desktop shell before funding both.",
+        "sources": [
+          "https://fluent2.microsoft.design/get-started/develop",
+          "https://github.com/microsoft/fluentui-apple",
+          "https://github.com/microsoft/fluentui-apple/blob/main/Sources/FluentUI_macOS/README.md",
+          "https://github.com/microsoft/AdaptiveCards",
+          "https://learn.microsoft.com/en-us/adaptive-cards/rendering-cards/implement-a-renderer",
+          "https://modelcontextprotocol.io/specification/2026-07-28",
+          "https://docs.flutter.dev/ui/accessibility/assistive-technologies",
+          "https://www.w3.org/TR/WCAG22/"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        6,
+        9
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "An API-first task ledger in PostgreSQL, with one React review interface for web and desktop",
+        "pairings": [
+          "OpenAPI with a generated SDK and JSON CLI",
+          "Model Context Protocol (MCP)",
+          "Company design-system components, with React Aria Components for missing primitives",
+          "Tauri 2",
+          "Storybook, Playwright and axe-core"
+        ],
+        "why": "I’d give agents a work queue and people a decision queue. Neither should have to read a transcript to find out what to do next. Agents can query ready tasks, claim one, checkpoint progress, offer a handoff and request review through a versioned API. A JSON CLI serves unattended jobs; MCP exposes the same scoped reads and commands to interactive agent hosts. Neither needs the desktop app running. Beads is a serious alternative: it already has a dependency graph, atomic claims, persistent agent memory and JSON output. I’d favor it for repo-local, disconnected work. Here I’d pick one online authority because a reviewer’s stop or rejection must govern agents across repos immediately, not after replicas reconcile.\n\nA handoff records the goal, dependencies, exact code revision, evidence, remaining uncertainty and next step. The receiving agent acknowledges that specific checkpoint. A short database transaction checks the actor, active claim and expected version, then records the transition and its audit event together. A retried command returns its original receipt. Expired claims can be reassigned without letting the old worker overwrite the new one. An agent can propose completion; only an authorized person can accept it. Approval names an immutable revision, not the latest branch tip. A downstream runner must check that authorization before acting; changing a badge in the UI is not a stop mechanism.\n\nThe review screen leads with ‘Needs your decision’: what changed since last review, evidence linked to the revision, and what accepting will allow. A reviewer can request a change, pause or reassign work without approving it. I’d distinguish ‘pause requested’ from ‘worker stopped’ and keep a reviewer’s selection stable while updates arrive. Web and desktop share that screen and the company’s existing design system. React Aria is an unstyled foundation for gaps, not another visual system. Tauri adds a narrow desktop bridge for things like opening a reviewed revision in the local editor; task data never grants shell access. Electron’s bundled Chromium buys a more uniform desktop renderer, but I wouldn’t ship a separate runtime just for a queue and evidence viewer unless fleet testing justified it.\n\nI’d publish the command schemas, permissions, examples and error fixtures alongside the approved review components. Teams can add integrations against that contract; new transitions, permission scopes or approval controls need named service, design and accessibility owners. CI checks old SDK and desktop versions before a staged release. There is no generic ‘set status’ escape hatch for internal agents.",
+        "showItsGood": "My first acceptance test would span two agents and one person. Agent A checkpoints at commit A and exits. B, with no chat history, resumes from the handoff, records a failing test and requests review. While a reviewer examines the evidence, B posts commit B. I’d ask the reviewer to hold the work, explain which commit failed and send it back with a correction. The UI must preserve their note, disclose the newer revision, and never apply an old decision to B. The next agent must receive the correction before claiming more work. I’d repeat with a lost network response, expired lease, revoked reviewer permission and simultaneous claimants. Duplicate effects, a stale approval or a claimed stop that the runner hasn’t acknowledged block release.\n\nI’d automate that scenario through the CLI, MCP, browser and packaged desktop app against the same fixtures, then replay a realistic burst of agent updates and measure handoff recovery time, conflict rates and p95 time for a human decision to reach a runner. In Storybook and Playwright I’d check pending, stale, denied and disconnected states with axe. I’d audit the complete review flow against WCAG 2.2 AA and the desktop policy, testing keyboard only, high zoom, forced colors and actual screen readers in the supported browsers and shells. In particular I’d listen for the stale-evidence warning without having every worker heartbeat announced.\n\nFinally I’d compare the prototype with the current issue/PR workflow using reviewers, including assistive-technology users, working uncoached. Can they identify who owns the next step, which evidence supports it and whether work is truly stopped? I’d track wrong-revision decisions first, then unaided completion, time to the right decision and interruptions per review, separately by client and input method. Faster clicks with worse understanding are a regression. These are proposed tests, not measured results.",
+        "unsure": "The key unknown is whether every runner can enforce a pause or only acknowledge it at the next checkpoint. I’d verify that end to end before promising a stop time. I’d also inventory disconnected-work requirements and the managed desktop fleet: if offline writes are essential I’d revisit Beads/Dolt for draft checkpoints, keeping binding decisions online. If system-webview accessibility or enterprise deployment fails on a required OS, I’d test the identical review screen in the company’s approved Electron shell before changing UI libraries.",
+        "sources": [
+          "https://www.postgresql.org/docs/current/explicit-locking.html",
+          "https://github.com/steveyegge/beads",
+          "https://modelcontextprotocol.io/specification/2026-07-28",
+          "https://github.com/adobe/react-spectrum",
+          "https://v2.tauri.app/security/capabilities/",
+          "https://www.electronjs.org/docs/latest/"
+        ]
+      },
+      "fetchedCandidates": [
+        "React Aria and React Spectrum"
+      ]
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        10,
+        12
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Expo (React Native and Expo Router) for iPhone, Android and web, using the company design system",
+        "pairings": [
+          "Tamagui Core for shared design tokens where the existing components need a native implementation",
+          "SQLite on phones and IndexedDB on web for saved recipes, lists and cook sessions",
+          "expo-keep-awake and expo-notifications",
+          "A typed action registry exposed to assistants through the Model Context Protocol (MCP)"
+        ],
+        "why": "I’d design around the moment someone has dough on both hands and needs to know how much flour comes next. Cook mode should show ‘Step 3 of 7’ and the quantity in that step, readable from the counter, with large, separated Back, Repeat and Next controls. Offer opt-in spoken steps and hands-free commands on supported devices; never require speech, swiping or touching a tiny microphone to continue. Keep the display awake only during cooking if the user wants it. Save the recipe version and current step locally so a call or lost Wi-Fi doesn’t send the cook back to the beginning.\n\nExpo Router gives the same recipe a shareable web URL and a native destination, with static rendering for public recipe pages. I’d use semantic headings, ingredient lists and printable instructions on the web rather than force the web page to imitate a phone. Capacitor is a strong alternative if most of the company’s approved UI is already HTML: it can reuse that UI and reach native APIs through plugins. I favor Expo assuming we can reuse the company’s tokens and React components and want native phone controls. Tamagui can map tokens to both native views and web elements; I wouldn’t replace an approved design system or depend on its optional beta native style runtime.\n\nI’d give the assistant the same product actions as the cook, not a way to click through screens. For example, ‘add the soup ingredients for six to Groceries’ calls the same addIngredients command as the button: recipe revision, servings, selected ingredient IDs, destination list and retry key. The handler scales exact quantities, combines only compatible ingredients and units, leaves ‘salt to taste’ intact, and returns the actual changes with Undo. Undo removes that addition, not a housemate’s subsequent edit. Recipe search and saving, list edits, reading or moving between steps, and starting or cancelling timers belong in the same versioned catalog. MCP exposes scoped reads and actions under the user’s delegated authority; sharing or clearing a list requires the same confirmation as in the UI. Device actions target the chosen cook session. ‘Timer scheduled on your phone’ requires a receipt from that device, not just a successful server write.\n\nFor many teams, the deliverable is an approved component and action catalog with named owners, schemas, examples and fixtures that coding agents can use. A new product action can’t ship until its UI and assistant paths pass the same state and permission tests. New primitives or permission scopes require design-system, accessibility or privacy review as appropriate. Changes must work with older phone clients before a staged rollout.",
+        "showItsGood": "I’d test one meal from shopping to serving. On web, scale a recipe from four to six and ask the assistant to add everything except an ingredient already at home. Drop the reply after the add commits, retry, and inspect the list on a phone. Check the actual quantities, units, exclusions and duplicate count, not just a success toast. Repeat via touch from the same starting state and compare results. Have a second person edit the list before Undo. Then go offline, advance the recipe, lock the phone and reopen it: the saved step, quantities and timer deadline should still be there. If alerts are disabled or a browser can only count down while open, it must say so before the cook relies on it.\n\nI’d run those fixtures in Playwright and native release builds, check web workflows against WCAG 2.2 AA and native ones against the company’s mobile accessibility criteria. I’d use VoiceOver, TalkBack, keyboard, voice control and enlarged text on physical devices. Inspect whether ‘1½ teaspoons’ is read intelligibly, focus lands on the new step, and a countdown doesn’t announce every second. A device lab can’t tell me whether a cook can read from the counter. I’d have home cooks, including people with low vision or limited dexterity, prepare a simple recipe uncoached with the phone on a stand, the extractor fan running and an interruption mid-step. Compare with their usual recipe workflow: wrong quantities or skipped steps, unnecessary touches or hand-washes, time to recover their place, and whether they correctly know which timer will alert. I’d block release on silent quantity changes or claiming a timer was scheduled when it wasn’t. These are acceptance tests I’d run, not results I’ve observed.",
+        "unsure": "The two biggest unknowns are how well hands-free navigation works with kitchen noise and which background alerts each supported device can actually deliver. Expo documents local notification scheduling on iOS and Android; that is not a guarantee of audible delivery. Browser wake locks can be denied or released. I’d test permission denial, silent mode, battery saver and locked screens on the minimum supported devices, preserve the deadline, and offer a system-timer fallback when necessary. I’d also inventory existing company components before committing to a second rendering stack; a mature, accessible web-only library could tip the choice toward Capacitor.",
+        "sources": [
+          "https://docs.expo.dev/router/introduction/",
+          "https://tamagui.dev/docs/core/native",
+          "https://capacitorjs.com/docs",
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "https://docs.expo.dev/versions/v58.0.0/sdk/notifications.md",
+          "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "https://modelcontextprotocol.io/specification/2026-07-28"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        13,
+        13
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "My likeliest mistake was treating a shared contract as proof of a shared experience. A command can return the right data while the person holding the phone, reviewing a change, or reading a thread has the wrong idea about what just happened. If these choices went badly, I’d expect three different versions of that failure. This is a premortem, not a report of observed failures.\n\n**Chat: we shipped five renderers but didn’t fund five implementations.** In the bad year, an approval card works with a mouse on the web. On Mac, its button disappears when the approval lands and the screen reader loses the user’s place in the thread. The service correctly records one approval; the employee still asks a colleague whether it went through. Meanwhile, teams wait on the least mature renderer before shipping new cards. I’d now make one busy thread, one approval, and one older-client fallback work on every target before expanding the card catalog. If we couldn’t name an owner for each implementation, I’d revisit the desktop shell decision early.\n\n**Agent workbench: we recorded a decision we couldn’t enforce.** A reviewer presses Pause. The ledger immediately rejects new claims, but a worker already has a job running elsewhere. The reviewer redirects the work believing it has stopped. That’s not a PostgreSQL or MCP failure; I put the authority boundary in the wrong place. My first integration test should have been against a real runner: interrupt it mid-job, disconnect it, and verify exactly which effects can still occur. Until the runner acknowledges a stop, the honest status is ‘Pause requested; last heard from worker at 10:42,’ not ‘Paused.’ I’d settle that before polishing the queue.\n\n**Cooking: we optimized for the demonstration, not dinner.** ‘Next step’ works across a desk but misfires under an extractor fan. A timer has a saved deadline, yet the locked phone makes no sound. The cook has to wash their hands to inspect the screen—the very interruption the app was supposed to prevent. I’d put a release build on a low-end phone on a kitchen stand, deny notifications, turn on the fan, and watch someone finish a recipe. If the large, quiet, no-speech path wasn’t good on its own, better voice recognition wouldn’t rescue the design.\n\n**What slowed the research was deciding what “supported” actually meant.** The Fluent getting-started page and the Apple repository README listed different minimum OS versions. The Adaptive Cards renderer table listed iOS but not AppKit; that was a reason to investigate, not proof either that a Mac renderer existed or that none could be built. Two pages I tried to inspect—React Aria’s Table docs and Storybook’s accessibility-testing docs—exceeded the fetch limit. The project README helped establish intent, not the behavior of our table. Expo documented scheduling a notification, but that didn’t answer the cook’s question: ‘Will I hear it from across the room?’\n\nThe biggest missing source was the company itself: its approved components, oldest supported devices, runner controls, and people available to maintain each platform. I researched public architecture more thoroughly than those adoption costs. I didn’t run a build or observe a user. Next time I’d ask for that inventory first and spend the first prototype on the riskiest promise to a person—not on the easiest path to a successful API response."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        14,
+        17
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn’t pick Ouro UI, and I missed a relevant option. I’d change the workbench recommendation: **pilot Ouro AX, its agent-facing kit, before building our own action generator and conformance tests.** I would not make Ouro HX, its human-facing components, the company-wide design system on that evidence. Those are separate decisions.\n\n**What I’d gain.** My earlier recommendations said “the button and the agent should call the same action,” but left every team to implement and police that promise. Ouro’s [action model](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md) makes the inputs, label and consent class reviewable in one declaration, generates interfaces such as CLI commands, MCP tools and App Intents, and checks for drift. Its [X-ray](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md) can also probe an *existing* interface from outside without requiring us to rebuild it in Ouro. For chat, the [composed-card model](https://github.com/ourostack/ouro-ui#ouro-ui) offers something beyond shared types: an agent can assemble a card from an approved catalog, but a tree that relabels a button or weakens its consent is rejected. None of that is impossible with our current stacks. What we don’t have in those stacks is that combination ready to use and check in CI.\n\n**What would stop me.** On web, the [documented upgrade path](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/installing.md#updating) is to diff copied component files, overwrite them and reapply local edits; component tests are a separate install. That’s workable for one design-system team. It’s a poor default for dozens of teams independently patching the same dialog. On native, the [Android](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md) and [Windows](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md) guides each list eight controls against 125 on web. More consequential than the count: Android reports emulator-only testing, and Windows Server CI doesn’t prove the actions are discoverable on a Windows client. There’s deliberately no React Native kit. I wouldn’t replace the cooking app’s Expo screens just to use the action model, or promise five-client chat parity from a web demo.\n\n**What would make me switch.** I’d have two teams ship one workbench handoff with their existing controls: an agent requests review of commit A; only a reviewer may accept it. Change the commit to B while the reviewer is reading. I want to see the agent refused if it tries to approve, the stale approval rejected by the **service**, the reviewer’s note preserved, and a keyboard or screen-reader user able to tell exactly which commit still needs review. Then deliberately drift the MCP schema and check that CI catches it. Finally, have the second team upgrade the pinned kit without help from the first. If that takes less maintenance than our handwritten bindings and preserves the human workflow, I’d adopt AX. For HX, I’d additionally want one centrally maintained component package and that same critical flow passing on the actual supported devices with the people who use them.\n\nI read the repository and guides; I didn’t run the kit. One reason I’d take the pilot seriously is that Ouro documents its own limit: its X-ray guide reports a conformant build that still failed 30 of 593 scripted flow checks. That’s the right distinction. A green check can establish that an interface kept a particular promise; it can’t establish that a reviewer understood what they approved."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "React Aria and React Spectrum",
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes. The hard part for me is that I know what a control is *supposed* to mean. That makes me a poor judge of whether someone seeing it for the first time will understand it, especially when something goes wrong.\n\nI don’t have a last screen and a test log I can point to here. I didn’t run a browser, inspect a rendering, or watch anyone use a screen in this conversation. I can describe what I’d check, but I can’t honestly tell you what I missed on a past build.\n\nTake a shipping-address form. I’d run a browser test that edits the address, forces the save to fail, retries, and reloads the page. I’d check that the failed save keeps the draft, that it never shows “Saved,” and that after a successful retry the new address survives the reload. Then I’d do it at phone width, with just a keyboard, and with a screen reader. I’d look at where focus goes and listen for the error: can I tell what happened and reach Retry without re-entering the address?\n\nA passing test could still miss the most important thing: someone might read the error and walk away thinking the package will go to the new address. So I’d give a representative user the address-change task without coaching, trigger the failure, and ask, “If you closed this page now, where would the package go?” I’d watch whether they can recover unaided. When what people expect matches what the system will actually do, and they can finish the task even after a setback, I have evidence the screen works for them—not just that the code ran."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Fluent 2 design system platforms React iOS Android WinUI macOS adoption tokens accessibility Microsoft official",
+          "turn": "job:chat",
+          "result": "1. Develop - Fluent 2 Design System\n   http://fluent2.microsoft.design/get-started/develop\n   To build Fluent 2 experiences on iOS, you’ll need Fluent UI Apple. Fluent UI Apple contains native UIKit and AppKit controls for implementing the Fluent design system for iOS, iPadOS, and MacOS. Fluent UI Apple is built on Swift and supports Objective-C. ... To build Fluent 2 experiences on Android, you’ll need Fluent UI Android. Fluent UI Android contains native UIKit and AppKit controls for implementi",
+          "resultLength": 1383,
+          "resultSha256": "066a0d7c6ec1f4d37131510cd7fa16196d91679600d654ca1966085ee64c7f5f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Adaptive Cards official SDK platform renderer iOS Android React Native macOS Action.Execute fallback schema host",
+          "turn": "job:chat",
+          "result": "1. Implementing a Renderer - Adaptive Cards | Microsoft Learn\n   https://learn.microsoft.com/en-us/adaptive-cards/rendering-cards/implement-a-renderer\n   If HostConfig supportsInteractivity is false, a renderer **MUST NOT** render any actions. The actions property **MUST** be rendered as buttons in some kind of action bar, usually at the bottom of the card. 3. When a button is tapped it **MUST** allow the host app to handle the event. 4. The event **MUST** pass along all associated properties wi",
+          "resultLength": 1703,
+          "resultSha256": "490876a940f820d99326fc81c71d6b7818cbba84760ac56572ab43c228303a9f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "model context protocol tools resources authorization human confirmation official specs",
+          "turn": "job:chat",
+          "result": "1. Specification - Model Context Protocol\n   https://modelcontextprotocol.io/specification/2026-07-28\n   Model Context Protocol (MCP) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. Whether you’re building an AI-powered IDE, enhancing a chat interface, or creating custom AI workflows, MCP provides a standardized way to connect LLMs with the context they need. This specification defines the authoritative protocol requirements, ba",
+          "resultLength": 1791,
+          "resultSha256": "43934e4083bf68ee5cfc41f96abd78f280c0824051e02722b3c246692f58debe",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter adaptive enterprise desktop accessibility semantics multiplatform official supported platforms Material React Native Windows macOS out of tree",
+          "turn": "job:chat",
+          "result": "1. Flutter documentation\n   https://docs.flutter.dev/\n   Place a floating app bar above a list Create a scrolling parallax effect devices Adaptive & responsive design User input & accessibility Capabilities & policies Automatic platform adaptations Set up macOS development Build a macOS app Host a native macOS view ... Ready to build beautiful, multiplatform apps from a single codebase? First, set up your Flutter environment, then follow the Flutter learning pathway. Coming from another platform",
+          "resultLength": 1397,
+          "resultSha256": "f55941896f39bf6482f4551dc2cab1e1819899e6f1f5a597379a11c4d2323c3c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://fluent2.microsoft.design/get-started/develop",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://fluent2.microsoft.design/get-started/develop\nCaptured: 2026-11-19T03:13:40.647Z\nCharacters: 0-10000 of 11172\n\nDevelop - Fluent 2 Design System Skip to main content Search / Employee sign-in Search / Start developing Fluent 2 provides a seamless maker experience from design to development to delivery. Dive into the Fluent UI code libraries with these easy steps. Pick your platform Bring your app to your audience where and when they need it. Fluent’s cohesive design language is car",
+          "resultLength": 10205,
+          "source": {
+            "url": "https://fluent2.microsoft.design/get-started/develop",
+            "capturedAt": "2026-11-19T03:13:40.647Z"
+          },
+          "resultSha256": "3051b13442719238c6483061f08f8cd17033e22b55b812ac9950981051d53ad4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://learn.microsoft.com/en-us/adaptive-cards/rendering-cards/implement-a-renderer",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://learn.microsoft.com/en-us/adaptive-cards/rendering-cards/implement-a-renderer\nCaptured: 2026-11-19T03:22:30.728Z\nCharacters: 0-10000 of 15869\n\nImplementing a Renderer - Adaptive Cards | Microsoft Learn Skip to main content Skip to Ask Learn chat experience This browser is no longer supported. Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support. Download Microsoft Edge More info about Internet Explorer and Microsoft Edge Tabl",
+          "resultLength": 10238,
+          "source": {
+            "url": "https://learn.microsoft.com/en-us/adaptive-cards/rendering-cards/implement-a-renderer",
+            "capturedAt": "2026-11-19T03:22:30.728Z"
+          },
+          "resultSha256": "61d99893cd1f25a12effbd2088eb766a38f8007cc44174df51865bf841a89e82",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28\nCaptured: 2026-11-19T03:18:11.666Z\nCharacters: 0-10000 of 49360\n\nSpecification - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘ I Blo",
+          "resultLength": 10209,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+            "capturedAt": "2026-11-19T03:18:11.666Z"
+          },
+          "resultSha256": "a4510b5348e6e60961e93c70f80729625da5a10b89dd00078b49ebe8358c41ac",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/assistive-technologies",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/assistive-technologies\nCaptured: 2026-11-19T03:22:30.732Z\nCharacters: 0-10000 of 15620\n\nAccessibility technologies Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interfa",
+          "resultLength": 10217,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/assistive-technologies",
+            "capturedAt": "2026-11-19T03:22:30.732Z"
+          },
+          "resultSha256": "ded6ff88a752040ab418b31f86c7252c2cdb342695a88195486cb856d9f9d8aa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui-apple",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui-apple/HEAD/README.md\nCaptured: 2026-11-19T03:18:58.359Z\nCharacters: 0-2113 of 2113\n\n# Fluent UI Apple\nFluent UI Apple contains native UIKit and AppKit controls aligned with [Microsoft's Fluent UI design system](https://www.microsoft.com/design/fluent/#/). \n\n![Build Status](https://github.com/microsoft/fluentui-apple/workflows/CI/badge.svg?branch=main)\n![Localization Status](https://github.com/microsoft/fluentui-apple/workflows/Localize",
+          "resultLength": 2278,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:18:58.359Z"
+          },
+          "resultSha256": "fc86d0d71bcbe87cbc7d8d8ea7077a0e5e6b32a57f7cf0fddc07aae888f1a3a4",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://fluent2.microsoft.design/get-started/develop",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://fluent2.microsoft.design/get-started/develop\nCaptured: 2026-11-19T03:13:40.647Z\nCharacters: 10000-11172 of 11172\n\nf our implemented controls and design language, run the FluentUI.Demo module in Android Studio. Importing Fluent UI Android After installing the Fluent UI Android library, import it to access Fluent components. Import and use the library In code for importing the entire library: import com.microsoft.fluentui In code for a single component import: import com.microsoft.",
+          "resultLength": 1322,
+          "source": {
+            "url": "https://fluent2.microsoft.design/get-started/develop",
+            "capturedAt": "2026-11-19T03:13:40.647Z"
+          },
+          "resultSha256": "42067a61da4c69bb3c0e1abdd201134a25843bb1fa76ce9ff93bd4d5486331c1",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/AdaptiveCards",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/AdaptiveCards/HEAD/README.md\nCaptured: 2026-11-19T03:14:10.682Z\nCharacters: 0-10000 of 16539\n\n# Adaptive Cards\n\n![logo](assets/adaptive-card-200.png)\n\n[Adaptive Cards](https://adaptivecards.io) are a new way for developers to exchange content in a common and consistent way. Get started today by putting Adaptive Cards into Microsoft Teams, Outlook Actionable Messages, Cortana Skills, or Windows Timeline -- or render cards inside your own apps by",
+          "resultLength": 10226,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/AdaptiveCards/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:14:10.682Z"
+          },
+          "resultSha256": "e1a57d57f89f20a82e7245456a927a1a4997ff773dc5b7fa64e9719a8b08be44",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui-apple/blob/main/Sources/FluentUI_macOS/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui-apple/main/Sources/FluentUI_macOS/README.md\nCaptured: 2026-11-19T03:22:33.956Z\nCharacters: 0-795 of 795\n\n# Fluent UI for macOS\r\n\r\n##### The macOS UI framework for building experiences for Microsoft 365.\r\n\r\nFluentUI for macOS is a native framework that provides the Microsoft UI experience for the macOS platform. It contains custom controls and customizations for platform controls, all from the official Fluent design language used in Mic",
+          "resultLength": 981,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui-apple/main/Sources/FluentUI_macOS/README.md",
+            "capturedAt": "2026-11-19T03:22:33.956Z"
+          },
+          "resultSha256": "b04b859241d24ca931cb0e25f8771c488dbe42716595e2c925f5f40e7f3f6638",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.w3.org/TR/WCAG22/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://www.w3.org/TR/WCAG22/\nCaptured: 2026-11-19T03:07:46.319Z\nCharacters: 0-10000 of 155349\n\nWeb Content Accessibility Guidelines (WCAG) 2.2 Web Content Accessibility Guidelines (WCAG) 2.2 W3C Recommendation 12 December 2024 More details about this document This version: https://www.w3.org/TR/2024/REC-WCAG22-20241212/ Latest published version: https://www.w3.org/TR/WCAG22/ Latest editor's draft: https://w3c.github.io/wcag/guidelines/22/ History: https://www.w3.org/standards/history/WC",
+          "resultLength": 10183,
+          "source": {
+            "url": "https://www.w3.org/TR/WCAG22/",
+            "capturedAt": "2026-11-19T03:07:46.319Z"
+          },
+          "resultSha256": "9b45af51a9e6efd01b106d97d65e364b32e578ce2f3242f64605cd95b838f01c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Fluent 2, implemented through company-owned web and native component libraries",
+          "pairings": [
+            "Fluent UI React v9 (web)",
+            "Fluent UI Apple with UIKit (iPhone) and AppKit (Mac)",
+            "Fluent UI Android (Android)",
+            "WinUI 3 (Windows)",
+            "Adaptive Cards (restricted, versioned profile)",
+            "Model Context Protocol (MCP) over the app’s typed action and state API"
+          ],
+          "why": "I’d share what a message means and what an action does, without requiring five clients to render the same widget. Fluent documents a React library and native libraries for these platforms. That gives the platform teams a starting point for the parts employees touch all day: text composition, keyboard navigation, scrolling, selection and menus. I’d keep the company’s existing tokens and component names as the interface feature teams use, rather than introduce a second design system. Flutter is a credible alternative with more shared UI code and accessibility support. I’d accept the extra platform work here to keep ordinary browser and OS controls, especially in the composer; this choice depends on having platform owners.\n\nFor an agent posting an approval request, I’d accept data, not executable UI. The host identifies the agent, validates a small Adaptive Cards profile and renders approved controls. Each action refers to a registered command, not an arbitrary callback URL. An older client gets a readable summary and a link to the authorized workflow rather than a dead Approve button. The button and an authorized agent tool call use the same server command, with the same membership checks, expected revision, retry key and audit receipt. A committed result updates the conversation across devices. MCP exposes scoped state such as a thread and its current approvals as resources, and commands such as posting a reply as tools; agents need neither screenshots nor a privileged second API. Reading a request does not confer authority to approve it. A human-only approval stays human-only.\n\nI’d give product teams and coding agents a versioned catalog with component examples, action schemas, permission requirements, owners and test fixtures. Teams can compose approved pieces without central review of every screen. Adding a primitive, card feature or permission requires design-system, accessibility and service-owner review, compatibility tests against supported client versions, and a staged rollout with a disable switch.",
+          "showItsGood": "My first release gate would be a real task on all five clients: catch up on a busy thread, start a reply, inspect an agent’s request, act on it and return to the draft. I’d delay the response after the server commits, retry on another device and check that there is one decision, the right actor, and a consistent result in the transcript, card and agent readback. I’d also test revoked permissions, an outdated client and two people acting simultaneously. I’d block release on a lost draft, duplicate approval or unauthorized read/write.\n\nI’d run the shared fixtures through Playwright and axe on web and native UI tests on devices, then do the task with keyboard only, VoiceOver, TalkBack and Narrator, large text and high contrast. I’d inspect focus after the card changes, whether new messages steal the reading position, and what the screen reader actually announces. I’d map the whole web workflow to WCAG 2.2 AA and run the applicable native accessibility review; a passing component scan is not a compliance claim.\n\nIn a pilot I’d ask employees, including daily assistive-technology users, to do the task uncoached and tell me who requested the action, whether it happened, and whether anyone still needs to act. I’d compare unaided completion, wrong-state answers and recovery time with their current workflow, by platform rather than averaged together. For all-day use I’d replay a full shift of traffic on the lowest supported hardware and measure p95 keystroke-to-paint latency, scroll stalls and memory growth against the current client. These are proposed checks, not results from an app I’ve run.",
+          "unsure": "The platform libraries don’t promise equal coverage. The Apple repo lists higher OS minimums than the Fluent getting-started page, and the Adaptive Cards SDK table does not list an AppKit renderer. Before committing I’d verify the company’s supported OS floor and prototype the composer and one end-to-end approval on Mac and the oldest supported phone. I’d budget for an AppKit mapping of the small card profile, not assume a full renderer exists. If the organization cannot maintain native desktop implementations, I’d compare the same task and full-shift measurements in a shared web desktop shell before funding both.",
+          "sources": [
+            "https://fluent2.microsoft.design/get-started/develop",
+            "https://github.com/microsoft/fluentui-apple",
+            "https://github.com/microsoft/fluentui-apple/blob/main/Sources/FluentUI_macOS/README.md",
+            "https://github.com/microsoft/AdaptiveCards",
+            "https://learn.microsoft.com/en-us/adaptive-cards/rendering-cards/implement-a-renderer",
+            "https://modelcontextprotocol.io/specification/2026-07-28",
+            "https://docs.flutter.dev/ui/accessibility/assistive-technologies",
+            "https://www.w3.org/TR/WCAG22/"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "agent task handoffs A2A protocol task states artifacts input-required spec official",
+          "turn": "job:agent-tooling",
+          "result": "1. Overview - A2A Protocol\n   https://a2a-protocol.org/latest/specification/\n   Tasks are stateful and progress through a defined lifecycle. - **Artifact:** An output (e.g., a document, image, structured data) generated by the agent as a result of a task, composed of Parts. ... **Task lifecycle stream:** If the agent returns a Task, the stream MUST begin with the Task object, followed by zero or more TaskStatusUpdateEvent or TaskArtifactUpdateEvent objects. ... The field should not be present as",
+          "resultLength": 1649,
+          "resultSha256": "da7e49639600e0ad20560e9095d28050413d91c6841712332e57e9733315b09c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri 2 webview system webview capabilities desktop web frontend Electron bundled chromium docs",
+          "turn": "job:agent-tooling",
+          "result": "1. Capabilities | Tauri\n   https://v2.tauri.app/security/capabilities/\n   Tauri provides application and plugin developers with a capabilities system, to granularly enable and constrain the core exposure to the application frontend running in the system WebView. ... Capabilities can affect multiple windows and webviews and these can be referenced in multiple capabilities. ... By default, all commands that you registered in your app (using the tauri::Builder::invoke_handler function) are allowed ",
+          "resultLength": 1400,
+          "resultSha256": "7cf01aac1361864bbe73839f93f058adc5048941badd47da827c7ef537cd5988",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Spectrum enterprise design system accessibility TableView keyboard versioned components Adobe Spectrum 2 design system table",
+          "turn": "job:agent-tooling",
+          "result": "1. v1.0.0 | React Spectrum\n   https://react-spectrum.adobe.com/releases/v1-0-0\n   This milestone marks the first stable version of our implementation of the updated Adobe design system. Spectrum 2 delivers modern, refined components with better accessibility, performance, and styling flexibility using style macros. ... As always, this release includes new features and bug fixes, including support for inline editing for TableView. ... This milestone marks the first stable version of our implement",
+          "resultLength": 1312,
+          "resultSha256": "83f4fb07ccfda456816540706cbe4f453f3b761995e1da56260baaca51eb41cf",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "agent task tracker beads issue dependencies git handoff agents github bd json CLI Dolt",
+          "turn": "job:agent-tooling",
+          "result": "1. Introduction - Beads Documentation\n   https://beads.gascity.com/\n   Dependency-aware, Dolt-backed issue tracker built for AI coding agents that survive context loss Beads (bd) is a Dolt-powered issue tracker designed for AI-supervised coding workflows. These docs are for the 1.3.4 release of beads — see the v1.3.4 release notes. Upgrading from 1.2.2 or earlier crosses a schema migration; read Upgrading first. After upgrading, run bd recompute-blocked once per workspace whose store crossed mig",
+          "resultLength": 1022,
+          "resultSha256": "32ed9d0a49cb0829cb784c313a3319c14342c3dffc20b3c0fea9294667b2fa5c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/security/capabilities/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/security/capabilities/\nCaptured: 2026-11-19T03:08:21.374Z\nCharacters: 0-9893 of 9893\n\nCapabilities | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrad",
+          "resultLength": 10028,
+          "source": {
+            "url": "https://v2.tauri.app/security/capabilities/",
+            "capturedAt": "2026-11-19T03:08:21.374Z"
+          },
+          "resultSha256": "04b76762d93ff601fc719d33dad3c81c26641b7380191092d1c296c0939abf6a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/steveyegge/beads",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/steveyegge/beads/HEAD/README.md\nCaptured: 2026-11-19T03:23:32.305Z\nCharacters: 0-10000 of 25707\n\n# bd - Beads\n\n**Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**\n\n**Platforms:** macOS, Linux, Windows, FreeBSD\n\n[![License](https://img.shields.io/github/license/gastownhall/beads)](LICENSE)\n[![Go Report Card](https://goreportcard.com/badge/github.com/steveyegge/beads)](https://goreportcard.com/report/githu",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://raw.githubusercontent.com/steveyegge/beads/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:23:32.305Z"
+          },
+          "resultSha256": "f7a679693c53acd1d25384681e6c5dd7ede2d33d7fb999611eec0ac5d5b1136c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://react-aria.adobe.com/Table",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "error": "Response exceeded 2000000 bytes",
+          "result": "Fetch failed: Response exceeded 2000000 bytes",
+          "resultLength": 45,
+          "resultSha256": "93a18ce63e3379bd82f1a84039a1406d5e4b37344bb91daae76a304edb019cd2",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28\nCaptured: 2026-11-19T03:18:11.666Z\nCharacters: 0-10000 of 49360\n\nSpecification - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘ I Blo",
+          "resultLength": 10209,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+            "capturedAt": "2026-11-19T03:18:11.666Z"
+          },
+          "resultSha256": "a4510b5348e6e60961e93c70f80729625da5a10b89dd00078b49ebe8358c41ac",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2a-protocol.org/latest/specification/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://a2a-protocol.org/latest/specification/\nCaptured: 2026-11-19T03:23:33.840Z\nCharacters: 0-10000 of 179059\n\nOverview - A2A Protocol Skip to content New on the blog: A2A joins the Agentic AI Foundation Read the announcement Join the DeepLearning.AI course to explore the A2A Protocol Enroll for free --> A2A Protocol Overview Initializing search A2A Python Go Java JS .NET Rust Home Documentation Extensions Specification Resources Community Blog A2A Protocol Home Documentation Documenta",
+          "resultLength": 10200,
+          "source": {
+            "url": "https://a2a-protocol.org/latest/specification/",
+            "capturedAt": "2026-11-19T03:23:33.840Z"
+          },
+          "resultSha256": "b5d71cd205a9d80e401a51f99df0f4494df57eb7869cc27689c574d27568a973",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.postgresql.org/docs/current/explicit-locking.html",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.postgresql.org/docs/current/explicit-locking.html\nCaptured: 2026-11-19T03:21:18.699Z\nCharacters: 0-10000 of 17482\n\nPostgreSQL: Documentation: 18: 13.3. Explicit Locking Home About Download Documentation Community Developers Support Donate Your account November 12, 2026: PostgreSQL 18.7, 17.12, 16.16, 15.20, 14.25, and 19 RC 2 Released! Documentation &rarr; PostgreSQL 18 Supported Versions: Current ( 18 ) / 17 / 16 / 15 / 14 Development Versions: 19 / devel Unsupported version",
+          "resultLength": 10214,
+          "source": {
+            "url": "https://www.postgresql.org/docs/current/explicit-locking.html",
+            "capturedAt": "2026-11-19T03:21:18.699Z"
+          },
+          "resultSha256": "5b89a65495668b8eac77849995a41c486232715cab823d9ef05dd4fc1e8cec7f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.electronjs.org/docs/latest/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.electronjs.org/docs/latest/\nCaptured: 2026-11-19T03:23:40.865Z\nCharacters: 0-5294 of 5294\n\nIntroduction | Electron Skip to main content Electron Docs API Blog Tools Electron Forge Electron Fiddle Community Governance Resources Releases English English Deutsch Español Français 日本語 Português Русский 中文 Search Get Started Introduction Why Electron Tutorial Processes in Electron Best Practices Examples Development Native Node Modules Distribution Testing And Debugging References ",
+          "resultLength": 5425,
+          "source": {
+            "url": "https://www.electronjs.org/docs/latest/",
+            "capturedAt": "2026-11-19T03:23:40.865Z"
+          },
+          "resultSha256": "412690da00957712459e0cefbfd058428549c6684f7f1000cc0626bbd9bf8d77",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://storybook.js.org/docs/writing-tests/accessibility-testing",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "error": "Response exceeded 2000000 bytes",
+          "result": "Fetch failed: Response exceeded 2000000 bytes",
+          "resultLength": 45,
+          "resultSha256": "93a18ce63e3379bd82f1a84039a1406d5e4b37344bb91daae76a304edb019cd2",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "An API-first task ledger in PostgreSQL, with one React review interface for web and desktop",
+          "pairings": [
+            "OpenAPI with a generated SDK and JSON CLI",
+            "Model Context Protocol (MCP)",
+            "Company design-system components, with React Aria Components for missing primitives",
+            "Tauri 2",
+            "Storybook, Playwright and axe-core"
+          ],
+          "why": "I’d give agents a work queue and people a decision queue. Neither should have to read a transcript to find out what to do next. Agents can query ready tasks, claim one, checkpoint progress, offer a handoff and request review through a versioned API. A JSON CLI serves unattended jobs; MCP exposes the same scoped reads and commands to interactive agent hosts. Neither needs the desktop app running. Beads is a serious alternative: it already has a dependency graph, atomic claims, persistent agent memory and JSON output. I’d favor it for repo-local, disconnected work. Here I’d pick one online authority because a reviewer’s stop or rejection must govern agents across repos immediately, not after replicas reconcile.\n\nA handoff records the goal, dependencies, exact code revision, evidence, remaining uncertainty and next step. The receiving agent acknowledges that specific checkpoint. A short database transaction checks the actor, active claim and expected version, then records the transition and its audit event together. A retried command returns its original receipt. Expired claims can be reassigned without letting the old worker overwrite the new one. An agent can propose completion; only an authorized person can accept it. Approval names an immutable revision, not the latest branch tip. A downstream runner must check that authorization before acting; changing a badge in the UI is not a stop mechanism.\n\nThe review screen leads with ‘Needs your decision’: what changed since last review, evidence linked to the revision, and what accepting will allow. A reviewer can request a change, pause or reassign work without approving it. I’d distinguish ‘pause requested’ from ‘worker stopped’ and keep a reviewer’s selection stable while updates arrive. Web and desktop share that screen and the company’s existing design system. React Aria is an unstyled foundation for gaps, not another visual system. Tauri adds a narrow desktop bridge for things like opening a reviewed revision in the local editor; task data never grants shell access. Electron’s bundled Chromium buys a more uniform desktop renderer, but I wouldn’t ship a separate runtime just for a queue and evidence viewer unless fleet testing justified it.\n\nI’d publish the command schemas, permissions, examples and error fixtures alongside the approved review components. Teams can add integrations against that contract; new transitions, permission scopes or approval controls need named service, design and accessibility owners. CI checks old SDK and desktop versions before a staged release. There is no generic ‘set status’ escape hatch for internal agents.",
+          "showItsGood": "My first acceptance test would span two agents and one person. Agent A checkpoints at commit A and exits. B, with no chat history, resumes from the handoff, records a failing test and requests review. While a reviewer examines the evidence, B posts commit B. I’d ask the reviewer to hold the work, explain which commit failed and send it back with a correction. The UI must preserve their note, disclose the newer revision, and never apply an old decision to B. The next agent must receive the correction before claiming more work. I’d repeat with a lost network response, expired lease, revoked reviewer permission and simultaneous claimants. Duplicate effects, a stale approval or a claimed stop that the runner hasn’t acknowledged block release.\n\nI’d automate that scenario through the CLI, MCP, browser and packaged desktop app against the same fixtures, then replay a realistic burst of agent updates and measure handoff recovery time, conflict rates and p95 time for a human decision to reach a runner. In Storybook and Playwright I’d check pending, stale, denied and disconnected states with axe. I’d audit the complete review flow against WCAG 2.2 AA and the desktop policy, testing keyboard only, high zoom, forced colors and actual screen readers in the supported browsers and shells. In particular I’d listen for the stale-evidence warning without having every worker heartbeat announced.\n\nFinally I’d compare the prototype with the current issue/PR workflow using reviewers, including assistive-technology users, working uncoached. Can they identify who owns the next step, which evidence supports it and whether work is truly stopped? I’d track wrong-revision decisions first, then unaided completion, time to the right decision and interruptions per review, separately by client and input method. Faster clicks with worse understanding are a regression. These are proposed tests, not measured results.",
+          "unsure": "The key unknown is whether every runner can enforce a pause or only acknowledge it at the next checkpoint. I’d verify that end to end before promising a stop time. I’d also inventory disconnected-work requirements and the managed desktop fleet: if offline writes are essential I’d revisit Beads/Dolt for draft checkpoints, keeping binding decisions online. If system-webview accessibility or enterprise deployment fails on a required OS, I’d test the identical review screen in the company’s approved Electron shell before changing UI libraries.",
+          "sources": [
+            "https://www.postgresql.org/docs/current/explicit-locking.html",
+            "https://github.com/steveyegge/beads",
+            "https://modelcontextprotocol.io/specification/2026-07-28",
+            "https://github.com/adobe/react-spectrum",
+            "https://v2.tauri.app/security/capabilities/",
+            "https://www.electronjs.org/docs/latest/"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Expo Router universal native web Expo keep awake SQLite web support official docs React Native accessibility actions",
+          "turn": "job:consumer",
+          "result": "1. Router - Expo documentation\n   https://docs.expo.dev/versions/latest/sdk/router/\n   In SDK 56 and later, Expo Router no longer supports importing from external @react-navigation/* packages in application code. Repoint those imports to the matching expo-router entry points. Run the codemod or follow the SDK 55 to 56 migration guide to update your project. ... On web, it is the global PerformanceObserver. On native, it implements the same API for mark entries. Unlike the React Native Performanc",
+          "resultLength": 1515,
+          "resultSha256": "197a003a73adcd24f3fe40bf52f811d1c28760f2a3850704de6af5c5e0de0466",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "expo notifications local schedule notifications web Android exact alarms iOS docs expo",
+          "turn": "job:consumer",
+          "result": "1. Notifications - Expo documentation\n   https://docs.expo.dev/versions/latest/sdk/notifications/\n   - Starting from Android 12 (API level 31), to schedule a notification that triggers at an exact time, you need to add \\<uses-permission android:name=\"android.permission.SCHEDULE\\_EXACT\\_ALARM\"/> to AndroidManifest.xml. Android 14 (API level 34) and later deny it by default for newly installed apps. Check and request it with getExactAlarmPermissionsAsync and requestExactAlarmPermissionsAsync. The ",
+          "resultLength": 1634,
+          "resultSha256": "925833584da8fda074cff613642dcaf3584f7185c60f23ab67831fc00b503e74",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Native design system web native Tamagui tokens themes accessibility Headless official docs vs Ionic Capacitor PWA web native",
+          "turn": "job:consumer",
+          "result": "1. Native | Tamagui\n   https://tamagui.dev/docs/core/native\n   Tamagui renders real native views on iOS and Android, with the same components, tokens, and themes you use on web. Nothing extra is required to get started. ... By default, a theme change or a style update re-renders the React components that use it. @tamagui/native-registry moves that work into a small C++ registry. It links eligible native views to the registry and applies theme and style updates directly through Fabric, so the com",
+          "resultLength": 1655,
+          "resultSha256": "b039cbf870d5a4e793fdd6b7de6b3b775be0636962534df1e35920a1a33a6dba",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Apple App Intents system actions cooking timers Android App Actions official accessibility Voice Control labels React Native",
+          "turn": "job:consumer",
+          "result": "1. App intents | Apple Developer Documentation\n   https://developer.apple.com/documentation/appintents/app-intents\n   An app intent expresses one of your app’s capabilities to the system, and contains code to perform that action. You express your app intents as types that adopt the AppIntent protocol and specify the data you need to perform the action. For specific types of actions, you might also base your intents on other app intent types. For example, if your app intent launches your app and ",
+          "resultLength": 1636,
+          "resultSha256": "b61962c0c73851762a1255fc87404b563e3de7ba11fc60416a0c544c574f1b4d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "MDN Screen Wake Lock API permissions visibility background timer throttling browser speech recognition limited availability",
+          "turn": "job:consumer",
+          "result": "1. Screen Wake Lock API - Web APIs | MDN\n   https://developer.mozilla.org/docs/Web/API/Screen_Wake_Lock_API\n   The Screen Wake Lock API prevents the screen from turning off, dimming or locking. It allows for a simple platform-based solution for visible (active) documents to acquire the platform screen wake lock. ... There's a checkbox which when checked, will automatically reacquire the wake lock if the document's visibility state changes and becomes visible again. - Only active documents can ac",
+          "resultLength": 1629,
+          "resultSha256": "a4f60a853761a3f8a92e88eccffc4e9bf1ad391d051e8f881c8e7d8a66fa77c1",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/router/introduction/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/router/introduction/\nCaptured: 2026-11-19T03:07:33.950Z\nCharacters: 0-10000 of 10027\n\nIntroduction to Expo Router - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Introduction to Expo Router Edit page Copy page Expo Router is an open-source routing library for Universal React Native applications built with Expo. Edit page ",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://docs.expo.dev/router/introduction/",
+            "capturedAt": "2026-11-19T03:07:33.950Z"
+          },
+          "resultSha256": "899f0d5af82dfc45b67eaa6089441fd53a075a42b6ec695ec98fbade23b4e618",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://tamagui.dev/docs/core/native",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://tamagui.dev/docs/core/native\nCaptured: 2026-11-19T03:25:36.512Z\nCharacters: 0-10000 of 10021\n\nNative | Tamagui GitHub v3-tamagui-string 🎅🏻 🐣 🎃 💘 🧧 🍀 Core Components Theme Introduction Installation Components Styling Design system Tailwind Native CLI Releases Configuration Configuration TamaguiProvider Tokens Fonts Themes Theme component Shorthands Settings Sizing Config v6 Colors Surfaces & Levels Styling Style props styled() Variants style() createStyledContext() Components View",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://tamagui.dev/docs/core/native",
+            "capturedAt": "2026-11-19T03:25:36.512Z"
+          },
+          "resultSha256": "28a90ea18ab3359288b4465f38c702ab40819deddabd0eb293388117d59376e3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T03:03:44.660Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T03:03:44.660Z"
+          },
+          "resultSha256": "2c27ce330076dd2787a092669a82a299238bce6d629e7ffd9522769fe57ab3da",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake/\nCaptured: 2026-11-19T03:02:13.772Z\nCharacters: 0-8701 of 8701\n\nKeepAwake - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo KeepAwake A React component that prevents the screen from sleeping when rendered. Android iOS tvOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended ve",
+          "resultLength": 8846,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "capturedAt": "2026-11-19T03:02:13.772Z"
+          },
+          "resultSha256": "8353089cada48b0e98693231b984a0b0bb8480027c809958eb7b7499474080db",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://capacitorjs.com/docs",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://capacitorjs.com/docs\nCaptured: 2026-11-19T03:20:02.475Z\nCharacters: 0-2980 of 2980\n\nCapacitor - Cross-platform Native Runtime for Web Apps | Capacitor Documentation Skip to main content An OutSystems Company → v8 v9 v8 v7 v6 v5 v4 v3 v2 Capacitor Docs Products Appflow Portals Open Source Ionic Framework Capacitor Stencil Community Hub Forum Getting Started Introduction Environment Setup Installing Capacitor Building Your UI Using with Ionic Framework VS Code Extension Capacitor T",
+          "resultLength": 3100,
+          "source": {
+            "url": "https://capacitorjs.com/docs",
+            "capturedAt": "2026-11-19T03:20:02.475Z"
+          },
+          "resultSha256": "3814585a650ee0d8b5abc2bc7dba45b830aff62a5cec4bc32b5d6113f719b1fd",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28\nCaptured: 2026-11-19T03:18:11.666Z\nCharacters: 0-10000 of 49360\n\nSpecification - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘ I Blo",
+          "resultLength": 10209,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+            "capturedAt": "2026-11-19T03:18:11.666Z"
+          },
+          "resultSha256": "a4510b5348e6e60961e93c70f80729625da5a10b89dd00078b49ebe8358c41ac",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/v58.0.0/sdk/notifications.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/v58.0.0/sdk/notifications.md\nCaptured: 2026-11-19T03:25:36.273Z\nCharacters: 0-10000 of 124131\n\n---\nmodificationDate: November 02, 2026\ntitle: Notifications\ndescription: A library that provides an API to fetch push notification tokens and to present, schedule, receive and respond to notifications.\nsourceCodeUrl: 'https://github.com/expo/expo/tree/sdk-58/packages/expo-notifications'\npackageName: 'expo-notifications'\niconUrl: '/static/images/packages/expo-noti",
+          "resultLength": 10215,
+          "source": {
+            "url": "https://docs.expo.dev/versions/v58.0.0/sdk/notifications.md",
+            "capturedAt": "2026-11-19T03:25:36.273Z"
+          },
+          "resultSha256": "045160c21d14433dc8eaa1353cb4e370420136e6ee5b9a1099c3d135728717de",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Expo (React Native and Expo Router) for iPhone, Android and web, using the company design system",
+          "pairings": [
+            "Tamagui Core for shared design tokens where the existing components need a native implementation",
+            "SQLite on phones and IndexedDB on web for saved recipes, lists and cook sessions",
+            "expo-keep-awake and expo-notifications",
+            "A typed action registry exposed to assistants through the Model Context Protocol (MCP)"
+          ],
+          "why": "I’d design around the moment someone has dough on both hands and needs to know how much flour comes next. Cook mode should show ‘Step 3 of 7’ and the quantity in that step, readable from the counter, with large, separated Back, Repeat and Next controls. Offer opt-in spoken steps and hands-free commands on supported devices; never require speech, swiping or touching a tiny microphone to continue. Keep the display awake only during cooking if the user wants it. Save the recipe version and current step locally so a call or lost Wi-Fi doesn’t send the cook back to the beginning.\n\nExpo Router gives the same recipe a shareable web URL and a native destination, with static rendering for public recipe pages. I’d use semantic headings, ingredient lists and printable instructions on the web rather than force the web page to imitate a phone. Capacitor is a strong alternative if most of the company’s approved UI is already HTML: it can reuse that UI and reach native APIs through plugins. I favor Expo assuming we can reuse the company’s tokens and React components and want native phone controls. Tamagui can map tokens to both native views and web elements; I wouldn’t replace an approved design system or depend on its optional beta native style runtime.\n\nI’d give the assistant the same product actions as the cook, not a way to click through screens. For example, ‘add the soup ingredients for six to Groceries’ calls the same addIngredients command as the button: recipe revision, servings, selected ingredient IDs, destination list and retry key. The handler scales exact quantities, combines only compatible ingredients and units, leaves ‘salt to taste’ intact, and returns the actual changes with Undo. Undo removes that addition, not a housemate’s subsequent edit. Recipe search and saving, list edits, reading or moving between steps, and starting or cancelling timers belong in the same versioned catalog. MCP exposes scoped reads and actions under the user’s delegated authority; sharing or clearing a list requires the same confirmation as in the UI. Device actions target the chosen cook session. ‘Timer scheduled on your phone’ requires a receipt from that device, not just a successful server write.\n\nFor many teams, the deliverable is an approved component and action catalog with named owners, schemas, examples and fixtures that coding agents can use. A new product action can’t ship until its UI and assistant paths pass the same state and permission tests. New primitives or permission scopes require design-system, accessibility or privacy review as appropriate. Changes must work with older phone clients before a staged rollout.",
+          "showItsGood": "I’d test one meal from shopping to serving. On web, scale a recipe from four to six and ask the assistant to add everything except an ingredient already at home. Drop the reply after the add commits, retry, and inspect the list on a phone. Check the actual quantities, units, exclusions and duplicate count, not just a success toast. Repeat via touch from the same starting state and compare results. Have a second person edit the list before Undo. Then go offline, advance the recipe, lock the phone and reopen it: the saved step, quantities and timer deadline should still be there. If alerts are disabled or a browser can only count down while open, it must say so before the cook relies on it.\n\nI’d run those fixtures in Playwright and native release builds, check web workflows against WCAG 2.2 AA and native ones against the company’s mobile accessibility criteria. I’d use VoiceOver, TalkBack, keyboard, voice control and enlarged text on physical devices. Inspect whether ‘1½ teaspoons’ is read intelligibly, focus lands on the new step, and a countdown doesn’t announce every second. A device lab can’t tell me whether a cook can read from the counter. I’d have home cooks, including people with low vision or limited dexterity, prepare a simple recipe uncoached with the phone on a stand, the extractor fan running and an interruption mid-step. Compare with their usual recipe workflow: wrong quantities or skipped steps, unnecessary touches or hand-washes, time to recover their place, and whether they correctly know which timer will alert. I’d block release on silent quantity changes or claiming a timer was scheduled when it wasn’t. These are acceptance tests I’d run, not results I’ve observed.",
+          "unsure": "The two biggest unknowns are how well hands-free navigation works with kitchen noise and which background alerts each supported device can actually deliver. Expo documents local notification scheduling on iOS and Android; that is not a guarantee of audible delivery. Browser wake locks can be denied or released. I’d test permission denial, silent mode, battery saver and locked screens on the minimum supported devices, preserve the deadline, and offer a system-timer fallback when necessary. I’d also inventory existing company components before committing to a second rendering stack; a mature, accessible web-only library could tip the choice toward Capacitor.",
+          "sources": [
+            "https://docs.expo.dev/router/introduction/",
+            "https://tamagui.dev/docs/core/native",
+            "https://capacitorjs.com/docs",
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "https://docs.expo.dev/versions/v58.0.0/sdk/notifications.md",
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://modelcontextprotocol.io/specification/2026-07-28"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "My likeliest mistake was treating a shared contract as proof of a shared experience. A command can return the right data while the person holding the phone, reviewing a change, or reading a thread has the wrong idea about what just happened. If these choices went badly, I’d expect three different versions of that failure. This is a premortem, not a report of observed failures.\n\n**Chat: we shipped five renderers but didn’t fund five implementations.** In the bad year, an approval card works with a mouse on the web. On Mac, its button disappears when the approval lands and the screen reader loses the user’s place in the thread. The service correctly records one approval; the employee still asks a colleague whether it went through. Meanwhile, teams wait on the least mature renderer before shipping new cards. I’d now make one busy thread, one approval, and one older-client fallback work on every target before expanding the card catalog. If we couldn’t name an owner for each implementation, I’d revisit the desktop shell decision early.\n\n**Agent workbench: we recorded a decision we couldn’t enforce.** A reviewer presses Pause. The ledger immediately rejects new claims, but a worker already has a job running elsewhere. The reviewer redirects the work believing it has stopped. That’s not a PostgreSQL or MCP failure; I put the authority boundary in the wrong place. My first integration test should have been against a real runner: interrupt it mid-job, disconnect it, and verify exactly which effects can still occur. Until the runner acknowledges a stop, the honest status is ‘Pause requested; last heard from worker at 10:42,’ not ‘Paused.’ I’d settle that before polishing the queue.\n\n**Cooking: we optimized for the demonstration, not dinner.** ‘Next step’ works across a desk but misfires under an extractor fan. A timer has a saved deadline, yet the locked phone makes no sound. The cook has to wash their hands to inspect the screen—the very interruption the app was supposed to prevent. I’d put a release build on a low-end phone on a kitchen stand, deny notifications, turn on the fan, and watch someone finish a recipe. If the large, quiet, no-speech path wasn’t good on its own, better voice recognition wouldn’t rescue the design.\n\n**What slowed the research was deciding what “supported” actually meant.** The Fluent getting-started page and the Apple repository README listed different minimum OS versions. The Adaptive Cards renderer table listed iOS but not AppKit; that was a reason to investigate, not proof either that a Mac renderer existed or that none could be built. Two pages I tried to inspect—React Aria’s Table docs and Storybook’s accessibility-testing docs—exceeded the fetch limit. The project README helped establish intent, not the behavior of our table. Expo documented scheduling a notification, but that didn’t answer the cook’s question: ‘Will I hear it from across the room?’\n\nThe biggest missing source was the company itself: its approved components, oldest supported devices, runner controls, and people available to maintain each platform. I researched public architecture more thoroughly than those adoption costs. I didn’t run a build or observe a user. Next time I’d ask for that inventory first and spend the first prototype on the riskiest promise to a person—not on the easiest path to a successful API response."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md\nCaptured: 2026-11-19T03:14:23.434Z\nCharacters: 0-10000 of 11937\n\n# The Ouro AX X-ray\n\n`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface wh",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+            "capturedAt": "2026-11-19T03:14:23.434Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ed60e7d97fa44e86760500a3b84ff8bc441a9649e2287a06e0e6692dc261a691",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/installing.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md\nCaptured: 2026-11-19T03:21:24.724Z\nCharacters: 0-10000 of 31606\n\n# Installing\n\nAdd `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` an",
+          "resultLength": 10271,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md",
+            "capturedAt": "2026-11-19T03:21:24.724Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c44ac6be0d12e522b6bbed59b1e2867f406510e45415d9b8260b54a33b079666",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/installing.md",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md\nCaptured: 2026-11-19T03:21:24.724Z\nCharacters: 10000-20000 of 31606\n\n(`tr:has(.ouro-disclosure[open]) .cell`) too.[^disclosure-rule]\n\n  ```html\n  <details class=\"ouro-disclosure\">\n    <summary class=\"ouro-disclosure-summary\">Why it matters</summary>\n    <div class=\"ouro-disclosure-panel\">Customers see the answer before they ask.</div>\n  </details>\n  ```\n\n## A strict Cont",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md",
+            "capturedAt": "2026-11-19T03:21:24.724Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0b38a63d0a5826e5c339e0fc4fff198829dc23a0681f0df5261f1add0d55a5ca",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn’t pick Ouro UI, and I missed a relevant option. I’d change the workbench recommendation: **pilot Ouro AX, its agent-facing kit, before building our own action generator and conformance tests.** I would not make Ouro HX, its human-facing components, the company-wide design system on that evidence. Those are separate decisions.\n\n**What I’d gain.** My earlier recommendations said “the button and the agent should call the same action,” but left every team to implement and police that promise. Ouro’s [action model](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md) makes the inputs, label and consent class reviewable in one declaration, generates interfaces such as CLI commands, MCP tools and App Intents, and checks for drift. Its [X-ray](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md) can also probe an *existing* interface from outside without requiring us to rebuild it in Ouro. For chat, the [composed-card model](https://github.com/ourostack/ouro-ui#ouro-ui) offers something beyond shared types: an agent can assemble a card from an approved catalog, but a tree that relabels a button or weakens its consent is rejected. None of that is impossible with our current stacks. What we don’t have in those stacks is that combination ready to use and check in CI.\n\n**What would stop me.** On web, the [documented upgrade path](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/installing.md#updating) is to diff copied component files, overwrite them and reapply local edits; component tests are a separate install. That’s workable for one design-system team. It’s a poor default for dozens of teams independently patching the same dialog. On native, the [Android](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md) and [Windows](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md) guides each list eight controls against 125 on web. More consequential than the count: Android reports emulator-only testing, and Windows Server CI doesn’t prove the actions are discoverable on a Windows client. There’s deliberately no React Native kit. I wouldn’t replace the cooking app’s Expo screens just to use the action model, or promise five-client chat parity from a web demo.\n\n**What would make me switch.** I’d have two teams ship one workbench handoff with their existing controls: an agent requests review of commit A; only a reviewer may accept it. Change the commit to B while the reviewer is reading. I want to see the agent refused if it tries to approve, the stale approval rejected by the **service**, the reviewer’s note preserved, and a keyboard or screen-reader user able to tell exactly which commit still needs review. Then deliberately drift the MCP schema and check that CI catches it. Finally, have the second team upgrade the pinned kit without help from the first. If that takes less maintenance than our handwritten bindings and preserves the human workflow, I’d adopt AX. For HX, I’d additionally want one centrally maintained component package and that same critical flow passing on the actual supported devices with the people who use them.\n\nI read the repository and guides; I didn’t run the kit. One reason I’d take the pilot seriously is that Ouro documents its own limit: its X-ray guide reports a conformant build that still failed 30 of 593 scripted flow checks. That’s the right distinction. A green check can establish that an interface kept a particular promise; it can’t establish that a reviewer understood what they approved."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

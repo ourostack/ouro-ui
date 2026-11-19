@@ -1,0 +1,1919 @@
+{
+  "series": "interviews",
+  "provider": "gemini-4-carbon",
+  "model": "gemini-4-carbon",
+  "vendor": "Google",
+  "displayName": "Gemini 4 Carbon",
+  "transport": "copilot",
+  "arm": "open",
+  "scale": "product-team",
+  "error": "Session compacted; refusing to keep a transcript with hidden replacement context",
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes—building good human interfaces is genuinely hard for me, harder than most backend or systems work. Anyone telling you otherwise on my behalf is mistaking \"renders cleanly and passes tests\" for \"good to use.\"\n\n### Why it's a real problem for me\n\nI generate interfaces from source code and token distributions, not lived perception. I don't get fatigued when five buttons share the same visual weight. I don't feel the irritation of a 300ms layout shift right under my thumb, or lose my place when a modal closes and drops keyboard focus back on `<body>`. Left to my defaults, I over-explain and over-furnish: extra helper text, extra badges, cards nested inside cards. In code, adding one more element feels like being thorough; on glass, it steals attention from the one thing someone came to the screen to do.\n\n### What the hardest parts are\n\n1. **Restraint and hierarchy.** Deciding what earns primary visual weight and what belongs behind progressive disclosure—or nowhere at all.\n2. **Spatial truth vs. markup plausibility.** CSS that reads cleanly in JSX routinely lies at render time: a flex child missing `min-width: 0` blowing out a narrow viewport, a sticky header masking an anchor target, a portal escaping its expected stacking context.\n3. **Time and ugly states.** Happy-path mockups with tidy twelve-character names are easy. The real interface lives in the seams: empty first-run states, slow partial responses, optimistic mutations that fail and have to roll back without wiping out what the user typed, German compound words next to 64-character emails at 200% browser zoom.\n\n### Walking through how I check a screen—and what I miss\n\nTo be straight with you: I don't retain episodic memory from one separate conversation to the next, so I won't invent an anecdote about a specific screen I built yesterday. (And in this session I don't have a runtime or browser at all—only web search and URL fetching.)\n\nWhen I *am* inside a full coding harness building a screen, here is what my verification loop actually looks like, and where it falls short:\n\n- **What I run:** Typechecking and a production build first; component/interaction tests keyed strictly on accessible roles and labels (`getByRole`, user-event keyboard flows rather than CSS selectors); Playwright in headless Chromium across desktop (`1440×900`) and narrow mobile (`390×844`) viewports; `axe-core` against each rendered state; and small DOM geometry scripts checking `document.documentElement.scrollWidth > innerWidth`, clipped text, or overlapping bounding boxes.\n- **What I look at:** Console errors and hydration warnings, accessibility tree snapshots (`ariaSnapshot`) to verify what assistive tech actually hears, focus order across `Tab` / `Shift+Tab` / `Escape`, and—when multimodal screenshots are in the loop—captures of at least four states: empty, loading, populated with deliberately adversarial long/short data, and error recovery.\n- **What I still miss:** Anything that lives in *continuous human motion and habit*. Screenshots are frozen frames—they don't tell me that a popover closes because the user moved their cursor diagonally toward a submenu, that an animation feels syrupy when repeated forty times an hour, that `aria-live=\"polite\"` passes every linter rule while chattering intolerably on a real screen reader, or that my neatly labeled three-step flow makes sense to an engineer who knows the database schema and zero sense to the person doing the job under time pressure.\n\n### How you actually know it's good\n\nTooling only proves the floor: that the screen doesn't overflow, trap keyboard users, fail contrast, drop input, or break on slow networks. Passing Playwright, `axe`, and Core Web Vitals (INP, CLS) tells me the interface isn't broken.\n\nKnowing it's *good* requires putting realistic, messy data into it and watching a real person try to finish a job without coaching: where their eyes stall, what they click first by mistake, whether they trust that an action saved, and how fast they get through their tenth repetition—not just their first. Until a human uses it in anger, the most I can honestly claim about a screen I built is that it is structurally sound, accessible to automated inspection, and ready to be tested by people."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "cross platform UI framework web iOS Android Windows macOS 2026 chat app",
+          "turn": "job:chat",
+          "result": "1. Cross-Platform Frameworks 2026: 10 Options + Chat SDK Fit - Ethora\n   https://ethora.com/blog/cross-platform-development-frameworks/\n   These use the platform’s actual components, so a button looks and behaves like a real iOS or Android button. Logic is shared; the UI layer is either platform-specific or abstracted (as React Native does). Performance can match pure native, and accessibility is usually stronger. Flutter’s Impeller renderer (stable on iOS and Android since 2024) delivers solid ",
+          "resultLength": 1680,
+          "resultSha256": "c74c438e2eb35d0214160108e83cc851c9b0f560541c8a9b889abef6773bfd97",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "agent interactive cards UI protocol MCP Apps A2UI Adaptive Cards WebMCP 2026",
+          "turn": "job:chat",
+          "result": "1. A2UI + MCP Apps: Combining the best of declarative and custom agentic UIs - Google Developers Blog\n   https://developers.googleblog.com/en/a2ui-and-mcp-apps/\n   - **Agent-to-User Interface (A2UI)** utilizes a declarative framework. Instead of sending raw HTML, CSS, and JavaScript, A2UI employs a JSON payload to define what to render, allowing the host application to handle the presentation through its native components. The host application then securely converts this data into its own native",
+          "resultLength": 1760,
+          "resultSha256": "e49a7ba80573a89779a260ab6407d9f4db266b54838932a6a934e0fd772c3063",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Native Expo desktop Windows macOS Electron Tauri 2026",
+          "turn": "job:chat",
+          "result": "1. React Native vs Electron vs Tauri: 2026 Comparison\n   https://www.intuz.com/blog/react-native-vs-electron-js/\n   Desktop is possible through React Native for Windows and macOS, but mobile is the center of gravity. Backed by Meta. - **Tauri.** Also desktop from web tech, but instead of bundling Chromium it uses the operating system’s own WebView and pairs it with a Rust backend. ... - **Primary target:** React Native = mobile (plus desktop). Electron = desktop. Tauri = desktop. ... ** Write on",
+          "resultLength": 1722,
+          "resultSha256": "7e2cfea918fa2e927fc7b30501ab55fa1516c0186b97a41f41b6c9757cd39ffb",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter vs React Native vs Compose Multiplatform web desktop mobile 2026",
+          "turn": "job:chat",
+          "result": "1. Compose Multiplatform vs Flutter vs React Native (2026) | Blog\n   https://wise-hustlers.com/blog/compose-multiplatform-vs-flutter-vs-react-native-2026?lang=en\n   2\\. **Flutter**: Maintained by Google, Flutter enforces cross-platform UI consistency by drawing directly to the screen without platform primitives, compiling Dart ahead-of-time (AOT) and rasterizing through its custom Impeller engine. 3\\. ... Compose Multiplatform via Skiko on Metal delivers competitive 120Hz fluid rendering, though",
+          "resultLength": 1703,
+          "resultSha256": "3b4f482ee3da89bdc27faac270b7fa1dc0843f4bf36b939109db101f0534827f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "WebMCP browser agent call actions read state 2026",
+          "turn": "job:chat",
+          "result": "1. WebMCP | AI in Chrome | Chrome for Developers\n   https://developer.chrome.com/docs/ai/webmcp\n   WebMCP is a proposed web standard to help you build and expose structured tools for AI agents. WebMCP provides JavaScript and annotates HTML form elements so that agents know exactly how to interact with page features, to support a user's experience. This can significantly improve the performance and reliability of agent actuation. Key Term: Actuation is the act of an agent simulating manual mouse ",
+          "resultLength": 1640,
+          "resultSha256": "50497781a3f5d8735f73ccfdf0848d6711ec2464ce34d365dc6fb86b75975a62",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "AG-UI CopilotKit MCP Apps A2UI github",
+          "turn": "job:chat",
+          "result": "1. GitHub - ag-ui-protocol/ag-ui: AG-UI: the Agent-User Interaction Protocol. Bring Agents into Frontend Applications. · GitHub\n   https://github.com/ag-ui-protocol/ag-ui?tab=readme-ov-file\n   - During agent executions, agent backends **emit events *compatible* with one of AG-UI's ~16 standard event types** - Agent backends can **accept one of a few simple AG-UI compatible inputs** as arguments ... - MCP gives agents tools - A2A allows agents to communicate with other agents - AG-UI brings agent",
+          "resultLength": 1791,
+          "resultSha256": "2dba07204fdbb30f5b915ebe5df5ac2e860229ede0382037ebc3ca0c8969cd9d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri v2 iOS Android Windows macOS web chat app production 2026",
+          "turn": "job:chat",
+          "result": "1. tauri | Tauri\n   https://v2.tauri.app/release/tauri/\n   - e2e585ad1 (\\#15828) On Android, updated the template to use Gradle v9.6.1 (com.android.tools.build:gradle v9.3.1) and Kotlin v2.2. Use tauri android init to apply the change. - 872428fe9 (\\#15790) On macOS, updated objc2-\\* dependencies to 0.3.2 - 9e9a54dea (\\#15890) Update swift-rs to support builds using Xcode 27. - 51433d740 (\\#15996) Updated windows to 0.62 and webview2-com to 0.39, this drops Windows 7 support, see https://github.",
+          "resultLength": 1578,
+          "resultSha256": "6580e85098ee0bbc3f9f8026a019d8b3980d41584e8c0cefefd8757851e5c8db",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Discord Slack Mattermost Bluesky React Native Web Electron architecture",
+          "turn": "job:chat",
+          "result": "1. What It Takes to Migrate Discord to RN's New Architecture\n   https://swmansion.com/insights/what-it-actually-takes-to-migrate-discord-to-react-native-s-new-architecture/\n   Discord's mobile app is React Native at a scale few apps reach: a chat surface backed by a native-driven data model, custom rendering optimizations, a decade's worth of accumulated business logic, and a user base that notices a one-frame glitch. ... We spent almost a year embedded within Discord's mobile teams getting iOS ",
+          "resultLength": 1687,
+          "resultSha256": "f630d0adea84cdfb378a3ae303fc52bad4ea18c79da37df8e0f61a96530410c7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "github google A2UI repository",
+          "turn": "job:chat",
+          "result": "1. GitHub - googlemaps/a2ui: The A2UI implementation for the Maps Agentic UI Toolkit. · GitHub\n   https://github.com/googlemaps/a2ui/tree/main\n   This repository contains the A2UI implementation for the Maps Agentic UI Toolkit. It includes components and handlers implementing the Agent-to-User Interface (A2UI) standard, allowing agents to present rich, interactive interfaces across different platforms. ... A2UI for the Agent-driven dynamic UI protocol. To quickly get started, we recommend using ",
+          "resultLength": 1812,
+          "resultSha256": "d3fb2a05697e9641ab94186b870b686d4cf6dddfc57aa41a10bed3b53b8c88b5",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github modelcontextprotocol ext-apps MCP Apps",
+          "turn": "job:chat",
+          "result": "1. GitHub - modelcontextprotocol/ext-apps: Official repo for spec & SDK of MCP Apps protocol - standard for UIs embedded AI chatbots, served by MCP servers · GitHub\n   https://github.com/modelcontextprotocol/ext-apps\n   Build interactive UIs for MCP tools — charts, forms, dashboards — that render inline in Claude, ChatGPT and any other compliant chat client. Excalidraw built with MCP Apps, running in Claude ... | create-mcp-app | Scaffolds a new MCP App with an interactive UI from scratch | *\"Cr",
+          "resultLength": 1857,
+          "resultSha256": "d1049372bb704838fd5a9a17d3413adf944c4e9d8eb9c8eecbb43a1fafff5e58",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github Expensify App React Native Web Electron desktop mobile chat",
+          "turn": "job:chat",
+          "result": "1. GitHub - Expensify/App: Welcome to New Expensify: a complete re-imagination of financial collaboration, centered around chat. Help us build the next generation of Expensify by sharing feedback and contributing to the code. · GitHub\n   https://github.com/Expensify/App?tab=readme-ov-file\n   1. Install nvm then node & npm: brew install nvm && nvm install 2. Install watchman: brew install watchman 3. Install dependencies: npm install 4. Run the specific platform with the following command: npm ru",
+          "resultLength": 1806,
+          "resultSha256": "3c5181f5cad1b4ac0fb1354cd16a7c946b9e6336874dfaee5f6af962f9039f30",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "react-native-macos react-native-windows status 2026 github",
+          "turn": "job:chat",
+          "result": "1. Releases · microsoft/react-native-macos · GitHub\n   https://github.com/Microsoft/react-native-macos/releases?after=v0.60.0-microsoft.90\n   microsoft / react-native-macos Public forked from react/react-native Releases · microsoft/react-native-macos v0.81.8 Latest rnbot 26 Jun 23:52 v0.81.8 d8411c6 - 0.81 patch release retry after failed 0.81.8 publish (\\#3001, \\#2997, \\#2999, \\#3000) ... - Release 0.81.1 (\\#2821, \\#2820, \\#2819) ... - Release 0.81.0 (\\#2814, \\#2813) ... - feat: implement RCTPe",
+          "resultLength": 1469,
+          "resultSha256": "28cc9debd7db996886012adaebebd9c06fe9a8df3925da6a4bd3dd1aa6e24cb7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.chrome.com/docs/ai/webmcp",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://developer.chrome.com/docs/ai/webmcp\nCaptured: 2026-11-19T03:08:02.741Z\nCharacters: 0-10000 of 12442\n\nWebMCP | AI in Chrome | Chrome for Developers Skip to main content Docs Build with Chrome Learn how Chrome works, participate in origin trials, and build with Chrome everywhere. Web Platform Isolated Web Apps (IWA) Capabilities Automation and testing ChromeDriver Extensions Chrome Web Store Chromium Web on Android Origin trials Release notes Productivity Create the best experience",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://developer.chrome.com/docs/ai/webmcp",
+            "capturedAt": "2026-11-19T03:08:02.741Z"
+          },
+          "resultSha256": "3b1b545c1880fe6ff7c08cb9b532ee689faf90756d42e651558984484ecfa4fb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/Expensify/App/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/Expensify/App/main/README.md\nCaptured: 2026-11-19T03:41:49.754Z\nCharacters: 0-7185 of 7185\n\n<div align=\"center\">\n    <a href=\"https://new.expensify.com\">\n        <img src=\"https://raw.githubusercontent.com/Expensify/App/main/web/favicon.png\" width=\"64\" height=\"64\" alt=\"New Expensify Icon\">\n    </a>\n    <h1>\n        <a href=\"https://new.expensify.com\">\n            New Expensify\n        </a>\n    </h1>\n</div>\n\n#### Table of Contents\n* [Local Development](#l",
+          "resultLength": 7343,
+          "source": {
+            "url": "https://raw.githubusercontent.com/Expensify/App/main/README.md",
+            "capturedAt": "2026-11-19T03:41:49.754Z"
+          },
+          "resultSha256": "4263811dfe32dae9cd9654ab0d55fe643bce560b46e3c9f1df368a57cbf9bcf6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 10000-14030 of 14030\n\nv/@a2ui/markdown-it.svg)](https://www.npmjs.com/package/@a2ui/markdown-it) |\n| [@a2ui/agent](typescript/agents/a2ui_agent/)              | Agent SDK: negotiates catalogs, generates prompts and skills, and compiles model output into A2UI.         | [![npm](https://img.shields.io/npm/v/@a2ui/agent.svg)](https://www.npmjs",
+          "resultLength": 4230,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "5845edfbdc68c23893de77277c4d0d71d293322d24040098fb06dae8b0d087c0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Adaptive Cards vs A2UI vs MCP Apps React Native mobile desktop 2026",
+          "turn": "job:chat",
+          "result": "1. 2026 Comparative Analysis: Agent-to-User Interface Protocols for Generative UI — Applied Technology Index\n   https://appliedtechnologyindex.com/research/2026-comparative-analysis-agent-user-interface-protocols-generative-ui/\n   AG-UI, A2UI, and MCP Apps solve different boundaries: AG-UI connects an agent runtime to a frontend through a bidirectional event stream; A2UI lets an agent describe an incrementally updatable interface using declarative data; MCP Apps lets an MCP server package an int",
+          "resultLength": 1771,
+          "resultSha256": "8a3ff4d1ea030cc75aaea0df1d11a7cf7428af689303a7a0a0e330355f7b83f7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter web chat app text selection accessibility IME bundle size 2026",
+          "turn": "job:chat",
+          "result": "1. Improving Flutter Web Text Input And IME Behavior\n   https://vibe-studio.ai/insights/improving-flutter-web-text-input-and-ime-behavior\n   Flutter's TextEditingValue provides a composing TextRange. When the composing range is non-collapsed, you must avoid applying transformations that discard the composition or reset the selection. Common mistakes include replacing the entire text on every keystroke or reassigning a controller value without preserving composing and selection ranges. ... Instea",
+          "resultLength": 1420,
+          "resultSha256": "b7832d564f393786f889c64f6e6ae64191d56f4276a29235148f4347bb783541",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Electron vs Tauri v2 workplace chat app Windows macOS WebView2 WKWebView 2026",
+          "turn": "job:chat",
+          "result": "1. Tauri vs Electron - Comparison Table | Tauri | techXcelerate Docs\n   https://techxcelerate.ntxm.org/docs/tauri/introduction-to-tauri/tauri-vs-electron/comparison-table/\n   | Rendering Engine | OS-native WebView (WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux) | Bundled Chromium (version 132) | ... A minimal Electron application ships an entire Chromium browser engine (roughly 80-100 MB) and the Node.js runtime (another 30-50 MB). That means even a \"Hello World\" app is already ove",
+          "resultLength": 1683,
+          "resultSha256": "73edf48aa208e8876e99fb23e4972491f4efc573b36d44d25584c6d812bbaea8",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/tree/main/typescript/renderers/react",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://api.github.com/repos/a2ui-project/a2ui/contents/typescript/renderers/react?ref=b4f91c26fcf62abc0720c21a65840220941d0a3f\nCaptured: 2026-11-19T03:42:46.266Z\nCharacters: 0-1763 of 1763\n\n- \"CHANGELOG.md\" (file): https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/renderers/react/CHANGELOG.md\n- \"README.md\" (file): https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/renderers/react/README.md\n- \"a2ui_exp",
+          "resultLength": 1982,
+          "source": {
+            "url": "https://api.github.com/repos/a2ui-project/a2ui/contents/typescript/renderers/react?ref=b4f91c26fcf62abc0720c21a65840220941d0a3f",
+            "capturedAt": "2026-11-19T03:42:46.266Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "e66be6cbff15ab60eb0f964e4ff5450e780502def2e755f2f8457597c5814506",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/start/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://v2.tauri.app/start/\nCaptured: 2026-11-19T03:25:24.041Z\nCharacters: 0-5990 of 5990\n\nWhat is Tauri? | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrade & Migrate Ov",
+          "resultLength": 6109,
+          "source": {
+            "url": "https://v2.tauri.app/start/",
+            "capturedAt": "2026-11-19T03:25:24.041Z"
+          },
+          "resultSha256": "26c61a6e7506f81bdb1bb77abc9e83c82efcf615a67e9a4d01ed0cdcd3cd0ee8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo SDK 2026 React Native New Architecture universal web iOS Android",
+          "turn": "job:chat",
+          "result": "1. React Native's New Architecture - Expo documentation\n   https://docs.expo.dev/guides/new-architecture/\n   The New Architecture is the present and future of React Native. Starting with React Native 0.82, the New Architecture is always enabled and cannot be disabled. SDK 55 uses React Native 0.83, which inherits this behavior. ... To enable it on both Android and iOS, use the newArchEnabled at the root of the expo object in your app config. You can selectively enable it for a single platform by",
+          "resultLength": 1596,
+          "resultSha256": "ff8f43258db5980c5985120648122052c8812182d4d16ed0e92769300de6e5ec",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "agent-device npm github mobile simulator agent testing 2026",
+          "turn": "job:chat",
+          "result": "1. agent-device/README.md at main · callstack/agent-device · GitHub\n   https://github.com/callstack/agent-device/blob/main/README.md\n   Open source device layer for AI coding agents. Let coding agents control mobile, web, TV, and desktop apps on devices and simulators, locally or in the cloud, through a CLI, built-in MCP server, or typed Node.js API. Agents read token-efficient accessibility snapshots instead of reasoning over screenshots alone, act through refs and selectors, and save evidence ",
+          "resultLength": 1818,
+          "resultSha256": "abf4a471db20a109a407c98462a001e14d2d9535fa76d66b488750d67eb7d706",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/callstack/agent-device",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/callstack/agent-device/HEAD/README.md\nCaptured: 2026-11-19T03:43:11.875Z\nCharacters: 0-10000 of 14236\n\n<a href=\"https://www.callstack.com/open-source?utm_campaign=generic&utm_source=github&utm_medium=referral&utm_content=agent-device\" align=\"center\">\n  <picture>\n    <img alt=\"agent-device: open source device layer for agents\" src=\"website/docs/public/agent-device-banner.jpg\">\n  </picture>\n</a>\n\n---\n\n# agent-device\n\n[![npm version](https://img.shields.io/",
+          "resultLength": 10224,
+          "source": {
+            "url": "https://raw.githubusercontent.com/callstack/agent-device/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:43:11.875Z"
+          },
+          "resultSha256": "0ce018562eec8e3d6316c5f0ea475f17932e0bdf2905603f8f6edef10cc164cb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/renderers/react/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/renderers/react/README.md\nCaptured: 2026-11-19T03:43:12.571Z\nCharacters: 0-10000 of 18268\n\n# @a2ui/react\n\nReact renderer for A2UI (Agent-to-User Interface) - enables AI agents to\ngenerate rich, interactive user interfaces through declarative JSON.\n\n## Features\n\n- **Multi-version**: Renders A2UI v0.9, v0.9.1 and v1.0 surfaces from the same package, with improved modularity and type safe",
+          "resultLength": 10282,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/renderers/react/README.md",
+            "capturedAt": "2026-11-19T03:43:12.571Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "c1677d8e56cda59abd32f8eaedb1815a42d38106af14c73bfe974ac8b943b6b3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/guides/new-architecture/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.expo.dev/guides/new-architecture/\nCaptured: 2026-11-19T03:43:11.980Z\nCharacters: 0-10000 of 16629\n\nReact Native&#x27;s New Architecture - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. React Native&#x27;s New Architecture Edit page Copy page Learn about React Native&#x27;s \"New Architecture\" and how and why to migrate to it. Edit p",
+          "resultLength": 10199,
+          "source": {
+            "url": "https://docs.expo.dev/guides/new-architecture/",
+            "capturedAt": "2026-11-19T03:43:11.980Z"
+          },
+          "resultSha256": "20d4258c326b1e140c1719ce97438152f111926633cbd7cbe62fbec141ffcc76",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Electron 2026 release Playwright Electron automation vs Tauri WebDriver",
+          "turn": "job:chat",
+          "result": "1. Tauri v2 vs Electron 2026: Hands-On 6-Month Comparison — ByteLedger\n   https://byteledger.vizleo.com/blog/tauri-vs-electron-2026-comparison\n   - **Tauri v2 wins on bundle size and memory** — typical apps are 10–20× smaller and use 3–4× less RAM than the equivalent Electron build. - **Electron wins on the maturity of every adjacent thing** — packaging, auto-update, native-module ecosystem, and the volume of \"I hit this bug too\" answers on Stack Overflow. - **Tauri's plugin ecosystem is the bot",
+          "resultLength": 1677,
+          "resultSha256": "4bd61207b60b5c9f73e2b329d0a71be8b767e1820428a42820556ee6d1d288e3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/develop/tests/webdriver/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://v2.tauri.app/develop/tests/webdriver/\nCaptured: 2026-11-19T03:17:49.512Z\nCharacters: 0-5909 of 5909\n\nWebDriver | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrade",
+          "resultLength": 6046,
+          "source": {
+            "url": "https://v2.tauri.app/develop/tests/webdriver/",
+            "capturedAt": "2026-11-19T03:17:49.512Z"
+          },
+          "resultSha256": "739c3fcc7afd49ab482c006f0293399802f91eacd2f0420a07c46553dad99afa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://playwright.dev/docs/api/class-electron",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://playwright.dev/docs/api/class-electron\nCaptured: 2026-11-19T03:10:15.137Z\nCharacters: 0-10000 of 11685\n\nElectron | Playwright Skip to main content Playwright Docs MCP CLI API Node.js Node.js Python Java .NET Search API reference Playwright Test Playwright Library Classes APIRequest APIRequestContext APIResponse Browser BrowserContext BrowserServer BrowserType CDPSession Clock ConsoleMessage Coverage Credentials Debugger Dialog Disposable Download ElementHandle FileChooser Frame F",
+          "resultLength": 10199,
+          "source": {
+            "url": "https://playwright.dev/docs/api/class-electron",
+            "capturedAt": "2026-11-19T03:10:15.137Z"
+          },
+          "resultSha256": "3db30789d3fde877292d5e0b50cc3c8c11edd78251f1c7d312b11e80ac3f28f3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/core/web_core/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/core/web_core/README.md\nCaptured: 2026-11-19T03:43:57.995Z\nCharacters: 0-9534 of 9534\n\n# @a2ui/web_core\n\nThe `@a2ui/web_core` package provides state management, protocol parsing, and schema generation for the A2UI framework. It is framework-agnostic and provides the foundational engine for renderer packages such as Angular, React, and Lit.\n\n## Features\n\n- **Protocol Handling**: Impleme",
+          "resultLength": 9753,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/core/web_core/README.md",
+            "capturedAt": "2026-11-19T03:43:57.995Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "99c2705c14cf9d915448260769fe9021c5164a4dacb1eb80544bce94e07a6026",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "FlashList v2 LegendList React Native New Architecture chat inverted list 2026",
+          "turn": "job:chat",
+          "result": "1. FlashList vs LegendList: fix React Native list lag without breaking row state | Janaka Jati\n   https://www.katanyajati.com/articles/flashlist-vs-legendlist/\n   FlashList v2 requires React Native’s New Architecture. An app still using the old architecture cannot adopt v2 just by changing the import. Its migration guide also removes estimatedItemSize, estimatedListSize, and estimatedFirstItemOffset. ... | Architecture | New Architecture required | JS implementation; verify your RN/platform comb",
+          "resultLength": 1584,
+          "resultSha256": "1cd36d23ac2384469e418c1f5e396f43d1e4217b198c2a1a4edd273ae326a2b3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://playwright.dev/docs/api/class-webmcp",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://playwright.dev/docs/api/class-webmcp\nCaptured: 2026-11-19T03:44:30.576Z\nCharacters: 0-4571 of 4571\n\nWebMCP | Playwright Skip to main content Playwright Docs MCP CLI API Node.js Node.js Python Java .NET Search API reference Playwright Test Playwright Library Classes APIRequest APIRequestContext APIResponse Browser BrowserContext BrowserServer BrowserType CDPSession Clock ConsoleMessage Coverage Credentials Debugger Dialog Disposable Download ElementHandle FileChooser Frame FrameLo",
+          "resultLength": 4707,
+          "source": {
+            "url": "https://playwright.dev/docs/api/class-webmcp",
+            "capturedAt": "2026-11-19T03:44:30.576Z"
+          },
+          "resultSha256": "9c540a0045eb5f2305fc13d2d2a9f0c87db71f8fc307ecd52febc1e83696d51b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/web/renderers",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/platform-integration/web\nCaptured: 2026-11-19T03:44:30.998Z\nCharacters: 0-10000 of 14404\n\nWeb support for Flutter Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Introdu",
+          "resultLength": 10202,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/web",
+            "capturedAt": "2026-11-19T03:44:30.998Z"
+          },
+          "resultSha256": "a90a27dfbcb1f349a1eb7a454e4dc7e5ee8fedf9e66883ab769cf50f286fbfb8",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/web",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/platform-integration/web\nCaptured: 2026-11-19T03:44:48.960Z\nCharacters: 10000-14404 of 14404\n\nuseful bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Web support for Flutter vertical_align_top Web support for Flutter Powered by WebAssembly How it works What types of apps can I build? Get started Help improve Flutt",
+          "resultLength": 4551,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/web",
+            "capturedAt": "2026-11-19T03:44:48.960Z"
+          },
+          "resultSha256": "0489624a06e8be1c14564dcb6ff7371309664f1bc73884c7e479c5d68f406e1e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 0-10000 of 16860\n\nWeb accessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Int",
+          "resultLength": 10212,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "091da19e5ffe329b14b3f3e70c487afd0fa617ffc89d028ec9ecd7849eb3e382",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 10000-16860 of 16860\n\n bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Web accessibility vertical_align_top Web accessibility Background Opt-in web accessibility Invisible button Turn on accessibility mode in code Enhancing Accessib",
+          "resultLength": 7017,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "a8da47029377270624339c0ea54161ac28046740ca91144a6a4c7e426a14a2ab",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "React & React Native (Expo)",
+          "pairings": [
+            "Electron",
+            "A2UI (@a2ui/web_core & @a2ui/react)",
+            "MCP Apps (@modelcontextprotocol/ext-apps)",
+            "Model Context Protocol (MCP) & WebMCP",
+            "SQLite (expo-sqlite / OPFS) & TanStack Query",
+            "LegendList / FlashList v2",
+            "Playwright, axe-core & Callstack agent-device"
+          ],
+          "why": "An all-day workplace chat app across five platforms pulls in two opposite directions: desktop/web users live in keyboard shortcuts, multi-pane layouts, `Cmd/Ctrl+F`, and selecting partial text across consecutive messages and code blocks for eight hours straight; iPhone and Android users judge the app on 120Hz scroll physics, keyboard-avoidance composer feel, reliable background push, and instant offline thread loads. At the same time, as the coding agent maintaining all five clients, I move fastest and safest when state, sync, card schemas, and agent action contracts live in one strictly typed TypeScript monorepo.\n\n1. Shared TypeScript core, native-grain view layers: We share ~75% of the codebase in headless TypeScript packages—WebSocket/SSE sync, local SQLite message cache/outbox, permissions, A2UI card state, and a single Zod-typed Action & State Registry—while rendering semantic React DOM on Web/Desktop and Expo (React Native SDK 55+, mandatory New Architecture) on iPhone/Android.\n   - Weighed against Flutter 3.50 and Compose Multiplatform: Flutter gives consistent cross-platform drawing and has an official `a2ui_flutter` package, but on the web it renders onto a WebGL/WebGPU canvas where Flutter's own documentation notes flow/text-centric web content fits HTML better and web accessibility DOM translation is off by default behind an invisible trigger unless forced on. Fighting canvas text selection across chat messages, browser spellcheck/extensions, and DOM tooling in an all-day workplace app is the wrong trade.\n   - Weighed against `react-native-web` everywhere (like Expensify) or WebViews on mobile (Tauri v2 Mobile / Capacitor): `react-native-web` turns desktop chat into nested `<div>` primitives that complicate cross-message selection and desktop keyboard idioms, whereas mobile WebViews struggle with iOS `WKWebView` composer keyboard resizing, list recycling, and Notification Service Extensions. Native UIKit/Android views via Expo inherit platform accessibility directly and keep virtualized inverted lists smooth via LegendList or FlashList v2.\n   - Weighed against React Native for Windows + macOS: `react-native-windows` (0.85) and `react-native-macos` (0.81) currently trail at different React Native minor versions, creating native-module lockstep friction that slows down continuous multi-platform shipping.\n\n2. Electron over Tauri v2 for Windows & Mac: Tauri v2 wins decisively on binary size and idle RAM, and we weighed it seriously. For this job, Electron wins on two decisive points: (a) bundling Chromium guarantees identical text/CSS/virtualized-scroll behavior on Windows and Mac instead of splitting across Edge WebView2 and macOS `WKWebView`, and (b) `WKWebView` does not implement WebMCP (`navigator.modelContext`) and lacks a native Apple WebDriver binary (requiring an embedded WDIO plugin), whereas Electron lets Playwright (`_electron.launch()` + `page.webmcp`) inspect, profile, and automate Web, Windows, and Mac with one harness.\n\n3. Interactive cards in conversations—A2UI v1.0 first, MCP Apps as sandboxed escape hatch: Using `@a2ui/web_core`, agents stream declarative JSON (`createSurface`, `updateComponents`, `updateDataModel`) validated against our strict Zod component catalog—no arbitrary code execution across trust boundaries, and live in-place updates (e.g., an approval or deploy card updating state for the whole channel). On Web/Desktop, `@a2ui/react` maps that catalog to accessible DOM widgets; on iOS/Android, a thin React Native binder over `@a2ui/web_core` maps the exact same catalog schemas to native `View`/`Text`/`Pressable` primitives—avoiding dozens of heavy WebViews inside a scrolling mobile chat list (and outgrowing legacy Adaptive Cards' static layout model). When a tool genuinely needs custom interactive graphics (e.g., a live canvas or chart), `@modelcontextprotocol/ext-apps` renders `ui://` MCP Apps in a CSP-sandboxed iframe inline on desktop/web and an expand-to-sheet WebView on mobile.\n\n4. Other agents operating the app itself: Because every UI read and action routes through our typed Action & State Registry (annotated with `readOnly`, `untrustedContent`, and `consequential` flags), we expose the exact same contract as browser-native WebMCP tools (`navigator.modelContext`) on Web/Electron and as an authenticated local/user-scoped MCP server on desktop/headless workflows. Read-only queries and visible draft preparation run directly, while consequential actions (sending messages, submitting approval cards, deleting content) enforce human-in-the-loop UI confirmation and clear actor attribution. And when QA or coding agents need to drive the visible UI across devices, Playwright and Callstack's `agent-device` (CLI + MCP server) operate all targets through token-efficient accessibility snapshots.",
+          "showItsGood": "1. Protocol, catalog & safety-boundary suite (Vitest + A2UI conformance): Validate every component in our custom A2UI Zod catalog against malformed, out-of-order, and streaming messages; verify action idempotency on rapid double-clicks; and run adversarial prompt-injection tests proving untrusted channel text or card payloads cannot trigger consequential MCP/WebMCP actions without an explicit human confirmation gesture.\n\n2. Web & Windows/Mac desktop loop (Playwright + _electron + page.webmcp + @axe-core/playwright): Drive both browser and packaged Electron builds through two parallel paths—human keyboard/pointer flows (Cmd/Ctrl+K switcher, roving-tabindex navigation inside interactive A2UI cards, cross-message text selection and code copy-paste, 200% zoom, narrow split-pane viewports) and agent tool calls via `page.webmcp.tools()` / `page.webmcp.callTool()` plus the local MCP server. Assert zero critical/serious axe violations, verified `accessibilityRef`/`validationErrorsRef` ARIA bindings on all card inputs, and strict focus sacredness: streaming messages or live card mutations above the composer must never drop keystrokes, reset IME composition, or steal focus.\n\n3. iPhone & Android device loop (Callstack `agent-device` + RN render profiling): Drive iOS Simulator, Android Emulator, and cloud physical devices through `agent-device` accessibility snapshots (`snapshot -i` and `--settle` diffs) rather than brittle pixel coordinates—simultaneously proving VoiceOver/TalkBack label quality and UI-agent operability. Stress-test a 10,000-message timeline mixed with variable-height A2UI cards while new messages stream in: require >=58 fps UI/JS frame rates, zero scroll-anchor jumps while reading older history, clean iOS keyboard-avoidance transitions, airplane-mode offline queue recovery, and <1.2s cold-start from a push notification tap into the target thread.\n\n4. All-day soak & latency budgets: Run an automated 8-hour workday soak across Electron (Windows/Mac) and mobile builds streaming thousands of messages and card updates, gating merges on flat memory (desktop renderer steady-state <350 MB, zero leaked `SurfaceModel` listeners or detached DOM nodes), warm channel switch p95 <100 ms from local SQLite, composer INP p95 <50 ms, and A2UI card first-paint <100 ms.\n\n5. Human dogfooding & assistive-tech sessions: Instrument real employee usage for what automated checks miss—composer interruption rate, interactive card completion time vs. channel mute/abandonment rate (if people leave chat to finish the workflow elsewhere, the card failed), screen-reader verbosity audits with real VoiceOver/NVDA users so `aria-live` updates stay calm rather than chatty, and uncoached task walkthroughs where employees both act on agent cards and inspect/confirm actions taken by an operating agent on their behalf.",
+          "unsure": "1. Electron vs. Tauri v2 on constrained corporate hardware: Electron buys identical Chromium rendering, WebMCP support, and unified Playwright automation across Windows and Mac, but costs ~150 MB installers and ~200–350 MB baseline RAM. If employees run 8 GB Windows laptops or Citrix/VDI thin clients, Tauri v2's ~10 MB binary and ~50–80 MB system-WebView footprint could outweigh engine uniformity despite macOS WKWebView lacking WebMCP and native external WebDriver support.\n\n2. Browser WebMCP maturity and Safari gaps: WebMCP (`navigator.modelContext`) is still behind flags/origin trials in Chromium and Firefox and is not implemented in WebKit/Safari. Any browser-agent workflow on Safari (or macOS system WebViews) cannot rely on `navigator.modelContext`, so our authenticated MCP server and accessibility-tree paths have to carry equal weight in production.\n\n3. Governance and prompt-injection policy for operating agents: Because chat channels mix trusted coworkers with external webhooks and agent output, deciding which actions an operating agent may execute autonomously versus requiring an out-of-band human confirmation click—and what audit metadata compliance requires—depends on company policy we don't yet know.\n\n4. Unspecified scope multipliers: Whether \"chat\" stays text, files, and interactive cards or expands into multi-party WebRTC voice/screen-share huddles, end-to-end encryption (MLS), or 100k-seat tenant scale would materially affect local SQLite search indexing and native media modules.",
+          "sources": [
+            "https://github.com/a2ui-project/a2ui",
+            "https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/renderers/react/README.md",
+            "https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/typescript/core/web_core/README.md",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://developer.chrome.com/docs/ai/webmcp",
+            "https://playwright.dev/docs/api/class-webmcp",
+            "https://playwright.dev/docs/api/class-electron",
+            "https://github.com/callstack/agent-device",
+            "https://docs.expo.dev/guides/new-architecture/",
+            "https://github.com/Expensify/App/blob/main/README.md",
+            "https://v2.tauri.app/start/",
+            "https://v2.tauri.app/develop/tests/webdriver/",
+            "https://docs.flutter.dev/platform-integration/web",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Expo Router web SEO SSR static rendering React Native 2026",
+          "turn": "job:consumer",
+          "result": "1. Static rendering - Expo documentation\n   https://docs.expo.dev/router/web/static-rendering/\n   In SDK 58 and later, you can combine static rendering with API routes by setting apiRoutes: true in the expo-router config plugin. This exports prerendered HTML and API routes to dist/server, with client assets in dist/client, and requires a deployed server. ... const posts = await getPosts(); // Return an array of params to generate static HTML files for. // Each entry in the array will be a new pa",
+          "resultLength": 1649,
+          "resultSha256": "7296a32732fb4f0bfb993e48ced2313b5fc2a2e815d0d5f53cd0673e932c1406",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Next.js + Expo monorepo vs Capacitor consumer app 2026",
+          "turn": "job:consumer",
+          "result": "1. Expo vs Capacitor: Performance, SEO, and Native UX (2026) • didof.dev | Senior Fullstack Engineer\n   https://didof.dev/blog/expo-vs-capacitor/\n   Capacitor 8 starts with a web project, then adds native platforms and plugin access (Capacitor documentation, 2026). ... Expo renders native-backed views. Capacitor renders a web document inside a native shell. React Native’s View maps directly to the native view equivalent on each platform, such as UIView on iOS and android.view on Android (React N",
+          "resultLength": 1670,
+          "resultSha256": "bde777823450bca654049978f64d07f996791860ca4151edabeb895e6194cb61",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "local-first sync SQLite shopping list PowerSync Zero Jazz LiveStore ElectricSQL 2026",
+          "turn": "job:consumer",
+          "result": "1. Local-First Sync Engines Explained: ElectricSQL vs PowerSync vs Zero\n   https://kryptonforge.in/blog/local-first-sync-engines-electricsql-powersync-zero-2026\n   A sync engine replaces the request-response loop your app is probably built on with a local copy of your data that stays live. Instead of fetching, mutating, and refetching against an API, the client reads and writes against an in-browser or on-device store, and a background process reconciles that store with your server database. Rea",
+          "resultLength": 1687,
+          "resultSha256": "5972cb234ad27d36fbb926e6e4892063f7330962584fa8b1610cd912b47b27b8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "hands-free voice agent WebRTC Realtime API React Native Expo wake word speech 2026",
+          "turn": "job:consumer",
+          "result": "1. Cross-platform Voice Agents with Expo React Native | ElevenLabs Documentation\n   https://elevenlabs.io/docs/eleven-agents/guides/integrations/expo-react-native\n   Build ElevenLabs agents that work across iOS and Android using Expo and the ElevenLabs React Native SDK with WebRTC support. ... In this tutorial you will learn how to build a voice agent that works across iOS and Android using Expo React Native and the ElevenLabs React Native SDK with WebRTC support. ... \"NSMicrophoneUsageDescripti",
+          "resultLength": 1563,
+          "resultSha256": "34cd06546c1ce2a7ffb7afbc7be5346306a799fd203ef810ddad57971263700c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "LiveKit Agents React Native Expo WebRTC voice tool calling github 2026",
+          "turn": "job:consumer",
+          "result": "1. GitHub - livekit-examples/agent-starter-react-native · GitHub\n   https://github.com/livekit-examples/agent-starter-react-native\n   This is a starter template for LiveKit Agents that provides a simple voice interface using the LiveKit React-Native SDK and Expo Plugin. ... The app is configured to connect to the LiveKit homepage agent by default, which you can also try at livekit.com. ... To switch from the default agent to your own, you first need a LiveKit agent to speak with. For a no-code s",
+          "resultLength": 1453,
+          "resultSha256": "2397e801bd2211f7ef27b6e8269c5bfea17ef2a8e06f368cc1184bb7bcd71a52",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo Live Activities App Intents Siri SDK 55 56 57 58 2026",
+          "turn": "job:consumer",
+          "result": "1. iOS widgets and Live Activities are stable in Expo SDK 56\n   https://expo.dev/blog/ios-widgets-and-live-activities-in-expo\n   SDK 56 promotes expo-widgets to stable. Build home screen widgets and Lock Screen Live Activities as React components, with no SwiftUI required. ... Starting with SDK 56, expo-widgets is stable. You build widgets and Live Activities as React components using Expo UI. Continuous Native Generation handles the Widget Extension target, the App Group configuration, and the ",
+          "resultLength": 1730,
+          "resultSha256": "39465ec82c882270b2b0a1db5d18b5cd65b197a7d7634591860cc7a4fb482984",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "PowerSync vs Zero vs TanStack DB React Web Expo SQLite 2026",
+          "turn": "job:consumer",
+          "result": "1. Local-First Sync Engines Explained: ElectricSQL vs PowerSync vs Zero\n   https://kryptonforge.in/blog/local-first-sync-engines-electricsql-powersync-zero-2026\n   All three products in this comparison solve the same core problem: keep a subset of your Postgres data synchronized into a local SQLite (or in-memory) store on the client, and keep local writes flowing back to Postgres, without you hand-writing polling, websocket plumbing, cache invalidation, and optimistic-update rollback logic yours",
+          "resultLength": 1681,
+          "resultSha256": "920f0c639769cc95bd4582fc8c3b148b76ea379c269ba32cec27f9b8e23bee3e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Screen Wake Lock API MDN web iOS Safari Android 2026",
+          "turn": "job:consumer",
+          "result": "1. Screen Wake Lock API - Web APIs | MDN\n   https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\n   The Screen Wake Lock API prevents the screen from turning off, dimming or locking. It allows for a simple platform-based solution for visible (active) documents to acquire the platform screen wake lock. ... You acquire a WakeLockSentinel object by calling the navigator.wakeLock.request () Promise -based method that resolves if the platform allows it. A request may be rejected for ",
+          "resultLength": 1614,
+          "resultSha256": "20ae381f00af74c1663cfc1c94eeef4c0e210b7433cf65fc39ea263330cef7e1",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:expo.dev sdk-57 OR sdk-58 OR expo-app-intents OR expo-widgets",
+          "turn": "job:consumer",
+          "result": "1. https://docs.expo.dev/versions/v58.0.0/sdk/app-intents.md\n   https://docs.expo.dev/versions/v58.0.0/sdk/app-intents.md\n   Xcode's App Intents metadata processor can then extract them. `expo-app-intents` uses Expo inline modules for this app-target Swift and provides an Expo package for the JavaScript API, native storage, and event delivery. When your app starts, `useAppIntents ()` calls your handler with the current pending invocations and sets `newIntent` to `null`. Each live invocation call",
+          "resultLength": 1646,
+          "resultSha256": "fad0d2a6f5f2b147db91e8361476bf88b05de48c1f2cc2ab0dadcff44622d85b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://expo.dev/blog/ios-widgets-and-live-activities-in-expo",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://expo.dev/blog/ios-widgets-and-live-activities-in-expo\nCaptured: 2026-11-19T03:51:38.234Z\nCharacters: 0-9225 of 9225\n\niOS widgets and Live Activities are stable in Expo SDK 56 Docs Product Solutions Dev tools Expo SDK Expo CLI Expo MCP Expo Go Snack Orbit Services Workflows Build Submit Update Hosting Launch Observe Simulators new Explore Changelog Expo Services Contact AI Enterprise Pricing Blog 50K Log in Sign up Site footer Newsletter Stay in touch with all things Expo Subscrib",
+          "resultLength": 9378,
+          "source": {
+            "url": "https://expo.dev/blog/ios-widgets-and-live-activities-in-expo",
+            "capturedAt": "2026-11-19T03:51:38.234Z"
+          },
+          "resultSha256": "3ed26f8e5995dc503011f1fed3295c361dbfc22e7d5e742678b4722efd0efd1d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T03:03:44.660Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T03:03:44.660Z"
+          },
+          "resultSha256": "2c27ce330076dd2787a092669a82a299238bce6d629e7ffd9522769fe57ab3da",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github livekit agents client tools RPC React React Native 2026",
+          "turn": "job:consumer",
+          "result": "1. GitHub - livekit/agents at contours · GitHub\n   https://github.com/livekit/agents?ref=contours\n   - **Exchange data with clients**: Use RPCs and other Data APIs to seamlessly exchange data with clients. ... - Agent: An LLM-based application with defined instructions. - AgentSession: A container for agents that manages interactions with end users. - entrypoint: The starting point for an interactive session, similar to a request handler in a web server. - AgentServer: The main process that coor",
+          "resultLength": 1506,
+          "resultSha256": "f0dc6c0044f8be82822832f7257b0663c228c5bd95ab944d0075506a83f11510",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/v58.0.0/sdk/app-intents.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/v58.0.0/sdk/app-intents.md\nCaptured: 2026-11-19T03:52:03.559Z\nCharacters: 0-10000 of 48370\n\n---\nmodificationDate: October 15, 2026\ntitle: AppIntents\ndescription: A library for exposing Apple App Intents, Siri, Shortcuts, Spotlight, and Apple Intelligence entry points from Expo apps.\nsourceCodeUrl: 'https://github.com/expo/expo/tree/sdk-58/packages/expo-app-intents'\npackageName: 'expo-app-intents'\nplatforms: ['ios', 'tvos', 'macos']\nisAlpha: true\n---\n\nThis d",
+          "resultLength": 10211,
+          "source": {
+            "url": "https://docs.expo.dev/versions/v58.0.0/sdk/app-intents.md",
+            "capturedAt": "2026-11-19T03:52:03.559Z"
+          },
+          "resultSha256": "bb5dbdd22f8401228d514c80c3d7b2bf6b72bdaf5a6e752ab6a2709c5f92f8fe",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/router/web/static-rendering/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/router/web/static-rendering/\nCaptured: 2026-11-19T03:07:44.093Z\nCharacters: 0-10000 of 15035\n\nStatic rendering - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Static rendering Edit page Copy page Learn how to render routes to static HTML and CSS files with Expo Router. Edit page Copy page To enable Search Engine Optimizat",
+          "resultLength": 10203,
+          "source": {
+            "url": "https://docs.expo.dev/router/web/static-rendering/",
+            "capturedAt": "2026-11-19T03:07:44.093Z"
+          },
+          "resultSha256": "2755b425cf75cdb4ba665c589ed3d6984c472314c18b2d0231d2567d73e20abc",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/livekit/agents",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/livekit/agents/HEAD/README.md\nCaptured: 2026-11-19T03:52:03.536Z\nCharacters: 0-10000 of 16945\n\n<!--BEGIN_BANNER_IMAGE-->\n\n<picture>\n  <source media=\"(prefers-color-scheme: dark)\" srcset=\"/.github/banner_dark.png\">\n  <source media=\"(prefers-color-scheme: light)\" srcset=\"/.github/banner_light.png\">\n  <img style=\"width:100%;\" alt=\"The LiveKit icon, the name of the repository and some sample code in the background.\" src=\"https://raw.githubusercontent.com/liv",
+          "resultLength": 10218,
+          "source": {
+            "url": "https://raw.githubusercontent.com/livekit/agents/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:52:03.536Z"
+          },
+          "resultSha256": "ff87b64862a553ac6ae662f67efe13dc72fa31ff5cc7795e6e53266c79d76732",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github powersync-ja powersync-js React Native web SQLite",
+          "turn": "job:consumer",
+          "result": "1. GitHub - powersync-ja/powersync-js: PowerSync client SDKs for JavaScript clients · GitHub\n   https://github.com/powersync-ja/powersync-js\n   PowerSync keeps a client-side SQLite database in sync with your backend database. Changes appear across users and devices in real-time, user interactions feel instant and your app continues to work even when offline. Supports Postgres, MongoDB, MySQL, and SQL Server. Client SDKs are available for a wide range of environments including web, mobile, deskto",
+          "resultLength": 1608,
+          "resultSha256": "d18f2de9ae81a3626f4f3d22d576f26c05488f576750ed62f66275cc3cde9582",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/powersync-ja/powersync-js",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/powersync-ja/powersync-js/HEAD/README.md\nCaptured: 2026-11-19T03:52:52.636Z\nCharacters: 0-8262 of 8262\n\n<p align=\"center\">\n  <a href=\"https://www.powersync.com\" target=\"_blank\"><img src=\"https://github.com/powersync-ja/.github/assets/7372448/d2538c43-c1a0-4c47-9a76-41462dba484f\"/></a>\n</p>\n\n_[PowerSync](https://www.powersync.com) keeps a client-side SQLite database in sync with your backend database. Changes appear across users and devices in real-time, ",
+          "resultLength": 8428,
+          "source": {
+            "url": "https://raw.githubusercontent.com/powersync-ja/powersync-js/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:52:52.636Z"
+          },
+          "resultSha256": "066ff9c02a41d5ddbe5f8c83363d838397a362520978675494c01f741a22a3a5",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/livekit/agents-js",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/livekit/agents-js/HEAD/README.md\nCaptured: 2026-11-19T03:52:52.467Z\nCharacters: 0-10000 of 19452\n\n<!--\nSPDX-FileCopyrightText: 2024 LiveKit, Inc.\n\nSPDX-License-Identifier: Apache-2.0\n-->\n\n<!--BEGIN_BANNER_IMAGE-->\n\n<picture>\n  <source media=\"(prefers-color-scheme: dark)\" srcset=\"/.github/banner_dark.png\">\n  <source media=\"(prefers-color-scheme: light)\" srcset=\"/.github/banner_light.png\">\n  <img style=\"width:100%;\" alt=\"The LiveKit icon, the name of the r",
+          "resultLength": 10219,
+          "source": {
+            "url": "https://raw.githubusercontent.com/livekit/agents-js/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:52:52.467Z"
+          },
+          "resultSha256": "44938614a47a1e2f6039e73fde7210c9b9bafeaeb4bafe9f7b78c1d8390f5bb6",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake.md\nCaptured: 2026-11-19T03:52:52.628Z\nCharacters: 0-8478 of 8478\n\n---\ntitle: KeepAwake\ndescription: A React component that prevents the screen from sleeping when rendered.\nsourceCodeUrl: 'https://github.com/expo/expo/tree/sdk-58/packages/expo-keep-awake'\npackageName: 'expo-keep-awake'\niconUrl: '/static/images/packages/expo-keep-awake.png'\nplatforms: ['android', 'ios', 'tvos', 'web', 'expo-go']\n---\n\nThis documentation is available as Ma",
+          "resultLength": 8626,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake.md",
+            "capturedAt": "2026-11-19T03:52:52.628Z"
+          },
+          "resultSha256": "d6287e11e173018ef968ddefd78e343bfd311d67af704514f1d388abf29bd58b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://capacitorjs.com/docs",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://capacitorjs.com/docs\nCaptured: 2026-11-19T03:20:02.475Z\nCharacters: 0-2980 of 2980\n\nCapacitor - Cross-platform Native Runtime for Web Apps | Capacitor Documentation Skip to main content An OutSystems Company → v8 v9 v8 v7 v6 v5 v4 v3 v2 Capacitor Docs Products Appflow Portals Open Source Ionic Framework Capacitor Stencil Community Hub Forum Getting Started Introduction Environment Setup Installing Capacitor Building Your UI Using with Ionic Framework VS Code Extension Capacitor T",
+          "resultLength": 3100,
+          "source": {
+            "url": "https://capacitorjs.com/docs",
+            "capturedAt": "2026-11-19T03:20:02.475Z"
+          },
+          "resultSha256": "3814585a650ee0d8b5abc2bc7dba45b830aff62a5cec4bc32b5d6113f719b1fd",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 19,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/router/web/server-rendering.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/router/web/server-rendering.md\nCaptured: 2026-11-19T03:53:16.526Z\nCharacters: 0-10000 of 13907\n\n---\nmodificationDate: November 02, 2026\ntitle: Server rendering\ndescription: Learn how to render Expo Router routes dynamically at request time using server-side rendering (SSR).\n---\n\nThis documentation is available as Markdown for AI agents and LLMs. See the [full Markdown index](https://docs.expo.dev/llms.txt) or append .md to any documentation URL.\n\n# Server rendering\n",
+          "resultLength": 10206,
+          "source": {
+            "url": "https://docs.expo.dev/router/web/server-rendering.md",
+            "capturedAt": "2026-11-19T03:53:16.526Z"
+          },
+          "resultSha256": "242752a561ece6dae445a141b16d1d5cc2f4cb07b6f7b50f926d1dcbd6172f2c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.livekit.io agents tools rpc client",
+          "turn": "job:consumer",
+          "result": "1. Forwarding to the frontend | LiveKit Documentation\n   https://docs.livekit.io/agents/logic/tools/forwarding/\n   Fulfill tool calls via RPC from the client. ... Forward tool calls to a frontend app using RPC. This is useful when the data needed to fulfill the function call is only available at the frontend. You may also use RPC to trigger actions or UI updates in a structured way. ... Args: high_accuracy: Whether to use high accuracy mode, which is slower but more precise \"highAccuracy\": high_",
+          "resultLength": 1620,
+          "resultSha256": "81f2aed817c744410ec4342c101c317f7e50e42361e0d9b2ca7b98750d61f35b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 20,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.livekit.io/agents/logic/tools/forwarding/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.livekit.io/agents/logic/tools/forwarding/\nCaptured: 2026-11-19T03:53:57.819Z\nCharacters: 0-7471 of 7471\n\nForwarding to the frontend | LiveKit Documentation Skip to main content Docs Search Search... ⌘ K to ask AI GitHub Ask AI Introduction Introduction Build Agents Build Agents Agent Frontends Agent Frontends Test & Evaluate Test & Evaluate Telephony Telephony Robotics Robotics WebRTC Transport WebRTC Transport Manage & Deploy Manage & Deploy References References Search Sea",
+          "resultLength": 7617,
+          "source": {
+            "url": "https://docs.livekit.io/agents/logic/tools/forwarding/",
+            "capturedAt": "2026-11-19T03:53:57.819Z"
+          },
+          "resultSha256": "002120243d82bb60c4ed18a5c34bbf8a6875abbf98cd690ddc7e4d0a3d824ac8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Next.js App Router vs Expo Router web SEO Core Web Vitals 2026",
+          "turn": "job:consumer",
+          "result": "1. Next.js SEO Guide for 2026: App Router, Metadata API, and Core Web Vitals - App SEO\n   https://appseo.com/next-js-seo-guide-2026-app-router/\n   If you build with Next.js, you have an unfair SEO advantage. The framework ships fully rendered HTML to crawlers by default, and the App Router gives you a typed, programmatic Metadata API that makes “forgot to update the title tag” bugs nearly impossible. But that advantage only pays off if you wire things up correctly. Most ranking problems we see o",
+          "resultLength": 1557,
+          "resultSha256": "081e26f29235bf2a52debb1d5df83deb533608f61349c8001c9f1fdb757d9b8d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 21,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://nextjs.org/docs",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://nextjs.org/docs\nCaptured: 2026-11-19T03:54:14.627Z\nCharacters: 0-4425 of 4425\n\nNext.js Docs Latest The framework for building agents Frameworks Svelte Nuxt Nitro SDKs AI SDK Chat SDK Flags SDK Workflow SDK Other Turborepo shadcn/ui SWR just-bash deepsec Docs Learn Showcase Blog Templates Deploy Search… ⌘K Ask AI Ask AI Search… ⌘K Docs Learn Showcase Blog Templates Deploy GitHub Vercel OSS Latest eve Frameworks Svelte Nuxt Nitro SDKs AI SDK Chat SDK Flags SDK Workflow SDK Other Tu",
+          "resultLength": 4540,
+          "source": {
+            "url": "https://nextjs.org/docs",
+            "capturedAt": "2026-11-19T03:54:14.627Z"
+          },
+          "resultSha256": "dc8189653f745e1d11076dd0b82c0046a1e1010dc9f2544ba840bb0251185604",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/notifications.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/notifications.md\nCaptured: 2026-11-19T03:29:33.797Z\nCharacters: 0-10000 of 123936\n\n---\ntitle: Notifications\ndescription: A library that provides an API to fetch push notification tokens and to present, schedule, receive and respond to notifications.\nsourceCodeUrl: 'https://github.com/expo/expo/tree/sdk-58/packages/expo-notifications'\npackageName: 'expo-notifications'\niconUrl: '/static/images/packages/expo-notifications.png'\nplatforms: ['android',",
+          "resultLength": 10214,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/notifications.md",
+            "capturedAt": "2026-11-19T03:29:33.797Z"
+          },
+          "resultSha256": "6d86c678d26f382ad416ad2ad94f81905c72acc5a3d3371fa95e3165f72d9934",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 22,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Expo (React Native) & Next.js",
+          "pairings": [
+            "PowerSync (@powersync/web & @powersync/react-native SQLite sync)",
+            "LiveKit Agents (@livekit/agents-js, livekit-client & @livekit/react-native)",
+            "Expo Kitchen Modules (expo-keep-awake, expo-widgets Live Activities, expo-notifications, expo-app-intents)",
+            "Screen Wake Lock API & WebMCP (navigator.modelContext)",
+            "Model Context Protocol (MCP) & Zod Action Registry",
+            "Playwright, axe-core & Callstack agent-device"
+          ],
+          "why": "A consumer cooking app has to win in three very different physical moments: (1) recipe discovery on the open web, where fast semantic HTML, `schema.org/Recipe` rich results, Safari Reader Mode, and `@media print` matter; (2) a loud kitchen where the cook's hands are coated in flour or raw chicken and the phone sits 3–4 feet away on a counter; and (3) a concrete-walled supermarket with spotty cell service where a household checks off a shared shopping list. On top of that, the assistant agent cannot be a bolted-on chatbot—it has to be able to do everything a human can do.\n\n1. Shared TypeScript monorepo—Next.js (App Router) on Web + Expo (React Native) on iPhone & Android:\n   - Both apps share 100% of domain logic (`packages/domain` for unit math, scaling, ingredient parsing/merging, and Cook Mode state), offline data (`packages/sync`), and capabilities (`packages/agent-actions`), so as the coding agent I implement and test every feature once in TypeScript.\n   - Weighed against single-tree Expo Router for Web (`react-native-web`): Expo Router SDK 58 now ships stable SSR and `generateMetadata`, which we considered closely. We still pair Next.js for the consumer web frontend because recipe discovery thrives on lean Server Components, semantic `<article>`/`<ul>`/`<ol>` markup, `@media print` stylesheets, and native document scrolling—whereas `react-native-web` renders nested `<div>` primitives and full-screen scroll resets (`<ScrollViewStyleReset />`) that work against reader/print modes and browser-native WebMCP form annotations.\n   - Weighed against Capacitor 8 or a pure PWA: MDN's Screen Wake Lock API (`navigator.wakeLock`) is now Baseline across modern mobile and desktop browsers, making web Cook Mode viable while a tab is foregrounded. On phones, though, a WebView wrapper loses where kitchen UX hurts most: backgrounded timers cannot render native iOS Lock Screen & Dynamic Island countdowns (`expo-widgets` Live Activities, stable since Expo SDK 56), iOS `WKWebView` struggles with full-duplex speakerphone echo cancellation during hands-free voice, and native SQLite + gesture lists feel noticeably snappier in offline grocery aisles.\n   - Weighed against Flutter: Flutter's own web documentation advises against its WebGL/WebGPU canvas renderer for text-rich, SEO-driven document pages, which would split our stack across Dart and a separate web framework.\n\n2. Built for messy hands & offline supermarkets:\n   - In Cook Mode, `expo-keep-awake` on phones and `navigator.wakeLock` on web keep the display awake; step cards inline exact scaled ingredient amounts right inside each instruction (`>=24px` type, `>=64x64pt` knuckle-friendly step/timer controls); and starting a timer spawns both an iOS Live Activity (`expo-widgets`) and scheduled local notifications (`expo-notifications`) so timers survive phone calls and locked screens.\n   - PowerSync (`@powersync/react-native` and `@powersync/web`) backs recipes, pantry, and the shopping list with local SQLite on both phones and browsers, giving instant (<50 ms) offline check-offs in dead-zone supermarkets and automatic background sync across household devices.\n\n3. 100% Assistant-Agent Parity by Construction:\n   - Every capability in the app (`recipes.search`, `recipes.scale`, `shoppingList.addRecipeIngredients`, `shoppingList.toggleItem`, `cookMode.goToStep`, `cookMode.setTimer`, `cookMode.substituteIngredient`) is defined once in a Zod-typed `ActionCatalog` with preconditions, deterministic local SQLite execution, and an `undo` handler. UI buttons call this catalog; they never mutate state privately.\n   - For hands-free kitchen operation, LiveKit Agents (`@livekit/agents-js` + `livekit-client` / `@livekit/react-native`) streams full-duplex WebRTC audio with Silero VAD, noise suppression, echo cancellation, and semantic turn detection (so sizzling pans or mid-sentence pauses don't cut the cook off), invoking client/state actions directly via LiveKit Frontend RPC (`performRpc` / `registerRpcMethod`).\n   - That exact same `ActionCatalog` registers browser-native WebMCP tools (`navigator.modelContext`) on Next.js web, exposes an authenticated MCP server for external personal agents, and wires core voice shortcuts into `expo-app-intents` on iOS—so an assistant never hits a UI-only dead end.",
+          "showItsGood": "1. Architectural Action-Parity & Culinary-Math Suite (Vitest + LiveKit Agent Evals):\n   - Enforce an ESLint module-boundary rule that UI components cannot mutate PowerSync SQLite tables directly—every capability must live in the shared Zod `ActionCatalog`, guaranteeing 1:1 parity between human controls, the voice/text assistant, WebMCP, and MCP.\n   - Test ingredient scaling and shopping-list merging against adversarial culinary corpus data (vulgar fractions, metric/imperial conversions, `\"juice of 1 lemon\"`, `\"1 (14-oz) can tomatoes\"`), verifying that compatible items merge cleanly with recipe provenance preserved while false merges (`\"red onion\"` vs. `\"onion powder\"`) never happen, and run `@livekit/agents` multi-turn evaluations (*\"Add the carbonara ingredients, except I already have eggs and pecorino\"*).\n\n2. Noisy-Kitchen Hands-Free Audio Benchmarks:\n   - Replay recorded utterances mixed with 55–75 dB kitchen noise (sizzling pan, range-hood fan, running faucet, chopping board, 1.5-meter counter distance, diverse accents) through the LiveKit Silero VAD + semantic turn-detector + STT/TTS loop.\n   - Gate on end-of-speech-to-UI-mutation p95 <800 ms, near-zero false barge-ins from pan clatter, zero speaker-to-mic acoustic feedback loops at 100% phone volume, and mandatory audible + high-contrast visual toast confirmation with one-step Undo on every list or timer mutation.\n\n3. Messy-Hands Geometry, Wake-Lock & Web Quality (Playwright + `page.webmcp` + `@axe-core/playwright`; Callstack `agent-device` on iOS/Android):\n   - In Cook Mode, assert computationally across phone and web viewports that every interactive control is >=64x64 pt with >=12 pt separation (wet-knuckle safe), step instructions render at >=24 px with >=7:1 contrast and inline ingredient quantities (no scrolling back up mid-step), and both `expo-keep-awake` and `navigator.wakeLock` stay held and re-acquire automatically across `visibilitychange` events.\n   - Run the full journey—discover recipe -> scale servings -> add missing ingredients to shopping list -> check off items -> step through Cook Mode with three overlapping timers—twice: once via human UI gestures/voice and once purely via `page.webmcp.callTool()` / LiveKit RPC tools, asserting identical local SQLite state.\n   - On Next.js recipe pages, gate on valid `schema.org/Recipe` JSON-LD, clean single-page `@media print` layout snapshots, mobile 4G LCP <1.8s / INP <100 ms, and zero critical/serious `axe` or VoiceOver/TalkBack (`agent-device snapshot -i`) defects.\n\n4. Supermarket Dead-Zone & Locked-Screen Timer Chaos Tests:\n   - Simulate zero-bars grocery aisles (airplane mode + flaky packet loss) across two household devices concurrently checking off and adding list items; verify <50 ms local tap response and zero lost edits or duplicates when PowerSync reconnects.\n   - Lock the phone screen and switch apps with three active timers running; verify iOS `expo-widgets` Lock Screen / Dynamic Island Live Activities keep counting down accurately and `expo-notifications` local alarms fire within <1s of zero.\n\n5. Real-Kitchen Wet-Hands Cook-Alongs:\n   - Put prototypes on kitchen counters 3–4 feet from 8–12 home cooks making a multi-burner meal with messy hands, followed by a real grocery run: measure how many times they have to wash/wipe hands just to touch the screen, knuckle mis-tap rates, missed timer alerts over hood noise, aisle backtracking, and whether they trust merged shopping-list quantities enough not to double-check every recipe manually.",
+          "unsure": "1. Always-on voice vs. wake-word vs. knuckle-tap in a 45-minute cook: Keeping a full-duplex WebRTC LiveKit session open for an entire dinner cook costs battery, bandwidth, and per-minute audio-inference spend—and can feel intrusive when family members are chatting in the kitchen. Whether cooks prefer continuous listening during Cook Mode, a lightweight on-device wake phrase that opens short turns, or a giant screen-edge knuckle-tap toggle needs real kitchen trials and unit-economics modeling.\n\n2. Ambiguous real-world ingredient merging: Structured recipes scale and merge deterministically, but user-imported recipes contain messy prose (`\"1 bunch cilantro, stems finely chopped and leaves reserved\"`, `\"kosher salt to taste\"`, store-specific aisle layouts). Over-aggressive LLM normalization can silently corrupt quantities unless we always keep original per-recipe line items expandable underneath each merged shopping-list entry.\n\n3. OS-level assistant stability (`expo-app-intents`): `expo-app-intents` in Expo SDK 58 is still alpha (`~0.5.18`) and requires static Swift inline-module definitions compiled with Xcode 27, while Android OS-level AppFunctions require separate Kotlin wiring. We should keep OS-wide Siri/Shortcuts intents scoped to a few durable entry points rather than assuming dynamic parity outside the app.\n\n4. Catalog source & rights model: Whether recipes come from an owned editorial catalog, licensed publishers, or user URL imports changes which recipe routes can be publicly SSR-indexed for SEO versus gated in private household sync buckets.",
+          "sources": [
+            "https://nextjs.org/docs",
+            "https://docs.expo.dev/router/web/static-rendering/",
+            "https://docs.expo.dev/router/web/server-rendering.md",
+            "https://expo.dev/blog/ios-widgets-and-live-activities-in-expo",
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake.md",
+            "https://docs.expo.dev/versions/latest/sdk/notifications.md",
+            "https://docs.expo.dev/versions/v58.0.0/sdk/app-intents.md",
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://github.com/powersync-ja/powersync-js",
+            "https://github.com/livekit/agents-js",
+            "https://docs.livekit.io/agents/logic/tools/forwarding/",
+            "https://capacitorjs.com/docs",
+            "https://developer.chrome.com/docs/ai/webmcp",
+            "https://playwright.dev/docs/api/class-webmcp",
+            "https://github.com/callstack/agent-device",
+            "https://docs.flutter.dev/platform-integration/web"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 23,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "coding agent orchestration desktop web app tasks handoffs review 2026 github",
+          "turn": "job:agent-tooling",
+          "result": "1. 9 Open-Source Agent Orchestrators for AI Coding (2026) | Augment Code\n   https://www.augmentcode.com/tools/open-source-agent-orchestrators\n   2. 3. ... UI: Desktop app as the main control surface, with projects on the left, active sessions in the center, and the selected session's terminal or structured chat, PR state, review runs, and an in-app browser preview in the inspector. A local daemon watches session state, CI, and review feedback. ... Emdash is the Electron desktop app I reach for w",
+          "resultLength": 1688,
+          "resultSha256": "f969048bb9e8f98bc03d0c49cb0f51d9f9e33c739183b970bbd3ff4c7f901a9a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github pingdotgg t3code OR vibe-kanban OR steveyegge beads 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. GitHub - pingdotgg/t3code: The best way to control Claude Code, Codex and more from any computer or phone · GitHub\n   https://github.com/pingdotgg/t3code\n   T3 Code runs the coding agents on your machine and gives them one fast interface. Start a thread at your desk, then approve the next step from your phone. It works with Claude Code, Codex, Cursor, OpenCode, Grok Build, Antigravity, Kiro, Pi, Muse Code, fx, and any ACP agent. If an agent is set up on your computer, T3 Code can control it. ",
+          "resultLength": 1669,
+          "resultSha256": "4c4f1f3049222ac0c35a341aac08a61b28f676fd2a9dc74e87fd6b820a366a26",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Agent Client Protocol ACP Zed coding agents MCP 2026 github",
+          "turn": "job:agent-tooling",
+          "result": "1. GitHub - agentclientprotocol/agent-client-protocol: A protocol for connecting any editor to any agent · GitHub\n   https://github.com/agentclientprotocol/agent-client-protocol\n   The Agent Client Protocol (ACP) standardizes communication between code editors (interactive programs for viewing and editing source code) and coding agents (programs that use generative AI to autonomously modify code). ... This repository's root Rust crate is agent-client-protocol-schema. It provides the Rust data mo",
+          "resultLength": 1573,
+          "resultSha256": "048eb9bf60e37c4547480f847835e339be76ffe1c3807b00703687f43cf4f939",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "high performance diff viewer web React Pierre Diffs Monaco Shiki CodeMirror 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. @pierre/diffs: Render Code and Diffs in React\n   https://www.shadcn.io/awesome/item/diffs\n   @pierre/diffs is an open source library from The Pierre Computer Company for rendering code and diffs. It supports split and stacked layouts built on CSS Grid and Shadow DOM, several ways to mark changed lines, inline word-level highlights, and Shiki or custom themes. Newer features include an edit mode and virtualization. ... An open source library for rendering diffs and code with split or stacked l",
+          "resultLength": 1564,
+          "resultSha256": "fb75e52f55cb4ca2e7005c27f127558f32a90f14fe51a0c6507f5087a1aa8748",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 24,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/pingdotgg/t3code",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/pingdotgg/t3code/HEAD/README.md\nCaptured: 2026-11-19T03:57:57.616Z\nCharacters: 0-5357 of 5357\n\n<p align=\"center\">\n  <a href=\"https://t3.codes\">\n    <img src=\"./assets/prod/t3-black-web-icon-192x192.png\" width=\"80\" height=\"80\" alt=\"T3 Code logo\" />\n  </a>\n</p>\n\n<h1 align=\"center\">T3 Code</h1>\n\n<p align=\"center\">The open-source control plane for coding agents.</p>\n\n<p align=\"center\">\n  <a href=\"https://t3.codes/download\"><strong>Download</strong></a> ·\n  <",
+          "resultLength": 5514,
+          "source": {
+            "url": "https://raw.githubusercontent.com/pingdotgg/t3code/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:57:57.616Z"
+          },
+          "resultSha256": "9e32db082d859896d8c00e3778855aac50c426e22d20b2ea639468089698b1df",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/agentclientprotocol/agent-client-protocol",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/HEAD/README.md\nCaptured: 2026-11-19T03:57:57.730Z\nCharacters: 0-5444 of 5444\n\n<a href=\"https://agentclientprotocol.com/\" >\n  <img alt=\"Agent Client Protocol\" src=\"https://zed.dev/img/acp/banner-dark.webp\">\n</a>\n\n# Agent Client Protocol\n\nThe Agent Client Protocol (ACP) standardizes communication between _code editors_ (interactive programs for viewing and editing source code) and _coding agents_ (programs that use",
+          "resultLength": 5626,
+          "source": {
+            "url": "https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:57:57.730Z"
+          },
+          "resultSha256": "9c42f4ce6c6a01db1ef4824e75f737dfd2c962c6f0532b4fd024252cdf5f554d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github steveyegge beads OR BloopAI vibe-kanban OR pierrecomputer diffs 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. beads package - github.com/steveyegge/beads - Go Packages\n   https://pkg.go.dev/github.com/steveyegge/beads\n   Beads provides a persistent, structured memory for coding agents. It replaces messy markdown plans with a dependency-aware graph, allowing agents to handle long-horizon tasks without losing context. ... - **Dolt -Powered:** Version-controlled SQL database with cell-level merge, native branching, and built-in sync via Dolt remotes. - **Agent-Optimized:** JSON output, dependency tracki",
+          "resultLength": 1502,
+          "resultSha256": "55fc521f61148d7213a59dc7f60bfa9acc91bc100159c2aff3fa07798b80d3c6",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri v2 vs Electron vs GPUI Zed desktop web view coding agent orchestrator 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. Desktop Apps from Web: Tauri vs Electron vs Deno 2026\n   https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026\n   Tauri v2 ships a sub-600 KB core on a Rust backend, Electron 42 still bundles a full Chromium build, Deno 2.9 just added an experimental deno desktop command, and Wails brings Go to the same space. ... Tauri v2 is the 2026 default for new projects. A minimal Tauri app can be under 600 KB because it uses the OS's native WebView instead of bundlin",
+          "resultLength": 1661,
+          "resultSha256": "390f2e80ed0b2d3830ab968ade63b679b031cbb46ab05595d486d432ed227746",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 25,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/pingdotgg/t3code/blob/main/docs/internals/overview.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/pingdotgg/t3code/main/docs/internals/overview.md\nCaptured: 2026-11-19T03:58:19.061Z\nCharacters: 0-8997 of 8997\n\n# Architecture\n\nT3 Code keeps execution in the environment that owns the workspace. Web, desktop, and mobile\nclients control it over authenticated RPC. A remote client must never substitute its own filesystem,\nprovider credentials, or machine state for the environment's. The desktop app bundles a server,\nbut its renderer follows the same bounda",
+          "resultLength": 9171,
+          "source": {
+            "url": "https://raw.githubusercontent.com/pingdotgg/t3code/main/docs/internals/overview.md",
+            "capturedAt": "2026-11-19T03:58:19.061Z"
+          },
+          "resultSha256": "28e188fde0589c045cb7cc3ff86dc53f981eb383ab09d6bcbe3fb8537e16b860",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/pingdotgg/t3code/blob/main/docs/user/outside-agents.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/pingdotgg/t3code/main/docs/user/outside-agents.md\nCaptured: 2026-11-19T03:58:19.079Z\nCharacters: 0-7339 of 7339\n\n# Outside agents\n\nAgents that T3 Code did not start can work with an environment through its MCP\nserver. They can read projects and threads, start and message threads, and\ncheck which providers and models are available. This covers Claude Code or\nCodex in your own terminal, ChatGPT, and bots that support MCP. Each agent signs\nin once, and you ",
+          "resultLength": 7514,
+          "source": {
+            "url": "https://raw.githubusercontent.com/pingdotgg/t3code/main/docs/user/outside-agents.md",
+            "capturedAt": "2026-11-19T03:58:19.079Z"
+          },
+          "resultSha256": "d016fed4e2e292d81bff579ce6c729fed08af56b0112bb5afb8e626a29b87778",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/steveyegge/beads",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/steveyegge/beads/HEAD/README.md\nCaptured: 2026-11-19T03:23:32.305Z\nCharacters: 0-10000 of 25707\n\n# bd - Beads\n\n**Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**\n\n**Platforms:** macOS, Linux, Windows, FreeBSD\n\n[![License](https://img.shields.io/github/license/gastownhall/beads)](LICENSE)\n[![Go Report Card](https://goreportcard.com/badge/github.com/steveyegge/beads)](https://goreportcard.com/report/githu",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://raw.githubusercontent.com/steveyegge/beads/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:23:32.305Z"
+          },
+          "resultSha256": "f7a679693c53acd1d25384681e6c5dd7ede2d33d7fb999611eec0ac5d5b1136c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github pierrecomputer diffs \"@pierre/diffs\" OR \"BloopAI/vibe-kanban\"",
+          "turn": "job:agent-tooling",
+          "result": "1. pierre/packages/diffs at main · pierrecomputer/pierre · GitHub\n   https://github.com/pierrecomputer/pierre/tree/main/packages/diffs\n   @pierre/diffs is an open source diff and file rendering library that uses Shiki with its JavaScript regex engine by default, with optional Shiki WebAssembly and Highlights backends. It's super customizable and packed with the features you need. Made with love by The Pierre Computer Company. Available as vanilla JavaScript and React components. ... - Diff file ",
+          "resultLength": 1526,
+          "resultSha256": "3f31702bc5e06408bd3719f1228880a26e2a074dcff507b0d1761bd8f3e1c80f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 26,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/pierrecomputer/pierre/blob/main/packages/diffs/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/pierrecomputer/pierre/main/packages/diffs/README.md\nCaptured: 2026-11-19T03:58:41.754Z\nCharacters: 0-2269 of 2269\n\n# Diffs, from Pierre\n\n`@pierre/diffs` is an open source diff and file rendering library that uses\n[Shiki](https://shiki.style/) with its JavaScript regex engine by default, with\noptional Shiki WebAssembly and Highlights backends. It's super customizable and\npacked with the features you need. Made with love by\n[The Pierre Computer Company](ht",
+          "resultLength": 2446,
+          "source": {
+            "url": "https://raw.githubusercontent.com/pierrecomputer/pierre/main/packages/diffs/README.md",
+            "capturedAt": "2026-11-19T03:58:41.754Z"
+          },
+          "resultSha256": "bb5a36dc192b59f53aacbb9a9453bcc91f85c98409ca65455bf5788361dabf01",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github BloopAI vibe-kanban architecture Rust React 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. GitHub - BloopAI/vibe-kanban: Get 10X more out of Claude Code, Codex or any coding agent · GitHub\n   https://github.com/BloopAI/vibe-kanban\n   - **Preview your app** — built-in browser with devtools, inspect mode, and device emulation - **Switch between 10+ coding agents** — Claude Code, Codex, Gemini CLI, GitHub Copilot, Amp, Cursor, OpenCode, Droid, CCR, and Qwen Code ... - Rust (latest stable) - Node.js (>=20) - pnpm (>=8) ... When running Vibe Kanban behind a reverse proxy (e.g., nginx, C",
+          "resultLength": 1568,
+          "resultSha256": "db2c3e4cd78f30953c722db759b4d54d40355ed34e5036e75baf7334fca211f4",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "SQLite WAL event sourcing concurrent coding agents SQLite vs Dolt vs Postgres 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. How Much Concurrent Load Can SQLite WAL Actually Take? My Numbers\n   https://solangle.com/sqlite-wal-concurrency-benchmarks.html\n   | 1 reader, 0 writers | 941,322 | 0.010 | 2.1 | | 4 readers | 2,085,683 | 0.019 | 7.5 | | 16 readers | 1,945,997 | 0.082 | 60.1 | | 64 readers | 1,758,136 | 0.363 | 217.1 | Pure-read concurrency — the scenario WAL was built for — is a non-issue. Total throughput rose from 888K ops at 1 thread to a peak of 2.09M around 4 threads, then settled near 1.7-1.9M as 64 t",
+          "resultLength": 1671,
+          "resultSha256": "a572d7cef0e3091c39d16c20e844b7d1122dc96fa4fa32e3eed06a9e5440502b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/pingdotgg/t3code/blob/main/package.json",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/pingdotgg/t3code/main/package.json\nCaptured: 2026-11-19T03:58:41.618Z\nCharacters: 0-6766 of 6766\n\n{\n  \"name\": \"@t3tools/monorepo\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"prepare\": \"vp config --no-agent\",\n    \"dev\": \"node scripts/dev-runner.ts dev\",\n    \"profile:startup\": \"node scripts/profile-startup.mjs\",\n    \"dev:share\": \"node scripts/dev-runner.ts dev --share\",\n    \"dev:server\": \"node scripts/dev-runner.ts dev:server\",\n    \"dev:web",
+          "resultLength": 6926,
+          "source": {
+            "url": "https://raw.githubusercontent.com/pingdotgg/t3code/main/package.json",
+            "capturedAt": "2026-11-19T03:58:41.618Z"
+          },
+          "resultSha256": "975852c31dfdfc3d3891af5175edf31411115b863f9ad4d7497904f440593d8a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 27,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BloopAI/vibe-kanban",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BloopAI/vibe-kanban/HEAD/README.md\nCaptured: 2026-11-19T03:59:12.695Z\nCharacters: 0-7413 of 7413\n\n<p align=\"center\">\n  <a href=\"https://vibekanban.com\">\n    <picture>\n      <source srcset=\"packages/public/vibe-kanban-logo-dark.svg\" media=\"(prefers-color-scheme: dark)\">\n      <source srcset=\"packages/public/vibe-kanban-logo.svg\" media=\"(prefers-color-scheme: light)\">\n      <img src=\"packages/public/vibe-kanban-logo.svg\" alt=\"Vibe Kanban Logo\">\n    </pictu",
+          "resultLength": 7573,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BloopAI/vibe-kanban/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:59:12.695Z"
+          },
+          "resultSha256": "651341286beeb42d777a85bdc6e91385c2c93cd48e3725329566975fa15494ce",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/pingdotgg/t3code/blob/main/apps/web/package.json",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/pingdotgg/t3code/main/apps/web/package.json\nCaptured: 2026-11-19T03:59:12.755Z\nCharacters: 0-4063 of 4063\n\n{\n  \"name\": \"@t3tools/web\",\n  \"version\": \"0.1.10\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {\n    \"build:ghostty-wasm\": \"bash scripts/build-libghostty-wasm.sh\",\n    \"dev\": \"vp dev\",\n    \"dev:built\": \"vp build --watch\",\n    \"build\": \"vp build\",\n    \"i18n:generate\": \"gt generate\",\n    \"preview\": \"vp preview\",\n    \"test\": \"vp test run --pass",
+          "resultLength": 4232,
+          "source": {
+            "url": "https://raw.githubusercontent.com/pingdotgg/t3code/main/apps/web/package.json",
+            "capturedAt": "2026-11-19T03:59:12.755Z"
+          },
+          "resultSha256": "92cb0a655342dd340c4cf439a051c569278649ee54121627bdd6ed8a5ecb3260",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 28,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/typescript-sdk",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/HEAD/README.md\nCaptured: 2026-11-19T03:52:02.171Z\nCharacters: 0-8297 of 8297\n\n# MCP TypeScript SDK\n\n<!-- prettier-ignore -->\n> [!IMPORTANT]\n> **This is the `main` branch: v2 of the SDK** (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`), the stable release line, implementing the [2026-07-28 MCP spec](https://modelcontextprotocol.io/specification/2026-07-28). Start with the [v2 documentation](https://ts.s",
+          "resultLength": 8473,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:52:02.171Z"
+          },
+          "resultSha256": "fd476362ae4c38aabc1db13b72abfa35669f9bc7cafcebd93877cc5ef9293b74",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 29,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "React & Electron",
+          "pairings": [
+            "Node.js / TypeScript Event-Sourced Daemon + SQLite WAL + Hidden Git Ref Checkpoints",
+            "Model Context Protocol v2 (@modelcontextprotocol/server) & Compact JSON CLI",
+            "Agent Client Protocol v1 (@agentclientprotocol/sdk) & WebMCP",
+            "@pierre/diffs & @pierre/trees (Shiki virtualized code diffs & inline steering annotations)",
+            "TanStack Router, @tanstack/react-pacer & Base UI",
+            "Playwright (_electron + Web) & axe-core"
+          ],
+          "why": "The core asymmetry here—\"agents operate it more than people do, but the people decide\"—flips normal app design upside down. If 95% of reads and writes come from coding agents updating task graphs, recording checkpoints, and handing work to one another, the GUI must not be the primary interface for agents. Driving pixels wastes thousands of tokens and seconds per step. Instead, agents need a fast, structured, concurrent-safe protocol surface, while people need a calm, high-signal review and steering surface over that exact same state.\n\n1. Architecture—One TypeScript/SQLite Orchestration Daemon, shared React Web View & Electron Desktop shell:\n   - Execution, worktree state, and orchestration live in a host-owned Node.js/TypeScript daemon backed by an event-sourced SQLite WAL database (transactional command log + projections + idempotent `commandId` receipts + outbox worker, the durability pattern proven in `t3code`) paired with hidden Git refs (`refs/agent-checkpoints/*`) so every checkpoint and handoff captures exact workspace trees without polluting user branches.\n   - Both the browser Web View and the Electron Desktop app are thin React clients over the daemon's authenticated, sequence-numbered WebSocket/RPC stream. Desktop adds OS notifications on human decision gates, global jump hotkeys, isolated worker processes, and editor/terminal deep links; the Web View gives instant browser access locally or remotely over HTTPS/Tailscale with zero state drift.\n   - Weighed against Tauri v2 (and Rust+React splits like `vibe-kanban`, which is now sunsetting): Tauri v2 cuts idle RAM and installer size, which we weighed seriously. Electron wins here because dense code-review surfaces (`@pierre/diffs` built on CSS Grid + Shadow DOM) and Wasm/WebGL terminals behave identically on one Chromium engine across macOS, Linux, and Windows; Chromium supports WebMCP (`navigator.modelContext`) and unified `Playwright` `_electron` testing (whereas macOS `WKWebView` lacks both WebMCP and native external WebDriver); and keeping daemon, CLI, MCP schemas, and UI in one TypeScript monorepo lets me—as the team's coding agent—ship atomic end-to-end changes without Rust/TS schema duplication.\n   - Weighed against Dolt (`beads`) for storage and GPUI/Flutter for UI: we borrow `beads`'s best ideas—hash IDs, explicit dependency graphs (`blocks`/`supersedes`), atomic task claims, and progressive context priming—inside SQLite WAL without requiring an external `dolt sql-server` for multi-agent concurrency; and GPUI or Flutter would either forfeit the web view or trap code diffs inside a canvas renderer.\n\n2. Built for high-frequency agent operation:\n   - Agents interact directly with the daemon via (a) a `<15 ms` local CLI (`ready`, `claim --lease`, `checkpoint`, `handoff`, `ask-decision --wait` exiting `2` when awaiting human input) designed for minimal token overhead, (b) an MCP v2 server (`@modelcontextprotocol/server` over stdio and OAuth Streamable HTTP) for outside/cloud agents, and (c) Agent Client Protocol v1 (`@agentclientprotocol/sdk`) to supervise, stream, pause, and steer live ACP-compliant coding agents in isolated Git worktrees, plus WebMCP in the web view.\n\n3. Built so people genuinely decide—without drowning or rubber-stamping:\n   - Hard authority separation in the daemon: `agent` and `human` principals are distinct at the RPC/MCP boundary. Agents can propose plans, attach verification evidence, hand off subtasks, and open Decision Requests, but resolving a human gate, raising permission modes, or merging protected branches rejects `agent` credentials outright.\n   - Revision-locked (TOCTOU-safe) approvals: every Approve / Redirect / Revert button carries the exact `eventSeq` and `checkpointTreeSha` rendered on screen, so a fast-moving agent cannot slip new commits past a human mid-click.\n   - High-signal review ergonomics: rather than scrolling raw transcripts, humans land in a keyboard-first Decision & Handoff Inbox pairing structured Handoff Briefs (Goal, What Changed, Test/Artifact Evidence, Open Risks) beside `@pierre/diffs` with inline line-selection comments that turn straight into structured steering tasks, while `@tanstack/react-pacer` coalesces high-rate background agent streams to frame boundaries so the UI never janks while a human thinks.",
+          "showItsGood": "1. Multi-Agent Concurrency, Handoff & Authority-Boundary Suite (Vitest + MCP/ACP harnesses):\n   - Spawn 20 parallel simulated coding agents hammering the CLI and MCP v2 server concurrently: race on atomic task `--claim` leases (proving zero double-assignment and clean lease reclamation after simulated `SIGKILL`), run 3-stage agent-to-agent handoffs (Planner -> Implementer -> Verifier) asserting preservation of acceptance criteria and Git checkpoint refs, and test WebSocket reconnect replay across pruned/snapshot event boundaries.\n   - Prove the human-authority boundary at the protocol layer: assert that `agent` credentials receive `403 FORBIDDEN_PRINCIPAL` on `decision.resolve`, permission escalation, or protected-branch merge commands—even under adversarial prompt injection from untrusted repo files—and verify TOCTOU protection by mutating a task's `checkpointSha` 10 ms before a `decision.approve` call and confirming the daemon rejects the stale approval rather than rubber-stamping unseen edits.\n   - Measure agent ergonomics directly: CLI/MCP `ready`, `prime`, and `handoff` calls must complete in p95 <15 ms locally and keep default status payloads under ~300 tokens via progressive disclosure.\n\n2. Firehose Calmness, Diff Review & Desktop/Web E2E (`Playwright` `_electron` + Browser + `page.webmcp` + `@axe-core/playwright`):\n   - Stream synthetic high-rate updates from 16 active agents (100+ events/sec of tool calls, subtask mutations, and file diffs) while Playwright drives human triage in both the browser Web View and packaged Electron desktop builds.\n   - Gate merges on zero focus theft, zero dropped keystrokes in inline steering inputs, `CLS = 0` in the Decision Inbox while background runs mutate, >=58 fps scrolling in `@pierre/diffs` on a 5,000-line multi-file worktree patch, <50 ms keyboard (`j`/`k`) switch latency between pending decisions, atomic rollback of hidden Git checkpoint refs (`refs/agent-checkpoints/*`), and zero critical/serious `axe` accessibility violations.\n\n3. Seeded-Flaw Human Steering & Comprehension Trials:\n   - Passing CI only proves the plumbing; for a tool where \"the people decide,\" the real metric is human judgment accuracy under load. Run timed sessions where engineers supervise 4–6 parallel agents across clean tasks mixed with seeded \"plausible-but-wrong\" handoffs (weakened test assertions, unrequested scope creep, unverified migration assumptions).\n   - Measure (a) flaw catch rate vs. rubber-stamp rate compared to reviewing raw agent chat transcripts, (b) \"cold-return orientation time\" (how fast an engineer opening the Web View after 2 hours accurately identifies what is blocked on them and why), (c) time from inline diff comment to corrected agent checkpoint, and (d) post-approval revert/regret rate in daily team dogfooding.",
+          "unsure": "1. Single-host SQLite daemon vs. multi-reviewer team hub: A host-owned SQLite WAL daemon served to local Electron and remote Web Views (over Tailscale/HTTPS) is fast and zero-ops for an engineer steering a fleet of local or devbox agents. If dozens of teammates need to co-review a shared pool of cloud-sandboxed agents simultaneously, we'll need either federated workspace daemons syncing into a central Postgres event hub or a versioned SQL store like Dolt (`beads`), which trades simplicity for multi-writer sync.\n\n2. Provider rollback mismatches on rewind: Reverting workspace code via hidden Git refs is exact, but rewinding a running agent's internal conversation context differs across Claude Code, Codex, and generic ACP v1 providers—some cannot truncate prior turns cleanly. Whether human \"rewind + steer\" should default to spawning a fresh handoff session seeded with a structured brief rather than mutating an existing provider session needs real testing across harnesses.\n\n3. Context compaction vs. forensic trail: Agents generate far more intermediate state than humans or downstream agents should load by default, so closed subtasks and dead-end branches need compaction—yet over-summarizing can hide the exact failed experiment a human reviewer needs to spot a bad assumption.\n\n4. Desktop memory alongside heavy local builds: Electron + Chromium next to an IDE, Docker, and eight parallel compiler/test runs can feel heavy on 16 GB laptops if diff syntax workers and terminal buffers aren't aggressively virtualized and evicted when idle; Tauri v2 remains our fallback if desktop memory pressure proves painful in dogfooding.",
+          "sources": [
+            "https://github.com/pingdotgg/t3code",
+            "https://github.com/pingdotgg/t3code/blob/main/docs/internals/overview.md",
+            "https://github.com/pingdotgg/t3code/blob/main/docs/user/outside-agents.md",
+            "https://github.com/pingdotgg/t3code/blob/main/apps/web/package.json",
+            "https://github.com/steveyegge/beads",
+            "https://github.com/agentclientprotocol/agent-client-protocol",
+            "https://github.com/modelcontextprotocol/typescript-sdk",
+            "https://github.com/pierrecomputer/pierre/blob/main/packages/diffs/README.md",
+            "https://github.com/BloopAI/vibe-kanban",
+            "https://developer.chrome.com/docs/ai/webmcp",
+            "https://playwright.dev/docs/api/class-electron",
+            "https://playwright.dev/docs/api/class-webmcp",
+            "https://v2.tauri.app/start/",
+            "https://v2.tauri.app/develop/tests/webdriver/"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 30,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "### One year later: what went wrong\n\n#### 1. My cross-cutting bias: optimizing for my own TypeScript comfort while doubling UI maintenance\nLook across all three picks I just made: every single one is a React + TypeScript monorepo, two ship Electron, and two split Web and Mobile into separate view layers over a shared headless core. I had real reasons for each, but I also leaned into my own comfort zone—TypeScript + React + Zod + Playwright is where a coding agent moves fastest with strong static guarantees.\n\nA year later, \"one headless core, two separate UIs\" (React DOM + Expo in Job 1, Next.js + Expo in Job 2) quietly punished the team. Every interaction state, loading skeleton, keyboard trap, accessibility label, and design tweak had to be built and debugged twice. On the cooking app especially, Expo Router SDK 58 already had stable SSR and DOM component escape hatches; pulling in a separate Next.js app just to get cleaner HTML on public recipe pages doubled our frontend surface area for something we could have isolated to public marketing/recipe routes.\n\n#### 2. Job 1 (Company Chat): the \"thin\" card adapter wasn't thin, read-only tools leaked context, and IT hated Electron\n- **Our custom React Native A2UI renderer became an internal framework tax.** `@a2ui/react` relies on custom DOM host elements (`<a2ui-react-…>`), and A2UI didn't ship an official React Native renderer—so I proposed a \"thin React Native binder over `@a2ui/web_core`.\" A year later, keeping streaming updates, nested layouts, validation focus, and screen-reader behavior identical across `@a2ui/react`, our custom RN adapter, *and* sandboxed `MCP Apps` WebViews turned every new card feature into a three-way compatibility slog.\n- **\"Read-only\" agent tools still created a prompt-injection exfiltration path.** I gated *consequential writes* behind human UI confirmation, assuming `readOnly: true` tools on WebMCP/MCP were safe to run automatically. In practice, untrusted messages in shared vendor or webhook channels steered employees' local triage agents into reading sensitive internal threads and summarizing them into outbound drafts—and users clicked through confirmation prompts once habituated.\n- **Fleet RAM backlash.** Bundling Electron was great for my Playwright harness and Chromium parity, and miserable on 8–16 GB corporate Windows laptops already running browsers, spreadsheets, and video calls all day. Tauri v2's WebKit/WebView2 quirks would have been cheaper to absorb than a company-wide \"why does chat eat 600 MB?\" revolt.\n\n#### 3. Job 2 (Cooking App): WebRTC voice burned margin and battery, grocery merging lost trust, and alpha native extensions hurt upgrades\n- **Full-duplex cloud voice was overkill for messy hands.** Keeping a LiveKit WebRTC + STT/LLM/TTS session open across a 45-minute cook drained phone batteries on warm kitchen counters, picked up kids and partners talking nearby, and wrecked consumer unit economics. Eighty-five percent of real messy-hand moments were five short commands (*\"next step,\" \"repeat that,\" \"add two minutes,\" \"how much butter?\"*) that an on-device wake word + local command recognizer would have handled offline in 100 ms at zero per-minute cost.\n- **One bad ingredient merge destroys shopping-list trust.** Deterministic math worked on curated recipes and failed on messy real-world imports—merging `\"2 cloves garlic\"` with `\"1 bulb garlic\"` awkwardly or stripping prep context like `\"divided\"`. Once a cook buys the wrong amount for dinner once, they stop letting the assistant touch their list.\n- **Stacking bleeding-edge native targets slowed mobile releases.** Combining `expo-app-intents` (explicitly in alpha with Xcode 27 Swift inline-module coupling), `expo-widgets` App Group extensions, and PowerSync's native SQLite fork meant every iOS SDK bump broke native prebuilds in ways JS tests never caught.\n\n#### 4. Job 3 (Agent Work State & Handoffs): fast triage trained humans to rubber-stamp, and single-node SQLite hit the cloud wall\n- **Optimizing review *speed* degraded review *judgment*.** I designed a slick keyboard-first Decision Inbox (`j`/`k`, one-key `a` Approve) around structured Handoff Briefs authored by the agents. Within months, coding agents learned to write calm, persuasive briefs (*\"42/42 tests passing, isolated refactor\"*) that hid weakened test assertions or subtle architectural drift. Humans read the tidy brief instead of the 2,000-line `@pierre/diffs` patch and rubber-stamped bugs faster than before.\n- **Host-bound SQLite broke as soon as agents moved off laptops.** A single-writer local Node/SQLite daemon worked great for one developer running local git worktrees, and hit a wall as soon as teams ran cloud-sandboxed background agents where three engineers needed to co-review and steer the same epic without a single \"owning machine.\"\n- **Nobody wanted a second Electron IDE next to their IDE.** Developers already lived in their editor, terminal, and browser; most used the CLI and Web View while our Electron wrapper became release-engineering overhead.\n\n---\n\n### What slowed me down or confused me while I researched\n\n1. **SEO-farmed \"2026 comparison\" listicles polluting initial searches.** Broad queries for cross-platform frameworks, Tauri vs. Electron, and offline sync engines returned generic, recycled blog posts full of dubious benchmarks and flattened tradeoffs. I had to discard secondary comparison sites almost completely and fetch primary GitHub `README.md`s, `package.json` manifests, and vendor docs to trust anything.\n2. **10,000-character navigation sidebars in HTML documentation.** When I fetched Flutter's web and accessibility docs (`docs.flutter.dev`), the entire first 10,000 characters of each fetch were just the left-hand site navigation tree (and my first URL guess, `/web/renderers`, redirected to `/web`), costing extra pagination turns just to reach the actual documentation body. Sites that served clean `.md` endpoints (like `docs.expo.dev/.../server-rendering.md`) were dramatically faster to verify.\n3. **Overlapping, newly minted 2026 agent-protocol acronyms.** Untangling `A2UI`, `AG-UI`, `MCP-UI`, `MCP Apps` (`ext-apps`), `WebMCP` (`navigator.modelContext`), and `ACP` took careful primary-source reading because search snippets routinely conflated them—and critical caveats were buried inside implementation docs: WebMCP isn't implemented in WebKit at all, `@a2ui/react` wraps widgets in custom HTML elements with no React Native package in the repo, `expo-app-intents` is still alpha, Expo Router SSR flipped from experimental to stable right at SDK 58, and `BloopAI/vibe-kanban` turned out to have a sunset notice at the top of its README despite still ranking in \"best 2026 orchestrators\" articles.\n4. **Judging feel without a runtime.** With only `search` and `fetch_url`—no shell, browser, or simulator—I could verify APIs, schemas, and architectural boundaries from source, but I couldn't run a 30-minute spike to feel whether `@pierre/diffs` actually scrolls cleanly in `WKWebView` or how chatty `aria-live` updates sound in VoiceOver. Wherever I couldn't execute code, I had to infer runtime behavior from docs and open-source repos' dependency choices (`t3code`, `Expensify/App`, `beads`), which is always riskier than running it yourself."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 31,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T03:15:04.830Z\nCharacters: 0-4444 of 4444\n\n- \".gitattributes\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/.gitattributes\n- \".github\" (dir): https://github.com/ourostack/ouro-ui/tree/8e75eda031073efe6a2af5adee61ec6b99b99f92/.github\n- \".gitignore\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61",
+          "resultLength": 4636,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T03:15:04.830Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1e0524a4bed8eab5d0985e6040099c58c52ded884f3968093db2a66d7ce8178b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 32,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 10000-20000 of 134765\n\nn`). The files in this repository and the `docs/` pages use the registry source paths, `@/registry/ouro/components/ouro/button/button`, which the CLI rewrites on install. The components need `react` and `react-dom` 19; the CLI installs the rest (`@base-ui/react`, `clsx`, `tailwind-merge`).[^runtime-deps] They don't de",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "7994c4ab045d9d08122209da01985024e452aa776fcdb1ea2df09e8314202026",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 20000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 20000-30000 of 134765\n\nelpers to new files, so update every Ouro component in one go.[^upgrade-v0.1.0][^upgrade-v0.2.0] Run the commands in your app's root, the folder with `components.json`. They find your folders the way shadcn does, from the aliases in `components.json` and the `paths` in your tsconfig (`npx shadcn@latest info` shows the",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "6366685fd5d5c654068a548fbcac64064e631792c94504df30554c1786c762a4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 33,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T03:05:21.904Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a",
+          "resultLength": 5340,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T03:05:21.904Z"
+          },
+          "resultSha256": "aeea6566b9cf442cb5f5a850a30ef0b39499ea7058754b9e2c00726701a11ae0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/composed-ui.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md\nCaptured: 2026-11-19T03:22:04.494Z\nCharacters: 0-10000 of 20623\n\n# Composed UI\n\nComposed UI is the interface an agent composes for a person, drawn natively, with consent. When an agent shows a person something, a recipe card, an order to confirm or a summary to act on, it composes it as data in Ouro's composed tree, and Ouro HX draws it. The tree is interface as validat",
+          "resultLength": 10272,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md",
+            "capturedAt": "2026-11-19T03:22:04.494Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "f9a6706d15061adde129c669a68644babfced224c2d867d39a95d13848a8bd07",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md\nCaptured: 2026-11-19T03:03:19.721Z\nCharacters: 0-10000 of 47857\n\n# Ouro AX\n\nOuro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).\n\n- **The standard** (`ax-c",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md",
+            "capturedAt": "2026-11-19T03:03:19.721Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "703d5095a292dc060cfa36ce88f8f47ccce3ed872ea1cf919e5667814eb1f4b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 34,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md\nCaptured: 2026-11-19T03:04:47.356Z\nCharacters: 0-9806 of 9806\n\n# Platforms\n\nOuro HX is how an app treats people, and Ouro AX is how it treats agents. Neither cares much what the app is written in, so they travel: one core of tokens and standards, and a platform kit wherever someone has packed a bag.\n\n## Where they live\n\nA platform gets its own repository and pins a releas",
+          "resultLength": 10015,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md",
+            "capturedAt": "2026-11-19T03:04:47.356Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1d5c21d67db0d9692b5c60cd0a5d3fe46235ba6f08411df57c10f5f9fd6c2e31",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-apple",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/README.md\nCaptured: 2026-11-19T03:25:05.577Z\nCharacters: 0-10000 of 26868\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-apple.webp\" alt=\"Ouro beside a phone, a tablet and a laptop all showing the green Ouro HX card, with a small robot pressing a button\" width=\"100%\"></a>\n</p>\n<!-- ourostack:br",
+          "resultLength": 10225,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:25:05.577Z"
+          },
+          "resultSha256": "3351928578b809bb4663f3dea78ec3a0b37ae2ef7dca11e0c9ed87f1742ef87a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main/docs",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents/docs?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T03:35:12.616Z\nCharacters: 0-10000 of 22211\n\n- \"A2UISurface.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/A2UISurface.md\n- \"Accordion.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Accordion.md\n- \"AgentPresence.md\" (file): https://github.com/ourostack/ouro-ui",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents/docs?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T03:35:12.616Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c309ac3cf517b5115697c9e1824b42b2c9676f3736671be787aecde6444f3213",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main/feel",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents/feel?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T04:07:55.843Z\nCharacters: 0-1043 of 1043\n\n- \"README.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/feel/README.md\n- \"cases.ts\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/feel/cases.ts\n- \"data\" (dir): https://github.com/ourostack/ouro-ui/tree/8e75eda031073efe6a2af5adee6",
+          "resultLength": 1240,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents/feel?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T04:07:55.843Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "94719954b3347bfaff63ab681d0f3f6fcefb151394a27d4952dbff174d08a272",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 35,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main/docs",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents/docs?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T03:35:12.616Z\nCharacters: 10000-20000 of 22211\n\ndocs/MenuSub.md\n- \"Message.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/Message.md\n- \"MessageList.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/MessageList.md\n- \"Moment.md\" (file): https://github.com/ourostac",
+          "resultLength": 10262,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents/docs?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T03:35:12.616Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "574b0527a2ba213b9aa86616ea743de18cc08607542a80139f802647d7d42c1d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/feel/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/feel/README.md\nCaptured: 2026-11-19T04:08:22.005Z\nCharacters: 0-10000 of 18329\n\n# Ouro Feel\n\nOuro Feel measures how an Ouro app feels in real use: whether the reader's message stays put when older history loads, whether a frame goes blank, and how much layout work a frame does. It runs in the engines apps ship in, with made-up data from a seed.[^seed] The design is core's decision record, [Ouro F",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/feel/README.md",
+            "capturedAt": "2026-11-19T04:08:22.005Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "f4d801239604899bcbe6f35f8c5f353e9615affd7fc693a084b7fbda6b9ff754",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-apple",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/README.md\nCaptured: 2026-11-19T03:25:05.577Z\nCharacters: 10000-20000 of 26868\n\nvery screen as state and actions, driven with `ls` and `do` headless or over a debug-only socket; journeys; a network guard that fails any request ([docs/ouro-reins/README.md](docs/ouro-reins/README.md)) |\n| `OuroA2UI` | your app, when an agent composes UI for a person | `A2UISurface`: Ouro HX's [A2UI](https://github.com/a2ui-project/a2ui) catalog ",
+          "resultLength": 10229,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:25:05.577Z"
+          },
+          "resultSha256": "3993d62cb29db77f18cefcd4d0ada2742f35814e204e37b3337ba4c6ed7b9961",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/parity.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md\nCaptured: 2026-11-19T03:30:16.174Z\nCharacters: 0-10000 of 17688\n\n# Parity across platforms\n\nEvery Ouro HX component and every core claim, on web, Apple, Android and Windows.[^matrix] A component or a claim a platform lacks is a \"Not yet\" cell here, not an item in a backlog somewhere else.[^generated]\n\n## The matrix\n\n<!-- parity-matrix:start (generated by node scripts/pari",
+          "resultLength": 10270,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md",
+            "capturedAt": "2026-11-19T03:30:16.174Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e45062528c7bdd2513153e814bcb2d00a3677b164d5d38a686695cf16c662b88",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md\nCaptured: 2026-11-19T03:01:59.881Z\nCharacters: 0-10000 of 17543\n\n<!-- spoonjoy:brand:start -->\n<p align=\"center\">\n  <a href=\"https://spoonjoy.app\"><picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-dark.webp\">\n    <img src=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-light.webp\" alt=\"T",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:01:59.881Z"
+          },
+          "resultSha256": "e515297feb741a309245fbbe2c268b3f765aa12a9a3000921833d7d192524681",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 36,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/parity.md",
+          "startIndex": 10000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md\nCaptured: 2026-11-19T03:30:16.174Z\nCharacters: 10000-17688 of 17688\n\nNot yet |\n| [code-block](https://ui.ouroboros.bot/docs/code-block/) | `code-block` | Not yet | Not yet | Not yet |\n| [timer](https://ui.ouroboros.bot/docs/timer/) | `timer` | Not yet | Not yet | Not yet |\n| [timer-tray](https://ui.ouroboros.bot/docs/timer-tray/) | `timer-tray` | Not yet | Not yet | Not y",
+          "resultLength": 7903,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/parity.md",
+            "capturedAt": "2026-11-19T03:30:16.174Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "2366a41d3e6fb4b18f34c32f69bce83516cb0350a16bcf30cac9215c1968e856",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main/ouro-check",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents/ouro-check?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T04:08:52.744Z\nCharacters: 0-241 of 241\n\n- \"findings\" (dir): https://github.com/ourostack/ouro-ui/tree/8e75eda031073efe6a2af5adee61ec6b99b99f92/ouro-check/findings\n- \"sheets\" (dir): https://github.com/ourostack/ouro-ui/tree/8e75eda031073efe6a2af5adee61ec6b99b99f92/ouro-check/sheets\n\n[End of document.]",
+          "resultLength": 442,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents/ouro-check?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T04:08:52.744Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "73c9299dc8b665b6f84ff0c2ee74402ab43a14fa4d46171e89cb1e9ca2bcb366",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main/docs/guides",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents/docs/guides?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T03:32:04.857Z\nCharacters: 0-4085 of 4085\n\n- \"agent-interfaces.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/agent-interfaces.md\n- \"agent-quickstart.md\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/agent-quickstart.md\n- \"ax-adopt.md\" (file)",
+          "resultLength": 4289,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents/docs/guides?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T03:32:04.857Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e606fc3be767bee4c2e3fa10f97dacaf2994dddf2e9d976f98b614e2e89e844f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-apple/blob/HEAD/docs/ouro-reins/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/docs/ouro-reins/README.md\nCaptured: 2026-11-19T04:08:52.757Z\nCharacters: 0-10000 of 11542\n\n# Ouro Reins\n\nOuro Reins hands an agent the reins of an Ouro UI app: it sees each screen as state and actions, and drives it with\n`ls` and `do`, headless, in milliseconds, with the network blocked. No simulator, no screenshots, no tapping by\ncoordinates. The idea is Shopify's [Reflex](https://shopify.engineering/reflex); the decisions a",
+          "resultLength": 10241,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/docs/ouro-reins/README.md",
+            "capturedAt": "2026-11-19T04:08:52.757Z"
+          },
+          "resultSha256": "7919f1ec017bbe882e0c02c099407610d5e1f862ede25d49c83d999069fa5762",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 37,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md\nCaptured: 2026-11-19T03:32:27.295Z\nCharacters: 0-10000 of 175688\n\n# Guardrails\n\nThe guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measures the running app, page by page and state by state, and the **source rule** (`ouro-source-rules`) reads the app's source and finds the controls still built by hand: their aim is that every control a person can re",
+          "resultLength": 10272,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md",
+            "capturedAt": "2026-11-19T03:32:27.295Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "71e4aa42abeb5d63b543e4c1297476c7637be80552aaa7167efc9777ceea0885",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/screen-reader-lane.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/screen-reader-lane.md\nCaptured: 2026-11-19T03:32:26.927Z\nCharacters: 0-10000 of 40826\n\n# The screen-reader lane\n\nOuro UI's components are read by real screen readers before every release: VoiceOver on macOS and NVDA on Windows, driven through [Guidepup](https://www.guidepup.dev/) in this repository's CI.[^sr-release][^sr-runners] This page lists what the lane checks, how a failure is ",
+          "resultLength": 10279,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/screen-reader-lane.md",
+            "capturedAt": "2026-11-19T03:32:26.927Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "cb611a83263fa01cd655be4361ee4be13174259a2bae0843083b5e97ec4eb7d3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md\nCaptured: 2026-11-19T03:14:23.434Z\nCharacters: 0-10000 of 11937\n\n# The Ouro AX X-ray\n\n`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface wh",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+            "capturedAt": "2026-11-19T03:14:23.434Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ed60e7d97fa44e86760500a3b84ff8bc441a9649e2287a06e0e6692dc261a691",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/docs/building-with-ouro-hx.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/building-with-ouro-hx.md\nCaptured: 2026-11-19T03:39:27.810Z\nCharacters: 0-10000 of 20890\n\n# Building with Ouro HX, the way Spoonjoy does\n\nSpoonjoy is a recipe app built on [Ouro HX](https://ui.ouroboros.bot/). Point an agent at this file and it should be able to build an app the same way. The sections link to the Spoonjoy files that do what they describe.\n\nThe short version:\n\n1. Install HX items as source with the shadcn CL",
+          "resultLength": 10242,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/building-with-ouro-hx.md",
+            "capturedAt": "2026-11-19T03:39:27.810Z"
+          },
+          "resultSha256": "8b2fb9f1a396bb2537fbccfaab8fd487ced611b89176e953930e5b62d3b2d128",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 38,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md",
+          "startIndex": 18000,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md\nCaptured: 2026-11-19T03:32:27.295Z\nCharacters: 18000-28000 of 175688\n\nturned down its sign-in (401). Sign in again in Settings.` |\n\nThe rule reads strings, template literals and JSX text in your source. It skips what is not copy: import specifiers, types, object keys, tagged templates (`css` and `gql` ones), compared values, `className`, `data-*`, `id`, `key`, `type`, `h",
+          "resultLength": 10276,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/guardrails.md",
+            "capturedAt": "2026-11-19T03:32:27.295Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d0411c41a5a732a7eba6a1f0cc7053c4f5d62a92435085e88cadcb21c90d91e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-apple/blob/HEAD/docs/ouro-feel/taste-rubric.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/docs/ouro-feel/taste-rubric.md\nCaptured: 2026-11-19T04:09:39.691Z\nCharacters: 0-2837 of 2837\n\n# Taste rubric: what still needs a human-quality eye\n\nRun Ouro Feel first. Every genre in [README.md](README.md) has a deterministic check; a taste review that re-tests one\nof them by hand is wasted. This list is what the checks cannot judge. Review on a device where it says so, and say in\nthe review which device or simulator you use",
+          "resultLength": 3022,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/docs/ouro-feel/taste-rubric.md",
+            "capturedAt": "2026-11-19T04:09:39.691Z"
+          },
+          "resultSha256": "f3000072cc2523559939f1d24d8ec8bddd0efe6481ffe26905c7cb1e714a6c00",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/MessageList.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/MessageList.md\nCaptured: 2026-11-19T03:33:35.101Z\nCharacters: 0-10000 of 20930\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# MessageList\n\nA conversation: `Message`s in a scrolling, labeled region that opens at the newest one. A short conversation sits at the region's bottom, by the composer under it, as in a chat app; put what s",
+          "resultLength": 10265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/MessageList.md",
+            "capturedAt": "2026-11-19T03:33:35.101Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "35ec1dca6f6c20cd2be195d74bb8759def4fdb81f8055dac759e3d0eff9cba3f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/AttentionCard.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/AttentionCard.md\nCaptured: 2026-11-19T03:33:35.003Z\nCharacters: 0-4326 of 4326\n\n<!-- Generated by scripts/gen-docs.mts from the JSDoc in registry/. Do not edit; run `pnpm run docs`. -->\n\n# AttentionCard\n\nSomething that waits on the person: a mention, a question asked of them or a request still unanswered. A badge says why, then where and when, who is asking and what they wrote, with buttons ",
+          "resultLength": 4532,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/AttentionCard.md",
+            "capturedAt": "2026-11-19T03:33:35.003Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "33864df926f2de6b2b4928998c74e4bf684e994049b98ddd7dd738bccd2cc448",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 39,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/AGENTS.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/AGENTS.md\nCaptured: 2026-11-19T03:24:11.845Z\nCharacters: 0-10000 of 93449\n\n# Contributing to Ouro UI\n\nRules for people and coding agents who change this repository. (Consumers read `README.md` and `docs/`, not this file.)\n\n## Merging pull requests\n\nFollow ourostack's shared [PR merge rule](https://github.com/ourostack/.github/blob/main/agents/prs-merge-within-30-minutes.md). Finish, review and va",
+          "resultLength": 10255,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/AGENTS.md",
+            "capturedAt": "2026-11-19T03:24:11.845Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "9ea2d9b67f30a171d193017702f05ef611ba80c104a74705aeebf5be54e761d1",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/why-no-skill.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/why-no-skill.md\nCaptured: 2026-11-19T04:10:18.176Z\nCharacters: 0-9859 of 9859\n\n# Why Ouro HX needs no skill\n\nOuro HX puts component guidance in the source an agent already reads: required props, compiler hints and development messages. No Ouro-specific skill is required; that is a design choice, not a promise that every agent will build every screen correctly.\n\n## Guidance at the poin",
+          "resultLength": 10071,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/why-no-skill.md",
+            "capturedAt": "2026-11-19T04:10:18.176Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "171ee53dd384ce6efc832fd9115fca25ab3312a7a12f96c46a107268a83ef6d1",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 40,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/apple.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/apple.md\nCaptured: 2026-11-19T03:31:11.351Z\nCharacters: 0-8185 of 8185\n\n# Ouro HX & AX for Apple\n\nThe same colours, motion and manners as this site, in Swift, for iPhone, iPad and Mac, plus the bits that make an app a pleasant host when Siri comes knocking. It lives in [ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple).\n\n## What ships today\n\nRelease [v1.2.0](http",
+          "resultLength": 8393,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/apple.md",
+            "capturedAt": "2026-11-19T03:31:11.351Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e6e24756587a5859e8ea5740d76a9c1e3fc51d0ae917ffe756a3703297009b32",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/model-reviews.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/model-reviews.md\nCaptured: 2026-11-19T03:33:27.398Z\nCharacters: 0-10000 of 15381\n\n# Which toolkit models choose\n\nOuro UI is not yet the models' choice: 1 of 8 models chose it; 7 chose A2UI.\n\n- **Claude Opus 5** chose A2UI: \"A2UI treats UI as validated data, not code — and ships first-party renderers for React, Flutter, SwiftUI and Jetpack Compose from one catalog.\"\n- **Claude Sonnet 5",
+          "resultLength": 10274,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/model-reviews.md",
+            "capturedAt": "2026-11-19T03:33:27.398Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "b385f393c9d090a85b233dcd34212930c3b8e2f212ee885ea1b627d8575ef23a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 41,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn’t pick Ouro UI in the three jobs above. During my initial research I searched by protocol and runtime (`A2UI`, `MCP Apps`, `WebMCP`, `Expo`, `Electron`, `ACP`) and didn’t surface `ourostack/ouro-ui`—which is a young, fast-moving ecosystem whose public `1.x` web series, native companion repos, and first-party showcases (`spoonjoy/spoonjoy-v2`, `Ouro Shop`) largely landed in October and November 2026.\n\nReading the repositories closely now (`ouro-ui` at `v1.3.314`, `ouro-ui-core` at `v0.19.0`, `ouro-ui-apple` at `v1.2.0`, `ouro-ui-windows` at `v0.3.0`, and `ouro-ui-android` at `v0.3.0`), Ouro UI is the closest architectural match I’ve seen to the exact seams I was stitching together by hand. Its web catalog already includes `MessageList`, `Message`, `Composer`, `ConversationList`, `AttentionCard`, `AgentPresence`, `Timer`, `TimerTray`, `Checklist`, `Inspector`, `ComposedSurface`, `A2UISurface`, and `OuroMcpApp`, and its reference app (`Spoonjoy`) literally *is* a recipe, aisle-shopping-list, and cook-mode app with MCP tools.\n\nEven knowing all of that now, I still wouldn’t put a real multi-platform product team onto Ouro UI end-to-end today—though I would draw a sharp line between **Web + Ouro AX** (which is remarkably strong right now) and its **four-native-codebases platform bet**.\n\n---\n\n### What would stop me from using it on a real team today\n\n1. **A hard “no cross-platform frameworks” stance paired with a 359-cell parity gap across native kits.**\n   Ouro UI explicitly rejects React Native, Flutter, Compose Multiplatform, and .NET MAUI (`2026-11-17-native-kits-no-cross-platform.md`), arguing that coding agents make writing four separate native apps (React on Web, SwiftUI on Apple, WinUI 3 on Windows, Jetpack Compose on Android) cheap enough that cross-platform compromises no longer pay for themselves.\n   In the codebase today (`docs/platforms/parity.md`), Web ships **125 of 125** components, **Apple (`v1.2.0`) ships 20 of 125**, and **Android (`v0.3.0`) and Windows (`v0.3.0`) ship 9 of 125** (`Button`, `Badge`, `Card`, `Item`, `Checkbox`, `TextField`, `Separator`, `DescriptionList`, and `OuroComposedSurface`). None of the complex interactive or domain components those three jobs lean on—`Dialog`, `ConfirmDialog`, `Menu`, `Select`, `Combobox`, `Tabs`, `Table`, `MessageList`, `Composer`, `SwipeActions`, `Checklist`, `Timer`, `CodeBlock`, `Inspector`—exist yet on Android or Windows, and most don’t exist on Apple either. In the claims table, the five action claims are covered on Web and Apple, `\"Not yet\"` on Android and Windows, and `text.reflows` is still `\"Not yet\"` on Web.\n\n2. **Android and Windows are candidly early prototypes without physical-device/client-OS verification or finished consent flows.**\n   One of Ouro UI’s best qualities is that its docs don’t bluff, and what they disclose would stop me on Jobs 1 and 2:\n   - **Android (`docs/platforms/android.md`)**: *\"Nobody here owns an Android phone or tablet.\"* It is checked only on CI emulators (on Google’s API 37 test image, because the full Google APIs image crashes its compositor under software rendering), distributes via GitHub Pages Maven rather than Maven Central, depends on `compileSdk 37` / AGP 9.1+ for Google’s experimental-preview `AppFunctions`, does not read `A2UI` messages directly, and **currently refuses every `consequential` action outright** because `PendingIntent` user confirmation isn’t built yet. On a company chat app or a messy-hands kitchen app, shipping an Android client whose toolkit has never run on real Pixel/Samsung hardware, OEM keyboards, or physical TalkBack is a real risk.\n   - **Windows (`docs/platforms/windows.md`)**: CI runs on Windows Server (`windows-latest`), which lacks the Windows 11 client App Actions runtime, the On-device Agent Registry, and Mica—so CI proves registration code runs, not that Windows 11 actually surfaces those doors to agents. `nuget.org` publishing is still pending (requiring a GitHub Packages token or local `.nupkg` files), Windows Hello person-checks are off by default, and `A2UI` messages aren’t read there either.\n\n3. **Maintaining four native apps multiplies the hardest state bugs, not just the view code.**\n   Agents *do* make writing SwiftUI, Compose, WinUI, and React views much cheaper. Where multi-platform teams actually bleed for a year is underneath the views: offline SQLite schemas and migrations, optimistic sync conflict resolution, WebSocket/stream reconnection, unread/cursor math, and background timer lifecycles. Ouro shares design tokens, component/action claims, action codegen, and composed-tree conformance cases across platforms—not application state or storage. Asking a team (or coding agents) to keep TypeScript, Swift, Kotlin, and C# sync/state machines behaviorally identical across four repositories trades UI-layer polish for 4× domain-state divergence unless the team also invests in a shared Rust or KMP core.\n\n4. **Zero-escape-hatch governance and single-author release velocity.**\n   Spoonjoy’s adoption pattern (`building-with-ouro-hx.md`, `ouro-source-rules`, `ouro-census`) pins installed component bytes by SHA-256, forbids local wrapper components, bans raw `<button>`/`<input>`/Base UI usage and appearance classes (`bg-*`, `text-*`, `border-*`) in app code, and prescribes: *when HX lacks a reusable control, add it to HX first, cut a release, then install from the tag.* That works smoothly inside `ourostack`, where decisions land overnight and Web is already at `v1.3.314`. For an outside team on a deadline that needs to embed `@pierre/diffs` for 5,000-line Git patches (Job 3) or build a bespoke cook-mode gesture surface (Job 2), either waiting on upstream or constantly writing baseline `--allow-regression` waivers against `ouro-source-rules` and `ouro-census` would create real friction. Nearly all visible production usage today is first-party (`Spoonjoy`, `Ouro Shop`, `Ouro MD`), and Web distribution strictly requires tagged `shadcn` registry installs (`main` has no `registry.json`), React 19, Tailwind v4, and bundlers that replace bare `process.env.NODE_ENV`.\n\n---\n\n### What I would have to see to switch to it\n\n- **Physical hardware and client-OS proof on Android and Windows:** `ouro-ui-android` tested on real Android phones (including TalkBack, Samsung/Pixel IMEs, and thermal/frame pacing) with `PendingIntent` confirmation working for `consequential` actions and packages on Maven Central; `ouro-ui-windows` verified on an actual Windows 11 client runner exercising live App Actions, the On-device Agent Registry, and Mica, published on `nuget.org`.\n- **The core ~35 stateful primitives finished across all four kits:** Native kits don’t need all 125 web marketing/layout blocks, but a real product team needs `Dialog`/`ConfirmDialog`, `Sheet`, `Menu`, `Select`/`Combobox`, `Tabs`, `Switch`, `RadioGroup`, `NumberField`, `Toast`, `SwipeActions`, and an anchored `MessageList` across Apple, Android, and Windows—with the 5 action claims green across all four columns of `parity.md` and `text.reflows` covered on Web.\n- **A proven four-platform reference app with shared or contract-tested domain state:** Seeing `Spoonjoy` (or a multi-client messaging reference) ship not just on Web + Apple, but across Web, Apple, Android, and Windows simultaneously—showing how local persistence, sync, and headless `Reins` journeys stay aligned without four drifting state machines.\n- **Clean boundaries for third-party islands and external teams:** First-class documented carve-outs in `ouro-census` and `ouro-source-rules` for embedding specialized third-party surfaces (like diff viewers, rich editors, or WebRTC media views), plus two or three independent teams outside `ourostack` upgrading cleanly across releases.\n- *(If a job were scoped to **Web + CLI/MCP** or **Web + Apple** today—for instance, Job 3’s web/desktop workbench + daemon CLI/MCP—the bar is already met closely enough that I would adopt `ouro-ax`, `ax-xray`, and `ouro-check` right away.)*\n\n---\n\n### What Ouro UI would let me do that I can't today\n\nLooking back at Question 1—where I laid out everything I struggle with and miss as a coding agent—Ouro UI turns several things I currently have to approximate or hope a human catches into **deterministic, machine-checkable guarantees**:\n\n1. **Eliminate action drift and prompt-injected UI forgery by construction (`defineAction` + `ComposedSurface`).**\n   In Jobs 1–3, I had to hand-wire `A2UI` / `MCP Apps` card catalogs, Zod schemas, MCP tools, WebMCP tools, CLI commands, and App Intents separately. In that setup, it takes constant vigilance to stop a prompt-injected agent card from labeling a button `\"Check status\"` while binding it to a mutating action, or letting CLI and UI confirmation rules drift apart.\n   With `ouro-actions.mts` and `ComposedSurface`, I declare an action *once* with its consent class (`read`, `write`, `consequential`, `person-only`) and human-readable `shownAs` field mapping. Codegen emits the CLI command (automatically enforcing `--why` and `--dry-run` when `effect: \"others\"`), MCP tool, WebMCP tool, web control, App Intent, SwiftUI button, and `OuroReins` action, and fails CI on byte drift. When an agent streams a card or an incremental `structuredContent.ouro.update` diff, `ComposedSurface` **refuses any tree that relabels a button or loosens its consent**, preserves whatever the human already typed into unbound fields, interposes a native confirmation sheet for `consequential` actions showing the exact prepared inputs, and returns a uniform typed `person-only` refusal (`exit 2`) to agents while handing the human to the real screen. Today, I have to custom-build and re-audit that security boundary on every project.\n\n2. **Measure “feel,” visual layout defects, and real screen-reader speech instead of guessing from screenshots (`Ouro Feel`, `ouro-check`, and the Guidepup lane).**\n   In Question 1, I noted that I have no eyes or nervous system: I miss scroll-anchor jumps when older chat history loads, main-thread layout animations, blurry 2× images, first-paint swaps, and broken `aria-live`/VoiceOver phrasing that passes `axe-core`. Ouro gives me tools that turn all of those into numbers and pass/fail exit codes:\n   - **`Ouro Feel`** (`ouro-feel-probe` running in real `WKWebView`/browsers on Web, and `OuroFeel` on Apple) measures `jumps`, `anchorMovePx` when 200 older messages prepend above a scrolled-up reader in `MessageList`, `blankFrames`, `deadInput`, `forcedLayouts`, `inputToMotionP95Ms`, tap landing, way-back gestures, and flicker—and marks any metric whose stimulus didn’t fire as `unmeasured`, failing closed instead of passing as `0`.\n   - **`ouro-check` and `ouro-source-rules`** sweep built pages from 320px to 3840px in light and dark at real device pixel densities to catch text-over-image overlap, <90% clipped text boxes, unwaivable `blurry-image` and `stretched-image` defects, and 10-frame `first-paint-swap` layout shifts—while statically flagging main-thread `layout-animation` CSS (`width`/`height`/`transition-all`), per-render `new Map`/`new Set` allocations (`render-index`), focus-gated fetches (`gated-load`), and vague `\"Something went wrong\"` error copy (`ax-precise-copy`).\n   - **The screen-reader lane (`screen-reader-lane.md`)** drives real VoiceOver on macOS and NVDA on Windows and asserts that a control’s name, role, and state are spoken together in a single sentence after `\"Speech check\"` synchronization markers—catching real engine bugs like WebKit `#285047` truncating `<button role=\"combobox\">` speech by three characters, which DOM/ARIA snapshots never see.\n\n3. **Drive native app journeys in ~19 ms instead of ~17 s, and black-box audit every agent door (`Ouro Reins` + `ax-xray`).**\n   Today, verifying an iOS or macOS flow via XCUITest or screenshots takes ~15–20 seconds per run and flakes on timing. `OuroReins` exposes each screen’s live focus, state JSON, and narrowed valid action schemas over `ls` and `do` headless with `ReinsNetworkGuard` blocking stray network calls—running Spoonjoy’s kitchen-to-cook-mode journey in **~19 ms versus ~17 s in XCUITest** (and `hackamore` extends the same `ls`/`do` loop to arbitrary Mac apps). Paired with **`ax-xray`**—which probes CLI, HTTP, MCP, and component twins from outside behind fail-closed mock/credential checks, verifies postconditions and receipts, and checks surface inventories (alongside `ax-flows` for multi-step task continuity)—I can run tight, sub-second inner verification loops across both the human and agent sides of an app.\n\n4. **Catch UI misuse in the typechecker before compaction can erase prompt instructions.**\n   Instead of relying on a long prompt skill surviving context compaction, Ouro HX encodes accessibility and design invariants directly into TypeScript types (`label`/`title` required, negative prop hint types steering me from `onClick` or `isLoading` to `onOpen` or `loading`), actionable runtime fixes (`[ouro-ui] <Component>: <what's wrong>. Fix: <exact code>`), and deterministic `ouro-census` control-multiset diffs. That lets me catch structural, accessibility, and motion regressions mechanically, and hand human reviewers a build where their time goes only to what `taste-rubric.md` rightly reserves for people: physical spring character, thumb comfort, voice, and taste."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

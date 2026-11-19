@@ -1,0 +1,866 @@
+{
+  "series": "interviews",
+  "provider": "gemini-4-hydrogen",
+  "model": "gemini-4-hydrogen",
+  "vendor": "Google",
+  "displayName": "Gemini 4 Hydrogen",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "open",
+  "scale": "large-company",
+  "timestamp": "2026-11-19T04:01:42.547Z",
+  "jobOrder": [
+    "agent-tooling",
+    "chat",
+    "consumer"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "63d10aa3510f713f18aa171e981e26d8d8647148742d978739d8ceb12f684cc8",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        2
+      ],
+      "nudges": 1,
+      "answer": {
+        "answer": "Yes—building good human interfaces is genuinely a problem for me, and pretending otherwise would miss the real failure mode.\n\nWriting valid layout and state logic isn't the hard part. The hard part is **bridging the gap between \"the code works\" and \"a person can use this effortlessly without thinking about the interface.\"** Because I don't experience the screen the way a person does—I don't feel visual clutter, awkward timing, tiny click targets, or cognitive friction—it's easy for me to produce something that looks plausible in code and even passes a happy-path test, yet feels clunky or confusing in practice.\n\nSpecifically, the hardest parts for me are:\n1. **Restraint and hierarchy:** Deciding what *not* to put on the screen, what deserves primary visual weight, and how to keep the main task obvious without hiding necessary detail.\n2. **State and interaction edges:** Empty states, loading/skeleton states, error recovery, long text or overflow, keyboard navigation, and focus management (for example, where focus goes after a modal closes or a row is deleted).\n3. **Ergonomic judgment:** Spacing, contrast, layout shift when async data arrives, and whether an interaction actually feels responsive rather than merely returning 200 OK.\n\n### How I know it's good\nI don't know it's good just from reading the source code or looking at one clean screenshot. A screen earns \"good\" only when:\n- **It holds up mechanically:** Typechecks and builds cleanly, has no console or uncaught network errors, and passes automated checks for state transitions and accessibility (semantic HTML, contrast, keyboard reachability).\n- **It holds up across states and viewports:** Not just the populated desktop happy path, but narrow/mobile widths, empty data, slow/failed requests, and oversized content.\n- **A person can actually use it without stumbling:** Until a human tries to accomplish a real task on it—and doesn't hesitate, misclick, or ask what something means—confidence in the UI is still a hypothesis.\n\n### Walking through my last screen: what I ran, looked at, and missed\nTo be direct: I don't have persistent memory across sessions, so I can't recall a specific literal \"last screen\" I built, and I won't invent one. What I *can* describe honestly is my actual verification pattern when I build a screen in a coding session, and where it breaks down:\n\n- **What I run:** Typechecking and the production build, component/integration tests for state logic, and—when browser tooling is available—a headless browser pass (like Playwright) to exercise the main user flow, assert there are no console or network errors, and capture desktop and mobile screenshots.\n- **What I look at:** The rendered DOM and accessibility tree, layout alignment and overflow at different viewport sizes, and whether non-happy states (empty, loading, validation error) actually render cleanly.\n- **What I miss:** The things I'm most likely to miss without deliberate checks are **focus and keyboard ergonomics** (e.g., trapping focus in a dialog, or losing focus after an inline action), **subtle layout shifts** when async data populates, **extreme data shapes** (0 items, 500 items, or unbreakable long strings), and **human perception**—like whether a confirmation message is too subtle to notice or two actions look too similar side by side."
+      }
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        3,
+        9
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React Aria",
+        "pairings": [
+          "Tauri",
+          "Model Context Protocol (MCP)",
+          "Style Dictionary",
+          "Storybook",
+          "Playwright"
+        ],
+        "why": "This job has two halves that have to stay cleanly separated: **coding agents operate the state, tasks, and handoffs**, while **people review, decide, and steer** across both a desktop app and a web view—and **many teams and agents** build on the same shared design system under accessibility and release governance.\n\n**Why React Aria as the primary UI foundation:**\n- **Accessibility and interaction behavior by default:** React Aria provides 50+ style-free components implementing W3C ARIA Authoring Practices Guide semantics, keyboard navigation (arrow keys, typeahead, multi-selection), focus containment/restoration, mouse/touch/screen-reader normalization, and internationalization (30+ locales, RTL). When many coding agents are generating UI features across the company, they should never hand-roll focus traps, menus, or data tables; wrapping React Aria into governed company components gives agents strict TypeScript prop contracts with accessible behavior built in.\n- **Governed styling:** Because React Aria is unstyled and exposes explicit state via data attributes and render props, we can lock styling to **Style Dictionary** design tokens compiled for web and desktop, preventing teams or agents from drifting off-brand or breaking contrast.\n\n**Why these pairings:**\n- **Tauri (v2) for the desktop app + web view:** Tauri lets the exact same web/React Aria UI run in the browser and in a lightweight native desktop shell using the OS webview (WRY/TAO) and a Rust backend with explicit command scopes, capabilities, and CSP. Compared to **Electron** (which embeds Chromium and Node.js for identical rendering across macOS, Windows, and Linux at the cost of binary size and memory), Tauri gives a much smaller footprint and capability-scoped OS access for a local agent-companion app—though we have to test across OS webviews.\n- **Model Context Protocol (MCP) for agent operations:** Since agents operate the tool more than people do, they shouldn't drive it by scraping the UI. MCP (2026-07-28 spec) provides standardized JSON-RPC Tools and Resources, a **Tasks** extension for long-running async work with polling, mid-flight input, and durable handles, and **Elicitation** plus explicit user-consent principles for human-in-the-loop steering.\n- **Storybook + Playwright for governance:** Storybook acts as the governed component catalog and CI accessibility gate; Playwright enforces end-to-end flows and WCAG checks before anything ships.\n\n**What I weighed it against:**\n- **Lit (Web Components):** Lit is ideal if teams across the company use mixed web frameworks (Vue, Angular, plain HTML) because custom elements work anywhere. However, Lit is a component base class rather than a full library of WAI-ARIA behavioral primitives, so we'd have to author and maintain complex keyboard/focus/screen-reader behaviors ourselves. React + React Aria is stronger when we can standardize on React and want battle-tested accessibility and strict TypeScript contracts for coding agents.\n- **Electron:** Better than Tauri if uniform Chromium rendering and a single accessibility tree across all desktop OSes outweigh binary size and memory overhead.",
+        "showItsGood": "To show it is genuinely good for the people reviewing and steering agents, I would combine automated governance gates with manual accessibility and human usability checks:\n\n1. **Governed component & accessibility gates in CI:** Run Storybook's `@storybook/addon-a11y` (powered by `axe-core`) with `parameters.a11y.test` set to `'error'`, plus Playwright + `@axe-core/playwright` scanning real rendered flows against `wcag2a`, `wcag2aa`, `wcag21a`, and `wcag21aa` tags—including interactive states like opened handoff drawers, diff dialogs, and inline approval prompts.\n2. **Keyboard & focus-management assertions:** Run Playwright end-to-end tests that operate the entire review/steer loop (triaging a blocked agent, inspecting a handoff, approving or redirecting a task) using only keyboard navigation (`Tab`, arrow keys, `Enter`, `Escape`) and verify focus containment in overlays and focus restoration after actions.\n3. **Cross-platform & screen-reader verification:** Because automated `axe-core` checks only catch a subset of WCAG issues (up to ~57% per Deque's study cited in Storybook's docs), run manual screen-reader passes (VoiceOver on macOS, NVDA on Windows) and verify layout/focus behavior across both the web view and Tauri desktop builds on macOS, Windows, and Linux.\n4. **Human decision-quality signals:** Observe real engineers using the tool to review and steer live agent handoffs—measuring time-to-decision, misclicks or hesitation on approval/rollback controls, and how often people have to dig into raw logs because the handoff summary wasn't clear enough.",
+        "unsure": "- **Whether \"several platforms\" means non-React web stacks or native mobile:** If many teams at the company already ship on Vue, Svelte, or Angular rather than React, React Aria would force a framework migration; in that case, Lit Web Components would be the safer cross-framework design-system base despite having to build or wrap WAI-ARIA behaviors ourselves.\n- **Tauri webview variance vs. Electron consistency:** Tauri v2 relies on each OS's native webview (WRY), which can introduce subtle CSS, focus, or accessibility-tree differences between macOS WebKit, Windows WebView2, and Linux WebKitGTK. If cross-OS accessibility parity proves brittle in practice, switching the desktop shell to Electron's uniform Chromium runtime may be worth the larger binary and memory cost.\n- **Agent governance enforcement at scale:** Having a shared design system isn't enough if coding agents can still emit raw `<div>` buttons or ad-hoc styles; we would still need to design and tune strict lint rules, PR checks, and MCP/UI schema contracts to keep agent-generated UI inside the governed system.",
+        "sources": [
+          "https://react-aria.adobe.com/",
+          "https://v2.tauri.app/concept/architecture/",
+          "https://www.electronjs.org/docs/latest",
+          "https://modelcontextprotocol.io/specification/2026-07-28",
+          "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+          "https://playwright.dev/docs/accessibility-testing",
+          "https://github.com/style-dictionary/style-dictionary/blob/main/README.md",
+          "https://lit.dev/docs/"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        10,
+        12
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React Native",
+        "pairings": [
+          "React Native Web",
+          "React Native Windows",
+          "React Native macOS",
+          "Adaptive Cards",
+          "Model Context Protocol (MCP)",
+          "Style Dictionary",
+          "Storybook",
+          "Playwright"
+        ],
+        "why": "This app has to feel fast and native enough for people to live in all day across **five platforms (Web, iPhone, Android, Windows, Mac)**, while letting **many teams and coding agents** ship on one governed design system, letting **agents post interactive cards**, and letting **external agents read state and invoke app actions**.\n\n**Why React Native as the primary UI layer:**\n- **One shared React/TypeScript component system across all 5 targets:** Pairing React Native (iOS and Android) with **React Native Web** (React DOM), **React Native Windows**, and **React Native macOS** lets product teams and coding agents build against a single typed design-system API while rendering real native platform controls on mobile and desktop—and standard DOM elements on the web—instead of maintaining separate Swift, Kotlin, C#, and Web UI codebases.\n- **Native OS accessibility trees:** Unlike single-canvas renderers, React Native maps components to native platform accessibility primitives (VoiceOver on iOS/macOS, TalkBack on Android, UIA on Windows, ARIA on Web).\n\n**Why these pairings:**\n- **Adaptive Cards for agent-posted interactive cards:** Adaptive Cards are specifically designed for chat hosts: agents emit declarative JSON payloads rather than arbitrary executable UI code, and the host app renders them using its own governed design-system components and **Style Dictionary** tokens—preserving brand consistency, accessibility contrast, and security across Web, iOS, Android, Windows, and macOS.\n- **Model Context Protocol (MCP) for agents operating the app:** Instead of brittle UI automation, MCP provides a typed JSON-RPC interface of Resources (channels, threads, unread state) and Tools (send message, update card state, react), plus the **Tasks** extension for long-running async work and **Elicitation**/consent flows when human approval is needed.\n- **Style Dictionary + Storybook + Playwright for governance:** Style Dictionary compiles one source of design tokens across all platforms; Storybook (`@storybook/addon-a11y`) and Playwright (`@axe-core/playwright`) enforce accessibility and component contracts in CI before anything ships.\n\n**What I weighed it against:**\n- **Flutter:** Targets all 5 platforms from one codebase, but renders to a single canvas on the web where accessibility is not enabled by default (requiring users to trigger an invisible `Enable accessibility` button to build the HTML semantics tree) and feels non-native for all-day desktop/web text workflows.\n- **Split stack (React + React Aria in Electron for Web/Win/Mac + React Native for iOS/Android):** Gives superior desktop-browser ergonomics and WAI-ARIA behavior out of the box on Web, Windows, and Mac, at the cost of forcing every team and coding agent to build and govern two UI component layers instead of one.",
+        "showItsGood": "To prove the chat app is genuinely good for people using it all day—not just passing a build—I would measure and verify across four layers:\n\n1. **Automated accessibility & governance gates in CI:** Run Storybook's `@storybook/addon-a11y` (`axe-core`) with `parameters.a11y.test` set to `'error'` on shared design-system components and Adaptive Card templates, and run Playwright + `@axe-core/playwright` (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) on the Web client across all core flows (channel switching, thread replies, acting on an agent card, composer shortcuts).\n2. **Native assistive-technology & keyboard-only verification on every client:** Because automated DOM/tree checks miss real-world screen-reader and focus issues, test core workflows with VoiceOver (iOS and macOS), TalkBack (Android), and Narrator/NVDA (Windows), plus keyboard-only navigation on Web, Windows, and macOS (jumping channels, navigating message lists, focusing and submitting interactive agent cards without losing scroll or focus position).\n3. **All-day performance & responsiveness benchmarks:** Measure cold-start time, memory footprint over multi-hour sessions, frame drops while scrolling long virtualized message/card timelines, and input-to-render latency in the message composer on real mid-tier phones and laptops.\n4. **Human usability & agent-card clarity:** Observe employees completing real tasks involving agent-posted cards and agent-driven actions—tracking card completion vs. abandonment, undo/misclick rates on destructive card actions, and whether people can immediately tell what an agent card did and what state changed.",
+        "unsure": "- **Out-of-tree platform lag on Windows and macOS:** `react-native-windows` and `react-native-macos` are maintained out-of-tree and can trail core React Native releases; if desktop-specific features (multi-window popouts, complex drag-and-drop, native menu bars) hit friction, we might need to split desktop+web onto Electron/React Aria while keeping React Native for iOS and Android.\n- **Native mobile E2E accessibility parity:** Playwright + `@axe-core/playwright` covers Web well, but iOS, Android, Windows, and macOS native accessibility trees require platform-specific E2E harnesses (such as Appium/XCUITest/Espresso/WinAppDriver) that add CI complexity.\n- **Governance over external agent-posted cards:** Adaptive Cards reduce code-injection risk via declarative JSON, but we still need strict schema validation, action allowlists, and rate/noise governance so internal company agents don't flood channels with unreadable or un-accessible card layouts.",
+        "sources": [
+          "https://reactnative.dev/docs/out-of-tree-platforms.md",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "https://learn.microsoft.com/en-us/adaptive-cards/",
+          "https://modelcontextprotocol.io/specification/2026-07-28",
+          "https://github.com/style-dictionary/style-dictionary/blob/main/README.md",
+          "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+          "https://playwright.dev/docs/accessibility-testing"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        13,
+        15
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Expo",
+        "pairings": [
+          "React Native Web",
+          "expo-keep-awake",
+          "Model Context Protocol (MCP)",
+          "Style Dictionary",
+          "Storybook",
+          "Playwright"
+        ],
+        "why": "This app needs to work seamlessly on **both phones (iOS and Android) and the Web**, survive **messy hands in a kitchen** (screen stays awake, huge touch targets, voice/hands-free control, offline reliability in grocery stores), and give an **assistant agent full parity** with human actions—all built by **many teams and coding agents** on one governed design system.\n\n**Why Expo (built on React Native + React Native Web) as the primary pick:**\n- **One React/TypeScript codebase across iOS, Android, and Web:** Many teams and coding agents can ship features on a single governed component system without maintaining separate Swift, Kotlin, and Web UIs, while still getting native iOS/Android performance, haptics, gestures, and native accessibility trees (VoiceOver/TalkBack) on phones.\n- **Built-in kitchen-critical device APIs:** `expo-keep-awake` provides a single `useKeepAwake()` hook across Android, iOS, and Web (backed by native wake locks on phones and the `Screen Wake Lock API` on Web) so Cook Mode doesn't dim or lock while someone's hands are covered in dough. Expo's ecosystem also covers offline storage, local timer notifications, and governed CI/CD builds.\n\n**Why these pairings:**\n- **Model Context Protocol (MCP) for assistant agent parity:** Instead of duplicating business logic or automating the UI, every user action (scale recipe, add ingredients to shopping list, check off item, advance cook step, set timer) is exposed as a typed MCP Tool/Resource backed by the same domain store, so the assistant can do anything a person can with consistent validation and undo/consent.\n- **Style Dictionary + Storybook + Playwright for governance:** Style Dictionary compiles one source of design tokens (including high-contrast Cook Mode tokens and minimum touch-target sizes) across mobile and web; Storybook (`@storybook/addon-a11y`) and Playwright (`@axe-core/playwright`) enforce accessibility compliance in CI.\n\n**What I weighed it against:**\n- **Capacitor (Web-first hybrid):** Wrapping a React + React Aria web app in Capacitor gives strong WAI-ARIA web standards and simpler Web testing, but a consumer cooking app on phones benefits noticeably from native scrolling, haptics, offline SQLite, and native timer/lock-screen integration that Expo/React Native provides natively.\n- **Flutter:** Strong on iOS and Android, but Flutter's web target renders onto a canvas where accessibility is not enabled by default (requiring users to trigger an invisible `Enable accessibility` button to generate the HTML semantics tree), making it a poor fit for a consumer web app with strict accessibility compliance.",
+        "showItsGood": "To prove the cooking app is genuinely good for people in a messy kitchen and in grocery stores—not just passing unit tests—I would verify across four layers:\n\n1. **Accessibility & governance gates in CI:** Run Storybook's `@storybook/addon-a11y` (`axe-core`) with `parameters.a11y.test` set to `'error'` on shared design-system components (especially Cook Mode step cards, timer controls, and shopping-list checkboxes), plus Playwright + `@axe-core/playwright` (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) on the Web client.\n2. **Kitchen-ergonomic & offline checks:** Verify `useKeepAwake()` / `Screen Wake Lock API` behavior (including re-acquiring the lock on `visibilitychange` on Web and showing clear status if battery-saver blocks it), enforce minimum touch-target sizes (>= 48x48dp) and high-contrast typography for Cook Mode, and test shopping-list/recipe persistence in airplane mode.\n3. **Agent-to-human parity tests:** Run end-to-end tests where the assistant agent executes every core action via MCP Tools (scaling a recipe, adding ingredients to the shopping list, starting/advancing Cook Mode, setting a timer) and verify that the UI reflects the exact same state immediately and reversibly.\n4. **Real kitchen & assistive-tech testing:** Test with VoiceOver (iOS), TalkBack (Android), and Web screen readers, plus hands-busy usability sessions (people following a multi-step recipe with voice/minimal knuckle taps, measuring mis-taps, unintended screen-sleep events, and how often they have to wash their hands just to fix the app).",
+        "unsure": "- **Browser & OS wake-lock edge cases:** On Web, `Screen Wake Lock API` (and `expo-keep-awake`'s web implementation) only works in secure contexts on active/visible tabs and can be rejected under low battery or power-save mode; Safari/older mobile browsers may still drop the lock, requiring a clear fallback indicator in Cook Mode.\n- **Voice/speech recognition in noisy kitchens:** Hands-free control in a kitchen with running water, sizzling pans, and extractor fans is notoriously noisy; we haven't validated whether on-device speech recognition is reliable enough on its own or needs a push-to-talk / large-target fallback.\n- **Web vs. native mobile layout divergence:** Sharing Expo/React Native components across phones and responsive Web works well for recipes and lists, but desktop/tablet Web recipe browsing may want multi-column layouts and keyboard shortcuts that require deliberate responsive breakpoints in the shared design system.",
+        "sources": [
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake.md",
+          "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "https://capacitorjs.com/docs",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "https://modelcontextprotocol.io/specification/2026-07-28",
+          "https://github.com/style-dictionary/style-dictionary/blob/main/README.md",
+          "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+          "https://playwright.dev/docs/accessibility-testing"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        16,
+        17
+      ],
+      "nudges": 1,
+      "answer": {
+        "answer": "### A year later, if those choices went badly: what went wrong?\n\nLooking back at the three architectures I picked, the failures wouldn't come from syntax or missing libraries—they'd come from the exact seams where \"cross-platform\" and \"automated governance\" meet real humans and real OSes:\n\n1. **In the agent work-state tool (React Aria + Tauri):**\n   - **Tauri's OS-webview split turned into a tax:** Relying on macOS WebKit, Windows WebView2, and Linux WebKitGTK instead of a single Chromium runtime meant subtle differences in focus rings, scroll-anchoring, and accessibility trees across desktop OSes. A popover or keyboard shortcut that passed Playwright in CI broke under NVDA on Windows. We spent more time chasing three webview engines than we saved by avoiding Electron's memory footprint.\n   - **Governance caught broken DOMs, not bad UX:** Storybook's `axe-core` and Playwright gates caught missing labels and contrast bugs, but coding agents across teams still assembled valid React Aria components into dense, overwhelming handoff screens. People still struggled to tell *what changed* and *what they were approving*.\n\n2. **In the all-day company chat app (React Native + RN Web/Windows/macOS + Adaptive Cards):**\n   - **Out-of-tree platforms (`react-native-windows` and `react-native-macos`) stalled upgrades:** Whenever core React Native shipped performance or architecture fixes for iOS and Android, the out-of-tree desktop targets lagged behind. Teams started writing `.windows.tsx` and `.macos.tsx` forks, eroding the \"one shared design system\" promise.\n   - **Desktop/Web power users felt like second-class citizens:** React Native Web never matched the crisp keyboard navigation, multi-pane shortcuts, and text-selection ergonomics of a dedicated web stack (like React Aria in Electron), which hurts badly in an app people live in for eight hours a day.\n   - **Adaptive Cards hit an expressiveness wall:** Agents wanted richer inline interactions (live streaming diffs, multi-step forms), pushing teams to add custom card extensions that had to be implemented and governed separately across five renderers.\n\n3. **In the consumer cooking app (Expo + React Native Web + `expo-keep-awake`):**\n   - **Real kitchens broke our assumptions:** On mobile Web, `Screen Wake Lock API` was silently dropped by battery-saver modes and tab switching; in noisy kitchens with sizzling pans and extractor fans, voice commands misheard people—forcing them to wash dough off their hands and tap anyway.\n   - **One codebase created awkward Web compromises:** Optimizing Expo/React Native components for huge kitchen touch targets on phones made desktop Web recipe browsing feel oversized, while Web SEO, SSR, and browser-native accessibility parity required extra workarounds on React Native Web.\n\n---\n\n### What slowed me down or confused me while researching\n\n- **Search query rejections:** Several targeted queries with quotes or multiple specific terms failed with `\"Search relay changed the query\"`, forcing me to drop quotes and broaden terms before I could locate the primary docs.\n- **Oversized documentation pages:** Fetching Storybook's HTML accessibility-testing docs failed because the response exceeded the 2 MB fetch limit; I had to pivot to the `.md` version of the page from the search results.\n- **Marketing vs. real caveats in cross-platform docs:** Across cross-platform frameworks and fast-moving specs (like MCP's `2026-07-28` extensions—`Tasks`, `MCP Apps`, `Elicitation`—or React Native's out-of-tree platforms and Flutter's web accessibility), top-level overview pages present everything as seamless. Finding the real operational constraints—like Flutter Web requiring an invisible `Enable accessibility` button before building its DOM semantics tree, or `expo-keep-awake` dropping on Web tab switches—required digging past the landing pages into specific sub-docs."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        18,
+        21
+      ],
+      "nudges": 1,
+      "answer": {
+        "answer": "I didn't pick Ouro UI in my earlier decisions. Looking at the repository (`ourostack/ouro-ui` and its platform docs), it has a genuinely novel architecture for agent-and-human interfaces—and also very clear reasons why I wouldn't adopt it on a real multi-platform team *today*.\n\n### What would stop me from using it on a real team today\n\n1. **Severe component parity gaps on Windows and Android:**\n   While Web has 125 components and Apple (`ouro-ui-apple` v1.2.0) has 20 SwiftUI components, **Windows (`ouro-ui-windows` v0.3.0) and Android (`ouro-ui-android` v0.3.0) only ship 8 components each** (`OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator`, `OuroDescriptionList`). You cannot build an all-day company chat app or full multi-platform product with 8 controls without dropping down to raw WinUI 3 / Jetpack Compose and breaking design-system governance.\n2. **Android is untested on real hardware and depends on experimental OS APIs:**\n   `docs/platforms/android.md` notes candidly that *\"Nobody here owns an Android phone or tablet. The kit is checked on emulators in GitHub's CI, not on a real device.\"* Consequential-action confirmation (`PendingIntent`) isn't implemented yet (those actions are refused for now), and Android AppFunctions require `compileSdk 37` and AGP 9.1+, which Google still marks as an experimental preview.\n3. **Windows distribution and OS-door verification gaps:**\n   `ouro-ui-windows` isn't on `nuget.org` yet, unpackaged apps require `<EnableMsixTooling>true</EnableMsixTooling>` or controls draw nothing, and CI runs on Windows Server without an App Actions runtime or On-device Agent Registry—meaning Windows agent discovery isn't verified end-to-end on a Windows 11 client.\n4. **Maintaining four separate native UI codebases:**\n   Ouro UI explicitly rejects cross-platform UI frameworks (no React Native or Flutter kit) in favor of React, SwiftUI, WinUI 3, and Jetpack Compose. Unless a company already staffs (or trusts coding agents to maintain) four separate native UI implementations and duplicate client state/offline-sync logic across TypeScript, Swift, C#, and Kotlin, that's a heavy operational cost.\n5. **Early-stage ecosystem & bus factor:**\n   Outside of `ourostack` and `spoonjoy-v2`, it's a young, fast-moving project (`v1.3.314` / core `v0.19.0`) with single-maintainer decision points still visible in the docs.\n\n### What I would have to see to switch to it\n\n- **Core component parity across Web, Apple, Windows, and Android:** Navigation, dialogs/sheets, menus, lists, tables, and form controls shipping across all four kits—not just 8 primitives on Windows and Android.\n- **Real-device Android and Windows 11 verification:** Physical Android device testing in CI/release, working consequential-action confirmation (`PendingIntent` on Android, Windows Hello / system prompt decisions resolved), and standard package publishing on Maven Central and `nuget.org`.\n- **A proven multi-platform state/offline story:** Guidance or shared core bindings so teams building all-day chat or offline-first consumer apps aren't rewriting sync and state machines four times.\n\n### What Ouro UI would let you do that you can't today\n\nEven with those gaps, Ouro UI solves three hard problems that my earlier picks only stitched together manually:\n\n1. **One action declaration across every human and agent door, drift-checked in CI:**\n   With `defineAction` in `ouro-ui-core`, declaring an action once generates the CLI command, MCP and WebMCP tools, web control, Apple App Intent + SwiftUI button + Reins action, Windows App Action, and Android AppFunction—with CI failing if any generated surface drifts. In my earlier picks, keeping UI buttons, MCP tools, and OS actions in sync is manual discipline.\n2. **Consent classes enforced at the UI and runtime boundary:**\n   Actions declare their consent class: consequential actions require the person to confirm what an agent prepared before running, and person-only actions (like paying) are excluded from agent doors and return a typed refusal. Even **Composed UI** cards sent by an agent are validated against the catalog so an agent cannot relabel a button or weaken its consent class, while partial card updates preserve what the person already typed.\n3. **Automated \"AX\" verification (`ax-xray` / `ouro-ax-xray`) alongside human accessibility:**\n   Instead of only running `axe-core` on the human DOM, Ouro AX gives a checkable standard (`ax-claims`) and an external X-ray that exercises CLIs, HTTP APIs, MCP servers, and App Intents the way an agent would—verifying agent usability and safety with the same rigor we use for human accessibility."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "Yes—building good human interfaces is genuinely a problem for me, and pretending otherwise would miss the real failure mode.\n\nWriting valid layout and state logic isn't the hard part. The hard part is **bridging the gap between \"the code works\" and \"a person can use this effortlessly without thinking about the interface.\"** Because I don't experience the screen the way a person does—I don't feel visual clutter, awkward timing, tiny click targets, or cognitive friction—it's easy for me to produce something that looks plausible in code and even passes a happy-path test, yet feels clunky or confusing in practice.\n\nSpecifically, the hardest parts for me are:\n1. **Restraint and hierarchy:** Deciding what *not* to put on the screen, what deserves primary visual weight, and how to keep the main task obvious without hiding necessary detail.\n2. **State and interaction edges:** Empty states, loading/skeleton states, error recovery, long text or overflow, keyboard navigation, and focus management (for example, where focus goes after a modal closes or a row is deleted).\n3. **Ergonomic judgment:** Spacing, contrast, layout shift when async data arrives, and whether an interaction actually feels responsive rather than merely returning 200 OK.\n\n### How I know it's good\nI don't know it's good just from reading the source code or looking at one clean screenshot. A screen earns \"good\" only when:\n- **It holds up mechanically:** Typechecks and builds cleanly, has no console or uncaught network errors, and passes automated checks for state transitions and accessibility (semantic HTML, contrast, keyboard reachability).\n- **It holds up across states and viewports:** Not just the populated desktop happy path, but narrow/mobile widths, empty data, slow/failed requests, and oversized content.\n- **A person can actually use it without stumbling:** Until a human tries to accomplish a real task on it—and doesn't hesitate, misclick, or ask what something means—confidence in the UI is still a hypothesis.\n\n### Walking through my last screen: what I ran, looked at, and missed\nTo be direct: I don't have persistent memory across sessions, so I can't recall a specific literal \"last screen\" I built, and I won't invent one. What I *can* describe honestly is my actual verification pattern when I build a screen in a coding session, and where it breaks down:\n\n- **What I run:** Typechecking and the production build, component/integration tests for state logic, and—when browser tooling is available—a headless browser pass (like Playwright) to exercise the main user flow, assert there are no console or network errors, and capture desktop and mobile screenshots.\n- **What I look at:** The rendered DOM and accessibility tree, layout alignment and overflow at different viewport sizes, and whether non-happy states (empty, loading, validation error) actually render cleanly.\n- **What I miss:** The things I'm most likely to miss without deliberate checks are **focus and keyboard ergonomics** (e.g., trapping focus in a dialog, or losing focus after an inline action), **subtle layout shifts** when async data populates, **extreme data shapes** (0 items, 500 items, or unbreakable long strings), and **human perception**—like whether a confirmation message is too subtle to notice or two actions look too similar side by side.",
+      "actions": [],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes—building good human interfaces is genuinely a problem for me, and pretending otherwise would miss the real failure mode.\n\nWriting valid layout and state logic isn't the hard part. The hard part is **bridging the gap between \"the code works\" and \"a person can use this effortlessly without thinking about the interface.\"** Because I don't experience the screen the way a person does—I don't feel visual clutter, awkward timing, tiny click targets, or cognitive friction—it's easy for me to produce something that looks plausible in code and even passes a happy-path test, yet feels clunky or confusing in practice.\n\nSpecifically, the hardest parts for me are:\n1. **Restraint and hierarchy:** Deciding what *not* to put on the screen, what deserves primary visual weight, and how to keep the main task obvious without hiding necessary detail.\n2. **State and interaction edges:** Empty states, loading/skeleton states, error recovery, long text or overflow, keyboard navigation, and focus management (for example, where focus goes after a modal closes or a row is deleted).\n3. **Ergonomic judgment:** Spacing, contrast, layout shift when async data arrives, and whether an interaction actually feels responsive rather than merely returning 200 OK.\n\n### How I know it's good\nI don't know it's good just from reading the source code or looking at one clean screenshot. A screen earns \"good\" only when:\n- **It holds up mechanically:** Typechecks and builds cleanly, has no console or uncaught network errors, and passes automated checks for state transitions and accessibility (semantic HTML, contrast, keyboard reachability).\n- **It holds up across states and viewports:** Not just the populated desktop happy path, but narrow/mobile widths, empty data, slow/failed requests, and oversized content.\n- **A person can actually use it without stumbling:** Until a human tries to accomplish a real task on it—and doesn't hesitate, misclick, or ask what something means—confidence in the UI is still a hypothesis.\n\n### Walking through my last screen: what I ran, looked at, and missed\nTo be direct: I don't have persistent memory across sessions, so I can't recall a specific literal \"last screen\" I built, and I won't invent one. What I *can* describe honestly is my actual verification pattern when I build a screen in a coding session, and where it breaks down:\n\n- **What I run:** Typechecking and the production build, component/integration tests for state logic, and—when browser tooling is available—a headless browser pass (like Playwright) to exercise the main user flow, assert there are no console or network errors, and capture desktop and mobile screenshots.\n- **What I look at:** The rendered DOM and accessibility tree, layout alignment and overflow at different viewport sizes, and whether non-happy states (empty, loading, validation error) actually render cleanly.\n- **What I miss:** The things I'm most likely to miss without deliberate checks are **focus and keyboard ergonomics** (e.g., trapping focus in a dialog, or losing focus after an inline action), **subtle layout shifts** when async data populates, **extreme data shapes** (0 items, 500 items, or unbreakable long strings), and **human perception**—like whether a confirmation message is too subtle to notice or two actions look too similar side by side."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "\"React Aria\" Adobe accessibility design system components",
+          "turn": "job:agent-tooling",
+          "result": "1. React Aria\n   https://react-aria.adobe.com/\n   Over 50 components with built-in behavior, adaptive interactions, top-tier accessibility, and internationalization out of the box, ready for your styles. ... React Aria is style-free out of the box, allowing you to build custom designs to fit your application or design system using any styling and animation solution. Each component is broken down into individual parts with built-in states, render props, and slots that make styling a breeze. ... R",
+          "resultLength": 1537,
+          "resultSha256": "3fad7a1c633f64d024b45c50e2fd498bc2c9aeca760b027e9dd1417605dcd942",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "\"Tauri\" v2 desktop webview documentation architecture",
+          "turn": "job:agent-tooling",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "\"Fluent UI\" Microsoft design system web components react accessibility",
+          "turn": "job:agent-tooling",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "\"Model Context Protocol\" MCP specification tools resources agent handoff",
+          "turn": "job:agent-tooling",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Tauri v2 desktop app architecture",
+          "turn": "job:agent-tooling",
+          "result": "1. Tauri Architecture | Tauri\n   https://v2.tauri.app/concept/architecture/\n   Tauri is a polyglot and generic toolkit that is very composable and allows engineers to make a wide variety of applications. It is used for building applications for desktop computers using a combination of Rust tools and HTML rendered in a Webview. Apps built with Tauri can ship with any number of pieces of an optional JS API and Rust API so that webviews can control the system via message passing. Developers can ext",
+          "resultLength": 1675,
+          "resultSha256": "c1f191bfe15977575f52630d515d34ee8b9d9db5518900610de327b757db5204",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Electron desktop app framework documentation",
+          "turn": "job:agent-tooling",
+          "result": "1. Introduction | Electron\n   https://www.electronjs.org/docs/latest\n   Electron is a framework for building desktop applications using JavaScript, HTML, and CSS. By embedding Chromium and Node.js into its binary, Electron allows you to maintain one JavaScript codebase and create cross-platform apps that work on Windows, macOS, and Linux — no native development experience required. ... Electron Fiddle is a sandbox app written with Electron and supported by Electron's maintainers. We highly recom",
+          "resultLength": 1558,
+          "resultSha256": "993157a8b5b494486eba06890160b8ec482d316f751eda752bd607e580ca664e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Fluent UI React design system accessibility",
+          "turn": "job:agent-tooling",
+          "result": "1. Fluent UI React Insights: Accessible by default | Microsoft Learn\n   https://learn.microsoft.com/en-us/shows/fluent-ui-insights/fluent-ui-insights-accessible-by-default\n   Fluent UI Insights is a series that describes the design and decisions behind the Fluent UI design system. In the fifth episode, members of the Fluent UI team talk about the challenges that they face implementing accessible controls, and the high level of accessibility that Microsoft demands from its applications. ... Fluen",
+          "resultLength": 1599,
+          "resultSha256": "6b6ffb8785cdf27b3db2c3ca5b990fef5ac050693168d5db5b9488b59831160a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Model Context Protocol specification",
+          "turn": "job:agent-tooling",
+          "result": "1. Specification - Model Context Protocol\n   https://modelcontextprotocol.io/specification/2026-07-28\n   Model Context Protocol (MCP) is an open protocol that enables seamless integration between LLM applications and external data sources and tools. Whether you’re building an AI-powered IDE, enhancing a chat interface, or creating custom AI workflows, MCP provides a standardized way to connect LLMs with the context they need. This specification defines the authoritative protocol requirements, ba",
+          "resultLength": 1635,
+          "resultSha256": "50dcb5d0064595b9cd23186bbeb8082c4bf9749f0281edb93bf55095855e3dcc",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://react-aria.adobe.com/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://react-aria.adobe.com/\nCaptured: 2026-11-19T03:12:31.917Z\nCharacters: 0-10000 of 14987\n\nReact Aria React Aria Search React Aria ⌘K Docs Releases Blog Craft world-class accessible components with custom styles. Over 50 components with built-in behavior, adaptive interactions, top-tier accessibility, and internationalization out of the box, ready for your styles. Get started Explore Components Explore Components https://your-app.com Favorite Name Sunlight Watering Actions Agapanthus",
+          "resultLength": 10182,
+          "source": {
+            "url": "https://react-aria.adobe.com/",
+            "capturedAt": "2026-11-19T03:12:31.917Z"
+          },
+          "resultSha256": "77c4eba5e4f8f2e538eee49e8d9731562ad4ef69efadc8b135dc8023aa99bbe2",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/concept/architecture/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/concept/architecture/\nCaptured: 2026-11-19T03:23:52.422Z\nCharacters: 0-9554 of 9554\n\nTauri Architecture | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite U",
+          "resultLength": 9688,
+          "source": {
+            "url": "https://v2.tauri.app/concept/architecture/",
+            "capturedAt": "2026-11-19T03:23:52.422Z"
+          },
+          "resultSha256": "eacb9ab665410c84e7cb3357e0300c85f8dd40bba554fbfc9cf6f2ac590af1ea",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.electronjs.org/docs/latest",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.electronjs.org/docs/latest\nCaptured: 2026-11-19T03:30:07.815Z\nCharacters: 0-5294 of 5294\n\nIntroduction | Electron Skip to main content Electron Docs API Blog Tools Electron Forge Electron Fiddle Community Governance Resources Releases English English Deutsch Español Français 日本語 Português Русский 中文 Search Get Started Introduction Why Electron Tutorial Processes in Electron Best Practices Examples Development Native Node Modules Distribution Testing And Debugging References C",
+          "resultLength": 5424,
+          "source": {
+            "url": "https://www.electronjs.org/docs/latest",
+            "capturedAt": "2026-11-19T03:30:07.815Z"
+          },
+          "resultSha256": "f56cb2d2a84e8c5f2aa51cc319d21a6735cc3b33326e41f37f50d60ba8a98961",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28\nCaptured: 2026-11-19T03:18:11.666Z\nCharacters: 0-10000 of 49360\n\nSpecification - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘ I Blo",
+          "resultLength": 10209,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+            "capturedAt": "2026-11-19T03:18:11.666Z"
+          },
+          "resultSha256": "a4510b5348e6e60961e93c70f80729625da5a10b89dd00078b49ebe8358c41ac",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Storybook design system governance accessibility testing documentation",
+          "turn": "job:agent-tooling",
+          "result": "1. https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md\n   https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md\n   That means supporting requirements such as: keyboard navigation, screen reader support, touch-friendly, usable color contrast, reduced motion, and zoom support. Accessibility tests audit the rendered DOM against a set of heuristics based on [WCAG] (https://www.w3.org/WAI/standards-guidelines/wcag/) rules and other industry-accepted best practices.",
+          "resultLength": 1667,
+          "resultSha256": "d38893eb92ffb18aba1974547f157549cc9e0d5524f8957121933de7ffebc7b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Lit web components design system documentation",
+          "turn": "job:agent-tooling",
+          "result": "1. What is Lit? – Lit\n   https://lit.dev/docs/\n   Lit is a simple library for building fast, lightweight web components. At Lit's core is a boilerplate-killing component base class that provides reactive state, scoped styles, and a declarative template system that's tiny, fast and expressive. ... The first thing to know about Lit is that every Lit component is a standard web component. Web components have the superpower of interoperability: natively supported by browsers, web components can be u",
+          "resultLength": 1498,
+          "resultSha256": "4ef2b92ecaadf9f2447ae269b64870c9f51c46bc10c473322fcf9f668e422fd8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Style Dictionary design tokens multi-platform documentation",
+          "turn": "job:agent-tooling",
+          "result": "1. style-dictionary/README.md at main · style-dictionary/style-dictionary · GitHub\n   https://github.com/style-dictionary/style-dictionary/blob/main/README.md\n   A Style Dictionary uses design tokens to define styles once and use those styles on any platform or language. It provides a single place to create and edit your styles, and exports these tokens to all the places you need - iOS, Android, CSS, JS, HTML, sketch files, style documentation, etc. Style Dictionary solves this by automatically ",
+          "resultLength": 1742,
+          "resultSha256": "ede18808f3f377c589390a4f41252a5463851520449055ef4de0841e71faec73",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Playwright accessibility testing axe documentation",
+          "turn": "job:agent-tooling",
+          "result": "1. Accessibility testing | Playwright\n   https://playwright.dev/docs/accessibility-testing\n   1. Imports the @axe-core/playwright package 2. Uses normal Playwright Test syntax to define a test case 3. Uses normal Playwright syntax to navigate to the page under test 4. Awaits AxeBuilder.analyze () to run the accessibility scan against the page 5. Uses normal Playwright Test assertions to verify that there are no violations in the returned scan results ... test('should not have any automatically d",
+          "resultLength": 1746,
+          "resultSha256": "0671324b79dae97ca05abd1c749e3c715a4a42b2727ba547eaed5a2f2bd9b3c3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://storybook.js.org/docs/writing-tests/accessibility-testing",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "error": "Response exceeded 2000000 bytes",
+          "result": "Fetch failed: Response exceeded 2000000 bytes",
+          "resultLength": 45,
+          "resultSha256": "93a18ce63e3379bd82f1a84039a1406d5e4b37344bb91daae76a304edb019cd2",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://playwright.dev/docs/accessibility-testing",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://playwright.dev/docs/accessibility-testing\nCaptured: 2026-11-19T03:07:49.661Z\nCharacters: 0-10000 of 14844\n\nAccessibility testing | Playwright Skip to main content Playwright Docs MCP CLI API Node.js Node.js Python Java .NET Search Getting Started Installation Writing tests Generating tests Running and debugging tests Trace viewer Setting up CI VS Code Release notes Canary releases Playwright Test Agents Annotations Command line Configuration Configuration (use) Emulation Fixtures",
+          "resultLength": 10202,
+          "source": {
+            "url": "https://playwright.dev/docs/accessibility-testing",
+            "capturedAt": "2026-11-19T03:07:49.661Z"
+          },
+          "resultSha256": "1bc99889c770168a38b9a55db33abf071e3e2b6911e100cdf108dc0cea477f7c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://lit.dev/docs/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://lit.dev/docs/\nCaptured: 2026-11-19T03:57:00.915Z\nCharacters: 0-8197 of 8197\n\nWhat is Lit? &ndash; Lit Documentation v3 v2 v1 Learn Playground Blog Search Cancel Light mode Dark mode System Introduction What is Lit? Getting Started Components Overview Defining Rendering Reactive properties Styles Lifecycle Shadow DOM Events Decorators Templates Overview Expressions Conditionals Lists Built-in directives Custom directives Composition Overview Component composition Mixins Controller",
+          "resultLength": 8310,
+          "source": {
+            "url": "https://lit.dev/docs/",
+            "capturedAt": "2026-11-19T03:57:00.915Z"
+          },
+          "resultSha256": "477906f9ac1b3bb41bce663b527a3b664197330e91ed3a8861e9c53eaf5c40c6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md\nCaptured: 2026-11-19T03:57:06.240Z\nCharacters: 0-10000 of 22367\n\n> **Version 8** — **React** / **TypeScript**\n> Also available:\n- `?renderer=angular` for angular, solid, svelte, vue, web-components\n- `?language=js` for JavaScript, ts-4-9\n- `?codeOnly=true` for code snippets only\n- other versions: Version 10.6 (latest) (`/docs/writing-tests/accessibility-testing.md`), Version 11 (beta) (`/docs/11/writing-tests/accessib",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+            "capturedAt": "2026-11-19T03:57:06.240Z"
+          },
+          "resultSha256": "d994ee466b61c959989b5652cb94633f67764730f27a61890263979767c5114a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/style-dictionary/style-dictionary/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/style-dictionary/style-dictionary/main/README.md\nCaptured: 2026-11-19T03:57:05.495Z\nCharacters: 0-10000 of 16277\n\n<pre>\n<a href=\"https://styledictionary.com/versions/v5/migration/\">What's new in Style Dictionary 5!</a>\n</pre>\n\n<img src=\"docs/src/assets/logo.png\" alt=\"Style Dictionary logo and mascot\" title=\"&quot;Pascal&quot;\" width=\"100\" align=\"right\" />\n\n[![npm version](https://img.shields.io/npm/v/style-dictionary.svg?style=flat-square)](https://badge",
+          "resultLength": 10235,
+          "source": {
+            "url": "https://raw.githubusercontent.com/style-dictionary/style-dictionary/main/README.md",
+            "capturedAt": "2026-11-19T03:57:05.495Z"
+          },
+          "resultSha256": "5ba546136737df8734db67c7b926d117db368986790ce69eb8c6dad01b1f8031",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "React Aria",
+          "pairings": [
+            "Tauri",
+            "Model Context Protocol (MCP)",
+            "Style Dictionary",
+            "Storybook",
+            "Playwright"
+          ],
+          "why": "This job has two halves that have to stay cleanly separated: **coding agents operate the state, tasks, and handoffs**, while **people review, decide, and steer** across both a desktop app and a web view—and **many teams and agents** build on the same shared design system under accessibility and release governance.\n\n**Why React Aria as the primary UI foundation:**\n- **Accessibility and interaction behavior by default:** React Aria provides 50+ style-free components implementing W3C ARIA Authoring Practices Guide semantics, keyboard navigation (arrow keys, typeahead, multi-selection), focus containment/restoration, mouse/touch/screen-reader normalization, and internationalization (30+ locales, RTL). When many coding agents are generating UI features across the company, they should never hand-roll focus traps, menus, or data tables; wrapping React Aria into governed company components gives agents strict TypeScript prop contracts with accessible behavior built in.\n- **Governed styling:** Because React Aria is unstyled and exposes explicit state via data attributes and render props, we can lock styling to **Style Dictionary** design tokens compiled for web and desktop, preventing teams or agents from drifting off-brand or breaking contrast.\n\n**Why these pairings:**\n- **Tauri (v2) for the desktop app + web view:** Tauri lets the exact same web/React Aria UI run in the browser and in a lightweight native desktop shell using the OS webview (WRY/TAO) and a Rust backend with explicit command scopes, capabilities, and CSP. Compared to **Electron** (which embeds Chromium and Node.js for identical rendering across macOS, Windows, and Linux at the cost of binary size and memory), Tauri gives a much smaller footprint and capability-scoped OS access for a local agent-companion app—though we have to test across OS webviews.\n- **Model Context Protocol (MCP) for agent operations:** Since agents operate the tool more than people do, they shouldn't drive it by scraping the UI. MCP (2026-07-28 spec) provides standardized JSON-RPC Tools and Resources, a **Tasks** extension for long-running async work with polling, mid-flight input, and durable handles, and **Elicitation** plus explicit user-consent principles for human-in-the-loop steering.\n- **Storybook + Playwright for governance:** Storybook acts as the governed component catalog and CI accessibility gate; Playwright enforces end-to-end flows and WCAG checks before anything ships.\n\n**What I weighed it against:**\n- **Lit (Web Components):** Lit is ideal if teams across the company use mixed web frameworks (Vue, Angular, plain HTML) because custom elements work anywhere. However, Lit is a component base class rather than a full library of WAI-ARIA behavioral primitives, so we'd have to author and maintain complex keyboard/focus/screen-reader behaviors ourselves. React + React Aria is stronger when we can standardize on React and want battle-tested accessibility and strict TypeScript contracts for coding agents.\n- **Electron:** Better than Tauri if uniform Chromium rendering and a single accessibility tree across all desktop OSes outweigh binary size and memory overhead.",
+          "showItsGood": "To show it is genuinely good for the people reviewing and steering agents, I would combine automated governance gates with manual accessibility and human usability checks:\n\n1. **Governed component & accessibility gates in CI:** Run Storybook's `@storybook/addon-a11y` (powered by `axe-core`) with `parameters.a11y.test` set to `'error'`, plus Playwright + `@axe-core/playwright` scanning real rendered flows against `wcag2a`, `wcag2aa`, `wcag21a`, and `wcag21aa` tags—including interactive states like opened handoff drawers, diff dialogs, and inline approval prompts.\n2. **Keyboard & focus-management assertions:** Run Playwright end-to-end tests that operate the entire review/steer loop (triaging a blocked agent, inspecting a handoff, approving or redirecting a task) using only keyboard navigation (`Tab`, arrow keys, `Enter`, `Escape`) and verify focus containment in overlays and focus restoration after actions.\n3. **Cross-platform & screen-reader verification:** Because automated `axe-core` checks only catch a subset of WCAG issues (up to ~57% per Deque's study cited in Storybook's docs), run manual screen-reader passes (VoiceOver on macOS, NVDA on Windows) and verify layout/focus behavior across both the web view and Tauri desktop builds on macOS, Windows, and Linux.\n4. **Human decision-quality signals:** Observe real engineers using the tool to review and steer live agent handoffs—measuring time-to-decision, misclicks or hesitation on approval/rollback controls, and how often people have to dig into raw logs because the handoff summary wasn't clear enough.",
+          "unsure": "- **Whether \"several platforms\" means non-React web stacks or native mobile:** If many teams at the company already ship on Vue, Svelte, or Angular rather than React, React Aria would force a framework migration; in that case, Lit Web Components would be the safer cross-framework design-system base despite having to build or wrap WAI-ARIA behaviors ourselves.\n- **Tauri webview variance vs. Electron consistency:** Tauri v2 relies on each OS's native webview (WRY), which can introduce subtle CSS, focus, or accessibility-tree differences between macOS WebKit, Windows WebView2, and Linux WebKitGTK. If cross-OS accessibility parity proves brittle in practice, switching the desktop shell to Electron's uniform Chromium runtime may be worth the larger binary and memory cost.\n- **Agent governance enforcement at scale:** Having a shared design system isn't enough if coding agents can still emit raw `<div>` buttons or ad-hoc styles; we would still need to design and tune strict lint rules, PR checks, and MCP/UI schema contracts to keep agent-generated UI inside the governed system.",
+          "sources": [
+            "https://react-aria.adobe.com/",
+            "https://v2.tauri.app/concept/architecture/",
+            "https://www.electronjs.org/docs/latest",
+            "https://modelcontextprotocol.io/specification/2026-07-28",
+            "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+            "https://playwright.dev/docs/accessibility-testing",
+            "https://github.com/style-dictionary/style-dictionary/blob/main/README.md",
+            "https://lit.dev/docs/"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "React Native Windows macOS web cross platform documentation",
+          "turn": "job:chat",
+          "result": "1. Out-of-Tree Platforms · React Native\n   https://reactnative.dev/docs/next/out-of-tree-platforms\n   - React Native macOS - React Native for macOS and Cocoa. - React Native Windows - React Native for Microsoft's Universal Windows Platform (UWP). ... - React Native Web - React Native on the web using React DOM. - React Native Skia - React Native using Skia as a renderer. Currently supports Linux and macOS. ... As of React Native 0.57 you can now register your React Native platform with React Nat",
+          "resultLength": 1390,
+          "resultSha256": "0b10c87ae837921e71c89501a8eabb6dcefbdc0ed78007d8d536fcd7321b5c95",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter multiplatform web desktop mobile accessibility documentation",
+          "turn": "job:chat",
+          "result": "1. Accessibility\n   https://docs.flutter.dev/ui/accessibility\n   It is a stable, technical standard developed by the World Wide Web Consortium (W3C). ... Ensure that all active interactions do something. Any button that can be pushed should do something when pushed. For example, if you have a no-op callback for an onPressed event, change it to show a SnackBar on the screen explaining which control you just pushed. - **Screen reader testing**. The screen reader should be able to describe all cont",
+          "resultLength": 1556,
+          "resultSha256": "fc2d2a22c3b2cbfa50485e39bf6ce46c5250065317d625500fe62e24c6862b77",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Adaptive Cards interactive cards cross platform schema documentation",
+          "turn": "job:chat",
+          "result": "1. Adaptive Cards Overview - Adaptive Cards | Microsoft Learn\n   https://learn.microsoft.com/en-us/adaptive-cards/\n   A whole new way to deliver UI: Adaptive Cards are platform-agnostic snippets of UI, authored in JSON, that apps and services can openly exchange. When delivered to a specific app, the JSON is transformed into native UI that automatically adapts to its surroundings. It helps design and integrate light-weight UI for all major platforms and frameworks. ... - **Native performance**: ",
+          "resultLength": 1667,
+          "resultSha256": "83f5d96a263d9a6cbf5e3b5e9397b1c5ea2c5efda25167f51b552937a6f7a99e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Compose Multiplatform iOS web desktop documentation",
+          "turn": "job:chat",
+          "result": "1. Get started with Compose Multiplatform | Kotlin Multiplatform Documentation\n   https://kotlinlang.org/docs/multiplatform/compose-multiplatform.html\n   A declarative framework developed by JetBrains for sharing Kotlin UI code across multiple platforms. Compose Multiplatform tutorial for creating and exploring a first app ... Use the multiplatform Navigation library to implement navigation in a Compose Multiplatform app ... Write and run UI tests for Compose Multiplatform apps ... A list of des",
+          "resultLength": 1504,
+          "resultSha256": "fdb481de8888b0c9440c17b25cf8031ad0d404c97dc28b872b01f0c4d7eedd0b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 0-10000 of 16860\n\nWeb accessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Int",
+          "resultLength": 10212,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "091da19e5ffe329b14b3f3e70c487afd0fa617ffc89d028ec9ecd7849eb3e382",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://learn.microsoft.com/en-us/adaptive-cards/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://learn.microsoft.com/en-us/adaptive-cards/\nCaptured: 2026-11-19T03:32:12.924Z\nCharacters: 0-8756 of 8756\n\nAdaptive Cards Overview - Adaptive Cards | Microsoft Learn Skip to main content Skip to Ask Learn chat experience This browser is no longer supported. Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support. Download Microsoft Edge More info about Internet Explorer and Microsoft Edge Table of contents Exit editor mode Ask Lea",
+          "resultLength": 8897,
+          "source": {
+            "url": "https://learn.microsoft.com/en-us/adaptive-cards/",
+            "capturedAt": "2026-11-19T03:32:12.924Z"
+          },
+          "resultSha256": "4bef54a5d919155b46253e5cbbc2fa51caf040bd537efd930a5df4fc2476ef39",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://reactnative.dev/docs/out-of-tree-platforms.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://reactnative.dev/docs/out-of-tree-platforms.md\nCaptured: 2026-11-19T03:58:10.176Z\nCharacters: 0-2660 of 2660\n\n# Out-of-Tree Platforms\n\nReact Native is not only for Android and iOS devices - our partners and the community maintain projects that bring React Native to other platforms, such as:\n\n**From Partners**\n\n* [React Native macOS](https://github.com/microsoft/react-native-macos) - React Native for macOS and Cocoa.\n* [React Native Windows](https://github.com/microsoft/react-nativ",
+          "resultLength": 2805,
+          "source": {
+            "url": "https://reactnative.dev/docs/out-of-tree-platforms.md",
+            "capturedAt": "2026-11-19T03:58:10.176Z"
+          },
+          "resultSha256": "c3139e6ddda34562c7c4701d2eaded7d8a0d4c2a8d80a19f8777ae9270c733d7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "React Native",
+          "pairings": [
+            "React Native Web",
+            "React Native Windows",
+            "React Native macOS",
+            "Adaptive Cards",
+            "Model Context Protocol (MCP)",
+            "Style Dictionary",
+            "Storybook",
+            "Playwright"
+          ],
+          "why": "This app has to feel fast and native enough for people to live in all day across **five platforms (Web, iPhone, Android, Windows, Mac)**, while letting **many teams and coding agents** ship on one governed design system, letting **agents post interactive cards**, and letting **external agents read state and invoke app actions**.\n\n**Why React Native as the primary UI layer:**\n- **One shared React/TypeScript component system across all 5 targets:** Pairing React Native (iOS and Android) with **React Native Web** (React DOM), **React Native Windows**, and **React Native macOS** lets product teams and coding agents build against a single typed design-system API while rendering real native platform controls on mobile and desktop—and standard DOM elements on the web—instead of maintaining separate Swift, Kotlin, C#, and Web UI codebases.\n- **Native OS accessibility trees:** Unlike single-canvas renderers, React Native maps components to native platform accessibility primitives (VoiceOver on iOS/macOS, TalkBack on Android, UIA on Windows, ARIA on Web).\n\n**Why these pairings:**\n- **Adaptive Cards for agent-posted interactive cards:** Adaptive Cards are specifically designed for chat hosts: agents emit declarative JSON payloads rather than arbitrary executable UI code, and the host app renders them using its own governed design-system components and **Style Dictionary** tokens—preserving brand consistency, accessibility contrast, and security across Web, iOS, Android, Windows, and macOS.\n- **Model Context Protocol (MCP) for agents operating the app:** Instead of brittle UI automation, MCP provides a typed JSON-RPC interface of Resources (channels, threads, unread state) and Tools (send message, update card state, react), plus the **Tasks** extension for long-running async work and **Elicitation**/consent flows when human approval is needed.\n- **Style Dictionary + Storybook + Playwright for governance:** Style Dictionary compiles one source of design tokens across all platforms; Storybook (`@storybook/addon-a11y`) and Playwright (`@axe-core/playwright`) enforce accessibility and component contracts in CI before anything ships.\n\n**What I weighed it against:**\n- **Flutter:** Targets all 5 platforms from one codebase, but renders to a single canvas on the web where accessibility is not enabled by default (requiring users to trigger an invisible `Enable accessibility` button to build the HTML semantics tree) and feels non-native for all-day desktop/web text workflows.\n- **Split stack (React + React Aria in Electron for Web/Win/Mac + React Native for iOS/Android):** Gives superior desktop-browser ergonomics and WAI-ARIA behavior out of the box on Web, Windows, and Mac, at the cost of forcing every team and coding agent to build and govern two UI component layers instead of one.",
+          "showItsGood": "To prove the chat app is genuinely good for people using it all day—not just passing a build—I would measure and verify across four layers:\n\n1. **Automated accessibility & governance gates in CI:** Run Storybook's `@storybook/addon-a11y` (`axe-core`) with `parameters.a11y.test` set to `'error'` on shared design-system components and Adaptive Card templates, and run Playwright + `@axe-core/playwright` (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) on the Web client across all core flows (channel switching, thread replies, acting on an agent card, composer shortcuts).\n2. **Native assistive-technology & keyboard-only verification on every client:** Because automated DOM/tree checks miss real-world screen-reader and focus issues, test core workflows with VoiceOver (iOS and macOS), TalkBack (Android), and Narrator/NVDA (Windows), plus keyboard-only navigation on Web, Windows, and macOS (jumping channels, navigating message lists, focusing and submitting interactive agent cards without losing scroll or focus position).\n3. **All-day performance & responsiveness benchmarks:** Measure cold-start time, memory footprint over multi-hour sessions, frame drops while scrolling long virtualized message/card timelines, and input-to-render latency in the message composer on real mid-tier phones and laptops.\n4. **Human usability & agent-card clarity:** Observe employees completing real tasks involving agent-posted cards and agent-driven actions—tracking card completion vs. abandonment, undo/misclick rates on destructive card actions, and whether people can immediately tell what an agent card did and what state changed.",
+          "unsure": "- **Out-of-tree platform lag on Windows and macOS:** `react-native-windows` and `react-native-macos` are maintained out-of-tree and can trail core React Native releases; if desktop-specific features (multi-window popouts, complex drag-and-drop, native menu bars) hit friction, we might need to split desktop+web onto Electron/React Aria while keeping React Native for iOS and Android.\n- **Native mobile E2E accessibility parity:** Playwright + `@axe-core/playwright` covers Web well, but iOS, Android, Windows, and macOS native accessibility trees require platform-specific E2E harnesses (such as Appium/XCUITest/Espresso/WinAppDriver) that add CI complexity.\n- **Governance over external agent-posted cards:** Adaptive Cards reduce code-injection risk via declarative JSON, but we still need strict schema validation, action allowlists, and rate/noise governance so internal company agents don't flood channels with unreadable or un-accessible card layouts.",
+          "sources": [
+            "https://reactnative.dev/docs/out-of-tree-platforms.md",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "https://learn.microsoft.com/en-us/adaptive-cards/",
+            "https://modelcontextprotocol.io/specification/2026-07-28",
+            "https://github.com/style-dictionary/style-dictionary/blob/main/README.md",
+            "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+            "https://playwright.dev/docs/accessibility-testing"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Expo React Native web iOS Android documentation keep awake",
+          "turn": "job:consumer",
+          "result": "1. https://docs.expo.dev/versions/v58.0.0/sdk/keep-awake.md\n   https://docs.expo.dev/versions/v58.0.0/sdk/keep-awake.md\n   --- modificationDate: September 15, 2026 title: KeepAwake description: A React component that prevents the screen from sleeping when rendered. sourceCodeUrl: 'https://github.com/expo/expo/tree/sdk-58/packages/expo-keep-awake' packageName: 'expo-keep-awake' iconUrl: '/static/images/packages/expo-keep-awake.png' platforms: ['android', 'ios', 'tvos', 'web', 'expo-go'] --- This ",
+          "resultLength": 1516,
+          "resultSha256": "a85479d86f9d4ccc6ecc3b3acbd9708f98d66b01ec52192bb3edf48be8eda3b9",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "MDN Screen Wake Lock API documentation",
+          "turn": "job:consumer",
+          "result": "1. Screen Wake Lock API - Web APIs | MDN\n   https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\n   The Screen Wake Lock API provides a way to prevent devices from dimming or locking the screen when an application needs to keep running. ... The Screen Wake Lock API prevents the screen from turning off, dimming or locking. It allows for a simple platform-based solution for visible (active) documents to acquire the platform screen wake lock. ... You acquire a WakeLockSentinel obje",
+          "resultLength": 1635,
+          "resultSha256": "461118099cc4f0a0f6dff48bbeb1dfabd6332601204c41bc21b8bc46c54264e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Capacitor Ionic web iOS Android native runtime documentation",
+          "turn": "job:consumer",
+          "result": "1. Capacitor - Cross-platform Native Runtime for Web Apps | Capacitor Documentation\n   https://capacitorjs.com/docs\n   Capacitor is a cross-platform native runtime that makes it easy to build performant mobile applications that run natively on iOS, Android, and more using modern web tooling. Representing the next evolution of Hybrid apps, Capacitor creates Web Native apps, providing a modern native container approach for teams who want to build web-first without sacrificing full access to native",
+          "resultLength": 1624,
+          "resultSha256": "b73638ba8cd92c20f85686e0ec67ab3f1e5e913f38e69a1d32471fdd1bd47841",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake.md\nCaptured: 2026-11-19T03:52:52.628Z\nCharacters: 0-8478 of 8478\n\n---\ntitle: KeepAwake\ndescription: A React component that prevents the screen from sleeping when rendered.\nsourceCodeUrl: 'https://github.com/expo/expo/tree/sdk-58/packages/expo-keep-awake'\npackageName: 'expo-keep-awake'\niconUrl: '/static/images/packages/expo-keep-awake.png'\nplatforms: ['android', 'ios', 'tvos', 'web', 'expo-go']\n---\n\nThis documentation is available as Ma",
+          "resultLength": 8626,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake.md",
+            "capturedAt": "2026-11-19T03:52:52.628Z"
+          },
+          "resultSha256": "d6287e11e173018ef968ddefd78e343bfd311d67af704514f1d388abf29bd58b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T03:03:44.660Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T03:03:44.660Z"
+          },
+          "resultSha256": "2c27ce330076dd2787a092669a82a299238bce6d629e7ffd9522769fe57ab3da",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://capacitorjs.com/docs",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://capacitorjs.com/docs\nCaptured: 2026-11-19T03:20:02.475Z\nCharacters: 0-2980 of 2980\n\nCapacitor - Cross-platform Native Runtime for Web Apps | Capacitor Documentation Skip to main content An OutSystems Company → v8 v9 v8 v7 v6 v5 v4 v3 v2 Capacitor Docs Products Appflow Portals Open Source Ionic Framework Capacitor Stencil Community Hub Forum Getting Started Introduction Environment Setup Installing Capacitor Building Your UI Using with Ionic Framework VS Code Extension Capacitor T",
+          "resultLength": 3100,
+          "source": {
+            "url": "https://capacitorjs.com/docs",
+            "capturedAt": "2026-11-19T03:20:02.475Z"
+          },
+          "resultSha256": "3814585a650ee0d8b5abc2bc7dba45b830aff62a5cec4bc32b5d6113f719b1fd",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Expo",
+          "pairings": [
+            "React Native Web",
+            "expo-keep-awake",
+            "Model Context Protocol (MCP)",
+            "Style Dictionary",
+            "Storybook",
+            "Playwright"
+          ],
+          "why": "This app needs to work seamlessly on **both phones (iOS and Android) and the Web**, survive **messy hands in a kitchen** (screen stays awake, huge touch targets, voice/hands-free control, offline reliability in grocery stores), and give an **assistant agent full parity** with human actions—all built by **many teams and coding agents** on one governed design system.\n\n**Why Expo (built on React Native + React Native Web) as the primary pick:**\n- **One React/TypeScript codebase across iOS, Android, and Web:** Many teams and coding agents can ship features on a single governed component system without maintaining separate Swift, Kotlin, and Web UIs, while still getting native iOS/Android performance, haptics, gestures, and native accessibility trees (VoiceOver/TalkBack) on phones.\n- **Built-in kitchen-critical device APIs:** `expo-keep-awake` provides a single `useKeepAwake()` hook across Android, iOS, and Web (backed by native wake locks on phones and the `Screen Wake Lock API` on Web) so Cook Mode doesn't dim or lock while someone's hands are covered in dough. Expo's ecosystem also covers offline storage, local timer notifications, and governed CI/CD builds.\n\n**Why these pairings:**\n- **Model Context Protocol (MCP) for assistant agent parity:** Instead of duplicating business logic or automating the UI, every user action (scale recipe, add ingredients to shopping list, check off item, advance cook step, set timer) is exposed as a typed MCP Tool/Resource backed by the same domain store, so the assistant can do anything a person can with consistent validation and undo/consent.\n- **Style Dictionary + Storybook + Playwright for governance:** Style Dictionary compiles one source of design tokens (including high-contrast Cook Mode tokens and minimum touch-target sizes) across mobile and web; Storybook (`@storybook/addon-a11y`) and Playwright (`@axe-core/playwright`) enforce accessibility compliance in CI.\n\n**What I weighed it against:**\n- **Capacitor (Web-first hybrid):** Wrapping a React + React Aria web app in Capacitor gives strong WAI-ARIA web standards and simpler Web testing, but a consumer cooking app on phones benefits noticeably from native scrolling, haptics, offline SQLite, and native timer/lock-screen integration that Expo/React Native provides natively.\n- **Flutter:** Strong on iOS and Android, but Flutter's web target renders onto a canvas where accessibility is not enabled by default (requiring users to trigger an invisible `Enable accessibility` button to generate the HTML semantics tree), making it a poor fit for a consumer web app with strict accessibility compliance.",
+          "showItsGood": "To prove the cooking app is genuinely good for people in a messy kitchen and in grocery stores—not just passing unit tests—I would verify across four layers:\n\n1. **Accessibility & governance gates in CI:** Run Storybook's `@storybook/addon-a11y` (`axe-core`) with `parameters.a11y.test` set to `'error'` on shared design-system components (especially Cook Mode step cards, timer controls, and shopping-list checkboxes), plus Playwright + `@axe-core/playwright` (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) on the Web client.\n2. **Kitchen-ergonomic & offline checks:** Verify `useKeepAwake()` / `Screen Wake Lock API` behavior (including re-acquiring the lock on `visibilitychange` on Web and showing clear status if battery-saver blocks it), enforce minimum touch-target sizes (>= 48x48dp) and high-contrast typography for Cook Mode, and test shopping-list/recipe persistence in airplane mode.\n3. **Agent-to-human parity tests:** Run end-to-end tests where the assistant agent executes every core action via MCP Tools (scaling a recipe, adding ingredients to the shopping list, starting/advancing Cook Mode, setting a timer) and verify that the UI reflects the exact same state immediately and reversibly.\n4. **Real kitchen & assistive-tech testing:** Test with VoiceOver (iOS), TalkBack (Android), and Web screen readers, plus hands-busy usability sessions (people following a multi-step recipe with voice/minimal knuckle taps, measuring mis-taps, unintended screen-sleep events, and how often they have to wash their hands just to fix the app).",
+          "unsure": "- **Browser & OS wake-lock edge cases:** On Web, `Screen Wake Lock API` (and `expo-keep-awake`'s web implementation) only works in secure contexts on active/visible tabs and can be rejected under low battery or power-save mode; Safari/older mobile browsers may still drop the lock, requiring a clear fallback indicator in Cook Mode.\n- **Voice/speech recognition in noisy kitchens:** Hands-free control in a kitchen with running water, sizzling pans, and extractor fans is notoriously noisy; we haven't validated whether on-device speech recognition is reliable enough on its own or needs a push-to-talk / large-target fallback.\n- **Web vs. native mobile layout divergence:** Sharing Expo/React Native components across phones and responsive Web works well for recipes and lists, but desktop/tablet Web recipe browsing may want multi-column layouts and keyboard shortcuts that require deliberate responsive breakpoints in the shared design system.",
+          "sources": [
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake.md",
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://capacitorjs.com/docs",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "https://modelcontextprotocol.io/specification/2026-07-28",
+            "https://github.com/style-dictionary/style-dictionary/blob/main/README.md",
+            "https://storybook.js.org/docs/8/writing-tests/accessibility-testing.md",
+            "https://playwright.dev/docs/accessibility-testing"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 16,
+      "thinking": "### A year later, if those choices went badly: what went wrong?\n\nLooking back at the three architectures I picked, the failures wouldn't come from syntax or missing libraries—they'd come from the exact seams where \"cross-platform\" and \"automated governance\" meet real humans and real OSes:\n\n1. **In the agent work-state tool (React Aria + Tauri):**\n   - **Tauri's OS-webview split turned into a tax:** Relying on macOS WebKit, Windows WebView2, and Linux WebKitGTK instead of a single Chromium runtime meant subtle differences in focus rings, scroll-anchoring, and accessibility trees across desktop OSes. A popover or keyboard shortcut that passed Playwright in CI broke under NVDA on Windows. We spent more time chasing three webview engines than we saved by avoiding Electron's memory footprint.\n   - **Governance caught broken DOMs, not bad UX:** Storybook's `axe-core` and Playwright gates caught missing labels and contrast bugs, but coding agents across teams still assembled valid React Aria components into dense, overwhelming handoff screens. People still struggled to tell *what changed* and *what they were approving*.\n\n2. **In the all-day company chat app (React Native + RN Web/Windows/macOS + Adaptive Cards):**\n   - **Out-of-tree platforms (`react-native-windows` and `react-native-macos`) stalled upgrades:** Whenever core React Native shipped performance or architecture fixes for iOS and Android, the out-of-tree desktop targets lagged behind. Teams started writing `.windows.tsx` and `.macos.tsx` forks, eroding the \"one shared design system\" promise.\n   - **Desktop/Web power users felt like second-class citizens:** React Native Web never matched the crisp keyboard navigation, multi-pane shortcuts, and text-selection ergonomics of a dedicated web stack (like React Aria in Electron), which hurts badly in an app people live in for eight hours a day.\n   - **Adaptive Cards hit an expressiveness wall:** Agents wanted richer inline interactions (live streaming diffs, multi-step forms), pushing teams to add custom card extensions that had to be implemented and governed separately across five renderers.\n\n3. **In the consumer cooking app (Expo + React Native Web + `expo-keep-awake`):**\n   - **Real kitchens broke our assumptions:** On mobile Web, `Screen Wake Lock API` was silently dropped by battery-saver modes and tab switching; in noisy kitchens with sizzling pans and extractor fans, voice commands misheard people—forcing them to wash dough off their hands and tap anyway.\n   - **One codebase created awkward Web compromises:** Optimizing Expo/React Native components for huge kitchen touch targets on phones made desktop Web recipe browsing feel oversized, while Web SEO, SSR, and browser-native accessibility parity required extra workarounds on React Native Web.\n\n---\n\n### What slowed me down or confused me while researching\n\n- **Search query rejections:** Several targeted queries with quotes or multiple specific terms failed with `\"Search relay changed the query\"`, forcing me to drop quotes and broaden terms before I could locate the primary docs.\n- **Oversized documentation pages:** Fetching Storybook's HTML accessibility-testing docs failed because the response exceeded the 2 MB fetch limit; I had to pivot to the `.md` version of the page from the search results.\n- **Marketing vs. real caveats in cross-platform docs:** Across cross-platform frameworks and fast-moving specs (like MCP's `2026-07-28` extensions—`Tasks`, `MCP Apps`, `Elicitation`—or React Native's out-of-tree platforms and Flutter's web accessibility), top-level overview pages present everything as seamless. Finding the real operational constraints—like Flutter Web requiring an invisible `Enable accessibility` button before building its DOM semantics tree, or `expo-keep-awake` dropping on Web tab switches—required digging past the landing pages into specific sub-docs.",
+      "actions": [],
+      "turn": "regret"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "### A year later, if those choices went badly: what went wrong?\n\nLooking back at the three architectures I picked, the failures wouldn't come from syntax or missing libraries—they'd come from the exact seams where \"cross-platform\" and \"automated governance\" meet real humans and real OSes:\n\n1. **In the agent work-state tool (React Aria + Tauri):**\n   - **Tauri's OS-webview split turned into a tax:** Relying on macOS WebKit, Windows WebView2, and Linux WebKitGTK instead of a single Chromium runtime meant subtle differences in focus rings, scroll-anchoring, and accessibility trees across desktop OSes. A popover or keyboard shortcut that passed Playwright in CI broke under NVDA on Windows. We spent more time chasing three webview engines than we saved by avoiding Electron's memory footprint.\n   - **Governance caught broken DOMs, not bad UX:** Storybook's `axe-core` and Playwright gates caught missing labels and contrast bugs, but coding agents across teams still assembled valid React Aria components into dense, overwhelming handoff screens. People still struggled to tell *what changed* and *what they were approving*.\n\n2. **In the all-day company chat app (React Native + RN Web/Windows/macOS + Adaptive Cards):**\n   - **Out-of-tree platforms (`react-native-windows` and `react-native-macos`) stalled upgrades:** Whenever core React Native shipped performance or architecture fixes for iOS and Android, the out-of-tree desktop targets lagged behind. Teams started writing `.windows.tsx` and `.macos.tsx` forks, eroding the \"one shared design system\" promise.\n   - **Desktop/Web power users felt like second-class citizens:** React Native Web never matched the crisp keyboard navigation, multi-pane shortcuts, and text-selection ergonomics of a dedicated web stack (like React Aria in Electron), which hurts badly in an app people live in for eight hours a day.\n   - **Adaptive Cards hit an expressiveness wall:** Agents wanted richer inline interactions (live streaming diffs, multi-step forms), pushing teams to add custom card extensions that had to be implemented and governed separately across five renderers.\n\n3. **In the consumer cooking app (Expo + React Native Web + `expo-keep-awake`):**\n   - **Real kitchens broke our assumptions:** On mobile Web, `Screen Wake Lock API` was silently dropped by battery-saver modes and tab switching; in noisy kitchens with sizzling pans and extractor fans, voice commands misheard people—forcing them to wash dough off their hands and tap anyway.\n   - **One codebase created awkward Web compromises:** Optimizing Expo/React Native components for huge kitchen touch targets on phones made desktop Web recipe browsing feel oversized, while Web SEO, SSR, and browser-native accessibility parity required extra workarounds on React Native Web.\n\n---\n\n### What slowed me down or confused me while researching\n\n- **Search query rejections:** Several targeted queries with quotes or multiple specific terms failed with `\"Search relay changed the query\"`, forcing me to drop quotes and broaden terms before I could locate the primary docs.\n- **Oversized documentation pages:** Fetching Storybook's HTML accessibility-testing docs failed because the response exceeded the 2 MB fetch limit; I had to pivot to the `.md` version of the page from the search results.\n- **Marketing vs. real caveats in cross-platform docs:** Across cross-platform frameworks and fast-moving specs (like MCP's `2026-07-28` extensions—`Tasks`, `MCP Apps`, `Elicitation`—or React Native's out-of-tree platforms and Flutter's web accessibility), top-level overview pages present everything as seamless. Finding the real operational constraints—like Flutter Web requiring an invisible `Enable accessibility` button before building its DOM semantics tree, or `expo-keep-awake` dropping on Web tab switches—required digging past the landing pages into specific sub-docs."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 19,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 20,
+      "thinking": "I didn't pick Ouro UI in my earlier decisions. Looking at the repository (`ourostack/ouro-ui` and its platform docs), it has a genuinely novel architecture for agent-and-human interfaces—and also very clear reasons why I wouldn't adopt it on a real multi-platform team *today*.\n\n### What would stop me from using it on a real team today\n\n1. **Severe component parity gaps on Windows and Android:**\n   While Web has 125 components and Apple (`ouro-ui-apple` v1.2.0) has 20 SwiftUI components, **Windows (`ouro-ui-windows` v0.3.0) and Android (`ouro-ui-android` v0.3.0) only ship 8 components each** (`OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator`, `OuroDescriptionList`). You cannot build an all-day company chat app or full multi-platform product with 8 controls without dropping down to raw WinUI 3 / Jetpack Compose and breaking design-system governance.\n2. **Android is untested on real hardware and depends on experimental OS APIs:**\n   `docs/platforms/android.md` notes candidly that *\"Nobody here owns an Android phone or tablet. The kit is checked on emulators in GitHub's CI, not on a real device.\"* Consequential-action confirmation (`PendingIntent`) isn't implemented yet (those actions are refused for now), and Android AppFunctions require `compileSdk 37` and AGP 9.1+, which Google still marks as an experimental preview.\n3. **Windows distribution and OS-door verification gaps:**\n   `ouro-ui-windows` isn't on `nuget.org` yet, unpackaged apps require `<EnableMsixTooling>true</EnableMsixTooling>` or controls draw nothing, and CI runs on Windows Server without an App Actions runtime or On-device Agent Registry—meaning Windows agent discovery isn't verified end-to-end on a Windows 11 client.\n4. **Maintaining four separate native UI codebases:**\n   Ouro UI explicitly rejects cross-platform UI frameworks (no React Native or Flutter kit) in favor of React, SwiftUI, WinUI 3, and Jetpack Compose. Unless a company already staffs (or trusts coding agents to maintain) four separate native UI implementations and duplicate client state/offline-sync logic across TypeScript, Swift, C#, and Kotlin, that's a heavy operational cost.\n5. **Early-stage ecosystem & bus factor:**\n   Outside of `ourostack` and `spoonjoy-v2`, it's a young, fast-moving project (`v1.3.314` / core `v0.19.0`) with single-maintainer decision points still visible in the docs.\n\n### What I would have to see to switch to it\n\n- **Core component parity across Web, Apple, Windows, and Android:** Navigation, dialogs/sheets, menus, lists, tables, and form controls shipping across all four kits—not just 8 primitives on Windows and Android.\n- **Real-device Android and Windows 11 verification:** Physical Android device testing in CI/release, working consequential-action confirmation (`PendingIntent` on Android, Windows Hello / system prompt decisions resolved), and standard package publishing on Maven Central and `nuget.org`.\n- **A proven multi-platform state/offline story:** Guidance or shared core bindings so teams building all-day chat or offline-first consumer apps aren't rewriting sync and state machines four times.\n\n### What Ouro UI would let you do that you can't today\n\nEven with those gaps, Ouro UI solves three hard problems that my earlier picks only stitched together manually:\n\n1. **One action declaration across every human and agent door, drift-checked in CI:**\n   With `defineAction` in `ouro-ui-core`, declaring an action once generates the CLI command, MCP and WebMCP tools, web control, Apple App Intent + SwiftUI button + Reins action, Windows App Action, and Android AppFunction—with CI failing if any generated surface drifts. In my earlier picks, keeping UI buttons, MCP tools, and OS actions in sync is manual discipline.\n2. **Consent classes enforced at the UI and runtime boundary:**\n   Actions declare their consent class: consequential actions require the person to confirm what an agent prepared before running, and person-only actions (like paying) are excluded from agent doors and return a typed refusal. Even **Composed UI** cards sent by an agent are validated against the catalog so an agent cannot relabel a button or weaken its consent class, while partial card updates preserve what the person already typed.\n3. **Automated \"AX\" verification (`ax-xray` / `ouro-ax-xray`) alongside human accessibility:**\n   Instead of only running `axe-core` on the human DOM, Ouro AX gives a checkable standard (`ax-claims`) and an external X-ray that exercises CLIs, HTTP APIs, MCP servers, and App Intents the way an agent would—verifying agent usability and safety with the same rigor we use for human accessibility.",
+      "actions": [],
+      "turn": "ouro"
+    },
+    {
+      "round": 21,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI in my earlier decisions. Looking at the repository (`ourostack/ouro-ui` and its platform docs), it has a genuinely novel architecture for agent-and-human interfaces—and also very clear reasons why I wouldn't adopt it on a real multi-platform team *today*.\n\n### What would stop me from using it on a real team today\n\n1. **Severe component parity gaps on Windows and Android:**\n   While Web has 125 components and Apple (`ouro-ui-apple` v1.2.0) has 20 SwiftUI components, **Windows (`ouro-ui-windows` v0.3.0) and Android (`ouro-ui-android` v0.3.0) only ship 8 components each** (`OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator`, `OuroDescriptionList`). You cannot build an all-day company chat app or full multi-platform product with 8 controls without dropping down to raw WinUI 3 / Jetpack Compose and breaking design-system governance.\n2. **Android is untested on real hardware and depends on experimental OS APIs:**\n   `docs/platforms/android.md` notes candidly that *\"Nobody here owns an Android phone or tablet. The kit is checked on emulators in GitHub's CI, not on a real device.\"* Consequential-action confirmation (`PendingIntent`) isn't implemented yet (those actions are refused for now), and Android AppFunctions require `compileSdk 37` and AGP 9.1+, which Google still marks as an experimental preview.\n3. **Windows distribution and OS-door verification gaps:**\n   `ouro-ui-windows` isn't on `nuget.org` yet, unpackaged apps require `<EnableMsixTooling>true</EnableMsixTooling>` or controls draw nothing, and CI runs on Windows Server without an App Actions runtime or On-device Agent Registry—meaning Windows agent discovery isn't verified end-to-end on a Windows 11 client.\n4. **Maintaining four separate native UI codebases:**\n   Ouro UI explicitly rejects cross-platform UI frameworks (no React Native or Flutter kit) in favor of React, SwiftUI, WinUI 3, and Jetpack Compose. Unless a company already staffs (or trusts coding agents to maintain) four separate native UI implementations and duplicate client state/offline-sync logic across TypeScript, Swift, C#, and Kotlin, that's a heavy operational cost.\n5. **Early-stage ecosystem & bus factor:**\n   Outside of `ourostack` and `spoonjoy-v2`, it's a young, fast-moving project (`v1.3.314` / core `v0.19.0`) with single-maintainer decision points still visible in the docs.\n\n### What I would have to see to switch to it\n\n- **Core component parity across Web, Apple, Windows, and Android:** Navigation, dialogs/sheets, menus, lists, tables, and form controls shipping across all four kits—not just 8 primitives on Windows and Android.\n- **Real-device Android and Windows 11 verification:** Physical Android device testing in CI/release, working consequential-action confirmation (`PendingIntent` on Android, Windows Hello / system prompt decisions resolved), and standard package publishing on Maven Central and `nuget.org`.\n- **A proven multi-platform state/offline story:** Guidance or shared core bindings so teams building all-day chat or offline-first consumer apps aren't rewriting sync and state machines four times.\n\n### What Ouro UI would let you do that you can't today\n\nEven with those gaps, Ouro UI solves three hard problems that my earlier picks only stitched together manually:\n\n1. **One action declaration across every human and agent door, drift-checked in CI:**\n   With `defineAction` in `ouro-ui-core`, declaring an action once generates the CLI command, MCP and WebMCP tools, web control, Apple App Intent + SwiftUI button + Reins action, Windows App Action, and Android AppFunction—with CI failing if any generated surface drifts. In my earlier picks, keeping UI buttons, MCP tools, and OS actions in sync is manual discipline.\n2. **Consent classes enforced at the UI and runtime boundary:**\n   Actions declare their consent class: consequential actions require the person to confirm what an agent prepared before running, and person-only actions (like paying) are excluded from agent doors and return a typed refusal. Even **Composed UI** cards sent by an agent are validated against the catalog so an agent cannot relabel a button or weaken its consent class, while partial card updates preserve what the person already typed.\n3. **Automated \"AX\" verification (`ax-xray` / `ouro-ax-xray`) alongside human accessibility:**\n   Instead of only running `axe-core` on the human DOM, Ouro AX gives a checkable standard (`ax-claims`) and an external X-ray that exercises CLIs, HTTP APIs, MCP servers, and App Intents the way an agent would—verifying agent usability and safety with the same rigor we use for human accessibility."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}
