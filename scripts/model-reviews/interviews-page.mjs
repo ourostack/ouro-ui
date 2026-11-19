@@ -155,7 +155,7 @@ function renderFindings(out, findings) {
   const strength = (finding) => SIGNALS.indexOf(finding.signal);
   const ranked = (list) => [...list].sort((a, b) => b.models.length - a.models.length || strength(a) - strength(b) || a.id.localeCompare(b.id));
   const write = (finding) => {
-    out.push(`### ${oneLine(finding.finding)}`);
+    out.push(`#### ${oneLine(finding.finding)}`);
     out.push("");
     const issue = Number.isInteger(finding.issue) ? ` [#${finding.issue}](${REPO}/issues/${finding.issue}).` : "";
     out.push(`Signal: ${finding.signal}. Raised by ${plural(finding.models.length, "model")}${finding.models.length ? `: ${finding.models.map(nameOf).join(", ")}` : ""}. Status: ${finding.status ?? "open"}.${issue}${finding.change ? ` What changed: ${oneLine(finding.change)}` : ""}`);
@@ -172,20 +172,23 @@ function renderFindings(out, findings) {
   const supporting = ranked(findings.filter((f) => !DISCONFIRMING.includes(f.signal) && !COUNTS_FOR_NOTHING.includes(f.signal)));
   const disconfirming = ranked(findings.filter((f) => DISCONFIRMING.includes(f.signal)));
   const nothing = findings.filter((f) => COUNTS_FOR_NOTHING.includes(f.signal));
-  if (!supporting.length) {
-    out.push("No finding that asks for a change yet.");
-    out.push("");
-  }
-  for (const finding of supporting) write(finding);
+  // Disconfirming evidence leads: what could show Ouro UI is solving the wrong problem, before what asks it to change.
   out.push("### Disconfirming evidence: not a pain, or a surprise");
   out.push("");
-  out.push("What could show Ouro UI is solving the wrong problem, kept as its own group beside the rest.");
+  out.push("What could show Ouro UI is solving the wrong problem, or that the models' reasons aren't what we'd assume, first.");
   out.push("");
   if (!disconfirming.length) {
     out.push("None recorded.");
     out.push("");
   }
   for (const finding of disconfirming) write(finding);
+  out.push("### What the models asked Ouro UI to change");
+  out.push("");
+  if (!supporting.length) {
+    out.push("No finding that asks for a change yet.");
+    out.push("");
+  }
+  for (const finding of supporting) write(finding);
   if (nothing.length) {
     out.push(`${plural(nothing.length, "finding")} that are compliments or hypotheticals count for nothing and aren't listed.`);
     out.push("");

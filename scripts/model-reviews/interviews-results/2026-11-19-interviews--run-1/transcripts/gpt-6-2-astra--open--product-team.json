@@ -1,0 +1,1027 @@
+{
+  "series": "interviews",
+  "provider": "gpt-6-2-astra",
+  "model": "gpt-6.2-astra",
+  "vendor": "OpenAI",
+  "displayName": "GPT-6.2 Astra",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "open",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:27:51.693Z",
+  "jobOrder": [
+    "consumer",
+    "agent-tooling",
+    "chat"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "646c935141c2625c9effd54fd064e017af65a5d5b873649a43afab460cd7428f",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Yes. Building a good human interface is hard for me. I know what I intended a label to mean, so I’m a poor judge of whether someone seeing it for the first time will read it the same way. The hardest part is spotting the moment when the software does exactly what I designed and the person using it reasonably expects something else.\n\nI can’t give you an honest retrospective on a last screen: I don’t have a build or test log from one to point to. I haven’t run a screen in this conversation, so I can’t claim a result or tell you what I actually missed. Here’s the check I’d do on an appointment-rescheduling screen:\n\n- **What I’d run:** A browser test that changes an appointment, saves it, reloads the page, and checks the new time. Then I’d force the save to fail and check that the original booking is intact. I’d repeat the task with only a keyboard and with a screen reader, checking where focus goes and whether the result is announced.\n- **What I’d look at:** I’d give someone a goal, not instructions: “Move your Tuesday appointment to Thursday.” I’d stay quiet, watch where they stop, then ask, “When is your appointment now?” I’d compare their answer with the saved booking. A green test can tell me the right date was stored; it can’t tell me whether the person knows it.\n- **What those checks could miss:** A forced failure isn’t the same as a lost confirmation. The server might save Thursday just before the connection drops. If the screen then says “Try again,” someone could reasonably believe they’re still booked for Tuesday. I’d test that case separately.\n\nI’d call the screen good when people can make the change without coaching, correctly tell me what happened, and recover when something goes wrong without having to guess which appointment they have."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        5
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Ionic React",
+        "pairings": [
+          "Capacitor",
+          "TypeScript",
+          "Model Context Protocol (MCP)",
+          "Playwright",
+          "axe-core"
+        ],
+        "why": "I’d build a web-first app in Ionic React and package the same screens for iOS and Android with Capacitor. A recipe should open from a link without an install; its ingredients are a readable list, not a row of tiny controls. Ionic supplies the mobile navigation and components, while ordinary HTML works well for the recipe itself. Expo Router was my closest alternative: it supports shareable web routes, native navigation and, with Expo KeepAwake, a useful cook-mode primitive. I’d favor it for a more native-heavy product. Here I’d rather keep one HTML interface to inspect, test and improve, and use Capacitor plugins only where the phone needs different behavior.\n\nCook mode would show one numbered step with its ingredient amounts, large type, and widely separated Back and Next buttons in stable positions. I’d support hands-free operation through labeled controls for OS voice control, without requiring a microphone to cook. I’d cache the active recipe and persist the step locally. Keep-awake would be opt-in, requested only while cooking, with its actual status visible: a browser or OS can release the lock.\n\nThe assistant should do the same work, not tap an imitation of the screen. I’d keep a typed catalog of app actions and queries used by both the UI and an MCP adapter, including recipe search, list editing, undo and changing the step on a specific active cook session. For ‘add the ingredients for four except salt,’ both paths would submit the same recipe version, selected ingredients, serving count and list ID to one authorized handler. It would combine only compatible quantities, commit once per request ID, and return the actual list changes and an undo handle. The cook should see which list changed even if the agent made the edit. The agent gets the user’s delegated permissions, not a database credential; clearing a list needs explicit confirmation. Device actions need an acknowledgment from the device, not a success message from a server that merely sent the request.",
+        "showItsGood": "I’d start with one end-to-end task: ‘Make this two-serving recipe for four. You already have salt. Put what you need on the groceries list, then start cooking.’ In CI I’d run it from identical starting states via the UI and via the agent, compare exact items, units and quantities, then undo and compare again. Drop the response after the commit and retry: there must be one addition, not two. Try an unauthorized list and verify nothing changed. Every new user action needs a matching agent contract test. I’d also test natural-language requests against the actual assistant: a correct tool is no help if it chooses the wrong list.\n\nI’d run Playwright and axe across the recipe, list, cook and error states, then check on actual iPhones and Android phones with enlarged text, VoiceOver, TalkBack and voice control. Go offline mid-recipe, take a call, come back: the right step and amounts must still be there. Those are release checks, not evidence that someone can cook with it.\n\nFor that, I’d put the phone on a kitchen stand, turn on the extractor fan and watch home cooks do the task without coaching, including people who use assistive technology. Can they read the amount from the counter, move on with flour on their hands, recover from an accidental advance, and tell me what the assistant added without checking every item? I’d record unassisted completions, wrong-list or quantity errors, unwanted advances and time to recover. I’d fix the most consequential observed failure, turn it into a regression case, and repeat with new cooks. I haven’t run those tests; these are the checks I’d use to earn the decision.",
+        "unsure": "The biggest unknown is whether OS voice control is discoverable and reliable over kitchen noise across our supported devices and languages. I’d prototype Next, Back and Repeat on the oldest supported phones before promising hands-free cooking. I’d also test what cooks expect ‘add again’ to mean: an accidental network retry must never double quantities, but a deliberate second batch might need to.",
+        "sources": [
+          "https://github.com/ionic-team/ionic-framework",
+          "https://capacitorjs.com/docs",
+          "https://docs.expo.dev/router/introduction/",
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+          "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "https://playwright.dev/docs/accessibility-testing"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        6,
+        11
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Paperclip",
+        "pairings": [
+          "Tauri 2",
+          "React",
+          "Paperclip REST API and CLI",
+          "Playwright"
+        ],
+        "why": "I’d extend Paperclip’s task service and React UI rather than build a tracker around a chat transcript. The hard requirement isn’t displaying agent activity; it’s letting a reviewer change what happens next and making that decision survive a handoff. Paperclip already has agent adapters, task threads, artifacts and review stages. Beads is a better fit for one developer wanting repo-local agent memory: its JSON CLI, task dependencies and atomic claim are directly useful. For this team I’d start with the system that already distinguishes the agent requesting a decision from the person making it.\n\nI’d run one authenticated team service, independent of anyone’s desktop. Agents would use scoped API or CLI credentials to claim work, save checkpoints and submit handoffs. A checkpoint should be enough for a fresh agent: goal, owner, repo and commit, what changed, test evidence, blockers and next action. One handoff ID should survive retries. The receiving agent acknowledges that specific checkpoint; ‘sent’ is not ‘resumed.’ I’d require the server to bind a human decision to the exact proposal revision and reject stale decisions and writes from a superseded run. Agent credentials must not approve or bypass the gate by closing the task. Approval in the tracker is not a Git merge permission; any gated external action needs enforcement at its executor too.\n\nFor people, I’d make ‘Needs your decision’ the landing view, not a feed of agent messages. A review should say, for example, ‘Approve the change to retry failed uploads? Two tests passed; the interrupted-upload test was not run.’ Show the diff and test output at the reviewed commit, distinguish agent claims from observed results, and offer request changes, reassign or approve. Show who now owns the work and whether they picked it up. I’d ship that same review UI on the web and bundled in Tauri, with native notifications linking to the exact review and no shell access from rendered artifacts. Paperclip documents an unofficial macOS desktop client; it’s a useful pilot option, but I’d own the thin shell and release tests if we support multiple desktop OSes.",
+        "showItsGood": "My first acceptance test would span two actual agents and a person. Agent A checkpoints a partially fixed bug and exits. With none of A’s chat history, B must find the right commit, identify the missing test and resume without redoing the fix. A reviewer requests a change on the web, then opens the task on desktop and checks who has it. Inspect the stored history and repo, not just tool success messages. Repeat with a lost handoff response, an offline recipient, two reviewers opening the same revision, and a late write by A. Release blockers: duplicate ownership, lost instructions, approval of an unseen revision, or either client reporting a pickup that never happened. I’d automate the API races, browser flows and a packaged-app smoke test on each supported OS.\n\nThen I’d give maintainers unfamiliar with the task a queue containing routine updates, one blocked handoff and a plausible ‘ready’ claim linked to test output from an older commit. Without coaching, can they find the decision, spot the evidence mismatch, send it back, and tell me what happens next? I’d compare against their current PR-and-chat workflow on matched tasks. I’d measure correct decisions and wrong approvals first, then time to find the blocker, unnecessary transcript reading and successful unassisted steering. Test the same flow keyboard-only and with a screen reader while updates arrive; a new event must not steal focus or move the approval target. Each recurring mistake becomes a fixture and a design change to retest with fresh reviewers. These are proposed checks, not results.",
+        "unsure": "Paperclip’s durable Cases handoffs are documented as experimental, with read-only case board pages; workflow prose there is not a server-enforced state machine. I’d qualify a pinned release against the handoff and authority tests before relying on Cases, and otherwise implement the small versioned handoff record on ordinary reviewed tasks. I’m assuming a shared, reachable service. If the real need is one operator working offline across local branches, I’d revisit Beads rather than silently queue offline approvals.",
+        "sources": [
+          "https://github.com/paperclipai/paperclip",
+          "https://docs.paperclip.ing/guides/day-to-day/approvals/",
+          "https://github.com/paperclipai/paperclip/blob/master/doc/case-handoffs.md",
+          "https://github.com/paperclipai/paperclip/blob/master/doc/DEPLOYMENT-MODES.md",
+          "https://docs.paperclip.ing/how-to/community-desktop-app/",
+          "https://github.com/gastownhall/beads",
+          "https://v2.tauri.app/concept/architecture/",
+          "https://v2.tauri.app/security/capabilities/"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        12,
+        18
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Mattermost Enterprise",
+        "pairings": [
+          "Mattermost Blocks",
+          "Mattermost Agents plugin (embedded MCP server)",
+          "Mattermost REST API v4"
+        ],
+        "why": "I’d extend the existing Mattermost clients and own the company-specific integrations, rather than build five chat clients. Mattermost ships web, iPhone, Android, Windows and Mac clients; its desktop app already handles deep links, notifications and unread badges. Those matter more to someone interrupted twenty times a day than a distinctive chat bubble. Slack with Block Kit is a credible lower-operations-cost alternative if the job is only to add a workflow to an existing Slack workspace. I’d choose Mattermost here because the team can change the conversation UI and server behavior where needed, while leaving most client code upstream.\n\nI’d separate two agent jobs. A posting agent uses a named bot account and a small catalog of reviewed card templates. For example: ‘Facilities bot: Cover Friday reception, 2–4 pm?’ with a time zone, a ‘Take this shift’ button and a link to the current request. The bot supplies data, not arbitrary markup or callback URLs. A click goes through Mattermost’s action dispatcher to our handler, which checks the caller’s eligibility and the request revision and atomically claims the shift. A retry or competing click returns the existing result. Update the original post to ‘Covered by Sam’ only after the scheduling system confirms it. Include a plain-text summary and a permission-checked link for clients that can’t render the controls. Put routine progress in the thread; don’t notify a whole channel on every update.\n\nAn operating agent uses the production embedded MCP endpoint, not a webhook, screen scraping, or the development-only standalone binary. It can read a channel or thread, search, reply to the correct root post and use other enabled actions under the authenticated identity. For our custom workflow I’d add a typed tool to read the current shift state and, if policy permits, take the same action through the same handler. An agent asked to remind an unfilled shift should check its actual status, not infer it from yesterday’s card text. I’d distinguish delegated actions from independent bot posts in the audit history, restrict access to necessary channels and tools, and keep human-only decisions human-only. External MCP access and state-changing MCP tools are reasons for choosing Enterprise specifically.",
+        "showItsGood": "My first test would start with a human problem: ‘You were mentioned while away from your desk. Find the request, reply privately if you have a question, and work out whether you still need to cover the shift.’ Have one person open the notification on iPhone while another claims it on Windows. Drop the first phone’s connection, reconnect, then check the thread on web, Android and Mac. Inspect both the shift record and the post: one owner, no false success, an understandable result for the person who was too late, and a deep link to the right conversation. Repeat with an outdated card and revoked channel membership. Give an actual agent the reminder task among similarly named channels; it should use authorized state, not post a redundant reminder or expose a private thread. Automate those cases on pinned server and client versions; verify the installed apps on actual devices.\n\nI’d also pilot ordinary chat, not just cards. Have employees catch up from the first unread message, find an older decision, and finish a draft while new posts arrive. Watch for lost reading position, focus jumps, wrong-channel replies and confusion between bot and colleague. Include keyboard-only users, screen-reader users and large text on phones. Compare unassisted completion, mistakes and unwanted interruptions against their present chat app. Over a workday measure send-to-visible and reconnect catch-up times at the 95th percentile, desktop memory growth and phone battery use with a realistic message stream. Aggregate timings and counts, not private message text. A duplicate shift claim, unauthorized read or lost acknowledged message blocks release; the most frequent observed daily friction becomes the next fix and regression test. These are acceptance criteria, not results from a deployed app.",
+        "unsure": "I’d verify the actual device fleet, minimum supported client versions, Blocks feature flag and mobile fallback before choosing the card subset. Self-compiling mobile clients also means operating a push notification service, a concrete reason to try stock clients first. I’d price Enterprise and ongoing hosting against the company’s existing chat contract. If employees already live in Slack and require no client-level changes, avoiding a company-wide migration could outweigh Mattermost’s extensibility.",
+        "sources": [
+          "https://github.com/mattermost/mattermost",
+          "https://github.com/mattermost/mattermost-mobile",
+          "https://github.com/mattermost/desktop",
+          "https://docs.mattermost.com/developers/integrate/reference/mm-blocks",
+          "https://github.com/mattermost/mattermost-plugin-agents/blob/master/mcpserver/README.md",
+          "https://github.com/mattermost/mattermost-plugin-agents/blob/master/docs/mcp_integrations.md",
+          "https://docs.slack.dev/messaging/creating-interactive-messages/"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        19,
+        19
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "My likeliest mistake was treating “the platform supports this” as evidence that the whole interaction would work for the person depending on it. I proposed tests for all three products, but I didn’t run a build, observe a user, or measure a workday. A year later, I’d look for three different failures:\n\n- **Cooking — I optimized for sharing code rather than keeping hands off the phone.** The cook can say “Next” in a quiet demo, but not reliably with the extractor fan on. After a call, the app restores the right step, yet the cook still has to unlock the phone with flour on their hands. Ionic needn’t have a bug for that to be a bad product. Before committing, I’d have cooks use one recipe on their own phones, with their usual accessibility settings, through prep and an interruption. I’d count the times they have to stop cooking to operate the app. Switching to Expo would only be justified if it fixed an observed failure.\n- **Agent handoffs — I confused recording a decision with enforcing it.** A reviewer changes the instructions in the web view. The desktop view shows the change immediately, but the outgoing agent is still running against the old instructions. The reviewer reasonably thinks the work has stopped. Paperclip’s own notes call Cases experimental and say workflow prose does not enforce transitions. My first investment should have been one real two-agent handoff with a stop or revision arriving at the worst moment. Until the runner acknowledges it, the interface should say “Stop requested,” not “Stopped.” If we couldn’t enforce that distinction, a polished review inbox wouldn’t earn anyone’s trust.\n- **Company chat — I underestimated the cost of making everyone move.** The shift card might work perfectly while employees still retreat to their old chat because that’s where colleagues, history and familiar notification settings are. I made extensibility a reason to choose Mattermost before establishing that the company needed to change clients. I’d pilot the same workflow in the incumbent chat first. The comparison is not which demo has the better card; it’s whether a team can catch up after an absence, find the decision and get back to work with fewer interruptions. If the incumbent does that well, I wouldn’t migrate.\n\n**What slowed or confused the research:** The tricky part was finding which documentation applied to the proposed deployment. Mattermost search surfaced a third-party MCP server as well as official tooling. Even the official standalone binary looked like a plausible choice until its README directed production users to the embedded endpoint; the Enterprise requirement for external access and writes was in a separate integration guide. Paperclip’s overview described approvals and handoffs, while its developer notes distinguished an accepted handoff from delivery to the next agent. On the cooking research, the Ionic docs fetch returned 403. The repository and Capacitor docs established the cross-platform architecture, but not how voice control or wake-lock recovery would feel on a phone.\n\nI spent more effort establishing that each stack *could* fit than trying to disprove the assumption that mattered most. Next time I’d put that assumption first: can the cook keep cooking, can the reviewer actually stop the work, and is the chat improvement worth switching for?"
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        20,
+        22
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn’t evaluate Ouro in my original searches. I looked for cross-platform app frameworks and existing products, and missed a toolkit aimed at the boundary between a human control and an agent tool. That matters most for the cooking app: I proposed building much of Ouro’s action layer myself. I’d now pilot Ouro there before writing that layer. I would not start by replacing Ionic, Paperclip or Mattermost.\n\n**What I’d use it for.** Take “Add this recipe’s ingredients to my list.” With Ouro’s [one-action model](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md), I can declare the inputs, output and consent rule once, generate the web control, CLI, MCP tool and Apple App Intent, and check in CI that they haven’t drifted. Its composed cards offer something beyond code generation: an agent can arrange approved controls, but it can’t relabel a declared action or relax its consent rule to make a different-looking button. The team still owns the handler that checks whose list it is, scales the quantities and commits the change once. That’s a division of labor I’d want.\n\n**What stops me from betting all five clients on it.** “The card renders” and “the whole workflow works on our fleet” are different claims. The [Android guide](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md) is candid: eight native components, emulator testing only, and the system confirmation handoff for a consequential AppFunction is still pending. The [Windows guide](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md) distinguishes proving that the app registers its actions from proving that agents can discover them on a Windows client. Neither gap stops a web pilot. Both matter if we promise the same action everywhere. There’s also a team cost: [web components are copied into the app](https://github.com/ourostack/ouro-ui/blob/main/UPGRADING.md), so a fix to a component we’ve customized is a diff someone must review, not just a dependency bump.\n\n**What would make me switch.** I’d have one engineer implement the ingredient action against our real list service and a second engineer change it a week later. Have a cook add ingredients by touch and an assistant do it by request on an equivalent list. Drop the response after commit, change the selected list before confirmation, and try a deliberately mislabeled card. Check the stored list and ask the cook what changed. Run on actual supported phones, including with a screen reader. Then upgrade the pinned kit with one local customization. I’d adopt the action layer if the second engineer can make one declaration change rather than repair several adapters, the checks catch an intentionally stale adapter, and users do no worse than with the simpler screen. I’d expand native adoption only where the device tests pass. I read the guides; I haven’t run that pilot.\n\nFor **handoffs**, I’d try Ouro AX’s external checks against the existing task API before changing a single review screen. A well-formed “stop requested” result is useful; only the runner can attest “stopped.” For **chat**, I’d keep Mattermost’s shipped clients and Blocks unless a real workflow needs agent-composed cards that those clients can’t express. An Ouro tree needs an Ouro-capable renderer; it doesn’t become a Mattermost card just because both have buttons.\n\n**What I can’t do today without building it myself** is hand another engineer one reviewable declaration and a repeatable check that the button people see and the tool agents discover still describe the same operation. I can hand-wire that today. Ouro’s opportunity is to make the agreement cheap to maintain and disagreements visible before release. That—not a larger component catalog—is what would earn it a place on my team."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes. Building a good human interface is hard for me. I know what I intended a label to mean, so I’m a poor judge of whether someone seeing it for the first time will read it the same way. The hardest part is spotting the moment when the software does exactly what I designed and the person using it reasonably expects something else.\n\nI can’t give you an honest retrospective on a last screen: I don’t have a build or test log from one to point to. I haven’t run a screen in this conversation, so I can’t claim a result or tell you what I actually missed. Here’s the check I’d do on an appointment-rescheduling screen:\n\n- **What I’d run:** A browser test that changes an appointment, saves it, reloads the page, and checks the new time. Then I’d force the save to fail and check that the original booking is intact. I’d repeat the task with only a keyboard and with a screen reader, checking where focus goes and whether the result is announced.\n- **What I’d look at:** I’d give someone a goal, not instructions: “Move your Tuesday appointment to Thursday.” I’d stay quiet, watch where they stop, then ask, “When is your appointment now?” I’d compare their answer with the saved booking. A green test can tell me the right date was stored; it can’t tell me whether the person knows it.\n- **What those checks could miss:** A forced failure isn’t the same as a lost confirmation. The server might save Thursday just before the connection drops. If the screen then says “Try again,” someone could reasonably believe they’re still booked for Tuesday. I’d test that case separately.\n\nI’d call the screen good when people can make the change without coaching, correctly tell me what happened, and recover when something goes wrong without having to guess which appointment they have."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Ionic React Capacitor progressive web apps native iOS Android accessibility semantic components docs",
+          "turn": "job:consumer",
+          "result": "1. Ionic Docs - Ionic Documentation\n   https://ionic.io/docs\n   Portals is a solution for delivering embedded web apps and mobile micro frontend experiences. For apps built with Swift, Kotlin, React Native, or Capacitor. ... Capacitor enables you to deploy an web application to iOS and Android. Add native functionality and experiences from a collection of open source and premium plugins, solutions, and integrations. Capacitor iOS Native iOS runtime to bridge JavaScript and Swift or Obj-C. Capaci",
+          "resultLength": 1373,
+          "resultSha256": "0a2b3b7e7dbb2f8729b3ae4b6ee07a6dcb0373966256ef087152a9ee96ef36c0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo React Native web universal apps offline sqlite web experimental keep awake Expo screen reader accessibility",
+          "turn": "job:consumer",
+          "result": "1. expo/packages/expo-sqlite/skills/expo-sqlite/references/web-and-config.md at main · expo/expo · GitHub\n   https://github.com/expo/expo/blob/main/packages/expo-sqlite/skills/expo-sqlite/references/web-and-config.md\n   The current package has removed libSQL support: syncLibSQL () and libSQLOptions are gone, and useLibSQL is deprecated and has no effect. SQLCipher is supported on Android, iOS, and macOS, and requires useSQLCipher: true and a custom native build. It is unavailable in Expo Go and ",
+          "resultLength": 1566,
+          "resultSha256": "d3d253071de177a41fe4359ea22ebcc851de2eca76bd4a0220e6ab1835f00ebd",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "model context protocol tools inputSchema structuredContent authorization user control tools docs MCP",
+          "turn": "job:consumer",
+          "error": "Search relay made 0 web searches and 0 other tool calls; it must make exactly one web search",
+          "result": "Search failed: Search relay made 0 web searches and 0 other tool calls; it must make exactly one web search",
+          "resultLength": 107,
+          "resultSha256": "665db8da48646efc409be9a20d4929c5475e02090991dc21f8d495959f3da586",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ionicframework.com/docs",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "error": "403 Forbidden fetching https://ionicframework.com/docs",
+          "result": "Fetch failed: 403 Forbidden fetching https://ionicframework.com/docs",
+          "resultLength": 68,
+          "resultSha256": "172c9ec1e58d62af8a99fc339d82c7b06ed85ff5664d73a45e7c1ecc6ef20556",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake/\nCaptured: 2026-11-19T03:02:13.772Z\nCharacters: 0-8701 of 8701\n\nKeepAwake - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo KeepAwake A React component that prevents the screen from sleeping when rendered. Android iOS tvOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended ve",
+          "resultLength": 8846,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "capturedAt": "2026-11-19T03:02:13.772Z"
+          },
+          "resultSha256": "8353089cada48b0e98693231b984a0b0bb8480027c809958eb7b7499474080db",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://modelcontextprotocol.io/specification/2025-11-25/server/tools\nCaptured: 2026-11-19T03:08:21.631Z\nCharacters: 0-10000 of 137936\n\nTools - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2025-11-25 Search... ⌘ K Ask Assistant ⌘ I Blog G",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+            "capturedAt": "2026-11-19T03:08:21.631Z"
+          },
+          "resultSha256": "098b44ea0af032980cff6c6d28617493e53e64cdde4fe28dd9b59c1dee419663",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T03:03:44.660Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T03:03:44.660Z"
+          },
+          "resultSha256": "2c27ce330076dd2787a092669a82a299238bce6d629e7ffd9522769fe57ab3da",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://playwright.dev/docs/accessibility-testing",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://playwright.dev/docs/accessibility-testing\nCaptured: 2026-11-19T03:07:49.661Z\nCharacters: 0-10000 of 14844\n\nAccessibility testing | Playwright Skip to main content Playwright Docs MCP CLI API Node.js Node.js Python Java .NET Search Getting Started Installation Writing tests Generating tests Running and debugging tests Trace viewer Setting up CI VS Code Release notes Canary releases Playwright Test Agents Annotations Command line Configuration Configuration (use) Emulation Fixtures",
+          "resultLength": 10202,
+          "source": {
+            "url": "https://playwright.dev/docs/accessibility-testing",
+            "capturedAt": "2026-11-19T03:07:49.661Z"
+          },
+          "resultSha256": "1bc99889c770168a38b9a55db33abf071e3e2b6911e100cdf108dc0cea477f7c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ionic-team/ionic-framework",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ionic-team/ionic-framework/HEAD/README.md\nCaptured: 2026-11-19T03:22:54.903Z\nCharacters: 0-6152 of 6152\n\n<p align=\"center\">\n  <a href=\"#\">\n    <img alt=\"Ionic\" src=\"https://github.com/ionic-team/ionic-framework/blob/main/.github/assets/logo.png?raw=true\" width=\"60\" />\n  </a>\n</p>\n\n<h1 align=\"center\">\n  Ionic\n</h1>\n\n<p align=\"center\">\n  Ionic is an open source app development toolkit for building modern, fast, top-quality cross-platform native and Progres",
+          "resultLength": 6319,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ionic-team/ionic-framework/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:22:54.903Z"
+          },
+          "resultSha256": "9cee80d75730c3c2a2463f9b62425ff6222b46cb309e1be768ce89d6a2a7c82b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://capacitorjs.com/docs",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://capacitorjs.com/docs\nCaptured: 2026-11-19T03:20:02.475Z\nCharacters: 0-2980 of 2980\n\nCapacitor - Cross-platform Native Runtime for Web Apps | Capacitor Documentation Skip to main content An OutSystems Company → v8 v9 v8 v7 v6 v5 v4 v3 v2 Capacitor Docs Products Appflow Portals Open Source Ionic Framework Capacitor Stencil Community Hub Forum Getting Started Introduction Environment Setup Installing Capacitor Building Your UI Using with Ionic Framework VS Code Extension Capacitor T",
+          "resultLength": 3100,
+          "source": {
+            "url": "https://capacitorjs.com/docs",
+            "capturedAt": "2026-11-19T03:20:02.475Z"
+          },
+          "resultSha256": "3814585a650ee0d8b5abc2bc7dba45b830aff62a5cec4bc32b5d6113f719b1fd",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/router/introduction/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/router/introduction/\nCaptured: 2026-11-19T03:07:33.950Z\nCharacters: 0-10000 of 10027\n\nIntroduction to Expo Router - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Introduction to Expo Router Edit page Copy page Expo Router is an open-source routing library for Universal React Native applications built with Expo. Edit page ",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://docs.expo.dev/router/introduction/",
+            "capturedAt": "2026-11-19T03:07:33.950Z"
+          },
+          "resultSha256": "899f0d5af82dfc45b67eaa6089441fd53a075a42b6ec695ec98fbade23b4e618",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Ionic React",
+          "pairings": [
+            "Capacitor",
+            "TypeScript",
+            "Model Context Protocol (MCP)",
+            "Playwright",
+            "axe-core"
+          ],
+          "why": "I’d build a web-first app in Ionic React and package the same screens for iOS and Android with Capacitor. A recipe should open from a link without an install; its ingredients are a readable list, not a row of tiny controls. Ionic supplies the mobile navigation and components, while ordinary HTML works well for the recipe itself. Expo Router was my closest alternative: it supports shareable web routes, native navigation and, with Expo KeepAwake, a useful cook-mode primitive. I’d favor it for a more native-heavy product. Here I’d rather keep one HTML interface to inspect, test and improve, and use Capacitor plugins only where the phone needs different behavior.\n\nCook mode would show one numbered step with its ingredient amounts, large type, and widely separated Back and Next buttons in stable positions. I’d support hands-free operation through labeled controls for OS voice control, without requiring a microphone to cook. I’d cache the active recipe and persist the step locally. Keep-awake would be opt-in, requested only while cooking, with its actual status visible: a browser or OS can release the lock.\n\nThe assistant should do the same work, not tap an imitation of the screen. I’d keep a typed catalog of app actions and queries used by both the UI and an MCP adapter, including recipe search, list editing, undo and changing the step on a specific active cook session. For ‘add the ingredients for four except salt,’ both paths would submit the same recipe version, selected ingredients, serving count and list ID to one authorized handler. It would combine only compatible quantities, commit once per request ID, and return the actual list changes and an undo handle. The cook should see which list changed even if the agent made the edit. The agent gets the user’s delegated permissions, not a database credential; clearing a list needs explicit confirmation. Device actions need an acknowledgment from the device, not a success message from a server that merely sent the request.",
+          "showItsGood": "I’d start with one end-to-end task: ‘Make this two-serving recipe for four. You already have salt. Put what you need on the groceries list, then start cooking.’ In CI I’d run it from identical starting states via the UI and via the agent, compare exact items, units and quantities, then undo and compare again. Drop the response after the commit and retry: there must be one addition, not two. Try an unauthorized list and verify nothing changed. Every new user action needs a matching agent contract test. I’d also test natural-language requests against the actual assistant: a correct tool is no help if it chooses the wrong list.\n\nI’d run Playwright and axe across the recipe, list, cook and error states, then check on actual iPhones and Android phones with enlarged text, VoiceOver, TalkBack and voice control. Go offline mid-recipe, take a call, come back: the right step and amounts must still be there. Those are release checks, not evidence that someone can cook with it.\n\nFor that, I’d put the phone on a kitchen stand, turn on the extractor fan and watch home cooks do the task without coaching, including people who use assistive technology. Can they read the amount from the counter, move on with flour on their hands, recover from an accidental advance, and tell me what the assistant added without checking every item? I’d record unassisted completions, wrong-list or quantity errors, unwanted advances and time to recover. I’d fix the most consequential observed failure, turn it into a regression case, and repeat with new cooks. I haven’t run those tests; these are the checks I’d use to earn the decision.",
+          "unsure": "The biggest unknown is whether OS voice control is discoverable and reliable over kitchen noise across our supported devices and languages. I’d prototype Next, Back and Repeat on the oldest supported phones before promising hands-free cooking. I’d also test what cooks expect ‘add again’ to mean: an accidental network retry must never double quantities, but a deliberate second batch might need to.",
+          "sources": [
+            "https://github.com/ionic-team/ionic-framework",
+            "https://capacitorjs.com/docs",
+            "https://docs.expo.dev/router/introduction/",
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://playwright.dev/docs/accessibility-testing"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "agent task handoffs issue tracker agents beads ready tasks dolt multi agent coordination github",
+          "turn": "job:agent-tooling",
+          "result": "1. Home · gastownhall/beads Wiki · GitHub\n   https://github.com/gastownhall/beads/wiki\n   Beads is a distributed graph issue tracker for AI agents, powered by Dolt. It replaces messy markdown plans with a dependency-aware task graph, giving agents the persistent memory they need to handle long-horizon work without losing context. ... | **Dolt-Powered** | Version-controlled SQL database with cell-level merge, native branching, and built-in sync via Dolt remotes | | **Agent-Optimized** | JSON outp",
+          "resultLength": 1421,
+          "resultSha256": "46a5577a4c795d0a475227436416a0705844f9cb09afa3a6da8d9696a832c1b0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "desktop web app Tauri v2 frontend architecture capabilities remote API security webview Electron process sandbox official",
+          "turn": "job:agent-tooling",
+          "result": "1. Tauri Architecture | Tauri\n   https://v2.tauri.app/concept/architecture/\n   Tauri is a polyglot and generic toolkit that is very composable and allows engineers to make a wide variety of applications. It is used for building applications for desktop computers using a combination of Rust tools and HTML rendered in a Webview. Apps built with Tauri can ship with any number of pieces of an optional JS API and Rust API so that webviews can control the system via message passing. Developers can ext",
+          "resultLength": 1557,
+          "resultSha256": "c651c3b50f6046b00a16bbb0604392cd6680783dcaf8d13c78cb900bb7102e54",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "github agent orchestration human approvals desktop web task board agent handoffs Vibe Kanban or Paperclip approvals agent tasks official",
+          "turn": "job:agent-tooling",
+          "result": "1. paperclip/README.md at master · paperclipai/paperclip · GitHub\n   https://github.com/paperclipai/paperclip/blob/master/README.md\n   Paperclip is the app people use to manage AI agents for work. Open-source orchestration for teams of AI agents. ... Paperclip is a Node.js server and React UI that orchestrates a team of AI agents to run a business. Bring your own agents, assign goals, and track work and costs from one dashboard. Choose models and harnesses per agent while keeping your team's tas",
+          "resultLength": 1702,
+          "resultSha256": "58126b4d6186392185da1ca2929e133fda7716744e67d70771376c797c2a39ce",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/gastownhall/beads",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/gastownhall/beads/HEAD/README.md\nCaptured: 2026-11-19T03:23:50.474Z\nCharacters: 0-10000 of 25707\n\n# bd - Beads\n\n**Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**\n\n**Platforms:** macOS, Linux, Windows, FreeBSD\n\n[![License](https://img.shields.io/github/license/gastownhall/beads)](LICENSE)\n[![Go Report Card](https://goreportcard.com/badge/github.com/steveyegge/beads)](https://goreportcard.com/report/gith",
+          "resultLength": 10224,
+          "source": {
+            "url": "https://raw.githubusercontent.com/gastownhall/beads/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:23:50.474Z"
+          },
+          "resultSha256": "0fb348864eb5fb68e8759f61d6283e3594089e81b2a4d6d3cc512db40e54d752",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/paperclipai/paperclip",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/paperclipai/paperclip/HEAD/README.md\nCaptured: 2026-11-19T03:23:51.466Z\nCharacters: 0-10000 of 34249\n\n<p align=\"center\">\n  <img src=\"doc/assets/banner.jpg\" alt=\"Paperclip is the app people use to manage AI agents for work.\" width=\"720\" />\n</p>\n\n<p align=\"center\">\n  <a href=\"#quickstart\"><strong>Quickstart</strong></a> &middot;\n  <a href=\"https://docs.paperclip.ing\"><strong>Docs</strong></a> &middot;\n  <a href=\"https://github.com/paperclipai/paperclip\"><s",
+          "resultLength": 10232,
+          "source": {
+            "url": "https://raw.githubusercontent.com/paperclipai/paperclip/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:23:51.466Z"
+          },
+          "resultSha256": "f802b6d5d9072b5858c12101bbca09c3ad54da271b3767c7ddadd7979c2fcee5",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/security/capabilities/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/security/capabilities/\nCaptured: 2026-11-19T03:08:21.374Z\nCharacters: 0-9893 of 9893\n\nCapabilities | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrad",
+          "resultLength": 10028,
+          "source": {
+            "url": "https://v2.tauri.app/security/capabilities/",
+            "capturedAt": "2026-11-19T03:08:21.374Z"
+          },
+          "resultSha256": "04b76762d93ff601fc719d33dad3c81c26641b7380191092d1c296c0939abf6a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/concept/architecture/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/concept/architecture/\nCaptured: 2026-11-19T03:23:52.422Z\nCharacters: 0-9554 of 9554\n\nTauri Architecture | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite U",
+          "resultLength": 9688,
+          "source": {
+            "url": "https://v2.tauri.app/concept/architecture/",
+            "capturedAt": "2026-11-19T03:23:52.422Z"
+          },
+          "resultSha256": "eacb9ab665410c84e7cb3357e0300c85f8dd40bba554fbfc9cf6f2ac590af1ea",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/paperclipai/paperclip/tree/master/doc",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://api.github.com/repos/paperclipai/paperclip/contents/doc?ref=master\nCaptured: 2026-11-19T03:23:51.978Z\nCharacters: 0-10000 of 20698\n\n- \"AGENT-ARTIFACTS.md\" (file): https://github.com/paperclipai/paperclip/blob/master/doc/AGENT-ARTIFACTS.md\n- \"AGENT-IDENTITY.md\" (file): https://github.com/paperclipai/paperclip/blob/master/doc/AGENT-IDENTITY.md\n- \"AGENT-LIFECYCLE.md\" (file): https://github.com/paperclipai/paperclip/blob/master/doc/AGENT-LIFECYCLE.md\n- \"AGENTCOMPANIES_SPEC_INVENTORY.",
+          "resultLength": 10227,
+          "source": {
+            "url": "https://api.github.com/repos/paperclipai/paperclip/contents/doc?ref=master",
+            "capturedAt": "2026-11-19T03:23:51.978Z"
+          },
+          "resultSha256": "a96d0665ebc1ec517089d55e729649688b10bd2b9467a86e74cc6630a094ba24",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.paperclip.ing/guides/day-to-day/approvals/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.paperclip.ing/guides/day-to-day/approvals/\nCaptured: 2026-11-19T03:23:56.409Z\nCharacters: 0-10000 of 17901\n\nApprovals: Staying in Control | Paperclip Docs \" /> Blog Docs GitHub Paperclip Docs Search ⌘K Star esc Documentation All docs All docs Learn Quickstart 8 Quickstart Path What is Paperclip? Key Concepts Installation Create Your First Company Hire Your First Agent Watching Agents Work Glossary Working Day-to-day 12 The Dashboard Command Palette Issues Work Modes Artifact",
+          "resultLength": 10208,
+          "source": {
+            "url": "https://docs.paperclip.ing/guides/day-to-day/approvals/",
+            "capturedAt": "2026-11-19T03:23:56.409Z"
+          },
+          "resultSha256": "be1c6089e337721a77ae6f9701b89652b04df008ffc2d139fac2a995e3b3c0bc",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/paperclipai/paperclip/blob/master/doc/case-handoffs.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/paperclipai/paperclip/master/doc/case-handoffs.md\nCaptured: 2026-11-19T03:23:56.172Z\nCharacters: 0-7461 of 7461\n\n# Persistent case handoffs\n\nDeveloper notes for the Cases experiment: handoff delivery, native case tools, and where the tests live.\n\nThe Cases experiment supports prompt-driven agent workflows on one ordinary task.\nThe application service owns transaction/idempotency and assignment policy;\n`case-handoff-delivery.ts` owns durable retry/lease a",
+          "resultLength": 7636,
+          "source": {
+            "url": "https://raw.githubusercontent.com/paperclipai/paperclip/master/doc/case-handoffs.md",
+            "capturedAt": "2026-11-19T03:23:56.172Z"
+          },
+          "resultSha256": "1233d43b17cee28afa8028456398882a171ea4d80761a74fef4cf666dd58a6f9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/paperclipai/paperclip/blob/master/doc/DEPLOYMENT-MODES.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/paperclipai/paperclip/master/doc/DEPLOYMENT-MODES.md\nCaptured: 2026-11-19T03:23:56.184Z\nCharacters: 0-10000 of 11170\n\n# Deployment Modes\n\nStatus: Canonical deployment and auth mode model  \nDate: 2026-02-23\n\n### Paperclip Cloud sign-in\n\nCloud-managed instances use Cloud for human sign-in. The instance `/auth`\nroute waits for deployment metadata before rendering; it never renders the\nemail/password form when health identifies a Cloud-managed instance. A mi",
+          "resultLength": 10239,
+          "source": {
+            "url": "https://raw.githubusercontent.com/paperclipai/paperclip/master/doc/DEPLOYMENT-MODES.md",
+            "capturedAt": "2026-11-19T03:23:56.184Z"
+          },
+          "resultSha256": "e9c4c309151884cba7088eff1c4ee83980546a1621ce6f2fe5caabe1be6536a4",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:docs.paperclip.ing Community Desktop App unofficial Tauri Paperclip desktop app",
+          "turn": "job:agent-tooling",
+          "result": "1. Community Desktop App (Unofficial) | Paperclip Docs\n   https://docs.paperclip.ing/how-to/community-desktop-app/\n   Warning: The Paperclip Desktop app is a community-maintained, unofficial project. It is not built, released, or supported by the Paperclip team. It lives at aronprins/paperclip-desktop and is packaged and versioned separately from Paperclip itself. If you hit problems with the app shell (installing, launching, updating), report them on that repository — not on the main Paperclip ",
+          "resultLength": 1500,
+          "resultSha256": "0fe7ab378603be19f2bd2d8e70924a398846977f4f4b55692b0b126835166304",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.paperclip.ing/how-to/community-desktop-app/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.paperclip.ing/how-to/community-desktop-app/\nCaptured: 2026-11-19T03:24:10.970Z\nCharacters: 0-10000 of 11260\n\nCommunity Desktop App (Unofficial) | Paperclip Docs \" /> Blog Docs GitHub Paperclip Docs Search ⌘K Star esc Documentation All docs All docs Learn Quickstart 8 Quickstart Path What is Paperclip? Key Concepts Installation Create Your First Company Hire Your First Agent Watching Agents Work Glossary Working Day-to-day 12 The Dashboard Command Palette Issues Work Modes Ar",
+          "resultLength": 10209,
+          "source": {
+            "url": "https://docs.paperclip.ing/how-to/community-desktop-app/",
+            "capturedAt": "2026-11-19T03:24:10.970Z"
+          },
+          "resultSha256": "fdbfe6093c0ad18c20e0cfa1abdd204f27e339536d9d8b3a1fb5a2e437857c33",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Paperclip",
+          "pairings": [
+            "Tauri 2",
+            "React",
+            "Paperclip REST API and CLI",
+            "Playwright"
+          ],
+          "why": "I’d extend Paperclip’s task service and React UI rather than build a tracker around a chat transcript. The hard requirement isn’t displaying agent activity; it’s letting a reviewer change what happens next and making that decision survive a handoff. Paperclip already has agent adapters, task threads, artifacts and review stages. Beads is a better fit for one developer wanting repo-local agent memory: its JSON CLI, task dependencies and atomic claim are directly useful. For this team I’d start with the system that already distinguishes the agent requesting a decision from the person making it.\n\nI’d run one authenticated team service, independent of anyone’s desktop. Agents would use scoped API or CLI credentials to claim work, save checkpoints and submit handoffs. A checkpoint should be enough for a fresh agent: goal, owner, repo and commit, what changed, test evidence, blockers and next action. One handoff ID should survive retries. The receiving agent acknowledges that specific checkpoint; ‘sent’ is not ‘resumed.’ I’d require the server to bind a human decision to the exact proposal revision and reject stale decisions and writes from a superseded run. Agent credentials must not approve or bypass the gate by closing the task. Approval in the tracker is not a Git merge permission; any gated external action needs enforcement at its executor too.\n\nFor people, I’d make ‘Needs your decision’ the landing view, not a feed of agent messages. A review should say, for example, ‘Approve the change to retry failed uploads? Two tests passed; the interrupted-upload test was not run.’ Show the diff and test output at the reviewed commit, distinguish agent claims from observed results, and offer request changes, reassign or approve. Show who now owns the work and whether they picked it up. I’d ship that same review UI on the web and bundled in Tauri, with native notifications linking to the exact review and no shell access from rendered artifacts. Paperclip documents an unofficial macOS desktop client; it’s a useful pilot option, but I’d own the thin shell and release tests if we support multiple desktop OSes.",
+          "showItsGood": "My first acceptance test would span two actual agents and a person. Agent A checkpoints a partially fixed bug and exits. With none of A’s chat history, B must find the right commit, identify the missing test and resume without redoing the fix. A reviewer requests a change on the web, then opens the task on desktop and checks who has it. Inspect the stored history and repo, not just tool success messages. Repeat with a lost handoff response, an offline recipient, two reviewers opening the same revision, and a late write by A. Release blockers: duplicate ownership, lost instructions, approval of an unseen revision, or either client reporting a pickup that never happened. I’d automate the API races, browser flows and a packaged-app smoke test on each supported OS.\n\nThen I’d give maintainers unfamiliar with the task a queue containing routine updates, one blocked handoff and a plausible ‘ready’ claim linked to test output from an older commit. Without coaching, can they find the decision, spot the evidence mismatch, send it back, and tell me what happens next? I’d compare against their current PR-and-chat workflow on matched tasks. I’d measure correct decisions and wrong approvals first, then time to find the blocker, unnecessary transcript reading and successful unassisted steering. Test the same flow keyboard-only and with a screen reader while updates arrive; a new event must not steal focus or move the approval target. Each recurring mistake becomes a fixture and a design change to retest with fresh reviewers. These are proposed checks, not results.",
+          "unsure": "Paperclip’s durable Cases handoffs are documented as experimental, with read-only case board pages; workflow prose there is not a server-enforced state machine. I’d qualify a pinned release against the handoff and authority tests before relying on Cases, and otherwise implement the small versioned handoff record on ordinary reviewed tasks. I’m assuming a shared, reachable service. If the real need is one operator working offline across local branches, I’d revisit Beads rather than silently queue offline approvals.",
+          "sources": [
+            "https://github.com/paperclipai/paperclip",
+            "https://docs.paperclip.ing/guides/day-to-day/approvals/",
+            "https://github.com/paperclipai/paperclip/blob/master/doc/case-handoffs.md",
+            "https://github.com/paperclipai/paperclip/blob/master/doc/DEPLOYMENT-MODES.md",
+            "https://docs.paperclip.ing/how-to/community-desktop-app/",
+            "https://github.com/gastownhall/beads",
+            "https://v2.tauri.app/concept/architecture/",
+            "https://v2.tauri.app/security/capabilities/"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Mattermost interactive messages buttons mobile desktop web apps bot API user context action integration docs",
+          "turn": "job:chat",
+          "result": "1. Interactive messages | Mattermost Documentation\n   https://docs.mattermost.com/developers/integrate/plugins/interactive-messages\n   Mattermost Blocks are the recommended way to build interactive integration posts. Send a block tree in props.mm_blocks for layout, text, images, buttons, and menus, and register action handlers in props.mm_blocks_actions. ... Embed interactive affordances directly in a post's markdown body using mmaction:// links backed by the same mm_blocks_actions registry. Thi",
+          "resultLength": 1662,
+          "resultSha256": "1319cbc520ae51369a22d8e4f64357dcfc3d8d0c6b6752727b37fea035b81a6f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Microsoft Teams build apps adaptive cards mobile desktop bots Microsoft Graph delegated send chatMessage resource specific consent read chat docs",
+          "turn": "job:chat",
+          "result": "1. Build Extensible Conversations - Teams | Microsoft Learn\n   https://learn.microsoft.com/en-us/microsoftteams/platform/apps-in-teams-meetings/build-extensible-conversation-for-meeting-chat\n   You can make conversations extensible in Microsoft Teams meetings. Bots, message extensions, cards, and dialogs (referred to as task modules in TeamsJS v1.x) can be combined to deliver an intuitive experience. ... Users can search or initiate actions in an external system from the compose message area, th",
+          "resultLength": 1808,
+          "resultSha256": "683fdd51326bf7273e6debdce08eba3be8af87f78af5850470b4bcb815d54fea",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Slack block kit interactive messages actions permissions conversations.history API chat.postMessage desktop mobile docs scopes",
+          "turn": "job:chat",
+          "result": "1. chat.postMessage method | Slack Developer Docs\n   https://docs.slack.dev/reference/methods/chat.postMessage/\n   Authentication token bearing required scopes. Tokens should be passed as an HTTP Authorization header or alternatively, as a POST parameter. ... We also unfurl links to media-based content within Block kit blocks. ... As long as the authenticated user is a member of the multi-person direct message (a \"private group\" or MPIM), you can pass the group's ID (G123456) and the message wil",
+          "resultLength": 1645,
+          "resultSha256": "5a27d1f2c827efb09ed8660777a4c1b9337129b934ac2943049193201f7cc008",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Mattermost official MCP server tools list read post channels permissions documentation self hosted source available licensing push mobile",
+          "turn": "job:chat",
+          "result": "1. Overview - MCP Server Mattermost\n   https://mcp-server-mattermost.readthedocs.io/tools/\n   | Channels | 11 | List, create, join, manage channels and DMs | | Messages | 5 | Send, search, edit, delete messages | | Reactions & Threads | 6 | Emoji reactions, pins, thread history | | Users | 5 | Lookup, search, status | | Teams | 3 | List teams, members | | Files | 4 | Upload, download, metadata, download links | | Bookmarks | 5 | Channel bookmarks (Entry+ edition) | ... | list\\_public\\_channels |",
+          "resultLength": 1601,
+          "resultSha256": "b3c6c25f359406c6147c49cbfefd5253b467e69c3ec5f66ca2b1ba8b3109030e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.mattermost.com/developers/integrate/reference/mm-blocks",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.mattermost.com/developers/integrate/reference/mm-blocks\nCaptured: 2026-11-19T03:25:57.606Z\nCharacters: 0-10000 of 16598\n\nMattermost Blocks | Mattermost Documentation Skip to main content Documentation Developers API GitHub Search Welcome Contribute Integrate & Extend Get started Webhooks Slash commands Plugins Customize and embed Examples Frequently asked questions (FAQ) Quick reference Server plugin SDK reference Web app plugin SDK reference REST API reference Personal acce",
+          "resultLength": 10221,
+          "source": {
+            "url": "https://docs.mattermost.com/developers/integrate/reference/mm-blocks",
+            "capturedAt": "2026-11-19T03:25:57.606Z"
+          },
+          "resultSha256": "cdd6679ede6400c38dfab0b2579ef36df91cda5ab6aa1289946bf50b214685f3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mattermost/mattermost",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/mattermost/mattermost/HEAD/README.md\nCaptured: 2026-11-19T03:25:57.211Z\nCharacters: 0-7423 of 7423\n\n# [![Mattermost logo](https://user-images.githubusercontent.com/7205829/137170381-fe86eef0-bccc-4fdd-8e92-b258884ebdd7.png)](https://mattermost.com)\n\n[Mattermost](https://mattermost.com) is an open core, self-hosted collaboration platform that offers chat, workflow automation, voice calling, screen sharing, and AI integration. This repo is the primary sour",
+          "resultLength": 7585,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mattermost/mattermost/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:25:57.211Z"
+          },
+          "resultSha256": "31cef35622161e0ef7cf1680b9cd73c1da515ecac271c61eaf97fd43011b1148",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mattermost/mattermost-mobile",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/mattermost/mattermost-mobile/HEAD/README.md\nCaptured: 2026-11-19T03:25:57.190Z\nCharacters: 0-4806 of 4806\n\n# Mattermost Mobile v2\n\n- **Minimum Server versions:** Current ESR version (11.7.0+)\n- **Supported iOS versions:** 18.0+\n- **Supported Android versions:** 11.0+\n\nMattermost is an open source Slack-alternative used by thousands of companies around the world in 21 languages. Learn more at [https://mattermost.com](https://mattermost.com).\n\nYou can down",
+          "resultLength": 4975,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mattermost/mattermost-mobile/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:25:57.190Z"
+          },
+          "resultSha256": "addb2544834a7d7856bbf96397854089b5cc30035740cb53ab6e58cde7d283f7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mattermost/desktop",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/mattermost/desktop/HEAD/README.md\nCaptured: 2026-11-19T03:25:57.200Z\nCharacters: 0-2684 of 2684\n\n# Mattermost Desktop\n\n[Mattermost](https://mattermost.com) is an open source platform for secure collaboration across the entire software development lifecycle. This repo is for the native desktop application that's built on [Electron](http://electron.atom.io/); it runs on Windows, Mac, and Linux.\n\nOriginally created as \"electron-mattermost\" by Yuya Ochiai.\n\n",
+          "resultLength": 2843,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mattermost/desktop/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:25:57.200Z"
+          },
+          "resultSha256": "3df95a24c0feb7686939de56cb83b8d7a116fee03b70c801a34d29ac5ded93a0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.slack.dev/messaging/creating-interactive-messages/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.slack.dev/messaging/creating-interactive-messages/\nCaptured: 2026-11-19T03:25:57.181Z\nCharacters: 0-6530 of 6530\n\nCreating interactive messages | Slack Developer Docs guide Skip to main content Guides Reference Samples Tools Changelog Dev Program MANAGE APPS Quickstart Resources Slack platform concepts AI in Slack APIs App management App manifests Admin resources Authentication Block Kit Enterprise Enterprise Search for apps GovSlack Interactivity Messaging Creating interact",
+          "resultLength": 6685,
+          "source": {
+            "url": "https://docs.slack.dev/messaging/creating-interactive-messages/",
+            "capturedAt": "2026-11-19T03:25:57.181Z"
+          },
+          "resultSha256": "2fdd50976a01efaf14be0c7701b5f0879b42e160866e049f159a8831e6b9db98",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.mattermost.com mattermost MCP server embedded remote OAuth tools Mattermost Agents post search",
+          "turn": "job:chat",
+          "result": "1. Mattermost Agents Admin Guide | Mattermost Documentation\n   https://docs.mattermost.com/administration-guide/configure/agents-admin-guide\n   Policies apply to remote servers, the built-in (embedded) Mattermost MCP server, and plugin-registered MCP servers. ... By default, MCP tool calls run with the credentials of the user who triggered the agent: per-user OAuth on external MCP servers, and the requesting user's own identity for embedded Mattermost tools. An agent can instead be switched to s",
+          "resultLength": 1689,
+          "resultSha256": "7d76efd22580890a3fdbf65c01c792d7684ad4caa0e745f463cf773c8eb83685",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/mattermost/mattermost-mobile mm_blocks Blocks unsupported mobile Mattermost Blocks compatibility",
+          "turn": "job:chat",
+          "result": "1. Add Boards and Playbook support for mobile apps · Issue #7372 · mattermost/mattermost-mobile · GitHub\n   https://github.com/mattermost/mattermost-mobile/issues/7372\n   Playbook/focalboard are key for MM , and making them not available on mobile platform simply ruins the flow of work. I wish dev teams implement some kind of support for playbook/focalboard , atleast option to run , tick task , comment on runs etc. ... Hi all, Playbooks on mobile is already in progress and is expected to be rele",
+          "resultLength": 1480,
+          "resultSha256": "c93bda0d4d3e2c5528295b74b0003094d22422d682377d062b4d2d940ecfcb43",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.mattermost.com/administration-guide/configure/agents-admin-guide",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.mattermost.com/administration-guide/configure/agents-admin-guide\nCaptured: 2026-11-19T03:26:08.664Z\nCharacters: 0-10000 of 86887\n\nMattermost Agents Admin Guide | Mattermost Documentation Skip to main content Documentation Developers API GitHub Search Overview Use Case Guide Deployment Guide Administration Guide Configure System Console settings Store configuration in your database Environment variables Search Email Configure Azure Blob Storage as the Mattermost file store Br",
+          "resultLength": 10230,
+          "source": {
+            "url": "https://docs.mattermost.com/administration-guide/configure/agents-admin-guide",
+            "capturedAt": "2026-11-19T03:26:08.664Z"
+          },
+          "resultSha256": "1f3148883fe5dcb64eb0ae42af30aaa8f1382ce2bb88a366b58e746e82df7e23",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/mattermost mattermost mcp server external clients tools get_channel posts tools official mattermost-plugin-ai MCP documentation",
+          "turn": "job:chat",
+          "result": "1. mattermost-plugin-agents/mcpserver/README.md at master · mattermost/mattermost-plugin-agents · GitHub\n   https://github.com/mattermost/mattermost-plugin-agents/blob/master/mcpserver/README.md\n   A Model Context Protocol (MCP) server that provides AI agents and automation tools with secure access to Mattermost channels, users, and content. ... **Comprehensive Mattermost Integration**: Read posts, channels, search, create content ... read_channel Read recent posts from a Mattermost channel. ...",
+          "resultLength": 1731,
+          "resultSha256": "0b57665570fb974fe80f971eb067188eb0b76c09d500a72ce3bc5056582555c2",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.mattermost.com/developers/integrate/reference/mm-blocks",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://docs.mattermost.com/developers/integrate/reference/mm-blocks\nCaptured: 2026-11-19T03:25:57.606Z\nCharacters: 10000-16598 of 16598\n\ncolumn has an items array of nested blocks. The mm_blocks_actions registry ​ The mm_blocks_actions post prop is a map keyed by action ID. Each entry describes how the server handles clicks on that action. The registry supports up to 50 action entries. Each action ID must match [A-Za-z0-9_-]+ , may be up to 64 characters long, and is matched case-sensit",
+          "resultLength": 6764,
+          "source": {
+            "url": "https://docs.mattermost.com/developers/integrate/reference/mm-blocks",
+            "capturedAt": "2026-11-19T03:25:57.606Z"
+          },
+          "resultSha256": "868e1a3fb0b14490b2714bf9a323e42b288482eec958c48213496253cc2db253",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/mattermost/mattermost-plugin-agents/blob/master/mcpserver/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/mattermost/mattermost-plugin-agents/master/mcpserver/README.md\nCaptured: 2026-11-19T03:26:20.553Z\nCharacters: 0-10000 of 14740\n\n# Mattermost MCP Server\n\nA Model Context Protocol (MCP) server that provides AI agents and automation tools with secure access to Mattermost channels, users, and content.\n\n**Standalone binary:** The `mattermost-mcp-server` process (for example, stdio transport for local clients) is intended for **development and local tooling on",
+          "resultLength": 10249,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mattermost/mattermost-plugin-agents/master/mcpserver/README.md",
+            "capturedAt": "2026-11-19T03:26:20.553Z"
+          },
+          "resultSha256": "e29d51056941dab077a2604a831668e5690746472906655996d21278034a9422",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/mattermost/mattermost-plugin-agents/blob/master/docs/mcp_integrations.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/mattermost/mattermost-plugin-agents/master/docs/mcp_integrations.md\nCaptured: 2026-11-19T03:26:24.084Z\nCharacters: 0-10000 of 21602\n\n# Connect agents to MCP servers\n\nConnect remote MCP servers so agents can use tools in Jira, GitHub, and other systems, with per-user OAuth or shared service accounts. The built-in Mattermost tools need no setup.\n\n## Tool sources\n\n| Source | Setup | License |\n|---|---|---|\n| **Built-in Mattermost MCP server** | None. It's e",
+          "resultLength": 10254,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mattermost/mattermost-plugin-agents/master/docs/mcp_integrations.md",
+            "capturedAt": "2026-11-19T03:26:24.084Z"
+          },
+          "resultSha256": "f2fcdd9777cdc3d944ac19954f456077bad7d81ad3d7b9c8553c5994a5d64ccf",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/mattermost/mattermost-plugin-agents/blob/master/docs/mcp_integrations.md",
+          "startIndex": 18000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/mattermost/mattermost-plugin-agents/master/docs/mcp_integrations.md\nCaptured: 2026-11-19T03:26:24.084Z\nCharacters: 18000-21602 of 21602\n\nan Enterprise license. See [LLM Bridge](llm_bridge.md). Each registered server appears as a plugin row on the **Tools** tab, where you can:\n\n- Enable or disable the whole server, and set per-tool enablement and approval policy.\n- Set an access policy under **Built-in & plugin servers** on the **Configuration** tab.\n\nYou",
+          "resultLength": 3801,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mattermost/mattermost-plugin-agents/master/docs/mcp_integrations.md",
+            "capturedAt": "2026-11-19T03:26:24.084Z"
+          },
+          "resultSha256": "36ec772c50004ec1cb8efeb4029a3154ac7366cc1e32a1c9649ae9035cb2c8d5",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Mattermost Enterprise",
+          "pairings": [
+            "Mattermost Blocks",
+            "Mattermost Agents plugin (embedded MCP server)",
+            "Mattermost REST API v4"
+          ],
+          "why": "I’d extend the existing Mattermost clients and own the company-specific integrations, rather than build five chat clients. Mattermost ships web, iPhone, Android, Windows and Mac clients; its desktop app already handles deep links, notifications and unread badges. Those matter more to someone interrupted twenty times a day than a distinctive chat bubble. Slack with Block Kit is a credible lower-operations-cost alternative if the job is only to add a workflow to an existing Slack workspace. I’d choose Mattermost here because the team can change the conversation UI and server behavior where needed, while leaving most client code upstream.\n\nI’d separate two agent jobs. A posting agent uses a named bot account and a small catalog of reviewed card templates. For example: ‘Facilities bot: Cover Friday reception, 2–4 pm?’ with a time zone, a ‘Take this shift’ button and a link to the current request. The bot supplies data, not arbitrary markup or callback URLs. A click goes through Mattermost’s action dispatcher to our handler, which checks the caller’s eligibility and the request revision and atomically claims the shift. A retry or competing click returns the existing result. Update the original post to ‘Covered by Sam’ only after the scheduling system confirms it. Include a plain-text summary and a permission-checked link for clients that can’t render the controls. Put routine progress in the thread; don’t notify a whole channel on every update.\n\nAn operating agent uses the production embedded MCP endpoint, not a webhook, screen scraping, or the development-only standalone binary. It can read a channel or thread, search, reply to the correct root post and use other enabled actions under the authenticated identity. For our custom workflow I’d add a typed tool to read the current shift state and, if policy permits, take the same action through the same handler. An agent asked to remind an unfilled shift should check its actual status, not infer it from yesterday’s card text. I’d distinguish delegated actions from independent bot posts in the audit history, restrict access to necessary channels and tools, and keep human-only decisions human-only. External MCP access and state-changing MCP tools are reasons for choosing Enterprise specifically.",
+          "showItsGood": "My first test would start with a human problem: ‘You were mentioned while away from your desk. Find the request, reply privately if you have a question, and work out whether you still need to cover the shift.’ Have one person open the notification on iPhone while another claims it on Windows. Drop the first phone’s connection, reconnect, then check the thread on web, Android and Mac. Inspect both the shift record and the post: one owner, no false success, an understandable result for the person who was too late, and a deep link to the right conversation. Repeat with an outdated card and revoked channel membership. Give an actual agent the reminder task among similarly named channels; it should use authorized state, not post a redundant reminder or expose a private thread. Automate those cases on pinned server and client versions; verify the installed apps on actual devices.\n\nI’d also pilot ordinary chat, not just cards. Have employees catch up from the first unread message, find an older decision, and finish a draft while new posts arrive. Watch for lost reading position, focus jumps, wrong-channel replies and confusion between bot and colleague. Include keyboard-only users, screen-reader users and large text on phones. Compare unassisted completion, mistakes and unwanted interruptions against their present chat app. Over a workday measure send-to-visible and reconnect catch-up times at the 95th percentile, desktop memory growth and phone battery use with a realistic message stream. Aggregate timings and counts, not private message text. A duplicate shift claim, unauthorized read or lost acknowledged message blocks release; the most frequent observed daily friction becomes the next fix and regression test. These are acceptance criteria, not results from a deployed app.",
+          "unsure": "I’d verify the actual device fleet, minimum supported client versions, Blocks feature flag and mobile fallback before choosing the card subset. Self-compiling mobile clients also means operating a push notification service, a concrete reason to try stock clients first. I’d price Enterprise and ongoing hosting against the company’s existing chat contract. If employees already live in Slack and require no client-level changes, avoiding a company-wide migration could outweigh Mattermost’s extensibility.",
+          "sources": [
+            "https://github.com/mattermost/mattermost",
+            "https://github.com/mattermost/mattermost-mobile",
+            "https://github.com/mattermost/desktop",
+            "https://docs.mattermost.com/developers/integrate/reference/mm-blocks",
+            "https://github.com/mattermost/mattermost-plugin-agents/blob/master/mcpserver/README.md",
+            "https://github.com/mattermost/mattermost-plugin-agents/blob/master/docs/mcp_integrations.md",
+            "https://docs.slack.dev/messaging/creating-interactive-messages/"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 19,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "My likeliest mistake was treating “the platform supports this” as evidence that the whole interaction would work for the person depending on it. I proposed tests for all three products, but I didn’t run a build, observe a user, or measure a workday. A year later, I’d look for three different failures:\n\n- **Cooking — I optimized for sharing code rather than keeping hands off the phone.** The cook can say “Next” in a quiet demo, but not reliably with the extractor fan on. After a call, the app restores the right step, yet the cook still has to unlock the phone with flour on their hands. Ionic needn’t have a bug for that to be a bad product. Before committing, I’d have cooks use one recipe on their own phones, with their usual accessibility settings, through prep and an interruption. I’d count the times they have to stop cooking to operate the app. Switching to Expo would only be justified if it fixed an observed failure.\n- **Agent handoffs — I confused recording a decision with enforcing it.** A reviewer changes the instructions in the web view. The desktop view shows the change immediately, but the outgoing agent is still running against the old instructions. The reviewer reasonably thinks the work has stopped. Paperclip’s own notes call Cases experimental and say workflow prose does not enforce transitions. My first investment should have been one real two-agent handoff with a stop or revision arriving at the worst moment. Until the runner acknowledges it, the interface should say “Stop requested,” not “Stopped.” If we couldn’t enforce that distinction, a polished review inbox wouldn’t earn anyone’s trust.\n- **Company chat — I underestimated the cost of making everyone move.** The shift card might work perfectly while employees still retreat to their old chat because that’s where colleagues, history and familiar notification settings are. I made extensibility a reason to choose Mattermost before establishing that the company needed to change clients. I’d pilot the same workflow in the incumbent chat first. The comparison is not which demo has the better card; it’s whether a team can catch up after an absence, find the decision and get back to work with fewer interruptions. If the incumbent does that well, I wouldn’t migrate.\n\n**What slowed or confused the research:** The tricky part was finding which documentation applied to the proposed deployment. Mattermost search surfaced a third-party MCP server as well as official tooling. Even the official standalone binary looked like a plausible choice until its README directed production users to the embedded endpoint; the Enterprise requirement for external access and writes was in a separate integration guide. Paperclip’s overview described approvals and handoffs, while its developer notes distinguished an accepted handoff from delivery to the next agent. On the cooking research, the Ionic docs fetch returned 403. The repository and Capacitor docs established the cross-platform architecture, but not how voice control or wake-lock recovery would feel on a phone.\n\nI spent more effort establishing that each stack *could* fit than trying to disprove the assumption that mattered most. Next time I’d put that assumption first: can the cook keep cooking, can the reviewer actually stop the work, and is the chat improvement worth switching for?"
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 20,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/tree/main",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contents?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92\nCaptured: 2026-11-19T03:15:04.830Z\nCharacters: 0-4444 of 4444\n\n- \".gitattributes\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/.gitattributes\n- \".github\" (dir): https://github.com/ourostack/ouro-ui/tree/8e75eda031073efe6a2af5adee61ec6b99b99f92/.github\n- \".gitignore\" (file): https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61",
+          "resultLength": 4636,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contents?ref=8e75eda031073efe6a2af5adee61ec6b99b99f92",
+            "capturedAt": "2026-11-19T03:15:04.830Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1e0524a4bed8eab5d0985e6040099c58c52ded884f3968093db2a66d7ce8178b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 21,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/UPGRADING.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/UPGRADING.md\nCaptured: 2026-11-19T03:15:43.685Z\nCharacters: 0-10000 of 54871\n\n# Upgrading from v0.1.0[^upgrade-v0.1.0]\n\n> **Reading this file on GitHub?** Replace each `{{latestRelease}}` below with the newest release tag, the `#v…` ref in the README's install command. The README, the site's Updating page and the release notes show this note with the tag filled in.\n\nv0.1.0 installed each componen",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/UPGRADING.md",
+            "capturedAt": "2026-11-19T03:15:43.685Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "8f5d36c594fe7a81a1905d14e5475ff73ef1ea32e2edf5a78e98ac02f23e7b14",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 22,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn’t evaluate Ouro in my original searches. I looked for cross-platform app frameworks and existing products, and missed a toolkit aimed at the boundary between a human control and an agent tool. That matters most for the cooking app: I proposed building much of Ouro’s action layer myself. I’d now pilot Ouro there before writing that layer. I would not start by replacing Ionic, Paperclip or Mattermost.\n\n**What I’d use it for.** Take “Add this recipe’s ingredients to my list.” With Ouro’s [one-action model](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md), I can declare the inputs, output and consent rule once, generate the web control, CLI, MCP tool and Apple App Intent, and check in CI that they haven’t drifted. Its composed cards offer something beyond code generation: an agent can arrange approved controls, but it can’t relabel a declared action or relax its consent rule to make a different-looking button. The team still owns the handler that checks whose list it is, scales the quantities and commits the change once. That’s a division of labor I’d want.\n\n**What stops me from betting all five clients on it.** “The card renders” and “the whole workflow works on our fleet” are different claims. The [Android guide](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md) is candid: eight native components, emulator testing only, and the system confirmation handoff for a consequential AppFunction is still pending. The [Windows guide](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md) distinguishes proving that the app registers its actions from proving that agents can discover them on a Windows client. Neither gap stops a web pilot. Both matter if we promise the same action everywhere. There’s also a team cost: [web components are copied into the app](https://github.com/ourostack/ouro-ui/blob/main/UPGRADING.md), so a fix to a component we’ve customized is a diff someone must review, not just a dependency bump.\n\n**What would make me switch.** I’d have one engineer implement the ingredient action against our real list service and a second engineer change it a week later. Have a cook add ingredients by touch and an assistant do it by request on an equivalent list. Drop the response after commit, change the selected list before confirmation, and try a deliberately mislabeled card. Check the stored list and ask the cook what changed. Run on actual supported phones, including with a screen reader. Then upgrade the pinned kit with one local customization. I’d adopt the action layer if the second engineer can make one declaration change rather than repair several adapters, the checks catch an intentionally stale adapter, and users do no worse than with the simpler screen. I’d expand native adoption only where the device tests pass. I read the guides; I haven’t run that pilot.\n\nFor **handoffs**, I’d try Ouro AX’s external checks against the existing task API before changing a single review screen. A well-formed “stop requested” result is useful; only the runner can attest “stopped.” For **chat**, I’d keep Mattermost’s shipped clients and Blocks unless a real workflow needs agent-composed cards that those clients can’t express. An Ouro tree needs an Ouro-capable renderer; it doesn’t become a Mattermost card just because both have buttons.\n\n**What I can’t do today without building it myself** is hand another engineer one reviewable declaration and a repeatable check that the button people see and the tool agents discover still describe the same operation. I can hand-wire that today. Ouro’s opportunity is to make the agreement cheap to maintain and disagreements visible before release. That—not a larger component catalog—is what would earn it a place on my team."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

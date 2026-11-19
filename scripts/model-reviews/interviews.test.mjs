@@ -287,10 +287,13 @@ test("findings render ranked, with disconfirming evidence in its own group, and 
   });
   const page = renderInterviewsPage([run("s--run-1", [session("m1", "listed", "product-team", allA2UI)])], findings);
   const section = page.slice(page.indexOf("## What the models asked for, and what we changed"), page.indexOf("## The listed arm"));
-  assert.ok(section.indexOf("### Can't tell how it fits A2UI") < section.indexOf("### No third-party adopters"), "more models rank first");
+  assert.ok(section.indexOf("#### Can't tell how it fits A2UI") < section.indexOf("#### No third-party adopters"), "more models rank first");
   assert.match(section, /Signal: pain\. Raised by 2 models: m1, m2\. Status: changed\. \[#12\]\(https:\/\/github\.com\/ourostack\/ouro-ui\/issues\/12\)\. What changed: A guide says so\./);
   assert.match(section, /- \*\*m1\*\*: "How does it fit\?" \(\[transcript\]\(https:\/\/github\.com\/ourostack\/ouro-ui\/blob\/main\/scripts\/model-reviews\/interviews-results\/s--run-1\/transcripts\/m1--listed--product-team\.json\)\)/);
-  assert.ok(section.indexOf("### Disconfirming evidence: not a pain, or a surprise") < section.indexOf("### Screens are not hard"));
+  assert.ok(section.indexOf("### Disconfirming evidence: not a pain, or a surprise") < section.indexOf("#### Screens are not hard"));
+  // Disconfirming evidence comes before what asks for a change.
+  assert.ok(section.indexOf("#### Screens are not hard") < section.indexOf("### What the models asked Ouro UI to change"));
+  assert.ok(section.indexOf("### What the models asked Ouro UI to change") < section.indexOf("#### Can't tell how it fits A2UI"));
   assert.doesNotMatch(section, /Looks nice/);
   assert.match(section, /1 finding that are compliments or hypotheticals count for nothing/);
   assert.match(page, /Said building good human interfaces is a problem: no \(synthesis\)\./);
