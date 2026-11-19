@@ -126,6 +126,7 @@ export function ButtonGroup(props: ButtonGroupProps): JSX.Element {
   );
   return (
     <div
+      data-slot="button-group"
       ref={ref}
       role="group"
       aria-label={label}

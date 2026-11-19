@@ -164,6 +164,7 @@ function Choices(props: {
 
   return (
     <BaseCheckboxGroup
+      data-slot="checkbox-group-list"
       ref={setRef}
       value={value}
       defaultValue={defaultValue}
@@ -262,6 +263,7 @@ export function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={groupOwner}>
       <Field
+        data-slot="checkbox-group"
         label={legend}
         hideLabel={hideLegend}
         description={description}

@@ -82,6 +82,7 @@ function MessageMenuItems({ M, reactions, entries, label }: { M: MenuModule; rea
     <>
       {shown.length > 0 && (
         <div
+          data-slot="message-menu-reactions"
           role="group"
           aria-label={label}
           data-ouro-message-menu-reactions=""
@@ -91,10 +92,10 @@ function MessageMenuItems({ M, reactions, entries, label }: { M: MenuModule; rea
         >
           {shown.map((reaction) => (
             <M.MenuItem key={reaction.key} onClick={reaction.onClick} disabled={reaction.disabled} shortcut={reaction.shortcut}>
-              <span aria-hidden="true" data-ouro-message-menu-reaction={reaction.key} className="inline-flex size-5 items-center justify-center text-lg leading-none [&>svg]:size-5">
+              <span data-slot="message-menu-reaction-icon" aria-hidden="true" data-ouro-message-menu-reaction={reaction.key} className="inline-flex size-5 items-center justify-center text-lg leading-none [&>svg]:size-5">
                 {reaction.icon}
               </span>
-              <span className="sr-only">{reaction.label}</span>
+              <span data-slot="message-menu-reaction-label" className="sr-only">{reaction.label}</span>
             </M.MenuItem>
           ))}
         </div>
@@ -187,9 +188,10 @@ export function MessageActionBar({
     if (key !== null) setCurrent({ row, key });
   };
   const iconButton = "w-(--ouro-button-h) px-0";
-  const more = <MoreIcon aria-hidden="true" className="size-4" />;
+  const more = <MoreIcon data-slot="message-menu-icon" aria-hidden="true" className="size-4" />;
   const bar = (
     <div
+      data-slot="message-actions"
       role="toolbar"
       aria-label={label}
       data-ouro-message-actions=""
@@ -205,6 +207,7 @@ export function MessageActionBar({
       {actions.map((action) => {
         const button = (
           <Button
+            data-slot="message-action"
             data-ouro-control="message"
             data-ouro-part="action"
             data-ouro-message-action={action.key}
@@ -218,7 +221,7 @@ export function MessageActionBar({
             onClick={action.onClick}
             className={iconButton}
           >
-            <span aria-hidden="true" className="inline-flex size-4 items-center justify-center text-base leading-none [&>svg]:size-4">
+            <span data-slot="message-action-icon" aria-hidden="true" className="inline-flex size-4 items-center justify-center text-base leading-none [&>svg]:size-4">
               {action.icon}
             </span>
           </Button>
@@ -230,7 +233,7 @@ export function MessageActionBar({
               action.shortcut === undefined ? (
                 action.label
               ) : (
-                <span className="inline-flex items-center gap-1.5">
+                <span data-slot="message-action-tooltip-label" className="inline-flex items-center gap-1.5">
                   {action.label}
                   <Kbd keys={action.shortcut as readonly string[]} aria-hidden="true" />
                 </span>
@@ -250,6 +253,7 @@ export function MessageActionBar({
             // the message below, and the row of dots needs no words.
             trigger={
               <Button
+                data-slot="message-menu"
                 data-ouro-control="message"
                 data-ouro-part="menu"
                 data-ouro-message-action={MENU_KEY}
@@ -269,6 +273,7 @@ export function MessageActionBar({
           </M.Menu>
         ) : (
           <Button
+            data-slot="message-menu"
             data-ouro-control="message"
             data-ouro-part="menu"
             data-ouro-message-action={MENU_KEY}
@@ -452,6 +457,8 @@ const hasMenuEntries = (data: MessageBarData) => (data.menu !== undefined && dat
  */
 function barHost(): HTMLSpanElement {
   const host = document.createElement("span");
+  // Stryker disable next-line StringLiteral: a part name, a styling hook no runtime code reads (docs/guides/part-names.md).
+  host.dataset["slot"] = "message-bar-host";
   host.className = "contents";
   // Stryker disable next-line StringLiteral: the list finds the host by the attribute alone ([data-ouro-message-bar-slot]), never by its value.
   host.dataset["ouroMessageBarSlot"] = "";

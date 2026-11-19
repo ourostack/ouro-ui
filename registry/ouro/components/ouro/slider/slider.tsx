@@ -280,7 +280,7 @@ export function Slider<Value extends SliderValue = number>(props: SliderProps<Va
 
   return (
     <FieldOwnerContext.Provider value={fieldOwner}>
-      <Field label={label} hideLabel={hideLabel} description={description} error={error} disabled={disabled} name={name} className={className}>
+      <Field data-slot="slider" label={label} hideLabel={hideLabel} description={description} error={error} disabled={disabled} name={name} className={className}>
         <SliderControl
           label={label}
           labelId={isRange ? labelId : undefined}
@@ -370,6 +370,7 @@ function SliderControl({
   const samples = isRange ? texts.map((text) => `${text} – ${text}`) : texts;
   const directed = (
     <BaseSlider.Root
+      data-slot="slider-frame"
       ref={rootRef}
       {...shared}
       locale={locale}
@@ -381,13 +382,15 @@ function SliderControl({
       className={`group/slider ${rootClass}`}
     >
       <BaseSlider.Control
+        data-slot="slider-control"
         data-ouro-slider-control=""
         className={controlClass}
       >
-        <BaseSlider.Track className={trackClass}>
-          <BaseSlider.Indicator data-ouro-slider-indicator="" className={indicatorClass} />
+        <BaseSlider.Track data-slot="slider-track" className={trackClass}>
+          <BaseSlider.Indicator data-slot="slider-range" data-ouro-slider-indicator="" className={indicatorClass} />
           {Array.from({ length: count }, (_, index) => (
             <BaseSlider.Thumb
+              data-slot="slider-thumb"
               key={index}
               index={index}
               data-ouro-slider-thumb=""
@@ -403,15 +406,16 @@ function SliderControl({
       </BaseSlider.Control>
       {showValue && (
         <BaseSlider.Value
+          data-slot="slider-value"
           data-ouro-slider-value=""
           className={valueClass}
         >
           {(formatted) => (
             <>
-              <span className="col-start-1 row-start-1">{formatted.join(" – ")}</span>
+              <span data-slot="slider-value-text" className="col-start-1 row-start-1">{formatted.join(" – ")}</span>
               {/* Empty, so they stay out of the text: each shows its sample as a hidden pseudo-element. */}
               {samples.map((sample) => (
-                <span key={sample} aria-hidden="true" data-ouro-slider-sample={sample} className={sampleClass} />
+                <span data-slot="slider-value-sample" key={sample} aria-hidden="true" data-ouro-slider-sample={sample} className={sampleClass} />
               ))}
             </>
           )}

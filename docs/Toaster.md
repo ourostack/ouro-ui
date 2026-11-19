@@ -60,3 +60,7 @@ Pass margins, width and grid placement (`mt-4`, `w-full`, `col-span-2`).
 Toast appearance comes from a toast's `tone` and shared theme tokens, not viewport classes. A class sets appearance when, after its variants (`hover:`, `sm:`) and any `!` are removed, it starts with `bg-`, `text-`, `border-`, `rounded-`, `shadow-`, `font-`, `ring-`, `from-`, `via-`, `to-`, `fill-` or `stroke-`, or is `border`, `rounded`, `shadow` or `ring`, or has a `dark:` variant. Text wrapping, overflow and table layout classes (`text-wrap`, `text-ellipsis`, `border-collapse`) are layout and do not warn.
 
 Alignment classes (`text-center`) warn too: Toaster owns toast-content alignment. Use `<Toaster />` without the alignment class; a parent wrapper cannot align its portaled content.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `toast`, `toast-content`, `toast-description`, `toast-icon`, `toast-text`, `toast-title`, `toaster`, `toaster-action`, `toaster-close`, `toaster-close-icon`, `toaster-portal`.

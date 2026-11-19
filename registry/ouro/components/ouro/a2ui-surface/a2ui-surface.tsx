@@ -137,7 +137,7 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <div data-ouro="a2ui-surface" data-surface-id={id} className={cn("min-w-0", className)}>
+    <div data-slot="a2ui-surface" data-ouro="a2ui-surface" data-surface-id={id} className={cn("min-w-0", className)}>
       {problems ? (
         <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
       ) : tree ? (

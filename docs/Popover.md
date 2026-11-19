@@ -98,4 +98,8 @@ Alignment classes (`text-center`) warn too: use the `align` prop.
 
 When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/popover/popover-parts`. See [parts.md](parts.md#popover-parts) for the required nesting.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `popover`, `popover-body`, `popover-content`, `popover-description`, `popover-focus-ring`, `popover-header`, `popover-portal`, `popover-title`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/popover/popover.test.tsx::Popover > is 18rem wide by default, and className sets layout verify:testExists(registry/ouro/components/ouro/popover/popover.test.tsx::Popover > is 18rem wide by default, and className sets layout)

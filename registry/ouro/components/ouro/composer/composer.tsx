@@ -288,22 +288,22 @@ const quoteButtonClass =
 function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Element {
   return (
     <>
-      <span aria-hidden="true" data-ouro-composer-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      <span data-slot="composer-quote-bar" aria-hidden="true" data-ouro-composer-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
       {quote.avatar}
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span id={`${id}-quote`} className="sr-only">
+      <span data-slot="composer-quote-text" className="flex min-w-0 flex-1 flex-col">
+        <span data-slot="composer-quote-label" id={`${id}-quote`} className="sr-only">
           {quote.label ?? `Quoting ${quote.author}`}:{" "}
         </span>
-        <span aria-hidden="true" data-ouro-composer-quote-author="" className="truncate text-xs font-semibold text-foreground">
+        <span data-slot="composer-quote-author" aria-hidden="true" data-ouro-composer-quote-author="" className="truncate text-xs font-semibold text-foreground">
           {quote.authorContent ?? quote.author}
         </span>
-        <span id={`${id}-excerpt`} data-ouro-composer-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+        <span data-slot="composer-quote-excerpt" id={`${id}-excerpt`} data-ouro-composer-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
           {quote.excerptContent === undefined ? (
             quote.excerpt
           ) : (
             <>
               <span aria-hidden="true">{quote.excerptContent}</span>
-              <span className="sr-only">{quote.excerpt}</span>
+              <span data-slot="composer-quote-excerpt-text" className="sr-only">{quote.excerpt}</span>
             </>
           )}
         </span>
@@ -315,7 +315,7 @@ function QuoteBody({ quote, id }: { quote: ComposerQuote; id: string }): JSX.Ele
 /** A cross: remove. */
 function RemoveIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4 shrink-0">
+    <svg data-slot="composer-remove-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4 shrink-0">
       <path d="M4 4l8 8M12 4l-8 8" />
     </svg>
   );
@@ -328,7 +328,7 @@ const growClasses = ["overflow-hidden", "transition-[height]", "duration-(--ouro
 /** Arrows: out to expand, in to collapse. */
 function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-5 shrink-0">
+    <svg data-slot="composer-expand-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-5 shrink-0">
       <path d={expanded ? "M4 11h5v5M11 4v5h5M9 11l-5 5M11 9l5-5" : "M11 4h5v5M9 16H4v-5M16 4l-5 5M4 16l5-5"} />
     </svg>
   );
@@ -337,7 +337,7 @@ function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
 /** A paper plane. */
 function SendIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="size-5 shrink-0 rtl:-scale-x-100">
+    <svg data-slot="composer-send-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="size-5 shrink-0 rtl:-scale-x-100">
       <path d="M3.5 3.2 17 10 3.5 16.8 5.6 10z" />
       <path d="M5.6 10h5.4" strokeLinecap="round" />
     </svg>
@@ -650,37 +650,38 @@ export function Composer(props: ComposerProps): JSX.Element {
   const reasonHidden = notes[0] !== undefined && hideSendDisabledReason;
 
   return (
-    <div data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
-      <div data-ouro-composer-frame="" className={frameClass}>
+    <div data-slot="composer" data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-1.5", className)}>
+      <div data-slot="composer-frame" data-ouro-composer-frame="" className={frameClass}>
         {toolbar && (
-          <div data-ouro-composer-toolbar="" className="flex min-w-0 flex-wrap items-center gap-0.5 border-0 border-b border-solid border-border px-1 py-1">
+          <div data-slot="composer-toolbar" data-ouro-composer-toolbar="" className="flex min-w-0 flex-wrap items-center gap-0.5 border-0 border-b border-solid border-border px-1 py-1">
             {toolbar}
           </div>
         )}
         {quote && (
-          <div className="px-1 pt-1">
-            <div data-ouro-composer-quote="" className={quoteBoxClass}>
+          <div data-slot="composer-quote-row" className="px-1 pt-1">
+            <div data-slot="composer-quote-box" data-ouro-composer-quote="" className={quoteBoxClass}>
               {quote.onActivate ? (
-                <button type="button" data-ouro-control="composer" data-ouro-part="quote" onClick={quote.onActivate} className={quoteButtonClass}>
+                <button data-slot="composer-quote" type="button" data-ouro-control="composer" data-ouro-part="quote" onClick={quote.onActivate} className={quoteButtonClass}>
                   <QuoteBody quote={quote} id={id} />
                 </button>
               ) : (
-                <div className={quoteBodyClass}>
+                <div data-slot="composer-quote" className={quoteBodyClass}>
                   <QuoteBody quote={quote} id={id} />
                 </div>
               )}
               <Tooltip content={removeLabel}>
-                <Button data-ouro-control="composer" data-ouro-part="remove" variant="plain" tone="secondary" size="sm" disabled={disabled} onClick={removeQuote} className="px-1.5">
+                <Button data-slot="composer-remove" data-ouro-control="composer" data-ouro-part="remove" variant="plain" tone="secondary" size="sm" disabled={disabled} onClick={removeQuote} className="px-1.5">
                   <RemoveIcon />
-                  <span className="sr-only">{removeLabel}</span>
+                  <span data-slot="composer-remove-label" className="sr-only">{removeLabel}</span>
                 </Button>
               </Tooltip>
             </div>
           </div>
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. */}
-        <div ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end">
+        <div data-slot="composer-body" ref={rowRef} data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end">
           <TextArea
+            data-slot="composer-input"
             {...rest}
             ref={setRef}
             label={label}
@@ -702,17 +703,18 @@ export function Composer(props: ComposerProps): JSX.Element {
             // Expanded, the text takes the whole width, and the buttons go on a row under it.
             className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:[--ouro-text-area-py:calc(var(--spacing)*3)] [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
           />
-          <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
+          <div data-slot="composer-actions" className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
             {canExpand && (
               <Tooltip
                 content={
-                  <span className="inline-flex items-center gap-2">
+                  <span data-slot="composer-expand-tooltip" className="inline-flex items-center gap-2">
                     {expandLabel}
                     <Kbd keys={composerShortcuts.expand} />
                   </span>
                 }
               >
                 <Button
+                  data-slot="composer-expand"
                   data-ouro-control="composer"
                   data-ouro-part="expand"
                   variant={expanded ? "outline" : "plain"}
@@ -732,6 +734,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             {actions}
             <Tooltip content={sendLabel}>
               <Button
+                data-slot="composer-send"
                 data-ouro-control="composer"
                 data-ouro-part="send"
                 variant="plain"
@@ -747,15 +750,15 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         </div>
         {hasAttachments && (
-          <div role="group" aria-label={attachmentsLabel} data-ouro-composer-attachments="" className="flex min-w-0 flex-wrap gap-2 px-2 pb-2">
+          <div data-slot="composer-attachments" role="group" aria-label={attachmentsLabel} data-ouro-composer-attachments="" className="flex min-w-0 flex-wrap gap-2 px-2 pb-2">
             {attachments}
           </div>
         )}
       </div>
       {(reasonDrawn || description) && (
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-muted-foreground">
+        <div data-slot="composer-footer" className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-muted-foreground">
           {reasonDrawn && (
-            <span id={notes[0]} data-ouro-composer-reason="" className="font-medium text-[color-mix(in_oklab,var(--muted-foreground)_70%,var(--foreground))]">
+            <span data-slot="composer-reason" id={notes[0]} data-ouro-composer-reason="" className="font-medium text-[color-mix(in_oklab,var(--muted-foreground)_70%,var(--foreground))]">
               {sendDisabledReason}
             </span>
           )}
@@ -767,7 +770,7 @@ export function Composer(props: ComposerProps): JSX.Element {
         </div>
       )}
       {reasonHidden && (
-        <span id={notes[0]} data-ouro-composer-reason="" className="sr-only">
+        <span data-slot="composer-reason" id={notes[0]} data-ouro-composer-reason="" className="sr-only">
           {sendDisabledReason}
         </span>
       )}

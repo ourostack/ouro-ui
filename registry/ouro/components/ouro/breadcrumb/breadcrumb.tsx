@@ -78,6 +78,7 @@ const example = '<Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Rib
 function Separator(): JSX.Element {
   return (
     <svg
+      data-slot="breadcrumb-separator"
       data-ouro-breadcrumb-separator=""
       aria-hidden="true"
       viewBox="0 0 16 16"
@@ -161,7 +162,7 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
   const content = (item: BreadcrumbItem) => (
     <>
       {item.icon !== undefined && (
-        <span aria-hidden="true" className="me-1.5 inline-flex shrink-0 [&_svg]:size-4">
+        <span data-slot="breadcrumb-icon" aria-hidden="true" className="me-1.5 inline-flex shrink-0 [&_svg]:size-4">
           {item.icon}
         </span>
       )}
@@ -170,18 +171,18 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
   );
 
   return (
-    <nav ref={ref} data-ouro="breadcrumb" aria-label={label} className={cn("min-w-0", className)}>
-      <ol className={cn("m-0 flex list-none flex-wrap items-center gap-x-1.5 p-0", text)}>
+    <nav data-slot="breadcrumb" ref={ref} data-ouro="breadcrumb" aria-label={label} className={cn("min-w-0", className)}>
+      <ol data-slot="breadcrumb-list" className={cn("m-0 flex list-none flex-wrap items-center gap-x-1.5 p-0", text)}>
         {shown.map((item, index) => (
           <Fragment key={index}>
             {index === 1 && collapsed && (
-              <li className={row}>
+              <li data-slot="breadcrumb-item" className={row}>
                 <Separator />
-                <span data-ouro-breadcrumb-item="" className="inline-flex">
+                <span data-slot="breadcrumb-menu" data-ouro-breadcrumb-item="" className="inline-flex">
                   <Menu
                     closeLabel={closeLabel}
                     trigger={
-                      <button type="button" aria-label={moreLabel} data-ouro-control="breadcrumb" data-ouro-part="more" className={more}>
+                      <button data-slot="breadcrumb-more" type="button" aria-label={moreLabel} data-ouro-control="breadcrumb" data-ouro-part="more" className={more}>
                         <span aria-hidden="true">…</span>
                       </button>
                     }
@@ -190,18 +191,18 @@ export function Breadcrumb(props: BreadcrumbProps): JSX.Element {
                 </span>
               </li>
             )}
-            <li className={row}>
+            <li data-slot="breadcrumb-item" className={row}>
               {index > 0 && <Separator />}
               {index === last ? (
-                <span data-ouro-breadcrumb-item="" aria-current="page" className="inline-flex items-center font-medium text-foreground">
+                <span data-slot="breadcrumb-page" data-ouro-breadcrumb-item="" aria-current="page" className="inline-flex items-center font-medium text-foreground">
                   {content(item)}
                 </span>
               ) : item.href === undefined ? (
-                <span data-ouro-breadcrumb-item="" className="inline-flex items-center text-muted-foreground">
+                <span data-slot="breadcrumb-text" data-ouro-breadcrumb-item="" className="inline-flex items-center text-muted-foreground">
                   {content(item)}
                 </span>
               ) : (
-                <RouterLink data-ouro-breadcrumb-item="" data-ouro-control="breadcrumb" data-ouro-part="crumb" href={item.href} className={crumb}>
+                <RouterLink data-slot="breadcrumb-crumb" data-ouro-breadcrumb-item="" data-ouro-control="breadcrumb" data-ouro-part="crumb" href={item.href} className={crumb}>
                   {content(item)}
                 </RouterLink>
               )}

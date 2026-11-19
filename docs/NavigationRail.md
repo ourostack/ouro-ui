@@ -73,6 +73,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `navigation-rail`, `navigation-rail-button`, `navigation-rail-count`, `navigation-rail-footer`, `navigation-rail-header`, `navigation-rail-icon`, `navigation-rail-indicator`, `navigation-rail-item`, `navigation-rail-label`, `navigation-rail-link`, `navigation-rail-list`, `navigation-rail-menu-count`, `navigation-rail-menu-spoken-count`, `navigation-rail-more`, `navigation-rail-more-item`, `navigation-rail-separator`, `navigation-rail-separator-item`, `navigation-rail-spoken-count`.
+
 ## Types
 
 ### `NavigationRailButtonItem`

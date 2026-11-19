@@ -106,6 +106,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `composer`, `composer-actions`, `composer-attachments`, `composer-body`, `composer-expand`, `composer-expand-icon`, `composer-expand-tooltip`, `composer-footer`, `composer-frame`, `composer-input`, `composer-quote`, `composer-quote-author`, `composer-quote-bar`, `composer-quote-box`, `composer-quote-excerpt`, `composer-quote-excerpt-text`, `composer-quote-label`, `composer-quote-row`, `composer-quote-text`, `composer-reason`, `composer-remove`, `composer-remove-icon`, `composer-remove-label`, `composer-send`, `composer-send-icon`, `composer-toolbar`.
+
 ## Types
 
 ### `ComposerEditor`

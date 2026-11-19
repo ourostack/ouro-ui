@@ -104,6 +104,10 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/sheet/sheet-parts`. See [parts.md](parts.md#sheet-parts) for the required nesting.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `sheet`, `sheet-backdrop`, `sheet-close`, `sheet-close-icon`, `sheet-close-label`, `sheet-content`, `sheet-content-focus-ring`, `sheet-content-frame`, `sheet-description`, `sheet-footer`, `sheet-handle`, `sheet-handle-bar`, `sheet-header`, `sheet-portal`, `sheet-scrim-backdrop`, `sheet-title`, `sheet-viewport`.
+
 ## Types
 
 ### `SheetSnapPoint`

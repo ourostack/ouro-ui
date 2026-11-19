@@ -47,6 +47,10 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `suggestions`: Not a prop. A trigger's `items` holds its suggestions.
 - `trigger`: Not a prop. Ouro UI takes a list: `<Autocomplete triggers={[{ char: "@", label: "People", items }]}>`.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `autocomplete`, `autocomplete-option`, `autocomplete-option-avatar`, `autocomplete-option-description`, `autocomplete-option-emoji`, `autocomplete-option-glyph`, `autocomplete-option-label`, `autocomplete-option-match`, `autocomplete-portal`.
+
 ## Types
 
 ### `AutocompleteItem`

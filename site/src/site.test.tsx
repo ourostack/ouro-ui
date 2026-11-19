@@ -472,17 +472,17 @@ describe("docs", () => {
     expect(getComputedStyle(opener).backgroundImage).toBe("none");
     const shown = () => [...opener.querySelectorAll<HTMLElement>("picture[data-scheme]")].filter((picture) => getComputedStyle(picture).display !== "none").map((picture) => picture.dataset.scheme);
     expect(shown()).toEqual(["light"]);
-    const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const media = opener.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
     const { width, height } = media.getBoundingClientRect();
     expect(width).toBeLessThanOrEqual(1280);
     expect(width / height).toBeCloseTo(3, 1);
-    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
+    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="hero-image"]')];
     expect(night!.getAttribute("src")).not.toBe(day!.getAttribute("src"));
     setScheme("dark");
     expect(shown()).toEqual(["dark"]);
     await renderPage("/docs/platforms/apple/");
-    const whole = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"] [data-slot="media"]')!.getBoundingClientRect();
-    const art = document.querySelector<HTMLImageElement>('section[aria-labelledby="page-title"] img[data-slot="image"]')!;
+    const whole = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"] [data-slot="hero-media"]')!.getBoundingClientRect();
+    const art = document.querySelector<HTMLImageElement>('section[aria-labelledby="page-title"] img[data-slot="hero-image"]')!;
     expect(whole.width / whole.height).toBeCloseTo(Number(art.getAttribute("width")) / Number(art.getAttribute("height")), 1);
   });
 
@@ -491,9 +491,9 @@ describe("docs", () => {
     await renderPage("/docs/");
     const opener = document.querySelector<HTMLElement>('section[aria-labelledby="page-title"]')!;
     expect(opener.dataset.brandScene).toBe("ouro-ui-core");
-    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="image"]')];
+    const [day, night] = [...opener.querySelectorAll<HTMLImageElement>('img[data-slot="hero-image"]')];
     await expect.poll(() => day!.currentSrc).toMatch(/\/brand\/storybook\/phone\/ouro-ui-core-\d+\.(avif|webp)$/);
-    const media = opener.querySelector<HTMLElement>('[data-slot="media"]')!.getBoundingClientRect();
+    const media = opener.querySelector<HTMLElement>('[data-slot="hero-media"]')!.getBoundingClientRect();
     expect(media.width / media.height).toBeCloseTo(768 / SCENES["ouro-ui-core"].phoneHeight, 1);
     const nightPhone = night!.closest("picture")!.querySelector<HTMLSourceElement>('source[media="(max-width: 640px)"]')!;
     expect(nightPhone.srcset).toContain("phone/ouro-ui-core-dark-768.");

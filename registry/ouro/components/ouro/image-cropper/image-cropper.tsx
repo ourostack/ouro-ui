@@ -273,8 +273,9 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
         </>
       }
     >
-      <div data-ouro="image-cropper" data-shape={shape} className="grid justify-items-center gap-4">
+      <div data-slot="image-cropper" data-ouro="image-cropper" data-shape={shape} className="grid justify-items-center gap-4">
         <div
+          data-slot="image-cropper-area"
           data-ouro-control="image-cropper"
           data-ouro-part="area"
           role="application"
@@ -297,6 +298,7 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
           {/* `left`, not `start`: the offset and the crop are in screen pixels in either direction. */}
           {image !== null ? (
             <img
+              data-slot="image-cropper-image"
               ref={attach}
               alt=""
               draggable={false}
@@ -313,11 +315,11 @@ export function ImageCropper(props: ImageCropperProps): JSX.Element {
             />
           ) : null}
         </div>
-        <p id="ouro-image-cropper-instructions" className="sr-only">
+        <p data-slot="image-cropper-instructions" id="ouro-image-cropper-instructions" className="sr-only">
           {word.instructions}
         </p>
         {/* A polite status region from the first render, so a failure is announced once when it appears; hidden while empty. */}
-        <p id={statusId} role="status" className={cn("m-0 text-center text-sm leading-5 text-destructive", !failure && "sr-only")}>
+        <p data-slot="image-cropper-status" id={statusId} role="status" className={cn("m-0 text-center text-sm leading-5 text-destructive", !failure && "sr-only")}>
           {failure === "open" ? openError : failure === "save" ? saveError : null}
         </p>
         <Slider label={word.zoom} min={MIN_ZOOM} max={MAX_ZOOM} step={0.01} value={zoom} onValueChange={zoomTo} disabled={!natural} format={{ style: "percent" }} className="w-full max-w-72" />

@@ -383,6 +383,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="date-picker"
         label={label}
         hideLabel={hideLabel}
         description={description}
@@ -392,7 +393,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
         name={name}
         className={className}
       >
-        <div data-ouro-input-group="" className={groupClass} onMouseDown={focusInput}>
+        <div data-slot="date-picker-input-group" data-ouro-input-group="" className={groupClass} onMouseDown={focusInput}>
           {touch ? (
             <FieldControl
               ref={setRef}
@@ -407,7 +408,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                 setChosen(next);
                 commit(allowedOrEmpty(isIsoDate(next) ? next : null));
               }}
-              render={(controlProps) => <input {...controlProps} name={undefined} data-ouro-control="date-picker" data-ouro-part="input" className={inputClass} />}
+              render={(controlProps) => <input data-slot="date-picker-input" {...controlProps} name={undefined} data-ouro-control="date-picker" data-ouro-part="input" className={inputClass} />}
             />
           ) : (
             <>
@@ -422,13 +423,14 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                 spellCheck={false}
                 onChange={onType}
                 onBlur={tidy}
-                render={(controlProps) => <input {...controlProps} name={undefined} data-ouro-control="date-picker" data-ouro-part="input" className={inputClass} />}
+                render={(controlProps) => <input data-slot="date-picker-input" {...controlProps} name={undefined} data-ouro-control="date-picker" data-ouro-part="input" className={inputClass} />}
               />
-              <span className={endSlotClass}>
+              <span data-slot="date-picker-actions" className={endSlotClass}>
                 <PopoverRoot open={open} onOpenChange={setOpen}>
                   <PopoverTrigger
                     render={
                       <Button
+                        data-slot="date-picker-trigger"
                         variant="plain"
                         tone="secondary"
                         size="sm"
@@ -439,6 +441,7 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                         className="aspect-square px-0"
                       >
                         <svg
+                          data-slot="date-picker-icon"
                           aria-hidden="true"
                           viewBox="0 0 16 16"
                           fill="none"
@@ -453,13 +456,14 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
                         </svg>
                         {/* Named by hidden text, not `aria-label`, which is label text: a label
                             lookup for a field called "Date" would also find "Choose date". */}
-                        <span className="sr-only">{chooseDateLabel}</span>
+                        <span data-slot="date-picker-trigger-label" className="sr-only">{chooseDateLabel}</span>
                       </Button>
                     }
                   />
                   <PopoverPortal>
                     <PopoverPositionerUnchecked side="bottom" align="end">
                       <PopoverPopupUnchecked
+                        data-slot="date-picker-popup"
                         className="w-auto"
                         initialFocus={() => calendarRef.current!.querySelector<HTMLElement>('[data-ouro-day][tabindex="0"]')}
                       >

@@ -246,29 +246,30 @@ export function Timer(props: TimerProps): JSX.Element {
 
   const primaryLabel = status === "running" ? words.pause : status === "paused" ? words.resume : done ? words.dismiss : words.start;
   const secondary = status !== "idle" ? (
-    <Button data-ouro-control="timer" data-ouro-part="secondary" variant="plain" tone="secondary" onClick={other}>
+    <Button data-slot="timer-secondary" data-ouro-control="timer" data-ouro-part="secondary" variant="plain" tone="secondary" onClick={other}>
       {done ? words.restart : words.cancel}
     </Button>
   ) : null;
   const caption = (
-    <p className={cn("m-0 min-w-0 truncate text-sm leading-5 font-medium", done ? doneText : "text-muted-foreground")}>
+    <p data-slot="timer-caption" className={cn("m-0 min-w-0 truncate text-sm leading-5 font-medium", done ? doneText : "text-muted-foreground")}>
       {done ? words.done : `${label} · ${lengthOf(timer.duration)}`}
     </p>
   );
-  const paused = status === "paused" ? <span className="ms-3 align-middle text-sm font-medium text-muted-foreground">{words.paused}</span> : null;
+  const paused = status === "paused" ? <span data-slot="timer-paused" className="ms-3 align-middle text-sm font-medium text-muted-foreground">{words.paused}</span> : null;
 
   if (variant === "ring") {
     const counting = status === "running" || status === "paused";
     // The arc is the time left: whole when the timer starts, gone at zero, and hidden while idle.
     const left = counting ? Math.min(1, Math.max(0, timer.remaining / timer.duration)) : 0;
     return (
-      <div {...rest} data-ouro="timer" data-status={status} data-variant="ring" role="group" aria-label={label} className={cn("grid min-w-0 justify-items-center gap-3", className)}>
+      <div data-slot="timer" {...rest} data-ouro="timer" data-status={status} data-variant="ring" role="group" aria-label={label} className={cn("grid min-w-0 justify-items-center gap-3", className)}>
         {/* 20rem wide, so the square inside the circle (about two thirds of it) holds the large time,
             its button and Paused without any of them crossing the arc. */}
-        <div className="relative grid aspect-square w-full max-w-80 place-items-center">
-          <svg aria-hidden="true" data-ouro-timer-ring="" viewBox="0 0 100 100" className="absolute inset-0 size-full">
-            <circle cx="50" cy="50" r="47" fill="none" strokeWidth="3" className="stroke-muted" />
+        <div data-slot="timer-dial" className="relative grid aspect-square w-full max-w-80 place-items-center">
+          <svg data-slot="timer-ring" aria-hidden="true" data-ouro-timer-ring="" viewBox="0 0 100 100" className="absolute inset-0 size-full">
+            <circle data-slot="timer-track" cx="50" cy="50" r="47" fill="none" strokeWidth="3" className="stroke-muted" />
             <circle
+              data-slot="timer-arc"
               data-ouro-timer-arc=""
               cx="50"
               cy="50"
@@ -284,11 +285,12 @@ export function Timer(props: TimerProps): JSX.Element {
               className={done ? "stroke-destructive" : "stroke-primary"}
             />
           </svg>
-          <div className="relative grid justify-items-center gap-1">
-            <p role="timer" className={cn("m-0 font-light tabular-nums", sizes[size], done ? doneText : "text-foreground")}>
+          <div data-slot="timer-dial-content" className="relative grid justify-items-center gap-1">
+            <p data-slot="timer-time" role="timer" className={cn("m-0 font-light tabular-nums", sizes[size], done ? doneText : "text-foreground")}>
               {formatDuration(timer.remaining)}
             </p>
             <Button
+              data-slot="timer-primary"
               ref={primary}
               data-ouro-control="timer"
               data-ouro-part="primary"
@@ -299,7 +301,7 @@ export function Timer(props: TimerProps): JSX.Element {
             >
               {primaryLabel}
             </Button>
-            {status === "paused" ? <span className="text-sm font-medium text-muted-foreground">{words.paused}</span> : null}
+            {status === "paused" ? <span data-slot="timer-paused" className="text-sm font-medium text-muted-foreground">{words.paused}</span> : null}
           </div>
         </div>
         {caption}
@@ -309,16 +311,17 @@ export function Timer(props: TimerProps): JSX.Element {
   }
 
   return (
-    <div {...rest} data-ouro="timer" data-status={status} role="group" aria-label={label} className={cn("grid min-w-0 gap-3", className)}>
-      <div className="grid min-w-0 gap-1">
+    <div data-slot="timer" {...rest} data-ouro="timer" data-status={status} role="group" aria-label={label} className={cn("grid min-w-0 gap-3", className)}>
+      <div data-slot="timer-display" className="grid min-w-0 gap-1">
         {caption}
-        <p role="timer" className={cn("m-0 font-semibold tabular-nums", sizes[size], done ? doneText : "text-foreground")}>
+        <p data-slot="timer-time" role="timer" className={cn("m-0 font-semibold tabular-nums", sizes[size], done ? doneText : "text-foreground")}>
           {formatDuration(timer.remaining)}
           {paused}
         </p>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div data-slot="timer-actions" className="flex flex-wrap gap-2">
         <Button
+          data-slot="timer-primary"
           ref={primary}
           data-ouro-control="timer"
           data-ouro-part="primary"

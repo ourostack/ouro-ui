@@ -181,7 +181,7 @@ interface BarProps {
 
 // Memoised: a new count of lit bars re-renders only the bars that light or go out.
 const Bar = memo(function Bar({ lit, className }: BarProps): JSX.Element {
-  return <span data-ouro-part="segment" data-highlighted={lit ? "" : undefined} className={className} />;
+  return <span data-slot="level-meter-segment" data-ouro-part="segment" data-highlighted={lit ? "" : undefined} className={className} />;
 });
 
 /**
@@ -296,6 +296,7 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
   const barClassName = cn(barClass, barSizes[size], muted ? mutedLit : litTones[tone]);
   return (
     <div
+      data-slot="level-meter"
       ref={ref}
       id={id}
       role="meter"
@@ -308,12 +309,12 @@ export function LevelMeter(props: LevelMeterProps): JSX.Element {
       data-muted={muted ? "" : undefined}
       className={cn("grid w-fit gap-1.5", className)}
     >
-      <span id={labelId} data-ouro-level-meter-label="" className={hideLabel ? "sr-only" : "text-sm font-medium text-foreground"}>
+      <span data-slot="level-meter-label" id={labelId} data-ouro-level-meter-label="" className={hideLabel ? "sr-only" : "text-sm font-medium text-foreground"}>
         {label}
       </span>
-      <span className={cn("flex items-end", rowSizes[size])}>
+      <span data-slot="level-meter-segments" className={cn("flex items-end", rowSizes[size])}>
         {Array.from({ length: count }, (_, index) => (
-          <Bar key={index} lit={index < lit} className={barClassName} />
+          <Bar data-slot="level-meter-segment" key={index} lit={index < lit} className={barClassName} />
         ))}
       </span>
     </div>

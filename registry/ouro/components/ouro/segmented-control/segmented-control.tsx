@@ -247,11 +247,12 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     opacity: index === -1 ? 0 : undefined,
   } as CSSProperties;
   return (
-    <div data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", revealOnHover && revealClass, className)}>
-      <span id={labelId} className={cn(labelClass, hideLabel && "sr-only")}>
+    <div data-slot="segmented-control" data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", revealOnHover && revealClass, className)}>
+      <span data-slot="segmented-control-label" id={labelId} className={cn(labelClass, hideLabel && "sr-only")}>
         {label}
       </span>
       <div
+        data-slot="segmented-control-group"
         ref={ref}
         role="radiogroup"
         aria-labelledby={labelId}
@@ -276,9 +277,10 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         }}
         className={cn(groupClass, fullWidth && "grid w-full")}
       >
-        <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
+        <span data-slot="segmented-control-thumb" aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
         {items.map((item) => (
           <Toggle
+            data-slot="segmented-control-segment"
             key={item.value}
             pressed={item.value === selected}
             // Pressing the checked segment would leave none checked. Keep it.
@@ -302,7 +304,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
             }}
           >
             <TouchTarget />
-            <span className="relative min-w-0 truncate">{item.label}</span>
+            <span data-slot="segmented-control-segment-label" className="relative min-w-0 truncate">{item.label}</span>
           </Toggle>
         ))}
       </div>

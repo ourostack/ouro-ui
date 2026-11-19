@@ -19,6 +19,7 @@ import type { JSX } from "react";
 export function TouchTarget(): JSX.Element {
   return (
     <span
+      data-slot="touch-target"
       aria-hidden="true"
       data-ouro-touch-target=""
       className="absolute top-1/2 left-1/2 hidden size-[max(100%,44px)] -translate-1/2 pointer-coarse:block"

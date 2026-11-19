@@ -36,6 +36,7 @@ import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { vendored } from "./vendored.mjs";
 import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
+import { namesByStem } from "./part-names.mts";
 import { trackedFiles, uncommitted } from "./generated-files.mjs";
 import { spawnSync } from "node:child_process";
 import { summary } from "./docs-summary.mts";
@@ -508,6 +509,16 @@ function functionDeclaration(symbol: ts.Symbol): ts.FunctionDeclaration {
   return declaration;
 }
 
+/** Each stem's `data-slot` names, from the source (scripts/part-names.mts). */
+const partNames = namesByStem(root);
+
+/** The component's part names, for an app that styles it from plain CSS; none for a file with no styled elements. */
+function partNamesSection(file: string): string {
+  const names = partNames.get(file.split("/").at(-1)!.replace(/\.tsx?$/, ""));
+  if (!names) return "";
+  return `## Part names\n\nIts parts' \`data-slot\` names, for styling it from plain CSS ([Part names](guides/part-names.md)): ${names.map((name) => `\`${name}\``).join(", ")}.`;
+}
+
 function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>): string {
   const parameter = functionDeclaration(symbol).parameters[0];
   const sections = [header(page.name, page.described, page.file), exampleSection(page.described)];
@@ -553,6 +564,7 @@ function componentPage(page: Page, symbol: ts.Symbol, partFamilies: Set<string>)
       `## Parts\n\n${hasRoot ? "When these props cannot express your layout, build it from" : "For what these props cannot express, pass as children"} the parts in \`${importPath(partFiles[page.name]!)}\`. See [parts.md](parts.md#${page.name.toLowerCase()}-parts) for the required nesting.`,
     );
   }
+  sections.push(partNamesSection(page.file));
   sections.push(typesSection(texts, new Set([page.name])));
   sections.push(notes.section());
   return `${sections.filter(Boolean).join("\n\n")}\n`;

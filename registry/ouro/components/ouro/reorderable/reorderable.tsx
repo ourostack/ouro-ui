@@ -180,7 +180,7 @@ interface Drag {
 
 function GripIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+    <svg data-slot="reorderable-handle-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" className="size-4">
       <circle cx="5.5" cy="3.5" r="1.25" />
       <circle cx="10.5" cy="3.5" r="1.25" />
       <circle cx="5.5" cy="8" r="1.25" />
@@ -682,13 +682,14 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
   };
 
   return (
-    <div data-ouro="reorderable" className={cn(rootClass, className)}>
-      <ol ref={listRef} role="list" aria-label={label} data-ouro-reorderable-list="" data-dragging={dragging !== null ? "" : undefined} className={listClass}>
+    <div data-slot="reorderable" data-ouro="reorderable" className={cn(rootClass, className)}>
+      <ol data-slot="reorderable-list" ref={listRef} role="list" aria-label={label} data-ouro-reorderable-list="" data-dragging={dragging !== null ? "" : undefined} className={listClass}>
         {order.map((id) => {
           const item = byId.get(id)!;
           const index = order.indexOf(id);
           return (
             <li
+              data-slot="reorderable-item"
               key={id}
               data-ouro-reorderable-item=""
               data-dragging={dragging === id ? "" : undefined}
@@ -706,6 +707,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
                 modal={false}
                 trigger={
                   <button
+                    data-slot="reorderable-handle"
                     ref={dragProps.ref}
                     type="button"
                     data-ouro-reorderable-handle=""
@@ -737,7 +739,7 @@ export function Reorderable(props: ReorderableProps): JSX.Element {
                   { label: moveToBottomLabel, disabled: index === total - 1, onClick: () => moveTo(id, total - 1) },
                 ]}
               />
-              <div data-ouro-reorderable-content="" className={contentClass}>
+              <div data-slot="reorderable-content" data-ouro-reorderable-content="" className={contentClass}>
                 {item.content ?? item.label}
               </div>
             </li>

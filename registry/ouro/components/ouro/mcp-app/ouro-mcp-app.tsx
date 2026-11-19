@@ -254,7 +254,7 @@ export function OuroMcpApp(props: OuroMcpAppProps): JSX.Element {
   );
 
   return (
-    <div ref={root} data-ouro="ouro-mcp-app" className={cn(ROOT_CLASS, className)}>
+    <div data-slot="ouro-mcp-app" ref={root} data-ouro="ouro-mcp-app" className={cn(ROOT_CLASS, className)}>
       {card && connection ? (
         "messages" in card ? (
           <A2UISurface catalog={catalog} messages={card.messages} label={label} onAction={runAction} onHandoff={handOff} onProblems={reportProblems} />

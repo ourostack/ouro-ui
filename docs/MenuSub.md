@@ -31,3 +31,7 @@ Type: `MenuSubProps`.
 | `children` (required) | `ReactNode` |  | The submenu's items. |
 | `disabled` | `boolean` |  | The item cannot open the submenu. |
 | `label` (required) | `string` |  | The text of the item that opens the submenu. |
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `menu`, `menu-back`, `menu-backdrop`, `menu-bar`, `menu-bar-trigger`, `menu-checkbox-item`, `menu-checkbox-item-indicator`, `menu-close`, `menu-context-trigger`, `menu-focus-guards`, `menu-group-label`, `menu-item-icon`, `menu-item-indicator`, `menu-item-label`, `menu-portal`, `menu-positioner`, `menu-radio-item`, `menu-radio-item-indicator`, `menu-separator`, `menu-shortcut`, `menu-submenu-icon`, `menu-submenu-trigger`.

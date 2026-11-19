@@ -54,9 +54,9 @@ const oldMarkup = (): Markup => ({
     `<link rel="preload" as="image" fetchpriority="high" media="(prefers-color-scheme: light)" imagesrcset="${srcSet("day")}" imagesizes="100vw">` +
     "</head><body>",
   body:
-    `<div data-slot="media">` +
-    `<picture class="block dark:hidden" data-scheme="light"><img data-slot="image" src="${art("day", 1536)}" srcset="${srcSet("day")}" sizes="100vw" width="1536" height="576" alt="Day" fetchpriority="high" loading="lazy"></picture>` +
-    `<picture class="hidden dark:block" data-scheme="dark"><img data-slot="image" src="${art("night", 1536)}" srcset="${srcSet("night")}" sizes="100vw" width="1536" height="576" alt="Night" fetchpriority="high" loading="lazy"></picture>` +
+    `<div data-slot="hero-media">` +
+    `<picture class="block dark:hidden" data-scheme="light"><img data-slot="hero-image" src="${art("day", 1536)}" srcset="${srcSet("day")}" sizes="100vw" width="1536" height="576" alt="Day" fetchpriority="high" loading="lazy"></picture>` +
+    `<picture class="hidden dark:block" data-scheme="dark"><img data-slot="hero-image" src="${art("night", 1536)}" srcset="${srcSet("night")}" sizes="100vw" width="1536" height="576" alt="Night" fetchpriority="high" loading="lazy"></picture>` +
     `<script>${OLD_FIRST_PAINT}</script></div></body></html>`,
 });
 
@@ -129,7 +129,7 @@ async function stopSite(site: Site): Promise<void> {
 async function load(page: Page, site: Site, path: string): Promise<Hit[]> {
   site.hits.length = 0;
   await page.goto(site.url + path);
-  await page.waitForFunction(() => document.querySelector('[data-slot="media"]')?.hasAttribute("data-loaded") === true);
+  await page.waitForFunction(() => document.querySelector('[data-slot="hero-media"]')?.hasAttribute("data-loaded") === true);
   // A request for a twin the page does not show would come after the first paint, so give it time to arrive.
   await page.waitForTimeout(300);
   return [...site.hits];
@@ -222,8 +222,8 @@ test.describe("a hero whose twins both have priority", () => {
       await page.emulateMedia({ colorScheme: "light" });
       await page.goto(`${site.url}/new`);
       // The empty twins are hidden without scripts; the noscript's light twin is the one the CSS shows.
-      await expect(page.locator('[data-slot="media"] > picture:visible')).toHaveCount(0);
-      await expect(page.locator('[data-slot="media"] noscript picture:visible')).toHaveAttribute("data-scheme", "light");
+      await expect(page.locator('[data-slot="hero-media"] > picture:visible')).toHaveCount(0);
+      await expect(page.locator('[data-slot="hero-media"] noscript picture:visible')).toHaveAttribute("data-scheme", "light");
       await expect.poll(() => site.hits.length).toBeGreaterThan(0);
       // Browsers fetch lazy images anyway without scripts, so the hidden twin loads too, but no file loads twice.
       await page.waitForTimeout(300);

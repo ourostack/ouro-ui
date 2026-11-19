@@ -425,6 +425,7 @@ export function Emoji(props: EmojiProps): JSX.Element {
   usePictureReady(box, own, shown, form.src, waits);
   const picture = (
     <img
+      data-slot="emoji-image"
       {...rest}
       ref={mergedRef}
       data-ouro={waits ? undefined : "emoji"}
@@ -441,9 +442,9 @@ export function Emoji(props: EmojiProps): JSX.Element {
   if (!waits) return picture;
   // The placeholder and the picture fill the root's box, the picture on top, so neither moves the text.
   return (
-    <span ref={box} data-ouro="emoji" className={cn(emojiClass, "group/emoji relative", className)}>
-      <span aria-hidden="true" className={cn(emojiPlaceholderClass, !reduced && emojiPlaceholderFadeClass)}>
-        {typeof placeholder === "string" ? <img src={placeholder} alt="" draggable={false} decoding="async" className="size-full object-contain" /> : placeholder}
+    <span data-slot="emoji" ref={box} data-ouro="emoji" className={cn(emojiClass, "group/emoji relative", className)}>
+      <span data-slot="emoji-placeholder" aria-hidden="true" className={cn(emojiPlaceholderClass, !reduced && emojiPlaceholderFadeClass)}>
+        {typeof placeholder === "string" ? <img data-slot="emoji-placeholder-image" src={placeholder} alt="" draggable={false} decoding="async" className="size-full object-contain" /> : placeholder}
       </span>
       {picture}
     </span>
@@ -528,12 +529,12 @@ export function EmojiText(props: EmojiTextProps): JSX.Element {
   const found = parts.filter((part) => typeof part !== "string");
   const large = enlarge && found.length > 0 && found.length <= 3 && parts.every((part) => typeof part !== "string" || part.trim() === "");
   return (
-    <span {...rest} data-ouro="emoji-text" data-enlarged={large ? "" : undefined} className={className}>
+    <span data-slot="emoji-text" {...rest} data-ouro="emoji-text" data-enlarged={large ? "" : undefined} className={className}>
       {parts.map((part, index) =>
         typeof part === "string" ? (
           part
         ) : (
-          <Emoji key={index} item={part.item} skinTone={part.tone} className={large ? "size-[2.75em] align-middle" : undefined} />
+          <Emoji data-slot="emoji-text-emoji" key={index} item={part.item} skinTone={part.tone} className={large ? "size-[2.75em] align-middle" : undefined} />
         ),
       )}
     </span>

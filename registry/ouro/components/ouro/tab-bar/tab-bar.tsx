@@ -260,8 +260,9 @@ export function TabBar(props: TabBarProps): JSX.Element {
   const aside = useSyncExternalStore(subscribeKeyboard, keyboardUp, serverFalse);
 
   return (
-    <div data-ouro="tab-bar" className={cn(rootClass, breakpoints[hideFrom], className)}>
+    <div data-slot="tab-bar" data-ouro="tab-bar" className={cn(rootClass, breakpoints[hideFrom], className)}>
       <nav
+        data-slot="tab-bar-bar"
         ref={ref}
         aria-label={label}
         data-ouro-part="bar"
@@ -270,30 +271,31 @@ export function TabBar(props: TabBarProps): JSX.Element {
         inert={aside}
         className={barClass}
       >
-        <ul className={listClass}>
+        <ul data-slot="tab-bar-list" className={listClass}>
           {items.map((item, index) => (
-            <li key={index} className="flex min-w-0 flex-1">
-              <RouterLink href={item.href} aria-current={isCurrent(index)} data-ouro-control="tab-bar" data-ouro-part="tab" className={tabClass}>
-                <span aria-hidden="true" className={iconClass}>
+            <li data-slot="tab-bar-item" key={index} className="flex min-w-0 flex-1">
+              <RouterLink data-slot="tab-bar-tab" href={item.href} aria-current={isCurrent(index)} data-ouro-control="tab-bar" data-ouro-part="tab" className={tabClass}>
+                <span data-slot="tab-bar-tab-icon" aria-hidden="true" className={iconClass}>
                   {item.icon}
                 </span>
-                <span className={labelClass}>{item.label}</span>
+                <span data-slot="tab-bar-tab-label" className={labelClass}>{item.label}</span>
               </RouterLink>
             </li>
           ))}
         </ul>
         {accessory !== undefined && (
           <RouterLink
+            data-slot="tab-bar-accessory"
             href={accessory.href}
             aria-current={isCurrent(items.length)}
             data-ouro-control="tab-bar"
             data-ouro-part="accessory"
             className={accessoryClass}
           >
-            <span aria-hidden="true" className={cn(iconClass, "size-6")}>
+            <span data-slot="tab-bar-accessory-icon" aria-hidden="true" className={cn(iconClass, "size-6")}>
               {accessory.icon}
             </span>
-            <span className="sr-only">{accessory.label}</span>
+            <span data-slot="tab-bar-accessory-label" className="sr-only">{accessory.label}</span>
           </RouterLink>
         )}
       </nav>

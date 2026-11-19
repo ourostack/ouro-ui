@@ -125,6 +125,7 @@ const selectClass =
 function ChevronIcon(): JSX.Element {
   return (
     <svg
+      data-slot="native-select-icon"
       aria-hidden="true"
       viewBox="0 0 16 16"
       fill="none"
@@ -215,6 +216,7 @@ export function NativeSelect(props: NativeSelectProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="native-select"
         label={label}
         hideLabel={hideLabel}
         description={description}
@@ -224,13 +226,13 @@ export function NativeSelect(props: NativeSelectProps): JSX.Element {
         name={name}
         className={className}
       >
-        <div className="relative">
+        <div data-slot="native-select-wrapper" className="relative">
           <FieldControl
             {...(rest as Omit<FieldControlProps, "className">)}
             {...start}
             ref={ref as Ref<HTMLInputElement> | undefined}
             render={(controlProps) => (
-              <select {...(controlProps as SelectHTMLAttributes<HTMLSelectElement>)} data-ouro-control="native-select" data-ouro-part="select" className={selectClass}>
+              <select data-slot="native-select-select" {...(controlProps as SelectHTMLAttributes<HTMLSelectElement>)} data-ouro-control="native-select" data-ouro-part="select" className={selectClass}>
                 {placeholder !== undefined && (
                   <option value="" disabled={required}>
                     {placeholder}

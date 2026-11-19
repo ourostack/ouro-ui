@@ -120,27 +120,28 @@ export function ItemGroup(props: ItemGroupProps): JSX.Element {
   const { "aria-label": ariaLabel, "aria-labelledby": ariaLabelledBy, ...wrapper } = rest;
   const List = ordered ? "ol" : "ul";
   return (
-    <div {...wrapper} data-ouro="item-group" className={cn("group/item-group flex min-w-0 flex-col gap-2", className)}>
+    <div data-slot="item-group" {...wrapper} data-ouro="item-group" className={cn("group/item-group flex min-w-0 flex-col gap-2", className)}>
       {label && (
         // Lined up with the rows' text when they keep padding to show a selected row.
-        <div id={labelId} className={cn("text-sm font-medium text-muted-foreground", variant !== "outline" && "group-has-[[data-choosable]]/item-group:px-3")}>
+        <div data-slot="item-group-label" id={labelId} className={cn("text-sm font-medium text-muted-foreground", variant !== "outline" && "group-has-[[data-choosable]]/item-group:px-3")}>
           {label}
         </div>
       )}
       {rows.length > 0 ? (
         <List
+          data-slot="item-group-list"
           aria-label={ariaLabel}
           aria-labelledby={label ? labelId : ariaLabelledBy}
           className={cn("m-0 flex list-none flex-col p-0", variants[variant])}
         >
           {rows.map((row, index) => (
-            <li key={isValidElement(row) ? row.key : index} className="m-0 min-w-0 p-0">
+            <li data-slot="item-group-item" key={isValidElement(row) ? row.key : index} className="m-0 min-w-0 p-0">
               {row}
             </li>
           ))}
         </List>
       ) : (
-        empty && <div className="text-sm text-muted-foreground">{empty}</div>
+        empty && <div data-slot="item-group-empty" className="text-sm text-muted-foreground">{empty}</div>
       )}
     </div>
   );

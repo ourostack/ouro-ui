@@ -193,8 +193,9 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
   const autoHide = behavior === "auto-hide";
   const [hidden, show] = useAutoHide(autoHide, bars);
   return (
-    <div ref={ref} data-ouro="stacked-layout" className={cn("relative flex min-h-dvh flex-col bg-background text-foreground", className)}>
+    <div data-slot="stacked-layout" ref={ref} data-ouro="stacked-layout" className={cn("relative flex min-h-dvh flex-col bg-background text-foreground", className)}>
       <a
+        data-slot="stacked-layout-skip-link"
         href={`#${mainId}`}
         data-ouro-control="stacked-layout"
         data-ouro-part="skip-link"
@@ -205,6 +206,7 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
         {skipLabel}
       </a>
       <div
+        data-slot="stacked-layout-bars"
         ref={bars}
         data-ouro-stacked-layout-navbar=""
         data-ouro-part="bars"
@@ -216,16 +218,16 @@ export function StackedLayout(props: StackedLayoutProps): JSX.Element {
       >
         {navbar}
         {toolbar !== undefined && (
-          <section aria-label={toolbarLabel} data-ouro-stacked-layout-toolbar="" className={cn(toolbarClass, !autoHide && "bg-background")}>
+          <section data-slot="stacked-layout-toolbar" aria-label={toolbarLabel} data-ouro-stacked-layout-toolbar="" className={cn(toolbarClass, !autoHide && "bg-background")}>
             {toolbar}
           </section>
         )}
       </div>
-      <Page ref={main} id={mainId} tabIndex={-1} className={cn("box-border w-full min-w-0 flex-1 outline-none", !bleed && "mx-auto max-w-6xl p-4 sm:p-6")}>
+      <Page data-slot="stacked-layout-content" ref={main} id={mainId} tabIndex={-1} className={cn("box-border w-full min-w-0 flex-1 outline-none", !bleed && "mx-auto max-w-6xl p-4 sm:p-6")}>
         {children}
       </Page>
       {footer !== undefined && (
-        <footer className="box-border border-0 border-t border-solid border-border px-4 py-6 text-base pointer-fine:text-sm text-muted-foreground sm:px-6">
+        <footer data-slot="stacked-layout-footer" className="box-border border-0 border-t border-solid border-border px-4 py-6 text-base pointer-fine:text-sm text-muted-foreground sm:px-6">
           {footer}
         </footer>
       )}

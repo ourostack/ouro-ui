@@ -81,4 +81,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `moment`, `moment-actions`, `moment-art`, `moment-content`, `moment-description`, `moment-dismiss`, `moment-dismiss-icon`, `moment-frame`, `moment-halo`, `moment-sparkle`, `moment-spinner`, `moment-title`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/moment/moment.test.tsx::Moment > passes attributes and a ref through, and lets layout classes win verify:testExists(registry/ouro/components/ouro/moment/moment.test.tsx::Moment > passes attributes and a ref through, and lets layout classes win)

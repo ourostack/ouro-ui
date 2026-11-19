@@ -32,3 +32,7 @@ Type: `MenuRadioGroupProps`.
 | `label` | `string` | Names the group, shown above it: "Sort by". |
 | `onValueChange` | `((value: string) => void)` | Called with the value of the item chosen. |
 | `value` | `string` | The chosen value, to control it; pass `onValueChange` with it. |
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `menu`, `menu-back`, `menu-backdrop`, `menu-bar`, `menu-bar-trigger`, `menu-checkbox-item`, `menu-checkbox-item-indicator`, `menu-close`, `menu-context-trigger`, `menu-focus-guards`, `menu-group-label`, `menu-item-icon`, `menu-item-indicator`, `menu-item-label`, `menu-portal`, `menu-positioner`, `menu-radio-item`, `menu-radio-item-indicator`, `menu-separator`, `menu-shortcut`, `menu-submenu-icon`, `menu-submenu-trigger`.

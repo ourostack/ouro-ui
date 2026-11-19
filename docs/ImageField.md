@@ -71,6 +71,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `image-field`, `image-field-actions`, `image-field-description`, `image-field-drop-hint`, `image-field-drop-label`, `image-field-drop-zone`, `image-field-error`, `image-field-error-item`, `image-field-icon`, `image-field-image`, `image-field-label`, `image-field-label-text`, `image-field-messages`, `image-field-status`.
+
 ## Types
 
 ### `ErrorMessage`

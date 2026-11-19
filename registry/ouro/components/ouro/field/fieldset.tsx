@@ -79,12 +79,13 @@ export function Fieldset(props: FieldsetProps): JSX.Element {
   // Ids are set here, not left to Base UI's effects, so the server HTML names and
   // describes the group before hydration.
   const legendElement = (
-    <BaseFieldset.Legend id={legendId} className={cn(legendClass, hideLegend && "sr-only")}>
+    <BaseFieldset.Legend data-slot="fieldset-legend" id={legendId} className={cn(legendClass, hideLegend && "sr-only")}>
       {legend}
     </BaseFieldset.Legend>
   );
   return (
     <BaseFieldset.Root
+      data-slot="fieldset"
       disabled={disabled}
       aria-labelledby={legendId}
       aria-describedby={hasDescription ? descriptionId : undefined}
@@ -92,9 +93,9 @@ export function Fieldset(props: FieldsetProps): JSX.Element {
       className={cn("[@layer_ouro-reset]:m-0 box-border grid min-w-0 content-start gap-4 border-0 p-0", className)}
     >
       {hasDescription ? (
-        <div className="grid gap-1">
+        <div data-slot="fieldset-header" className="grid gap-1">
           {legendElement}
-          <p id={descriptionId} className={descriptionClass}>
+          <p data-slot="fieldset-description" id={descriptionId} className={descriptionClass}>
             {description}
           </p>
         </div>

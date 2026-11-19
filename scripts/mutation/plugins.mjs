@@ -217,6 +217,12 @@ function excludedLines() {
   return parsedExclusions.get(value);
 }
 
+/** Whether a string is the value of a JSX `data-slot` attribute, a part name (scripts/part-names.mts). */
+export function isPartName(path) {
+  const parent = path.parentPath;
+  return path.isStringLiteral() && parent?.isJSXAttribute?.() === true && nameOf(parent.node.name) === "data-slot";
+}
+
 /** Why Stryker leaves a node's mutants out, or undefined to mutate it. */
 export function ignoreReason(path) {
   if (inOtherShard(path)) return "another shard's part of this range";
@@ -224,6 +230,7 @@ export function ignoreReason(path) {
   const quasis = path.isTemplateLiteral() ? path.node.quasis.map((quasi) => quasi.value.cooked ?? "").filter((text) => text.trim() !== "") : [];
   if ((literal || (quasis.length > 0 && isClassList(quasis.join(" ")))) && inClassPosition(path)) return "Tailwind classes: how a part looks, which the screenshot tests hold";
   if (inDevelopmentCheck(path)) return "the development check: every test runs in development";
+  if (isPartName(path)) return "a part name: a styling hook no runtime code reads, which scripts/part-names.test.mjs and the docs check hold";
   return undefined;
 }
 

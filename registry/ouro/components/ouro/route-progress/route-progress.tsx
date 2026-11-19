@@ -185,10 +185,10 @@ export function RouteProgress(props: RouteProgressProps): JSX.Element {
   const shown = phase === "loading" || phase === "completing";
   return (
     // A status region that is always there, so screen readers hear the label when it appears in it.
-    <div ref={ref} role="status" data-ouro="route-progress" className={cn(rootClass, className)}>
-      <span className="sr-only">{phase === "loading" ? label : ""}</span>
-      <div ref={barRef} aria-hidden="true" data-ouro-part="bar" data-open={shown ? "" : undefined} data-closed={shown ? undefined : ""} className={barClass}>
-        <div ref={indicatorRef} data-ouro-part="indicator" className={indicatorClass} style={{ "--ouro-route-progress": filled } as CSSProperties} />
+    <div data-slot="route-progress" ref={ref} role="status" data-ouro="route-progress" className={cn(rootClass, className)}>
+      <span data-slot="route-progress-label" className="sr-only">{phase === "loading" ? label : ""}</span>
+      <div data-slot="route-progress-bar" ref={barRef} aria-hidden="true" data-ouro-part="bar" data-open={shown ? "" : undefined} data-closed={shown ? undefined : ""} className={barClass}>
+        <div data-slot="route-progress-indicator" ref={indicatorRef} data-ouro-part="indicator" className={indicatorClass} style={{ "--ouro-route-progress": filled } as CSSProperties} />
       </div>
     </div>
   );

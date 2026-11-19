@@ -121,7 +121,7 @@ export function RelativeTime(props: RelativeTimeProps): JSX.Element {
   }
   // The server's UTC date is a placeholder another engine's ICU may write differently (LocalDate), so hydration lets it stand.
   return (
-    <time {...rest} data-ouro="relative-time" dateTime={written?.dateTime} title={title ?? full} className={cn(className)} suppressHydrationWarning>
+    <time data-slot="relative-time" {...rest} data-ouro="relative-time" dateTime={written?.dateTime} title={title ?? full} className={cn(className)} suppressHydrationWarning>
       {text}
     </time>
   );

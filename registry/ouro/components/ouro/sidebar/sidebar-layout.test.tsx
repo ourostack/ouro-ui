@@ -205,7 +205,7 @@ describe("SidebarLayout", () => {
 
   it("renders the sidebar and the page in the server HTML", () => {
     const html = renderToString(<SidebarLayout sidebar={sidebar}>Page content</SidebarLayout>);
-    expect(html).toContain('<nav aria-label="Main"');
+    expect(html).toContain('<nav data-slot="sidebar-column" aria-label="Main"');
     expect(html).toMatch(/<main[^>]*>Page content<\/main>/);
     const id = /<main[^>]*id="([^"]+)"/.exec(html)![1];
     expect(html).toContain(`href="#${id}"`);

@@ -59,6 +59,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `choice-card`, `choice-card-card`, `choice-card-card-description`, `choice-card-check-icon`, `choice-card-content`, `choice-card-description`, `choice-card-error`, `choice-card-error-message`, `choice-card-indicator`, `choice-card-input`, `choice-card-label`, `choice-card-legend`, `choice-card-list`, `choice-card-media`.
+
 ## Types
 
 ### `ChoiceCardItem`

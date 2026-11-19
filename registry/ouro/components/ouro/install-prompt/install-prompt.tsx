@@ -126,7 +126,7 @@ export function InstallPrompt(props: InstallPromptProps): JSX.Element | null {
     if (outcome !== "unavailable") onInstall?.(outcome);
   };
   return (
-    <div ref={cardRef} data-ouro="install-prompt" className={className} onFocus={enter}>
+    <div data-slot="install-prompt" ref={cardRef} data-ouro="install-prompt" className={className} onFocus={enter}>
       <Card
         title={title}
         description={description}
@@ -134,7 +134,7 @@ export function InstallPrompt(props: InstallPromptProps): JSX.Element | null {
         headingLevel={headingLevel}
         size="sm"
         footer={
-          <div className="flex flex-wrap justify-end gap-2">
+          <div data-slot="install-prompt-actions" className="flex flex-wrap justify-end gap-2">
             <Button data-ouro-control="install-prompt" data-ouro-part="dismiss" variant="plain" tone="secondary" onClick={dismiss}>
               {dismissLabel}
             </Button>

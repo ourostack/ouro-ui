@@ -200,6 +200,7 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
   const fadeY = orientation === "vertical" && verticalFade;
   return (
     <div
+      data-slot="scroll-area"
       {...rest}
       data-ouro="scroll-area"
       className={cn(
@@ -208,6 +209,7 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
       )}
     >
       <div
+        data-slot="scroll-area-viewport"
         ref={viewportRef}
         data-scroll-viewport=""
         // Stryker disable next-line UnaryOperator: the observer sets the real value as soon as it starts, before any read
@@ -220,11 +222,12 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         // focus ring. Only then: at rest the content stacks with the page, as it always has.
         className={cn("peer min-h-0 focus-visible:isolate flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, scrollFadeClass, fadeY, contain && "overscroll-contain")}
       >
-        <div className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
+        <div data-slot="scroll-area-content" className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
       </div>
       {/* The viewport's focus ring, drawn over it, so neither the edge fade nor content that sticks to an edge covers it. It is
           there only while the viewport has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
       <span
+        data-slot="scroll-area-focus-ring"
         aria-hidden="true"
         data-scroll-focus-ring=""
         className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"

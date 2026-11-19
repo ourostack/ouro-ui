@@ -356,8 +356,8 @@ export function EditSheet(props: EditSheetProps): JSX.Element {
       closeDisabled={pending}
       footer={
         confirming ? (
-          <div data-ouro="edit-sheet-discard" role="group" aria-labelledby={`${formId}-discard`} className={discardClass}>
-            <p id={`${formId}-discard`} role="alert" className="m-0 me-auto text-sm leading-5 font-medium text-foreground">
+          <div data-slot="edit-sheet-discard" data-ouro="edit-sheet-discard" role="group" aria-labelledby={`${formId}-discard`} className={discardClass}>
+            <p data-slot="edit-sheet-discard-message" id={`${formId}-discard`} role="alert" className="m-0 me-auto text-sm leading-5 font-medium text-foreground">
               {discardMessage}
             </p>
             <Button ref={keepRef} variant="outline" tone="secondary" data-ouro-control="edit-sheet" data-ouro-part="keep-editing" onClick={() => setConfirming(false)}>

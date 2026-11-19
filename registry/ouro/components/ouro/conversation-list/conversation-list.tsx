@@ -312,7 +312,7 @@ function reveal(controls: ReadonlyMap<string, HTMLElement>, key: string, block: 
 /** A chevron that points at the rows when the section is open, and along the header when it is closed. */
 function Chevron({ open }: { open: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={cn("size-4 shrink-0", quiet, !open && "rtl:-scale-x-100")}>
+    <svg data-slot="conversation-list-section-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={cn("size-4 shrink-0", quiet, !open && "rtl:-scale-x-100")}>
       <path d={open ? "M4 6l4 4 4-4" : "M6 4l4 4-4 4"} />
     </svg>
   );
@@ -353,7 +353,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
     <>
       {hasMark && (
         // As tall as the line, so a badge that is a little taller leaves the row the height of the others.
-        <span data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
+        <span data-slot="conversation-list-mark" data-ouro-conversation-mark="" className={cn("flex h-5 shrink-0 items-center text-xs", quiet)}>
           {item.mark}
         </span>
       )}
@@ -362,10 +362,12 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
   );
   return (
     <li
+      data-slot="conversation-list-item"
       {...(windowed && { style: { top }, "aria-posinset": position, "aria-setsize": count })}
       className={cn("m-0 p-0", windowed && slotClass)}
     >
       <button
+        data-slot="conversation-list-row"
         ref={(node) => register(key, node)}
         type="button"
         data-ouro-control="conversation-list"
@@ -379,42 +381,42 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
         className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2", hasMenu(item) && "[-webkit-touch-callout:none]")}
       >
         {item.avatar === false ? null : typeof item.avatar === "object" ? (
-          <span data-ouro-conversation-avatar="" className="flex shrink-0">
+          <span data-slot="conversation-list-avatar" data-ouro-conversation-avatar="" className="flex shrink-0">
             {item.avatar}
           </span>
         ) : (
           <Avatar name={item.name ?? (item.title as string)} src={item.avatar} members={item.members} alt="" size={density === "compact" ? "xs" : "sm"} />
         )}
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="flex min-w-0 flex-1 items-center gap-1.5">
+        <span data-slot="conversation-list-body" className="flex min-w-0 flex-1 flex-col">
+          <span data-slot="conversation-list-header" className="flex min-w-0 items-center gap-2">
+            <span data-slot="conversation-list-heading" className="flex min-w-0 flex-1 items-center gap-1.5">
               {shown(item.icon) && (
-                <span data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-4", quiet)}>
+                <span data-slot="conversation-list-icon" data-ouro-conversation-icon="" className={cn("flex shrink-0 items-center [&_svg]:size-4", quiet)}>
                   {item.icon}
                 </span>
               )}
-              <span data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
+              <span data-slot="conversation-list-title" data-ouro-conversation-title="" className={cn("min-w-0 truncate text-base pointer-fine:text-sm", item.unread ? "font-semibold" : "font-normal")}>
                 {item.name === undefined ? (
                   item.title
                 ) : (
                   <>
                     <span aria-hidden="true">{item.title}</span>
-                    <span className="sr-only">{item.name}</span>
+                    <span data-slot="conversation-list-name" className="sr-only">{item.name}</span>
                   </>
                 )}
-                {membersText !== undefined && <span className="sr-only">, {membersText}</span>}
+                {membersText !== undefined && <span data-slot="conversation-list-members" className="sr-only">, {membersText}</span>}
               </span>
               {item.nameTag && (
-                <span data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
-                  <span className="sr-only">, </span>
+                <span data-slot="conversation-list-name-tag" data-ouro-conversation-name-tag="" className={cn("shrink-0 text-sm pointer-fine:text-xs", quiet)}>
+                  <span data-slot="conversation-list-name-tag-separator" className="sr-only">, </span>
                   {item.nameTag}
                 </span>
               )}
               {shown(item.where) && (
                 // One line tall: the where wraps past the empty first item when it does not fit, and the wrapped line is clipped.
-                <span data-ouro-conversation-where="" className={cn("flex h-lh min-w-0 max-w-max flex-[1_1_0%] flex-wrap overflow-hidden text-sm pointer-fine:text-xs", quiet)}>
-                  <span className="h-lh w-0" />
-                  <span className="whitespace-nowrap">
+                <span data-slot="conversation-list-where" data-ouro-conversation-where="" className={cn("flex h-lh min-w-0 max-w-max flex-[1_1_0%] flex-wrap overflow-hidden text-sm pointer-fine:text-xs", quiet)}>
+                  <span data-slot="conversation-list-where-spacer" className="h-lh w-0" />
+                  <span data-slot="conversation-list-where-text" className="whitespace-nowrap">
                     <span aria-hidden="true">· </span>
                     {item.where}
                   </span>
@@ -423,34 +425,34 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
               {item.badges}
             </span>
             {shown(item.time) && (
-              <span data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
+              <span data-slot="conversation-list-time" data-ouro-conversation-time="" className={cn("shrink-0 text-xs tabular-nums", quiet)}>
                 {item.time}
               </span>
             )}
             {endsTitle && end}
           </span>
           {item.subtitle && (
-            <span className="flex min-w-0 items-center gap-2">
-              <span data-ouro-conversation-subtitle="" className={cn("min-w-0 flex-1 truncate text-xs", quiet)}>
+            <span data-slot="conversation-list-line" className="flex min-w-0 items-center gap-2">
+              <span data-slot="conversation-list-subtitle" data-ouro-conversation-subtitle="" className={cn("min-w-0 flex-1 truncate text-xs", quiet)}>
                 {item.subtitle}
               </span>
               {endsSubtitle && end}
             </span>
           )}
           {withContext && (
-            <span className="flex min-w-0 items-center gap-2">
-              <span data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
+            <span data-slot="conversation-list-line" className="flex min-w-0 items-center gap-2">
+              <span data-slot="conversation-list-context" data-ouro-conversation-context="" className="min-w-0 flex-1 truncate text-sm text-foreground">
                 {item.context}
               </span>
               {!withPreview && end}
             </span>
           )}
           {withPreview && (
-            <span className="flex min-w-0 items-center gap-2">
-              <span data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
+            <span data-slot="conversation-list-line" className="flex min-w-0 items-center gap-2">
+              <span data-slot="conversation-list-preview" data-ouro-conversation-preview="" className={cn("min-w-0 flex-1 truncate text-sm", item.unread ? "text-foreground" : quiet)}>
                 {drafted ? (
                   <>
-                    <span data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
+                    <span data-slot="conversation-list-draft" data-ouro-conversation-draft="" className="font-medium text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
                       {draftLabel}
                     </span>{" "}
                     {item.draft}
@@ -1001,13 +1003,14 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
 
   const outer = loose.length + groupsShown.length;
   return (
-    <div {...rest} data-ouro="conversation-list" data-density={density} className={cn("box-border min-w-0", className)}>
+    <div data-slot="conversation-list" {...rest} data-ouro="conversation-list" data-density={density} className={cn("box-border min-w-0", className)}>
       {items.length === 0 ? (
-        <p className={cn("m-0 px-3 py-2 text-sm", quiet)}>{empty}</p>
+        <p data-slot="conversation-list-empty" className={cn("m-0 px-3 py-2 text-sm", quiet)}>{empty}</p>
       ) : (
         // Focus moving to another control sets it again; leaving the list hands the stop back to the open conversation.
         // The window losing focus blurs the row too, but focus stays on it, and so do the stop and the row.
         <ul
+          data-slot="conversation-list-items"
           ref={listRef}
           aria-label={label}
           onBlur={() => {
@@ -1032,6 +1035,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
             if (windowed && !rendered(key) && shownRows.length === 0) return null;
             const header = (
               <button
+                data-slot="conversation-list-section"
                 ref={controlRef(key)}
                 type="button"
                 data-ouro-control="conversation-list"
@@ -1050,16 +1054,16 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 className={cn(controlClass, headerClass)}
               >
                 <Chevron open={open} />
-                <span data-ouro-conversation-section-title="" className="min-w-0 truncate font-semibold">
+                <span data-slot="conversation-list-section-title" data-ouro-conversation-section-title="" className="min-w-0 truncate font-semibold">
                   {section.title}
                 </span>
                 {shown(section.note) && (
-                  <span data-ouro-conversation-section-note="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-xs", quiet)}>
+                  <span data-slot="conversation-list-section-note" data-ouro-conversation-section-note="" className={cn("min-w-0 max-w-max flex-[1_1_0%] truncate text-xs", quiet)}>
                     {section.note}
                   </span>
                 )}
                 {!open && rows.some((item) => item.unread) && (
-                  <span className="ms-auto flex shrink-0 items-center">
+                  <span data-slot="conversation-list-section-unread" className="ms-auto flex shrink-0 items-center">
                     <UnreadDot data-ouro-conversation-unread="" label={unreadLabel} />
                   </span>
                 )}
@@ -1067,6 +1071,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
             );
             return (
               <li
+                data-slot="conversation-list-group"
                 key={key}
                 data-ouro-conversation-section={section.id}
                 aria-posinset={windowed ? loose.length + index + 1 : undefined}
@@ -1077,7 +1082,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                 {open &&
                   // Stryker disable next-line ConditionalExpression,EqualityOperator: an empty <div> and an empty <ul> differ only for assistive tech, which the accessibility-tree test covers for open sections with rows outside the window
                   (shownRows.length > 0 ? (
-                    <ul id={groupId} aria-label={section.title} className={windowed ? "m-0 list-none p-0" : cn(listClass, "mt-0.5")}>
+                    <ul data-slot="conversation-list-group-items" id={groupId} aria-label={section.title} className={windowed ? "m-0 list-none p-0" : cn(listClass, "mt-0.5")}>
                       {shownRows}
                     </ul>
                   ) : (

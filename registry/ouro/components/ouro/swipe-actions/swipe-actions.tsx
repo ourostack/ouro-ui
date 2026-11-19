@@ -99,7 +99,7 @@ const toneOf = (action: SwipeAction): ToneName => (action.tone !== undefined && 
 
 function EllipsisIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" className="size-4">
+    <svg data-slot="swipe-actions-menu-icon" aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" className="size-4">
       <circle cx="3" cy="8" r="1.5" />
       <circle cx="8" cy="8" r="1.5" />
       <circle cx="13" cy="8" r="1.5" />
@@ -127,6 +127,7 @@ function Strip({
   const ordered = side === "trailing" ? [...actions].reverse() : actions;
   return (
     <div
+      data-slot="swipe-actions-side"
       ref={stripRef}
       data-ouro-swipe-actions-side={side}
       data-open={open ? "" : undefined}
@@ -135,6 +136,7 @@ function Strip({
     >
       {ordered.map((action, index) => (
         <button
+          data-slot="swipe-actions-action"
           key={index}
           type="button"
           data-tone={toneOf(action)}
@@ -514,7 +516,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
   };
 
   const content = (
-    <div ref={contentRef} data-ouro-swipe-actions-content="" className={contentClass}>
+    <div data-slot="swipe-actions-content" ref={contentRef} data-ouro-swipe-actions-content="" className={contentClass}>
       {children}
     </div>
   );
@@ -538,6 +540,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
 
   return (
     <div
+      data-slot="swipe-actions"
       ref={setRoot}
       data-ouro="swipe-actions"
       data-open={open ?? undefined}
@@ -566,7 +569,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
       onClickCapture={onClickCapture}
       onFocus={(event) => void (focusedIn.current = event.target)}
     >
-      <div ref={trackRef} data-ouro-swipe-actions-track="" className={trackClass}>
+      <div data-slot="swipe-actions-track" ref={trackRef} data-ouro-swipe-actions-track="" className={trackClass}>
         <Strip side="leading" actions={leading} open={open === "leading"} stripRef={leadingRef} onAction={tapped} />
         {all.length > 0 ? (
           // A long press on the row opens the actions at the finger: the way in for a touch that cannot swipe.
@@ -575,7 +578,7 @@ export function SwipeActions(props: SwipeActionsProps): JSX.Element {
           content
         )}
         {all.length > 0 && (
-          <div data-ouro-swipe-actions-menu="" className={menuClass}>
+          <div data-slot="swipe-actions-menu" data-ouro-swipe-actions-menu="" className={menuClass}>
             <Menu
               trigger={
                 <Button variant="plain" tone="secondary" size="sm" aria-label={actionsLabel.replaceAll("{label}", label)} data-ouro-control="swipe-actions" data-ouro-part="menu">

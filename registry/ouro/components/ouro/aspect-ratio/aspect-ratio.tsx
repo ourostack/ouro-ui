@@ -90,6 +90,7 @@ export function AspectRatio(props: AspectRatioProps): JSX.Element {
   );
   return (
     <div
+      data-slot="aspect-ratio"
       {...rest}
       data-ouro="aspect-ratio"
       style={{ ...style, aspectRatio: ratio }}

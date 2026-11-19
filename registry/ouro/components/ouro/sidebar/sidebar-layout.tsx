@@ -130,11 +130,13 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
   const main = useRef<HTMLDivElement>(null);
   return (
     <div
+      data-slot="sidebar-layout"
       ref={ref}
       data-ouro="sidebar-layout"
       className={cn("relative grid min-h-dvh grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] bg-background text-foreground", className)}
     >
       <a
+        data-slot="sidebar-layout-skip-link"
         href={`#${mainId}`}
         data-ouro-control="sidebar-layout"
         data-ouro-part="skip-link"
@@ -144,14 +146,15 @@ export function SidebarLayout(props: SidebarLayoutProps): JSX.Element {
       >
         {skipLabel}
       </a>
-      <div data-ouro-sidebar-layout-sidebar="" className={sidebarCell}>
+      <div data-slot="sidebar-layout-sidebar" data-ouro-sidebar-layout-sidebar="" className={sidebarCell}>
         {sidebar}
       </div>
       {/* Without a header the cell still draws the rest of the phone's top bar. */}
-      <Header data-ouro-sidebar-layout-header="" className={cn(headerCell, header !== undefined ? "min-h-14" : "sm:hidden")}>
+      <Header data-slot="sidebar-layout-header" data-ouro-sidebar-layout-header="" className={cn(headerCell, header !== undefined ? "min-h-14" : "sm:hidden")}>
         {header}
       </Header>
       <Page
+        data-slot="sidebar-layout-content"
         ref={main}
         id={mainId}
         tabIndex={-1}

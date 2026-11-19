@@ -164,7 +164,7 @@ export function DialogTrigger({ onPointerDown, onKeyDown, ...props }: BaseDialog
 export function DialogPortal(props: Omit<BaseDialog.Portal.Props, "className">): JSX.Element {
   useDialogPart("DialogPortal", "…");
   return (
-    <BaseDialog.Portal {...props} data-ouro="dialog-portal" className="relative isolate z-(--ouro-layer) in-[[data-ouro$='-portal']]:z-1001">
+    <BaseDialog.Portal data-slot="dialog-portal" {...props} data-ouro="dialog-portal" className="relative isolate z-(--ouro-layer) in-[[data-ouro$='-portal']]:z-1001">
       <PortalScope>{props.children}</PortalScope>
     </BaseDialog.Portal>
   );
@@ -180,13 +180,13 @@ export function DialogBackdrop({
 }: Omit<BaseDialog.Backdrop.Props, "className"> & { ref?: Ref<HTMLDivElement> | undefined }): JSX.Element {
   useDialogPart("DialogBackdrop", "…");
   const anchorRef = useBackdropAnchor(ref);
-  return <BaseDialog.Backdrop {...props} ref={anchorRef} data-ouro="dialog-backdrop" className={backdropClass} />;
+  return <BaseDialog.Backdrop data-slot="dialog-backdrop" {...props} ref={anchorRef} data-ouro="dialog-backdrop" className={backdropClass} />;
 }
 
 /** Part: the full-screen layer that centers the popup and keeps it clear of the screen edges. */
 export function DialogViewport(props: Omit<BaseDialog.Viewport.Props, "className">): JSX.Element {
   useDialogPart("DialogViewport", "…");
-  return <BaseDialog.Viewport {...props} data-ouro="dialog-viewport" className={viewportClass} />;
+  return <BaseDialog.Viewport data-slot="dialog-viewport" {...props} data-ouro="dialog-viewport" className={viewportClass} />;
 }
 
 /** Props for {@link DialogPopup}. `className` is for layout only (margins, width). */
@@ -252,6 +252,7 @@ export function DialogPopupUnchecked({
   const holdRef = useMergedRef(ref, useHeldTop());
   return (
     <BaseDialog.Popup
+      data-slot="dialog"
       {...props}
       ref={holdRef}
       className={cn(popupClass, popupSizes[size], className)}
@@ -326,6 +327,7 @@ export function DialogTitle({ visuallyHidden, ...props }: DialogTitleProps): JSX
   useDialogPart("DialogTitle", "<DialogTitle>…</DialogTitle>…");
   return (
     <BaseDialog.Title
+      data-slot="dialog-title"
       {...props}
       data-ouro-dialog-title=""
       className={
@@ -342,6 +344,7 @@ export function DialogDescription(props: Omit<BaseDialog.Description.Props, "cla
   useDialogPart("DialogDescription", "<DialogTitle>…</DialogTitle><DialogDescription>…</DialogDescription>…");
   return (
     <BaseDialog.Description
+      data-slot="dialog-description"
       {...props}
       data-ouro-dialog-description=""
       className="m-0 text-sm leading-5 text-pretty text-muted-foreground"
@@ -371,8 +374,9 @@ export function DialogContent({ className, ref, ...props }: DialogContentProps):
   // The wrapper takes the body's place in the dialog's column; the scroller fills it. Its focus ring is a sibling drawn
   // over the scroller, so content that sticks to an edge inside the body never covers it.
   return (
-    <div className="relative box-border flex min-h-0 flex-auto flex-col">
+    <div data-slot="dialog-content-frame" className="relative box-border flex min-h-0 flex-auto flex-col">
       <div
+        data-slot="dialog-content"
         data-ouro-control="dialog"
         data-ouro-part="content"
         {...props}
@@ -386,6 +390,7 @@ export function DialogContent({ className, ref, ...props }: DialogContentProps):
         )}
       />
       <span
+        data-slot="dialog-content-focus-ring"
         aria-hidden="true"
         data-dialog-focus-ring=""
         className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
@@ -404,7 +409,7 @@ export function DialogFooter(props: Omit<JSX.IntrinsicElements["div"], "classNam
     "DialogFooter",
     "<DialogTitle>…</DialogTitle><DialogContent>…</DialogContent><DialogFooter>…</DialogFooter>",
   );
-  return <div {...props} data-ouro-footer="" className={footerClass} />;
+  return <div data-slot="dialog-footer" {...props} data-ouro-footer="" className={footerClass} />;
 }
 
 /** Part: closes the dialog. Pass your button as `render={<Button>Done</Button>}`. */

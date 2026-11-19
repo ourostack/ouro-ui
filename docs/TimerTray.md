@@ -57,6 +57,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `timer-tray`, `timer-tray-go-to`, `timer-tray-go-to-label`, `timer-tray-item`, `timer-tray-item-actions`, `timer-tray-item-content`, `timer-tray-item-label`, `timer-tray-item-paused`, `timer-tray-item-time`, `timer-tray-list`, `timer-tray-stop`, `timer-tray-stop-label`.
+
 ## Types
 
 ### `TimerDoneEvent`

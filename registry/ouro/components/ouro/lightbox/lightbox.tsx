@@ -218,7 +218,7 @@ function ExternalIcon(props: SVGProps<SVGSVGElement>): JSX.Element {
 
 function ZoomIcon({ out }: { out: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
+    <svg data-slot="lightbox-zoom-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
       <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5" />
       <path d={out ? "M5 7h4M10.5 10.5L14 14" : "M5 7h4M7 5v4M10.5 10.5L14 14"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
@@ -227,7 +227,7 @@ function ZoomIcon({ out }: { out: boolean }): JSX.Element {
 
 function CloseIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
+    <svg data-slot="lightbox-close-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
       <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
@@ -484,22 +484,24 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority
 
   return (
     <figure
+      data-slot="lightbox-figure"
       ref={figure}
       data-ouro-lightbox-figure=""
       data-zoomed={zoomed ? "" : undefined}
       className={figureClass}
       {...taps}
     >
-      <img ref={picture} src={image.src} alt={image.alt} decoding="async" fetchPriority={priority} data-ouro-lightbox-image="" className={cn(imageClass, zoomed && "invisible")} />
+      <img data-slot="lightbox-image" ref={picture} src={image.src} alt={image.alt} decoding="async" fetchPriority={priority} data-ouro-lightbox-image="" className={cn(imageClass, zoomed && "invisible")} />
       {/* Zoomed, the image covers the caption, so the caption steps aside until it is fitted again. */}
       {(image.title !== undefined || image.caption !== undefined) && (
-        <figcaption className={cn(captionClass, zoomed && "invisible")}>
-          {image.title !== undefined && <span className="font-medium text-foreground">{image.title}</span>}
+        <figcaption data-slot="lightbox-caption" className={cn(captionClass, zoomed && "invisible")}>
+          {image.title !== undefined && <span data-slot="lightbox-caption-title" className="font-medium text-foreground">{image.title}</span>}
           {image.caption !== undefined && <span>{image.caption}</span>}
         </figcaption>
       )}
       {zoomed && (
         <div
+          data-slot="lightbox-zoom-view"
           ref={view}
           role="group"
           aria-label={zoomLabel}
@@ -510,6 +512,7 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority
           className={zoomViewClass}
         >
           <img
+            data-slot="lightbox-zoom-image"
             src={image.src}
             alt={image.alt}
             className={zoomedImageClass}
@@ -606,8 +609,8 @@ function LightboxViewer({
   const zoomable = (maxima[shown] ?? 1) > minZoom;
   return (
     <>
-      <div ref={header} data-ouro-lightbox-header="" className={headerClass}>
-        <div className={titleClass}>
+      <div data-slot="lightbox-header" ref={header} data-ouro-lightbox-header="" className={headerClass}>
+        <div data-slot="lightbox-heading" className={titleClass}>
           <DialogTitle>{label}</DialogTitle>
           {/* The viewer's name: the label and the position, which the header shows apart. One image
               has no position worth naming. */}
@@ -616,7 +619,7 @@ function LightboxViewer({
           </span>
         </div>
         {total > 1 && (
-          <span data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={counterClass}>
+          <span data-slot="lightbox-position" data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={counterClass}>
             {fillTemplate(positionLabel, chosen + 1, total)}
           </span>
         )}
@@ -633,7 +636,7 @@ function LightboxViewer({
             startIcon={ExternalIcon}
           >
             {/* Below 640px only the icon shows; the text still names the link. */}
-            <span className="max-sm:sr-only">{originalLabel}</span>
+            <span data-slot="lightbox-original-label" className="max-sm:sr-only">{originalLabel}</span>
           </Button>
         )}
         {zoomable && (
@@ -901,6 +904,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
         <DialogBackdrop />
         <DialogViewport>
           <DialogPopupUnchecked
+            data-slot="lightbox-viewer"
             ref={(node: HTMLDivElement | null) => {
               popup.current = node;
               // Once per opening: the viewer grows from its opener, the thumbnail pressed or, when
@@ -946,6 +950,7 @@ export function Lightbox(props: LightboxProps): JSX.Element {
 
   const thumbnail = (image: LightboxImage, position: number, more = 0) => (
     <button
+      data-slot="lightbox-thumbnail"
       ref={(node) => {
         thumbnails.current[position] = node;
       }}
@@ -980,14 +985,14 @@ export function Lightbox(props: LightboxProps): JSX.Element {
       }}
     >
       {/* With reduced motion an animated image's thumbnail shows its still frame: chosen by the browser under the device's setting, always under OuroProvider's motion="reduced", never under "full". */}
-      <picture className="contents">
+      <picture data-slot="lightbox-thumbnail-picture" className="contents">
         {image.still !== undefined && motion !== "full" && <source media={motion === "reduced" ? "all" : "(prefers-reduced-motion: reduce)"} srcSet={image.still} />}
-        <img src={image.thumbnail ?? image.src} alt={image.alt} decoding="async" className={mosaic ? mosaicImageClass : thumbnailImageClass} />
+        <img data-slot="lightbox-thumbnail-image" src={image.thumbnail ?? image.src} alt={image.alt} decoding="async" className={mosaic ? mosaicImageClass : thumbnailImageClass} />
       </picture>
       {more > 0 && (
         <>
-          <span aria-hidden="true" data-ouro-lightbox-more="" className={mosaicMoreClass}>{`+${more}`}</span>
-          <span className="sr-only">{`, and ${more} more`}</span>
+          <span data-slot="lightbox-more" aria-hidden="true" data-ouro-lightbox-more="" className={mosaicMoreClass}>{`+${more}`}</span>
+          <span data-slot="lightbox-more-label" className="sr-only">{`, and ${more} more`}</span>
         </>
       )}
     </button>
@@ -999,10 +1004,10 @@ export function Lightbox(props: LightboxProps): JSX.Element {
     const more = images.length - tiles.length;
     const shape = mosaicLayout(tiles.length, images[0]?.width, images[0]?.height);
     return (
-      <div data-ouro="lightbox" data-layout="mosaic" className={cn(mosaicFrameClass, className)} style={{ "--ouro-lightbox-ratio": shape.ratio } as CSSProperties}>
-        <ul role="list" aria-label={label} className={cn(mosaicClass, shape.grid)} style={{ aspectRatio: shape.ratio }}>
+      <div data-slot="lightbox" data-ouro="lightbox" data-layout="mosaic" className={cn(mosaicFrameClass, className)} style={{ "--ouro-lightbox-ratio": shape.ratio } as CSSProperties}>
+        <ul data-slot="lightbox-list" role="list" aria-label={label} className={cn(mosaicClass, shape.grid)} style={{ aspectRatio: shape.ratio }}>
           {tiles.map((image, position) => (
-            <li key={position} className={mosaicCellClass}>
+            <li data-slot="lightbox-item" key={position} className={mosaicCellClass}>
               {thumbnail(image, position, position === tiles.length - 1 ? more : 0)}
             </li>
           ))}
@@ -1013,10 +1018,10 @@ export function Lightbox(props: LightboxProps): JSX.Element {
   }
 
   return (
-    <div data-ouro="lightbox" className={cn("min-w-0", className)}>
-      <ul role="list" aria-label={label} className={gridClass}>
+    <div data-slot="lightbox" data-ouro="lightbox" className={cn("min-w-0", className)}>
+      <ul data-slot="lightbox-list" role="list" aria-label={label} className={gridClass}>
         {images.map((image, position) => (
-          <li key={position} className="m-0 p-0">
+          <li data-slot="lightbox-item" key={position} className="m-0 p-0">
             {thumbnail(image, position)}
           </li>
         ))}

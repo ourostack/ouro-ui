@@ -50,3 +50,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `delayDuration`: Not a prop. Ouro UI sets the delay, and `OuroProvider` groups tooltips so neighbours open instantly.
 - `placement`: Not a prop. Ouro UI splits placement into `side` and `align`: `<Tooltip side="bottom" align="start">`.
 - `title`: Not a prop. The text is `content`: `<Tooltip content="Add to cookbook">`.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `tooltip`, `tooltip-portal`.

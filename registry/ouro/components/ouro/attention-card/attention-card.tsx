@@ -137,36 +137,37 @@ export function AttentionCard(props: AttentionCardProps): JSX.Element {
   );
 
   const body = (
-    <span data-ouro-attention-message="" className="line-clamp-2 text-sm [overflow-wrap:anywhere]">
-      <span className="font-semibold">{from}:</span> {children}
+    <span data-slot="attention-card-message" data-ouro-attention-message="" className="line-clamp-2 text-sm [overflow-wrap:anywhere]">
+      <span data-slot="attention-card-from" className="font-semibold">{from}:</span> {children}
     </span>
   );
   return (
     <article
+      data-slot="attention-card"
       {...rest}
       ref={merged}
       data-ouro="attention-card"
       aria-labelledby={`${id}-reason ${id}-title`}
       className={cn("box-border flex min-w-0 flex-col gap-1.5 rounded-ouro-xl border border-solid border-border bg-card p-3 text-card-foreground", className)}
     >
-      <div className="flex min-w-0 items-center gap-2">
+      <div data-slot="attention-card-header" className="flex min-w-0 items-center gap-2">
         <Badge id={`${id}-reason`} tone={tone} variant="soft">
           {reason}
         </Badge>
-        <span id={`${id}-title`} className="min-w-0 truncate text-sm font-semibold">
+        <span data-slot="attention-card-title" id={`${id}-title`} className="min-w-0 truncate text-sm font-semibold">
           {title}
         </span>
-        {time !== undefined && time !== null && <span className={cn("ms-auto shrink-0 text-xs", quiet)}>{time}</span>}
+        {time !== undefined && time !== null && <span data-slot="attention-card-time" className={cn("ms-auto shrink-0 text-xs", quiet)}>{time}</span>}
       </div>
       {onOpen ? (
-        <button type="button" data-ouro-control="attention-card" data-ouro-part="open" onClick={onOpen} className={open}>
+        <button data-slot="attention-card-open" type="button" data-ouro-control="attention-card" data-ouro-part="open" onClick={onOpen} className={open}>
           <TouchTarget />
           {body}
         </button>
       ) : (
         body
       )}
-      {actions !== undefined && actions !== null && <div className="flex flex-wrap items-center gap-2 pt-1">{actions}</div>}
+      {actions !== undefined && actions !== null && <div data-slot="attention-card-actions" className="flex flex-wrap items-center gap-2 pt-1">{actions}</div>}
     </article>
   );
 }

@@ -26,7 +26,7 @@ export interface TimeGridNavProps {
 }
 
 const chevron = (d: string) => (
-  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4 rtl:-scale-x-100">
+  <svg data-slot="time-grid-nav-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4 rtl:-scale-x-100">
     <path d={d} />
   </svg>
 );
@@ -65,13 +65,13 @@ export function TimeGridNav(props: TimeGridNavProps): JSX.Element {
   const previous = labels?.previous ?? `Previous ${unit}`;
   const next = labels?.next ?? `Next ${unit}`;
   const tip = (words: string, keys: string[]) => (
-    <span className="inline-flex items-center gap-2">
+    <span data-slot="time-grid-nav-tooltip" className="inline-flex items-center gap-2">
       {words}
       <Kbd keys={keys} />
     </span>
   );
   return (
-    <div data-ouro="time-grid-nav" className={cn("inline-flex items-center gap-1", className)}>
+    <div data-slot="time-grid-nav" data-ouro="time-grid-nav" className={cn("inline-flex items-center gap-1", className)}>
       <Tooltip content={tip(today, ["alt", "shift", "y"])}>
         <Button variant="outline" size="sm" onClick={() => onDateChange(todayOn(zonedClock(timeZone)))}>
           {today}

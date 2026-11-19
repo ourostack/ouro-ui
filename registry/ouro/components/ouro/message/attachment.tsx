@@ -207,18 +207,18 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       {icon === undefined || icon === null || icon === false ? (
         <FileIcon kind={kind} />
       ) : (
-        <span aria-hidden="true" data-ouro-attachment-icon={kind} className="flex size-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-5">
+        <span data-slot="attachment-icon" aria-hidden="true" data-ouro-attachment-icon={kind} className="flex size-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-5">
           {icon}
         </span>
       )}
-      <span data-ouro-attachment-name="" title={name} className="min-w-0 flex-1 truncate font-medium">
+      <span data-slot="attachment-name" data-ouro-attachment-name="" title={name} className="min-w-0 flex-1 truncate font-medium">
         {name}
       </span>
       {validSize(size) && (
         <>
           {/* A space, so the link's name reads "menu.pdf 2 kB". */}
-          <span className="sr-only"> </span>
-          <span data-ouro-attachment-size="" className="shrink-0 text-muted-foreground tabular-nums">
+          <span data-slot="attachment-separator" className="sr-only"> </span>
+          <span data-slot="attachment-size" data-ouro-attachment-size="" className="shrink-0 text-muted-foreground tabular-nums">
             {formatSize(size)}
           </span>
         </>
@@ -231,6 +231,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
   const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());
   return (
     <div
+      data-slot="attachment"
       {...rest}
       ref={merged}
       data-ouro="attachment"
@@ -242,6 +243,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
     >
       {href !== undefined ? (
         <a
+          data-slot="attachment-link"
           href={href}
           download={download || undefined}
           data-ouro-control="attachment"
@@ -260,14 +262,15 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           {body}
         </a>
       ) : onOpen ? (
-        <button type="button" data-ouro-control="attachment" data-ouro-part="open" onClick={onOpen} className={cn(inner, openableClass, "m-0 cursor-pointer border-0 bg-transparent text-start font-[inherit]", focusRing)}>
+        <button data-slot="attachment-open" type="button" data-ouro-control="attachment" data-ouro-part="open" onClick={onOpen} className={cn(inner, openableClass, "m-0 cursor-pointer border-0 bg-transparent text-start font-[inherit]", focusRing)}>
           {body}
         </button>
       ) : (
-        <span className={inner}>{body}</span>
+        <span data-slot="attachment-content" className={inner}>{body}</span>
       )}
       {onRemove && (
         <button
+          data-slot="attachment-remove"
           type="button"
           aria-label={removeLabel(name)}
           data-ouro-control="attachment"
@@ -280,7 +283,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
             focusRing,
           )}
         >
-          <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
+          <svg data-slot="attachment-remove-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
         </button>
@@ -325,6 +328,7 @@ const kindToneClass: Readonly<Record<AttachmentKind, string>> = {
 function FileIcon({ kind }: { kind: AttachmentKind }): JSX.Element {
   return (
     <svg
+      data-slot="attachment-icon"
       aria-hidden="true"
       data-ouro-attachment-icon={kind}
       viewBox="0 0 20 20"

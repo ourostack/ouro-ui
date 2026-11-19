@@ -97,7 +97,7 @@ const listClass = "box-border min-h-0 flex-1 overflow-y-auto overscroll-contain 
  *
  * @internal
  * @claim "An item: 44px tall on phones" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox looks > uses a 16px font and a 44px box on phones, stepping down with a mouse on wider screens)
- * @claim "An item: 44px tall on phones" registry/ouro/components/ouro/combobox/combobox.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.tsx, /<BaseCombobox.ItemIndicator\sclassName="col-start-1\sflex\s\[&_svg\]:size-4">/)
+ * @claim "An item: 44px tall on phones" registry/ouro/components/ouro/combobox/combobox.tsx verify:fileLine(registry/ouro/components/ouro/combobox/combobox.tsx, /<BaseCombobox.ItemIndicator\sdata-slot="combobox-item-indicator"\sclassName="col-start-1\sflex\s\[&_svg\]:size-4">/)
  */
 const itemClass =
   "relative box-border grid min-h-11 cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-ouro-sm px-2 py-1.5 " +

@@ -75,6 +75,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `date-picker`, `date-picker-actions`, `date-picker-icon`, `date-picker-input`, `date-picker-input-group`, `date-picker-popup`, `date-picker-trigger`, `date-picker-trigger-label`.
+
 ## Types
 
 ### `ErrorMessage`

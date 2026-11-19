@@ -77,6 +77,10 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/tabs/tabs-parts`. See [parts.md](parts.md#tabs-parts) for the required nesting.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `tabs`, `tabs-indicator`, `tabs-link`, `tabs-link-item`, `tabs-link-list`, `tabs-list`, `tabs-nav`, `tabs-panel`, `tabs-tab`, `tabs-tab-label`.
+
 ## Types
 
 ### `TabsItem`

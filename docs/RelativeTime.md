@@ -49,4 +49,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `relative-time`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/relative-time/relative-time.test.tsx::RelativeTime > forwards a ref and <time> attributes, and lets app layout classes win verify:testExists(registry/ouro/components/ouro/relative-time/relative-time.test.tsx::RelativeTime > forwards a ref and <time> attributes, and lets app layout classes win)

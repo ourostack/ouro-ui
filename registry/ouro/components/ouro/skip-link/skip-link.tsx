@@ -119,6 +119,7 @@ export function SkipLink(props: SkipLinkProps): JSX.Element {
   };
   return (
     <a
+      data-slot="skip-link"
       data-ouro-control="skip-link"
       data-ouro-part="root"
       {...rest}

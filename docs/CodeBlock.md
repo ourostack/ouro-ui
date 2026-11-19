@@ -61,6 +61,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `code-block`, `code-block-ansi`, `code-block-caption`, `code-block-caption-text`, `code-block-code`, `code-block-copy`, `code-block-emoji`, `code-block-emoji-image`, `code-block-emoji-picture`, `code-block-emoji-source`, `code-block-rule`, `code-block-text`.
+
 ## Types
 
 ### `EmojiCatalogue`

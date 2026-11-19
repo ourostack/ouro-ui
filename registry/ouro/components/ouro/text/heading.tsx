@@ -139,5 +139,5 @@ export function Heading(props: HeadingProps): JSX.Element {
     align && alignClasses[align],
     className,
   );
-  return <Tag {...rest} ref={ref} data-ouro="heading" className={classes} />;
+  return <Tag data-slot="heading" {...rest} ref={ref} data-ouro="heading" className={classes} />;
 }

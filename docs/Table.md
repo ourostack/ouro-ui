@@ -132,6 +132,10 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/table/table-parts`. See [parts.md](parts.md#table-parts) for the required nesting.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `table`, `table-body`, `table-caption`, `table-cell`, `table-empty`, `table-external-label`, `table-footer`, `table-grid`, `table-head`, `table-head-label`, `table-header`, `table-row`, `table-row-link`, `table-scroll-area`, `table-section`, `table-sort`, `table-sort-icon`, `table-sort-indicator`, `table-sort-label`, `table-sr-caption`.
+
 ## Types
 
 ### `TableColumn`

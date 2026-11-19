@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, dryRunMinutes, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, namesOnly, dryRunMinutes, inScope, mutationRunners, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
@@ -74,6 +74,33 @@ test("changedLines reads each hunk's new lines, and a hunk that only removed lin
     "@@ -0,0 +1,5 @@",
   ].join("\n");
   assert.deepEqual(changedLines(diff), { "registry/a.ts": [[4, 5], [12, 12]], "registry/c.tsx": [[1, 5]] });
+});
+
+test("changedLines leaves out a hunk that only adds or renames part names, and keeps one that changes anything else", () => {
+  const diff = [
+    "diff --git a/registry/d.tsx b/registry/d.tsx",
+    "--- a/registry/d.tsx",
+    "+++ b/registry/d.tsx",
+    "@@ -3 +3 @@",
+    '-      <div className="grid" aria-hidden={hidden}>',
+    '+      <div data-slot="d-frame" className="grid" aria-hidden={hidden}>',
+    "@@ -5,0 +6 @@",
+    '+      data-slot="d"',
+    "@@ -8 +9 @@",
+    '-      <p data-slot="media">',
+    '+      <p data-slot="d-media">',
+    "@@ -12 +13,2 @@",
+    '-      <span className="x">',
+    '+      data-slot="d-label"',
+    '+      <span className="x" hidden={!open}>',
+    "@@ -20 +22 @@",
+    '-      <b data-slot="d-a" className={open ? "a" : "b"}>',
+    '+      <b data-slot="d-a" className={open && closed ? "a" : "b"}>',
+  ].join("\n");
+  assert.deepEqual(changedLines(diff), { "registry/d.tsx": [[13, 14], [22, 22]] });
+  assert.equal(namesOnly(['  <i className="y" />'], ['  <i data-slot="d-icon" className="y" />']), true);
+  assert.equal(namesOnly([], ["", '  data-slot="d"']), true);
+  assert.equal(namesOnly(['  <i className="y" />'], ['  <i data-slot="d-icon" className="z" />']), false);
 });
 
 test("mutateRanges names each changed range of runtime source as Stryker's path:start-end", () => {
@@ -168,7 +195,7 @@ function strings(source) {
   return Object.fromEntries(found);
 }
 
-test("the ouro-classes ignorer leaves out only strings in class positions: className, cn() and cva() arguments, and *Class constants", () => {
+test("the ouro-classes ignorer leaves out only strings in class positions (className, cn() and cva() arguments, *Class constants) and part names", () => {
   const found = strings(`
     const rootClass = "m-0 flex gap-2 " + "rounded-md";
     const sizes = { sm: "h-9 px-3" };
@@ -179,14 +206,14 @@ test("the ouro-classes ignorer leaves out only strings in class positions: class
       input.removeAttribute("aria-busy");
       input.closest("[inert]");
       return (
-        <div className={cn("grid gap-1", open && "data-open:block")} data-ouro-part="thumb-label" iconClassName="size-4 shrink-0" aria-describedby="field-description">
+        <div data-slot="part-frame" className={cn("grid gap-1", open && "data-open:block")} data-ouro-part="thumb-label" iconClassName="size-4 shrink-0" aria-describedby="field-description" data-name="part-label">
           <span className={\`flex \${open ? "ring-2" : ""}\`} />
         </div>
       );
     }
   `);
-  for (const text of ["m-0 flex gap-2 ", "rounded-md", "inline-flex items-center", "grid gap-1", "data-open:block", "size-4 shrink-0", "ring-2", "h-8 px-2"]) assert.equal(found[text], true, text);
-  for (const text of ["a[href]", "aria-invalid", "aria-busy", "[inert]", "thumb-label", "field-description", "h-9 px-3"]) assert.equal(found[text], false, text);
+  for (const text of ["m-0 flex gap-2 ", "rounded-md", "inline-flex items-center", "grid gap-1", "data-open:block", "size-4 shrink-0", "ring-2", "h-8 px-2", "part-frame"]) assert.equal(found[text], true, text);
+  for (const text of ["a[href]", "aria-invalid", "aria-busy", "[inert]", "thumb-label", "field-description", "h-9 px-3", "part-label"]) assert.equal(found[text], false, text);
 });
 
 test("disableProblems fails every Stryker comment a change adds to runtime source that is not next-line <Mutator>: <reason>", () => {

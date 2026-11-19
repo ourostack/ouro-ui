@@ -123,40 +123,41 @@ export function PageHeader(props: PageHeaderProps): JSX.Element {
   );
   return (
     <div
+      data-slot="page-header"
       {...rest}
       data-ouro="page-header"
       data-size={size}
       className={cn("grid min-w-0 gap-4", divider && "border-0 border-b border-solid border-border pb-6", className)}
     >
       {breadcrumb != null ? (
-        <div data-slot="breadcrumb" className="min-w-0">
+        <div data-slot="page-header-breadcrumb" className="min-w-0">
           {breadcrumb}
         </div>
       ) : null}
       {media != null ? (
-        <div data-slot="media" className="min-w-0 overflow-hidden rounded-ouro-lg bg-muted [&>img]:block [&>img]:h-full [&>img]:w-full [&>img]:object-cover">
+        <div data-slot="page-header-media" className="min-w-0 overflow-hidden rounded-ouro-lg bg-muted [&>img]:block [&>img]:h-full [&>img]:w-full [&>img]:object-cover">
           {media}
         </div>
       ) : null}
-      <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <div className="grid min-w-0 gap-2">
+      <div data-slot="page-header-row" className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div data-slot="page-header-text" className="grid min-w-0 gap-2">
           {eyebrow != null ? (
-            <p data-slot="eyebrow" className={"m-0 text-sm leading-5 font-medium text-muted-foreground"}>
+            <p data-slot="page-header-eyebrow" className={"m-0 text-sm leading-5 font-medium text-muted-foreground"}>
               {eyebrow}
             </p>
           ) : null}
-          <Heading level={level} size={size === "lg" ? "display" : level === 1 ? "2xl" : "xl"} className="min-w-0 break-words">
+          <Heading data-slot="page-header-title" level={level} size={size === "lg" ? "display" : level === 1 ? "2xl" : "xl"} className="min-w-0 break-words">
             {title}
           </Heading>
           {description != null ? (
-            <div data-slot="description" className={"max-w-prose text-base leading-7 text-muted-foreground"}>
+            <div data-slot="page-header-description" className={"max-w-prose text-base leading-7 text-muted-foreground"}>
               {description}
             </div>
           ) : null}
-          {children != null ? <div className="min-w-0 pt-1">{children}</div> : null}
+          {children != null ? <div data-slot="page-header-more" className="min-w-0 pt-1">{children}</div> : null}
         </div>
         {actions != null ? (
-          <div data-slot="actions" className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
+          <div data-slot="page-header-actions" className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
             {actions}
           </div>
         ) : null}

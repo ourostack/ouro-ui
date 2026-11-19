@@ -66,6 +66,10 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/checklist/checklist-parts`. See [parts.md](parts.md#checklist-parts) for the required nesting.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `checklist`, `checklist-action`, `checklist-box`, `checklist-check-icon`, `checklist-description`, `checklist-empty`, `checklist-header`, `checklist-header-text`, `checklist-hit-area`, `checklist-indicator`, `checklist-label`, `checklist-media`, `checklist-note`, `checklist-row`, `checklist-row-card`, `checklist-row-description`, `checklist-row-inner`, `checklist-rows`, `checklist-strike`, `checklist-text`, `checklist-tick`, `checklist-title`, `checklist-value`.
+
 ## Types
 
 ### `ChecklistItemData`

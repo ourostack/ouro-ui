@@ -135,25 +135,27 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
   }
 
   return (
-    <nav ref={ref} data-ouro="family-bar" aria-label={label} className={cn(familyBarClass, className)}>
+    <nav data-slot="family-bar" ref={ref} data-ouro="family-bar" aria-label={label} className={cn(familyBarClass, className)}>
       {brand !== undefined && (
-        <div data-ouro-family-brand="" className="flex shrink-0 items-center">
+        <div data-slot="family-bar-brand" data-ouro-family-brand="" className="flex shrink-0 items-center">
           {brand}
         </div>
       )}
-      <div ref={scroller} data-ouro-family-row="" className={cn(familyScrollerClass, scrollFadeClass, scrollFadeStaticClass)}>
+      <div data-slot="family-bar-row" ref={scroller} data-ouro-family-row="" className={cn(familyScrollerClass, scrollFadeClass, scrollFadeStaticClass)}>
         {/* Room after the last link: the row's scroll width rounds the list's down, which would clip the last link and
             its outline by a fraction of a pixel when the row is scrolled to its end. */}
         {/* Where scroll-driven animations draw the fade with no script, the list is a pixel wider than a row it fits on a
             touch screen, so the row's scroll timeline never goes idle and holds a stale fade after a phone turns. Not for
             a mouse, whose row keeps a scroll bar a pixel would show. */}
         <ul
+          data-slot="family-bar-list"
           onFocus={clearOfFade}
           className="m-0 flex w-max list-none items-center gap-0.5 p-0 pe-1 pointer-coarse:supports-[animation-timeline:scroll()]:min-w-[calc(100%+1px)]"
         >
           {links.map((link, index) => (
-            <li key={index} className="relative flex snap-start">
+            <li data-slot="family-bar-item" key={index} className="relative flex snap-start">
               <RouterLink
+                data-slot="family-bar-link"
                 href={link.href}
                 aria-current={link.id === current ? "true" : undefined}
                 data-ouro-control="family-bar"
@@ -166,7 +168,7 @@ export function FamilyBar(props: FamilyBarProps): JSX.Element {
                 // Where the row starts with no script: the browser scrolls a scroll-initial-target to the row's start,
                 // so this mark sits a row's width less twice the fade before the link's end. The row starts scrolled
                 // just far enough to bring the link clear of the fade, and not at all when it already is.
-                <span aria-hidden="true" data-ouro-family-start="" className="pointer-events-none absolute top-0 end-[calc(100cqw-4rem)] size-px [scroll-initial-target:nearest]" />
+                <span data-slot="family-bar-scroll-target" aria-hidden="true" data-ouro-family-start="" className="pointer-events-none absolute top-0 end-[calc(100cqw-4rem)] size-px [scroll-initial-target:nearest]" />
               )}
             </li>
           ))}

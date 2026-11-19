@@ -123,7 +123,7 @@ const perViews = [1, 2, 3] as const;
 
 function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={cn("size-4 rtl:-scale-x-100", back && "-scale-x-100 rtl:scale-x-100")}>
+    <svg data-slot="carousel-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" className={cn("size-4 rtl:-scale-x-100", back && "-scale-x-100 rtl:scale-x-100")}>
       <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -394,6 +394,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
 
   return (
     <section
+      data-slot="carousel"
       ref={rootRef}
       data-ouro="carousel"
       aria-roledescription={roleDescription}
@@ -401,9 +402,10 @@ export function Carousel(props: CarouselProps): JSX.Element {
       tabIndex={-1}
       className={cn(rootClass, className)}
     >
-      <div data-ouro-carousel-viewport="" data-ouro-control="carousel" data-ouro-part="viewport" ref={viewportRef} tabIndex={0} className={cn(viewportClass, slidesPerViewClass[perView])}>
+      <div data-slot="carousel-viewport" data-ouro-carousel-viewport="" data-ouro-control="carousel" data-ouro-part="viewport" ref={viewportRef} tabIndex={0} className={cn(viewportClass, slidesPerViewClass[perView])}>
         {slides.map((slide, position) => (
           <div
+            data-slot="carousel-slide"
             key={position}
             data-ouro-carousel-slide=""
             role="group"
@@ -419,11 +421,12 @@ export function Carousel(props: CarouselProps): JSX.Element {
       </div>
       {/* With every slide in view there is nowhere to step. The buttons stay in the page, so a
           keyboard handler that presses them still finds them. */}
-      <div data-ouro-carousel-buttons="" className={cn(buttonsClass, lastIndex === 0 && "hidden")}>
+      <div data-slot="carousel-controls" data-ouro-carousel-buttons="" className={cn(buttonsClass, lastIndex === 0 && "hidden")}>
         {pagerHref && (
-          <nav aria-label={pagerLabel} className={pagerClass}>
+          <nav data-slot="carousel-pager" aria-label={pagerLabel} className={pagerClass}>
             {Array.from({ length: lastIndex + 1 }, (_, position) => (
               <RouterLink
+                data-slot="carousel-page"
                 key={position}
                 href={pagerHref(position)}
                 aria-current={position === shown ? "true" : undefined}
@@ -431,12 +434,13 @@ export function Carousel(props: CarouselProps): JSX.Element {
                 data-ouro-part="page"
                 className={pageClass}
               >
-                <span className="sr-only">{fillTemplate(slideLabel, position + 1, total)}</span>
+                <span data-slot="carousel-page-label" className="sr-only">{fillTemplate(slideLabel, position + 1, total)}</span>
               </RouterLink>
             ))}
           </nav>
         )}
         <Button
+          data-slot="carousel-previous"
           ref={previousRef}
           variant="outline"
           tone="secondary"
@@ -450,6 +454,7 @@ export function Carousel(props: CarouselProps): JSX.Element {
           <ChevronIcon back />
         </Button>
         <Button
+          data-slot="carousel-next"
           ref={nextRef}
           variant="outline"
           tone="secondary"

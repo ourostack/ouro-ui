@@ -80,6 +80,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `number-field`, `number-field-decrement`, `number-field-decrement-label`, `number-field-frame`, `number-field-group`, `number-field-increment`, `number-field-increment-label`, `number-field-input`, `number-field-scrub-area`.
+
 ## Types
 
 ### `ErrorMessage`

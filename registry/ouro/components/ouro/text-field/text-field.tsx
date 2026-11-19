@@ -185,6 +185,7 @@ const textOf = (value: unknown): string => (value === undefined || value === nul
 function Icon({ children }: { children: ReactNode }): JSX.Element {
   return (
     <svg
+      data-slot="text-field-icon"
       aria-hidden="true"
       viewBox="0 0 16 16"
       fill="none"
@@ -395,6 +396,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="text-field"
         label={label}
         hideLabel={hideLabel}
         description={description}
@@ -405,6 +407,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
         className={className}
       >
         <div
+          data-slot="text-field-input-group"
           data-ouro-input-group=""
           data-variant={variant}
           data-size={size}
@@ -414,7 +417,7 @@ export function TextField(props: TextFieldProps): JSX.Element {
         >
           {variant === "outline" && <span data-ouro-surface="" aria-hidden="true" style={{ zIndex: -1 }} />}
           {hasStart && (
-            <span id={startId} data-ouro-adornment="start" className={adornmentClass}>
+            <span data-slot="text-field-start-adornment" id={startId} data-ouro-adornment="start" className={adornmentClass}>
               {startAdornment}
             </span>
           )}
@@ -433,16 +436,17 @@ export function TextField(props: TextFieldProps): JSX.Element {
             enterKeyHint={rest.enterKeyHint ?? defaults.enterKeyHint}
             aria-describedby={describedBy}
             render={(controlProps) => (
-              <input {...controlProps} data-ouro-control="text-field" data-ouro-part="input" className={cn(inputClass, clearable && type === "search" && nativeClearClass)} />
+              <input data-slot="text-field-input" {...controlProps} data-ouro-control="text-field" data-ouro-part="input" className={cn(inputClass, clearable && type === "search" && nativeClearClass)} />
             )}
           />
           {/* The buttons are named by visually hidden text, not `aria-label`: an aria-label is
               label text, so a label lookup for the field ("Password") would also find a button
               whose label contains it ("Show password"). */}
           {(showClear || password) && (
-            <span className={cn(endSlotClass, variant === "plain" && "me-0")}>
+            <span data-slot="text-field-actions" className={cn(endSlotClass, variant === "plain" && "me-0")}>
               {showClear && (
                 <Button
+                  data-slot="text-field-clear"
                   variant="plain"
                   tone="secondary"
                   size="sm"
@@ -456,11 +460,12 @@ export function TextField(props: TextFieldProps): JSX.Element {
                   <Icon>
                     <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
                   </Icon>
-                  <span className="sr-only">{clearLabel}</span>
+                  <span data-slot="text-field-clear-label" className="sr-only">{clearLabel}</span>
                 </Button>
               )}
               {password && (
                 <Button
+                  data-slot="text-field-show-password"
                   variant="plain"
                   tone="secondary"
                   size="sm"
@@ -478,13 +483,13 @@ export function TextField(props: TextFieldProps): JSX.Element {
                     <circle cx="8" cy="8" r="2" />
                     {revealed && <path d="M2.5 2.5l11 11" />}
                   </Icon>
-                  <span className="sr-only">{showPasswordLabel}</span>
+                  <span data-slot="text-field-show-password-label" className="sr-only">{showPasswordLabel}</span>
                 </Button>
               )}
             </span>
           )}
           {hasEnd && (
-            <span id={endId} data-ouro-adornment="end" className={adornmentClass}>
+            <span data-slot="text-field-end-adornment" id={endId} data-ouro-adornment="end" className={adornmentClass}>
               {endAdornment}
             </span>
           )}

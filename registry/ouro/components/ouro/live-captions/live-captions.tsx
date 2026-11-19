@@ -312,6 +312,7 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
 
   return (
     <div
+      data-slot="live-captions"
       ref={ref}
       id={id}
       role="region"
@@ -321,35 +322,36 @@ export function LiveCaptions(props: LiveCaptionsProps): JSX.Element {
       className={cn(bandClass, bandSizes[size], className)}
       style={{ "--ouro-live-captions-lines": maxLines } as CSSProperties}
     >
-      <p id={labelId} data-ouro-live-captions-label="" className={hideLabel ? "sr-only" : labelClass}>
+      <p data-slot="live-captions-label" id={labelId} data-ouro-live-captions-label="" className={hideLabel ? "sr-only" : labelClass}>
         {label}
       </p>
       <div
+        data-slot="live-captions-window"
         data-ouro-live-captions-window=""
         data-ouro-allow="clipped-text"
         data-ouro-allow-why="The window scrolls older lines out of view on purpose"
         className={cn(linesClass, linesSizes[size])}
       >
-        <div ref={trackRef} data-ouro-live-captions-track="" className={trackClass}>
+        <div data-slot="live-captions-track" ref={trackRef} data-ouro-live-captions-track="" className={trackClass}>
           {shown.map((line) => (
-            <p key={line.id} data-ouro-live-captions-line={line.id} data-final={line.final ? "" : undefined} className="m-0">
-              <span data-ouro-live-captions-speaker="" className={speakerClass}>
+            <p data-slot="live-captions-line" key={line.id} data-ouro-live-captions-line={line.id} data-final={line.final ? "" : undefined} className="m-0">
+              <span data-slot="live-captions-speaker" data-ouro-live-captions-speaker="" className={speakerClass}>
                 {firstName(line.speaker)}
               </span>
-              <span className="sr-only">:</span>{" "}
-              <span data-ouro-live-captions-words="" className={line.final ? finalWordsClass : interimWordsClass}>
+              <span data-slot="live-captions-separator" className="sr-only">:</span>{" "}
+              <span data-slot="live-captions-words" data-ouro-live-captions-words="" className={line.final ? finalWordsClass : interimWordsClass}>
                 {line.text}
               </span>
             </p>
           ))}
         </div>
         {off ? (
-          <div data-ouro-live-captions-unavailable="" className={unavailableClass}>
+          <div data-slot="live-captions-unavailable" data-ouro-live-captions-unavailable="" className={unavailableClass}>
             {unavailable}
           </div>
         ) : (
           shown.length === 0 && (
-            <p data-ouro-live-captions-placeholder="" className={placeholderClass}>
+            <p data-slot="live-captions-placeholder" data-ouro-live-captions-placeholder="" className={placeholderClass}>
               {placeholder}
             </p>
           )

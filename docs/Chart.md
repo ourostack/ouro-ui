@@ -65,6 +65,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `chart`, `chart-description`, `chart-legend`, `chart-legend-area`, `chart-legend-item`, `chart-marker`, `chart-plot`, `chart-summary`, `chart-table`, `chart-table-caption`, `chart-table-cell`, `chart-table-container`, `chart-table-head`, `chart-table-head-row`, `chart-table-row`, `chart-table-row-head`, `chart-title`, `chart-tooltip`, `chart-tooltip-item`, `chart-tooltip-item-label`, `chart-tooltip-item-value`, `chart-tooltip-label`.
+
 ## Types
 
 ### `ChartConfig`

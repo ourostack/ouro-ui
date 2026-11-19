@@ -140,6 +140,7 @@ export function Stack(props: StackProps): JSX.Element {
   return createElement(
     element,
     {
+      "data-slot": "stack",
       ...rest,
       "data-ouro": "stack",
       className: cn("flex flex-col", elementReset, gapClasses[gap], alignClasses[align], justifyClasses[justify], className),

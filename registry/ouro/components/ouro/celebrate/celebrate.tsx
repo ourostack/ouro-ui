@@ -167,6 +167,7 @@ export function Celebrate(props: CelebrateProps): JSX.Element {
 
   return (
     <span
+      data-slot="celebrate"
       {...rest}
       data-ouro="celebrate"
       data-open={show ? "" : undefined}
@@ -177,9 +178,10 @@ export function Celebrate(props: CelebrateProps): JSX.Element {
       {show ? (
         <>
           {burst && !quiet && (
-            <span aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-clip motion-reduce:hidden">
+            <span data-slot="celebrate-burst" aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-clip motion-reduce:hidden">
               {pieces.map((piece, index) => (
                 <span
+                  data-slot="celebrate-piece"
                   key={index}
                   data-ouro-part="piece"
                   className={cn(
@@ -188,12 +190,13 @@ export function Celebrate(props: CelebrateProps): JSX.Element {
                     "starting:opacity-100 starting:[transform:scale(0)]",
                   )}
                 >
-                  <span style={piece.style} className={cn("absolute size-2 rounded-[2px] [transform:rotate(var(--ouro-celebrate-turn))]", piece.tone)} />
+                  <span data-slot="celebrate-confetti" style={piece.style} className={cn("absolute size-2 rounded-[2px] [transform:rotate(var(--ouro-celebrate-turn))]", piece.tone)} />
                 </span>
               ))}
             </span>
           )}
           <span
+            data-slot="celebrate-message"
             data-ouro-part="message"
             className={
               hideMessage

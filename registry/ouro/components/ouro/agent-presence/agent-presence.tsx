@@ -135,7 +135,7 @@ const words: Words = {
 /** The agent sparkle, in the chip's own colour. */
 function Sparkle(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 12 12" data-ouro-agent-presence-sparkle="" className="size-[1.1em] shrink-0">
+    <svg data-slot="agent-presence-sparkle" aria-hidden="true" viewBox="0 0 12 12" data-ouro-agent-presence-sparkle="" className="size-[1.1em] shrink-0">
       <path d="M6 0Q6.7 5.3 12 6 6.7 6.7 6 12 5.3 6.7 0 6 5.3 5.3 6 0Z" fill="currentColor" />
     </svg>
   );
@@ -283,7 +283,7 @@ export function AgentPresence(props: AgentPresenceProps): JSX.Element | null {
   const stopAll = onStopAll ?? (() => agents.forEach((agent) => onStop(agent.id)));
 
   return (
-    <span ref={rootRef} data-ouro="agent-presence" className={cn("inline-flex min-w-0", className)}>
+    <span data-slot="agent-presence" ref={rootRef} data-ouro="agent-presence" className={cn("inline-flex min-w-0", className)}>
       <Button
         ref={chip}
         data-ouro-control="agent-presence"
@@ -297,18 +297,18 @@ export function AgentPresence(props: AgentPresenceProps): JSX.Element | null {
         onClick={() => setOpen((was) => !was)}
       >
         <Sparkle />
-        {compact ? <span className="tabular-nums">{agents.length}</span> : <span>{said}</span>}
-        {unread && <span aria-hidden="true" data-ouro-agent-presence-unread="" className={unreadDotClass} />}
+        {compact ? <span data-slot="agent-presence-label" className="tabular-nums">{agents.length}</span> : <span>{said}</span>}
+        {unread && <span data-slot="agent-presence-unread" aria-hidden="true" data-ouro-agent-presence-unread="" className={unreadDotClass} />}
       </Button>
       <Popover title={label} closeLabel={text.close} open={open} onOpenChange={setOpen} anchor={chip} align="start">
-        <div ref={list} className="grid gap-3">
-          <ul className="m-0 grid list-none gap-3 p-0">
+        <div data-slot="agent-presence-content" ref={list} className="grid gap-3">
+          <ul data-slot="agent-presence-list" className="m-0 grid list-none gap-3 p-0">
             {agents.map((agent) => (
-              <li key={agent.id} ref={handoff} className="flex items-center gap-3">
+              <li data-slot="agent-presence-item" key={agent.id} ref={handoff} className="flex items-center gap-3">
                 <Avatar name={agent.name} alt="" shape="agent" size="sm" />
-                <span className="grid min-w-0 flex-1 gap-0.5">
-                  <span className="text-sm font-medium text-foreground">{agent.name}</span>
-                  {agent.doing ? <span className={doingClass}>{agent.doing}</span> : null}
+                <span data-slot="agent-presence-item-text" className="grid min-w-0 flex-1 gap-0.5">
+                  <span data-slot="agent-presence-item-name" className="text-sm font-medium text-foreground">{agent.name}</span>
+                  {agent.doing ? <span data-slot="agent-presence-item-activity" className={doingClass}>{agent.doing}</span> : null}
                 </span>
                 <Button
                   data-ouro-control="agent-presence"
@@ -326,7 +326,7 @@ export function AgentPresence(props: AgentPresenceProps): JSX.Element | null {
             ))}
           </ul>
           {several && (
-            <div ref={handoff} className="grid">
+            <div data-slot="agent-presence-footer" ref={handoff} className="grid">
               <Button data-ouro-control="agent-presence" data-ouro-part="stop-all" data-ax-action="stop-all" size="sm" variant="soft" tone="destructive" fullWidth onClick={stopAll}>
                 {text.stopAll}
               </Button>

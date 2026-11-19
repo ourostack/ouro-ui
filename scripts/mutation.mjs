@@ -32,27 +32,55 @@ export const mutates = (paths) => paths.some(runtimeSource);
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+/** A `data-slot` part name written in JSX, with the space before it (scripts/part-names.mts). */
+const partNameAttribute = /\s?data-slot="[a-z0-9-]*"/g;
+
+/**
+ * Whether a hunk changed only part names: its removed and added lines, each with its `data-slot`
+ * attributes left out and blank lines dropped, are the same. A part name is a styling hook that
+ * no runtime code reads, held by scripts/part-names.test.mjs and the docs check, so adding,
+ * naming or renaming one gives Stryker nothing to mutate.
+ */
+export function namesOnly(removed, added) {
+  const strip = (lines) => lines.map((line) => line.replace(partNameAttribute, "")).filter((line) => line.trim() !== "");
+  const [before, after] = [strip(removed), strip(added)];
+  return before.length === after.length && before.every((line, index) => line === after[index]);
+}
+
 /**
  * The lines each file gained or changed in a unified diff with no context (`git diff -U0`), as
  * `{ path: [[start, end], ...] }` in the new file's line numbers. A hunk that only removed lines
- * changes no line of the new file.
+ * changes no line of the new file, and neither does one that only added or renamed part names
+ * (`namesOnly`).
  */
 export function changedLines(diff) {
   const files = {};
   let path = null;
+  let hunk = null;
+  const close = () => {
+    if (!hunk) return;
+    const read = hunk.added.length === hunk.count && hunk.removed.length === hunk.old;
+    if (hunk.count > 0 && !(read && namesOnly(hunk.removed, hunk.added))) (files[hunk.path] ??= []).push([hunk.start, hunk.start + hunk.count - 1]);
+    hunk = null;
+  };
   for (const line of diff.split("\n")) {
     const file = /^\+\+\+ (?:b\/)?(.+)$/.exec(line);
     if (file) {
+      close();
       path = file[1] === "/dev/null" ? null : file[1];
       continue;
     }
-    const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
-    if (hunk && path) {
-      const start = Number(hunk[1]);
-      const count = hunk[2] === undefined ? 1 : Number(hunk[2]);
-      if (count > 0) (files[path] ??= []).push([start, start + count - 1]);
+    const header = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
+    if (header) {
+      close();
+      if (path) hunk = { path, start: Number(header[2]), count: header[3] === undefined ? 1 : Number(header[3]), old: header[1] === undefined ? 1 : Number(header[1]), removed: [], added: [] };
+      continue;
     }
+    if (hunk && line.startsWith("+")) hunk.added.push(line.slice(1));
+    else if (hunk && line.startsWith("-") && !line.startsWith("--- ")) hunk.removed.push(line.slice(1));
+    else if (!line.startsWith("\\")) close();
   }
+  close();
   return files;
 }
 

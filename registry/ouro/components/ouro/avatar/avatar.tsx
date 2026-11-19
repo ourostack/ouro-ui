@@ -378,6 +378,7 @@ function GroupSlice({ member, tint, quarter }: { member: AvatarMember; tint: str
   const [fill, ink] = (tint ?? hueOf(member.idForColor ?? member.name)).split(" ") as [string, string];
   return (
     <span
+      data-slot="avatar-slice"
       data-ouro-avatar-slice=""
       data-image={image}
       className={cn(
@@ -390,9 +391,10 @@ function GroupSlice({ member, tint, quarter }: { member: AvatarMember; tint: str
       )}
     >
       {image === "loaded" ? (
-        <img src={member.src} alt="" className="size-full object-cover" />
+        <img data-slot="avatar-slice-image" src={member.src} alt="" className="size-full object-cover" />
       ) : (
         <span
+          data-slot="avatar-slice-initials"
           data-ouro-avatar-initials={Array.from(member.initials ?? initialsOf(member.name))[0]}
           className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic] before:content-[attr(data-ouro-avatar-initials)]"
         />
@@ -448,36 +450,36 @@ function avatarHint(token: string): string {
 function PresenceGlyph({ presence, plain }: { presence: AvatarPresence; plain: boolean }): JSX.Element {
   const line = { fill: "none", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" } as const;
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="block size-full">
+    <svg data-slot="avatar-presence-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="block size-full">
       {presence === "available" && (
         <>
-          <circle cx="8" cy="8" r="8" className="fill-success" />
-          {!plain && <path d="M4.75 8.25 7 10.5l4.25-4.5" {...line} className="stroke-success-foreground" />}
+          <circle data-slot="avatar-presence-dot" cx="8" cy="8" r="8" className="fill-success" />
+          {!plain && <path data-slot="avatar-presence-mark" d="M4.75 8.25 7 10.5l4.25-4.5" {...line} className="stroke-success-foreground" />}
         </>
       )}
-      {presence === "busy" && <circle cx="8" cy="8" r="8" className="fill-destructive" />}
+      {presence === "busy" && <circle data-slot="avatar-presence-dot" cx="8" cy="8" r="8" className="fill-destructive" />}
       {presence === "do-not-disturb" && (
         <>
-          <circle cx="8" cy="8" r="8" className="fill-destructive" />
-          {!plain && <path d="M4.5 8h7" {...line} className="stroke-destructive-foreground" />}
+          <circle data-slot="avatar-presence-dot" cx="8" cy="8" r="8" className="fill-destructive" />
+          {!plain && <path data-slot="avatar-presence-mark" d="M4.5 8h7" {...line} className="stroke-destructive-foreground" />}
         </>
       )}
       {presence === "away" && (
         <>
-          <circle cx="8" cy="8" r="8" className="fill-warning" />
-          {!plain && <path d="M8 4.5v3.75l2.5 1.5" {...line} className="stroke-warning-foreground" />}
+          <circle data-slot="avatar-presence-dot" cx="8" cy="8" r="8" className="fill-warning" />
+          {!plain && <path data-slot="avatar-presence-mark" d="M8 4.5v3.75l2.5 1.5" {...line} className="stroke-warning-foreground" />}
         </>
       )}
       {presence === "offline" && (
         <>
-          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-muted-foreground" />
-          {!plain && <path d="m5.75 5.75 4.5 4.5m0-4.5-4.5 4.5" {...line} className="stroke-muted-foreground" />}
+          <circle data-slot="avatar-presence-dot" cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-muted-foreground" />
+          {!plain && <path data-slot="avatar-presence-mark" d="m5.75 5.75 4.5 4.5m0-4.5-4.5 4.5" {...line} className="stroke-muted-foreground" />}
         </>
       )}
       {presence === "out-of-office" && (
         <>
-          <circle cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-primary" />
-          {!plain && <path d="M11 8H5.25M7.5 5.5 5 8l2.5 2.5" {...line} className="stroke-primary" />}
+          <circle data-slot="avatar-presence-dot" cx="8" cy="8" r="7" {...line} strokeWidth={2} className="stroke-primary" />
+          {!plain && <path data-slot="avatar-presence-mark" d="M11 8H5.25M7.5 5.5 5 8l2.5 2.5" {...line} className="stroke-primary" />}
         </>
       )}
     </svg>
@@ -630,6 +632,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   const [fill, ink] = tint.split(" ") as [string, string];
   return (
     <span
+      data-slot="avatar"
       {...rest}
       {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
       data-ouro="avatar"
@@ -649,6 +652,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
       )}
     >
       <span
+        data-slot="avatar-surface"
         data-ouro-avatar-surface=""
         className={cn(
           "absolute inset-0 rounded-[inherit]",
@@ -664,14 +668,14 @@ export function Avatar(props: AvatarProps): JSX.Element {
         )}
       >
         {image === "loaded" ? (
-          <img src={src} alt="" className="row-span-2 size-full rounded-[inherit] object-cover" />
+          <img data-slot="avatar-image" src={src} alt="" className="row-span-2 size-full rounded-[inherit] object-cover" />
         ) : group ? (
           slices.map((member, index) => (
             <GroupSlice key={index} member={member} tint={color === "neutral" ? neutral : color === "brand" ? brand : undefined} quarter={index > 0 && slices.length > 2} />
           ))
         ) : nameLoading ? (
           // The avatar's own box and corners, so it is the avatar's exact shape; the presence dot stays whole outside it.
-          <Skeleton className="size-full [border-radius:inherit]" />
+          <Skeleton data-slot="avatar-skeleton" className="size-full [border-radius:inherit]" />
         ) : iconShown ? (
           glyph
         ) : (
@@ -680,6 +684,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
           // Trimmed to the letters' cap height and baseline, so the letters themselves sit in the
           // middle, not their line with its room for accents and descenders.
           <span
+            data-slot="avatar-initials"
             data-ouro-avatar-initials={initials ?? initialsOf(name)}
             className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic] before:content-[attr(data-ouro-avatar-initials)]"
           />
@@ -687,6 +692,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
       </span>
       {presence && (
         <span
+          data-slot="avatar-presence"
           data-ouro-avatar-presence=""
           className={cn("pointer-events-none absolute box-border flex [--corner-shape:round] [corner-shape:round] rounded-full", presenceSizes[size])}
         >
@@ -751,6 +757,7 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
   // (--ouro-avatar-ring, else the page's background) keeps them apart.
   return (
     <div
+      data-slot="avatar-group"
       {...rest}
       role="group"
       aria-label={label}
@@ -760,14 +767,15 @@ export function AvatarGroup(props: AvatarGroupProps): JSX.Element {
       <GroupSize value={size}>{shown}</GroupSize>
       {more > 0 && (
         <span
+          data-slot="avatar-group-more"
           data-ouro-avatar-more=""
           className={cn(
             "relative box-border inline-flex shrink-0 items-center justify-center rounded-[44%] bg-muted font-medium leading-none text-foreground",
             sizes[size],
           )}
         >
-          <span aria-hidden="true" data-ouro-avatar-count={`+${more}`} className="before:content-[attr(data-ouro-avatar-count)]" />
-          <span className="sr-only">{moreLabel(more)}</span>
+          <span data-slot="avatar-group-count" aria-hidden="true" data-ouro-avatar-count={`+${more}`} className="before:content-[attr(data-ouro-avatar-count)]" />
+          <span data-slot="avatar-group-more-label" className="sr-only">{moreLabel(more)}</span>
         </span>
       )}
     </div>

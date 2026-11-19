@@ -57,4 +57,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `attention-card`, `attention-card-actions`, `attention-card-from`, `attention-card-header`, `attention-card-message`, `attention-card-open`, `attention-card-time`, `attention-card-title`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/attention-card/attention-card.test.tsx::AttentionCard > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/attention-card/attention-card.test.tsx::AttentionCard > forwards a ref and lets app layout classes win)

@@ -88,7 +88,7 @@ export function ChecklistRoot(props: ChecklistRootProps): JSX.Element {
 export function ChecklistRootUnchecked({ label, hideLabel, description, actions, variant = "plain", children, className, ref, reserve }: ChecklistRootProps & { reserve?: boolean | undefined }): JSX.Element {
   const id = useId();
   const labelNode = (
-    <div id={`${id}-label`} data-ouro-checklist-label="" className={hideLabel ? "sr-only" : groupLabelClass}>
+    <div data-slot="checklist-title" id={`${id}-label`} data-ouro-checklist-label="" className={hideLabel ? "sr-only" : groupLabelClass}>
       {label}
     </div>
   );
@@ -96,6 +96,7 @@ export function ChecklistRootUnchecked({ label, hideLabel, description, actions,
   return (
     <ChecklistContext.Provider value={variant}>
       <div
+        data-slot="checklist"
         ref={ref}
         role="group"
         // Focus falls back here when the focused row leaves and none is left.
@@ -106,11 +107,11 @@ export function ChecklistRootUnchecked({ label, hideLabel, description, actions,
         className={cn(rootClass, className)}
       >
         {header ? (
-          <div className={headerClass}>
-            <div className="grid min-w-0 gap-0.5">
+          <div data-slot="checklist-header" className={headerClass}>
+            <div data-slot="checklist-header-text" className="grid min-w-0 gap-0.5">
               {labelNode}
               {description !== undefined && (
-                <div id={`${id}-description`} className={groupDescriptionClass}>
+                <div data-slot="checklist-description" id={`${id}-description`} className={groupDescriptionClass}>
                   {description}
                 </div>
               )}
@@ -120,7 +121,7 @@ export function ChecklistRootUnchecked({ label, hideLabel, description, actions,
         ) : (
           labelNode
         )}
-        <div data-ouro-checklist-rows="" className={rowsClass}>
+        <div data-slot="checklist-rows" data-ouro-checklist-rows="" className={rowsClass}>
           {children}
         </div>
       </div>
@@ -201,6 +202,7 @@ export function ChecklistRow({
   const describedBy = [held && `${id}-note`, description !== undefined && `${id}-description`, value !== undefined && `${id}-value`].filter(Boolean).join(" ") || undefined;
   const box = (
     <BaseCheckbox.Root
+      data-slot="checklist-box"
       checked={checked}
       onCheckedChange={(next) => onCheckedChange(next)}
       disabled={disabled}
@@ -212,46 +214,46 @@ export function ChecklistRow({
       aria-describedby={describedBy}
       className={cn(boxClass, outOfOrderBoxClass, outline && roundBoxClass)}
     >
-      <BaseCheckbox.Indicator keepMounted className={indicatorClass}>
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-full">
-          <path d="M3.5 8.5 6.5 11.5 12.5 4.5" pathLength={1} data-ouro-part="tick" className={tickClass} />
+      <BaseCheckbox.Indicator data-slot="checklist-indicator" keepMounted className={indicatorClass}>
+        <svg data-slot="checklist-check-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-full">
+          <path data-slot="checklist-tick" d="M3.5 8.5 6.5 11.5 12.5 4.5" pathLength={1} data-ouro-part="tick" className={tickClass} />
         </svg>
       </BaseCheckbox.Indicator>
     </BaseCheckbox.Root>
   );
   const content = (
     <>
-      <label className={cn(hitClass, outline ? hitOutlineClass : hitPlainClass)}>
+      <label data-slot="checklist-hit-area" className={cn(hitClass, outline ? hitOutlineClass : hitPlainClass)}>
         {!outline && box}
         {media !== undefined && (
-          <span aria-hidden="true" data-ouro-checklist-media="" className={mediaClass}>
+          <span data-slot="checklist-media" aria-hidden="true" data-ouro-checklist-media="" className={mediaClass}>
             {media}
           </span>
         )}
-        <span className={textClass}>
-          <span id={`${id}-label`} data-ouro-part="label" className={labelClass}>
+        <span data-slot="checklist-text" className={textClass}>
+          <span data-slot="checklist-label" id={`${id}-label`} data-ouro-part="label" className={labelClass}>
             {label}
-            <span aria-hidden="true" data-ouro-part="strike" className={strikeClass} />
+            <span data-slot="checklist-strike" aria-hidden="true" data-ouro-part="strike" className={strikeClass} />
           </span>
           {held && (
-            <span id={`${id}-note`} data-ouro-part="note" className={noteClass}>
+            <span data-slot="checklist-note" id={`${id}-note`} data-ouro-part="note" className={noteClass}>
               {outOfOrder}
             </span>
           )}
           {description !== undefined && (
-            <span id={`${id}-description`} data-ouro-checklist-description="" className={descriptionClass}>
+            <span data-slot="checklist-row-description" id={`${id}-description`} data-ouro-checklist-description="" className={descriptionClass}>
               {description}
             </span>
           )}
         </span>
         {value !== undefined && (
-          <span id={`${id}-value`} data-ouro-part="value" className={valueClass}>
+          <span data-slot="checklist-value" id={`${id}-value`} data-ouro-part="value" className={valueClass}>
             {value}
           </span>
         )}
         {outline && box}
       </label>
-      {action !== undefined && <div className={actionClass}>{action}</div>}
+      {action !== undefined && <div data-slot="checklist-action" className={actionClass}>{action}</div>}
     </>
   );
   return (
@@ -269,8 +271,8 @@ export function ChecklistRow({
       aria-hidden={leaving || undefined}
       className={rowClass}
     >
-      <div className={outline ? outlineRowInnerClass : rowInnerClass}>
-        {outline ? <div className={outlineCardClass}>{content}</div> : content}
+      <div data-slot="checklist-row-inner" className={outline ? outlineRowInnerClass : rowInnerClass}>
+        {outline ? <div data-slot="checklist-row-card" className={outlineCardClass}>{content}</div> : content}
       </div>
     </div>
   );

@@ -28,3 +28,7 @@ Type: `MomentProviderProps`.
 | --- | --- | --- | --- |
 | `children` (required) | `ReactNode` |  | The part of the app it applies to. |
 | `quiet` | `boolean` | `OuroProvider`'s `quiet` | Renders every `Moment` inside quiet, unless the moment sets `quiet` itself. |
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `moment`, `moment-actions`, `moment-art`, `moment-content`, `moment-description`, `moment-dismiss`, `moment-dismiss-icon`, `moment-frame`, `moment-halo`, `moment-sparkle`, `moment-spinner`, `moment-title`.

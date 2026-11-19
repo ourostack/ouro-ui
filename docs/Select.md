@@ -103,6 +103,10 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 For what these props cannot express, pass as children the parts in `@/registry/ouro/components/ouro/select/select-parts`. See [parts.md](parts.md#select-parts) for the required nesting.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `select`, `select-backdrop`, `select-group`, `select-group-label`, `select-list`, `select-option`, `select-option-indicator`, `select-option-text`, `select-popup`, `select-portal`, `select-positioner`, `select-sheet-title`, `select-trigger`, `select-value`.
+
 ## Types
 
 ### `ErrorMessage`

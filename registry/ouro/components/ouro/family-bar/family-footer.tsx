@@ -80,12 +80,13 @@ export function FamilyFooter(props: FamilyFooterProps): JSX.Element {
   );
 
   return (
-    <div ref={ref} data-ouro="family-footer" className={cn(familyFooterClass, className)}>
-      <nav aria-label={label} className="min-w-0 max-sm:w-full">
-        <ul className={familyFooterListClass}>
+    <div data-slot="family-footer" ref={ref} data-ouro="family-footer" className={cn(familyFooterClass, className)}>
+      <nav data-slot="family-footer-nav" aria-label={label} className="min-w-0 max-sm:w-full">
+        <ul data-slot="family-footer-list" className={familyFooterListClass}>
           {links.map((link, index) => (
-            <li key={index} className="flex">
+            <li data-slot="family-footer-item" key={index} className="flex">
               <RouterLink
+                data-slot="family-footer-link"
                 href={link.href}
                 aria-current={link.id === current ? "true" : undefined}
                 data-ouro-control="family-footer"
@@ -99,7 +100,7 @@ export function FamilyFooter(props: FamilyFooterProps): JSX.Element {
         </ul>
       </nav>
       {children !== undefined && (
-        <div data-ouro-family-extras="" className={familyExtrasClass}>
+        <div data-slot="family-footer-extras" data-ouro-family-extras="" className={familyExtrasClass}>
           {children}
         </div>
       )}

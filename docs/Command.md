@@ -116,6 +116,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `command`, `command-close`, `command-dialog`, `command-empty`, `command-empty-frame`, `command-empty-loading`, `command-group-label`, `command-input`, `command-item`, `command-item-avatar`, `command-item-description`, `command-item-hidden-label`, `command-item-icon`, `command-item-label`, `command-item-mark`, `command-item-text`, `command-list`, `command-listbox`, `command-loading`, `command-loading-avatar`, `command-loading-row`, `command-loading-text`, `command-match`, `command-no-match`, `command-result-count`, `command-search`, `command-status`.
+
 ## Types
 
 ### `CommandEntry`

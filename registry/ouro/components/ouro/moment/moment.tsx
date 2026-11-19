@@ -254,7 +254,7 @@ const present = (node: ReactNode) => node !== undefined && node !== null && node
 
 function CloseIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
+    <svg data-slot="moment-dismiss-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
       <path d="m5.5 5.5 9 9m0-9-9 9" />
     </svg>
   );
@@ -472,19 +472,19 @@ export function Moment(props: MomentProps): JSX.Element | null {
 
   const titleNode =
     level === undefined ? (
-      <span className="min-w-0 truncate text-sm font-medium text-foreground">{title}</span>
+      <span data-slot="moment-title" className="min-w-0 truncate text-sm font-medium text-foreground">{title}</span>
     ) : (
-      <Heading level={level} size={layout === "default" ? "md" : "sm"} className={layout === "default" ? undefined : "min-w-0 truncate text-nowrap"}>
+      <Heading data-slot="moment-title" level={level} size={layout === "default" ? "md" : "sm"} className={layout === "default" ? undefined : "min-w-0 truncate text-nowrap"}>
         {title}
       </Heading>
     );
   const descriptionNode =
     !present(description) ? null : layout === "default" ? (
-      <Text as="div" size="sm" tone="muted">
+      <Text data-slot="moment-description" as="div" size="sm" tone="muted">
         {description}
       </Text>
     ) : (
-      <Text as={layout === "inline" ? "span" : "div"} size="sm" tone="muted" truncate className="min-w-0">
+      <Text data-slot="moment-description" as={layout === "inline" ? "span" : "div"} size="sm" tone="muted" truncate className="min-w-0">
         {description}
       </Text>
     );
@@ -492,6 +492,7 @@ export function Moment(props: MomentProps): JSX.Element | null {
 
   return (
     <div
+      data-slot="moment"
       {...rest}
       ref={merged}
       data-ouro="moment"
@@ -502,20 +503,21 @@ export function Moment(props: MomentProps): JSX.Element | null {
       className={cn(rootClass[layout], dismissible && layout === "default" && "pt-12", className)}
     >
       {spinner && (
-        <span aria-hidden="true" data-ouro-moment-art="" className={cn("grid shrink-0 place-items-center", kindToneClass[kind])}>
+        <span data-slot="moment-spinner" aria-hidden="true" data-ouro-moment-art="" className={cn("grid shrink-0 place-items-center", kindToneClass[kind])}>
           <Spinner size={layout === "default" ? "lg" : layout === "quiet" ? "md" : "sm"} />
         </span>
       )}
       {hasArt && (
-        <div data-ouro-moment-frame="" className={cn(artFrameClass[layout === "inline" ? "inline" : sizeProp === "hero" ? "hero" : "default"], kindToneClass[kind])}>
-          {flourish && <span aria-hidden="true" data-ouro-part="halo" className={haloClass} />}
+        <div data-slot="moment-frame" data-ouro-moment-frame="" className={cn(artFrameClass[layout === "inline" ? "inline" : sizeProp === "hero" ? "hero" : "default"], kindToneClass[kind])}>
+          {flourish && <span data-slot="moment-halo" aria-hidden="true" data-ouro-part="halo" className={haloClass} />}
           {flourish &&
             sparkClasses.map((spark) => (
-              <svg key={spark} aria-hidden="true" viewBox="0 0 12 12" data-ouro-part="sparkle" className={cn(sparkleClass, spark)}>
+              <svg data-slot="moment-sparkle" key={spark} aria-hidden="true" viewBox="0 0 12 12" data-ouro-part="sparkle" className={cn(sparkleClass, spark)}>
                 <path d="M6 0Q6.7 5.3 12 6 6.7 6.7 6 12 5.3 6.7 0 6 5.3 5.3 6 0Z" fill="currentColor" />
               </svg>
             ))}
           <div
+            data-slot="moment-art"
             key={kind}
             ref={artRef}
             {...(artLabel ? { role: "img", "aria-label": artLabel } : { "aria-hidden": true })}
@@ -527,18 +529,19 @@ export function Moment(props: MomentProps): JSX.Element | null {
           </div>
         </div>
       )}
-      <div className={layout === "default" ? "flex min-w-0 flex-col items-center gap-1.5" : layout === "quiet" ? "flex min-w-0 flex-1 flex-col" : "flex min-w-0 flex-[1_1_12rem] items-baseline gap-2"}>
+      <div data-slot="moment-content" className={layout === "default" ? "flex min-w-0 flex-col items-center gap-1.5" : layout === "quiet" ? "flex min-w-0 flex-1 flex-col" : "flex min-w-0 flex-[1_1_12rem] items-baseline gap-2"}>
         {titleNode}
         {descriptionNode}
       </div>
       {hasActions && (
-        <div data-ouro-moment-actions="" className={layout === "default" ? "flex flex-wrap items-center justify-center gap-2 pt-1" : "flex shrink-0 items-center gap-2"}>
+        <div data-slot="moment-actions" data-ouro-moment-actions="" className={layout === "default" ? "flex flex-wrap items-center justify-center gap-2 pt-1" : "flex shrink-0 items-center gap-2"}>
           {action}
           {secondaryAction}
         </div>
       )}
       {dismissible && (
         <Button
+          data-slot="moment-dismiss"
           variant="plain"
           tone="secondary"
           size="sm"

@@ -79,6 +79,7 @@ export function TabsRootUnchecked({ className, onPointerDownCapture, ref, ...pro
     <TabsContext.Provider value>
       <PageDirection of={root}>
         <BaseTabs.Root
+          data-slot="tabs"
           {...props}
           ref={merged}
           data-ouro="tabs"
@@ -149,6 +150,7 @@ export function TabsList({ className, ref, onKeyDownCapture, ...props }: TabsLis
   // by key doesn't animate the indicator or the panel.
   return (
     <BaseTabs.List
+      data-slot="tabs-list"
       {...props}
       ref={merged}
       onKeyDownCapture={(event) => {
@@ -182,7 +184,7 @@ export function TabsLinkList({ orientation, current, children }: { orientation: 
     list.scrollLeft += Math.min(link.left - box.left, 0) + Math.max(link.right - box.right, 0);
   }, [current, orientation]);
   return (
-    <ul ref={own} data-orientation={orientation} className={cn(listClass, linkListClass)}>
+    <ul data-slot="tabs-link-list" ref={own} data-orientation={orientation} className={cn(listClass, linkListClass)}>
       {children}
     </ul>
   );
@@ -196,8 +198,8 @@ export function TabsTab({ className, children, ...props }: TabsTabProps): JSX.El
   useTabsPart("TabsTab", '<TabsTab value="…">…</TabsTab>');
   usePartClassName("TabsTab", className);
   return (
-    <BaseTabs.Tab data-ouro-control="tabs" data-ouro-part="tab" {...props} className={cn(tabClass, className)}>
-      <span className={tabFaceClass}>{children}</span>
+    <BaseTabs.Tab data-slot="tabs-tab" data-ouro-control="tabs" data-ouro-part="tab" {...props} className={cn(tabClass, className)}>
+      <span data-slot="tabs-tab-label" className={tabFaceClass}>{children}</span>
     </BaseTabs.Tab>
   );
 }
@@ -205,7 +207,7 @@ export function TabsTab({ className, children, ...props }: TabsTabProps): JSX.El
 /** Part: the line that slides to the selected tab. Put it last inside `TabsList`. */
 export const TabsIndicator = memo(function TabsIndicator(props: Omit<BaseTabs.Indicator.Props, "className">): JSX.Element {
   useTabsPart("TabsIndicator", "<TabsIndicator />");
-  return <BaseTabs.Indicator {...props} data-ouro-tabs-indicator="" className={indicatorClass} />;
+  return <BaseTabs.Indicator data-slot="tabs-indicator" {...props} data-ouro-tabs-indicator="" className={indicatorClass} />;
 });
 
 /** Props for {@link TabsPanel}. */
@@ -215,5 +217,5 @@ export type TabsPanelProps = Omit<BaseTabs.Panel.Props, "className"> & { classNa
 export function TabsPanel({ className, ...props }: TabsPanelProps): JSX.Element {
   useTabsPart("TabsPanel", '<TabsPanel value="…">…</TabsPanel>');
   usePartClassName("TabsPanel", className);
-  return <BaseTabs.Panel data-ouro-control="tabs" data-ouro-part="panel" {...props} className={cn(panelClass, className)} />;
+  return <BaseTabs.Panel data-slot="tabs-panel" data-ouro-control="tabs" data-ouro-part="panel" {...props} className={cn(panelClass, className)} />;
 }

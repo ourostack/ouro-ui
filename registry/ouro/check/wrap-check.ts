@@ -121,7 +121,7 @@ function findWrapIssues({ displayPx = 36, tallLines = 5, bigPx = 28, narrowShare
     if (optedOut(el, rule)) return;
     issues.push({ ref: ref(el), rule, element: describe(el), detail });
   };
-  const blocks = "h1, h2, h3, h4, h5, h6, p, li, dd, dt, blockquote, figcaption, [data-slot=description]";
+  const blocks = "h1, h2, h3, h4, h5, h6, p, li, dd, dt, blockquote, figcaption, [data-slot=description], [data-slot=hero-description], [data-slot=page-header-description]";
   for (const el of document.querySelectorAll(blocks)) {
     // A block that holds blocks of its own (a list item with paragraphs) is judged through them.
     if (el.querySelector(blocks) || !drawn(el)) continue;

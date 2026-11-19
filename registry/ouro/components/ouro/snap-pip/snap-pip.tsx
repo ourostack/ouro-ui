@@ -608,6 +608,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
 
   return (
     <div
+      data-slot="snap-pip"
       ref={setRef}
       id={id}
       role="group"
@@ -634,14 +635,15 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
       onFocus={onFocus}
       onBlur={() => hideHint("focus")}
     >
-      <div data-ouro="snap-pip-frame" className={frameClass}>
+      <div data-slot="snap-pip-frame" data-ouro="snap-pip-frame" className={frameClass}>
         {children}
       </div>
-      <span id={descriptionId} className="sr-only">
+      <span data-slot="snap-pip-description" id={descriptionId} className="sr-only">
         {`${cornerLabels[corner]}. ${hint}`}
       </span>
       {/* The hint beside it, toward the middle of the stage. Pressing it leaves the picture be. */}
       <span
+        data-slot="snap-pip-hint"
         aria-hidden="true"
         data-ouro="snap-pip-hint"
         data-side={bottom ? "top" : "bottom"}
@@ -651,7 +653,7 @@ export function SnapPiP(props: SnapPiPProps): JSX.Element {
         onPointerDown={(event) => event.stopPropagation()}
         onDoubleClick={(event) => event.stopPropagation()}
       >
-        <span className={hintTextClass}>{hint}</span>
+        <span data-slot="snap-pip-hint-text" className={hintTextClass}>{hint}</span>
       </span>
     </div>
   );

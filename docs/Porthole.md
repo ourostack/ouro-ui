@@ -57,6 +57,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `porthole`, `porthole-act`, `porthole-detail`, `porthole-detail-list`, `porthole-dismiss`, `porthole-dismiss-icon`, `porthole-inner`, `porthole-light`, `porthole-panel`, `porthole-pill`, `porthole-previous-text`, `porthole-progress`, `porthole-sizer`, `porthole-spot`, `porthole-text`, `porthole-whole-line`, `porthole-words`.
+
 ## Types
 
 ### `PortholeFixed`

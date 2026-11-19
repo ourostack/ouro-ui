@@ -509,6 +509,7 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
           <TableRow>
             {columns.map((column) => (
               <TableHead
+                data-slot="table-head"
                 key={column.key}
                 align={alignOf(column.align)}
                 hideHeader={column.hideHeader}
@@ -526,7 +527,7 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
           {shown.length === 0 ? (
             <TableRow>
               <TableCell colSpan={columns.length}>
-                <span className="text-muted-foreground">{empty}</span>
+                <span data-slot="table-empty" className="text-muted-foreground">{empty}</span>
               </TableCell>
             </TableRow>
           ) : (
@@ -557,6 +558,7 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
     );
   return (
     <TableFrame
+      data-slot="table"
       {...rest}
       caption={caption}
       hideCaption={hideCaption}

@@ -278,7 +278,7 @@ describe("Sidebar", () => {
 
   it("puts the nav and its links in the server HTML", () => {
     const html = renderToString(<Sidebar label="Main" sections={sections} currentPath="/recipes" />);
-    expect(html).toContain('<nav aria-label="Main"');
+    expect(html).toContain('<nav data-slot="sidebar-column" aria-label="Main"');
     expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/recipes"|<a[^>]*href="\/recipes"[^>]*aria-current="page"/);
     expect(html).toContain("data-ouro-sidebar-menu");
   });

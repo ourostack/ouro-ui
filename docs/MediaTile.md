@@ -83,6 +83,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `media-tile`, `media-tile-avatar-frame`, `media-tile-connection`, `media-tile-connection-icon`, `media-tile-controls`, `media-tile-hand`, `media-tile-hand-icon`, `media-tile-media`, `media-tile-muted`, `media-tile-muted-icon`, `media-tile-name`, `media-tile-paused`, `media-tile-paused-icon`, `media-tile-photo`, `media-tile-pin`, `media-tile-pin-icon`, `media-tile-plate`, `media-tile-presenting`, `media-tile-ring`, `media-tile-status`.
+
 ## Types
 
 ### `AvatarColor`

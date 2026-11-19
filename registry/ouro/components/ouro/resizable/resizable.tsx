@@ -261,6 +261,7 @@ export function ResizableGroupFrame({
   return (
     <GroupContext.Provider value={state}>
       <div
+        data-slot="resizable"
         data-ouro="resizable"
         data-orientation={orientation}
         data-ouro-resizing={resizing ? "" : undefined}
@@ -381,6 +382,7 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
   // The focus ring is a sibling drawn over the scroll box, so content that sticks to an edge inside it never covers it.
   return (
     <div
+      data-slot="resizable-panel"
       id={group.ids[index]}
       data-ouro="resizable-panel"
       data-collapsed={collapsed ? "" : undefined}
@@ -389,6 +391,7 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
       className="relative box-border flex min-h-0 min-w-0 flex-col"
     >
       <div
+        data-slot="resizable-panel-content"
         ref={scrollRef}
         // A panel whose content overflows is a tab stop (useKeyboardScrollable), so it is a control.
         data-ouro-control="resizable"
@@ -398,6 +401,7 @@ export function ResizablePanel(props: ResizablePanelProps): JSX.Element {
         {children}
       </div>
       <span
+        data-slot="resizable-focus-ring"
         aria-hidden="true"
         data-resizable-focus-ring=""
         className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
@@ -561,6 +565,7 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
 
   return (
     <div
+      data-slot="resizable-handle"
       role="separator"
       tabIndex={0}
       data-ouro-control="resizable"
@@ -583,8 +588,8 @@ export function ResizableHandle({ "aria-label": ariaLabel, withHandle }: Resizab
       ref={hold}
     >
       <TouchTarget />
-      <span aria-hidden="true" className={hitAreaClass[orientation]} />
-      <span aria-hidden="true" data-ouro-resizable-grip="" className={gripClass[orientation]} />
+      <span data-slot="resizable-hit-area" aria-hidden="true" className={hitAreaClass[orientation]} />
+      <span data-slot="resizable-grip" aria-hidden="true" data-ouro-resizable-grip="" className={gripClass[orientation]} />
     </div>
   );
 }

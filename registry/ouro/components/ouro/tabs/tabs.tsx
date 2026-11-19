@@ -281,14 +281,15 @@ export function Tabs(props: TabsProps): JSX.Element {
     );
     const current = value ?? linkItems.find((item) => item.href === marked)?.value;
     return (
-      <div ref={ref} data-ouro="tabs" data-orientation={shown} className={cn(rootClass, className)}>
-        <nav aria-label={label} className="min-w-0">
+      <div data-slot="tabs" ref={ref} data-ouro="tabs" data-orientation={shown} className={cn(rootClass, className)}>
+        <nav data-slot="tabs-nav" aria-label={label} className="min-w-0">
           <TabsLinkList orientation={shown} current={current}>
             {linkItems.map((item) => {
               const here = item.value === current;
               return (
-                <li key={item.value} className={linkItemClass}>
+                <li data-slot="tabs-link-item" key={item.value} className={linkItemClass}>
                   <RouterLink
+                    data-slot="tabs-link"
                     href={item.href}
                     aria-current={here ? "page" : undefined}
                     data-ouro-control="tabs"
@@ -297,8 +298,8 @@ export function Tabs(props: TabsProps): JSX.Element {
                     data-active={here ? "" : undefined}
                     className={cn(tabClass, tabLinkClass)}
                   >
-                    <span className={tabFaceClass}>{item.label}</span>
-                    {here && <span aria-hidden="true" data-ouro-tabs-indicator="" data-orientation={shown} className={linkIndicatorClass} />}
+                    <span data-slot="tabs-tab-label" className={tabFaceClass}>{item.label}</span>
+                    {here && <span data-slot="tabs-indicator" aria-hidden="true" data-ouro-tabs-indicator="" data-orientation={shown} className={linkIndicatorClass} />}
                   </RouterLink>
                 </li>
               );
@@ -310,6 +311,7 @@ export function Tabs(props: TabsProps): JSX.Element {
   }
   return (
     <TabsRootUnchecked
+      data-slot="tabs"
       ref={ref}
       orientation={shown}
       value={selected}

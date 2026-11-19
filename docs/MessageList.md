@@ -103,6 +103,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `message-list`, `message-list-content`, `message-list-edge`, `message-list-floor`, `message-list-focus-ring`, `message-list-frame`, `message-list-jump`, `message-list-jump-icon`, `message-list-jump-row`, `message-list-live`, `message-list-older`, `message-list-older-indicator`, `message-list-older-placeholder`, `message-list-older-spinner`, `message-list-scroller`, `message-list-slot`, `message-list-space`.
+
 ## Types
 
 ### `MessageListActions`

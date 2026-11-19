@@ -102,22 +102,23 @@ export function SectionHeader(props: SectionHeaderProps): JSX.Element {
   );
   return (
     <div
+      data-slot="section-header"
       {...rest}
       data-ouro="section-header"
       className={cn("flex min-w-0 items-baseline gap-x-3", divider && "border-0 border-b border-solid border-border pb-2", className)}
     >
-      <div className="flex min-w-0 grow flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <Heading level={level} size={level === 2 ? "lg" : "md"} className="min-w-0 grow break-words">
+      <div data-slot="section-header-text" className="flex min-w-0 grow flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <Heading data-slot="section-header-title" level={level} size={level === 2 ? "lg" : "md"} className="min-w-0 grow break-words">
           {title}
         </Heading>
         {meta != null ? (
-          <p data-slot="meta" className="m-0 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase tabular-nums">
+          <p data-slot="section-header-meta" className="m-0 text-xs leading-4 font-medium tracking-[0.08em] text-muted-foreground uppercase tabular-nums">
             {meta}
           </p>
         ) : null}
       </div>
       {actions != null ? (
-        <div data-slot="actions" className="flex shrink-0 items-baseline gap-3 text-sm">
+        <div data-slot="section-header-actions" className="flex shrink-0 items-baseline gap-3 text-sm">
           {actions}
         </div>
       ) : null}

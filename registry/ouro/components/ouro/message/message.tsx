@@ -535,14 +535,14 @@ const focusRing = "rounded-ouro-lg outline-ring outline-offset-2 focus-visible:o
 function authorName(name: string, content: ReactNode, loading: string | undefined): ReactNode {
   if (loading !== undefined) {
     return (
-      <span data-ouro-message-name-loading="" className="relative inline-block max-w-full">
-        <span aria-hidden="true" className="invisible">
+      <span data-slot="message-name-loading" data-ouro-message-name-loading="" className="relative inline-block max-w-full">
+        <span data-slot="message-name-loading-text" aria-hidden="true" className="invisible">
           {loading}
         </span>
-        <span aria-hidden="true" className="absolute inset-0 flex items-center">
+        <span data-slot="message-name-skeleton" aria-hidden="true" className="absolute inset-0 flex items-center">
           <Skeleton shape="text" />
         </span>
-        <span className="sr-only">{loading}</span>
+        <span data-slot="message-name-loading-label" className="sr-only">{loading}</span>
       </span>
     );
   }
@@ -550,7 +550,7 @@ function authorName(name: string, content: ReactNode, loading: string | undefine
   return (
     <>
       <span aria-hidden="true">{content}</span>
-      <span className="sr-only">{name}</span>
+      <span data-slot="message-name-label" className="sr-only">{name}</span>
     </>
   );
 }
@@ -760,17 +760,17 @@ export function Message(props: MessageProps): JSX.Element {
   // Beside a bubble, out of the flow, or after a post's or reply's time on its line: it takes no room, so going moves nothing.
   const sending = (place: string) =>
     showing && (
-      <span data-ouro-message-pending="" className={cn(pendingClass, place)}>
-        <PendingIcon aria-hidden="true" className="size-3.5 shrink-0" />
-        <span id={pendingId} className="sr-only">
+      <span data-slot="message-pending" data-ouro-message-pending="" className={cn(pendingClass, place)}>
+        <PendingIcon data-slot="message-pending-icon" aria-hidden="true" className="size-3.5 shrink-0" />
+        <span data-slot="message-pending-label" id={pendingId} className="sr-only">
           {pendingLabel}
         </span>
       </span>
     );
   const notSent = failed !== false && (
-    <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
-      <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
-        <NotSentIcon aria-hidden="true" className="size-3.5 shrink-0" />
+    <div data-slot="message-failed" data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
+      <span data-slot="message-failed-label" id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
+        <NotSentIcon data-slot="message-failed-icon" aria-hidden="true" className="size-3.5 shrink-0" />
         {failedLabel}
       </span>
       <Button data-ouro-control="message" data-ouro-part="retry" tone="primary" variant="plain" size="sm" onClick={() => ((retried.current = true), failed.onRetry())}>
@@ -794,6 +794,7 @@ export function Message(props: MessageProps): JSX.Element {
   const primaryBubble = role === "user" && variant === "default";
   const contextLine = hasContext ? (
     <div
+      data-slot="message-context"
       data-ouro-message-context=""
       className={cn("m-0 mb-1 text-xs", !primaryBubble && "text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]")}
     >
@@ -869,7 +870,7 @@ export function Message(props: MessageProps): JSX.Element {
     const continued = continuedProp && role !== "system";
     const bubble = (
       // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,StringLiteral: on a fine pointer the article is text-sm already; the touch tests hold the system note's smaller text.
-      <div data-ouro-message-content="" className={cn("max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], role === "system" && "text-sm")}>
+      <div data-slot="message-content" data-ouro-message-content="" className={cn("max-w-full leading-relaxed [overflow-wrap:anywhere]", bubbles[role], role === "system" && "text-sm")}>
         {contextLine}
         {quoted}
         {body}
@@ -877,6 +878,7 @@ export function Message(props: MessageProps): JSX.Element {
     );
     return (
       <article
+        data-slot="message"
         {...rest}
         ref={ref}
         data-ouro="message"
@@ -895,30 +897,31 @@ export function Message(props: MessageProps): JSX.Element {
           className,
         )}
       >
-        {role !== "system" && avatar !== false && (continued ? <span aria-hidden="true" className="w-8 shrink-0" /> : avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel, "mb-0.5"))}
+        {role !== "system" && avatar !== false && (continued ? <span data-slot="message-avatar-placeholder" aria-hidden="true" className="w-8 shrink-0" /> : avatarSlot(avatar, nameLoading ? null : name, presence, presenceLabel, "mb-0.5"))}
         <div
+          data-slot="message-body"
           className={cn(
             "relative flex max-w-[min(85%,42rem)] min-w-0 flex-col gap-1",
             role === "user" ? "items-end" : role === "system" ? "items-center" : "items-start",
           )}
         >
-          <span data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
+          <span data-slot="message-author" data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
             {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
-            {nameTag && <span className="sr-only">, </span>}
+            {nameTag && <span data-slot="message-separator" className="sr-only">, </span>}
             {nameTag && (
-              <span data-ouro-message-name-tag="" className="ms-1.5 font-normal">
+              <span data-slot="message-name-tag" data-ouro-message-name-tag="" className="ms-1.5 font-normal">
                 {nameTag}
               </span>
             )}
-            {time !== undefined && <span className="sr-only">, </span>}
+            {time !== undefined && <span data-slot="message-separator" className="sr-only">, </span>}
             {time !== undefined && (
-              <time dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
+              <time data-slot="message-time" dateTime={dateTime} className="ms-1.5 font-normal tabular-nums">
                 {time}
               </time>
             )}
           </span>
           {room ? (
-            <div ref={slot} className="relative flex max-w-full flex-col">
+            <div data-slot="message-content-frame" ref={slot} className="relative flex max-w-full flex-col">
               {bubble}
               {bar}
             </div>
@@ -926,7 +929,7 @@ export function Message(props: MessageProps): JSX.Element {
             bubble
           )}
           {attachments !== undefined && attachments !== null && (
-            <div data-ouro-message-attachments="" className={cn("flex max-w-full flex-wrap gap-2", role === "user" && "justify-end")}>
+            <div data-slot="message-attachments" data-ouro-message-attachments="" className={cn("flex max-w-full flex-wrap gap-2", role === "user" && "justify-end")}>
               {attachments}
             </div>
           )}
@@ -949,19 +952,19 @@ export function Message(props: MessageProps): JSX.Element {
   // In chat the user's own name is not shown (the side says whose it is), only the time.
   const nameShown = !continued && !end;
   const header = (
-    <span data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
-      <span data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
+    <span data-slot="message-header" data-ouro-message-header="" className={continued ? "sr-only" : cn("flex max-w-full min-w-0 items-baseline gap-2", people ? "text-sm" : "px-0.5 text-xs", post && "order-1")}>
+      <span data-slot="message-author" data-ouro-message-author="" className={nameShown ? "truncate font-semibold text-foreground" : "sr-only"}>
         {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
       </span>
       {nameTag && (
-        <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
-          <span className="sr-only">, </span>
+        <span data-slot="message-name-tag" data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
+          <span data-slot="message-separator" className="sr-only">, </span>
           {nameTag}
         </span>
       )}
-      {time !== undefined && <span className="sr-only">, </span>}
+      {time !== undefined && <span data-slot="message-separator" className="sr-only">, </span>}
       {time !== undefined && (
-        <time dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
+        <time data-slot="message-time" dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
           {time}
         </time>
       )}
@@ -983,10 +986,10 @@ export function Message(props: MessageProps): JSX.Element {
   const worded = !empty || streaming || quote !== undefined || titled || hasContext;
   // Hidden rather than left out when empty: MessageList reads every message's text from it.
   const contentBox = (
-    <div data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
+    <div data-slot="message-content" data-ouro-message-content="" hidden={!worded} style={surfaceColors} className={cn("box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]", surface)}>
       {contextLine}
       {titled && (
-        <p data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
+        <p data-slot="message-subject" data-ouro-message-subject="" className="m-0 mb-0.5 font-[family-name:var(--font-heading,inherit)] text-base leading-snug font-semibold">
           {subject}
         </p>
       )}
@@ -996,6 +999,7 @@ export function Message(props: MessageProps): JSX.Element {
   );
   return (
     <article
+      data-slot="message"
       {...rest}
       ref={ref}
       data-ouro="message"
@@ -1019,14 +1023,15 @@ export function Message(props: MessageProps): JSX.Element {
       )}
     >
       {!end && avatar !== false && (
-        <span data-ouro-message-gutter="" className="flex w-8 shrink-0 justify-center">
+        <span data-slot="message-gutter" data-ouro-message-gutter="" className="flex w-8 shrink-0 justify-center">
           {continued ? (
             showing ? (
               // A continued reply's line holds its text, so its clock sits in the gutter, where its time shows on hover.
-              <PendingIcon data-ouro-message-pending-gutter="" aria-hidden="true" className={cn(pendingClass, "mt-1.5 size-3.5")} />
+              <PendingIcon data-slot="message-pending-icon" data-ouro-message-pending-gutter="" aria-hidden="true" className={cn(pendingClass, "mt-1.5 size-3.5")} />
             ) : (
               time !== undefined && (
               <time
+                data-slot="message-gutter-time"
                 aria-hidden="true"
                 dateTime={dateTime}
                 className="mt-2.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
@@ -1041,6 +1046,7 @@ export function Message(props: MessageProps): JSX.Element {
         </span>
       )}
       <div
+        data-slot="message-body"
         ref={post ? slot : undefined}
         data-ouro-message-body=""
         className={cn(
@@ -1056,13 +1062,13 @@ export function Message(props: MessageProps): JSX.Element {
         {!post && !room && worded ? (
           contentBox
         ) : (
-          <div ref={post ? undefined : slot} className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          <div data-slot="message-content-frame" ref={post ? undefined : slot} className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
             {contentBox}
             {!post && bar}
           </div>
         )}
         {attachments !== undefined && attachments !== null && (
-          <div data-ouro-message-attachments="" className={cn("flex w-full max-w-full min-w-0 flex-wrap gap-2", end && "justify-end", post && ["mt-1", postRow])}>
+          <div data-slot="message-attachments" data-ouro-message-attachments="" className={cn("flex w-full max-w-full min-w-0 flex-wrap gap-2", end && "justify-end", post && ["mt-1", postRow])}>
             {attachments}
           </div>
         )}
@@ -1083,7 +1089,7 @@ export function Message(props: MessageProps): JSX.Element {
 function avatarSlot(avatar: string | ReactElement | undefined, name: string | null, presence: string | undefined, presenceLabel: string | undefined, className?: string): JSX.Element {
   if (isValidElement(avatar)) return avatar;
   const dot = presence === undefined ? {} : { presence: presence as AvatarPresence, presenceLabel: presenceLabel || presence.replaceAll("-", " ") };
-  return <Avatar name={name} src={avatar} alt="" size="sm" className={className} {...dot} />;
+  return <Avatar data-slot="message-avatar" name={name} src={avatar} alt="" size="sm" className={className} {...dot} />;
 }
 
 // The quote: a box on the muted surface with a hairline, as Composer's quote (composer.tsx).
@@ -1102,25 +1108,25 @@ const quoteButtonClass =
 function quoteBox(quote: MessageQuote): JSX.Element {
   const body = (
     <>
-      <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      <span data-slot="message-quote-bar" aria-hidden="true" data-ouro-message-quote-bar="" className="w-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
       {quote.avatar}
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="sr-only">{quote.label ?? `Quoting ${quote.author}`}: </span>
-        <span aria-hidden="true" data-ouro-message-quote-author="" className="truncate text-xs font-semibold text-foreground">
+      <span data-slot="message-quote-content" className="flex min-w-0 flex-1 flex-col">
+        <span data-slot="message-quote-label" className="sr-only">{quote.label ?? `Quoting ${quote.author}`}: </span>
+        <span data-slot="message-quote-author" aria-hidden="true" data-ouro-message-quote-author="" className="truncate text-xs font-semibold text-foreground">
           {quote.author}
         </span>
-        <span data-ouro-message-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+        <span data-slot="message-quote-excerpt" data-ouro-message-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
           {quote.excerpt}
         </span>
       </span>
     </>
   );
   return quote.onActivate ? (
-    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
+    <button data-slot="message-quote" type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
       {body}
     </button>
   ) : (
-    <blockquote data-ouro-message-quote="" className={quoteClass}>
+    <blockquote data-slot="message-quote" data-ouro-message-quote="" className={quoteClass}>
       {body}
     </blockquote>
   );
@@ -1139,6 +1145,7 @@ function extra(slot: "footer" | "thread", end: boolean, post: boolean, children:
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
+      data-slot="message-row"
       {...{ [`data-ouro-message-${slot}`]: "" }}
       className={cn(
         "flex max-w-full min-w-0 flex-wrap items-center gap-2",
@@ -1190,11 +1197,11 @@ const typingDot = "size-1.5 animate-[ouro-pulse_1.2s_ease-in-out_infinite] round
  */
 function typing(label: string): JSX.Element {
   return (
-    <span data-ouro-message-typing="" className="inline-flex h-[1lh] items-center gap-1">
-      <span aria-hidden="true" className={typingDot} />
-      <span aria-hidden="true" className={typingDot} style={{ animationDelay: "0.2s" }} />
-      <span aria-hidden="true" className={typingDot} style={{ animationDelay: "0.4s" }} />
-      <span className="sr-only">{label}</span>
+    <span data-slot="message-typing" data-ouro-message-typing="" className="inline-flex h-[1lh] items-center gap-1">
+      <span data-slot="message-typing-dot" aria-hidden="true" className={typingDot} />
+      <span data-slot="message-typing-dot" aria-hidden="true" className={typingDot} style={{ animationDelay: "0.2s" }} />
+      <span data-slot="message-typing-dot" aria-hidden="true" className={typingDot} style={{ animationDelay: "0.4s" }} />
+      <span data-slot="message-typing-label" className="sr-only">{label}</span>
     </span>
   );
 }

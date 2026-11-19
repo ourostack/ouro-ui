@@ -105,7 +105,7 @@ export interface ImageFieldProps {
 
 function PhotoIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-8">
+    <svg data-slot="image-field-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-8">
       <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
       <circle cx="9" cy="9" r="2" />
       <path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21" />
@@ -320,6 +320,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
 
   return (
     <div
+      data-slot="image-field"
       data-ouro="image-field"
       role="group"
       aria-labelledby={`${id}-label`}
@@ -332,17 +333,18 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
       onDragLeave={dragLeave}
       onDrop={drop}
     >
-      <div data-ouro-label="" data-ouro-required={required ? "" : undefined} className={cn("grid gap-1", "data-ouro-required:[&>span:first-child]:after:ms-0.5 data-ouro-required:[&>span:first-child]:after:text-destructive data-ouro-required:[&>span:first-child]:after:content-['*'] supports-[content:'*'_/_'']:data-ouro-required:[&>span:first-child]:after:content-['*'_/_'']", hideLabel && "sr-only")}>
-        <span className="text-sm leading-5 font-medium text-foreground">
+      <div data-slot="image-field-label" data-ouro-label="" data-ouro-required={required ? "" : undefined} className={cn("grid gap-1", "data-ouro-required:[&>span:first-child]:after:ms-0.5 data-ouro-required:[&>span:first-child]:after:text-destructive data-ouro-required:[&>span:first-child]:after:content-['*'] supports-[content:'*'_/_'']:data-ouro-required:[&>span:first-child]:after:content-['*'_/_'']", hideLabel && "sr-only")}>
+        <span data-slot="image-field-label-text" className="text-sm leading-5 font-medium text-foreground">
           <span id={`${id}-label`}>{label}</span>
         </span>
         {description != null ? (
-          <span id={`${id}-description`} className="text-sm leading-5 text-muted-foreground">
+          <span data-slot="image-field-description" id={`${id}-description`} className="text-sm leading-5 text-muted-foreground">
             {description}
           </span>
         ) : null}
       </div>
       <div
+        data-slot="image-field-drop-zone"
         data-ouro-drop-zone=""
         data-dragging={dragging ? "" : undefined}
         style={{ aspectRatio: aspect }}
@@ -354,19 +356,19 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
         )}
       >
         {dragging ? (
-          <span aria-hidden="true" className="absolute inset-0 z-1 flex items-center justify-center bg-background/85 p-2 text-center text-sm leading-5 font-medium text-foreground">
+          <span data-slot="image-field-drop-label" aria-hidden="true" className="absolute inset-0 z-1 flex items-center justify-center bg-background/85 p-2 text-center text-sm leading-5 font-medium text-foreground">
             {dropLabel}
           </span>
         ) : null}
         {file ? (
-          <img ref={attach} alt="" className="block size-full object-cover" />
+          <img data-slot="image-field-image" ref={attach} alt="" className="block size-full object-cover" />
         ) : src ? (
-          <img src={src} alt={alt} className="block size-full object-cover" />
+          <img data-slot="image-field-image" src={src} alt={alt} className="block size-full object-cover" />
         ) : (
           <PhotoIcon />
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div data-slot="image-field-actions" className="flex flex-wrap gap-2">
         <Button
           data-ouro-control="image-field"
           data-ouro-part="choose"
@@ -379,7 +381,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
         >
           {showing ? changeLabel : chooseLabel}
         </Button>
-        {dropHint && !disabled ? <span className="self-center text-sm leading-5 text-muted-foreground">{dropHint}</span> : null}
+        {dropHint && !disabled ? <span data-slot="image-field-drop-hint" className="self-center text-sm leading-5 text-muted-foreground">{dropHint}</span> : null}
         {file !== null || (src && onRemove) ? (
           <Button data-ouro-control="image-field" data-ouro-part="remove" variant="plain" tone="destructive" size="sm" disabled={disabled} aria-describedby={`${id}-label`} onClick={remove}>
             {removeLabel}
@@ -399,11 +401,11 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
         hidden
         onChange={choose}
       />
-      <div className={cn("grid gap-1 text-sm leading-5 text-destructive", !invalid && "sr-only")}>
+      <div data-slot="image-field-messages" className={cn("grid gap-1 text-sm leading-5 text-destructive", !invalid && "sr-only")}>
         {errors.length > 0 ? (
-          <div id={`${id}-error`} className="grid gap-1">
+          <div data-slot="image-field-error" id={`${id}-error`} className="grid gap-1">
             {errors.map((message, index) => (
-              <p key={index} className="m-0">
+              <p data-slot="image-field-error-item" key={index} className="m-0">
                 {message}
               </p>
             ))}
@@ -411,7 +413,7 @@ export function ImageField(props: ImageFieldProps): JSX.Element {
         ) : null}
         {/* Why a file was turned away: a polite status region from the first render, so screen
             readers announce the message once when it appears; hidden while empty. */}
-        <p id={`${id}-status`} role="status" className={cn("m-0", !rejection && "sr-only")}>
+        <p data-slot="image-field-status" id={`${id}-status`} role="status" className={cn("m-0", !rejection && "sr-only")}>
           {rejection}
         </p>
       </div>

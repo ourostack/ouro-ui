@@ -57,4 +57,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `skip-link`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/skip-link/skip-link.test.tsx::SkipLink > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/skip-link/skip-link.test.tsx::SkipLink > forwards a ref and lets app layout classes win)

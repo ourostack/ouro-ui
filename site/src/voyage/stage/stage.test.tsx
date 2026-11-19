@@ -167,7 +167,7 @@ describe("the hero", () => {
       // wait in the install section.
       const hero = handoff.closest<HTMLElement>('[data-ouro="hero"]')!;
       expect(hero).not.toBeNull();
-      expect(handoff.getBoundingClientRect().top).toBeLessThan(hero.querySelector('[data-slot="media"]')!.getBoundingClientRect().top);
+      expect(handoff.getBoundingClientRect().top).toBeLessThan(hero.querySelector('[data-slot="hero-media"]')!.getBoundingClientRect().top);
       for (const part of [hero, document.querySelector<HTMLElement>(".site-console")!]) expect(part.textContent).not.toMatch(/npx|shadcn@/);
       // Copy says so on itself, once, and no toast in the corner says it again. "Copied" lasts two seconds, which a
       // loaded runner can outlast between two steps, so the clock is held from the press.

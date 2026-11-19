@@ -264,7 +264,7 @@ export function NavigationMenu(props: NavigationMenuProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
 
-  return <NavigationMenuView label={label} items={items} currentPath={currentPath} className={className} ref={ref} />;
+  return <NavigationMenuView data-slot="navigation-menu" label={label} items={items} currentPath={currentPath} className={className} ref={ref} />;
 }
 
 /** Props for {@link NavigationMenuView}: NavigationMenu's, and what Navbar needs to measure its row. */
@@ -319,6 +319,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
   const portal = usePortalContainer("NavigationMenu");
   const directed = (
     <BaseNavigationMenu.Root
+      data-slot="navigation-menu"
       ref={mergedNav}
       data-ouro="navigation-menu"
       aria-label={label}
@@ -330,35 +331,37 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
       }}
       className={cn("min-w-0", className)}
     >
-      <BaseNavigationMenu.List ref={listRef} className={cn("m-0 flex list-none items-center gap-1 p-0", oneLine ? "flex-nowrap" : "flex-wrap")}>
+      <BaseNavigationMenu.List data-slot="navigation-menu-list" ref={listRef} className={cn("m-0 flex list-none items-center gap-1 p-0", oneLine ? "flex-nowrap" : "flex-wrap")}>
         {items.map((item, index) =>
           isPanel(item) ? (
             <BaseNavigationMenu.Item key={index} value={index}>
-              <BaseNavigationMenu.Trigger data-current={item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
+              <BaseNavigationMenu.Trigger data-slot="navigation-menu-trigger" data-current={item.links?.some(isCurrent) ? "" : undefined} data-ouro-control="navigation-menu" data-ouro-part="trigger" className={rowItem}>
                 {item.label}
-                <BaseNavigationMenu.Icon data-ouro-instant={instant ? "" : undefined} className={chevron}>
-                  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
+                <BaseNavigationMenu.Icon data-slot="navigation-menu-icon" data-ouro-instant={instant ? "" : undefined} className={chevron}>
+                  <svg data-slot="navigation-menu-chevron-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
                     <path d="m4 6 4 4 4-4" />
                   </svg>
                 </BaseNavigationMenu.Icon>
               </BaseNavigationMenu.Trigger>
               <BaseNavigationMenu.Content
+                data-slot="navigation-menu-content"
                 data-ouro-instant={instant ? "" : undefined}
                 data-wide={item.content !== undefined || item.columns === 2 ? "" : undefined}
                 className={panel}
               >
-                <div className={cn("grid gap-2", item.content !== undefined && item.links !== undefined && "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]")}>
+                <div data-slot="navigation-menu-content-inner" className={cn("grid gap-2", item.content !== undefined && item.links !== undefined && "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]")}>
                   {item.content !== undefined && (
                     // A link in the content closes the panel, as the list's links do.
-                    <div data-ouro-navigation-menu-content="" onClick={closeOnLink} className="min-w-0">
+                    <div data-slot="navigation-menu-custom-content" data-ouro-navigation-menu-content="" onClick={closeOnLink} className="min-w-0">
                       {item.content}
                     </div>
                   )}
                   {item.links !== undefined && (
-                    <ul className={cn("m-0 grid list-none gap-1 p-0", item.columns === 2 && "sm:grid-cols-2")}>
+                    <ul data-slot="navigation-menu-link-list" className={cn("m-0 grid list-none gap-1 p-0", item.columns === 2 && "sm:grid-cols-2")}>
                       {item.links.map((link, position) => (
                         <li key={position}>
                           <BaseNavigationMenu.Link
+                            data-slot="navigation-menu-panel-link"
                             render={<RouterLink href={link.href} />}
                             active={currentOf(link) === "page"}
                             aria-current={currentOf(link)}
@@ -367,8 +370,8 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
                             data-ouro-part="panel-link"
                             className={panelLink}
                           >
-                            <span className={cn("font-medium", panelLabel, isCurrent(link) && "font-semibold underline")}>{link.label}</span>
-                            {link.description !== undefined && <span className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
+                            <span data-slot="navigation-menu-panel-link-label" className={cn("font-medium", panelLabel, isCurrent(link) && "font-semibold underline")}>{link.label}</span>
+                            {link.description !== undefined && <span data-slot="navigation-menu-panel-link-description" className="text-sm leading-5 text-muted-foreground">{link.description}</span>}
                           </BaseNavigationMenu.Link>
                         </li>
                       ))}
@@ -380,6 +383,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
           ) : (
             <BaseNavigationMenu.Item key={index} value={index}>
               <BaseNavigationMenu.Link
+                data-slot="navigation-menu-link"
                 render={<RouterLink href={item.href} />}
                 active={currentOf(item) === "page"}
                 aria-current={currentOf(item)}
@@ -393,11 +397,11 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
           ),
         )}
       </BaseNavigationMenu.List>
-      <BaseNavigationMenu.Portal {...portal} data-ouro="navigation-menu-portal" className={floatingPortalClass}>
+      <BaseNavigationMenu.Portal data-slot="navigation-menu-portal" {...portal} data-ouro="navigation-menu-portal" className={floatingPortalClass}>
         <PortalScope>
-          <BaseNavigationMenu.Positioner positionMethod={floatingPositionMethod} sideOffset={8} collisionPadding={16} className={positioner}>
-            <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popup}>
-              <BaseNavigationMenu.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
+          <BaseNavigationMenu.Positioner data-slot="navigation-menu-positioner" positionMethod={floatingPositionMethod} sideOffset={8} collisionPadding={16} className={positioner}>
+            <BaseNavigationMenu.Popup data-slot="navigation-menu-popup" data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popup}>
+              <BaseNavigationMenu.Viewport data-slot="navigation-menu-viewport" className="relative h-full w-full overflow-hidden rounded-[inherit]" />
             </BaseNavigationMenu.Popup>
           </BaseNavigationMenu.Positioner>
         </PortalScope>

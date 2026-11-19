@@ -177,7 +177,7 @@ export function ShareButton(props: ShareButtonProps): JSX.Element {
   const shown = status === "copied" ? copiedLabel : status === "failed" ? failed.label : label;
   const Icon = status === "copied" ? CheckIcon : ShareIcon;
   return (
-    <span data-ouro="share-button" data-status={status} className={cn("inline-flex", className)}>
+    <span data-slot="share-button" data-ouro="share-button" data-status={status} className={cn("inline-flex", className)}>
       <Button
         data-ouro-control="share-button"
         data-ouro-part="trigger"
@@ -190,7 +190,7 @@ export function ShareButton(props: ShareButtonProps): JSX.Element {
         {...(status === "failed" ? { title: failed.message } : {})}
         {...(hideLabel ? { "aria-label": shown, className: "w-(--ouro-button-h) px-0" } : { startIcon: Icon })}
       >
-        {hideLabel ? <Icon className="size-[1.25em] shrink-0" /> : shown}
+        {hideLabel ? <Icon data-slot="share-button-icon" className="size-[1.25em] shrink-0" /> : shown}
       </Button>
     </span>
   );

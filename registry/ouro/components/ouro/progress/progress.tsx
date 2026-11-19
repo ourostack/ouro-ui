@@ -162,6 +162,7 @@ export function Progress(props: ProgressProps): JSX.Element {
   );
   return (
     <BaseProgress.Root
+      data-slot="progress"
       ref={ref}
       locale={hydrated ? undefined : "en-US"}
       id={id}
@@ -174,16 +175,17 @@ export function Progress(props: ProgressProps): JSX.Element {
       data-ouro="progress"
       className={cn("grid w-full gap-1.5", className)}
     >
-      <div className={hideLabel ? "sr-only" : "flex items-baseline justify-between gap-3 text-sm"}>
-        <BaseProgress.Label id={labelId} data-ouro-progress-label="" className="font-medium text-foreground">
+      <div data-slot="progress-header" className={hideLabel ? "sr-only" : "flex items-baseline justify-between gap-3 text-sm"}>
+        <BaseProgress.Label data-slot="progress-label" id={labelId} data-ouro-progress-label="" className="font-medium text-foreground">
           {label}
         </BaseProgress.Label>
         {showValue && value !== null && (
-          <BaseProgress.Value data-ouro-progress-value="" className="text-muted-foreground tabular-nums" />
+          <BaseProgress.Value data-slot="progress-value" data-ouro-progress-value="" className="text-muted-foreground tabular-nums" />
         )}
       </div>
-      <BaseProgress.Track data-ouro-progress-track="" className="relative block h-2 w-full overflow-hidden rounded-full bg-secondary">
+      <BaseProgress.Track data-slot="progress-track" data-ouro-progress-track="" className="relative block h-2 w-full overflow-hidden rounded-full bg-secondary">
         <BaseProgress.Indicator
+          data-slot="progress-indicator"
           data-ouro-progress-indicator=""
           className={cn(indicatorClass, tones[tone])}
           style={{ "--ouro-progress": `${fraction * 100}%` } as CSSProperties}

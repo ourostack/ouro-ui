@@ -24,7 +24,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLElement>('[data-ouro="hero"]')!;
     },
     part(name: string) {
-      return host.querySelector<HTMLElement>(`[data-slot="${name}"]`);
+      return host.querySelector<HTMLElement>(`[data-slot="hero-${name}"]`);
     },
   };
 }
@@ -438,7 +438,7 @@ describe("Hero", () => {
   it("is server-rendered with its slots", () => {
     const html = renderToString(<Hero title="Server" eyebrow="Recipes" picture={pair(wide)} />);
     expect(html).toContain('data-ouro="hero"');
-    expect(html).toContain('data-slot="image"');
+    expect(html).toContain('data-slot="hero-image"');
     expect(html).toContain("Server");
   });
 
@@ -458,7 +458,7 @@ describe("Hero", () => {
       roots.push(root);
       // No await before the checks: the rise lasts only as long as the slow token, which a loaded browser can finish first.
       flushSync(() => root.render(<Hero title="Rise" picture={pair(wide)} />));
-      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
       expect(media.getAttribute("data-starting-style")).toBe("");
       await expectMotion(media, {
         stem: "hero",
@@ -483,7 +483,7 @@ describe("Hero", () => {
       host.innerHTML = renderToString(<Hero title="Rise" picture={pair(wide)} />);
       document.body.append(host);
       mounted.push(host);
-      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
       await expectRiseFromHtml(media, reduced ? { opacity: fast } : { opacity: slow, transform: slow });
     }
     await commands.emulateMedia({ reducedMotion: "no-preference" });
@@ -505,7 +505,7 @@ describe("Hero", () => {
       );
       document.body.append(host);
       mounted.push(host);
-      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
       expect(getComputedStyle(media).animationName).toBe("none");
       // One easing per property the transition runs, each of them ouro-base's ease-out.
       const easings = getComputedStyle(media).transitionTimingFunction.split(/, (?=[a-z])/);
@@ -523,7 +523,7 @@ describe("Hero", () => {
     host.innerHTML = html;
     document.body.append(host);
     mounted.push(host);
-    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
     const root = hydrateRoot(host, <Hero title="Rise" picture={pair(wide)} />);
     roots.push(root);
     await act(async () => {});
@@ -534,7 +534,7 @@ describe("Hero", () => {
     late.innerHTML = html;
     document.body.append(late);
     mounted.push(late);
-    const lateMedia = late.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const lateMedia = late.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
     await expect.poll(() => lateMedia.getAnimations().length).toBe(0);
     roots.push(hydrateRoot(late, <Hero title="Rise" picture={pair(wide)} />));
     await act(async () => {});
@@ -683,7 +683,7 @@ describe("Hero", () => {
       const root = createRoot(host);
       roots.push(root);
       flushSync(() => root.render(<Hero title="Rise" media={<video data-testid="clip" />} />));
-      const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
       expect(media.getAttribute("data-starting-style")).toBe("");
       await expectMotion(media, {
         stem: "hero",
@@ -776,7 +776,7 @@ describe("Hero", () => {
     expect(lightByDay!.previousElementSibling!.getAttribute("srcset")).toBe(sourced);
     expect(darkByDay!.hasAttribute("src")).toBe(false);
     expect(darkByDay!.hasAttribute("srcset")).toBe(false);
-    await expect.poll(() => lightByDay!.closest('[data-slot="media"]')!.hasAttribute("data-loaded")).toBe(true);
+    await expect.poll(() => lightByDay!.closest('[data-slot="hero-media"]')!.hasAttribute("data-loaded")).toBe(true);
     document.documentElement.classList.add("dark");
     const [lightAtNight, darkAtNight] = serve(<Hero title="Night" picture={twins} />);
     expect(lightAtNight!.hasAttribute("src")).toBe(false);
@@ -793,7 +793,7 @@ describe("Hero", () => {
     // A template's content is inert: nothing in it loads, and its scripts do not run.
     const inert = document.createElement("template");
     inert.innerHTML = renderToString(<Hero title="Pair" picture={twins} />);
-    const [light, dark] = [...inert.content.querySelectorAll('[data-slot="media"] > picture > img')];
+    const [light, dark] = [...inert.content.querySelectorAll('[data-slot="hero-media"] > picture > img')];
     for (const twin of [light!, dark!]) {
       expect(twin.hasAttribute("src")).toBe(false);
       expect(twin.hasAttribute("srcset")).toBe(false);
@@ -802,7 +802,7 @@ describe("Hero", () => {
       expect(twin.hasAttribute("decoding")).toBe(false);
     }
     expect([light!.getAttribute("data-src"), dark!.getAttribute("data-src")]).toEqual([wide.src, night.src]);
-    expect(inert.content.querySelector('[data-slot="media"] > picture')!.className).toContain("[@media(scripting:none)]:hidden");
+    expect(inert.content.querySelector('[data-slot="hero-media"] > picture')!.className).toContain("[@media(scripting:none)]:hidden");
   });
 
   it("renders both twins in a noscript at their own addresses, lazy, for a page without scripts", () => {
@@ -839,7 +839,7 @@ describe("Hero", () => {
       document.body.append(host);
       mounted.push(host);
       host.append(document.createRange().createContextualFragment(renderToString(node)));
-      return host.querySelector<HTMLElement>('[data-slot="media"]')!;
+      return host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
     };
     const day = serve(<Hero title="Day" picture={pair(wide)} />);
     await expect.poll(() => day.hasAttribute("data-loaded")).toBe(true);
@@ -885,7 +885,7 @@ describe("Hero", () => {
     mounted.push(host);
     // innerHTML runs no scripts, as on a page whose content security policy blocks inline ones.
     host.innerHTML = renderToString(node);
-    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
     const shown = media.querySelector("img")!;
     // The load event follows `complete` in a task of its own: wait for it, so it has fired before hydration.
     await new Promise((settle) => shown.addEventListener("load", settle, { once: true }));
@@ -905,7 +905,7 @@ describe("Hero", () => {
     await expect.poll(() => failedImage.complete).toBe(true);
     roots.push(hydrateRoot(failedHost, failed, { onRecoverableError: (cause) => error(cause) }));
     await act(async () => {});
-    expect(failedHost.querySelector('[data-slot="media"]')!.hasAttribute("data-loaded")).toBe(false);
+    expect(failedHost.querySelector('[data-slot="hero-media"]')!.hasAttribute("data-loaded")).toBe(false);
     expect(error).not.toHaveBeenCalled();
   });
 
@@ -945,7 +945,7 @@ describe("Hero", () => {
     const run = document.createElement("script");
     run.textContent = script.textContent;
     script.replaceWith(run);
-    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
     const fetched = (file: string) => performance.getEntriesByType("resource").filter((entry) => entry.name.endsWith(file)).length;
     await expect.poll(() => fetched(isDark ? files.dark : files.light)).toBeGreaterThan(0);
     run.replaceWith(script);
@@ -967,7 +967,7 @@ describe("Hero", () => {
     mounted.push(host);
     // innerHTML runs no scripts, as on a page whose content security policy blocks inline ones.
     host.innerHTML = renderToString(node);
-    const media = host.querySelector<HTMLElement>('[data-slot="media"]')!;
+    const media = host.querySelector<HTMLElement>('[data-slot="hero-media"]')!;
     expect(media.querySelector("img")!.hasAttribute("src")).toBe(false);
     const root = hydrateRoot(host, node, { onRecoverableError: (cause) => error(cause) });
     roots.push(root);

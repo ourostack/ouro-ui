@@ -734,7 +734,7 @@ export function Command(props: CommandProps): JSX.Element {
     ) : (
       <>
         <span aria-hidden="true">{item.labelContent}</span>
-        <span className="sr-only">{item.label}</span>
+        <span data-slot="command-item-hidden-label" className="sr-only">{item.label}</span>
       </>
     );
 
@@ -765,26 +765,27 @@ export function Command(props: CommandProps): JSX.Element {
         if (onQueryChange) search(next);
       }}
     >
-      <div data-ouro="command" ref={inSheet ? sizePhone : undefined} className="flex min-h-0 flex-1 flex-col">
-        <div data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
+      <div data-slot="command" data-ouro="command" ref={inSheet ? sizePhone : undefined} className="flex min-h-0 flex-1 flex-col">
+        <div data-slot="command-search" data-ouro-command-search="" className={inSheet ? commandSheetSearchClass : commandSearchClass}>
           <SearchIcon />
-          <Autocomplete.Input ref={searchInputRef} aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
+          <Autocomplete.Input data-slot="command-input" ref={searchInputRef} aria-label={searchLabel} placeholder={placeholder} data-ouro-control="command" data-ouro-part="input" className={commandInputClass} />
           {loading && <SearchingLabel label={loadingLabel} />}
 
-          <span data-ouro-command-status="" role="status" aria-live="polite" className="sr-only">
+          <span data-slot="command-status" data-ouro-command-status="" role="status" aria-live="polite" className="sr-only">
             {announcement === "on" ? loadingLabel : ""}
           </span>
         </div>
-        <div data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
+        <div data-slot="command-list" data-ouro-command-list="" className={inSheet ? commandSheetListClass : commandListClass}>
           {/* Nothing here yet is said at once; while more is on its way, the loading line says so under it. */}
-          <Autocomplete.Empty className={commandEmptyRoomClass}>
-            <div data-ouro-command-empty="" className={commandEmptyClass}>
+          <Autocomplete.Empty data-slot="command-empty-frame" className={commandEmptyRoomClass}>
+            <div data-slot="command-empty" data-ouro-command-empty="" className={commandEmptyClass}>
               {empty ?? emptyLabel}
-              {loading && <span className="mt-1 block text-xs">{loadingLabel}</span>}
+              {loading && <span data-slot="command-empty-loading" className="mt-1 block text-xs">{loadingLabel}</span>}
             </div>
           </Autocomplete.Empty>
           <NoMatchNote query={query}>{empty ?? emptyLabel}</NoMatchNote>
           <CommandList
+            data-slot="command-listbox"
             className={inSheet ? "outline-none" : commandListboxClass}
             // While results are on their way, rows in their shape hold their place under the ones already shown, scrolling with them.
             after={loading && <LoadingRows />}
@@ -792,13 +793,14 @@ export function Command(props: CommandProps): JSX.Element {
             {(group: Group, index: number) => (
               <Autocomplete.Group key={group.label ?? `loose-${index}`} items={group.items} data-ouro-command-group="">
                 {group.label !== undefined && (
-                  <Autocomplete.GroupLabel data-ouro-command-group-label="" className={commandGroupLabelClass}>
+                  <Autocomplete.GroupLabel data-slot="command-group-label" data-ouro-command-group-label="" className={commandGroupLabelClass}>
                     {group.label}
                   </Autocomplete.GroupLabel>
                 )}
                 <Autocomplete.Collection>
                   {(item: CommandItem, itemIndex: number) => (
                     <Autocomplete.Item
+                      data-slot="command-item"
                       // Two commands may share a label; the position keeps their rows apart.
                       key={`${item.label}-${itemIndex}`}
                       value={item}
@@ -811,32 +813,32 @@ export function Command(props: CommandProps): JSX.Element {
                       {...(item.shortcut ? { "aria-keyshortcuts": ariaKeyShortcuts(item.shortcut, platform) } : {})}
                     >
                       {item.avatar !== undefined ? (
-                        <span data-ouro-command-avatar="" className="flex shrink-0">
+                        <span data-slot="command-item-avatar" data-ouro-command-avatar="" className="flex shrink-0">
                           {typeof item.avatar === "string" ? <Avatar name={item.label} src={item.avatar} alt="" size="xs" /> : item.avatar}
                         </span>
                       ) : (
                         shown(item.icon) && (
-                          <span data-ouro-command-icon="" aria-hidden="true" className={cn("flex w-6 shrink-0 items-center justify-center [&_svg]:size-4", quiet)}>
+                          <span data-slot="command-item-icon" data-ouro-command-icon="" aria-hidden="true" className={cn("flex w-6 shrink-0 items-center justify-center [&_svg]:size-4", quiet)}>
                             {item.icon}
                           </span>
                         )
                       )}
                       {item.description === undefined ? (
-                        <span data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
+                        <span data-slot="command-item-label" data-ouro-command-label="" className={cn("min-w-0 flex-1 truncate", item.unread ? "font-semibold" : "font-normal")}>
                           {labelOf(item)}
                         </span>
                       ) : (
-                        <span className="flex min-w-0 flex-1 flex-col">
-                          <span data-ouro-command-label="" className={cn("block truncate", item.unread ? "font-semibold" : "font-normal")}>
+                        <span data-slot="command-item-text" className="flex min-w-0 flex-1 flex-col">
+                          <span data-slot="command-item-label" data-ouro-command-label="" className={cn("block truncate", item.unread ? "font-semibold" : "font-normal")}>
                             {labelOf(item)}
                           </span>
-                          <span data-ouro-command-description="" className={cn("block truncate text-xs leading-4", quiet)}>
+                          <span data-slot="command-item-description" data-ouro-command-description="" className={cn("block truncate text-xs leading-4", quiet)}>
                             <Marked text={item.description} ranges={rangesFor(item, "description")} />
                           </span>
                         </span>
                       )}
                       {shown(item.mark) && (
-                        <span data-ouro-command-mark="" className={cn("flex shrink-0 items-center text-xs", quiet)}>
+                        <span data-slot="command-item-mark" data-ouro-command-mark="" className={cn("flex shrink-0 items-center text-xs", quiet)}>
                           {item.mark}
                         </span>
                       )}
@@ -890,6 +892,7 @@ export function Command(props: CommandProps): JSX.Element {
             <DialogBackdrop />
             <DialogViewport>
               <DialogPopupUnchecked
+                data-slot="command-dialog"
                 ref={holdOnOpen}
                 size="auto"
                 className={cn("max-w-[min(100%,40rem)]", className)}
@@ -906,7 +909,7 @@ export function Command(props: CommandProps): JSX.Element {
               >
                 <DialogTitle visuallyHidden>{title}</DialogTitle>
                 {palette(false)}
-                <DialogClose data-ouro-command-close="" className={commandCloseClass}>
+                <DialogClose data-slot="command-close" data-ouro-command-close="" className={commandCloseClass}>
                   {closeLabel}
                 </DialogClose>
               </DialogPopupUnchecked>
@@ -940,7 +943,7 @@ function Marked({ text, ranges }: { text: string; ranges: readonly TextRange[] }
     const from = Math.max(start, at);
     const to = Math.min(end, text.length);
     if (to <= from) continue;
-    parts.push(text.slice(at, from), <mark key={from} className={commandMarkClass}>{text.slice(from, to)}</mark>);
+    parts.push(text.slice(at, from), <mark data-slot="command-match" key={from} className={commandMarkClass}>{text.slice(from, to)}</mark>);
     at = to;
   }
   parts.push(text.slice(at));
@@ -1003,7 +1006,7 @@ function ResultCount({ query, loading, label }: { query: string; loading: boolea
     return () => clearTimeout(timer);
   }, [loading, query, count, label]);
   return (
-    <span data-ouro-command-results="" role="status" aria-live="polite" className="sr-only">
+    <span data-slot="command-result-count" data-ouro-command-results="" role="status" aria-live="polite" className="sr-only">
       {said}
     </span>
   );
@@ -1017,7 +1020,7 @@ function ResultCount({ query, loading, label }: { query: string; loading: boolea
 function SearchingLabel({ label }: { label: string }): JSX.Element | null {
   if (Autocomplete.useFilteredItems().length === 0) return null;
   return (
-    <span data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
+    <span data-slot="command-loading" data-ouro-command-loading="" aria-hidden="true" className={commandLoadingClass}>
       {label}
     </span>
   );
@@ -1034,7 +1037,7 @@ function NoMatchNote({ query, children }: { query: string; children: ReactNode }
   return (
     // Shown (zero height while empty) rather than display: none, so the region is in the accessibility tree before its note comes.
     <div data-ouro-command-no-match="" role="status" aria-live="polite" aria-atomic="true">
-      {only && <div className={commandNoMatchClass}>{children}</div>}
+      {only && <div data-slot="command-no-match" className={commandNoMatchClass}>{children}</div>}
     </div>
   );
 }
@@ -1045,9 +1048,9 @@ function LoadingRows(): JSX.Element | null {
   return (
     <div data-ouro-command-loading-rows="" aria-hidden="true">
       {LOADING_ROWS.map((width) => (
-        <div key={width} className={commandLoadingRowClass}>
-          <Skeleton shape="circle" size="xs" className="shrink-0" />
-          <Skeleton shape="text" className={width} />
+        <div data-slot="command-loading-row" key={width} className={commandLoadingRowClass}>
+          <Skeleton data-slot="command-loading-avatar" shape="circle" size="xs" className="shrink-0" />
+          <Skeleton data-slot="command-loading-text" shape="text" className={width} />
         </div>
       ))}
     </div>
@@ -1061,7 +1064,7 @@ function LoadingRows(): JSX.Element | null {
 function CommandList({ children, className, after }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode }): JSX.Element {
   const empty = Autocomplete.useFilteredItems().length === 0;
   return (
-    <Autocomplete.List hidden={empty} className={className}>
+    <Autocomplete.List data-slot="command-listbox" hidden={empty} className={className}>
       <Autocomplete.Collection>{children}</Autocomplete.Collection>
       {after}
     </Autocomplete.List>

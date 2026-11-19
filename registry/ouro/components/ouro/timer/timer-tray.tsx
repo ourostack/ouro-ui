@@ -134,24 +134,24 @@ function TrayRow({ item, words, silent, repeat, repeatFor, finalFocus }: TrayRow
     timer.reset();
   };
   return (
-    <li data-status={timer.status} className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 py-2">
-      <div className="min-w-40 flex-1">
-        <p className="m-0 truncate text-sm leading-5 font-medium text-foreground">{item.label}</p>
-        <p role="timer" className={cn("m-0 text-lg leading-7 font-semibold tabular-nums", done ? doneText : "text-foreground")}>
+    <li data-slot="timer-tray-item" data-status={timer.status} className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-2 py-2">
+      <div data-slot="timer-tray-item-content" className="min-w-40 flex-1">
+        <p data-slot="timer-tray-item-label" className="m-0 truncate text-sm leading-5 font-medium text-foreground">{item.label}</p>
+        <p data-slot="timer-tray-item-time" role="timer" className={cn("m-0 text-lg leading-7 font-semibold tabular-nums", done ? doneText : "text-foreground")}>
           {done ? words.done : formatDuration(timer.remaining)}
-          {timer.status === "paused" ? <span className="ms-2 text-sm font-medium text-muted-foreground">{words.paused}</span> : null}
+          {timer.status === "paused" ? <span data-slot="timer-tray-item-paused" className="ms-2 text-sm font-medium text-muted-foreground">{words.paused}</span> : null}
         </p>
       </div>
-      <div className="flex gap-2">
+      <div data-slot="timer-tray-item-actions" className="flex gap-2">
         {item.href !== undefined ? (
-          <Button data-ouro-control="timer-tray" data-ouro-part="go-to" href={item.href} variant="plain" tone="secondary" size="sm">
+          <Button data-slot="timer-tray-go-to" data-ouro-control="timer-tray" data-ouro-part="go-to" href={item.href} variant="plain" tone="secondary" size="sm">
             {words.goTo}
-            <span className="sr-only"> {item.label}</span>
+            <span data-slot="timer-tray-go-to-label" className="sr-only"> {item.label}</span>
           </Button>
         ) : null}
-        <Button data-ouro-control="timer-tray" data-ouro-part="stop" onClick={stop} variant={done ? "solid" : "outline"} tone={done ? "destructive" : "secondary"} size="sm">
+        <Button data-slot="timer-tray-stop" data-ouro-control="timer-tray" data-ouro-part="stop" onClick={stop} variant={done ? "solid" : "outline"} tone={done ? "destructive" : "secondary"} size="sm">
           {done ? words.dismiss : words.cancel}
-          <span className="sr-only"> {item.label}</span>
+          <span data-slot="timer-tray-stop-label" className="sr-only"> {item.label}</span>
         </Button>
       </div>
     </li>
@@ -226,13 +226,14 @@ export function TimerTray(props: TimerTrayProps): JSX.Element {
   );
   return (
     <section
+      data-slot="timer-tray"
       tabIndex={-1}
       {...rest}
       data-ouro="timer-tray"
       aria-label={label}
       className={cn("min-w-0 border-0 border-b border-solid border-border bg-background px-4 outline-none not-has-[li]:not-focus:hidden", className)}
     >
-      <ul className="m-0 grid list-none divide-y divide-border p-0">
+      <ul data-slot="timer-tray-list" className="m-0 grid list-none divide-y divide-border p-0">
         {timers.map((item, index) => (
           // A plain-JavaScript app may leave timerId out (development names the fix); the index keeps React's key.
           <TrayRow

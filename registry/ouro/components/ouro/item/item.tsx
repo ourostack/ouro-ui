@@ -419,6 +419,7 @@ export function Item(props: ItemProps): JSX.Element {
   return createElement(
     element,
     {
+      "data-slot": "item",
       ...rest,
       // A click anywhere on a linked row opens its link, wherever the app's layout leaves the link's layer.
       onClick: (event: MouseEvent<HTMLElement>) => (rest.onClick?.(event), followStretchedLink(event)),
@@ -444,16 +445,18 @@ export function Item(props: ItemProps): JSX.Element {
     },
     media && (
       <div
+        data-slot="item-media"
         aria-hidden={mediaSize === "icon" ? true : undefined}
         className={cn("shrink-0", mediaSizes[mediaSize], description && !lifted && mediaWithDescription[mediaSize], lifted?.media)}
       >
         {media}
       </div>
     ),
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <div className={cn("text-base font-medium", choosable && selected ? "text-accent-foreground" : "text-foreground")}>
+    <div data-slot="item-content" className="flex min-w-0 flex-col gap-0.5">
+      <div data-slot="item-title" className={cn("text-base font-medium", choosable && selected ? "text-accent-foreground" : "text-foreground")}>
         {pressable ? (
           <button
+            data-slot="item-select"
             type="button"
             ref={buttonRef}
             onClick={onSelect}
@@ -469,6 +472,7 @@ export function Item(props: ItemProps): JSX.Element {
           </button>
         ) : linked ? (
           <RouterLink
+            data-slot="item-link"
             href={href}
             ref={linkRef}
             target={external ? "_blank" : undefined}
@@ -482,20 +486,21 @@ export function Item(props: ItemProps): JSX.Element {
             className={cn(stretchedLinkClass, variant === "outline" ? "after:rounded-ouro-xl" : choosable && "after:rounded-ouro-lg", choosable && choosableControl)}
           >
             {title}
-            {external && <span className="sr-only"> (opens in a new tab)</span>}
+            {external && <span data-slot="item-external-label" className="sr-only"> (opens in a new tab)</span>}
           </RouterLink>
         ) : (
           title
         )}
       </div>
       {description && (
-        <div id={linked || pressable ? descriptionId : undefined} data-ouro-text="" className="text-sm text-muted-foreground">
+        <div data-slot="item-description" id={linked || pressable ? descriptionId : undefined} data-ouro-text="" className="text-sm text-muted-foreground">
           {description}
         </div>
       )}
     </div>,
     actions && (
       <div
+        data-slot="item-actions"
         data-item-actions=""
         className={cn("flex flex-wrap items-center justify-end gap-2", stackLayouts.map((layout) => layout.actions), reveal && revealActionsClass)}
       >

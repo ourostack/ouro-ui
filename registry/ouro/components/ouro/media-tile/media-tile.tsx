@@ -177,7 +177,7 @@ const glyphClass = "block size-3.5 shrink-0 @2xs/tile:size-4";
 
 function MicOffGlyph(): JSX.Element {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
+    <svg data-slot="media-tile-muted-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
       <rect x="9" y="3" width="6" height="11" rx="3" {...line} />
       <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M4 4l16 16" {...line} />
     </svg>
@@ -186,7 +186,7 @@ function MicOffGlyph(): JSX.Element {
 
 function HandGlyph(): JSX.Element {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
+    <svg data-slot="media-tile-hand-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
       <path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-5a1.5 1.5 0 0 1 3 0v7.5a7 7 0 0 1-7 7 6.5 6.5 0 0 1-5.2-2.6L3.6 15a1.5 1.5 0 0 1 2.4-1.8L8 15.5" {...line} />
     </svg>
   );
@@ -194,7 +194,7 @@ function HandGlyph(): JSX.Element {
 
 function SignalGlyph(): JSX.Element {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
+    <svg data-slot="media-tile-connection-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
       <path d="M5 20v-4" {...line} strokeWidth={3} />
       <path d="M12 20v-9M19 20V5" {...line} strokeWidth={3} strokeOpacity={0.3} />
     </svg>
@@ -203,7 +203,7 @@ function SignalGlyph(): JSX.Element {
 
 function PauseGlyph(): JSX.Element {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
+    <svg data-slot="media-tile-paused-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass}>
       <path d="M9 6.5v11M15 6.5v11" {...line} strokeWidth={2.5} />
     </svg>
   );
@@ -211,7 +211,7 @@ function PauseGlyph(): JSX.Element {
 
 function PinGlyph(props: SVGProps<SVGSVGElement>): JSX.Element {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass} {...props}>
+    <svg data-slot="media-tile-pin-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={glyphClass} {...props}>
       <path d="M14 3.5l6.5 6.5M17.25 6.75 13 11l1 5-1.5 1.5-7-7L7 9l5 1 4.25-4.25M8.5 15.5 4 20" {...line} />
     </svg>
   );
@@ -466,6 +466,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
   const controls = onPinnedChange !== undefined || (actions !== undefined && actions !== null && actions !== false);
   return (
     <div
+      data-slot="media-tile"
       {...rest}
       ref={mergedRef}
       role="group"
@@ -478,15 +479,16 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
       data-speaking={speakingShown ? "" : undefined}
       className={cn(tileClass, className)}
     >
-      <div aria-hidden="true" data-ouro-media-tile-media="" className={cn(mediaClass, fitClasses[fit], !picture && "invisible")}>
+      <div data-slot="media-tile-media" aria-hidden="true" data-ouro-media-tile-media="" className={cn(mediaClass, fitClasses[fit], !picture && "invisible")}>
         {children}
       </div>
       {!picture && (
-        <div aria-hidden="true" data-ouro-media-tile-photo="" className="absolute inset-0 grid place-items-center">
-          <span className="relative inline-flex">
+        <div data-slot="media-tile-photo" aria-hidden="true" data-ouro-media-tile-photo="" className="absolute inset-0 grid place-items-center">
+          <span data-slot="media-tile-avatar-frame" className="relative inline-flex">
             <Avatar {...avatar} name={name} alt="" size={shownSize} />
             {pausedWords !== undefined && (
               <span
+                data-slot="media-tile-paused"
                 data-ouro-media-tile-paused=""
                 title={upperFirst(pausedWords)}
                 className={cn(
@@ -503,14 +505,15 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
         </div>
       )}
       {status && (
-        <div aria-hidden="true" data-ouro-media-tile-status="" className="absolute start-2 top-2 z-20 flex gap-1">
+        <div data-slot="media-tile-status" aria-hidden="true" data-ouro-media-tile-status="" className="absolute start-2 top-2 z-20 flex gap-1">
           {handRaised && (
-            <span data-ouro-media-tile-hand="" title={upperFirst(labels.handRaised)} className={cn(plateClass, "flex size-7 items-center justify-center rounded-ouro-md")}>
+            <span data-slot="media-tile-hand" data-ouro-media-tile-hand="" title={upperFirst(labels.handRaised)} className={cn(plateClass, "flex size-7 items-center justify-center rounded-ouro-md")}>
               <HandGlyph />
             </span>
           )}
           {connection === "poor" && (
             <span
+              data-slot="media-tile-connection"
               data-ouro-media-tile-connection=""
               title={upperFirst(labels.poorConnection)}
               className={cn(plateClass, "flex size-7 items-center justify-center rounded-ouro-md text-[color-mix(in_oklab,var(--warning)_70%,var(--foreground))]")}
@@ -521,6 +524,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
         </div>
       )}
       <div
+        data-slot="media-tile-plate"
         aria-hidden="true"
         data-ouro-media-tile-plate=""
         className={cn(
@@ -529,15 +533,15 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
         )}
       >
         {muted && (
-          <span data-ouro-media-tile-muted="" title={upperFirst(labels.muted)} className="text-[color-mix(in_oklab,var(--destructive)_75%,var(--foreground))]">
+          <span data-slot="media-tile-muted" data-ouro-media-tile-muted="" title={upperFirst(labels.muted)} className="text-[color-mix(in_oklab,var(--destructive)_75%,var(--foreground))]">
             <MicOffGlyph />
           </span>
         )}
-        <span ref={nameRef} data-ouro-media-tile-name="" title={truncated ? name : undefined} className="min-w-0 truncate">
+        <span data-slot="media-tile-name" ref={nameRef} data-ouro-media-tile-name="" title={truncated ? name : undefined} className="min-w-0 truncate">
           {name}
         </span>
         {presenting && (
-          <span data-ouro-media-tile-presenting="" className="shrink-0 text-[color-mix(in_oklab,var(--muted-foreground)_70%,var(--foreground))]">
+          <span data-slot="media-tile-presenting" data-ouro-media-tile-presenting="" className="shrink-0 text-[color-mix(in_oklab,var(--muted-foreground)_70%,var(--foreground))]">
             · {upperFirst(labels.presenting)}
           </span>
         )}
@@ -548,9 +552,10 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
         )}
       </div>
       {controls && (
-        <div data-ouro-media-tile-controls="" data-pinned={pinned ? "" : undefined} className={cn(plateClass, controlsClass)}>
+        <div data-slot="media-tile-controls" data-ouro-media-tile-controls="" data-pinned={pinned ? "" : undefined} className={cn(plateClass, controlsClass)}>
           {onPinnedChange !== undefined && (
             <Toggle
+              data-slot="media-tile-pin"
               data-ouro-control="media-tile"
               data-ouro-part="pin"
               data-ax-action="pin"
@@ -566,7 +571,7 @@ export function MediaTile(props: MediaTileProps): JSX.Element {
           {actions}
         </div>
       )}
-      {ring && <span aria-hidden="true" data-ouro-part="ring" data-highlighted={speakingShown ? "" : undefined} className={ringClass} />}
+      {ring && <span data-slot="media-tile-ring" aria-hidden="true" data-ouro-part="ring" data-highlighted={speakingShown ? "" : undefined} className={ringClass} />}
     </div>
   );
 }

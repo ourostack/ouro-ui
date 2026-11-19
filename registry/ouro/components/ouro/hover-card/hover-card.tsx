@@ -223,7 +223,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
           if (!triggerRef.current!.contains(details.event.target as Node)) after(0, next);
         }}
       >
-        <PreviewCard.Portal {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
+        <PreviewCard.Portal data-slot="hover-card-portal" {...portal} data-ouro="hover-card-portal" className={floatingPortalClass}>
           <PortalScope>
             <PreviewCard.Positioner
               positionMethod={floatingPositionMethod}              anchor={triggerRef}
@@ -234,6 +234,7 @@ export function HoverCard(props: HoverCardProps): JSX.Element {
               data-ouro="hover-card-positioner"
             >
               <PreviewCard.Popup
+                data-slot="hover-card"
                 data-ouro="hover-card"
                 // The pointer may cross from the link onto the card and stay: the card is part of what it hovers.
                 onPointerEnter={() => clearTimeout(timer.current)}

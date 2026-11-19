@@ -120,7 +120,7 @@ export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <div data-ouro="composed-surface" className={cn("min-w-0", className)}>
+    <div data-slot="composed-surface" data-ouro="composed-surface" className={cn("min-w-0", className)}>
       <ComposedTree tree={tree} data={data} onPress={onPress} onHandoff={onHandoff} />
     </div>
   );
@@ -241,11 +241,11 @@ function renderNode(node: ComposedNode, ctx: Context, key: string): ReactNode {
     case "List": {
       const items = (p.items as string[]).map((item, i) => <li key={i}>{item}</li>);
       return p.ordered === true ? (
-        <ol key={key} className={cn(LIST_CLASS, "list-decimal")}>
+        <ol data-slot="composed-surface-list" key={key} className={cn(LIST_CLASS, "list-decimal")}>
           {items}
         </ol>
       ) : (
-        <ul key={key} className={cn(LIST_CLASS, "list-disc")}>
+        <ul data-slot="composed-surface-list" key={key} className={cn(LIST_CLASS, "list-disc")}>
           {items}
         </ul>
       );
@@ -338,12 +338,12 @@ function ActionButton({ node, ctx }: { node: ComposedNode; ctx: Context }): JSX.
             <>
               {p.confirm!.description}
               {p.confirm!.fields.map((f) => (
-                <span key={f.label} className={FIELD_CLASS}>
-                  <span className={FIELD_LABEL_CLASS}>{f.label}:</span> {f.value}
+                <span data-slot="composed-surface-field" key={f.label} className={FIELD_CLASS}>
+                  <span data-slot="composed-surface-field-label" className={FIELD_LABEL_CLASS}>{f.label}:</span> {f.value}
                   {f.raw !== undefined && (
                     <>
                       {" "}
-                      <span className={RAW_CLASS}>{f.raw}</span>
+                      <span data-slot="composed-surface-field-raw" className={RAW_CLASS}>{f.raw}</span>
                     </>
                   )}
                 </span>

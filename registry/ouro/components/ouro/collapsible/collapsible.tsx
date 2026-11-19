@@ -100,8 +100,9 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
     onOpenChange?.(next);
   };
   return (
-    <div ref={ref} data-ouro="collapsible" className={cn(rootClass, className)}>
+    <div data-slot="collapsible" ref={ref} data-ouro="collapsible" className={cn(rootClass, className)}>
       <button
+        data-slot="collapsible-trigger"
         type="button"
         disabled={disabled}
         aria-expanded={expanded}
@@ -117,6 +118,7 @@ export function Collapsible(props: CollapsibleProps): JSX.Element {
       >
         {title}
         <svg
+          data-slot="collapsible-icon"
           aria-hidden="true"
           viewBox="0 0 16 16"
           fill="none"

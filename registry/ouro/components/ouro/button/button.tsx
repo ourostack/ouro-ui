@@ -346,10 +346,12 @@ function sizeWarning(size: string): readonly [string, string] {
 function Spinner(): JSX.Element {
   return (
     <span
+      data-slot="button-spinner"
       aria-hidden="true"
       className="absolute inset-0 flex items-center justify-center transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0"
     >
       <svg
+        data-slot="button-spinner-icon"
         data-ouro-spinner=""
         viewBox="0 0 24 24"
         fill="none"
@@ -525,15 +527,16 @@ export function Button(props: ButtonProps): JSX.Element {
       <TouchTarget />
       <span data-ouro-surface="" aria-hidden="true" />
       <span
+        data-slot="button-label"
         data-ouro-label=""
         // The label takes the room a wider button has, aligned as the button aligns it (centred, or the app's
         // justify-start), so an end icon after it sits at the end.
         className={cn("inline-flex grow items-center gap-[inherit] [justify-content:inherit]", fade)}
       >
-        {StartIcon && <StartIcon aria-hidden="true" className={cn(iconClass, "-ms-0.5")} />}
+        {StartIcon && <StartIcon data-slot="button-start-icon" aria-hidden="true" className={cn(iconClass, "-ms-0.5")} />}
         {children}
       </span>
-      {EndIcon && <EndIcon aria-hidden="true" className={cn(iconClass, fade, "-me-0.5")} />}
+      {EndIcon && <EndIcon data-slot="button-end-icon" aria-hidden="true" className={cn(iconClass, fade, "-me-0.5")} />}
       {loading && <Spinner />}
     </>
   );
@@ -543,6 +546,7 @@ export function Button(props: ButtonProps): JSX.Element {
     const { onClick, type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<ButtonLinkProps, keyof ButtonBaseProps>;
     return (
       <RouterLink
+        data-slot="button"
         data-ouro-control="button"
         data-ouro-part="root"
         {...anchorProps}
@@ -585,6 +589,7 @@ export function Button(props: ButtonProps): JSX.Element {
   const type = buttonTypes.includes(typeProp as (typeof buttonTypes)[number]) ? (typeProp as (typeof buttonTypes)[number]) : "button";
   return (
     <BaseButton
+      data-slot="button"
       data-ouro-control="button"
       data-ouro-part="root"
       {...buttonProps}

@@ -376,15 +376,16 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
   );
   return (
     <figure
+      data-slot="chart"
       {...rest}
       data-ouro="chart"
       aria-describedby={[summaryId, rest["aria-describedby"]].filter(Boolean).join(" ")}
       style={{ ...colors, ...style }}
       className={cn("[@layer_ouro-reset]:m-0 box-border flex w-full min-w-0 flex-col gap-3 text-foreground", className)}
     >
-      <figcaption className={hideTitle ? "sr-only" : "text-base font-semibold pointer-fine:text-sm"}>{title}</figcaption>
-      {description !== undefined && <p className="-mt-2 mb-0 text-sm text-muted-foreground">{description}</p>}
-      <div data-ouro-chart-plot="" className={plotClass}>
+      <figcaption data-slot="chart-title" className={hideTitle ? "sr-only" : "text-base font-semibold pointer-fine:text-sm"}>{title}</figcaption>
+      {description !== undefined && <p data-slot="chart-description" className="-mt-2 mb-0 text-sm text-muted-foreground">{description}</p>}
+      <div data-slot="chart-plot" data-ouro-chart-plot="" className={plotClass}>
         <ChartContext value={state}>
           {parts && (
             // A first size of its own draws the chart, and its legend, in the commit that takes the placeholder legend away.
@@ -396,27 +397,27 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
       </div>
       {/* Empty until a ChartLegend portals its list here, so it takes no gap. Until the plot draws, the legend of the
           series in config holds its place, so nothing under the chart moves when the plot's own arrives. */}
-      <div ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden">
+      <div data-slot="chart-legend-area" ref={setLegendTarget} data-ouro-chart-legend-slot="" className="empty:hidden">
         {!parts && (child ? hasLegend(child) : series.length > 1) && (
           <ChartContext value={state}>
             <LegendContent payload={child ? drawnKeys(child) : series.map((item) => ({ dataKey: item.key }))} />
           </ChartContext>
         )}
       </div>
-      <p id={summaryId} data-ouro-chart-summary="" className="sr-only">
+      <p data-slot="chart-summary" id={summaryId} data-ouro-chart-summary="" className="sr-only">
         {summary({ title, type: child ? undefined : type, series: series.map((item) => item.label), category, count: rows.length })}
       </p>
       {/* A table can't shrink below its content, so the wrapper is what hides it. */}
-      <div ref={tableRef} data-ouro-chart-table="" className={showTable ? cn("max-w-full overflow-x-auto", scrollFadeClass) : "sr-only"}>
-        <table className="w-full border-collapse text-sm tabular-nums">
-          <caption className="sr-only">{title}</caption>
+      <div data-slot="chart-table-container" ref={tableRef} data-ouro-chart-table="" className={showTable ? cn("max-w-full overflow-x-auto", scrollFadeClass) : "sr-only"}>
+        <table data-slot="chart-table" className="w-full border-collapse text-sm tabular-nums">
+          <caption data-slot="chart-table-caption" className="sr-only">{title}</caption>
           <thead>
-            <tr className="border-b border-solid border-border">
-              <th scope="col" className="px-2 py-1.5 text-start font-medium">
+            <tr data-slot="chart-table-head-row" className="border-b border-solid border-border">
+              <th data-slot="chart-table-head" scope="col" className="px-2 py-1.5 text-start font-medium">
                 {category}
               </th>
               {series.map((item) => (
-                <th key={item.key} scope="col" className="px-2 py-1.5 text-end font-medium">
+                <th data-slot="chart-table-head" key={item.key} scope="col" className="px-2 py-1.5 text-end font-medium">
                   {item.label}
                 </th>
               ))}
@@ -424,12 +425,12 @@ export function Chart<Row extends object = Record<string, unknown>>(props: Chart
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={index} className="border-b border-solid border-border last:border-0">
-                <th scope="row" className="px-2 py-1.5 text-start font-normal">
+              <tr data-slot="chart-table-row" key={index} className="border-b border-solid border-border last:border-0">
+                <th data-slot="chart-table-row-head" scope="row" className="px-2 py-1.5 text-start font-normal">
                   {String(row[categoryKey] ?? "")}
                 </th>
                 {series.map((item) => (
-                  <td key={item.key} className="px-2 py-1.5 text-end">
+                  <td data-slot="chart-table-cell" key={item.key} className="px-2 py-1.5 text-end">
                     {typeof row[item.key] === "number" ? formatValue(row[item.key] as number, item.key) : String(row[item.key] ?? "")}
                   </td>
                 ))}
@@ -545,7 +546,7 @@ function MarkerPath({ shape, size }: { shape: ChartMarkerShape; size: number }):
 /** A legend or tooltip marker: the series' shape in its color. */
 function Marker({ item }: { item: Series }): JSX.Element {
   return (
-    <svg aria-hidden="true" data-ouro-chart-marker={item.shape} viewBox="-6 -6 12 12" className="size-3 shrink-0" style={{ color: item.color }}>
+    <svg data-slot="chart-marker" aria-hidden="true" data-ouro-chart-marker={item.shape} viewBox="-6 -6 12 12" className="size-3 shrink-0" style={{ color: item.color }}>
       <MarkerPath shape={item.shape} size={10} />
     </svg>
   );
@@ -578,17 +579,18 @@ function TooltipContent({ active, payload, label }: { active: boolean; payload: 
     // A polite live region (recharts' own card is assertive), so a screen reader in the plot
     // hears each point the arrow keys reach.
     <div
+      data-slot="chart-tooltip"
       data-ouro-chart-tooltip=""
       role="status"
       aria-live="polite"
       className="grid min-w-32 gap-1.5 rounded-ouro-lg border border-solid border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-(--shadow-lg)"
     >
-      <div className="font-medium">{heading}</div>
+      <div data-slot="chart-tooltip-label" className="font-medium">{heading}</div>
       {entries.map(({ item, value }) => (
-        <div key={item.key} className="flex items-center gap-2">
+        <div data-slot="chart-tooltip-item" key={item.key} className="flex items-center gap-2">
           <Marker item={item} />
-          <span className="text-muted-foreground">{item.label}</span>
-          <span className="ms-auto ps-3 font-medium tabular-nums">{formatValue(Number(value), item.key)}</span>
+          <span data-slot="chart-tooltip-item-label" className="text-muted-foreground">{item.label}</span>
+          <span data-slot="chart-tooltip-item-value" className="ms-auto ps-3 font-medium tabular-nums">{formatValue(Number(value), item.key)}</span>
         </div>
       ))}
     </div>
@@ -618,9 +620,9 @@ function LegendContent({ payload }: { payload: readonly { dataKey?: unknown }[] 
   const { byKey } = useChartPart("ChartLegend");
   const shown = payload.flatMap((entry) => byKey.get(String(entry.dataKey)) ?? []);
   return (
-    <ul data-ouro-chart-legend="" className="m-0 flex list-none flex-wrap items-center justify-center gap-x-4 gap-y-1 p-0 text-xs text-foreground">
+    <ul data-slot="chart-legend" data-ouro-chart-legend="" className="m-0 flex list-none flex-wrap items-center justify-center gap-x-4 gap-y-1 p-0 text-xs text-foreground">
       {shown.map((item) => (
-        <li key={item.key} className="flex items-center gap-1.5">
+        <li data-slot="chart-legend-item" key={item.key} className="flex items-center gap-1.5">
           <Marker item={item} />
           {item.label}
         </li>

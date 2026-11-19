@@ -388,6 +388,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="text-area"
         label={label}
         hideLabel={hideLabel}
         description={description}
@@ -406,6 +407,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
             const { style, ...textareaProps } = controlProps as TextareaHTMLAttributes<HTMLTextAreaElement>;
             const textarea = (
               <textarea
+                data-slot="text-area-input"
                 {...textareaProps}
                 style={autoGrow ? { ...autoGrowBounds(rows, maxRows), ...style } : style}
                 rows={rows}
@@ -419,7 +421,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
             if (!highlighting) return textarea;
             // The marks are drawn over the textarea in a layer the same size, so they need a box around both.
             return (
-              <div data-ouro-highlights="" className="relative min-w-0">
+              <div data-slot="text-area-highlights" data-ouro-highlights="" className="relative min-w-0">
                 {textarea}
                 <HighlightLayer textareaRef={textareaRef} text={marked.text} highlights={marked.ranges} styleKey={`${size} ${variant}`} />
                 {marksDescription && (
@@ -565,14 +567,14 @@ function HighlightLayer({ textareaRef, text, highlights, styleKey }: { textareaR
   // Stryker disable next-line ArrayDeclaration: the textarea is the same for the field's life, so once is enough with any fixed list.
   [textareaRef]);
   return (
-    <div ref={layerRef} aria-hidden="true" data-ouro-highlights-layer="" className={cn(highlightLayerClass, "invisible")}>
+    <div data-slot="text-area-highlight-layer" ref={layerRef} aria-hidden="true" data-ouro-highlights-layer="" className={cn(highlightLayerClass, "invisible")}>
       <div>
         {marking &&
           highlightRuns(text, highlights).map((run, index) => {
             if (run.mark === undefined) return run.text;
             const tone = highlightTone(highlights[run.mark]!);
             return (
-              <span key={index} data-ouro-highlight={tone} className={cn("rounded-xs box-decoration-clone forced-colors:decoration-[CanvasText]", highlightTones[tone])}>
+              <span data-slot="text-area-highlight" key={index} data-ouro-highlight={tone} className={cn("rounded-xs box-decoration-clone forced-colors:decoration-[CanvasText]", highlightTones[tone])}>
                 {run.text}
               </span>
             );

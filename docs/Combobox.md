@@ -136,6 +136,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `combobox`, `combobox-actions`, `combobox-chevron`, `combobox-chip`, `combobox-chip-media`, `combobox-chip-remove`, `combobox-chip-remove-label`, `combobox-chips`, `combobox-clear`, `combobox-clear-label`, `combobox-empty`, `combobox-field`, `combobox-icon`, `combobox-input`, `combobox-input-group`, `combobox-item`, `combobox-item-content`, `combobox-item-description`, `combobox-item-indicator`, `combobox-item-label`, `combobox-item-media`, `combobox-item-meta`, `combobox-item-text`, `combobox-list`, `combobox-popup`, `combobox-portal`, `combobox-positioner`, `combobox-search`, `combobox-spinner`, `combobox-status`, `combobox-trigger`.
+
 ## Types
 
 ### `ComboboxItem`

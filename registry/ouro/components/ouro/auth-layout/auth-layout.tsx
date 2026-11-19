@@ -98,6 +98,7 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
   const Root = (as === "div" ? "div" : "main") as "main";
   return (
     <Root
+      data-slot="auth-layout"
       {...rest}
       data-ouro="auth-layout"
       className={cn(
@@ -106,10 +107,10 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
         className,
       )}
     >
-      <Card className="w-full max-w-sm">
-        <div className="grid gap-6">
-          <div className="grid gap-2">
-            {brand !== undefined && <div className="mb-2 flex items-center">{brand}</div>}
+      <Card data-slot="auth-layout-card" className="w-full max-w-sm">
+        <div data-slot="auth-layout-content" className="grid gap-6">
+          <div data-slot="auth-layout-header" className="grid gap-2">
+            {brand !== undefined && <div data-slot="auth-layout-brand" className="mb-2 flex items-center">{brand}</div>}
             <Heading level={1} size="lg">
               {title}
             </Heading>
@@ -118,7 +119,7 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
           {children}
         </div>
       </Card>
-      {footer !== undefined && <div data-ouro-text="" className="w-full max-w-sm text-center text-base pointer-fine:text-sm text-muted-foreground">{footer}</div>}
+      {footer !== undefined && <div data-slot="auth-layout-footer" data-ouro-text="" className="w-full max-w-sm text-center text-base pointer-fine:text-sm text-muted-foreground">{footer}</div>}
     </Root>
   );
 }

@@ -754,14 +754,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const shownTime = !start ? null : lines > 1 || start.getTime() === end!.getTime() ? rangeText(formats.time, start, end!) : `${formats.time.format(start)} – ${formats.time.format(end!)}`;
     const content =
       !placed || lines === 1 ? (
-        <span className="truncate">
-          <span dir="auto" className="font-medium">
+        <span data-slot="time-grid-event-line" className="truncate">
+          <span data-slot="time-grid-event-title" dir="auto" className="font-medium">
             {event.title}
           </span>
           {start ? (
             <>
               {" "}
-              <span className={mutedClass}>{formats.time.format(start)}</span>
+              <span data-slot="time-grid-event-time" className={mutedClass}>{formats.time.format(start)}</span>
             </>
           ) : null}
         </span>
@@ -769,14 +769,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         // A space between the lines, which a column doesn't draw, keeps them separate words in the
         // event's visible text, as its name says them (WCAG 2.5.3, Label in Name).
         <>
-          <span dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
+          <span data-slot="time-grid-event-title" dir="auto" className="line-clamp-(--ouro-lines) font-medium @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
             {event.title}
           </span>{" "}
-          <span className={mutedLineClass}>{rangeText(formats.time, start!, end!)}</span>
+          <span data-slot="time-grid-event-time" className={mutedLineClass}>{rangeText(formats.time, start!, end!)}</span>
           {lines >= 3 && event.description ? (
             <>
               {" "}
-              <span dir="auto" className={mutedLineClass}>
+              <span data-slot="time-grid-event-description" dir="auto" className={mutedLineClass}>
                 {event.description}
               </span>
             </>
@@ -810,19 +810,19 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       <>
         <TouchTarget />
         {bar ? (
-          <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, toneSwatchClass[tone], barStatusClass[status])} />
+          <span data-slot="time-grid-event-bar" aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
-          <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
+          <span data-slot="time-grid-event-body" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{content}</span>
         )}
       </>
     );
     const control =
       event.href === undefined ? (
-        <button type="button" data-ouro-control="time-grid" data-ouro-part="event" {...shared}>
+        <button data-slot="time-grid-event" type="button" data-ouro-control="time-grid" data-ouro-part="event" {...shared}>
           {body}
         </button>
       ) : (
-        <RouterLink href={event.href} data-ouro-control="time-grid" data-ouro-part="event-link" {...shared}>
+        <RouterLink data-slot="time-grid-event-link" href={event.href} data-ouro-control="time-grid" data-ouro-part="event-link" {...shared}>
           {body}
         </RouterLink>
       );
@@ -831,8 +831,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       <Tooltip
         content={
           <>
-            <span className="block tabular-nums">{rangeText(formats.time, start!, end!)}</span>
-            <span dir="auto" className="block font-medium">
+            <span data-slot="time-grid-event-tooltip-time" className="block tabular-nums">{rangeText(formats.time, start!, end!)}</span>
+            <span data-slot="time-grid-event-tooltip-title" dir="auto" className="block font-medium">
               {event.title}
             </span>
           </>
@@ -851,6 +851,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       const share = 100 / placed.columns;
       return (
         <li
+          data-slot="time-grid-event-item"
           key={placed.key}
           className="pointer-events-auto absolute pe-px"
           style={{
@@ -876,11 +877,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const ends = members.map((piece) => toInstant(piece.event.end!)!.getTime());
     const element = () => rootRef.current!.querySelector<HTMLElement>(`[data-ouro-event-key="${CSS.escape(key)}"]`)!;
     return (
-      <li key={key} className="pointer-events-auto absolute inset-x-0 pe-px" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)` }}>
+      <li data-slot="time-grid-stack-item" key={key} className="pointer-events-auto absolute inset-x-0 pe-px" style={{ top: minutesTall(top), height: `calc(${minutesTall(bottom - top)} - 1px)` }}>
         <Menu
           side="right"
           trigger={
             <button
+              data-slot="time-grid-stack"
               type="button"
               data-ouro-control="time-grid"
               data-ouro-part="stack"
@@ -894,9 +896,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
               className={cn(eventClass, eventHitClass, toneBarClass.secondary, backgroundFillClass, statusClass.busy, timedClass, "z-[9]")}
             >
               <TouchTarget />
-              <span className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <span className="truncate font-medium">{stackLabel(stack.length)}</span>{" "}
-                <span className={mutedLineClass}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
+              <span data-slot="time-grid-stack-body" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <span data-slot="time-grid-stack-label" className="truncate font-medium">{stackLabel(stack.length)}</span>{" "}
+                <span data-slot="time-grid-stack-time" className={mutedLineClass}>{rangeText(formats.time, new Date(Math.min(...starts)), new Date(Math.max(...ends)))}</span>
               </span>
             </button>
           }
@@ -904,7 +906,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           {members.map((piece) => (
             <MenuItem key={piece.key} href={piece.event.href} onClick={() => onEventSelect?.(piece.event, { element: element(), background: true })}>
               <span dir="auto">{piece.event.title}</span>
-              <span className={mutedClass}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
+              <span data-slot="time-grid-stack-menu-time" className={mutedClass}> {rangeText(formats.time, toInstant(piece.event.start)!, toInstant(piece.event.end!)!)}</span>
             </MenuItem>
           ))}
         </Menu>
@@ -914,6 +916,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
 
   return (
     <div
+      data-slot="time-grid"
       {...rest}
       ref={setRoot}
       data-ouro="time-grid"
@@ -932,24 +935,25 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       }
       onKeyDown={onKeyDown}
     >
-      <ScrollArea label={label} className="min-h-0 flex-1">
-        <div data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-border bg-background" style={{ gridTemplateColumns: columns }}>
+      <ScrollArea data-slot="time-grid-scroll-area" label={label} className="min-h-0 flex-1">
+        <div data-slot="time-grid-header" data-ouro-time-grid-head="" className="sticky top-0 z-40 grid border-0 border-b border-solid border-border bg-background" style={{ gridTemplateColumns: columns }}>
           <div aria-hidden="true" />
           {days.map((day, index) => (
             <div
+              data-slot="time-grid-day-heading"
               key={day}
               aria-hidden="true"
               data-today={index === todayIndex ? "" : undefined}
               className="group/day @container/day min-w-0 border-0 border-s border-solid border-border"
             >
-              <span className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
-              <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
+              <span data-slot="time-grid-day-label" className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2 py-1.5 @max-[4.5rem]/day:flex-col @max-[4.5rem]/day:gap-0.5 @max-[4.5rem]/day:px-0.5">
+              <span data-slot="time-grid-day-number" className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-base leading-none font-semibold tabular-nums group-data-today/day:bg-primary group-data-today/day:text-primary-foreground forced-colors:group-data-today/day:border-2 forced-colors:group-data-today/day:border-solid">
                 {
                   // Stryker disable next-line ConditionalExpression: in the locales tested the day comes first; the search is for one where it does not
                   formats.dayNumber.formatToParts(utcDate(day)).find((part) => part.type === "day")!.value
                 }
               </span>
-              <span className="truncate text-xs text-muted-foreground group-data-today/day:font-medium group-data-today/day:text-foreground">{formats.weekdayShort.format(utcDate(day))}</span>
+              <span data-slot="time-grid-weekday" className="truncate text-xs text-muted-foreground group-data-today/day:font-medium group-data-today/day:text-foreground">{formats.weekdayShort.format(utcDate(day))}</span>
               </span>
             </div>
           ))}
@@ -957,24 +961,25 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             <>
               <div aria-hidden="true" />
               {days.map((day) => (
-                <div key={day} role="group" aria-label={formats.fullDay.format(utcDate(day))} data-ouro-time-grid-summary="" className="min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground">
+                <div data-slot="time-grid-day-summary" key={day} role="group" aria-label={formats.fullDay.format(utcDate(day))} data-ouro-time-grid-summary="" className="min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs text-muted-foreground">
                   {renderDaySummary(day)}
                 </div>
               ))}
             </>
           ) : null}
-          <div aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-muted-foreground">
+          <div data-slot="time-grid-all-day-label" aria-hidden="true" className="flex items-start justify-end py-1 pe-2 text-[11px] leading-5 text-muted-foreground">
             {allDayLabel}
           </div>
           {allDay.length > 0 ? (
             <ul
+              data-slot="time-grid-all-day-list"
               role="list"
               aria-label={allDayLabel}
               className="m-0 grid list-none auto-rows-[1.375rem] gap-y-0.5 p-0 py-1"
               style={{ gridColumn: "2 / -1", gridTemplateColumns: `repeat(${Math.max(days.length, 1)}, minmax(0, 1fr))`, minHeight: `${lanes * 1.5 + 0.5}rem` }}
             >
               {allDay.map((span) => (
-                <li key={span.key} className="min-w-0 px-0.5" style={{ gridColumn: `${span.first + 1} / ${span.last + 2}`, gridRow: span.lane + 1 }}>
+                <li data-slot="time-grid-all-day-item" key={span.key} className="min-w-0 px-0.5" style={{ gridColumn: `${span.first + 1} / ${span.last + 2}`, gridRow: span.lane + 1 }}>
                   {renderEvent(pieces.find((piece) => piece.key === span.key)!)}
                 </li>
               ))}
@@ -983,17 +988,17 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             <div aria-hidden="true" style={{ minHeight: "2rem" }} />
           )}
         </div>
-        <div data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
-          <div aria-hidden="true" className="relative">
+        <div data-slot="time-grid-body" data-ouro-time-grid-body="" className="relative grid" style={{ gridTemplateColumns: columns, height: minutesTall(dayLength) }}>
+          <div data-slot="time-grid-gutter" aria-hidden="true" className="relative">
             {hourLabels.map((hour) => (
-              <span key={hour} className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
+              <span data-slot="time-grid-hour-label" key={hour} className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
                 {formats.hour.format(Date.UTC(2026, 0, 1, hour))}
               </span>
             ))}
             {nowAt && todayIndex >= 0 ? (
-              <span data-ouro-time-grid-now-label="" className="absolute end-1 flex -translate-y-1/2 flex-col items-end gap-0.5" style={{ top: nowTop }}>
-                {nowAdornment ? <span className="absolute end-0 bottom-full mb-0.5">{nowAdornment}</span> : null}
-                <span className="rounded-ouro-sm bg-background px-0.5 text-[11px] leading-4 font-semibold whitespace-nowrap text-destructive tabular-nums">
+              <span data-slot="time-grid-now-label" data-ouro-time-grid-now-label="" className="absolute end-1 flex -translate-y-1/2 flex-col items-end gap-0.5" style={{ top: nowTop }}>
+                {nowAdornment ? <span data-slot="time-grid-now-adornment" className="absolute end-0 bottom-full mb-0.5">{nowAdornment}</span> : null}
+                <span data-slot="time-grid-now-text" className="rounded-ouro-sm bg-background px-0.5 text-[11px] leading-4 font-semibold whitespace-nowrap text-destructive tabular-nums">
                   {nowText}
                 </span>
               </span>
@@ -1002,21 +1007,23 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           {days.map((day, index) => {
             const off = weekend.includes(utcDate(day).getUTCDay());
             return (
-              <div key={day} className="relative min-w-0 border-0 border-s border-solid border-border">
+              <div data-slot="time-grid-day-column" key={day} className="relative min-w-0 border-0 border-s border-solid border-border">
                 <div
+                  data-slot="time-grid-hour-lines"
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_bottom,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border)_50%,transparent)_1px,transparent_1px)] [background-position:0_0,0_calc(var(--ouro-time-grid-hour)/2)] [background-size:100%_var(--ouro-time-grid-hour)]"
                 />
                 {off ? (
-                  <div aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" />
+                  <div data-slot="time-grid-off-hours" aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" />
                 ) : (
                   <>
-                    <div aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-x-0 top-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" style={{ height: minutesTall(workingHours.start * 60) }} />
-                    <div aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-x-0 bottom-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" style={{ top: minutesTall(workingHours.end * 60) }} />
+                    <div data-slot="time-grid-off-hours" aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-x-0 top-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" style={{ height: minutesTall(workingHours.start * 60) }} />
+                    <div data-slot="time-grid-off-hours" aria-hidden="true" data-ouro-time-grid-off="" className="pointer-events-none absolute inset-x-0 bottom-0 bg-[color-mix(in_oklab,var(--foreground)_4%,transparent)]" style={{ top: minutesTall(workingHours.end * 60) }} />
                   </>
                 )}
                 {onSlotSelect ? (
                   <div
+                    data-slot="time-grid-slots"
                     aria-hidden="true"
                     data-ouro-time-grid-slots=""
                     className="absolute inset-0 cursor-cell"
@@ -1029,6 +1036,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                   >
                     {hover?.day === index && !coveredAt(index, hover.minutes) ? (
                       <span
+                        data-slot="time-grid-slot"
                         data-ouro-time-grid-slot=""
                         className={cn(
                           "pointer-events-none absolute box-border rounded-ouro-md border border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground",
@@ -1043,6 +1051,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                 ) : null}
                 {nowAt && todayIndex >= 0 ? (
                   <div
+                    data-slot="time-grid-now-line"
                     aria-hidden="true"
                     data-ouro-time-grid-now={index === todayIndex ? "today" : ""}
                     className={cn(
@@ -1051,11 +1060,12 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                     )}
                     style={{ top: nowTop }}
                   >
-                    {index === todayIndex ? <span className="absolute -start-1.5 -top-1.5 size-2.5 rounded-full bg-destructive forced-colors:bg-[CanvasText]" /> : null}
+                    {index === todayIndex ? <span data-slot="time-grid-now-dot" className="absolute -start-1.5 -top-1.5 size-2.5 rounded-full bg-destructive forced-colors:bg-[CanvasText]" /> : null}
                   </div>
                 ) : null}
                 {timed[index]!.length > 0 ? (
                   <ul
+                    data-slot="time-grid-event-list"
                     role="list"
                     aria-label={formats.fullDay.format(utcDate(day))}
                     aria-current={index === todayIndex ? "date" : undefined}
@@ -1066,6 +1076,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                 ) : null}
                 {behind[index]!.length > 0 ? (
                   <ul
+                    data-slot="time-grid-background-list"
                     role="list"
                     aria-label={`${formats.fullDay.format(utcDate(day))}, ${backgroundLabel}`}
                     data-ouro-time-grid-background=""

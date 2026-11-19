@@ -169,6 +169,7 @@ export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
 
   return (
     <fieldset
+      data-slot="choice-card"
       ref={ref}
       data-ouro="choice-card"
       disabled={disabled}
@@ -177,6 +178,7 @@ export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
       className={cn("[@layer_ouro-reset]:m-0 grid min-w-0 gap-3 border-0 p-0", className)}
     >
       <legend
+        data-slot="choice-card-legend"
         data-ouro-legend=""
         data-ouro-required={required ? "" : undefined}
         className={cn(
@@ -189,17 +191,18 @@ export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
         <span id={`${id}-legend`}>{legend}</span>
       </legend>
       {description != null ? (
-        <div id={`${id}-description`} className="text-sm leading-5 text-muted-foreground">
+        <div data-slot="choice-card-description" id={`${id}-description`} className="text-sm leading-5 text-muted-foreground">
           {description}
         </div>
       ) : null}
-      <div className={cn("grid gap-3", columnClasses[columns])}>
+      <div data-slot="choice-card-list" className={cn("grid gap-3", columnClasses[columns])}>
         {items.map((item, index) => {
           const checked = chosen === item.value;
           const key = `${id}-${index}`;
           const off = disabled || item.disabled;
           return (
             <label
+              data-slot="choice-card-card"
               key={`${index}:${item.value}`}
               data-ouro-part="card"
               data-checked={checked ? "" : undefined}
@@ -208,6 +211,7 @@ export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
               className={cardClass}
             >
               <input
+                data-slot="choice-card-input"
                 data-ouro-control="choice-card"
                 data-ouro-part="input"
                 type="radio"
@@ -223,24 +227,25 @@ export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
                 className="peer sr-only"
               />
               {item.media != null ? (
-                <span className="block aspect-[4/3] w-full overflow-hidden bg-muted [&>img]:block [&>img]:size-full [&>img]:object-cover">{item.media}</span>
+                <span data-slot="choice-card-media" className="block aspect-[4/3] w-full overflow-hidden bg-muted [&>img]:block [&>img]:size-full [&>img]:object-cover">{item.media}</span>
               ) : null}
-              <span className="grid gap-0.5 p-3 pe-10">
-                <span id={`${key}-label`} className="text-sm leading-5 font-medium">
+              <span data-slot="choice-card-content" className="grid gap-0.5 p-3 pe-10">
+                <span data-slot="choice-card-label" id={`${key}-label`} className="text-sm leading-5 font-medium">
                   {item.label}
                 </span>
                 {item.description != null ? (
                   // Mixed toward the foreground: the chosen card's tint is a muted surface.
-                  <span id={`${key}-description`} className="text-sm leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+                  <span data-slot="choice-card-card-description" id={`${key}-description`} className="text-sm leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
                     {item.description}
                   </span>
                 ) : null}
               </span>
               <span
+                data-slot="choice-card-indicator"
                 aria-hidden="true"
                 className="absolute end-2 bottom-2.5 flex size-6 items-center justify-center rounded-full border border-solid border-border bg-background text-transparent group-data-checked/card:border-primary group-data-checked/card:bg-primary group-data-checked/card:text-primary-foreground"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
+                <svg data-slot="choice-card-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
                   <path d="M20 6 9 17l-5-5" />
                 </svg>
               </span>
@@ -249,9 +254,9 @@ export function ChoiceCard(props: ChoiceCardProps): JSX.Element {
         })}
       </div>
       {invalid ? (
-        <div id={`${id}-error`} className="grid gap-1 text-sm leading-5 text-destructive">
+        <div data-slot="choice-card-error" id={`${id}-error`} className="grid gap-1 text-sm leading-5 text-destructive">
           {messages.map((message, index) => (
-            <p key={index} className="m-0">
+            <p data-slot="choice-card-error-message" key={index} className="m-0">
               {message}
             </p>
           ))}

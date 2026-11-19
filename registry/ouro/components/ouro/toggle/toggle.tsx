@@ -192,6 +192,7 @@ export function Toggle(props: ToggleProps): JSX.Element {
 
   return (
     <BaseToggle
+      data-slot="toggle"
       data-ouro-control="toggle"
       data-ouro-part="root"
       {...rest}
@@ -209,8 +210,8 @@ export function Toggle(props: ToggleProps): JSX.Element {
     >
       <TouchTarget />
       {shape === "rect" && <span data-ouro-surface="" aria-hidden="true" style={{ zIndex: -1 }} />}
-      {Icon && <Icon aria-hidden="true" className={cn(iconClass, "relative", !hideLabel && "-ms-0.5")} />}
-      {!iconOnly && <span className={cn("relative", hideLabel && "sr-only")}>{label}</span>}
+      {Icon && <Icon data-slot="toggle-icon" aria-hidden="true" className={cn(iconClass, "relative", !hideLabel && "-ms-0.5")} />}
+      {!iconOnly && <span data-slot="toggle-label" className={cn("relative", hideLabel && "sr-only")}>{label}</span>}
     </BaseToggle>
   );
 }

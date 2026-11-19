@@ -212,7 +212,7 @@ function atLeastOne(value: number | undefined): number {
 }
 
 function Bar({ className, shimmer }: { className: string | undefined; shimmer: boolean }): JSX.Element {
-  return <span className={cn(fill, !shimmer && still, bar, className)} />;
+  return <span data-slot="skeleton-bar" className={cn(fill, !shimmer && still, bar, className)} />;
 }
 
 /**
@@ -286,15 +286,15 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
 
   if (shape === "rect" || shape === "circle") {
     const shapeClass = shape === "circle" ? cn(shapes.circle, avatarSizes[(size ?? "md") as SkeletonAvatarSize]) : shapes.rect;
-    return <span {...rest} {...common} ref={ref} className={cn(fill, !shimmer && still, shapeClass, className)} />;
+    return <span data-slot="skeleton" {...rest} {...common} ref={ref} className={cn(fill, !shimmer && still, shapeClass, className)} />;
   }
   if (shape === "text") {
     const lines = atLeastOne(linesProp);
     return (
-      <span {...rest} {...common} ref={ref} className={cn("block w-full", size && textSizes[size as keyof typeof textSizes], className)}>
+      <span data-slot="skeleton" {...rest} {...common} ref={ref} className={cn("block w-full", size && textSizes[size as keyof typeof textSizes], className)}>
         {Array.from({ length: lines }, (_, index) => (
-          <span key={index} className={line}>
-            <Bar shimmer={shimmer} className={lines > 1 && index === lines - 1 ? "w-2/3" : "w-full"} />
+          <span data-slot="skeleton-line" key={index} className={line}>
+            <Bar data-slot="skeleton-bar" shimmer={shimmer} className={lines > 1 && index === lines - 1 ? "w-2/3" : "w-full"} />
           </span>
         ))}
       </span>
@@ -310,14 +310,14 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
         const detail = detailWidths[index % detailWidths.length];
         if (shape === "row") {
           return (
-            <span key={index} {...own} {...common} className={cn("grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4", rowSizes[frame], className)}>
-              <Bar shimmer={shimmer} className="mt-0.75 size-10 self-start rounded-ouro-md" />
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className={cn(line, "text-base")}>
-                  <Bar shimmer={shimmer} className={title} />
+            <span data-slot="skeleton" key={index} {...own} {...common} className={cn("grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4", rowSizes[frame], className)}>
+              <Bar data-slot="skeleton-bar" shimmer={shimmer} className="mt-0.75 size-10 self-start rounded-ouro-md" />
+              <span data-slot="skeleton-body" className="flex min-w-0 flex-col gap-0.5">
+                <span data-slot="skeleton-line" className={cn(line, "text-base")}>
+                  <Bar data-slot="skeleton-bar" shimmer={shimmer} className={title} />
                 </span>
-                <span className={cn(line, "text-sm")}>
-                  <Bar shimmer={shimmer} className={detail} />
+                <span data-slot="skeleton-line" className={cn(line, "text-sm")}>
+                  <Bar data-slot="skeleton-bar" shimmer={shimmer} className={detail} />
                 </span>
               </span>
             </span>
@@ -326,25 +326,26 @@ export function Skeleton(props: SkeletonProps): JSX.Element {
         const card = cardSizes[frame];
         return (
           <span
+            data-slot="skeleton"
             key={index}
             {...own}
             {...common}
             className={cn("flex min-w-0 flex-col overflow-hidden rounded-ouro-xl border border-border bg-card", card.root, className)}
           >
-            <span className={cn("flex min-w-0 flex-col gap-1", card.pad)}>
-              <span className={cn(line, card.title)}>
-                <Bar shimmer={shimmer} className={title} />
+            <span data-slot="skeleton-header" className={cn("flex min-w-0 flex-col gap-1", card.pad)}>
+              <span data-slot="skeleton-line" className={cn(line, card.title)}>
+                <Bar data-slot="skeleton-bar" shimmer={shimmer} className={title} />
               </span>
-              <span className={cn(line, "text-sm")}>
-                <Bar shimmer={shimmer} className={detail} />
+              <span data-slot="skeleton-line" className={cn(line, "text-sm")}>
+                <Bar data-slot="skeleton-bar" shimmer={shimmer} className={detail} />
               </span>
             </span>
-            <span className={cn("block min-w-0 text-sm", card.pad)}>
-              <span className={line}>
-                <Bar shimmer={shimmer} className="w-full" />
+            <span data-slot="skeleton-content" className={cn("block min-w-0 text-sm", card.pad)}>
+              <span data-slot="skeleton-line" className={line}>
+                <Bar data-slot="skeleton-bar" shimmer={shimmer} className="w-full" />
               </span>
-              <span className={line}>
-                <Bar shimmer={shimmer} className="w-2/3" />
+              <span data-slot="skeleton-line" className={line}>
+                <Bar data-slot="skeleton-bar" shimmer={shimmer} className="w-2/3" />
               </span>
             </span>
           </span>

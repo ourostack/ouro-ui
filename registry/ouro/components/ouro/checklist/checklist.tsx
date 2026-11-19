@@ -391,6 +391,7 @@ export function Checklist(props: ChecklistProps): JSX.Element {
 
   return (
     <ChecklistRootUnchecked
+      data-slot="checklist"
       label={label}
       hideLabel={hideLabel}
       description={description}
@@ -432,7 +433,7 @@ export function Checklist(props: ChecklistProps): JSX.Element {
         />
       ))}
       {entries.length === 0 && empty !== undefined && (
-        <div data-ouro-checklist-empty="" className={emptyClass}>
+        <div data-slot="checklist-empty" data-ouro-checklist-empty="" className={emptyClass}>
           {empty}
         </div>
       )}

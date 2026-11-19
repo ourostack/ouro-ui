@@ -149,6 +149,7 @@ const owner = { name: "FileField", data: "file-field" };
 function Icon({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
   return (
     <svg
+      data-slot="file-field-icon"
       aria-hidden="true"
       viewBox="0 0 24 24"
       fill="none"
@@ -178,7 +179,7 @@ function Thumbnail({ file }: { file: File }): JSX.Element {
     },
     [file],
   );
-  return <img ref={attach} alt="" className={previewClass} />;
+  return <img data-slot="file-field-preview" ref={attach} alt="" className={previewClass} />;
 }
 
 /** The English message for a file that was left out. */
@@ -363,6 +364,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
             its text counts as disabled with the input. The input's name stays the field's label
             (aria-labelledby). */}
         <label
+          data-slot="file-field-drop-zone"
           data-ouro-drop-zone=""
           data-dragging={dragging ? "" : undefined}
           data-disabled={disabled ? "" : undefined}
@@ -372,7 +374,7 @@ export function FileField(props: FileFieldProps): JSX.Element {
           onDragLeave={dragLeave}
           onDrop={drop}
         >
-          <span className={promptClass}>
+          <span data-slot="file-field-prompt" className={promptClass}>
             <Icon>
               <path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M4.5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V15" />
             </Icon>
@@ -385,32 +387,33 @@ export function FileField(props: FileFieldProps): JSX.Element {
             capture={capture}
             onChange={(event) => take([...event.currentTarget.files!])}
             {...(rejecting ? { "aria-invalid": true, "aria-describedby": statusId } : {})}
-            render={(controlProps) => <input {...controlProps} type="file" data-ouro-control="file-field" data-ouro-part="input" className="sr-only" />}
+            render={(controlProps) => <input data-slot="file-field-input" {...controlProps} type="file" data-ouro-control="file-field" data-ouro-part="input" className="sr-only" />}
           />
         </label>
         {files.length > 0 && (
-          <ul data-ouro-file-list="" className={listClass}>
+          <ul data-slot="file-field-list" data-ouro-file-list="" className={listClass}>
             {files.map((file) => {
               return (
-                <li key={fileKey(file)} className="m-0 flex min-w-0 items-center gap-3">
+                <li data-slot="file-field-item" key={fileKey(file)} className="m-0 flex min-w-0 items-center gap-3">
                   {file.type.startsWith("image/") ? (
                     <Thumbnail file={file} />
                   ) : (
-                    <span aria-hidden="true" className={previewClass}>
+                    <span data-slot="file-field-preview" aria-hidden="true" className={previewClass}>
                       <Icon>
                         <path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8L14 3.5zM14 3.5V8h4.5" />
                       </Icon>
                     </span>
                   )}
-                  <span className="grid min-w-0 flex-1">
-                    <span data-ouro-file-name="" className={nameClass}>
+                  <span data-slot="file-field-item-content" className="grid min-w-0 flex-1">
+                    <span data-slot="file-field-name" data-ouro-file-name="" className={nameClass}>
                       {file.name}
                     </span>
-                    <span data-ouro-file-size="" className={sizeClass}>
+                    <span data-slot="file-field-size" data-ouro-file-size="" className={sizeClass}>
                       {formatSize(file.size)}
                     </span>
                   </span>
                   <Button
+                    data-slot="file-field-remove"
                     variant="plain"
                     tone="secondary"
                     size="sm"
@@ -421,10 +424,10 @@ export function FileField(props: FileFieldProps): JSX.Element {
                     className="aspect-square px-0"
                     onClick={() => remove(file)}
                   >
-                    <Icon className="size-4">
+                    <Icon data-slot="file-field-icon" className="size-4">
                       <path d="M7 7l10 10M17 7L7 17" />
                     </Icon>
-                    <span className="sr-only">{`${removeLabel} ${file.name}`}</span>
+                    <span data-slot="file-field-remove-label" className="sr-only">{`${removeLabel} ${file.name}`}</span>
                   </Button>
                 </li>
               );
@@ -434,9 +437,9 @@ export function FileField(props: FileFieldProps): JSX.Element {
         {/* Why files were left out: a polite status region from the first render, so screen
             readers announce the message once when it appears; hidden while empty. It stays apart
             from Field's error, so `error` and a Form's error still show. */}
-        <div id={statusId} role="status" data-ouro-file-rejections="" className={cn(errorClass, !rejecting && "sr-only")}>
+        <div data-slot="file-field-rejections" id={statusId} role="status" data-ouro-file-rejections="" className={cn(errorClass, !rejecting && "sr-only")}>
           {rejections.length > 1 ? (
-            <ul className="m-0 list-none p-0">
+            <ul data-slot="file-field-rejections-list" className="m-0 list-none p-0">
               {rejections.map((message, index) => (
                 // Two files can share a name, and so a message.
                 <li key={`${index}:${message}`}>{message}</li>

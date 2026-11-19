@@ -117,6 +117,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `message`, `message-action`, `message-action-icon`, `message-action-tooltip-label`, `message-actions`, `message-attachments`, `message-author`, `message-avatar`, `message-avatar-placeholder`, `message-body`, `message-content`, `message-content-frame`, `message-context`, `message-failed`, `message-failed-icon`, `message-failed-label`, `message-gutter`, `message-gutter-time`, `message-header`, `message-menu`, `message-menu-icon`, `message-menu-reaction-icon`, `message-menu-reaction-label`, `message-menu-reactions`, `message-name-label`, `message-name-loading`, `message-name-loading-label`, `message-name-loading-text`, `message-name-skeleton`, `message-name-tag`, `message-pending`, `message-pending-icon`, `message-pending-label`, `message-quote`, `message-quote-author`, `message-quote-bar`, `message-quote-content`, `message-quote-excerpt`, `message-quote-label`, `message-row`, `message-separator`, `message-subject`, `message-time`, `message-typing`, `message-typing-dot`, `message-typing-label`.
+
 ## Types
 
 ### `AvatarPresence`

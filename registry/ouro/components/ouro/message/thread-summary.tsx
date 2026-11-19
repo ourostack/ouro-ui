@@ -157,6 +157,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
   const faces = replied && repliers !== undefined && repliers.length > 0;
   return (
     <div
+      data-slot="thread-summary"
       {...rest}
       data-ouro="thread-summary"
       // Stryker disable next-line StringLiteral: styles and tests read only whether the attribute is there, never its value.
@@ -172,6 +173,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         </AvatarGroup>
       )}
       <Button
+        data-slot="thread-summary-open"
         data-ouro-control="thread-summary"
         data-ouro-part="open"
         variant="plain"
@@ -189,7 +191,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         {shown}
       </Button>
       {replied && lastReply !== undefined && (
-        <time dateTime={lastReplyDateTime} className="text-xs text-muted-foreground tabular-nums">
+        <time data-slot="thread-summary-time" dateTime={lastReplyDateTime} className="text-xs text-muted-foreground tabular-nums">
           {lastReplyLabel(lastReply)}
         </time>
       )}

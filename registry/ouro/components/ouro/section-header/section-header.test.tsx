@@ -22,7 +22,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLElement>('[data-ouro="section-header"]')!;
     },
     part(name: string) {
-      return host.querySelector<HTMLElement>(`[data-slot="${name}"]`);
+      return host.querySelector<HTMLElement>(`[data-slot="section-header-${name}"]`);
     },
   };
 }
@@ -118,7 +118,7 @@ describe("SectionHeader", () => {
 
   it("renders only the title when it has nothing else", async () => {
     const { header } = await render(<SectionHeader title="Plain" />);
-    expect(header.querySelectorAll("[data-slot]")).toHaveLength(0);
+    expect([...header.querySelectorAll("[data-slot]")].map((element) => element.getAttribute("data-slot"))).toEqual(["section-header-text", "section-header-title"]);
     expect(header.textContent).toBe("Plain");
   });
 

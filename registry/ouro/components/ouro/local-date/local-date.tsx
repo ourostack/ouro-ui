@@ -106,7 +106,7 @@ export function LocalDate(props: LocalDateProps): JSX.Element {
   // between the server and the browser through: the text follows the browser's, and `datetime` keeps the server's.)
   const written = hydrated ? dateText(value, format, locale, undefined) : dateText(value, format, locale ?? "en-US", "UTC", true);
   return (
-    <time {...rest} data-ouro="local-date" dateTime={written?.dateTime} className={cn(className)} suppressHydrationWarning>
+    <time data-slot="local-date" {...rest} data-ouro="local-date" dateTime={written?.dateTime} className={cn(className)} suppressHydrationWarning>
       {written?.text}
     </time>
   );

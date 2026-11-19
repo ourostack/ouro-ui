@@ -394,6 +394,7 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
     const { measureKey } = props;
     return (
       <ShowMoreHeight
+        data-slot="show-more"
         open={open}
         onOpenChange={onOpenChange}
         maxHeight={isHeight(maxHeight) ? maxHeight : DEFAULT_HEIGHT}
@@ -414,6 +415,7 @@ export function ShowMore(props: ShowMoreProps): JSX.Element {
     const clamp = [lines, maxLines].find(isCount) ?? DEFAULT_LINES;
     return (
       <ShowMoreText
+        data-slot="show-more"
         open={open}
         onOpenChange={onOpenChange}
         lines={clamp}
@@ -543,8 +545,9 @@ function ShowMoreText({
     });
   }, [expanded, lines, fitKey]);
   return (
-    <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
+    <div data-slot="show-more" ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div
+        data-slot="show-more-text"
         ref={textRef}
         id={textId}
         data-ouro-show-more-text=""
@@ -557,6 +560,7 @@ function ShowMoreText({
       </div>
       {overflowing && (
         <Button
+          data-slot="show-more-toggle"
           variant="plain"
           size="sm"
           className="-ms-(--ouro-button-px)"
@@ -633,8 +637,9 @@ function ShowMoreHeight({
     }
   };
   return (
-    <div ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
+    <div data-slot="show-more" ref={rootRef} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       <div
+        data-slot="show-more-fold"
         id={foldId}
         data-ouro-show-more-fold=""
         data-folded={folded && fits === false ? "" : undefined}
@@ -644,12 +649,13 @@ function ShowMoreHeight({
         className={cn(foldClass, folded && "max-h-(--ouro-show-more-height) overflow-hidden")}
         style={{ "--ouro-show-more-height": `${maxHeight}px` } as CSSProperties}
       >
-        <div ref={contentRef} className="flow-root">
+        <div data-slot="show-more-content" ref={contentRef} className="flow-root">
           {children}
         </div>
       </div>
       {fits === false && (
         <Button
+          data-slot="show-more-toggle"
           ref={buttonRef}
           variant="plain"
           size="sm"
@@ -758,6 +764,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
   const emptyEnd = load !== undefined && items.length === 0 && !load.hasMore;
   const button = !hasButton ? null : load ? (
     <Button
+      data-slot="show-more-toggle"
       ref={buttonRef as Ref<HTMLAnchorElement & HTMLButtonElement>}
       variant="plain"
       size="sm"
@@ -773,6 +780,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
     </Button>
   ) : (
     <Button
+      data-slot="show-more-toggle"
       ref={buttonRef as Ref<HTMLButtonElement>}
       variant="plain"
       size="sm"
@@ -788,9 +796,10 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
     </Button>
   );
   return (
-    <div ref={ref} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
+    <div data-slot="show-more" ref={ref} data-ouro="show-more" className={cn(showMoreRootClass, className)}>
       {/* Safari drops list semantics from an unstyled list unless the role is explicit. */}
       <List
+        data-slot="show-more-list"
         ref={listRef}
         id={listId}
         role="list"
@@ -800,6 +809,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       >
         {visible.map((item, index) => (
           <li
+            data-slot="show-more-item"
             key={rowKey(item, index)}
             tabIndex={-1}
             className={cn(
@@ -814,7 +824,7 @@ function ShowMoreList(props: (ShowMoreItemsProps | ShowMoreLoadProps) & { showMo
       {button}
       {/* Stays mounted after the last page, so the last count is still read. */}
       {load && (
-        <p role="status" data-ouro-show-more-status="" className="sr-only">
+        <p data-slot="show-more-status" role="status" data-ouro-show-more-status="" className="sr-only">
           {status}
         </p>
       )}

@@ -57,4 +57,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: use the `align` prop.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `stack`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/stack/stack.test.tsx::Stack > passes HTML attributes and a ref through, and lets layout classes win verify:testExists(registry/ouro/components/ouro/stack/stack.test.tsx::Stack > passes HTML attributes and a ref through, and lets layout classes win)

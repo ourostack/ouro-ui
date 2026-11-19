@@ -112,6 +112,7 @@ export function Cover(props: CoverProps): JSX.Element {
   const initial = Array.from(title.trim())[0]?.toLocaleUpperCase() ?? "";
   return (
     <div
+      data-slot="cover"
       {...rest}
       data-ouro="cover"
       data-size={size}
@@ -128,9 +129,9 @@ export function Cover(props: CoverProps): JSX.Element {
       )}
     >
       {picture ? (
-        <img src={src} alt={alt} onError={() => setFailed(src)} className="absolute inset-0 size-full object-cover" />
+        <img data-slot="cover-image" src={src} alt={alt} onError={() => setFailed(src)} className="absolute inset-0 size-full object-cover" />
       ) : (
-        <span aria-hidden="true" className="font-[family-name:var(--font-heading,inherit)] text-[42cqh] leading-none font-semibold text-(--ouro-cover-ink,color-mix(in_oklab,var(--primary)_60%,var(--foreground)))">
+        <span data-slot="cover-initial" aria-hidden="true" className="font-[family-name:var(--font-heading,inherit)] text-[42cqh] leading-none font-semibold text-(--ouro-cover-ink,color-mix(in_oklab,var(--primary)_60%,var(--foreground)))">
           {initial}
         </span>
       )}

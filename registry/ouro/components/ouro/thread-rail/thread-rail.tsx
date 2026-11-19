@@ -61,7 +61,7 @@ function inPopup(target: Element, rail: Element): boolean {
 /** The close button's icon, a cross. */
 function CloseIcon(): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
+    <svg data-slot="thread-rail-close-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-4">
       <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
@@ -153,6 +153,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
 
   return (
     <aside
+      data-slot="thread-rail"
       ref={rail}
       data-ouro="thread-rail"
       aria-labelledby={headingId}
@@ -160,15 +161,15 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
       onKeyDown={onKeyDown}
       className={cn("flex h-full min-h-0 flex-col border-s border-border bg-background outline-none", className)}
     >
-      <div data-ouro-thread-rail-header="" className="flex min-w-0 shrink-0 items-start gap-2 border-b border-border px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <h2 id={headingId} className="m-0 truncate text-base leading-6 font-semibold font-[family-name:var(--font-heading,inherit)]">
+      <div data-slot="thread-rail-header" data-ouro-thread-rail-header="" className="flex min-w-0 shrink-0 items-start gap-2 border-b border-border px-4 py-3">
+        <div data-slot="thread-rail-heading" className="min-w-0 flex-1">
+          <h2 data-slot="thread-rail-title" id={headingId} className="m-0 truncate text-base leading-6 font-semibold font-[family-name:var(--font-heading,inherit)]">
             {title ?? label}
           </h2>
-          {detail !== undefined && <p className="m-0 truncate text-sm leading-5 text-muted-foreground">{detail}</p>}
-          {meta !== undefined && <p className="m-0 text-xs leading-4 text-muted-foreground">{meta}</p>}
+          {detail !== undefined && <p data-slot="thread-rail-detail" className="m-0 truncate text-sm leading-5 text-muted-foreground">{detail}</p>}
+          {meta !== undefined && <p data-slot="thread-rail-meta" className="m-0 text-xs leading-4 text-muted-foreground">{meta}</p>}
         </div>
-        <Tooltip content={<span className="inline-flex items-center gap-2">{closeLabel}<Kbd keys={["escape"]} /></span>}>
+        <Tooltip content={<span data-slot="thread-rail-close-hint" className="inline-flex items-center gap-2">{closeLabel}<Kbd keys={["escape"]} /></span>}>
           <Button
             data-ouro-control="thread-rail"
             data-ouro-part="close"
@@ -183,7 +184,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
           </Button>
         </Tooltip>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <div data-slot="thread-rail-content" className="flex min-h-0 flex-1 flex-col">{children}</div>
     </aside>
   );
 }

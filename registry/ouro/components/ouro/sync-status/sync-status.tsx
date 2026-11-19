@@ -108,6 +108,7 @@ function Line({
   return (
     <>
       <svg
+        data-slot="sync-status-icon"
         aria-hidden="true"
         viewBox="0 0 24 24"
         fill="none"
@@ -122,6 +123,7 @@ function Line({
       <span>{label}</span>
       {hasRetry ? (
         <button
+          data-slot="sync-status-retry"
           ref={retryRef}
           type="button"
           data-ouro-control="sync-status"
@@ -220,14 +222,15 @@ export function SyncStatus(props: SyncStatusProps): JSX.Element {
   });
 
   return (
-    <div {...rest} data-ouro="sync-status" data-status={status} className={cn("grid min-w-0 text-sm leading-5", className)}>
+    <div data-slot="sync-status" {...rest} data-ouro="sync-status" data-status={status} className={cn("grid min-w-0 text-sm leading-5", className)}>
       {states.map((reserved) => (
-        <p key={reserved} aria-hidden="true" className="invisible m-0 [grid-area:1/1]">
+        <p data-slot="sync-status-line-placeholder" key={reserved} aria-hidden="true" className="invisible m-0 [grid-area:1/1]">
           <Line state={reserved} label={word[reserved]} retry={word.retry} onRetry={undefined} />
-          {onRetry && problems.has(reserved) ? <span className="ms-2 font-medium">{word.retry}</span> : null}
+          {onRetry && problems.has(reserved) ? <span data-slot="sync-status-retry-placeholder" className="ms-2 font-medium">{word.retry}</span> : null}
         </p>
       ))}
       <p
+        data-slot="sync-status-line"
         ref={line}
         tabIndex={-1}
         className={cn("m-0 rounded-ouro-sm outline-ring outline-offset-2 [grid-area:1/1] focus-visible:outline-2 focus-visible:outline-solid", tones[status])}

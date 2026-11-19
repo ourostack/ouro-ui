@@ -231,7 +231,7 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
         const look = reaction.mine ? ({ tone: "primary", variant: "soft" } as const) : counted ? ({ tone: "secondary", variant: "outline" } as const) : ({ tone: "secondary", variant: "soft" } as const);
         // The emoji, then its name and count for screen readers, as siblings rather than fragments, so each draws no component of its own.
         const emoji = <span aria-hidden="true">{reaction.emoji}</span>;
-        const name = <span className="sr-only">{counted ? `${reaction.label}, ` : reaction.label}</span>;
+        const name = <span data-slot="reaction-bar-reaction-label" className="sr-only">{counted ? `${reaction.label}, ` : reaction.label}</span>;
         // Every pressable reaction has a tooltip, its name or who reacted, so a reaction keeps its button as one comes.
         return onReact ? (
           <Tooltip key={reaction.key} content={reaction.tooltip ?? reaction.label}>
@@ -259,8 +259,8 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
             {emoji}
             {name}
             {counted && reaction.count}
-            {reaction.mine && <span className="sr-only">, {mineLabel}</span>}
-            {reaction.tooltip && <span className="sr-only">, {reaction.tooltip}</span>}
+            {reaction.mine && <span data-slot="reaction-bar-mine-label" className="sr-only">, {mineLabel}</span>}
+            {reaction.tooltip && <span data-slot="reaction-bar-reaction-description" className="sr-only">, {reaction.tooltip}</span>}
           </Badge>
         );
       })}
@@ -277,14 +277,14 @@ export function ReactionBar(props: ReactionBarProps): JSX.Element | null {
             disabled={disabled}
             onClick={onMore}
           >
-            <span className="sr-only">{moreLabel}</span>
+            <span data-slot="reaction-bar-more-label" className="sr-only">{moreLabel}</span>
           </Badge>
         </Tooltip>
       )}
     </>
   );
   return (
-    <div {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
+    <div data-slot="reaction-bar" {...rest} role="group" aria-label={label} data-ouro="reaction-bar" className={cn("flex min-w-0 flex-wrap items-center gap-1.5", className)}>
       {buttons}
     </div>
   );

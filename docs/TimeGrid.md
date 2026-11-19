@@ -81,6 +81,10 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 For what these props cannot express, pass as children the parts in `@/registry/ouro/components/ouro/time-grid/time-grid-parts`. See [parts.md](parts.md#timegrid-parts) for the required nesting.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `time-grid`, `time-grid-all-day-item`, `time-grid-all-day-label`, `time-grid-all-day-list`, `time-grid-background-list`, `time-grid-body`, `time-grid-day-column`, `time-grid-day-heading`, `time-grid-day-label`, `time-grid-day-number`, `time-grid-day-summary`, `time-grid-event`, `time-grid-event-bar`, `time-grid-event-body`, `time-grid-event-description`, `time-grid-event-item`, `time-grid-event-line`, `time-grid-event-link`, `time-grid-event-list`, `time-grid-event-time`, `time-grid-event-title`, `time-grid-event-tooltip-time`, `time-grid-event-tooltip-title`, `time-grid-gutter`, `time-grid-header`, `time-grid-hour-label`, `time-grid-hour-lines`, `time-grid-nav`, `time-grid-nav-icon`, `time-grid-nav-tooltip`, `time-grid-now-adornment`, `time-grid-now-dot`, `time-grid-now-label`, `time-grid-now-line`, `time-grid-now-text`, `time-grid-off-hours`, `time-grid-scroll-area`, `time-grid-slot`, `time-grid-slots`, `time-grid-stack`, `time-grid-stack-body`, `time-grid-stack-item`, `time-grid-stack-label`, `time-grid-stack-menu-time`, `time-grid-stack-time`, `time-grid-weekday`.
+
 ## Types
 
 ### `TimeGridEvent`

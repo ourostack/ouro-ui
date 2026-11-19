@@ -178,7 +178,7 @@ export interface HeroOwnProps {
    * night, swapped with the page's dark mode. Both are required: a hero has night art.
    *
    * Once the picture shown has loaded, the media frame carries `data-loaded`, so a site or a test
-   * can wait on `[data-slot="media"][data-loaded]`. A small inline script in the server's HTML
+   * can wait on `[data-slot="hero-media"][data-loaded]`. A small inline script in the server's HTML
    * sets it before any JavaScript bundle runs, and Hero sets it itself after hydration or a client
    * render, so it also arrives where a content security policy blocks inline scripts.
    *
@@ -344,6 +344,7 @@ function renderPicture(
   const data = load.deferred === "data";
   return (
     <picture
+      data-slot="hero-picture"
       key={scheme}
       data-scheme={scheme}
       aria-hidden={decorative ? true : undefined}
@@ -367,7 +368,7 @@ function renderPicture(
         );
       })}
       <img
-        data-slot="image"
+        data-slot="hero-image"
         // Before the addresses: WebKit fetches an image given its address while it is still eager, as a hydrated twin is.
         loading={load.eager ? undefined : "lazy"}
         {...(data ? { "data-src": picture.src, "data-srcset": picture.srcSet } : { src: picture.src, srcSet: picture.srcSet })}
@@ -594,39 +595,40 @@ export function Hero(props: HeroProps): JSX.Element {
   );
   const eyebrowLine =
     eyebrow != null ? (
-      <p data-slot="eyebrow" className="m-0 text-sm leading-5 font-medium text-muted-foreground">
+      <p data-slot="hero-eyebrow" className="m-0 text-sm leading-5 font-medium text-muted-foreground">
         {eyebrow}
       </p>
     ) : null;
   return (
     <header
+      data-slot="hero"
       {...rest}
       data-ouro="hero"
       data-layout={layout}
       className={cn("grid min-w-0", (fullWidth ? fullWidthRoot : layoutRoot)[layout], layout === "split" && shown != null && splitColumns, className)}
     >
-      <div className={fullWidth && layout === "stage" ? fullWidthStageText : layoutText[layout]}>
+      <div data-slot="hero-text" className={fullWidth && layout === "stage" ? fullWidthStageText : layoutText[layout]}>
         {breadcrumb != null ? (
-          <div data-slot="breadcrumb" className="min-w-0">
+          <div data-slot="hero-breadcrumb" className="min-w-0">
             {breadcrumb}
           </div>
         ) : null}
         {badge != null ? (
-          <div className={cn("flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1", layoutActions[layout])}>
+          <div data-slot="hero-eyebrow-row" className={cn("flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1", layoutActions[layout])}>
             {eyebrowLine}
-            <span data-slot="badge" className="inline-flex">
+            <span data-slot="hero-badge" className="inline-flex">
               {badge}
             </span>
           </div>
         ) : (
           eyebrowLine
         )}
-        <Heading level={headingLevel} size="display" className="min-w-0 text-balance">
+        <Heading data-slot="hero-title" level={headingLevel} size="display" className="min-w-0 text-balance">
           {title}
         </Heading>
         {description != null ? (
           <Lede
-            data-slot="description"
+            data-slot="hero-description"
             className={cn(
               "m-0 text-base leading-7 text-balance text-muted-foreground min-[40rem]:text-lg min-[40rem]:leading-8",
               // In the reset layer, so a margin class the app puts on a paragraph still wins.
@@ -638,19 +640,19 @@ export function Hero(props: HeroProps): JSX.Element {
         ) : null}
         {actions != null ? (
           // A step further from the lede than the lines of text are from each other, so the buttons read as the lede's next move.
-          <div data-slot="actions" className={cn("mt-2 flex flex-wrap gap-3", layoutActions[layout])}>
+          <div data-slot="hero-actions" className={cn("mt-2 flex flex-wrap gap-3", layoutActions[layout])}>
             {actions}
           </div>
         ) : null}
         {children != null ? (
-          <div data-slot="more" className="min-w-0">
+          <div data-slot="hero-more" className="min-w-0">
             {children}
           </div>
         ) : null}
       </div>
       {shown != null ? (
         <div
-          data-slot="media"
+          data-slot="hero-media"
           data-ouro-part="media"
           ref={mediaRef}
           data-starting-style={rising ? "" : undefined}

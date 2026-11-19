@@ -172,6 +172,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: use the `align` prop.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `emoji-picker`, `emoji-picker-body`, `emoji-picker-categories`, `emoji-picker-categories-placeholder`, `emoji-picker-category`, `emoji-picker-category-icon`, `emoji-picker-category-placeholder`, `emoji-picker-cell`, `emoji-picker-emoji`, `emoji-picker-empty`, `emoji-picker-grid`, `emoji-picker-header`, `emoji-picker-preview`, `emoji-picker-preview-glyph`, `emoji-picker-preview-name`, `emoji-picker-quick-row`, `emoji-picker-row`, `emoji-picker-scroller`, `emoji-picker-search`, `emoji-picker-section-heading`, `emoji-picker-skin-tone`, `emoji-picker-skin-tone-glyph`, `emoji-picker-tone`, `emoji-picker-tones`.
+
 ## Types
 
 ### `EmojiCatalogue`

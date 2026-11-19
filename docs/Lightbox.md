@@ -107,6 +107,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `lightbox`, `lightbox-caption`, `lightbox-caption-title`, `lightbox-close-icon`, `lightbox-figure`, `lightbox-header`, `lightbox-heading`, `lightbox-image`, `lightbox-item`, `lightbox-list`, `lightbox-more`, `lightbox-more-label`, `lightbox-original-label`, `lightbox-position`, `lightbox-thumbnail`, `lightbox-thumbnail-image`, `lightbox-thumbnail-picture`, `lightbox-viewer`, `lightbox-zoom-icon`, `lightbox-zoom-image`, `lightbox-zoom-view`.
+
 ## Types
 
 ### `LightboxImage`

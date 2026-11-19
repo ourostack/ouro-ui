@@ -179,6 +179,7 @@ export function Row(props: RowProps): JSX.Element {
   return createElement(
     element,
     {
+      "data-slot": "row",
       ...rest,
       "data-ouro": "row",
       className: cn(

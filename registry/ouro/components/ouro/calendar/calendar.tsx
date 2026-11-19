@@ -147,6 +147,7 @@ function ordered(a: string, b: string): DateRange {
 function Chevron({ children }: { children: ReactNode }): JSX.Element {
   return (
     <svg
+      data-slot="calendar-chevron-icon"
       aria-hidden="true"
       viewBox="0 0 16 16"
       fill="none"
@@ -392,9 +393,10 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
   };
 
   return (
-    <div ref={ref} role="group" aria-label={label} data-ouro="calendar" className={cn("box-border inline-grid gap-2", className)}>
-      <div data-ouro-calendar-header="" className="flex items-center justify-between gap-2">
+    <div data-slot="calendar" ref={ref} role="group" aria-label={label} data-ouro="calendar" className={cn("box-border inline-grid gap-2", className)}>
+      <div data-slot="calendar-header" data-ouro-calendar-header="" className="flex items-center justify-between gap-2">
         <Button
+          data-slot="calendar-previous"
           variant="plain"
           tone="secondary"
           size="sm"
@@ -409,10 +411,11 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
             <path d="M10 3.5L5.5 8l4.5 4.5" />
           </Chevron>
         </Button>
-        <h2 id={titleId} aria-live="polite" className="m-0 text-sm leading-5 font-medium text-foreground">
+        <h2 data-slot="calendar-title" id={titleId} aria-live="polite" className="m-0 text-sm leading-5 font-medium text-foreground">
           {month === null ? null : formats.title.format(utc(month))}
         </h2>
         <Button
+          data-slot="calendar-next"
           variant="plain"
           tone="secondary"
           size="sm"
@@ -429,6 +432,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
         </Button>
       </div>
       <table
+        data-slot="calendar-grid"
         ref={gridRef}
         role="grid"
         aria-labelledby={titleId}
@@ -440,7 +444,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
         <thead>
           <tr>
             {weekdays.map((date) => (
-              <th key={date.getUTCDay()} scope="col" abbr={formats.weekdayLong.format(date)} className={weekdayHeaderClass}>
+              <th data-slot="calendar-weekday" key={date.getUTCDay()} scope="col" abbr={formats.weekdayLong.format(date)} className={weekdayHeaderClass}>
                 {formats.weekdayShort.format(date)}
               </th>
             ))}
@@ -450,13 +454,14 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
           {weeks.map((week) => (
             <tr key={week.find(Boolean)!}>
               {week.map((day, index) => {
-                if (day === null) return <td key={`blank-${index}`} className="p-0" />;
+                if (day === null) return <td data-slot="calendar-blank-cell" key={`blank-${index}`} className="p-0" />;
                 const off = unavailable(day);
                 const ends = shown !== null && (day === shown.start || day === shown.end);
                 const inside = shown !== null && day > shown.start && day < shown.end;
                 return (
-                  <td key={day} role="gridcell" aria-selected={ends || inside} className="p-0 text-center">
+                  <td data-slot="calendar-cell" key={day} role="gridcell" aria-selected={ends || inside} className="p-0 text-center">
                     <button
+                      data-slot="calendar-day"
                       type="button"
                       data-ouro-day={day}
                       data-ouro-control="calendar"

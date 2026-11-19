@@ -302,6 +302,7 @@ export function Navbar(props: NavbarProps): JSX.Element {
   const sheetLinkFor = (link: { label: string; href: string; current?: boolean | undefined }, key: number) => (
     <li key={key}>
       <RouterLink
+        data-slot="navbar-sheet-link"
         href={link.href}
         aria-current={link.current || (link.href === marked && samePath(link.href, currentPath)) ? "page" : link.href === marked ? "true" : undefined}
         data-ouro-control="navbar"
@@ -314,8 +315,9 @@ export function Navbar(props: NavbarProps): JSX.Element {
   );
 
   return (
-    <header ref={ref} data-ouro="navbar" className={cn(bar, breakpoint.wrap, className)}>
+    <header data-slot="navbar" ref={ref} data-ouro="navbar" className={cn(bar, breakpoint.wrap, className)}>
       <Button
+        data-slot="navbar-menu"
         ref={menuButton}
         data-ouro-navbar-menu=""
         data-ouro-control="navbar"
@@ -330,16 +332,16 @@ export function Navbar(props: NavbarProps): JSX.Element {
         onClick={() => setOpen(true)}
         className={cn("-ms-2 w-11 px-0", !overflow && breakpoint.show)}
       >
-        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-5">
+        <svg data-slot="navbar-menu-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-5">
           <path d="M3 5.5h14M3 10h14M3 14.5h14" />
         </svg>
       </Button>
-      {brand !== undefined && <div className="flex min-w-0 shrink-0 items-center">{brand}</div>}
+      {brand !== undefined && <div data-slot="navbar-brand" className="flex min-w-0 shrink-0 items-center">{brand}</div>}
       {/* The links' slot takes the room between the brand and the actions; hidden but measured when they do not fit. */}
-      <div ref={slot} data-ouro-navbar-links="" className={cn("min-w-0 flex-1 overflow-hidden", breakpoint.hide, overflow && "invisible")}>
+      <div data-slot="navbar-links" ref={slot} data-ouro-navbar-links="" className={cn("min-w-0 flex-1 overflow-hidden", breakpoint.hide, overflow && "invisible")}>
         <NavigationMenuView label={label} items={items} currentPath={currentPath} oneLine listRef={list} />
       </div>
-      {actions !== undefined && <div className="ms-auto flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions !== undefined && <div data-slot="navbar-actions" className="ms-auto flex shrink-0 items-center gap-2">{actions}</div>}
       <SheetFrame
         key={round}
         onOpenChangeComplete={(shown) => {
@@ -368,14 +370,14 @@ export function Navbar(props: NavbarProps): JSX.Element {
           }}
         >
           {!open && !filled ? null : menu ?? (
-            <ul className={cn(list_, "flex-col gap-1")}>
+            <ul data-slot="navbar-sheet-list" className={cn(list_, "flex-col gap-1")}>
               {items.map((item, index) =>
                 item.links !== undefined ? (
-                  <li key={index} className="grid gap-1 pt-3 first:pt-0">
-                    <p id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground">
+                  <li data-slot="navbar-sheet-group" key={index} className="grid gap-1 pt-3 first:pt-0">
+                    <p data-slot="navbar-sheet-group-label" id={`${id}${index}`} className="m-0 px-3 py-1 text-xs leading-4 font-medium text-muted-foreground">
                       {item.label}
                     </p>
-                    <ul aria-labelledby={`${id}${index}`} className={cn(list_, "flex-col gap-1")}>
+                    <ul data-slot="navbar-sheet-group-list" aria-labelledby={`${id}${index}`} className={cn(list_, "flex-col gap-1")}>
                       {item.links.map(sheetLinkFor)}
                     </ul>
                   </li>

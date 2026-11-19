@@ -28,7 +28,7 @@ async function render(node: ReactNode) {
       return host.querySelector<HTMLElement>('[data-ouro="code-block"]')!;
     },
     get caption() {
-      return host.querySelector<HTMLElement>('[data-slot="caption"]');
+      return host.querySelector<HTMLElement>('[data-slot="code-block-caption"]');
     },
     get pre() {
       return host.querySelector<HTMLPreElement>('[data-ouro-part="code"]')!;
@@ -75,7 +75,7 @@ describe("CodeBlock", () => {
     const style = getComputedStyle(block);
     expect(style.backgroundColor).toBe(probe("backgroundColor", "var(--muted)"));
     expect(style.borderTopColor).toBe(probe("borderColor", "var(--border)"));
-    const rule = block.querySelector<HTMLElement>('[data-slot="rule"]')!;
+    const rule = block.querySelector<HTMLElement>('[data-slot="code-block-rule"]')!;
     expect(getComputedStyle(rule).borderTopColor).toBe(probe("borderColor", "var(--border)"));
     // The code's own top border stays, transparent, so the code keeps its place under the rule.
     expect(getComputedStyle(pre).borderTopWidth).toBe("1px");
@@ -232,7 +232,7 @@ describe("CodeBlock", () => {
       </div>,
     );
     await expect.poll(() => pre.hasAttribute("data-ouro-scroll-fade")).toBe(true);
-    const rule = block.querySelector<HTMLElement>('[data-slot="rule"]')!;
+    const rule = block.querySelector<HTMLElement>('[data-slot="code-block-rule"]')!;
     expect(pre.contains(rule)).toBe(false);
     expect(getComputedStyle(rule).maskImage).toBe("none");
     const figure = block.getBoundingClientRect();
@@ -247,7 +247,7 @@ describe("CodeBlock", () => {
 
   it("draws no hairline without a bar", async () => {
     const { block } = await render(<CodeBlock code="ok" copy={false} />);
-    expect(block.querySelector('[data-slot="rule"]')).toBeNull();
+    expect(block.querySelector('[data-slot="code-block-rule"]')).toBeNull();
   });
 
   it("audits a page of many overflowing code blocks without screenshotting their code, within a time budget", async () => {

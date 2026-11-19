@@ -170,6 +170,7 @@ export function Kbd(props: KbdProps): JSX.Element {
   const ordered = [...keys].sort((a, b) => rank(a) - rank(b));
   return (
     <kbd
+      data-slot="kbd"
       {...rest}
       data-ouro="kbd"
       data-platform={apple ? "apple" : platform === "unknown" ? "unknown" : "other"}
@@ -185,13 +186,13 @@ export function Kbd(props: KbdProps): JSX.Element {
         return (
           <Fragment key={index}>
             {!apple && index > 0 && "+"}
-            <kbd className="m-0 [font:inherit]">
+            <kbd data-slot="kbd-key" className="m-0 [font:inherit]">
               {name ? (
                 <>
                   <span aria-hidden="true" data-glyph="">
                     {text}
                   </span>
-                  <span className="sr-only">{name}</span>
+                  <span data-slot="kbd-key-name" className="sr-only">{name}</span>
                 </>
               ) : (
                 text

@@ -263,6 +263,7 @@ export function Link(props: LinkProps): JSX.Element {
   );
   return (
     <RouterLink
+      data-slot="link"
       data-ouro-control="link"
       data-ouro-part="root"
       {...rest}
@@ -280,6 +281,7 @@ export function Link(props: LinkProps): JSX.Element {
       {external && (
         <>
           <svg
+            data-slot="link-external-icon"
             aria-hidden="true"
             data-ouro-external=""
             viewBox="0 0 16 16"
@@ -292,7 +294,7 @@ export function Link(props: LinkProps): JSX.Element {
           >
             <path d="M6 3h7v7M13 3 4 12" />
           </svg>
-          <span className="sr-only"> (opens in a new tab)</span>
+          <span data-slot="link-external-label" className="sr-only"> (opens in a new tab)</span>
         </>
       )}
     </RouterLink>

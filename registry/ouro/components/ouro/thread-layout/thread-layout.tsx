@@ -114,8 +114,9 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
   // The conversation's display is set only by the container query, and its layout by the element
   // inside it, so no element has a display utility and a display variant at once.
   return (
-    <div data-ouro="thread-layout" className={cn("@container flex h-full min-h-0 w-full", className)}>
+    <div data-slot="thread-layout" data-ouro="thread-layout" className={cn("@container flex h-full min-h-0 w-full", className)}>
       <div
+        data-slot="thread-layout-conversation"
         ref={pane}
         role="region"
         aria-label={conversationLabel}
@@ -124,10 +125,10 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
         className={cn("min-w-0 flex-1 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid", open && "@max-lg:hidden")}
         onFocus={remember}
       >
-        <div className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
+        <div data-slot="thread-layout-conversation-content" className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
       </div>
       {open && (
-        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-80">
+        <div data-slot="thread-layout-thread" ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-80">
           {thread}
         </div>
       )}

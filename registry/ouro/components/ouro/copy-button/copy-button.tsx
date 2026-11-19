@@ -213,8 +213,9 @@ export function CopyButton(props: CopyButtonProps): JSX.Element {
   const shown = status === "copied" ? copiedLabel : status === "failed" ? failedLabel : label;
   const Icon = status === "copied" ? CheckIcon : status === "failed" ? FailedIcon : CopyIcon;
   return (
-    <span data-ouro="copy-button" data-status={status} className={cn("inline-flex", className)}>
+    <span data-slot="copy-button" data-ouro="copy-button" data-status={status} className={cn("inline-flex", className)}>
       <Button
+        data-slot="copy-button-trigger"
         data-ouro-control="copy-button"
         data-ouro-part="trigger"
         {...rest}
@@ -227,7 +228,7 @@ export function CopyButton(props: CopyButtonProps): JSX.Element {
         {...(status === "failed" ? { title: failedMessage } : {})}
         {...(hideLabel ? { "aria-label": shown, className: "w-(--ouro-button-h) px-0" } : { startIcon: Icon })}
       >
-        {hideLabel ? <Icon className="size-[1.25em] shrink-0" /> : shown}
+        {hideLabel ? <Icon data-slot="copy-button-icon" className="size-[1.25em] shrink-0" /> : shown}
       </Button>
     </span>
   );

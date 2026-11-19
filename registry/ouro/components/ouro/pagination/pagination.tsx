@@ -252,7 +252,7 @@ function useListFit(navRef: RefObject<HTMLElement | null>, listRef: RefObject<HT
 
 function Chevron({ back }: { back?: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0 rtl:-scale-x-100">
+    <svg data-slot="pagination-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0 rtl:-scale-x-100">
       <path d={back ? "M10 3 5 8l5 5" : "m6 3 5 5-5 5"} />
     </svg>
   );
@@ -379,13 +379,13 @@ export function Pagination(props: PaginationProps): JSX.Element {
     if (href !== undefined) {
       if (!enabled) {
         return (
-          <span {...attributes} aria-disabled="true" className={cn(cell, off, classes)}>
+          <span data-slot="pagination-link" {...attributes} aria-disabled="true" className={cn(cell, off, classes)}>
             {children}
           </span>
         );
       }
       return (
-        <RouterLink {...attributes} href={typeof href === "string" ? fill(href, target, pageCount) : href(target)} className={cn(cell, live, classes)}>
+        <RouterLink data-slot="pagination-link" {...attributes} href={typeof href === "string" ? fill(href, target, pageCount) : href(target)} className={cn(cell, live, classes)}>
           {children}
         </RouterLink>
       );
@@ -393,15 +393,15 @@ export function Pagination(props: PaginationProps): JSX.Element {
     // A button at an end says it is disabled rather than being disabled, so it keeps focus when
     // a press takes the reader there (a disabled button would drop focus to the page).
     return (
-      <button {...attributes} type="button" aria-disabled={enabled ? undefined : true} onClick={enabled ? () => onPageChange!(target) : undefined} className={cn(cell, enabled ? live : off, classes)}>
+      <button data-slot="pagination-link" {...attributes} type="button" aria-disabled={enabled ? undefined : true} onClick={enabled ? () => onPageChange!(target) : undefined} className={cn(cell, enabled ? live : off, classes)}>
         {children}
       </button>
     );
   };
 
   return (
-    <nav ref={navigationRef} data-ouro="pagination" aria-label={label} className={cn("min-w-0", className)}>
-      <ul ref={listRef} className="m-0 flex list-none items-center justify-between gap-1 p-0 sm:justify-center">
+    <nav data-slot="pagination" ref={navigationRef} data-ouro="pagination" aria-label={label} className={cn("min-w-0", className)}>
+      <ul data-slot="pagination-content" ref={listRef} className="m-0 flex list-none items-center justify-between gap-1 p-0 sm:justify-center">
         <li>
           {control(
             page - 1,
@@ -415,21 +415,21 @@ export function Pagination(props: PaginationProps): JSX.Element {
           )}
         </li>
         {pageCount !== undefined && (
-        <li className={fits ? "sm:hidden" : undefined}>
-          <span data-ouro-pagination-summary="" aria-current="page" className="px-2 text-base leading-5 text-muted-foreground tabular-nums">
+        <li data-slot="pagination-item" className={fits ? "sm:hidden" : undefined}>
+          <span data-slot="pagination-summary" data-ouro-pagination-summary="" aria-current="page" className="px-2 text-base leading-5 text-muted-foreground tabular-nums">
             {fill(summaryLabel, page, pageCount)}
           </span>
         </li>
         )}
         {pages.map((target, index) =>
           target === 0 ? (
-            <li key={`gap${index}`} className={pageClass}>
-              <span data-ouro-pagination-gap="" aria-hidden="true" className="inline-flex h-11 min-w-9 pointer-fine:h-9 items-center justify-center text-base text-muted-foreground select-none">
+            <li data-slot="pagination-item" key={`gap${index}`} className={pageClass}>
+              <span data-slot="pagination-ellipsis" data-ouro-pagination-gap="" aria-hidden="true" className="inline-flex h-11 min-w-9 pointer-fine:h-9 items-center justify-center text-base text-muted-foreground select-none">
                 …
               </span>
             </li>
           ) : (
-            <li key={target} className={pageClass}>
+            <li data-slot="pagination-item" key={target} className={pageClass}>
               {control(
                 target,
                 true,

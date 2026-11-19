@@ -91,6 +91,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `avatar`, `avatar-group`, `avatar-group-count`, `avatar-group-more`, `avatar-group-more-label`, `avatar-image`, `avatar-initials`, `avatar-presence`, `avatar-presence-dot`, `avatar-presence-icon`, `avatar-presence-mark`, `avatar-skeleton`, `avatar-slice`, `avatar-slice-image`, `avatar-slice-initials`, `avatar-surface`.
+
 ## Types
 
 ### `AvatarMember`

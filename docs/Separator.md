@@ -58,4 +58,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `separator`, `separator-label`, `separator-line`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/separator/separator.test.tsx::Separator > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/separator/separator.test.tsx::Separator > forwards a ref and lets app layout classes win)

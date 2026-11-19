@@ -170,6 +170,7 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
   const groups = groupSize && Number.isInteger(groupSize) && groupSize > 0 && groupSize < length ? groupSize : length;
   const directed = (
     <OTPField.Root
+      data-slot="otp-field-slots"
       {...rest}
       ref={setRef}
       length={length}
@@ -181,8 +182,9 @@ function Slots({ length, groupSize, slotLabel, onValueChange, onValueComplete, r
     >
       {Array.from({ length }, (_, index) => (
         <Fragment key={index}>
-          {index > 0 && index % groups === 0 && <OTPField.Separator data-ouro-otp-separator="" className={separatorClass} />}
+          {index > 0 && index % groups === 0 && <OTPField.Separator data-slot="otp-field-separator" data-ouro-otp-separator="" className={separatorClass} />}
           <OTPField.Input
+            data-slot="otp-field-slot"
             data-ouro-otp-slot=""
             data-ouro-control="otp-field"
             data-ouro-part="slot"
@@ -280,6 +282,7 @@ export function OtpField(props: OtpFieldProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="otp-field"
         label={label}
         hideLabel={hideLabel}
         description={description}

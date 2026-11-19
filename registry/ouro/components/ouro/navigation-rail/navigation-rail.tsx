@@ -527,22 +527,23 @@ function itemInside(text: string, icon: ReactNode, count: number, countLabel: st
   return (
     <>
       {/* The bar says it is selected itself: it is the part that moves when its item becomes current. */}
-      <span aria-hidden="true" data-ouro-part="indicator" data-selected={selected ? "true" : undefined} className={indicatorClass} />
-      <span aria-hidden="true" className={iconClass}>
+      <span data-slot="navigation-rail-indicator" aria-hidden="true" data-ouro-part="indicator" data-selected={selected ? "true" : undefined} className={indicatorClass} />
+      <span data-slot="navigation-rail-icon" aria-hidden="true" className={iconClass}>
         {icon}
         {count > 0 && (
-          <span data-ouro-navigation-rail-count="" className={countClass}>
+          <span data-slot="navigation-rail-count" data-ouro-navigation-rail-count="" className={countClass}>
             {shownCount(count)}
           </span>
         )}
       </span>
       <span
+        data-slot="navigation-rail-label"
         data-ouro-navigation-rail-label={index}
         data-ouro-navigation-rail-squeezed={squeezed || undefined}
         className={hideLabels ? "sr-only" : labelClass[squeezed ? "squeezed" : "fits"]}
       >
         {text}
-        {count > 0 && <span className={spokenCountClass}>, {countLabel.replace("{count}", String(count))}</span>}
+        {count > 0 && <span data-slot="navigation-rail-spoken-count" className={spokenCountClass}>, {countLabel.replace("{count}", String(count))}</span>}
       </span>
     </>
   );
@@ -578,8 +579,8 @@ function RailEntry({
 }) {
   if (entry.type === "separator") {
     return (
-      <li aria-hidden="true" data-ouro-navigation-rail-entry="separator" className={cn("block shrink-0 py-1", !separatorShown && "hidden")}>
-        <span className={separatorClass} />
+      <li data-slot="navigation-rail-separator-item" aria-hidden="true" data-ouro-navigation-rail-entry="separator" className={cn("block shrink-0 py-1", !separatorShown && "hidden")}>
+        <span data-slot="navigation-rail-separator" className={separatorClass} />
       </li>
     );
   }
@@ -597,16 +598,16 @@ function RailEntry({
   };
   const content = itemInside(entry.label, isCurrent && entry.currentIcon !== undefined ? entry.currentIcon : entry.icon, count, countLabel, index, hideLabels, squeezed.has(entry.label), isCurrent);
   return (
-    <li data-ouro-navigation-rail-entry={key} className={cn("flex shrink-0", hidden && "hidden")}>
+    <li data-slot="navigation-rail-item" data-ouro-navigation-rail-entry={key} className={cn("flex shrink-0", hidden && "hidden")}>
       {withTip(
         hideLabels || truncated,
         entry.label,
         entry.href !== undefined ? (
-          <RouterLink data-ouro-control="navigation-rail" data-ouro-part="link" href={entry.href} onClick={entry.onClick} {...shared}>
+          <RouterLink data-slot="navigation-rail-link" data-ouro-control="navigation-rail" data-ouro-part="link" href={entry.href} onClick={entry.onClick} {...shared}>
             {content}
           </RouterLink>
         ) : (
-          <button data-ouro-control="navigation-rail" data-ouro-part="button" type="button" onClick={entry.onClick} {...shared}>
+          <button data-slot="navigation-rail-button" data-ouro-control="navigation-rail" data-ouro-part="button" type="button" onClick={entry.onClick} {...shared}>
             {content}
           </button>
         ),
@@ -639,13 +640,14 @@ function MoreEntry({
 }) {
   const movedCount = moved.reduce((sum, { entry }) => sum + countOf(entry), 0);
   return (
-    <li data-ouro-navigation-rail-entry="more" className="flex shrink-0">
+    <li data-slot="navigation-rail-more-item" data-ouro-navigation-rail-entry="more" className="flex shrink-0">
       <Menu
         side="right"
         trigger={withTip(
           hideLabels,
           moreLabel,
           <button
+            data-slot="navigation-rail-more"
             type="button"
             data-ouro-control="navigation-rail"
             data-ouro-part="more"
@@ -684,10 +686,10 @@ function MoreEntry({
               {entry.label}
               {count > 0 && (
                 <>
-                  <span aria-hidden="true" className={menuCountClass}>
+                  <span data-slot="navigation-rail-menu-count" aria-hidden="true" className={menuCountClass}>
                     {shownCount(count)}
                   </span>
-                  <span className="sr-only">, {countLabel.replace("{count}", String(count))}</span>
+                  <span data-slot="navigation-rail-menu-spoken-count" className="sr-only">, {countLabel.replace("{count}", String(count))}</span>
                 </>
               )}
             </MenuItem>,
@@ -779,9 +781,9 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
   const shownSeparatorSet = shownSeparators(items, (index) => !hidden.has(index));
 
   return (
-    <nav ref={navRef} data-ouro="navigation-rail" aria-label={label} className={cn(railClass[look], className)}>
-      {header !== undefined && <div className={headerClass}>{header}</div>}
-      <ul ref={list} className={listClass} onKeyDown={moveAlongRail}>
+    <nav data-slot="navigation-rail" ref={navRef} data-ouro="navigation-rail" aria-label={label} className={cn(railClass[look], className)}>
+      {header !== undefined && <div data-slot="navigation-rail-header" className={headerClass}>{header}</div>}
+      <ul data-slot="navigation-rail-list" ref={list} className={listClass} onKeyDown={moveAlongRail}>
         {items.map((entry, index) => (
           <RailEntry
             key={index}
@@ -803,7 +805,7 @@ export function NavigationRail(props: NavigationRailProps): JSX.Element {
           <MoreEntry items={items} moved={moved} look={look} hideLabels={hideLabels} moreLabel={moreLabel} countLabel={countLabel} squeezed={squeezed.has(moreLabel)} isStop={stop === "more"} onFocus={() => setFocused("more")} />
         )}
       </ul>
-      {footer !== undefined && <div className={footerClass}>{footer}</div>}
+      {footer !== undefined && <div data-slot="navigation-rail-footer" className={footerClass}>{footer}</div>}
     </nav>
   );
 }

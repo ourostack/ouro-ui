@@ -32,14 +32,14 @@ export function UnreadDot(props: UnreadDotProps): JSX.Element {
   // Without its dot it is only words for screen readers, out of the line's flow, so it adds no gap.
   if (!dot)
     return (
-      <span {...rest} data-ouro="unread-dot" className="sr-only">
+      <span data-slot="unread-dot" {...rest} data-ouro="unread-dot" className="sr-only">
         {label}
       </span>
     );
   return (
-    <span {...rest} data-ouro="unread-dot" className={cn("flex shrink-0 items-center", className)}>
-      <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
-      <span className="sr-only">{label}</span>
+    <span data-slot="unread-dot" {...rest} data-ouro="unread-dot" className={cn("flex shrink-0 items-center", className)}>
+      <span data-slot="unread-dot-indicator" aria-hidden="true" className="size-2 rounded-full bg-primary" />
+      <span data-slot="unread-dot-label" className="sr-only">{label}</span>
     </span>
   );
 }

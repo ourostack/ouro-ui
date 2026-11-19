@@ -44,3 +44,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 
 - `isOpen`: Not a prop. Ouro UI uses `open` with `onOpenChange`: `<Inspector open={xray} onOpenChange={setXray}>`.
 - `onClose`: Not a prop. `onOpenChange` gets `false` when X-ray closes: `onOpenChange={setXray}`.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `inspector`, `inspector-actions`, `inspector-component`, `inspector-component-links`, `inspector-component-name`, `inspector-components`, `inspector-docs`, `inspector-frame`, `inspector-frame-shape`, `inspector-label`, `inspector-link-hint`, `inspector-outline`, `inspector-outlines`, `inspector-panel`, `inspector-scan`, `inspector-source`, `inspector-status`, `inspector-tag`.

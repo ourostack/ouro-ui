@@ -154,6 +154,7 @@ function RadioCircle({ value, ref }: { value: string; ref: Ref<HTMLElement> | un
   const field = useField()!;
   return (
     <BaseRadio.Root
+      data-slot="radio-group-circle"
       value={value}
       ref={ref}
       // A real button, so the label's `for` names it and not the hidden input: its label finds one control.
@@ -169,7 +170,7 @@ function RadioCircle({ value, ref }: { value: string; ref: Ref<HTMLElement> | un
       className={radioClass}
     >
       <TouchTarget />
-      <BaseRadio.Indicator keepMounted data-ouro-radio-dot="" className={dotClass} />
+      <BaseRadio.Indicator data-slot="radio-group-indicator" keepMounted data-ouro-radio-dot="" className={dotClass} />
     </BaseRadio.Root>
   );
 }
@@ -230,6 +231,7 @@ function Choices(props: {
   const field = useField()!;
   const directed = (
     <BaseRadioGroup
+      data-slot="radio-group-list"
       ref={merged}
       value={value}
       defaultValue={defaultValue}
@@ -326,6 +328,7 @@ export function RadioGroup(props: RadioGroupProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={groupOwner}>
       <Field
+        data-slot="radio-group"
         label={legend}
         hideLabel={hideLegend}
         description={description}

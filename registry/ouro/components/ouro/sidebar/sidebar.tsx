@@ -305,15 +305,15 @@ export function Sidebar(props: SidebarProps): JSX.Element {
   const rowContent = (item: SidebarItem, rail: boolean) => (
     <>
       {(item.icon !== undefined || rail) && (
-        <span aria-hidden="true" className={iconSlot}>
+        <span data-slot="sidebar-item-icon" aria-hidden="true" className={iconSlot}>
           {item.icon !== undefined ? item.icon : item.label.charAt(0).toUpperCase()}
         </span>
       )}
-      <span className={rail ? "sr-only" : "min-w-0 flex-1 truncate"}>{item.label}</span>
+      <span data-slot="sidebar-item-label" className={rail ? "sr-only" : "min-w-0 flex-1 truncate"}>{item.label}</span>
       {item.badge !== undefined && (
         <>
           {" "}
-          <span data-ouro-sidebar-badge="" className={rail ? "sr-only" : badgeSlot(item.badge)}>
+          <span data-slot="sidebar-item-badge" data-ouro-sidebar-badge="" className={rail ? "sr-only" : badgeSlot(item.badge)}>
             {item.badge}
           </span>
         </>
@@ -341,6 +341,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       item.label,
       item.href !== undefined ? (
         <RouterLink
+          data-slot="sidebar-link"
           href={item.href}
           aria-current={isCurrent(item) ? "page" : undefined}
           data-ouro-control="sidebar"
@@ -355,6 +356,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
         </RouterLink>
       ) : (
         <button
+          data-slot="sidebar-button"
           type="button"
           data-ouro-control="sidebar"
           data-ouro-part="button"
@@ -373,13 +375,13 @@ export function Sidebar(props: SidebarProps): JSX.Element {
   const renderSections = (place: string, rail: boolean, onNavigate?: () => void) =>
     sections.map((section, index) => (
       // A rule above every section after the first, so a section's label reads as the start of a group.
-      <div key={index} className={cn("grid gap-1", index > 0 && "border-0 border-t border-solid border-border pt-4")}>
+      <div data-slot="sidebar-section" key={index} className={cn("grid gap-1", index > 0 && "border-0 border-t border-solid border-border pt-4")}>
         {section.label !== undefined && (
-          <p id={`${id}${place}${index}`} className={rail ? "sr-only" : "m-0 px-3 py-1 text-sm leading-5 font-semibold text-foreground"}>
+          <p data-slot="sidebar-section-label" id={`${id}${place}${index}`} className={rail ? "sr-only" : "m-0 px-3 py-1 text-sm leading-5 font-semibold text-foreground"}>
             {section.label}
           </p>
         )}
-        <ul aria-labelledby={section.label !== undefined ? `${id}${place}${index}` : undefined} className={list}>
+        <ul data-slot="sidebar-section-list" aria-labelledby={section.label !== undefined ? `${id}${place}${index}` : undefined} className={list}>
           {section.items.map((item, position) => {
             if (item.items === undefined) return <li key={position}>{leaf(item, rail, onNavigate)}</li>;
             const holdsCurrent = item.items.some(isCurrent);
@@ -393,7 +395,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                     closeLabel={closeLabel}
                     trigger={
                       <Tooltip content={item.label} side="right">
-                        <button type="button" data-current={holdsCurrent ? "" : undefined} data-ouro-control="sidebar" data-ouro-part="group" className={cn(row, "data-current:text-foreground", railRow)}>
+                        <button data-slot="sidebar-group" type="button" data-current={holdsCurrent ? "" : undefined} data-ouro-control="sidebar" data-ouro-part="group" className={cn(row, "data-current:text-foreground", railRow)}>
                           {rowContent(item, true)}
                         </button>
                       </Tooltip>
@@ -405,7 +407,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                         {child.badge !== undefined && (
                           <>
                             {" "}
-                            <span className={cn(badgeSlot(child.badge), "ms-2")}>{child.badge}</span>
+                            <span data-slot="sidebar-group-menu-badge" className={cn(badgeSlot(child.badge), "ms-2")}>{child.badge}</span>
                           </>
                         )}
                       </MenuItem>
@@ -419,6 +421,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             return (
               <li key={position}>
                 <button
+                  data-slot="sidebar-group"
                   type="button"
                   aria-expanded={open}
                   aria-controls={`${id}${place}${key}`}
@@ -430,6 +433,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                 >
                   {rowContent(item, false)}
                   <svg
+                    data-slot="sidebar-group-icon"
                     aria-hidden="true"
                     viewBox="0 0 16 16"
                     fill="none"
@@ -443,7 +447,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                   </svg>
                 </button>
                 {open && (
-                  <ul id={`${id}${place}${key}`} className={cn(list, "ms-5 mt-1 border-0 border-s border-solid border-border ps-2")}>
+                  <ul data-slot="sidebar-group-list" id={`${id}${place}${key}`} className={cn(list, "ms-5 mt-1 border-0 border-s border-solid border-border ps-2")}>
                     {item.items.map((child, at) => (
                       <li key={at}>{leaf(child, false, onNavigate)}</li>
                     ))}
@@ -457,8 +461,9 @@ export function Sidebar(props: SidebarProps): JSX.Element {
     ));
 
   return (
-    <div ref={ref} data-ouro="sidebar" data-collapsed={collapsed ? "" : undefined} className={cn("max-sm:inline-flex sm:h-full", className)}>
+    <div data-slot="sidebar" ref={ref} data-ouro="sidebar" data-collapsed={collapsed ? "" : undefined} className={cn("max-sm:inline-flex sm:h-full", className)}>
       <Button
+        data-slot="sidebar-menu"
         ref={menuButton}
         data-ouro-sidebar-menu=""
         data-ouro-control="sidebar"
@@ -472,41 +477,41 @@ export function Sidebar(props: SidebarProps): JSX.Element {
         onClick={() => setOpen(true)}
         className="w-11 px-0 sm:hidden"
       >
-        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-5">
+        <svg data-slot="sidebar-menu-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-5">
           <path d="M3 5.5h14M3 10h14M3 14.5h14" />
         </svg>
       </Button>
       {wide && (
-        <nav aria-label={label} data-collapsed={collapsed ? "" : undefined} className={column}>
-          {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden px-3 py-2">{header}</div>}
-          <div data-ouro-sidebar-scroll="" className="grid min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain p-2">
+        <nav data-slot="sidebar-column" aria-label={label} data-collapsed={collapsed ? "" : undefined} className={column}>
+          {header !== undefined && <div data-slot="sidebar-header" className="flex min-h-14 shrink-0 items-center overflow-hidden px-3 py-2">{header}</div>}
+          <div data-slot="sidebar-content" data-ouro-sidebar-scroll="" className="grid min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain p-2">
             {renderSections("c", collapsed)}
           </div>
           {collapsible && (
-            <div className="shrink-0 p-2">
-              <button type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, collapsed && railRow)}>
-                <span aria-hidden="true" className={iconSlot}>
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
+            <div data-slot="sidebar-collapse-frame" className="shrink-0 p-2">
+              <button data-slot="sidebar-collapse" type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, collapsed && railRow)}>
+                <span data-slot="sidebar-collapse-icon" aria-hidden="true" className={iconSlot}>
+                  <svg data-slot="sidebar-collapse-panel-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
                     <rect x="3" y="4" width="14" height="12" rx="2" />
                     <path d="M8 4v12" />
                   </svg>
                 </span>
-                <span className={collapsed ? "sr-only" : "min-w-0 flex-1 truncate"}>{collapseLabel}</span>
+                <span data-slot="sidebar-collapse-label" className={collapsed ? "sr-only" : "min-w-0 flex-1 truncate"}>{collapseLabel}</span>
               </button>
             </div>
           )}
           {footer !== undefined && (
-            <div className="flex min-h-14 shrink-0 items-center overflow-hidden border-0 border-t border-solid border-border px-3 py-2">{footer}</div>
+            <div data-slot="sidebar-footer" className="flex min-h-14 shrink-0 items-center overflow-hidden border-0 border-t border-solid border-border px-3 py-2">{footer}</div>
           )}
         </nav>
       )}
       <SheetFrame title={menuLabel} hideTitle={header !== undefined} closeLabel={closeLabel} side="left" open={open} onOpenChange={setOpen} finalFocus={menuButton}>
-        <div className="grid gap-4">
-          {header !== undefined && <div className="flex min-h-11 items-center px-3">{header}</div>}
-          <nav aria-label={label} className="grid gap-6">
+        <div data-slot="sidebar-drawer" className="grid gap-4">
+          {header !== undefined && <div data-slot="sidebar-header" className="flex min-h-11 items-center px-3">{header}</div>}
+          <nav data-slot="sidebar-drawer-nav" aria-label={label} className="grid gap-6">
             {renderSections("d", false, () => setOpen(false))}
           </nav>
-          {footer !== undefined && <div className="flex min-h-11 items-center border-0 border-t border-solid border-border px-3 pt-4">{footer}</div>}
+          {footer !== undefined && <div data-slot="sidebar-footer" className="flex min-h-11 items-center border-0 border-t border-solid border-border px-3 pt-4">{footer}</div>}
         </div>
       </SheetFrame>
     </div>

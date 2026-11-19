@@ -192,11 +192,11 @@
     font-weight: 600;
   }
   /* The hand-off under the lede takes the text column's width, up to its own measure, not its narrowest word's. */
-  .site-voyage-hero [data-slot="more"] {
+  .site-voyage-hero [data-slot="hero-more"] {
     justify-self: stretch;
   }
   @media (max-width: 40rem) {
-    .site-voyage-hero [data-slot="eyebrow"] {
+    .site-voyage-hero [data-slot="hero-eyebrow"] {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -781,15 +781,15 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
     display: contents;
   }
   .site-voyage-hero > :first-child > *,
-  .site-voyage-hero > [data-slot="media"] {
+  .site-voyage-hero > [data-slot="hero-media"] {
     width: var(--hero-width);
     margin-inline: auto;
   }
-  .site-voyage-hero > [data-slot="media"] {
+  .site-voyage-hero > [data-slot="hero-media"] {
     order: 1;
     margin-top: 0.5rem;
   }
-  .site-voyage-hero > :first-child > [data-slot="more"] {
+  .site-voyage-hero > :first-child > [data-slot="hero-more"] {
     order: 2;
     margin-top: 1rem;
   }
@@ -832,7 +832,7 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
   .site-voyage-hero > :first-child > :nth-child(3) {
     grid-row: 4;
   }
-  .site-voyage-hero > :first-child > [data-slot="more"] {
+  .site-voyage-hero > :first-child > [data-slot="hero-more"] {
     grid-column: 2;
     grid-row: 1 / -1;
     align-self: center;
@@ -844,7 +844,7 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
   .site-hero-paint {
     text-align: start;
   }
-  .site-voyage-hero > [data-slot="media"] {
+  .site-voyage-hero > [data-slot="hero-media"] {
     margin-top: 2.5rem;
   }
 }

@@ -32,3 +32,7 @@ Type: `ResizableHandleProps`.
 These are not props. Passing one fails the type check with the fix in the error, and in development a console message names the fix.
 
 - `withHandle`: Not a prop. The handle always shows its grip: `<ResizableHandle />`.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `resizable`, `resizable-focus-ring`, `resizable-grip`, `resizable-handle`, `resizable-hit-area`, `resizable-panel`, `resizable-panel-content`.

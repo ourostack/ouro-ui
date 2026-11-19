@@ -90,6 +90,7 @@ function SwitchTrack(props: {
   const field = useField()!;
   return (
     <BaseSwitch.Root
+      data-slot="switch-track"
       {...rest}
       // A real button, so the label's `for` names it and not the hidden input: its label finds one control.
       nativeButton
@@ -106,7 +107,7 @@ function SwitchTrack(props: {
       className={trackClass}
     >
       <TouchTarget />
-      <BaseSwitch.Thumb data-ouro-switch-thumb="" className={thumbClass} />
+      <BaseSwitch.Thumb data-slot="switch-thumb" data-ouro-switch-thumb="" className={thumbClass} />
     </BaseSwitch.Root>
   );
 }
@@ -182,6 +183,7 @@ export function Switch(props: SwitchProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="switch"
         label={label}
         hideLabel={hideLabel}
         description={description}

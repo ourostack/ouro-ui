@@ -300,18 +300,20 @@ export function Field(props: FieldProps): JSX.Element {
       // section rather than a control, so it keeps full contrast when the group is disabled.
       // The required marker is CSS on the legend, outside the element that names the group.
       <div
+        data-slot="field-legend"
         data-ouro-legend=""
         {...(required ? { "data-ouro-required": "" } : {})}
         className={cn(labelFrameClass, required && requiredMarkClass, hideLabel && "sr-only")}
       >
-        <span id={labelId} className="font-medium text-foreground">
+        <span data-slot="field-legend-text" id={labelId} className="font-medium text-foreground">
           {label}
           {/* The asterisk is not text; a group with no aria-required says "required" in words. */}
-          {required && owner.requiredLabel && <span className="sr-only"> {owner.requiredLabel}</span>}
+          {required && owner.requiredLabel && <span data-slot="field-required-text" className="sr-only"> {owner.requiredLabel}</span>}
         </span>
       </div>
     ) : (
       <FieldLabel
+        data-slot="field-label-text"
         id={labelId}
         className={cn(layout === "inline" && "col-start-2", hideLabel && "sr-only")}
         {...(nativeLabel ? {} : { nativeLabel: false, render: <div /> })}
@@ -322,12 +324,12 @@ export function Field(props: FieldProps): JSX.Element {
   // The owner names this Field only: a plain Field inside (in an adornment's popover) is a Field.
   const control = <FieldOwnerContext.Provider value={fieldOwner}>{children}</FieldOwnerContext.Provider>;
   const descriptionPart = hasDescription && (
-    <FieldDescription id={descriptionId} className={layout === "inline" ? "col-start-2" : undefined}>
+    <FieldDescription data-slot="field-description" id={descriptionId} className={layout === "inline" ? "col-start-2" : undefined}>
       {description}
     </FieldDescription>
   );
   const errorPart = invalid ? (
-    <FieldError id={errorId} match className={layout === "inline" ? "col-start-2" : undefined}>
+    <FieldError data-slot="field-error" id={errorId} match className={layout === "inline" ? "col-start-2" : undefined}>
       {messages.length > 1 ? (
         <ul>
           {messages.map((message, index) => (
@@ -339,7 +341,7 @@ export function Field(props: FieldProps): JSX.Element {
       )}
     </FieldError>
   ) : (
-    <FieldError id={errorId} className={layout === "inline" ? "col-start-2" : undefined} />
+    <FieldError data-slot="field-error" id={errorId} className={layout === "inline" ? "col-start-2" : undefined} />
   );
   // An inline control comes first, so it reads before its label, and sits to its left. A
   // stacked field lets its owner arrange the label and the rest (NumberField, a range Slider).
@@ -375,13 +377,14 @@ export function Field(props: FieldProps): JSX.Element {
   return (
     <FieldContext.Provider value={value}>
       {item ? (
-        <BaseField.Item ref={rootRef} disabled={disabled} data-ouro={owner.data} className={rootClassName}>
+        <BaseField.Item data-slot={owner.data} ref={rootRef} disabled={disabled} data-ouro={owner.data} className={rootClassName}>
           {content}
         </BaseField.Item>
       ) : (
         // `invalid` stays Ouro's: Base UI would count it as a failed check and block the
         // form's next submit. Its own checks (`required`, `type`) still mark and block.
         <BaseField.Root
+          data-slot={owner.data}
           ref={rootRef}
           name={name}
           disabled={disabled}

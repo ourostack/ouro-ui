@@ -605,11 +605,12 @@ function InspectorLayer({
 
   const count = `${found.length} ${found.length === 1 ? "component" : "components"}`;
   return (
-    <div ref={layer} data-ouro="inspector" data-ouro-part="layer" data-starting-style={entering ? "" : undefined} className={layerClass}>
-      <div aria-hidden="true" data-ouro-part="scan" className={scanClass} />
-      <div aria-hidden="true" data-ouro-part="outlines" className={outlinesClass}>
+    <div data-slot="inspector" ref={layer} data-ouro="inspector" data-ouro-part="layer" data-starting-style={entering ? "" : undefined} className={layerClass}>
+      <div data-slot="inspector-scan" aria-hidden="true" data-ouro-part="scan" className={scanClass} />
+      <div data-slot="inspector-outlines" aria-hidden="true" data-ouro-part="outlines" className={outlinesClass}>
         {found.map((component) => (
           <div
+            data-slot="inspector-outline"
             key={component.key}
             ref={(element) => {
               if (element) outlines.set(component.key, element);
@@ -619,27 +620,27 @@ function InspectorLayer({
             data-spotlight={component === spotlit ? "" : undefined}
             className={outlineClass}
           >
-            <div data-ouro-inspector-frame="" className={frameClass}>
-              <svg className="absolute inset-0 size-full overflow-visible">
+            <div data-slot="inspector-frame" data-ouro-inspector-frame="" className={frameClass}>
+              <svg data-slot="inspector-frame-shape" className="absolute inset-0 size-full overflow-visible">
                 <path d="" />
               </svg>
             </div>
-            <a data-ouro-control="inspector" data-ouro-part="tag" href={docsHref(component.item)} target="_blank" rel="noreferrer" tabIndex={-1} className={tagClass}>
+            <a data-slot="inspector-tag" data-ouro-control="inspector" data-ouro-part="tag" href={docsHref(component.item)} target="_blank" rel="noreferrer" tabIndex={-1} className={tagClass}>
               {component.item}
             </a>
           </div>
         ))}
       </div>
-      <section aria-label={label} className={pillClass}>
-        <span aria-hidden="true" className={labelClass}>
+      <section data-slot="inspector-panel" aria-label={label} className={pillClass}>
+        <span data-slot="inspector-label" aria-hidden="true" className={labelClass}>
           {label}
         </span>
         {spotlight !== undefined && (
-          <span role="status" className={statusClass}>
+          <span data-slot="inspector-status" role="status" className={statusClass}>
             {measured && (spotlit ? `Showing ${spotlight}` : `No ${spotlight} on this page`)}
           </span>
         )}
-        <span className={actionsClass}>
+        <span data-slot="inspector-actions" className={actionsClass}>
           <Sheet
             title={label}
             description="Every Ouro HX component on this page, in order."
@@ -649,19 +650,19 @@ function InspectorLayer({
               </Button>
             }
           >
-            <ol data-ouro-inspector-list="" className={listClass}>
+            <ol data-slot="inspector-components" data-ouro-inspector-list="" className={listClass}>
               {found.map((component) => {
                 const source = sourceHref?.(component.item, component.element);
                 return (
-                  <li key={component.key} className="flex min-h-9 items-center justify-between gap-3">
-                    <code className="font-mono text-sm leading-5 text-foreground">{component.item}</code>
-                    <span className="flex shrink-0 items-center gap-2">
-                      <a data-ouro-control="inspector" data-ouro-part="docs" href={docsHref(component.item)} target="_blank" rel="noreferrer" className={linkClass}>
-                        Docs<span className="sr-only"> for {component.item} (opens in a new tab)</span>
+                  <li data-slot="inspector-component" key={component.key} className="flex min-h-9 items-center justify-between gap-3">
+                    <code data-slot="inspector-component-name" className="font-mono text-sm leading-5 text-foreground">{component.item}</code>
+                    <span data-slot="inspector-component-links" className="flex shrink-0 items-center gap-2">
+                      <a data-slot="inspector-docs" data-ouro-control="inspector" data-ouro-part="docs" href={docsHref(component.item)} target="_blank" rel="noreferrer" className={linkClass}>
+                        Docs<span data-slot="inspector-link-hint" className="sr-only"> for {component.item} (opens in a new tab)</span>
                       </a>
                       {source !== undefined && (
-                        <a data-ouro-control="inspector" data-ouro-part="source" href={source} target="_blank" rel="noreferrer" className={linkClass}>
-                          Source<span className="sr-only"> of {component.item} (opens in a new tab)</span>
+                        <a data-slot="inspector-source" data-ouro-control="inspector" data-ouro-part="source" href={source} target="_blank" rel="noreferrer" className={linkClass}>
+                          Source<span data-slot="inspector-link-hint" className="sr-only"> of {component.item} (opens in a new tab)</span>
                         </a>
                       )}
                     </span>

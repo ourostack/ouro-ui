@@ -203,9 +203,10 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
     <Toast.Provider limit={VISIBLE}>
       <Connect onActive={setActive} />
       {active && (
-        <Toast.Portal className={portalClass}>
+        <Toast.Portal data-slot="toaster-portal" className={portalClass}>
           <PortalScope>
             <Toast.Viewport
+              data-slot="toaster"
               aria-label={label}
               // Not a live region: the announcer inside speaks each toast, so the buttons in the
               // toasts are never read out as they arrive and need not be hidden to stay quiet.
@@ -665,6 +666,7 @@ const ToastItem = memo(function ToastItem({ item, closeLabel }: { item: ToastObj
   const ref = useMergedRef(swipe.ref, useFocusHandoff<HTMLDivElement>(toastHandoff));
   return (
     <Toast.Root
+      data-slot="toast"
       toast={item}
       swipeDirection={NO_SWIPE}
       {...swipe}
@@ -678,18 +680,18 @@ const ToastItem = memo(function ToastItem({ item, closeLabel }: { item: ToastObj
       data-ouro-part={destructive ? "alert" : "toast"}
       className={rootClass}
     >
-      <Toast.Content className={contentClass}>
+      <Toast.Content data-slot="toast-content" className={contentClass}>
         <ToneIcon tone={item.type} />
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <Toast.Title render={<div />} data-ouro-toast-title="" className="m-0 text-sm font-medium text-popover-foreground" />
-          <Toast.Description render={<div />} data-ouro-toast-description="" className="m-0 text-sm text-muted-foreground" />
+        <div data-slot="toast-text" className="grid min-w-0 flex-1 gap-0.5">
+          <Toast.Title data-slot="toast-title" render={<div />} data-ouro-toast-title="" className="m-0 text-sm font-medium text-popover-foreground" />
+          <Toast.Description data-slot="toast-description" render={<div />} data-ouro-toast-description="" className="m-0 text-sm text-muted-foreground" />
         </div>
-        <Toast.Action data-ouro-control="toaster" data-ouro-part="action" className={actionClass} />
+        <Toast.Action data-slot="toaster-action" data-ouro-control="toaster" data-ouro-part="action" className={actionClass} />
         {/* Base UI hides this from assistive technology while the stack is collapsed. A touch
             screen reader could then never reach it, since it cannot focus or hover the stack first. */}
-        <Toast.Close aria-label={closeLabel} aria-hidden={undefined} data-ouro-control="toaster" data-ouro-part="close" className={closeClass}>
+        <Toast.Close data-slot="toaster-close" aria-label={closeLabel} aria-hidden={undefined} data-ouro-control="toaster" data-ouro-part="close" className={closeClass}>
           <TouchTarget />
-          <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
+          <svg data-slot="toaster-close-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-4">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
         </Toast.Close>
@@ -954,6 +956,7 @@ function ToneIcon({ tone }: { tone: string | undefined }): JSX.Element | null {
   const color = iconTones[tone as keyof typeof iconTones];
   return (
     <svg
+      data-slot="toast-icon"
       aria-hidden="true"
       data-ouro-toast-icon=""
       viewBox="0 0 20 20"

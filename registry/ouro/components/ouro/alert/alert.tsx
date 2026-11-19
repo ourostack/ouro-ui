@@ -250,6 +250,7 @@ export function Alert(props: AlertProps): JSX.Element {
   const accent = tones[tone].accent;
   return (
     <div
+      data-slot="alert"
       {...rest}
       ref={merged}
       role={urgent.has(tone) ? "alert" : "status"}
@@ -261,25 +262,26 @@ export function Alert(props: AlertProps): JSX.Element {
         className,
       )}
     >
-      {Icon && <Icon aria-hidden="true" data-ouro-alert-icon="" className={cn("mt-0.5 size-5 shrink-0", accent)} />}
+      {Icon && <Icon data-slot="alert-icon" aria-hidden="true" data-ouro-alert-icon="" className={cn("mt-0.5 size-5 shrink-0", accent)} />}
       {/* A long word (an address in an error) wraps anywhere, so it stays inside the alert, however narrow. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1 [overflow-wrap:anywhere]">
-        <div data-ouro-alert-title="" data-ouro-text="" className={cn("text-base/6 font-medium sm:pointer-fine:text-sm/5", accent)}>
+      <div data-slot="alert-content" className="flex min-w-0 flex-1 flex-col gap-1 [overflow-wrap:anywhere]">
+        <div data-slot="alert-title" data-ouro-alert-title="" data-ouro-text="" className={cn("text-base/6 font-medium sm:pointer-fine:text-sm/5", accent)}>
           {title}
         </div>
         {description !== undefined && (
-          <div data-ouro-alert-description="" data-ouro-text="" className="text-base/6 sm:pointer-fine:text-sm/5">
+          <div data-slot="alert-description" data-ouro-alert-description="" data-ouro-text="" className="text-base/6 sm:pointer-fine:text-sm/5">
             {description}
           </div>
         )}
         {action !== undefined && (
-          <div data-ouro-alert-action="" className="mt-2 flex flex-wrap gap-2">
+          <div data-slot="alert-action" data-ouro-alert-action="" className="mt-2 flex flex-wrap gap-2">
             {action}
           </div>
         )}
       </div>
       {onDismiss && (
         <Button
+          data-slot="alert-dismiss"
           variant="plain"
           tone="secondary"
           size="sm"
@@ -289,7 +291,7 @@ export function Alert(props: AlertProps): JSX.Element {
           onClick={() => onDismiss()}
           className="-my-1.5 -me-2 w-(--ouro-button-h) px-0"
         >
-          <CloseIcon aria-hidden="true" className="size-4" />
+          <CloseIcon data-slot="alert-dismiss-icon" aria-hidden="true" className="size-4" />
         </Button>
       )}
     </div>

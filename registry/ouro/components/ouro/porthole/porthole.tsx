@@ -101,19 +101,19 @@ function Light({ view }: { view: PortholeView }): JSX.Element {
     if (Number.isFinite(progress)) {
       const filled = Math.min(1, Math.max(0, progress!));
       return (
-        <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 -rotate-90 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] forced-colors:text-[CanvasText]">
+        <svg data-slot="porthole-progress" aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 -rotate-90 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] forced-colors:text-[CanvasText]">
           <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
           <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" pathLength="100" strokeDasharray={`${filled * 100} 100`} />
         </svg>
       );
     }
     return (
-      <svg aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] motion-safe:animate-[ouro-spin_1s_linear_infinite] forced-colors:text-[CanvasText]">
+      <svg data-slot="porthole-progress" aria-hidden="true" viewBox="0 0 16 16" data-porthole-part="progress" className="size-4 shrink-0 text-[color-mix(in_oklab,var(--primary)_85%,var(--foreground))] motion-safe:animate-[ouro-spin_1s_linear_infinite] forced-colors:text-[CanvasText]">
         <path d="M14 8a6 6 0 1 1-4.15-5.7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     );
   }
-  return <span aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLightClasses[view.state])} />;
+  return <span data-slot="porthole-light" aria-hidden="true" data-porthole-part="light" className={cn("size-2 shrink-0 rounded-full", portholeLightClasses[view.state])} />;
 }
 
 /**
@@ -400,6 +400,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
 
   return (
     <div
+      data-slot="porthole"
       {...rest}
       data-ouro="porthole"
       data-porthole-state={view.state}
@@ -413,6 +414,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       className={cn("group/porthole relative inline-flex max-w-full min-w-0 align-middle", className)}
     >
       <div
+        data-slot="porthole-pill"
         ref={pill}
         data-porthole-part="pill"
         className={cn(
@@ -422,8 +424,9 @@ export function Porthole(props: PortholeProps): JSX.Element {
             "border-transparent bg-transparent focus-within:border-border focus-within:bg-card pointer-fine:hover:border-border pointer-fine:hover:bg-card forced-colors:border-[Canvas] forced-colors:focus-within:border-[CanvasText] forced-colors:pointer-fine:hover:border-[CanvasText]",
         )}
       >
-        <div ref={content} className="inline-flex h-full w-max max-w-full min-w-0 items-center">
+        <div data-slot="porthole-inner" ref={content} className="inline-flex h-full w-max max-w-full min-w-0 items-center">
           <button
+            data-slot="porthole-spot"
             ref={spot}
             type="button"
             data-ouro-control="porthole"
@@ -439,6 +442,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
           >
             <Light view={view} />
             <span
+              data-slot="porthole-words"
               ref={words}
               data-porthole-part="words"
               className={cn(
@@ -446,15 +450,15 @@ export function Porthole(props: PortholeProps): JSX.Element {
                 hushed && "opacity-0 group-focus-within/pill:opacity-100 pointer-fine:group-hover/pill:opacity-100",
               )}
             >
-              <span ref={sizer} aria-hidden="true" data-porthole-part="sizer" className="invisible absolute start-0 top-0 whitespace-nowrap">
+              <span data-slot="porthole-sizer" ref={sizer} aria-hidden="true" data-porthole-part="sizer" className="invisible absolute start-0 top-0 whitespace-nowrap">
                 {line.text}
               </span>
               {line.previous === null ? null : (
-                <span key={`was-${line.turn}`} aria-hidden="true" className={cn("pointer-events-none absolute start-0 top-0 max-w-full truncate opacity-0 starting:opacity-100", fadeClass)}>
+                <span data-slot="porthole-previous-text" key={`was-${line.turn}`} aria-hidden="true" className={cn("pointer-events-none absolute start-0 top-0 max-w-full truncate opacity-0 starting:opacity-100", fadeClass)}>
                   {line.previous}
                 </span>
               )}
-              <span key={`is-${line.turn}`} className={cn("block truncate opacity-100", line.turn > 0 && "starting:opacity-0", fadeClass)}>
+              <span data-slot="porthole-text" key={`is-${line.turn}`} className={cn("block truncate opacity-100", line.turn > 0 && "starting:opacity-0", fadeClass)}>
                 {line.text}
               </span>
             </span>
@@ -463,6 +467,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
             // Under forced colours the action keeps its weight in the system highlight. It opts out of forcing, or the
             // label's backplate would hide HighlightText; its focus ring stays a system colour.
             <button
+              data-slot="porthole-act"
               ref={leaving}
               type="button"
               data-ouro-control="porthole"
@@ -476,6 +481,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
           )}
           {dismissable ? (
             <button
+              data-slot="porthole-dismiss"
               ref={leaving}
               type="button"
               data-ouro-control="porthole"
@@ -485,7 +491,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
               onClick={() => onDismiss!(item!)}
               className="press me-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 text-muted-foreground outline-ring outline-offset-1 focus-visible:outline-2 focus-visible:outline-solid motion-safe:active:scale-(--ouro-press-scale) pointer-fine:hover:bg-muted pointer-coarse:size-11 forced-colors:border forced-colors:border-solid"
             >
-              <svg aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+              <svg data-slot="porthole-dismiss-icon" aria-hidden="true" viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
                 <path d="M4 4l8 8M12 4l-8 8" />
               </svg>
             </button>
@@ -494,6 +500,7 @@ export function Porthole(props: PortholeProps): JSX.Element {
       </div>
       {open ? (
         <div
+          data-slot="porthole-panel"
           id={panelId}
           data-ouro-part="panel"
           className={cn(
@@ -503,12 +510,12 @@ export function Porthole(props: PortholeProps): JSX.Element {
             !pressed && "pointer-events-none",
           )}
         >
-          <ul className="m-0 grid list-none gap-1 p-0">
-            <li data-porthole-part="whole-line" className="m-0 hidden font-medium text-pretty group-data-[porthole-truncated]/porthole:list-item">
+          <ul data-slot="porthole-detail-list" className="m-0 grid list-none gap-1 p-0">
+            <li data-slot="porthole-whole-line" data-porthole-part="whole-line" className="m-0 hidden font-medium text-pretty group-data-[porthole-truncated]/porthole:list-item">
               {line.text}
             </li>
             {view.detail.map((text, index) => (
-              <li key={index} className="m-0 text-pretty">
+              <li data-slot="porthole-detail" key={index} className="m-0 text-pretty">
                 {text}
               </li>
             ))}

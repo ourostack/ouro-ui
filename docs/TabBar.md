@@ -65,6 +65,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `tab-bar`, `tab-bar-accessory`, `tab-bar-accessory-icon`, `tab-bar-accessory-label`, `tab-bar-bar`, `tab-bar-item`, `tab-bar-list`, `tab-bar-tab`, `tab-bar-tab-icon`, `tab-bar-tab-label`.
+
 ## Types
 
 ### `TabBarItem`

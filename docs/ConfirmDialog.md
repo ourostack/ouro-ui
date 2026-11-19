@@ -88,3 +88,7 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `onCancel`: Not a prop. Cancel calls `onOpenChange(false)`: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
 - `onClose`: Not a prop. `onOpenChange(false)` fires on close: `<ConfirmDialog open={open} onOpenChange={setOpen}>`.
 - `variant`: Not a prop. Ouro UI uses `tone`: `<ConfirmDialog tone="destructive">`.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `dialog-header`.

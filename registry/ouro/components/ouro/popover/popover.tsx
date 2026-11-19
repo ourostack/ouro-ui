@@ -273,6 +273,7 @@ export function Popover(props: PopoverProps): JSX.Element {
       <PopoverPortal>
         <PopoverPositionerUnchecked side={side} align={align} {...(anchor ? { anchor } : {})}>
           <PopoverPopupUnchecked
+            data-slot="popover"
             ref={popupRef}
             className={className}
             data-ouro-presentation="popover"
@@ -285,15 +286,16 @@ export function Popover(props: PopoverProps): JSX.Element {
               : {})}
           >
             {(!hideTitle || description !== undefined) ? (
-              <div data-ouro-popover-header="" className="grid shrink-0 gap-1">
+              <div data-slot="popover-header" data-ouro-popover-header="" className="grid shrink-0 gap-1">
                 <PopoverTitle visuallyHidden={hideTitle}>{title}</PopoverTitle>
                 {description !== undefined && <PopoverDescription>{description}</PopoverDescription>}
               </div>
             ) : (
               <PopoverTitle visuallyHidden>{title}</PopoverTitle>
             )}
-            <div className="relative box-border flex min-h-0 flex-auto flex-col">
+            <div data-slot="popover-body" className="relative box-border flex min-h-0 flex-auto flex-col">
               <div
+                data-slot="popover-content"
                 ref={bodyRef}
                 data-ouro-popover-content=""
                 data-ouro-control="popover"
@@ -303,6 +305,7 @@ export function Popover(props: PopoverProps): JSX.Element {
                 {children}
               </div>
               <span
+                data-slot="popover-focus-ring"
                 aria-hidden="true"
                 data-popover-focus-ring=""
                 className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"

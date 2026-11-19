@@ -526,6 +526,7 @@ export function EmojiPicker(props: EmojiPickerProps): JSX.Element {
         anchor={controlled ? anchor! : triggerRef}
       >
         <PickerPanel
+          data-slot="emoji-picker"
           source={{ catalogue, categories, frequent, quick, renderEmoji, placeholder }}
           tone={tone}
           setTone={setTone}
@@ -749,6 +750,7 @@ const glyphOf = (item: EmojiPickerEmoji, tone: EmojiSkinTone, render: GlyphRende
 const Cell = memo(function Cell({ item, tone, render, index, active, quick, priority }: { item: EmojiPickerEmoji; tone: EmojiSkinTone; render: GlyphRender | undefined; index: number; active: boolean; quick: boolean; priority: GlyphPriority }) {
   return (
     <button
+      data-slot="emoji-picker-emoji"
       type="button"
       tabIndex={active ? 0 : -1}
       aria-label={item.name}
@@ -862,6 +864,7 @@ function ToneChoice({ tone, setTone, label, names, glyph, onDone }: { tone: Emoj
   useEffect(() => group.current!.querySelector<HTMLElement>('[aria-checked="true"]')!.focus(), []);
   return (
     <div
+      data-slot="emoji-picker-tones"
       ref={group}
       role="radiogroup"
       aria-label={label}
@@ -891,6 +894,7 @@ function ToneChoice({ tone, setTone, label, names, glyph, onDone }: { tone: Emoj
     >
       {emojiSkinTones.map((option) => (
         <button
+          data-slot="emoji-picker-tone"
           key={option}
           type="button"
           role="radio"
@@ -929,16 +933,16 @@ function Grids({ id, sections, rows, tone, render, active, sectionRefs, saving }
         sectionRefs.current[index] = element;
       }}
     >
-      <div id={`${id}-s${index}`} className={headingClass}>
+      <div data-slot="emoji-picker-section-heading" id={`${id}-s${index}`} className={headingClass}>
         {section.label}
       </div>
-      <div role="grid" aria-labelledby={`${id}-s${index}`} className="grid">
+      <div data-slot="emoji-picker-grid" role="grid" aria-labelledby={`${id}-s${index}`} className="grid">
         {rows
           .filter((row) => row.section === index)
           .map((row) => (
-            <div role="row" key={row.start} className={gridClass}>
+            <div data-slot="emoji-picker-row" role="row" key={row.start} className={gridClass}>
               {section.items.slice(row.start - section.start, row.start - section.start + row.length).map((item, offset) => (
-                <div role="gridcell" key={offset} className="flex justify-center">
+                <div data-slot="emoji-picker-cell" role="gridcell" key={offset} className="flex justify-center">
                   <Cell item={item} tone={tone} render={render} index={row.start + offset} active={row.start + offset === active} quick={false} priority={row.start + offset < FIRST_CELLS ? "high" : saving ? "saved" : "low"} />
                 </div>
               ))}
@@ -1022,6 +1026,7 @@ function useGridKeys(rows: readonly Row[], sectionCount: number, toSearch: () =>
 function ToneButton({ tone, labels, glyph, buttonRef, onOpen }: { tone: EmojiSkinTone; labels: PanelLabels; glyph: (tone: EmojiSkinTone) => ReactNode; buttonRef: RefObject<HTMLButtonElement | null>; onOpen: () => void }) {
   return (
     <Button
+      data-slot="emoji-picker-skin-tone"
       ref={buttonRef}
       variant="plain"
       tone="secondary"
@@ -1032,7 +1037,7 @@ function ToneButton({ tone, labels, glyph, buttonRef, onOpen }: { tone: EmojiSki
       className="aspect-square shrink-0 px-0"
       onClick={onOpen}
     >
-      <span aria-hidden="true" className="text-xl leading-none">
+      <span data-slot="emoji-picker-skin-tone-glyph" aria-hidden="true" className="text-xl leading-none">
         {glyph(tone)}
       </span>
     </Button>
@@ -1044,6 +1049,7 @@ function QuickRow({ quick, tone, render, label, onChoose }: { quick: readonly Em
   const [quickActive, setQuickActive] = useState(0);
   return (
     <div
+      data-slot="emoji-picker-quick-row"
       role="toolbar"
       aria-label={label}
       className={quickClass}
@@ -1063,9 +1069,10 @@ function QuickRow({ quick, tone, render, label, onChoose }: { quick: readonly Em
 /** The category bar: a toolbar with a button per category, one Tab stop, marking the one in view. */
 function CategoryBar({ sections, label, active, inView, setActive, onJump }: { sections: readonly Section[]; label: string; active: number; inView: number; setActive: (index: number) => void; onJump: (index: number) => void }) {
   return (
-    <div role="toolbar" aria-label={label} className={barClass} onKeyDown={(event) => onRowKey(event, sections.length, active, setActive)}>
+    <div data-slot="emoji-picker-categories" role="toolbar" aria-label={label} className={barClass} onKeyDown={(event) => onRowKey(event, sections.length, active, setActive)}>
       {sections.map((section, index) => (
         <button
+          data-slot="emoji-picker-category"
           key={index}
           type="button"
           aria-label={section.label}
@@ -1076,7 +1083,7 @@ function CategoryBar({ sections, label, active, inView, setActive, onJump }: { s
           className={barButtonClass}
           onClick={() => onJump(index)}
         >
-          <span aria-hidden="true" className="flex items-center justify-center">
+          <span data-slot="emoji-picker-category-icon" aria-hidden="true" className="flex items-center justify-center">
             {section.icon}
           </span>
         </button>
@@ -1088,11 +1095,11 @@ function CategoryBar({ sections, label, active, inView, setActive, onJump }: { s
 /** The name of the emoji under the mouse or in focus, beside its glyph. */
 function Preview({ item, tone, render, play }: { item: EmojiPickerEmoji | undefined; tone: EmojiSkinTone; render: GlyphRender | undefined; play: boolean }) {
   return (
-    <div aria-hidden="true" className={previewClass}>
+    <div data-slot="emoji-picker-preview" aria-hidden="true" className={previewClass}>
       {item && (
         <>
-          <span className={previewGlyphClass}>{glyphOf(item, tone, render, play)}</span>
-          <span className="min-w-0 truncate">{item.name}</span>
+          <span data-slot="emoji-picker-preview-glyph" className={previewGlyphClass}>{glyphOf(item, tone, render, play)}</span>
+          <span data-slot="emoji-picker-preview-name" className="min-w-0 truncate">{item.name}</span>
         </>
       )}
     </div>
@@ -1139,13 +1146,14 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
   const preview = hovered ?? (total ? itemAt(active) : undefined);
 
   return (
-    <div data-ouro="emoji-picker" className={cn(panelClass, asSheet ? "w-full" : "w-[21rem] max-w-full", className)}>
-      <div className="flex min-w-0 shrink-0 items-center gap-1">
+    <div data-slot="emoji-picker" data-ouro="emoji-picker" className={cn(panelClass, asSheet ? "w-full" : "w-[21rem] max-w-full", className)}>
+      <div data-slot="emoji-picker-header" className="flex min-w-0 shrink-0 items-center gap-1">
         {choosingTone ? (
           <ToneChoice tone={tone} setTone={setTone} label={labels.skinToneLabel} names={labels.skinToneNames} glyph={toneGlyph} onDone={doneChoosingTone} />
         ) : (
           <>
             <TextField
+              data-slot="emoji-picker-search"
               ref={searchRef}
               type="search"
               label={labels.searchLabel}
@@ -1176,16 +1184,17 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
         )}
       </div>
       {quick?.length ? <QuickRow quick={quick} tone={tone} render={render} label={labels.quickLabel} onChoose={onChoose} /> : null}
-      <div className={cn(bodyClass, barShown ? "grid-rows-[auto_18rem]" : "grid-rows-[18rem]")}>
+      <div data-slot="emoji-picker-body" className={cn(bodyClass, barShown ? "grid-rows-[auto_18rem]" : "grid-rows-[18rem]")}>
         {barShown &&
           (searching ? (
-            <div aria-hidden="true" inert className={cn(barClass, "invisible")}>
-              <span className={barButtonClass} />
+            <div data-slot="emoji-picker-categories-placeholder" aria-hidden="true" inert className={cn(barClass, "invisible")}>
+              <span data-slot="emoji-picker-category-placeholder" className={barButtonClass} />
             </div>
           ) : (
             <CategoryBar sections={sections} label={labels.categoriesLabel} active={categoryActive} inView={inView} setActive={setCategoryActive} onJump={jumpTo} />
           ))}
         <div
+          data-slot="emoji-picker-scroller"
           ref={scrollerRef}
           className={cn(scrollerClass, searching && barShown && "absolute inset-0")}
           onScroll={onScroll}
@@ -1208,7 +1217,7 @@ function Panel({ categories, frequent, quick, render, toneGlyph, tone, setTone, 
           onBlur={() => setGridFocus(false)}
         >
           {total === 0 ? (
-            <p className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">{searching ? labels.noResultsLabel : null}</p>
+            <p data-slot="emoji-picker-empty" className="m-0 px-1 py-6 text-sm leading-5 text-muted-foreground">{searching ? labels.noResultsLabel : null}</p>
           ) : (
             <Grids id={id} sections={sections} rows={rows} tone={tone} render={render} active={active} sectionRefs={sectionRefs} saving={saving} />
           )}

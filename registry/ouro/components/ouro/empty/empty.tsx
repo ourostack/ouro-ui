@@ -135,6 +135,7 @@ export function Empty(props: EmptyProps): JSX.Element {
   );
   return (
     <div
+      data-slot="empty"
       {...rest}
       data-ouro="empty"
       className={cn(
@@ -148,13 +149,14 @@ export function Empty(props: EmptyProps): JSX.Element {
     >
       {icon && (
         <div
+          data-slot="empty-media"
           aria-hidden="true"
           className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground *:[svg]:size-6"
         >
           {icon}
         </div>
       )}
-      <div className={cn("flex flex-col gap-1.5", aligns[align])}>
+      <div data-slot="empty-header" className={cn("flex flex-col gap-1.5", aligns[align])}>
         <Heading level={level} size="md">
           {title}
         </Heading>
@@ -164,8 +166,8 @@ export function Empty(props: EmptyProps): JSX.Element {
           </Text>
         )}
       </div>
-      {action && <div className="flex flex-wrap gap-2">{action}</div>}
-      {children && <div className="w-full">{children}</div>}
+      {action && <div data-slot="empty-actions" className="flex flex-wrap gap-2">{action}</div>}
+      {children && <div data-slot="empty-content" className="w-full">{children}</div>}
     </div>
   );
 }

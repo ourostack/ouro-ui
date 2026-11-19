@@ -30,3 +30,7 @@ Type: `UnreadDotProps`.
 ## Native attributes
 
 Also accepts the attributes in React's `HTMLAttributes` (`id`, `aria-*`, event handlers), passed to the rendered element, except those named on this page.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `unread-dot`, `unread-dot-indicator`, `unread-dot-label`.

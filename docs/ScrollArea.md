@@ -56,4 +56,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `scroll-area`, `scroll-area-content`, `scroll-area-focus-ring`, `scroll-area-viewport`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > passes attributes and a ref to the root, and lets layout classes win verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.test.tsx::ScrollArea > passes attributes and a ref to the root, and lets layout classes win)

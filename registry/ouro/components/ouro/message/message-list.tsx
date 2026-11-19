@@ -1247,7 +1247,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     for (let index = run!; index < end; index++) height += sizeOf(index) + (index > 0 && sizeOf(index) > 0 ? measured.gap : 0);
     // Children that draw nothing take no space, and no gap either.
     // Stryker disable next-line ConditionalExpression,EqualityOperator: a run of only such children lies between two kept children far from the view, which the window then draws together.
-    if (height > 0) slots.push(<div key={`space:${keys[run!]}`} aria-hidden="true" data-ouro-message-list-space="" className="shrink-0" style={{ height: Math.max(0, height - (run! > 0 ? measured.gap : 0)) }} />);
+    if (height > 0) slots.push(<div data-slot="message-list-space" key={`space:${keys[run!]}`} aria-hidden="true" data-ouro-message-list-space="" className="shrink-0" style={{ height: Math.max(0, height - (run! > 0 ? measured.gap : 0)) }} />);
     run = null;
   };
   shown.forEach((child, at) => {
@@ -1258,7 +1258,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     }
     if (run !== null) space(index);
     slots.push(
-      <div key={keys[index]} {...{ [SLOT]: keys[index] }} className="contents">
+      <div data-slot="message-list-slot" key={keys[index]} {...{ [SLOT]: keys[index] }} className="contents">
         {child}
       </div>,
     );
@@ -2652,13 +2652,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
+    <div data-slot="message-list" {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", className)}>
       {/* Holds the scroller and its focus ring, drawn over it, so content that sticks to an edge never covers the ring. */}
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div data-slot="message-list-frame" className="relative flex min-h-0 flex-1 flex-col">
         {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
             parts placed absolutely inside it (screen-reader text, the list's edges) stay in its overflow, not its
             ancestors': there they would let focus or scrollIntoView scroll the page around the list. */}
         <div
+          data-slot="message-list-scroller"
           ref={setScroller}
           role="region"
           aria-label={label}
@@ -2669,42 +2670,44 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the scroller, under the ring.
           className="peer relative min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] outline-none focus-visible:isolate forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
         >
-          <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+          <span data-slot="message-list-edge" ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           <div
+            data-slot="message-list-content"
             ref={contentRef}
             data-ouro-message-list-content=""
             className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-3"
             style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
           >
             {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
-            {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
+            {room && <div data-slot="message-list-older-placeholder" ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
             <RowLayerContext.Provider value={layer as RowLayer<unknown>}>{slots}</RowLayerContext.Provider>
           </div>
-          <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
+          <span data-slot="message-list-edge" ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
               in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
           {Layer && <Layer scroller={scrollerRef} layer={layer} />}
-          <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
+          <span data-slot="message-list-floor" ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
         </div>
         {/* There only while the scroller has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
         <span
+          data-slot="message-list-focus-ring"
           aria-hidden="true"
           data-ouro-message-list-focus-ring=""
           className="pointer-events-none absolute inset-0 hidden rounded-[inherit] outline-ring -outline-offset-2 peer-focus-visible:block peer-focus-visible:outline-2 peer-focus-visible:outline-solid"
         />
       </div>
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
-      <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
+      <div data-slot="message-list-live" data-ouro-message-list-live="" aria-live="polite" className="sr-only">
         {spoken.map((item) => (
           <p key={item.id}>{item.text}</p>
         ))}
       </div>
       {/* Over the list, never in it, so it moves no message. Always in the page, so screen readers hear it as it shows; a live region without the status role, so an app's own status stays the page's only one. Marked, so an app can set it lower, below a header of its own over the list. */}
-      <div data-ouro-message-list-older="" className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+      <div data-slot="message-list-older" data-ouro-message-list-older="" className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
         <div aria-live="polite">
           {loadingOlder && (
-            <span className={olderClass}>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
+            <span data-slot="message-list-older-indicator" className={olderClass}>
+              <svg data-slot="message-list-older-spinner" aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
                 <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
               </svg>
@@ -2714,11 +2717,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
         </div>
       </div>
       {showJump && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-          <button type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
+        <div data-slot="message-list-jump-row" className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+          <button data-slot="message-list-jump" type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
             <TouchTarget />
             {jumpLabel}
-            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+            <svg data-slot="message-list-jump-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-4">
               <path d="M8 3v10M4 9l4 4 4-4" />
             </svg>
           </button>

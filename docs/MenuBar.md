@@ -46,4 +46,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `menu`, `menu-back`, `menu-backdrop`, `menu-bar`, `menu-bar-trigger`, `menu-checkbox-item`, `menu-checkbox-item-indicator`, `menu-close`, `menu-context-trigger`, `menu-focus-guards`, `menu-group-label`, `menu-item-icon`, `menu-item-indicator`, `menu-item-label`, `menu-portal`, `menu-positioner`, `menu-radio-item`, `menu-radio-item-indicator`, `menu-separator`, `menu-shortcut`, `menu-submenu-icon`, `menu-submenu-trigger`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/menu/menu.test.tsx::Menu dropdown > is at least 12rem wide, and className sets layout verify:testExists(registry/ouro/components/ouro/menu/menu.test.tsx::Menu dropdown > is at least 12rem wide, and className sets layout)

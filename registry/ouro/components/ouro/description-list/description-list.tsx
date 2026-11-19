@@ -130,14 +130,14 @@ export function DescriptionList(props: DescriptionListProps): JSX.Element {
   );
   const layout = layouts[stackBelow];
   return (
-    <dl {...rest} data-ouro="description-list" className={cn("[@layer_ouro-reset]:m-0 grid w-full min-w-0 text-base pointer-fine:text-sm", layout.root, className)}>
+    <dl data-slot="description-list" {...rest} data-ouro="description-list" className={cn("[@layer_ouro-reset]:m-0 grid w-full min-w-0 text-base pointer-fine:text-sm", layout.root, className)}>
       {items.map((item, index) => {
         // A guessed `label` or `value` still shows, beside its development message.
         const loose = item as unknown as { label?: ReactNode; value?: ReactNode; description?: ReactNode };
         return (
           <Fragment key={index}>
-            <dt className={cn("m-0 border-t border-border font-normal text-muted-foreground wrap-break-word first:border-t-0", layout.term)}>{item.term ?? loose.label}</dt>
-            <dd className={cn("m-0 text-foreground wrap-break-word", layout.details)}>{item.details ?? loose.value ?? loose.description}</dd>
+            <dt data-slot="description-list-term" className={cn("m-0 border-t border-border font-normal text-muted-foreground wrap-break-word first:border-t-0", layout.term)}>{item.term ?? loose.label}</dt>
+            <dd data-slot="description-list-details" className={cn("m-0 text-foreground wrap-break-word", layout.details)}>{item.details ?? loose.value ?? loose.description}</dd>
           </Fragment>
         );
       })}

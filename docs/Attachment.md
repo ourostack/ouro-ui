@@ -62,4 +62,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `attachment`, `attachment-content`, `attachment-icon`, `attachment-link`, `attachment-name`, `attachment-open`, `attachment-remove`, `attachment-remove-icon`, `attachment-separator`, `attachment-size`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > forwards a ref and lets app layout classes win verify:testExists(registry/ouro/components/ouro/message/attachment.test.tsx::Attachment > forwards a ref and lets app layout classes win)

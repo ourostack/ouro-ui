@@ -45,7 +45,7 @@ Type: `HeroProps`.
 | `media` | `ReactNode` |  | Something live in the picture's place, such as a video, a demo or a scene. It rises in like a picture and fills the hero's width, up to `mediaWidth`. Use `picture` for a still image. |
 | `mediaWidth` | `number` |  | The widest the live `media` is shown, in pixels, such as a scene image's intrinsic width, so it is never upscaled. Without it the media fills the hero's width. A `picture` uses its own `width` instead. |
 | `motion` | `"rise" \| "none"` | `"rise"` | `rise` lifts the picture into place when it first appears, with reduced motion fading it in. The rise is a CSS transition from `@starting-style` in Hero's own classes, so it plays from server-rendered HTML before any JavaScript runs, and it needs no keyframes and no stylesheet to import. It takes its duration and easing from `ouro-base`'s `--ouro-duration-slow`, `--ouro-duration-fast` and `--ouro-ease-out`. The wrapper carries `data-starting-style` only while a hydrated page sees the rise running, so server HTML that never hydrates, such as an Astro page without client JavaScript, carries no marker. |
-| `picture` | `HeroPictures` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. Both are required: a hero has night art. Once the picture shown has loaded, the media frame carries `data-loaded`, so a site or a test can wait on `[data-slot="media"][data-loaded]`. A small inline script in the server's HTML sets it before any JavaScript bundle runs, and Hero sets it itself after hydration or a client render, so it also arrives where a content security policy blocks inline scripts. |
+| `picture` | `HeroPictures` |  | The big picture, shown under the text: `{ light, dark }`, the same scene by day and at night, swapped with the page's dark mode. Both are required: a hero has night art. Once the picture shown has loaded, the media frame carries `data-loaded`, so a site or a test can wait on `[data-slot="hero-media"][data-loaded]`. A small inline script in the server's HTML sets it before any JavaScript bundle runs, and Hero sets it itself after hydration or a client render, so it also arrives where a content security policy blocks inline scripts. |
 | `ref` | `Ref<HTMLElement>` |  | Reaches the rendered element. |
 | `title` (required) | `ReactNode` |  | The hero's headline, its `<h1>` (or `<h2>` with `headingLevel={2}`). Required. |
 
@@ -62,6 +62,10 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `image`: Not a prop. The picture is `picture`: `<Hero picture={{ light: { src, width, height, alt }, dark: { src, width, height } }} />`.
 - `overline`: Not a prop. The line above the title is `eyebrow`: `<Hero eyebrow="Recipes" />`.
 - `subtitle`: Not a prop. The lede is `description`: `<Hero description="…" />`.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `hero`, `hero-actions`, `hero-badge`, `hero-breadcrumb`, `hero-description`, `hero-eyebrow`, `hero-eyebrow-row`, `hero-image`, `hero-media`, `hero-more`, `hero-picture`, `hero-text`, `hero-title`.
 
 ## Types
 

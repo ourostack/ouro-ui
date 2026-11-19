@@ -255,6 +255,7 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
     data: "number-field",
     frame: (labelNode: ReactElement, rest: ReactNode) => (
       <BaseNumberField.Root
+        data-slot="number-field-frame"
         value={value}
         defaultValue={defaultValue ?? undefined}
         onValueChange={(next) => handleValueChange(next)}
@@ -271,7 +272,7 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
         className="contents"
       >
         {scrubbable ? (
-          <BaseNumberField.ScrubArea data-ouro-number-field-scrub="" className={scrubClass}>
+          <BaseNumberField.ScrubArea data-slot="number-field-scrub-area" data-ouro-number-field-scrub="" className={scrubClass}>
             {labelNode}
           </BaseNumberField.ScrubArea>
         ) : (
@@ -285,6 +286,7 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="number-field"
         label={label}
         hideLabel={hideLabel}
         description={description}
@@ -348,15 +350,16 @@ function NumberFieldGroup({
   const invalid = field.invalid;
   // Each stepper drops the aria-label Base UI gives it, since its hidden text names it. The render arrows stay inline: Base UI warns about a render function named with a capital, and a minifier can rename a named one to any name.
   return (
-    <BaseNumberField.Group data-ouro-number-field-group="" className={groupClass}>
-      <BaseNumberField.Decrement data-ouro-decrement="" data-ouro-control="number-field" data-ouro-part="decrement" render={(props) => <button {...props} aria-label={undefined} />} className={stepperClass}>
+    <BaseNumberField.Group data-slot="number-field-group" data-ouro-number-field-group="" className={groupClass}>
+      <BaseNumberField.Decrement data-slot="number-field-decrement" data-ouro-decrement="" data-ouro-control="number-field" data-ouro-part="decrement" render={(props) => <button {...props} aria-label={undefined} />} className={stepperClass}>
         <TouchTarget />
         <Icon>
           <path d="M3.5 8h9" />
         </Icon>
-        <span className="sr-only">{decrementLabel}</span>
+        <span data-slot="number-field-decrement-label" className="sr-only">{decrementLabel}</span>
       </BaseNumberField.Decrement>
       <BaseNumberField.Input
+        data-slot="number-field-input"
         ref={inputRef}
         data-ouro-control="number-field"
         data-ouro-part="input"
@@ -367,12 +370,12 @@ function NumberFieldGroup({
         {...(invalid ? { "aria-invalid": true } : {})}
         className={inputClass}
       />
-      <BaseNumberField.Increment data-ouro-increment="" data-ouro-control="number-field" data-ouro-part="increment" render={(props) => <button {...props} aria-label={undefined} />} className={stepperClass}>
+      <BaseNumberField.Increment data-slot="number-field-increment" data-ouro-increment="" data-ouro-control="number-field" data-ouro-part="increment" render={(props) => <button {...props} aria-label={undefined} />} className={stepperClass}>
         <TouchTarget />
         <Icon>
           <path d="M3.5 8h9M8 3.5v9" />
         </Icon>
-        <span className="sr-only">{incrementLabel}</span>
+        <span data-slot="number-field-increment-label" className="sr-only">{incrementLabel}</span>
       </BaseNumberField.Increment>
     </BaseNumberField.Group>
   );

@@ -84,6 +84,7 @@ export function CssPanel({ open, onFound, children, contentClassName, ...rest }:
   }, [shown, untilFound]);
   return (
     <div
+      data-slot="css-panel"
       {...rest}
       ref={panelRef}
       // Stryker disable next-line BooleanLiteral: hidden="false" would still hide in the same way for the browser engines under test.
@@ -98,8 +99,8 @@ export function CssPanel({ open, onFound, children, contentClassName, ...rest }:
         "data-moved:starting:grid-rows-[0fr] [&[hidden]:not([hidden=until-found])]:hidden"
       }
     >
-      <div className="min-h-0 overflow-hidden">
-        <div className={contentClassName}>{children}</div>
+      <div data-slot="css-panel-clip" className="min-h-0 overflow-hidden">
+        <div data-slot="css-panel-content" className={contentClassName}>{children}</div>
       </div>
     </div>
   );

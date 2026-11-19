@@ -127,8 +127,9 @@ function Row({ item, Heading, open }: { item: AccordionItem; Heading: `h${Accord
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <BaseAccordion.Header render={<Heading />} className={headerClass}>
+      <BaseAccordion.Header data-slot="accordion-header" render={<Heading />} className={headerClass}>
         <BaseAccordion.Trigger
+          data-slot="accordion-trigger"
           ref={triggerRef}
           id={triggerId}
           aria-controls={open ? panelId : undefined}
@@ -158,6 +159,7 @@ function Row({ item, Heading, open }: { item: AccordionItem; Heading: `h${Accord
 function Chevron(): JSX.Element {
   return (
     <svg
+      data-slot="accordion-icon"
       aria-hidden="true"
       viewBox="0 0 16 16"
       fill="none"
@@ -262,6 +264,7 @@ export function Accordion(props: AccordionProps): JSX.Element {
   const Heading = `h${level}` as const;
   return (
     <BaseAccordion.Root
+      data-slot="accordion"
       ref={ref}
       multiple={multiple === true}
       value={toList(value)}
@@ -280,6 +283,7 @@ export function Accordion(props: AccordionProps): JSX.Element {
     >
       {items.map((item, index) => (
         <BaseAccordion.Item
+          data-slot="accordion-item"
           key={values[index]}
           value={values[index]}
           disabled={item.disabled === true}

@@ -45,6 +45,10 @@ These are not props. Passing one fails the type check with the fix in the error,
 - `round`: Not a prop. Ouro UI uses `shape`: `<ImageCropper shape="circle" />`.
 - `src`: Not a prop. The image is `image`: `<ImageCropper image={file} />`.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `image-cropper`, `image-cropper-area`, `image-cropper-image`, `image-cropper-instructions`, `image-cropper-status`.
+
 ## Types
 
 ### `ImageCropperFailure`

@@ -388,7 +388,7 @@ function renderEntries(entries: readonly MenuEntry[]): ReactNode {
             axAction={entry.axAction}
           >
             {entry.icon !== undefined && (
-              <span aria-hidden="true" data-ouro-menu-icon="" className="flex shrink-0">
+              <span data-slot="menu-item-icon" aria-hidden="true" data-ouro-menu-icon="" className="flex shrink-0">
                 {entry.icon}
               </span>
             )}
@@ -468,10 +468,11 @@ function MenuSurface({
   // Stryker disable next-line ArrayDeclaration: the effect reads only the holder, the same element for the surface's life, so it runs once whatever it lists.
   []);
   const surface = (
-    <BaseMenu.Portal {...portal} data-ouro="menu-portal" className={floatingPortalClass}>
+    <BaseMenu.Portal data-slot="menu-portal" {...portal} data-ouro="menu-portal" className={floatingPortalClass}>
       <PortalScope>
-        {sheet && <BaseMenu.Backdrop data-ouro="menu-backdrop" className={menuBackdropClass} />}
+        {sheet && <BaseMenu.Backdrop data-slot="menu-backdrop" data-ouro="menu-backdrop" className={menuBackdropClass} />}
         <Positioner
+          data-slot="menu-positioner"
           data-ouro="menu-positioner"
           className={sheet ? menuSheetPositionerClass : menuPositionerClass}
           sideOffset={context || point ? 0 : 4}
@@ -485,6 +486,7 @@ function MenuSurface({
           {...(align ? { align } : {})}
         >
           <BaseMenu.Popup
+            data-slot="menu"
             data-ouro="menu"
             data-ouro-presentation={sheet ? "sheet" : "menu"}
             aria-label={label}
@@ -495,8 +497,8 @@ function MenuSurface({
             <MenuContext.Provider value={{ sheet }}>{children}</MenuContext.Provider>
             {sheet && closeLabel !== undefined && (
               <>
-                <BaseMenu.Separator className={menuSeparatorClass} />
-                <BaseMenu.Item data-ouro-menu-close="" data-ouro-control="menu" data-ouro-part="close" className={menuItemClass}>
+                <BaseMenu.Separator data-slot="menu-separator" className={menuSeparatorClass} />
+                <BaseMenu.Item data-slot="menu-close" data-ouro-menu-close="" data-ouro-control="menu" data-ouro-part="close" className={menuItemClass}>
                   <span data-ouro-menu-label="">{closeLabel}</span>
                 </BaseMenu.Item>
               </>
@@ -508,7 +510,7 @@ function MenuSurface({
   );
   if (!inside) return surface;
   return (
-    <span ref={guards} data-ouro-menu-guards="" className={menuGuardsClass}>
+    <span data-slot="menu-focus-guards" ref={guards} data-ouro-menu-guards="" className={menuGuardsClass}>
       {surface}
     </span>
   );
@@ -715,6 +717,7 @@ export function Menu(props: MenuProps): JSX.Element {
     const directed = (
       <BaseMenu.Root {...control} actionsRef={actions} modal={sheet}>
         <MenuSurface
+          data-slot="menu"
           sheet={sheet}
           context={false}
           side={side}
@@ -738,6 +741,7 @@ export function Menu(props: MenuProps): JSX.Element {
     const directed = (
       <ContextMenu.Root {...control}>
         <ContextMenu.Trigger
+          data-slot="menu-context-trigger"
           ref={contextRef}
           render={contextTrigger}
           className={menuContextTriggerClass}
@@ -748,7 +752,7 @@ export function Menu(props: MenuProps): JSX.Element {
           onTouchEnd={pressing(false)}
           onTouchCancel={pressing(false)}
         />
-        <MenuSurface sheet={false} context className={className}>
+        <MenuSurface data-slot="menu" sheet={false} context className={className}>
           {body}
         </MenuSurface>
       </ContextMenu.Root>
@@ -760,13 +764,14 @@ export function Menu(props: MenuProps): JSX.Element {
   const menu = (
     <BaseMenu.Root {...control} actionsRef={actions} modal={label === undefined ? sheet || modal : undefined}>
       {label !== undefined ? (
-        <BaseMenu.Trigger data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
+        <BaseMenu.Trigger data-slot="menu-bar-trigger" data-ouro-control="menu" data-ouro-part="bar-trigger" className={menuBarTriggerClass} {...holdPageAtPress.listButton}>
           {label}
         </BaseMenu.Trigger>
       ) : (
         <BaseMenu.Trigger ref={triggerRef} render={trigger} {...holdPageAtPress.listButton} />
       )}
       <MenuSurface
+        data-slot="menu"
         sheet={sheet}
         context={false}
         side={side}
@@ -853,7 +858,7 @@ export function MenuBar({ children, className, ...rest }: MenuBarProps): JSX.Ele
     process.env.NODE_ENV !== "production" ? "wrap the MenuBar in an element with that class" : /* istanbul ignore next @preserve -- production only */ "",
   );
   const directed = (
-    <Menubar {...rest} ref={bar} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
+    <Menubar data-slot="menu-bar" {...rest} ref={bar} data-ouro="menu-bar" className={cn(menuBarClass, className)}>
       <MenuBarContext.Provider value>{children}</MenuBarContext.Provider>
     </Menubar>
   );
@@ -923,10 +928,10 @@ function ItemBody({ children, shortcut }: { children: ReactNode; shortcut: MenuS
   const keys = shortcutKeys(shortcut);
   return (
     <>
-      <span data-ouro-menu-label="" className="flex min-w-0 flex-1 items-center gap-2">
+      <span data-slot="menu-item-label" data-ouro-menu-label="" className="flex min-w-0 flex-1 items-center gap-2">
         {children}
       </span>
-      {keys && <Kbd keys={keys} aria-hidden="true" className="ms-auto" />}
+      {keys && <Kbd data-slot="menu-shortcut" keys={keys} aria-hidden="true" className="ms-auto" />}
     </>
   );
 }
@@ -966,7 +971,7 @@ export function MenuItem(props: MenuItemProps): JSX.Element {
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const shared = { className: menuItemClass, "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, "data-ax-action": axAction, ...keyShortcutProps(shortcut, platform), ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
+  const shared = { "data-slot": "menu-item", className: menuItemClass, "data-ouro-control": "menu", "data-ouro-part": "item", "data-tone": tone, "data-ax-action": axAction, ...keyShortcutProps(shortcut, platform), ...(onClick ? { onClick: (event: MouseEvent<HTMLElement>) => onClick(event) } : {}) };
   const body = <ItemBody shortcut={shortcut}>{children}</ItemBody>;
   // A disabled link is a disabled item: nothing to follow.
   if (href !== undefined && !disabled) {
@@ -1029,9 +1034,9 @@ export function MenuCheckboxItem({ children, shortcut, onCheckedChange, axAction
     process.env.NODE_ENV !== "production" ? () => [shortcutWarning("MenuCheckboxItem", shortcut)] : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <BaseMenu.CheckboxItem data-ouro-control="menu" data-ouro-part="checkbox-item" data-ax-action={axAction} {...rest} {...keyShortcutProps(shortcut, platform)} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
-      <span data-ouro-menu-indicator="" className={menuIndicatorClass}>
-        <BaseMenu.CheckboxItemIndicator className="flex">
+    <BaseMenu.CheckboxItem data-slot="menu-checkbox-item" data-ouro-control="menu" data-ouro-part="checkbox-item" data-ax-action={axAction} {...rest} {...keyShortcutProps(shortcut, platform)} {...(onCheckedChange ? { onCheckedChange: (next: boolean) => onCheckedChange(next) } : {})} className={menuItemClass}>
+      <span data-slot="menu-item-indicator" data-ouro-menu-indicator="" className={menuIndicatorClass}>
+        <BaseMenu.CheckboxItemIndicator data-slot="menu-checkbox-item-indicator" className="flex">
           <CheckIcon />
         </BaseMenu.CheckboxItemIndicator>
       </span>
@@ -1073,7 +1078,7 @@ export function MenuRadioGroup({ children, label, onValueChange, ...rest }: Menu
   useMenuPart("MenuRadioGroup", '<MenuRadioGroup><MenuRadioItem value="a">A</MenuRadioItem></MenuRadioGroup>');
   return (
     <BaseMenu.RadioGroup {...rest} {...(onValueChange ? { onValueChange: (next: string) => onValueChange(next) } : {})}>
-      {label !== undefined && <BaseMenu.GroupLabel className={menuGroupLabelClass}>{label}</BaseMenu.GroupLabel>}
+      {label !== undefined && <BaseMenu.GroupLabel data-slot="menu-group-label" className={menuGroupLabelClass}>{label}</BaseMenu.GroupLabel>}
       <RadioGroupContext.Provider value>{children}</RadioGroupContext.Provider>
     </BaseMenu.RadioGroup>
   );
@@ -1117,9 +1122,9 @@ export function MenuRadioItem({ children, shortcut, ...rest }: MenuRadioItemProp
     process.env.NODE_ENV !== "production" ? () => [shortcutWarning("MenuRadioItem", shortcut)] : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   return (
-    <BaseMenu.RadioItem data-ouro-control="menu" data-ouro-part="radio-item" {...rest} {...keyShortcutProps(shortcut, platform)} className={menuItemClass}>
-      <span data-ouro-menu-indicator="" className={menuIndicatorClass}>
-        <BaseMenu.RadioItemIndicator className="flex">
+    <BaseMenu.RadioItem data-slot="menu-radio-item" data-ouro-control="menu" data-ouro-part="radio-item" {...rest} {...keyShortcutProps(shortcut, platform)} className={menuItemClass}>
+      <span data-slot="menu-item-indicator" data-ouro-menu-indicator="" className={menuIndicatorClass}>
+        <BaseMenu.RadioItemIndicator data-slot="menu-radio-item-indicator" className="flex">
           <CheckIcon />
         </BaseMenu.RadioItemIndicator>
       </span>
@@ -1164,7 +1169,7 @@ export function MenuGroup({ label, children }: MenuGroupProps): JSX.Element {
   );
   return (
     <BaseMenu.Group>
-      <BaseMenu.GroupLabel className={menuGroupLabelClass}>{label}</BaseMenu.GroupLabel>
+      <BaseMenu.GroupLabel data-slot="menu-group-label" className={menuGroupLabelClass}>{label}</BaseMenu.GroupLabel>
       {children}
     </BaseMenu.Group>
   );
@@ -1173,7 +1178,7 @@ export function MenuGroup({ label, children }: MenuGroupProps): JSX.Element {
 /** A chevron pointing to the inline end, for a submenu's item; and back, for its Back item. */
 function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
   return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={back ? "rotate-180 rtl:rotate-0" : "ms-auto rtl:rotate-180"}>
+    <svg data-slot="menu-submenu-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none" className={back ? "rotate-180 rtl:rotate-0" : "ms-auto rtl:rotate-180"}>
       <path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -1215,15 +1220,15 @@ export function MenuSub({ label, children, disabled, backLabel = "Back" }: MenuS
   const [open, setOpen] = useState(false);
   return (
     <BaseMenu.SubmenuRoot open={open} onOpenChange={setOpen} disabled={disabled}>
-      <BaseMenu.SubmenuTrigger data-ouro-control="menu" data-ouro-part="submenu-trigger" className={menuItemClass} disabled={disabled} openOnHover={!sheet}>
-        <span data-ouro-menu-label="" className="flex min-w-0 flex-1 items-center gap-2">
+      <BaseMenu.SubmenuTrigger data-slot="menu-submenu-trigger" data-ouro-control="menu" data-ouro-part="submenu-trigger" className={menuItemClass} disabled={disabled} openOnHover={!sheet}>
+        <span data-slot="menu-item-label" data-ouro-menu-label="" className="flex min-w-0 flex-1 items-center gap-2">
           {label}
         </span>
         <ChevronIcon />
       </BaseMenu.SubmenuTrigger>
       <MenuSurface sheet={sheet} context={false}>
         {sheet && (
-          <BaseMenu.Item data-ouro-menu-back="" data-ouro-control="menu" data-ouro-part="back" className={menuItemClass} closeOnClick={false} onClick={() => setOpen(false)}>
+          <BaseMenu.Item data-slot="menu-back" data-ouro-menu-back="" data-ouro-control="menu" data-ouro-part="back" className={menuItemClass} closeOnClick={false} onClick={() => setOpen(false)}>
             <ChevronIcon back />
             <span data-ouro-menu-label="">{backLabel}</span>
           </BaseMenu.Item>
@@ -1249,5 +1254,5 @@ export function MenuSub({ label, children, disabled, backLabel = "Back" }: MenuS
  */
 export function MenuSeparator(): JSX.Element {
   useMenuPart("MenuSeparator", "<MenuSeparator />");
-  return <BaseMenu.Separator className={menuSeparatorClass} />;
+  return <BaseMenu.Separator data-slot="menu-separator" className={menuSeparatorClass} />;
 }

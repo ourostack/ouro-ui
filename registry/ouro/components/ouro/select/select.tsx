@@ -213,6 +213,7 @@ function SelectControl({
       {/* A div, not a button: VoiceOver drops the end of a <button role="combobox">'s value and adds a comma before
           it (WebKit bug 285047, ourostack/ouro-ui#113), and reads a div's whole, on macOS 15 and 26. */}
       <BaseSelect.Trigger
+        data-slot="select-trigger"
         render={<div />}
         nativeButton={false}
         {...holdPageAtPress.listButton}
@@ -224,15 +225,16 @@ function SelectControl({
         aria-describedby={field.describedBy}
         aria-invalid={field.invalid || undefined}
       >
-        <BaseSelect.Value placeholder={placeholder} className="min-w-0 flex-1 truncate" />
+        <BaseSelect.Value data-slot="select-value" placeholder={placeholder} className="min-w-0 flex-1 truncate" />
         <ChevronIcon />
       </BaseSelect.Trigger>
       {/* Base UI puts the portal inside a Dialog's or Sheet's portal when the Select is in one, where
           the dialog's layers sit at z-1000; 1000 above --ouro-layer clears them there and on the page. */}
-      <BaseSelect.Portal {...portal} data-ouro="select-portal" className="relative isolate z-[calc(var(--ouro-layer)+1000)]">
+      <BaseSelect.Portal data-slot="select-portal" {...portal} data-ouro="select-portal" className="relative isolate z-[calc(var(--ouro-layer)+1000)]">
         <PortalScope>
-          {sheet && <BaseSelect.Backdrop data-ouro="select-backdrop" className={backdropClass} />}
+          {sheet && <BaseSelect.Backdrop data-slot="select-backdrop" data-ouro="select-backdrop" className={backdropClass} />}
           <BaseSelect.Positioner
+            data-slot="select-positioner"
             className={positionerClass}
             positionMethod={floatingPositionMethod}
             sideOffset={4}
@@ -240,13 +242,13 @@ function SelectControl({
             alignItemWithTrigger={!sheet}
             data-ouro-presentation={presentation}
           >
-            <BaseSelect.Popup className={popupClass} data-ouro="select-popup" data-ouro-presentation={presentation} onFocus={focusOptionFromPopup}>
+            <BaseSelect.Popup data-slot="select-popup" className={popupClass} data-ouro="select-popup" data-ouro-presentation={presentation} onFocus={focusOptionFromPopup}>
               {sheet && (
-                <div aria-hidden="true" className={sheetTitleClass}>
+                <div data-slot="select-sheet-title" aria-hidden="true" className={sheetTitleClass}>
                   {label}
                 </div>
               )}
-              <BaseSelect.List className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <BaseSelect.List data-slot="select-list" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 <SelectListScope>
                   {options
                     ? options.map((entry) =>
@@ -354,6 +356,7 @@ export function Select(props: SelectProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="select"
         label={label}
         hideLabel={hideLabel}
         description={description}

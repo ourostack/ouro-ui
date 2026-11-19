@@ -70,6 +70,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `sidebar`, `sidebar-button`, `sidebar-collapse`, `sidebar-collapse-frame`, `sidebar-collapse-icon`, `sidebar-collapse-label`, `sidebar-collapse-panel-icon`, `sidebar-column`, `sidebar-content`, `sidebar-drawer`, `sidebar-drawer-nav`, `sidebar-footer`, `sidebar-group`, `sidebar-group-icon`, `sidebar-group-list`, `sidebar-group-menu-badge`, `sidebar-header`, `sidebar-item-badge`, `sidebar-item-icon`, `sidebar-item-label`, `sidebar-link`, `sidebar-menu`, `sidebar-menu-icon`, `sidebar-section`, `sidebar-section-label`, `sidebar-section-list`.
+
 ## Types
 
 ### `SidebarButtonItem`

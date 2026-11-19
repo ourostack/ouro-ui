@@ -99,6 +99,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `text-field`, `text-field-actions`, `text-field-clear`, `text-field-clear-label`, `text-field-end-adornment`, `text-field-icon`, `text-field-input`, `text-field-input-group`, `text-field-show-password`, `text-field-show-password-label`, `text-field-start-adornment`.
+
 ## Types
 
 ### `ErrorMessage`

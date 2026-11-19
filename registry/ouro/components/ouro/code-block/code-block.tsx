@@ -120,10 +120,10 @@ function CodeWithEmoji({ code, catalogue }: { code: string; catalogue: EmojiCata
     typeof part === "string" ? (
       part
     ) : (
-      <span key={index} data-ouro-code-emoji="" className="relative">
-        <span className="text-transparent [forced-color-adjust:none]">{part.source}</span>
-        <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <Emoji item={part.item} skinTone={part.tone} play={false} alt="" className="size-[1em] align-baseline" />
+      <span data-slot="code-block-emoji" key={index} data-ouro-code-emoji="" className="relative">
+        <span data-slot="code-block-emoji-source" className="text-transparent [forced-color-adjust:none]">{part.source}</span>
+        <span data-slot="code-block-emoji-picture" aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <Emoji data-slot="code-block-emoji-image" item={part.item} skinTone={part.tone} play={false} alt="" className="size-[1em] align-baseline" />
         </span>
       </span>
     ),
@@ -140,7 +140,7 @@ function AnsiCode({ code, catalogue }: { code: string; catalogue: EmojiCatalogue
   return parseAnsi(code).map((run, index) => {
     const text = catalogue ? <CodeWithEmoji code={run.text} catalogue={catalogue} /> : run.text;
     return run.style ? (
-      <span key={index} data-ouro-ansi="" className={ansiClassName(run.style)}>
+      <span data-slot="code-block-ansi" key={index} data-ouro-ansi="" className={ansiClassName(run.style)}>
         {text}
       </span>
     ) : (
@@ -224,6 +224,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
   // <figcaption> names the figure, so the button stays out of it.
   return (
     <figure
+      data-slot="code-block"
       {...rest}
       ref={ref}
       data-ouro="code-block"
@@ -236,14 +237,15 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
     >
       {caption != null ? (
         <figcaption
-          data-slot="caption"
+          data-slot="code-block-caption"
           className="col-start-1 row-start-1 flex min-w-0 items-center ps-4 pe-2 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]"
         >
-          <span className="min-w-0 truncate">{caption}</span>
+          <span data-slot="code-block-caption-text" className="min-w-0 truncate">{caption}</span>
         </figcaption>
       ) : null}
       {copy ? (
         <CopyButton
+          data-slot="code-block-copy"
           data-ouro-control="code-block"
           data-ouro-part="copy"
           value={ansi ? stripAnsi(code) : code}
@@ -256,9 +258,10 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
       ) : null}
       {bar ? (
         // The code's fade would fade a hairline drawn on the code, so it sits beside the code, under its transparent top border (#530).
-        <span aria-hidden="true" data-slot="rule" className="pointer-events-none col-span-2 col-start-1 row-start-2 h-px self-start border-0 border-t border-solid border-border" />
+        <span aria-hidden="true" data-slot="code-block-rule" className="pointer-events-none col-span-2 col-start-1 row-start-2 h-px self-start border-0 border-t border-solid border-border" />
       ) : null}
       <pre
+        data-slot="code-block-code"
         ref={scrollable}
         data-ouro-control="code-block"
         data-ouro-part="code"
@@ -269,7 +272,7 @@ export function CodeBlock(props: CodeBlockProps): JSX.Element {
           wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre",
         )}
       >
-        <code className={cn("[font-family:inherit]", wrap ? "block" : "block w-max min-w-full")}>{ansi ? <AnsiCode code={code} catalogue={catalogue} /> : catalogue ? <CodeWithEmoji code={code} catalogue={catalogue} /> : code}</code>
+        <code data-slot="code-block-text" className={cn("[font-family:inherit]", wrap ? "block" : "block w-max min-w-full")}>{ansi ? <AnsiCode code={code} catalogue={catalogue} /> : catalogue ? <CodeWithEmoji code={code} catalogue={catalogue} /> : code}</code>
       </pre>
     </figure>
   );

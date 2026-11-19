@@ -107,3 +107,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 ## Parts
 
 When these props cannot express your layout, build it from the parts in `@/registry/ouro/components/ouro/dialog/dialog-parts`. See [parts.md](parts.md#dialog-parts) for the required nesting.
+
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `dialog`, `dialog-backdrop`, `dialog-close`, `dialog-content`, `dialog-content-focus-ring`, `dialog-content-frame`, `dialog-description`, `dialog-footer`, `dialog-header`, `dialog-portal`, `dialog-title`, `dialog-viewport`.

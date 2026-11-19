@@ -479,12 +479,13 @@ function SuggestionList({ open, listId, label, query, items, current, anchor, on
   const portal = usePortalContainer("Autocomplete");
   return (
     <BasePopover.Root open={open}>
-      <BasePopover.Portal {...portal} data-ouro="autocomplete-portal" className={floatingPortalClass}>
+      <BasePopover.Portal data-slot="autocomplete-portal" {...portal} data-ouro="autocomplete-portal" className={floatingPortalClass}>
         <PortalScope>
           <BasePopover.Positioner anchor={anchor} positionMethod={floatingPositionMethod} side="bottom" align="start" sideOffset={4} collisionPadding={8} data-ouro="autocomplete-positioner">
-            <BasePopover.Popup initialFocus={false} finalFocus={false} role="listbox" id={listId} aria-label={label} data-ouro="autocomplete" className={popupClass}>
+            <BasePopover.Popup data-slot="autocomplete" initialFocus={false} finalFocus={false} role="listbox" id={listId} aria-label={label} data-ouro="autocomplete" className={popupClass}>
               {items.map((item, index) => (
                 <div
+                  data-slot="autocomplete-option"
                   key={item.value}
                   id={`${listId}-${index}`}
                   role="option"
@@ -514,23 +515,23 @@ function OptionContent({ item, query, active }: { item: AutocompleteItem; query:
   return (
     <>
       {item.emoji ? (
-        <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
+        <span data-slot="autocomplete-option-emoji" aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
           <Emoji item={item.emoji} skinTone={item.skinTone} play={active} />
         </span>
       ) : item.avatar ? (
-        <Avatar name={item.label} alt="" size="xs" src={item.avatar.src} initials={item.avatar.initials} className="shrink-0" />
+        <Avatar data-slot="autocomplete-option-avatar" name={item.label} alt="" size="xs" src={item.avatar.src} initials={item.avatar.initials} className="shrink-0" />
       ) : item.glyph !== undefined ? (
-        <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
+        <span data-slot="autocomplete-option-glyph" aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center text-lg leading-none">
           {item.glyph}
         </span>
       ) : null}
-      <span className="min-w-0 flex-1 truncate">
+      <span data-slot="autocomplete-option-label" className="min-w-0 flex-1 truncate">
         {at < 0 ? (
           item.label
         ) : (
           <>
             {item.label.slice(0, at)}
-            <span data-ouro-autocomplete-match="" className="font-semibold">
+            <span data-slot="autocomplete-option-match" data-ouro-autocomplete-match="" className="font-semibold">
               {item.label.slice(at, at + query.length)}
             </span>
             {item.label.slice(at + query.length)}
@@ -538,7 +539,7 @@ function OptionContent({ item, query, active }: { item: AutocompleteItem; query:
         )}
       </span>
       {item.description && (
-        <span className="ms-2 shrink-0 text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] sm:pointer-fine:text-xs">{item.description}</span>
+        <span data-slot="autocomplete-option-description" className="ms-2 shrink-0 text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] sm:pointer-fine:text-xs">{item.description}</span>
       )}
     </>
   );

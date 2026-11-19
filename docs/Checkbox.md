@@ -64,6 +64,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `checkbox`, `checkbox-box`, `checkbox-dash`, `checkbox-icon`, `checkbox-indicator`, `checkbox-tick`.
+
 ## Types
 
 ### `ErrorMessage`

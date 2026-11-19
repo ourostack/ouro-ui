@@ -120,15 +120,15 @@ export function TableFrame(props: TableFrameProps): JSX.Element {
   const { caption, hideCaption, striped, dense, stickyHeader, sortedLabel = sortedLabelDefault, children, className, tableRef, ...rest } = props;
   return (
     <TableContext.Provider value={{ dense: Boolean(dense), striped: Boolean(striped), stickyHeader: Boolean(stickyHeader), sortedLabel }}>
-      <div {...rest} data-ouro="table" className={cn("flex min-w-0 flex-col gap-3", className)}>
+      <div data-slot="table" {...rest} data-ouro="table" className={cn("flex min-w-0 flex-col gap-3", className)}>
         {!hideCaption && (
-          <div aria-hidden data-table-caption="" className="text-sm font-medium text-muted-foreground">
+          <div data-slot="table-caption" aria-hidden data-table-caption="" className="text-sm font-medium text-muted-foreground">
             {caption}
           </div>
         )}
-        <ScrollArea orientation="both" label={caption} className="min-h-0 flex-1">
-          <table ref={tableRef} className="w-full border-separate border-spacing-0 text-base text-foreground pointer-fine:text-sm">
-            <caption className="sr-only">{caption}</caption>
+        <ScrollArea data-slot="table-scroll-area" orientation="both" label={caption} className="min-h-0 flex-1">
+          <table data-slot="table-grid" ref={tableRef} className="w-full border-separate border-spacing-0 text-base text-foreground pointer-fine:text-sm">
+            <caption data-slot="table-sr-caption" className="sr-only">{caption}</caption>
             {children}
           </table>
         </ScrollArea>
@@ -203,7 +203,7 @@ export function TableRoot(props: TableRootProps): JSX.Element {
       ? () => [!props.caption && ["caption is required; it names the table", '<TableRoot caption="Pantry">, with hideCaption when a heading already shows it']]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  return <TableFrame {...rest} className={className} tableRef={ref} />;
+  return <TableFrame data-slot="table" {...rest} className={className} tableRef={ref} />;
 }
 
 /** Props for {@link TableHeader}, {@link TableBody} and {@link TableFooter}. */
@@ -220,7 +220,7 @@ function TableSection(props: TableSectionProps & { part: "TableHeader" | "TableB
   const Element = kind === "head" ? "thead" : kind === "body" ? "tbody" : "tfoot";
   return (
     <SectionContext.Provider value={kind}>
-      <Element {...rest} className={cn(className)} />
+      <Element data-slot="table-section" {...rest} className={cn(className)} />
     </SectionContext.Provider>
   );
 }
@@ -239,7 +239,7 @@ function TableSection(props: TableSectionProps & { part: "TableHeader" | "TableB
  * </TableHeader>
  */
 export function TableHeader(props: TableSectionProps): JSX.Element {
-  return <TableSection {...props} part="TableHeader" kind="head" />;
+  return <TableSection data-slot="table-header" {...props} part="TableHeader" kind="head" />;
 }
 
 /**
@@ -255,7 +255,7 @@ export function TableHeader(props: TableSectionProps): JSX.Element {
  * </TableBody>
  */
 export function TableBody(props: TableSectionProps): JSX.Element {
-  return <TableSection {...props} part="TableBody" kind="body" />;
+  return <TableSection data-slot="table-body" {...props} part="TableBody" kind="body" />;
 }
 
 /**
@@ -271,7 +271,7 @@ export function TableBody(props: TableSectionProps): JSX.Element {
  * </TableFooter>
  */
 export function TableFooter(props: TableSectionProps): JSX.Element {
-  return <TableSection {...props} part="TableFooter" kind="foot" />;
+  return <TableSection data-slot="table-footer" {...props} part="TableFooter" kind="foot" />;
 }
 
 /** Props for {@link TableRow}. */
@@ -358,6 +358,7 @@ export function TableRow(props: TableRowProps): JSX.Element {
   return (
     <RowContext.Provider value={{ section: kind, href: linked ? href : undefined, external: Boolean(external), externalLabel, claim: {} }}>
       <tr
+        data-slot="table-row"
         {...rest}
         ref={merged}
         // A click anywhere on a linked row opens its link, though a sticky cell keeps the link's layer to itself.
@@ -465,9 +466,10 @@ export function TableHead(props: TableHeadProps): JSX.Element {
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
   const direction = directionOf(sorted);
-  const label = hideHeader ? <span className="sr-only">{children}</span> : children;
+  const label = hideHeader ? <span data-slot="table-head-label" className="sr-only">{children}</span> : children;
   const icon = (onSort || direction) && (
     <svg
+      data-slot="table-sort-icon"
       aria-hidden="true"
       data-sort-icon={direction ?? "none"}
       viewBox="0 0 16 16"
@@ -483,6 +485,7 @@ export function TableHead(props: TableHeadProps): JSX.Element {
   );
   return (
     <th
+      data-slot="table-head"
       scope="col"
       aria-sort={direction}
       {...rest}
@@ -501,6 +504,7 @@ export function TableHead(props: TableHeadProps): JSX.Element {
     >
       {onSort ? (
         <button
+          data-slot="table-sort"
           type="button"
           data-ouro-control="table"
           data-ouro-part="sort"
@@ -512,13 +516,13 @@ export function TableHead(props: TableHeadProps): JSX.Element {
             onSort(next);
           }}
         >
-          <span className="min-w-0">{label}</span>
+          <span data-slot="table-sort-label" className="min-w-0">{label}</span>
           {icon}
         </button>
       ) : (
         <>
           {label}
-          {icon && <span className="ms-1.5 inline-flex align-middle">{icon}</span>}
+          {icon && <span data-slot="table-sort-indicator" className="ms-1.5 inline-flex align-middle">{icon}</span>}
         </>
       )}
     </th>
@@ -556,6 +560,7 @@ export function TableCell(props: TableCellProps): JSX.Element {
   const Element = rowHeader ? "th" : "td";
   return (
     <Element
+      data-slot="table-cell"
       scope={rowHeader ? "row" : undefined}
       {...rest}
       className={cn(
@@ -570,6 +575,7 @@ export function TableCell(props: TableCellProps): JSX.Element {
     >
       {holdsLink ? (
         <RouterLink
+          data-slot="table-row-link"
           href={row.href!}
           target={row.external ? "_blank" : undefined}
           rel={row.external ? safeRel(undefined) : undefined}
@@ -581,7 +587,7 @@ export function TableCell(props: TableCellProps): JSX.Element {
         >
           {children}
           {row.external && (
-            <span data-external-label="" className="sr-only">
+            <span data-slot="table-external-label" data-external-label="" className="sr-only">
               {" "}
               {row.externalLabel}
             </span>

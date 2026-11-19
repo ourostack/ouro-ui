@@ -32,6 +32,10 @@ Type: `MenuCheckboxItemProps`.
 | `onCheckedChange` | `((checked: boolean) => void)` | Called with the new state when it is toggled. |
 | `shortcut` | `MenuShortcut` | The keys of its shortcut, shown at its end: `["mod", "b"]`. |
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `menu`, `menu-back`, `menu-backdrop`, `menu-bar`, `menu-bar-trigger`, `menu-checkbox-item`, `menu-checkbox-item-indicator`, `menu-close`, `menu-context-trigger`, `menu-focus-guards`, `menu-group-label`, `menu-item-icon`, `menu-item-indicator`, `menu-item-label`, `menu-portal`, `menu-positioner`, `menu-radio-item`, `menu-radio-item-indicator`, `menu-separator`, `menu-shortcut`, `menu-submenu-icon`, `menu-submenu-trigger`.
+
 ## Types
 
 ### `MenuShortcut`

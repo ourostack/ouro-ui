@@ -367,6 +367,7 @@ const toOption = (item: ComboboxItem): Option => (typeof item === "string" ? { v
 function Icon({ children }: { children: ReactNode }): JSX.Element {
   return (
     <svg
+      data-slot="combobox-icon"
       aria-hidden="true"
       viewBox="0 0 16 16"
       fill="none"
@@ -557,6 +558,7 @@ export function Combobox(props: ComboboxProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="combobox"
         label={label}
         hideLabel={hideLabel}
         description={description}
@@ -589,19 +591,20 @@ function inputHandlers(onInputKeyDown: ((event: KeyboardEvent<HTMLInputElement>)
 
 /** An item's row: its label alone, or with its picture, second line and mark. */
 function ItemContent({ option }: { option: Option }): JSX.Element {
-  if (option.media == null && !option.description && option.meta == null) return <span className="col-start-2">{option.label}</span>;
+  if (option.media == null && !option.description && option.meta == null) return <span data-slot="combobox-item-content" className="col-start-2">{option.label}</span>;
   return (
-    <span className="col-start-2 flex min-w-0 items-center gap-2">
+    <span data-slot="combobox-item-content" className="col-start-2 flex min-w-0 items-center gap-2">
       {option.media != null && (
-        <span data-ouro-combobox-media="" className="flex shrink-0">
+        <span data-slot="combobox-item-media" data-ouro-combobox-media="" className="flex shrink-0">
           {option.media}
         </span>
       )}
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate">{option.label}</span>
+      <span data-slot="combobox-item-text" className="flex min-w-0 flex-1 flex-col">
+        <span data-slot="combobox-item-label" className="truncate">{option.label}</span>
         {option.description && (
           // Muted, nudged toward the text color (as ConversationList's quiet lines), so it keeps 4.5:1 on a highlighted row too.
           <span
+            data-slot="combobox-item-description"
             data-ouro-combobox-description=""
             title={option.description}
             className="truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]"
@@ -611,7 +614,7 @@ function ItemContent({ option }: { option: Option }): JSX.Element {
         )}
       </span>
       {option.meta != null && (
-        <span data-ouro-combobox-meta="" className="flex shrink-0">
+        <span data-slot="combobox-item-meta" data-ouro-combobox-meta="" className="flex shrink-0">
           {option.meta}
         </span>
       )}
@@ -640,10 +643,11 @@ function ListBody({
 }): JSX.Element {
   return (
     <>
-      <BaseCombobox.Status className={statusClass}>
+      <BaseCombobox.Status data-slot="combobox-status" className={statusClass}>
         {loading && (
           <>
             <svg
+              data-slot="combobox-spinner"
               aria-hidden="true"
               data-ouro-spinner=""
               viewBox="0 0 24 24"
@@ -657,8 +661,8 @@ function ListBody({
           </>
         )}
       </BaseCombobox.Status>
-      <BaseCombobox.Empty className={emptyClass}>{!loading && showEmpty && (empty ?? emptyLabel)}</BaseCombobox.Empty>
-      <BaseCombobox.List className={className}>{renderItem}</BaseCombobox.List>
+      <BaseCombobox.Empty data-slot="combobox-empty" className={emptyClass}>{!loading && showEmpty && (empty ?? emptyLabel)}</BaseCombobox.Empty>
+      <BaseCombobox.List data-slot="combobox-list" className={className}>{renderItem}</BaseCombobox.List>
     </>
   );
 }
@@ -703,11 +707,11 @@ function Popup({ input, loading, children }: { input: RefObject<HTMLElement | nu
   // Inside a Dialog its own layers sit at z-1000; 1000 above --ouro-layer clears them there and
   // on the page, as Select's list does.
   return (
-    <BaseCombobox.Portal {...portal} data-ouro="combobox-portal" className="relative isolate z-[calc(var(--ouro-layer)+1000)]">
+    <BaseCombobox.Portal data-slot="combobox-portal" {...portal} data-ouro="combobox-portal" className="relative isolate z-[calc(var(--ouro-layer)+1000)]">
       <PortalScope>
         <KeepPageExposed input={input} list={list} />
-        <BaseCombobox.Positioner ref={positionerRef} sideOffset={4} positionMethod={floatingPositionMethod} className="outline-none">
-          <BaseCombobox.Popup data-ouro="combobox-popup" aria-busy={loading || undefined} className={popupClass}>
+        <BaseCombobox.Positioner data-slot="combobox-positioner" ref={positionerRef} sideOffset={4} positionMethod={floatingPositionMethod} className="outline-none">
+          <BaseCombobox.Popup data-slot="combobox-popup" data-ouro="combobox-popup" aria-busy={loading || undefined} className={popupClass}>
             {children}
           </BaseCombobox.Popup>
         </BaseCombobox.Positioner>
@@ -724,18 +728,18 @@ function Popup({ input, loading, children }: { input: RefObject<HTMLElement | nu
  */
 function EndButtons({ clearLabel, readOnly }: { clearLabel: string; readOnly: boolean | undefined }): JSX.Element {
   return (
-    <span className={endSlotClass}>
+    <span data-slot="combobox-actions" className={endSlotClass}>
       {!readOnly && (
       <BaseCombobox.Clear
         render={
-          <Button variant="plain" tone="secondary" size="sm" data-ouro-combobox-clear="" data-ouro-control="combobox" data-ouro-part="clear" className="aspect-square px-0">
+          <Button data-slot="combobox-clear" variant="plain" tone="secondary" size="sm" data-ouro-combobox-clear="" data-ouro-control="combobox" data-ouro-part="clear" className="aspect-square px-0">
             <CrossIcon />
-            <span className="sr-only">{clearLabel}</span>
+            <span data-slot="combobox-clear-label" className="sr-only">{clearLabel}</span>
           </Button>
         }
       />
       )}
-      <BaseCombobox.Icon data-ouro-combobox-icon="" className="flex size-8 items-center justify-center text-muted-foreground sm:pointer-fine:size-6 [&_svg]:size-4">
+      <BaseCombobox.Icon data-slot="combobox-chevron" data-ouro-combobox-icon="" className="flex size-8 items-center justify-center text-muted-foreground sm:pointer-fine:size-6 [&_svg]:size-4">
         <ChevronIcon />
       </BaseCombobox.Icon>
     </span>
@@ -812,8 +816,8 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   const showEmpty = !onInputChange || (inputValue ?? text) !== "";
 
   const renderItem = (option: Option) => (
-    <BaseCombobox.Item key={option.value} value={option} disabled={option.disabled} data-ouro-control="combobox" data-ouro-part="option" className={itemClass}>
-      <BaseCombobox.ItemIndicator className="col-start-1 flex [&_svg]:size-4">
+    <BaseCombobox.Item data-slot="combobox-item" key={option.value} value={option} disabled={option.disabled} data-ouro-control="combobox" data-ouro-part="option" className={itemClass}>
+      <BaseCombobox.ItemIndicator data-slot="combobox-item-indicator" className="col-start-1 flex [&_svg]:size-4">
         <Icon>
           <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
         </Icon>
@@ -823,6 +827,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   );
   const body = (className: string) => (
     <ListBody
+      data-slot="combobox-list"
       loading={loading}
       loadingLabel={loadingLabel}
       emptyLabel={emptyLabel}
@@ -835,6 +840,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
 
   const input = (className: string, extra: { "aria-label"?: string } = {}) => (
     <BaseCombobox.Input
+      data-slot="combobox-input"
       {...extra}
       {...inputHandlers(onInputKeyDown)}
       readOnly={readOnly}
@@ -881,8 +887,9 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         : {})}
     >
       {sheet ? (
-        <div data-ouro-combobox-field="" className={sheetFieldClass}>
+        <div data-slot="combobox-field" data-ouro-combobox-field="" className={sheetFieldClass}>
           <BaseCombobox.Trigger
+            data-slot="combobox-trigger"
             ref={triggerRef}
             aria-describedby={field.describedBy}
             {...(invalid ? { "aria-invalid": true } : {})}
@@ -905,14 +912,15 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             // Beside the button, not in it: a button can't hold another. It is in the Tab order
             // here, since the button, not an input, has focus; clearing puts focus back on the button.
             <BaseCombobox.Clear
+              data-slot="combobox-clear"
               tabIndex={0}
               data-ouro-combobox-clear=""
               className={sheetClearClass}
               onClick={() => triggerRef.current?.focus()}
               render={
-                <Button variant="plain" tone="secondary" size="sm" data-ouro-control="combobox" data-ouro-part="clear" className="aspect-square px-0">
+                <Button data-slot="combobox-clear" variant="plain" tone="secondary" size="sm" data-ouro-control="combobox" data-ouro-part="clear" className="aspect-square px-0">
                   <CrossIcon />
-                  <span className="sr-only">{clearLabel}</span>
+                  <span data-slot="combobox-clear-label" className="sr-only">{clearLabel}</span>
                 </Button>
               }
             />
@@ -935,8 +943,8 @@ function ComboboxControl(props: ControlProps): JSX.Element {
               ) : undefined
             }
           >
-            <div data-ouro-combobox-search="" className={sheetInputClass}>
-              <div ref={markDismiss} data-ouro-input-group="" className={groupClass}>
+            <div data-slot="combobox-search" data-ouro-combobox-search="" className={sheetInputClass}>
+              <div data-slot="combobox-input-group" ref={markDismiss} data-ouro-input-group="" className={groupClass}>
                 {input(inputClass, { "aria-label": label })}
               </div>
             </div>
@@ -945,27 +953,27 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         </div>
       ) : (
         <>
-          <BaseCombobox.InputGroup ref={markDismiss} data-ouro-input-group="" className={multiple ? chipsGroupClass : groupClass}>
+          <BaseCombobox.InputGroup data-slot="combobox-input-group" ref={markDismiss} data-ouro-input-group="" className={multiple ? chipsGroupClass : groupClass}>
             {multiple ? (
-              <BaseCombobox.Chips className="contents">
+              <BaseCombobox.Chips data-slot="combobox-chips" className="contents">
                 <BaseCombobox.Value>
                   {(picked: Option[]) => (
                     <>
                       {picked.map((option) => (
                         // Base UI marks a read-only field's chips aria-readonly, which a chip (no role) may
                         // not carry; the input's readonly already says it.
-                        <BaseCombobox.Chip key={option.value} data-ouro-combobox-chip="" className={chipClass} render={(chip) => <div {...chip} aria-readonly={undefined} />}>
+                        <BaseCombobox.Chip data-slot="combobox-chip" key={option.value} data-ouro-combobox-chip="" className={chipClass} render={(chip) => <div {...chip} aria-readonly={undefined} />}>
                           {option.media != null && (
-                            <div data-ouro-combobox-chip-media="" className="-ms-1 flex shrink-0">
+                            <div data-slot="combobox-chip-media" data-ouro-combobox-chip-media="" className="-ms-1 flex shrink-0">
                               {option.media}
                             </div>
                           )}
                           <span>{option.label}</span>
                           {!readOnly && (
-                            <BaseCombobox.ChipRemove data-ouro-combobox-chip-remove="" data-ouro-control="combobox" data-ouro-part="chip-remove" className={chipRemoveClass}>
+                            <BaseCombobox.ChipRemove data-slot="combobox-chip-remove" data-ouro-combobox-chip-remove="" data-ouro-control="combobox" data-ouro-part="chip-remove" className={chipRemoveClass}>
                               <TouchTarget />
                               <CrossIcon />
-                              <span className="sr-only">{removeLabel(option.label)}</span>
+                              <span data-slot="combobox-chip-remove-label" className="sr-only">{removeLabel(option.label)}</span>
                             </BaseCombobox.ChipRemove>
                           )}
                         </BaseCombobox.Chip>
@@ -1019,8 +1027,9 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
         if (details.reason !== "item-press") onInputChange?.(next);
       }}
     >
-      <BaseAutocomplete.InputGroup ref={markDismiss} data-ouro-input-group="" className={groupClass}>
+      <BaseAutocomplete.InputGroup data-slot="combobox-input-group" ref={markDismiss} data-ouro-input-group="" className={groupClass}>
         <BaseAutocomplete.Input
+          data-slot="combobox-input"
           {...inputHandlers(onInputKeyDown)}
           readOnly={readOnly}
           ref={setInputRef}
@@ -1035,6 +1044,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
       </BaseAutocomplete.InputGroup>
       <Popup input={resetInputRef} loading={loading}>
         <ListBody
+          data-slot="combobox-list"
           loading={loading}
           loadingLabel={loadingLabel}
           emptyLabel={emptyLabel}
@@ -1042,7 +1052,7 @@ function AutocompleteControl(props: ControlProps): JSX.Element {
           showEmpty={!onInputChange || value !== ""}
           className={listClass}
           renderItem={(option) => (
-            <BaseAutocomplete.Item key={option.value} value={option} disabled={option.disabled} data-ouro-control="combobox" data-ouro-part="option" className={itemClass}>
+            <BaseAutocomplete.Item data-slot="combobox-item" key={option.value} value={option} disabled={option.disabled} data-ouro-control="combobox" data-ouro-part="option" className={itemClass}>
               <ItemContent option={option} />
             </BaseAutocomplete.Item>
           )}

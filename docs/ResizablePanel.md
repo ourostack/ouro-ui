@@ -43,4 +43,8 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `resizable`, `resizable-focus-ring`, `resizable-grip`, `resizable-handle`, `resizable-hit-area`, `resizable-panel`, `resizable-panel-content`.
+
 [^layout-classes]: test:registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lets app layout classes win on the group and panels verify:testExists(registry/ouro/components/ouro/resizable/resizable.test.tsx::Resizable layout > lets app layout classes win on the group and panels)

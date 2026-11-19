@@ -294,11 +294,12 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
   };
 
   return (
-    <div data-ouro="toggle-group" className={cn("box-border grid min-w-0 content-start justify-items-start gap-2", className)}>
-      <span id={labelId} className={cn("m-0 text-sm leading-5 font-medium text-foreground select-none", hideLabel && "sr-only")}>
+    <div data-slot="toggle-group" data-ouro="toggle-group" className={cn("box-border grid min-w-0 content-start justify-items-start gap-2", className)}>
+      <span data-slot="toggle-group-label" id={labelId} className={cn("m-0 text-sm leading-5 font-medium text-foreground select-none", hideLabel && "sr-only")}>
         {label}
       </span>
       <div
+        data-slot="toggle-group-list"
         ref={ref}
         role="group"
         aria-labelledby={labelId}
@@ -309,6 +310,7 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
           const iconOnly = Boolean(iconOnlyItem && Icon);
           return (
             <BaseToggle
+              data-slot="toggle-group-item"
               key={itemValue}
               pressed={pressed.includes(itemValue)}
               onPressedChange={(next) => press(itemValue, next)}
@@ -326,8 +328,8 @@ export function ToggleGroup(props: ToggleGroupProps): JSX.Element {
             >
               <TouchTarget />
               {shape === "rect" && <span data-ouro-surface="" aria-hidden="true" style={{ zIndex: -1 }} />}
-              {Icon && <Icon aria-hidden="true" className={cn(iconClass, "relative", !iconOnlyItem && "-ms-0.5")} />}
-              {!iconOnly && <span className={cn("relative", iconOnlyItem && "sr-only")}>{itemLabel}</span>}
+              {Icon && <Icon data-slot="toggle-group-item-icon" aria-hidden="true" className={cn(iconClass, "relative", !iconOnlyItem && "-ms-0.5")} />}
+              {!iconOnly && <span data-slot="toggle-group-item-label" className={cn("relative", iconOnlyItem && "sr-only")}>{itemLabel}</span>}
             </BaseToggle>
           );
         })}

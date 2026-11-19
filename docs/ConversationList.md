@@ -61,6 +61,10 @@ Appearance comes from props, not classes. In development, a class that sets appe
 
 Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
+## Part names
+
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `conversation-list`, `conversation-list-avatar`, `conversation-list-body`, `conversation-list-context`, `conversation-list-draft`, `conversation-list-empty`, `conversation-list-group`, `conversation-list-group-items`, `conversation-list-header`, `conversation-list-heading`, `conversation-list-icon`, `conversation-list-item`, `conversation-list-items`, `conversation-list-line`, `conversation-list-mark`, `conversation-list-members`, `conversation-list-name`, `conversation-list-name-tag`, `conversation-list-name-tag-separator`, `conversation-list-preview`, `conversation-list-row`, `conversation-list-section`, `conversation-list-section-icon`, `conversation-list-section-note`, `conversation-list-section-title`, `conversation-list-section-unread`, `conversation-list-subtitle`, `conversation-list-time`, `conversation-list-title`, `conversation-list-where`, `conversation-list-where-spacer`, `conversation-list-where-text`.
+
 ## Types
 
 ### `AvatarMember`

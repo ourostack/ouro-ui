@@ -148,11 +148,12 @@ function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, text
   }, [textRef, color, onReset]);
 
   return (
-    <div data-ouro-input-group="" className={boxClass}>
+    <div data-slot="color-field-group" data-ouro-input-group="" className={boxClass}>
       {hasPicker ? (
-        <label className={swatchClass}>
+        <label data-slot="color-field-swatch" className={swatchClass}>
           <TouchTarget />
           <input
+            data-slot="color-field-picker"
             type="color"
             data-ouro-control="color-field"
             data-ouro-part="picker"
@@ -171,9 +172,10 @@ function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, text
         </label>
       ) : (
         // Without a picker the swatch only shows the color; the hex text takes it.
-        <span aria-hidden="true" data-ouro-color-swatch="" className={plainSwatchClass} style={{ backgroundColor: color }} />
+        <span data-slot="color-field-swatch" aria-hidden="true" data-ouro-color-swatch="" className={plainSwatchClass} style={{ backgroundColor: color }} />
       )}
       <FieldControl
+        data-slot="color-field-input"
         ref={inputRef}
         value={draft}
         onValueChange={(text) => {
@@ -188,7 +190,7 @@ function Control({ color, onPick, onReset, pickerLabel, disabled, inputRef, text
         spellCheck={false}
         // A color always has a value (the form gets it from formdata), so the text is never
         // natively required; aria-required and the label's marker still say it is.
-        render={(controlProps) => <input {...controlProps} type="text" required={false} data-ouro-control="color-field" data-ouro-part="input" className={textClass} />}
+        render={(controlProps) => <input data-slot="color-field-input" {...controlProps} type="text" required={false} data-ouro-control="color-field" data-ouro-part="input" className={textClass} />}
       />
     </div>
   );
@@ -273,6 +275,7 @@ export function ColorField(props: ColorFieldProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
+        data-slot="color-field"
         label={label}
         hideLabel={hideLabel}
         description={description}

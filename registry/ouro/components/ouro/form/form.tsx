@@ -521,7 +521,7 @@ export function Form(props: FormProps): JSX.Element {
       {/* Base UI's Form runs the browser's checks: it blocks a submit while a constraint
           fails and focuses the first such control. Ouro's errors never reach it, so they
           never block a submit. */}
-      <BaseForm {...rest} ref={setFormRef} onSubmit={submit} data-ouro="form" className={cn("grid min-w-0 gap-5", className)}>
+      <BaseForm data-slot="form" {...rest} ref={setFormRef} onSubmit={submit} data-ouro="form" className={cn("grid min-w-0 gap-5", className)}>
         {/* A new element for each announcement: each arrival, unless its summary repeats the last one. A held
             alert stays out of the page until focus has moved, and an arrival that has no summary decided yet
             waits for the layout effect that decides it, so it is inserted whole. */}
@@ -584,10 +584,10 @@ function FormMessage({
   const messages = topMessagesOf(errors, showsAtTop);
   if (pending || (messages.length === 0 && summary === undefined)) return null;
   return (
-    <div ref={ref} role="alert" tabIndex={-1} data-ouro="form-message" className={cn(formMessageClass, messages.length === 0 && "sr-only")}>
-      {summary !== undefined && <span className="sr-only">{summary}</span>}
+    <div data-slot="form-message" ref={ref} role="alert" tabIndex={-1} data-ouro="form-message" className={cn(formMessageClass, messages.length === 0 && "sr-only")}>
+      {summary !== undefined && <span data-slot="form-message-summary" className="sr-only">{summary}</span>}
       {messages.map((message, index) => (
-        <p key={errorMessageKey(message, index)} className="m-0">
+        <p data-slot="form-message-item" key={errorMessageKey(message, index)} className="m-0">
           {message}
         </p>
       ))}

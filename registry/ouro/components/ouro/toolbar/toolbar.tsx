@@ -332,6 +332,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
 
   return (
     <div
+      data-slot="toolbar"
       ref={setRef}
       role="toolbar"
       aria-label={label}
@@ -352,10 +353,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
     >
       <TooltipsHidden value={hidden}>
       {visible.map((entry, index) => {
-        if (entry.type === "separator") return <div key={index} role="separator" aria-orientation="vertical" data-ouro-toolbar-entry={index} className={separatorClass} />;
+        if (entry.type === "separator") return <div data-slot="toolbar-separator" key={index} role="separator" aria-orientation="vertical" data-ouro-toolbar-entry={index} className={separatorClass} />;
         if (entry.type === "group") {
           return (
-            <div key={index} role="group" aria-label={entry.label} data-ouro-toolbar-entry={index} className="flex items-center gap-0.5">
+            <div data-slot="toolbar-group" key={index} role="group" aria-label={entry.label} data-ouro-toolbar-entry={index} className="flex items-center gap-0.5">
               {entry.items.map((item) => control(item, context, item.label))}
             </div>
           );
@@ -883,6 +884,7 @@ function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: Contro
       />
     ) : (
       <Button
+        data-slot="toolbar-button"
         {...shared}
         data-ouro-control="toolbar"
         data-ouro-part="button"
@@ -894,7 +896,7 @@ function control(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: Contro
         onClick={off ? undefined : entry.onClick}
         className={cn(shared.className, iconOnly && "aspect-square px-0")}
       >
-        {iconOnly && Icon ? <Icon aria-hidden="true" className="size-[1.25em] shrink-0" /> : entry.label}
+        {iconOnly && Icon ? <Icon data-slot="toolbar-button-icon" aria-hidden="true" className="size-[1.25em] shrink-0" /> : entry.label}
       </Button>
     );
   if (!iconOnly && !shortcut) return <Fragment key={key}>{element}</Fragment>;
@@ -943,6 +945,7 @@ function moreButton(moreLabel: string, size: ToolbarSize, disabled: boolean | un
   return (
     <Tooltip content={moreLabel}>
       <Button
+        data-slot="toolbar-more"
         {...rowStop(MORE, isStop, Boolean(disabled))}
         data-ouro-toolbar-more=""
         data-ouro-control="toolbar"
@@ -953,7 +956,7 @@ function moreButton(moreLabel: string, size: ToolbarSize, disabled: boolean | un
         aria-label={moreLabel}
         className="aspect-square px-0 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
       >
-        <MoreIcon aria-hidden="true" className="size-[1.25em] shrink-0" />
+        <MoreIcon data-slot="toolbar-more-icon" aria-hidden="true" className="size-[1.25em] shrink-0" />
       </Button>
     </Tooltip>
   );
@@ -979,7 +982,7 @@ const separatorClass = "mx-1 h-5 w-px shrink-0 self-center bg-border forced-colo
 /** A control's tooltip: its label, then its shortcut. */
 function tip(label: string, shortcut: readonly string[] | undefined): JSX.Element {
   return (
-    <span className="inline-flex items-center gap-2">
+    <span data-slot="toolbar-tooltip-label" className="inline-flex items-center gap-2">
       {label}
       {shortcut && <Kbd keys={shortcut} />}
     </span>
