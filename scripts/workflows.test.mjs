@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
+import { Buffer } from "node:buffer";
 import { createServer } from "node:net";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -2586,6 +2587,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "main-green.yml": "  group: main-green-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "release-note.yml": "  group: release-note-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "stale-pages.yml": "  group: stale-pages-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "squircle-cost.yml": "  group: squircle-cost-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
@@ -3050,7 +3052,7 @@ test("Release auto starts nothing for a commit that only points the docs at a re
 test("Docs pin points main's docs at the newest release through one pull request, and turns auto-merge on", () => {
   const docsPin = workflow("docs-pin.yml");
   assert.match(docsPin, /^permissions: \{\}$/m);
-  assert.match(docsPin, /^on:\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n/m);
+  assert.match(docsPin, /^on:\n {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n/m);
   assert.match(docsPin, /^concurrency:\n {2}group: docs-pin\n {2}cancel-in-progress: false$/m);
   const pin = docsPin.split("\n  pin:\n")[1];
   assert.deepEqual(permissionsOf(pin), { actions: "write", contents: "write", "pull-requests": "write" });
@@ -3209,6 +3211,93 @@ test("Docs pin fails, and names the pull request, when GitHub will not turn auto
   const result = runStep(`${gh}\n${script}`, { TAG: "v1.3.56", BRANCH: "docs/point-at-release", GITHUB_REPOSITORY: "ourostack/ouro-ui", LOG: join(dir, "gh.log"), GITHUB_STEP_SUMMARY: join(dir, "summary.md") });
   assert.equal(result.status, 1, result.stdout + result.calls);
   assert.match(result.stdout, /::error::Could not turn auto-merge on for #7\./);
+});
+
+test("Main green posts its status after each CI run on main, when a pull request into main changes, and by hand, with the pull request's number passed through env", () => {
+  const text = workflow("main-green.yml");
+  assert.match(text, /^on:\n {2}workflow_run:\n {4}workflows: \[CI\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n {2}pull_request:\n {4}branches: \[main\]\n {4}types: \[opened, synchronize, reopened, labeled, unlabeled\]\n {2}workflow_dispatch:\npermissions:/m);
+  assert.match(text, /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}actions: read\n {2}statuses: write\nconcurrency:/m);
+  assert.match(text, /^ {10}PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}$/m);
+  assert.doesNotMatch(text.slice(text.indexOf("        run: |")), /\$\{\{/, "the run step names no expression: the number comes from PR_NUMBER");
+  assert.match(text, /node scripts\/main-green\.mjs --pr "\$PR_NUMBER"/);
+});
+
+test("Main green is not a required check yet: the workflow lands, and posts its status, before the main ruleset asks for it", () => {
+  assert.ok(!requiredChecks.includes("main green"));
+});
+
+test("Docs pin's stale job reads the tags and whether the pin pull request is open, on each push to main, with pull-requests: read on that job only", () => {
+  const text = workflow("docs-pin.yml");
+  const blockOf = (job) => text.split(`\n  ${job}:\n`)[1].split(/\n(?= {2}[\w-]+:\n)/)[0];
+  const stale = blockOf("stale");
+  assert.match(stale, /^ {4}if: github\.event_name == 'push'$/m);
+  assert.deepEqual(permissionsOf(stale), { contents: "read", "pull-requests": "read" });
+  assert.deepEqual(permissionsOf(blockOf("pin")), { actions: "write", contents: "write", "pull-requests": "write" });
+  assert.match(stale, /^ {4}outputs:\n {6}stale: \$\{\{ steps\.check\.outputs\.stale \}\}\n {6}refresh: \$\{\{ steps\.refresh\.outputs\.refresh \}\}\n {6}tag: \$\{\{ steps\.check\.outputs\.tag \}\}$/m);
+  assert.match(stale, /tag=\$\(node scripts\/latest-release\.mjs\)\n/);
+  assert.match(stale, /if node scripts\/latest-release\.mjs check; then\n\s+echo "stale=false"/);
+  assert.match(stale, /gh pr list --head "\$BRANCH" --base main --state open --json number/);
+  assert.match(stale, /echo "refresh=true" >> "\$GITHUB_OUTPUT"/);
+});
+
+test("Docs pin's stale job points a refresh at the open pull request's own tag, since main's package.json still names the old release", () => {
+  const stale = workflow("docs-pin.yml").split("\n  stale:\n")[1].split(/\n(?= {2}[\w-]+:\n)/)[0];
+  const refresh = stepScript(stale, "Is the pin pull request open, and which release does it point at?");
+  const check = stepScript(stale, "Compare the docs' tags with the release to point them at");
+  const dir = scratchDir("ouro-refresh-tag-");
+  const gh = `gh() {
+  case "$*" in
+    "pr list"*) if [ -n "$PR_NUMBER" ]; then echo "$PR_NUMBER"; fi ;;
+    "api repos/o/r/contents/package.json?ref=docs/point-at-release --jq .content") printf '%s' "$CONTENT" ;;
+    *) echo "unexpected gh $*" >&2; return 1 ;;
+  esac
+}`;
+  let made = 0;
+  const step = (script, env) => {
+    const output = join(dir, `output-${(made += 1)}.txt`);
+    writeFileSync(output, "");
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", `${gh}\n${script}`], {
+      cwd: root,
+      encoding: "utf8",
+      env: sandboxEnv({ GITHUB_REPOSITORY: "o/r", BRANCH: "docs/point-at-release", GITHUB_OUTPUT: output, ...env }),
+    });
+    const outputs = Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").filter(Boolean).map((line) => line.split(/=(.*)/).slice(0, 2)));
+    return { status: result.status, stdout: result.stdout, stderr: result.stderr, outputs };
+  };
+  const pinned = Buffer.from(JSON.stringify({ ouro: { latestRelease: "v9.9.9" } })).toString("base64");
+  // An open pull request: the refresh reads its tag, and the check takes it over main's, even when main's docs are stale.
+  const open = step(refresh, { PR_NUMBER: "7", CONTENT: pinned });
+  assert.equal(open.status, 0, open.stderr);
+  assert.deepEqual(open.outputs, { refresh: "true", tag: "v9.9.9" });
+  const refreshed = step(check, { REFRESH: "true", PR_TAG: "v9.9.9" });
+  assert.equal(refreshed.status, 0, refreshed.stderr);
+  assert.equal(refreshed.outputs.tag, "v9.9.9");
+  // No open pull request: main's ouro.latestRelease is the release, as before.
+  const none = step(refresh, { PR_NUMBER: "", CONTENT: pinned });
+  assert.deepEqual(none.outputs, { refresh: "false" });
+  const mainTag = execFileSync("node", ["scripts/latest-release.mjs"], { cwd: root, encoding: "utf8" }).trim();
+  assert.equal(step(check, { REFRESH: "false", PR_TAG: "" }).outputs.tag, mainTag);
+  // A pull request whose ouro.latestRelease is not a release tag stops the job rather than falling back to main's.
+  const malformed = step(refresh, { PR_NUMBER: "7", CONTENT: Buffer.from('{"ouro":{"latestRelease":"main"}}').toString("base64") });
+  assert.notEqual(malformed.status, 0);
+  assert.match(malformed.stdout, /::error::The pin pull request's ouro\.latestRelease is not a release tag: 'main'\./);
+});
+
+test("Docs pin's pin job runs when dispatched, when main's docs name another tag, or when the pin pull request is open to refresh, and otherwise not", () => {
+  const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
+  assert.match(pin, /^ {4}needs: \[stale\]$/m);
+  assert.match(pin, /^ {6}TAG: \$\{\{ inputs\.tag \|\| needs\.stale\.outputs\.tag \}\}$/m);
+  const condition = pin.match(/^ {4}if: \$\{\{ (.+) \}\}$/m)[1];
+  const runs = (event, outputs = {}) => evaluate(`\${{ ${condition} }}`, { github: { event_name: event }, needs: { stale: { outputs } }, cancelled: () => false });
+  // A dispatch runs it whatever the stale job said, and the stale job is skipped on a dispatch.
+  assert.equal(runs("workflow_dispatch", {}), true);
+  assert.equal(runs("workflow_dispatch", { stale: "false", refresh: "false" }), true);
+  assert.equal(runs("push", { stale: "true", refresh: "false" }), true);
+  assert.equal(runs("push", { stale: "false", refresh: "true" }), true);
+  assert.equal(runs("push", { stale: "true", refresh: "true" }), true);
+  assert.equal(runs("push", { stale: "false", refresh: "false" }), false);
+  // A stale job that failed sets no output, so the pin job does not run.
+  assert.equal(runs("push", {}), false);
 });
 
 test("Release starts Docs pin once it has tagged, and no job waits for it", () => {
