@@ -1,6 +1,6 @@
 # Ouro UI at a company
 
-Ouro HX is copy-in source: a component is yours to change, which is why an agent can fix what it ships. That suits one team. For twenty it raises two questions, who owns the version the teams get and who decides when it moves, and this guide covers the three answers Ouro ships: a registry your company owns, updates that wait for a person, and a report of which apps are behind or have edited what. An npm package isn't offered, because it would take away the edit-in-place model that the checks rely on.
+Ouro HX is copy-in source: a component is yours to change, which is why an agent can fix what it ships. That suits one team. For a company of many teams it raises questions about ownership: who owns the version the teams get, and who decides when it moves. This guide covers what Ouro ships for them: a registry your company owns, updates that wait for a person, and a report of which apps are behind or have edited what. An npm package isn't offered, because it would take away the edit-in-place model that the checks rely on.
 
 ## A registry your company owns
 
@@ -28,7 +28,7 @@ Then `npx shadcn@latest add @acme/ouro-base` once per app and `npx shadcn@latest
 
 To move to a new release, run the script again with its tag and review the pull request: an item whose source changed has a different hash in `mirror.json`, and one that did not has the same. `--check` builds the mirror in memory and lists each item whose file under `--out` is missing, changed or extra, for the mirror repository's own CI.[^mirror-check] The script stops on a registry that is not a release's, on the public `@ouro` namespace and on an `--out` folder that is not a mirror.[^mirror-refuses]
 
-An app that installs from your mirror should not also let Ouro Current move it to Ouro's newest release, past your review. Leave its install record out of Current's reach in the app's `.github/ouro-current.json`:
+An app that installs from your mirror should not also let Ouro Current move it to a release your company has not reviewed. Leave its install record out of Current's reach in the app's `.github/ouro-current.json`:
 
 ```json
 { "ignore": [".github/ouro-hx-installed.json"] }
@@ -48,13 +48,13 @@ Current then opens the update with auto-merge off and asks that team to review i
 
 ## Who is behind, and who has edited what
 
-The drift report reads an app's Ouro HX install record, `.github/ouro-hx-installed.json`: the tag the app installed from, and the sha256 of each installed file's source. For each app you give it, it lists the Ouro items the app has, the release it is on, and which of their files differ from that release's source.
+The drift report reads an app's Ouro HX install record, `.github/ouro-hx-installed.json`: the tag the app installed from, and the sha256 of the source of the files it installed. For the apps you give it, it lists the Ouro items the app has, the release it is on, and which of their files differ from that release's source.[^drift-states]
 
 ```sh
 node ouro-ui/scripts/drift/drift.mjs ../spoonjoy ../recipes --latest "$TAG"
 ```
 
-For each file it takes the registry source at the record's tag, rewrites it as the shadcn CLI does for the app's `components.json` aliases, and compares it with the file in the checkout. A file is `released` when they are the same, `edited` when they differ, `missing` when the app no longer has it, and `unlisted` when that release's registry no longer lists it.[^drift-states] An app whose record names an older release than `--latest` (or, without it, GitHub's newest release) is behind.[^drift-behind] `--json` prints the report as JSON, and `--strict` exits 1 when an app is behind, has a file that is not as released, or has no install record, so a company's CI can fail on drift.[^drift-cli]
+The report takes the registry source at the record's tag, rewrites it as the shadcn CLI does for the app's `components.json` aliases, and compares it with the file in the checkout. A file is `released` when they are the same, `edited` when they differ, `missing` when the app no longer has it, and `unlisted` when that release's registry no longer lists it.[^drift-states] An app whose record names an older release than `--latest` (or, without it, GitHub's newest release) is behind.[^drift-behind] `--json` prints the report as JSON, and `--strict` exits 1 when an app is behind, has a file that is not as released, or has no install record, so a company's CI can fail on drift.[^drift-cli]
 
 The report uses what an install leaves in an app: the install record, which Ouro Current also reads, and `components.json`. An app without a record can write one from a checkout of Ouro UI that has the tag, with `node scripts/current/local-update.mjs <app> --record <tag>`.[^record] The report covers Ouro HX items; Ouro Current's `--dry-run --only <owner/repo>` also reports a repository's pins of the core and Apple releases.[^dry-run]
 
