@@ -1,6 +1,6 @@
 "use client";
 
-import { type JSX, type ReactNode, type SVGProps, useState } from "react";
+import { Fragment, type JSX, type ReactNode, type SVGProps, useState } from "react";
 import { AspectRatio } from "@/registry/ouro/components/ouro/aspect-ratio/aspect-ratio";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
@@ -18,7 +18,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
-import { asText, getPointer, personPress, resolveButton, setPointer, type ComposedNode, type Json, type Obj, type PersonPress } from "@/registry/ouro/lib/ouro/a2ui-core";
+import { asText, COMPONENTS, getPointer, personPress, resolveButton, setPointer, type ComposedNode, type Json, type Obj, type PersonPress } from "@/registry/ouro/lib/ouro/a2ui-core";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { ALERT_TONES, ASPECTS, BADGE_TONES, FIELD_CLASS, FIELD_LABEL_CLASS, GAPS, LIST_CLASS, RAW_CLASS } from "@/registry/ouro/components/ouro/composed-surface/composed-surface-styles";
@@ -28,6 +28,12 @@ export interface ComposedHandoff {
   action: string;
   how: string;
 }
+
+/**
+ * Draws one of your app's own components, the ones your catalog declares beyond Ouro HX's: `node.props` holds its
+ * resolved props (core's `asText` text, booleans, lists) and `children` its children, already drawn.
+ */
+export type ComposedRenderer = (node: ComposedNode, children: ReactNode[]) => ReactNode;
 
 /** Props for {@link ComposedSurface}. */
 export interface ComposedSurfaceProps {
@@ -62,6 +68,14 @@ export interface ComposedSurfaceProps {
    * @default {}
    */
   data?: Obj | undefined;
+  /**
+   * Your app's own components, by the name your catalog declares them under (the actions file's `components` export):
+   * each is drawn by its renderer, which may use HX's components. A tree that names one with no renderer here shows
+   * nothing for it, and a development message names the fix.
+   *
+   * @default {}
+   */
+  components?: Readonly<Record<string, ComposedRenderer>> | undefined;
   /** Layout only: margins, width (`max-w-md`). */
   className?: string | undefined;
 
@@ -74,6 +88,7 @@ export interface ComposedSurfaceProps {
 interface Context {
   onPress: ComposedSurfaceProps["onPress"];
   onHandoff: ComposedSurfaceProps["onHandoff"];
+  components: Readonly<Record<string, ComposedRenderer>>;
   /** The data model as the person has filled it in so far. */
   data: Json;
   /** Writes the person's answer at a pointer. */
@@ -109,7 +124,7 @@ const text = (v: unknown): string => v as string;
  * />
  */
 export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
-  const { tree, data, onPress, onHandoff, className, onAction, dataModel } = props;
+  const { tree, data, onPress, onHandoff, components, className, onAction, dataModel } = props;
   useDevWarnings(
     "ComposedSurface",
     process.env.NODE_ENV !== "production"
@@ -121,13 +136,13 @@ export function ComposedSurface(props: ComposedSurfaceProps): JSX.Element {
   );
   return (
     <div data-ouro="composed-surface" className={cn("min-w-0", className)}>
-      <ComposedTree tree={tree} data={data} onPress={onPress} onHandoff={onHandoff} />
+      <ComposedTree tree={tree} data={data} onPress={onPress} onHandoff={onHandoff} components={components} />
     </div>
   );
 }
 
 /** Props for {@link ComposedTree}. @internal */
-export interface ComposedTreeProps extends Pick<ComposedSurfaceProps, "tree" | "onPress" | "onHandoff"> {
+export interface ComposedTreeProps extends Pick<ComposedSurfaceProps, "tree" | "onPress" | "onHandoff" | "components"> {
   /** The data model the fields start from, when the tree has one. */
   data: Json | undefined;
   /** Which surface the tree is, such as an A2UI surface's id: another one starts the fields over from `data`. */
@@ -180,7 +195,14 @@ function carry(held: Held, origin: unknown, data: Json | undefined): Held {
  *
  * @internal
  */
-export function ComposedTree({ tree, data, origin, onPress, onHandoff }: ComposedTreeProps): ReactNode {
+export function ComposedTree({ tree, data, origin, onPress, onHandoff, components }: ComposedTreeProps): ReactNode {
+  const renderers = components ?? NO_COMPONENTS;
+  useDevWarnings(
+    "ComposedSurface",
+    process.env.NODE_ENV !== "production"
+      ? () => unrendered(tree, renderers).map((name) => [`${name} is not Ouro HX's and has no renderer`, `<ComposedSurface components={{ ${name}: (node, children) => <div>{children}</div> }} />`] as const)
+      : /* istanbul ignore next @preserve -- production only */ undefined,
+  );
   // Stryker disable next-line ObjectLiteral: an empty first state differs from the props, so the check below fills it in on the first render.
   const [held, setHeld] = useState<Held>(() => ({ origin, data, current: data ?? {}, edited: new Set() }));
   let current = held.current;
@@ -191,7 +213,16 @@ export function ComposedTree({ tree, data, origin, onPress, onHandoff }: Compose
   }
   const write = (pointer: string, value: Json) => setHeld((h) => ({ ...h, current: setPointer(h.current, pointer, value), edited: new Set(h.edited).add(pointer) }));
   // Stryker disable next-line StringLiteral: the root's key only prefixes its descendants' keys, which are unique under any prefix.
-  return renderNode(tree, { onPress, onHandoff, data: current, write }, "root");
+  return renderNode(tree, { onPress, onHandoff, components: renderers, data: current, write }, "root");
+}
+
+const NO_COMPONENTS: Readonly<Record<string, ComposedRenderer>> = {};
+
+/** The names in the tree that are neither HX's nor drawn by one of the app's renderers. */
+function unrendered(node: ComposedNode, renderers: Readonly<Record<string, ComposedRenderer>>, found = new Set<string>()): string[] {
+  if (!(Object.hasOwn(COMPONENTS, node.component) || node.component === "ActionButton") && !Object.hasOwn(renderers, node.component)) found.add(node.component);
+  for (const child of node.children) unrendered(child, renderers, found);
+  return [...found];
 }
 
 function renderNode(node: ComposedNode, ctx: Context, key: string): ReactNode {
@@ -260,8 +291,12 @@ function renderNode(node: ComposedNode, ctx: Context, key: string): ReactNode {
     case "Checkbox":
     case "Select":
       return field(node, ctx, key);
-    default:
+    case "ActionButton":
       return <ActionButton key={key} node={node} ctx={ctx} />;
+    default: {
+      const draw = Object.hasOwn(ctx.components, node.component) ? ctx.components[node.component] : undefined;
+      return draw ? <Fragment key={key}>{draw(node, kids())}</Fragment> : null;
+    }
   }
 }
 

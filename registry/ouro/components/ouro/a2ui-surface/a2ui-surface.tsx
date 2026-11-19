@@ -69,6 +69,13 @@ export interface A2UISurfaceProps {
    * label={({ field, value }) => (field === "recipe" ? titles[value] : undefined)}
    */
   label?: ((context: LabelContext) => string | undefined) | undefined;
+  /**
+   * Your app's own components, by the name your catalog declares them under: each is drawn by its renderer. See
+   * ComposedSurface's `components`.
+   *
+   * @default {}
+   */
+  components?: ComposedSurfaceProps["components"];
   /** Layout only: margins, width (`max-w-md`). */
   className?: string | undefined;
 
@@ -106,7 +113,7 @@ const now = () => new Date().toISOString();
  * />
  */
 export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
-  const { catalog, messages, surfaceId, onAction, onHandoff, onProblems, className, onPress, label } = props;
+  const { catalog, messages, surfaceId, onAction, onHandoff, onProblems, className, onPress, label, components } = props;
   const result = useMemo(() => resolveMessages(catalog, messages, label ? { label } : {}), [catalog, messages, label]);
   const problems = "problems" in result ? result.problems : null;
   const surfaces = "surfaces" in result ? result.surfaces : {};
@@ -141,7 +148,7 @@ export function A2UISurface(props: A2UISurfaceProps): JSX.Element {
       {problems ? (
         <Alert tone="destructive" title="This card can't be shown" description="It didn't pass the checks for composed UI." />
       ) : tree ? (
-        <ComposedTree tree={tree} data={data} origin={created} onPress={onComposedPress} onHandoff={onHandoff} />
+        <ComposedTree tree={tree} data={data} origin={created} onPress={onComposedPress} onHandoff={onHandoff} components={components} />
       ) : null}
     </div>
   );
