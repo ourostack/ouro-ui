@@ -7,6 +7,7 @@ import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcemen
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, FINDS, PLANNING, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
 import { crewFace } from "./crew-faces";
+import { ROLES } from "./frame";
 import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
 
 await loadPageCode("/nautilus/");
@@ -189,6 +190,36 @@ describe("the ship's radio", () => {
     await expect.poll(() => slices.map((slice) => slice.querySelector("img")?.getAttribute("src"))).toEqual(
       [crewFace("Captain Nemo", "md"), crewFace("Professor Aronnax", "md"), crewFace("Conseil", "md")].slice(0, slices.length),
     );
+  });
+
+  it("heads the open chat with who it is with: the crew's faces and roles, or the captain and his dot", async () => {
+    const radio = await openRadio();
+    await expect.element(radio.getByRole("heading", { level: 4, name: RADIO.crew })).toBeVisible();
+    const header = () => document.querySelector<HTMLElement>("[data-chapter-chat-header]")!;
+    expect(header().querySelector("[data-ouro='avatar']")!.getAttribute("data-shape")).toBe("group");
+    expect(header().querySelector("[data-ouro-chat-header-subtitle]")!.textContent).toBe("Captain Nemo and 3 others");
+    await userEvent.click(radio.getByRole("button", { name: "4 members" }));
+    const list = page.getByRole("dialog", { name: "Members" });
+    await expect.element(list).toBeVisible();
+    expect(list.element().textContent).toContain(ROLES["Ned Land"]);
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(radio.getByRole("list", { name: RADIO.channels }).getByRole("button", { name: new RegExp(RADIO.captain) }).filter({ hasNotText: RADIO.crew }));
+    await expect.element(radio.getByRole("heading", { level: 4, name: RADIO.captain })).toBeVisible();
+    expect(header().querySelector("[data-ouro='avatar']")!.getAttribute("data-presence")).toBe(RADIO.presence["Captain Nemo"].presence);
+    expect(header().querySelector("[data-ouro-chat-header-subtitle]")!.textContent).toBe(RADIO.presence["Captain Nemo"].label);
+  });
+
+  it("shows who is writing back under the chat, with their face, until the reply lands", async () => {
+    const radio = await openRadio();
+    const writing = () => document.querySelector<HTMLElement>("[data-chapter-writing]")!;
+    expect(writing().textContent).toBe("");
+    const box = radio.getByRole("textbox", { name: RADIO.compose });
+    await userEvent.click(box);
+    await userEvent.keyboard("Ahoy, crew!{Enter}");
+    await expect.poll(() => writing().textContent).toBe("Captain Nemo is writing…");
+    expect(writing().querySelector("[data-ouro='avatar'] img, [data-ouro='avatar']")).not.toBeNull();
+    await expect.element(radio.getByText("Good day, and welcome aboard.")).toBeInTheDocument();
+    await expect.poll(() => writing().textContent).toBe("");
   });
 
   it("shows the crew's presence on their lines, as in the list of who is on the air", async () => {

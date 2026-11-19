@@ -1,0 +1,1 @@
+- New: ChatHeader takes `level={4}`, for a chat inside a section that has its own heading.

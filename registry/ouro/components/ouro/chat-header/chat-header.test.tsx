@@ -164,7 +164,7 @@ describe("ChatHeader", () => {
     // Actions come last, after the member list's button.
     expect(members.compareDocumentPosition(call) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(call.getBoundingClientRect().right).toBeCloseTo(header.getBoundingClientRect().right, 0);
-    for (const level of [1, 3] as const) {
+    for (const level of [1, 3, 4] as const) {
       await render(<ChatHeader title={`Level ${level}`} members={[nemo]} level={level} actions={<Button>Call</Button>} />);
       await expect.element(page.getByRole("heading", { level, name: `Level ${level}` })).toBeVisible();
     }
@@ -213,7 +213,7 @@ describe("ChatHeader development messages", () => {
     ["people", { people: crew }, "people is not a prop; a chat's people are members", '<ChatHeader title="Crew" members={[{ name: "Ana Lind", src: ana }]} />'],
     ["description", { description: "Hi" }, "description is not a prop", '<ChatHeader subtitle="Planning the voyage" />'],
     ["name", { name: "Crew" }, "name is not a prop; the chat's name is title", '<ChatHeader title="The whole crew" />'],
-    ["level", { level: 4 }, "level={4} is not a level; use 1, 2 or 3", "<ChatHeader level={2} />"],
+    ["level", { level: 5 }, "level={5} is not a level; use 1, 2, 3 or 4", "<ChatHeader level={2} />"],
     ["an empty members", { members: [] }, "members is empty, so the header shows no one", '<ChatHeader title="Crew" members={[{ name: "Crew" }]} />'],
   ])("names the fix for %s", async (_name, extra, problem, fix) => {
     const props = { title: "Crew", members: crew, ...extra } as unknown as Parameters<typeof ChatHeader>[0];

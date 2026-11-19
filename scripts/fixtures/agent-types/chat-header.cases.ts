@@ -12,7 +12,7 @@ export const agentCases: AgentCase[] = [
     names: ["tsc", "dev"],
   },
   { id: "chatHeader02", habit: "a description under the title", tsc: [hint("string", 'Use subtitle="..."')], dev: '<ChatHeader subtitle="Planning the voyage" />', names: ["tsc", "dev"] },
-  { id: "chatHeader03", habit: "a deeper heading level", tsc: [notAssignable("4", `1 | 2 | 3 | (number & { 'Use 1, 2 or 3': never; }) | undefined`)], dev: "<ChatHeader level={2} />", names: ["tsc", "dev"] },
+  { id: "chatHeader03", habit: "a deeper heading level", tsc: [notAssignable("5", `1 | 2 | 3 | 4 | (number & { 'Use 1, 2, 3 or 4': never; }) | undefined`)], dev: "<ChatHeader level={2} />", names: ["tsc", "dev"] },
   { id: "chatHeader04", habit: "a chat with no one in it", tsc: [], dev: '<ChatHeader title="Crew" members={[{ name: "Crew" }]} />', names: ["dev"] },
 ];
 

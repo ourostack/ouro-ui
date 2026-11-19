@@ -13,7 +13,7 @@ expectTypeOf<{
   actions: null;
   onBack: () => void;
   backLabel: "Chats";
-  level: 3;
+  level: 4;
   othersLabel: (names: readonly string[]) => string;
   membersLabel: (count: number) => string;
   membersTitle: "Members";
@@ -31,7 +31,7 @@ expectTypeOf<{ title: "Crew"; members: []; participants: [] }>().not.toExtend<Ch
 expectTypeOf<{ title: "Crew"; members: []; people: [] }>().not.toExtend<ChatHeaderProps>();
 expectTypeOf<{ title: "Crew"; members: []; description: "x" }>().not.toExtend<ChatHeaderProps>();
 expectTypeOf<{ title: "Crew"; members: []; name: "x" }>().not.toExtend<ChatHeaderProps>();
-expectTypeOf<{ title: "Crew"; members: []; level: 4 }>().not.toExtend<ChatHeaderProps>();
+expectTypeOf<{ title: "Crew"; members: []; level: 5 }>().not.toExtend<ChatHeaderProps>();
 expectTypeOf<{ title: "Crew"; members: [{ name: "Ana"; presence: "dnd"; presenceLabel: "Busy" }] }>().not.toExtend<ChatHeaderProps>();
 // A presence needs the words it says.
 expectTypeOf<{ title: "Crew"; members: [{ name: "Ana"; presence: "busy" }] }>().not.toExtend<ChatHeaderProps>();
