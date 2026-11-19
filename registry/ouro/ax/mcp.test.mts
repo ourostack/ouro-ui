@@ -1,22 +1,32 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { createMcpHandler, mcpTools, serveMcp } from "#ouro-ax/mcp.ts";
+import { createMcpHandler as createRawHandler, mcpTools, PROTOCOL_VERSIONS, serveMcp } from "#ouro-ax/mcp.ts";
 import { AxError } from "#ouro-ax/problem.ts";
 import { defineCli, defineCommand } from "#ouro-ax/command.ts";
 import { exampleCli as cli, resetRooms, rooms } from "#ouro-ax/example-cli.ts";
 import { outcome } from "#ouro-ax/outcome.ts";
 import { wait } from "#ouro-ax/wait.ts";
 
+const MODERN = { "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": { name: "test", version: "1" }, "io.modelcontextprotocol/clientCapabilities": {} };
+// A 2026-07-28 client: its requests carry the version and capabilities in _meta, and there is no initialize.
+const createMcpHandler = (options: Parameters<typeof createRawHandler>[0]) => {
+  const h = createRawHandler(options);
+  return (m: unknown) => {
+    const r = m as { id?: unknown; method?: string; params?: object };
+    return h(r && typeof r === "object" && r.id !== undefined && r.method !== "initialize" ? { ...r, params: { ...r.params, _meta: MODERN } } : m);
+  };
+};
 const handle = createMcpHandler({ cli, version: "1.0.0", maxChars: 300 });
 const call = async (name: string, args: unknown) => ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } })) as { result: { content: { text: string }[]; isError: boolean; structuredContent?: { error?: { code: string; fix: string } } } }).result;
 beforeEach(resetRooms);
 
 test("initialize, ping and tools/list: one tool per command, schema and effect annotations from the definition", async () => {
-  const init = (await handle({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26" } })) as { result: { protocolVersion: string; serverInfo: { name: string } } };
+  const older = createRawHandler({ cli, version: "1.0.0" });
+  const init = (await older({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26" } })) as { result: { protocolVersion: string; serverInfo: { name: string } } };
   assert.equal(init.result.protocolVersion, "2025-03-26");
   assert.equal(init.result.serverInfo.name, "notes");
-  assert.deepEqual(await handle({ jsonrpc: "2.0", id: 2, method: "ping" }), { jsonrpc: "2.0", id: 2, result: {} });
-  assert.equal(await handle({ jsonrpc: "2.0", method: "notifications/initialized" }), null);
+  assert.deepEqual(await older({ jsonrpc: "2.0", id: 2, method: "ping" }), { jsonrpc: "2.0", id: 2, result: {} });
+  assert.equal(await older({ jsonrpc: "2.0", method: "notifications/initialized" }), null);
   const tools = mcpTools({ cli });
   assert.deepEqual(tools.map((t) => t.name), ["rooms", "note", "post", "watch"]);
   const post = tools.find((t) => t.name === "post")!;
@@ -87,7 +97,7 @@ test("tool calls run one at a time, in order, unless concurrent", async () => {
 
 test("serveMcp answers line by line over a stream", async () => {
   let out = "";
-  const lines = [JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) + "\n", "not json\n", JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "rooms", arguments: {} } })];
+  const lines = [JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: { _meta: MODERN } }) + "\n", "not json\n", JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "rooms", arguments: {}, _meta: MODERN } })];
   await serveMcp({ cli, input: lines, output: { write: (s) => (out += s) } });
   const replies = out.trim().split("\n").map((l) => JSON.parse(l));
   assert.equal(replies.length, 3);
@@ -101,7 +111,7 @@ test("odd messages and calls: no params, no version, a name that is not text, a 
   assert.equal((await answer(thrown, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "rooms" } })).result?.content[0]!.text, "notes: rooms: the service is down.");
   assert.equal((await answer(thrown, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "note", arguments: { room: "abc123", text: "x" } } })).result?.content[0]!.text, "notes: note: odd.");
   const init = await answer(thrown, { jsonrpc: "2.0", id: 2, method: "initialize" });
-  assert.equal(init.result?.protocolVersion, "2025-06-18");
+  assert.equal(init.result?.protocolVersion, "2025-11-25");
   assert.equal(init.result?.serverInfo?.version, "0.0.0");
   assert.match((await answer(thrown, { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: 3 } })).result?.content[0]!.text ?? "", /tools\/call: there is no tool ""\. Fix: rooms, note, post, watch\./);
   assert.deepEqual(await thrown(null), { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid Request: expected a JSON-RPC 2.0 message with a method." } });
@@ -180,4 +190,124 @@ test("a default command is the tool itself, named after it, beside the tools its
       ["draft_set", "ouro-check draft set"],
     ],
   );
+});
+
+type Answer = { id?: unknown; result?: Record<string, unknown>; error?: { code: number; message: string; data?: { supported: string[]; requested: unknown } } };
+const ask = async (h: (m: unknown) => Promise<unknown>, method: string, params?: unknown, id: number = 1) => (await h({ jsonrpc: "2.0", id, method, params })) as Answer;
+const SERVER_INFO = "io.modelcontextprotocol/serverInfo";
+
+test("2026-07-28: server/discover names the versions, the capabilities and the server, and the results carry resultType, a cache hint and the server's identity", async () => {
+  const h = createRawHandler({ cli, version: "1.2.3" });
+  const discovered = await ask(h, "server/discover", { _meta: MODERN });
+  assert.deepEqual(discovered.result?.["supportedVersions"], ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]);
+  assert.deepEqual(discovered.result?.["supportedVersions"], [...PROTOCOL_VERSIONS]);
+  assert.deepEqual(discovered.result?.["capabilities"], { tools: {} });
+  assert.deepEqual([discovered.result?.["resultType"], discovered.result?.["ttlMs"], discovered.result?.["cacheScope"]], ["complete", 3_600_000, "public"]);
+  assert.deepEqual(discovered.result?.["_meta"], { [SERVER_INFO]: { name: "notes", version: "1.2.3" } });
+  assert.match(String(discovered.result?.["instructions"]), /touch only the person's own space/);
+  const listed = await ask(h, "tools/list", { _meta: MODERN });
+  assert.deepEqual([listed.result?.["resultType"], listed.result?.["ttlMs"], listed.result?.["cacheScope"]], ["complete", 3_600_000, "public"]);
+  assert.deepEqual(listed.result?.["_meta"], { [SERVER_INFO]: { name: "notes", version: "1.2.3" } });
+  const called = await ask(h, "tools/call", { name: "rooms", arguments: {}, _meta: MODERN });
+  assert.deepEqual([called.result?.["resultType"], called.result?.["isError"], called.result?.["_meta"]], ["complete", false, { [SERVER_INFO]: { name: "notes", version: "1.2.3" } }]);
+  const refused = await ask(h, "tools/call", { name: "post", arguments: { room: "abc123", text: "hi" }, _meta: MODERN });
+  assert.deepEqual([refused.result?.["resultType"], refused.result?.["isError"]], ["complete", true]);
+  assert.equal((await ask(h, "server/discover", { _meta: { ...MODERN, "io.modelcontextprotocol/clientInfo": undefined } })).result?.["resultType"], "complete");
+});
+
+test("2026-07-28: tools are listed in the same order every time, the order the commands are declared", async () => {
+  const h = createRawHandler({ cli });
+  const names = async () => ((await ask(h, "tools/list", { _meta: MODERN })).result?.["tools"] as { name: string }[]).map((t) => t.name);
+  assert.deepEqual(await names(), ["rooms", "note", "post", "watch"]);
+  assert.deepEqual(await names(), await names());
+});
+
+test("2026-07-28: a request missing _meta, its version or its capabilities is -32602, and one naming another version is -32022 with the versions and the one asked for", async () => {
+  const h = createRawHandler({ cli });
+  const bad = async (params: unknown, method = "tools/list") => (await ask(h, method, params)).error!;
+  for (const params of [undefined, {}, { _meta: "x" }, { _meta: {} }, { _meta: { "io.modelcontextprotocol/clientCapabilities": {} } }]) {
+    const e = await bad(params);
+    assert.equal(e.code, -32602);
+    assert.match(e.message, /_meta\["io\.modelcontextprotocol\/protocolVersion"\]: "2026-07-28"/);
+  }
+  assert.equal((await bad({ _meta: { "io.modelcontextprotocol/protocolVersion": "2026-07-28" } })).code, -32602);
+  assert.match((await bad({ _meta: { "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": [] } })).message, /clientCapabilities"\] must be an object/);
+  assert.match((await bad({ _meta: { "io.modelcontextprotocol/protocolVersion": 20260728, "io.modelcontextprotocol/clientCapabilities": {} } })).message, /must be a version string/);
+  for (const requested of ["1900-01-01", "2025-11-25", "2027-01-01"]) {
+    const e = await bad({ _meta: { ...MODERN, "io.modelcontextprotocol/protocolVersion": requested } });
+    assert.equal(e.code, -32022);
+    assert.deepEqual(e.data, { supported: [...PROTOCOL_VERSIONS], requested });
+    assert.match(e.message, new RegExp(`Unsupported protocol version: ${requested}\\. Send "2026-07-28" in _meta`));
+  }
+  assert.equal((await bad({ _meta: { ...MODERN, "io.modelcontextprotocol/protocolVersion": "1900-01-01" } }, "server/discover")).code, -32022);
+  assert.equal((await ask(h, "server/discover")).error?.code, -32602);
+});
+
+test("2026-07-28: ping, initialize-era methods, other methods and a cursor are refused with what the server answers", async () => {
+  const h = createRawHandler({ cli });
+  const ping = await ask(h, "ping", { _meta: MODERN });
+  assert.equal(ping.error?.code, -32601);
+  assert.match(ping.error!.message, /^Method not found: ping\. This server answers server\/discover, tools\/list and tools\/call\.$/);
+  assert.equal((await ask(h, "resources/list", { _meta: MODERN })).error?.code, -32601);
+  const cursor = await ask(h, "tools/list", { cursor: "page-2", _meta: MODERN });
+  assert.equal(cursor.error?.code, -32602);
+  assert.match(cursor.error!.message, /one page/);
+});
+
+test("an older client opens with initialize, is answered in the revision it asked for, and then needs no _meta", async () => {
+  for (const version of ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]) {
+    const h = createRawHandler({ cli, version: "1.0.0" });
+    const init = await ask(h, "initialize", { protocolVersion: version, capabilities: {}, clientInfo: { name: "old", version: "1" } });
+    assert.deepEqual(init.result?.["capabilities"], { tools: { listChanged: false } });
+    assert.deepEqual([init.result?.["protocolVersion"], init.result?.["serverInfo"]], [version, { name: "notes", version: "1.0.0" }]);
+    assert.equal(init.result?.["resultType"], undefined);
+    assert.equal(await h({ jsonrpc: "2.0", method: "notifications/initialized" }), null);
+    const listed = await ask(h, "tools/list", { _meta: { progressToken: "p" } }, 2);
+    assert.deepEqual(Object.keys(listed.result!), ["tools"]);
+    const called = await ask(h, "tools/call", { name: "rooms", arguments: {} }, 3);
+    assert.deepEqual(Object.keys(called.result!).sort(), ["content", "isError"]);
+    assert.deepEqual((await ask(h, "ping", undefined, 4)).result, {});
+    assert.equal((await ask(h, "resources/list", undefined, 5)).error?.message, "Method not found: resources/list. This server answers server/discover, tools/list and tools/call, and initialize and ping for older clients.");
+    assert.equal((await ask(h, "server/discover", undefined, 6)).error?.code, -32602);
+  }
+  for (const requested of ["2026-07-28", "1999-01-01", undefined]) {
+    assert.equal((await ask(createRawHandler({ cli }), "initialize", { protocolVersion: requested })).result?.["protocolVersion"], "2025-11-25");
+  }
+});
+
+test("before initialize an older client's request is refused with how to open, and a 2026-07-28 request is served beside an older client's on one process", async () => {
+  const h = createRawHandler({ cli });
+  const early = await ask(h, "tools/list");
+  assert.equal(early.error?.code, -32602);
+  assert.match(early.error!.message, /or open with initialize as an older client does/);
+  assert.deepEqual((await ask(h, "ping")).result, {});
+  await ask(h, "initialize", { protocolVersion: "2025-06-18" });
+  assert.deepEqual(Object.keys((await ask(h, "tools/list")).result!), ["tools"]);
+  assert.equal((await ask(h, "tools/list", { _meta: MODERN })).result?.["resultType"], "complete");
+  assert.equal((await ask(h, "tools/list", { _meta: { ...MODERN, "io.modelcontextprotocol/protocolVersion": "1900-01-01" } })).error?.code, -32022);
+});
+
+test("a client that cancels a call gets no reply for it: a queued call never runs, a running one is answered with nothing", async () => {
+  const started: string[] = [];
+  const h = createRawHandler({ cli, call: async (cmd) => { started.push(cmd.name); await new Promise((r) => setTimeout(r, 20)); return { ok: true, data: {} }; } });
+  const running = ask(h, "tools/call", { name: "rooms", arguments: {}, _meta: MODERN }, 1);
+  const queued = ask(h, "tools/call", { name: "note", arguments: { room: "abc123", text: "x" }, _meta: MODERN }, 2);
+  const other = ask(h, "tools/call", { name: "rooms", arguments: {}, _meta: MODERN }, 3);
+  while (!started.length) await new Promise((r) => setImmediate(r));
+  assert.equal(await h({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 1 } }), null);
+  assert.equal(await h({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 2 } }), null);
+  assert.equal(await h({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 99 } }), null);
+  assert.equal(await h({ jsonrpc: "2.0", method: "notifications/cancelled" }), null);
+  assert.deepEqual(await Promise.all([running, queued, other].map((p) => p.then((a) => a?.result?.["isError"] ?? null))), [null, null, false]);
+  assert.deepEqual(started, ["rooms", "rooms"]);
+  assert.equal((await ask(h, "tools/call", { name: "rooms", arguments: {}, _meta: MODERN }, 1)).result?.["isError"], false);
+});
+
+test("serveMcp serves a 2026-07-28 probe, then an older client's handshake, line by line", async () => {
+  let out = "";
+  const lines = [{ id: 1, method: "server/discover", params: { _meta: MODERN } }, { id: 2, method: "initialize", params: { protocolVersion: "2025-06-18" } }].map((m) => `${JSON.stringify({ jsonrpc: "2.0", ...m })}\n`);
+  await serveMcp({ cli, input: lines, output: { write: (s) => (out += s) } });
+  const replies = out.trim().split("\n").map((l) => JSON.parse(l));
+  assert.equal(replies.find((r) => r.id === 1).result.resultType, "complete");
+  assert.equal(replies.find((r) => r.id === 2).result.protocolVersion, "2025-06-18");
 });

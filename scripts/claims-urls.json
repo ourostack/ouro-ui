@@ -67,9 +67,17 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://developer.android.com/jetpack/androidx/releases/appfunctions": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
   "https://developer.apple.com/design/human-interface-guidelines/alerts": {
     "status": 200,
     "checked": "2026-11-03"
+  },
+  "https://developer.apple.com/documentation/appintents": {
+    "status": 200,
+    "checked": "2026-11-19"
   },
   "https://developer.apple.com/documentation/appintents/orchestrating-complex-actions-with-app-skills": {
     "status": 200,
@@ -183,6 +191,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/modelcontextprotocol/conformance/blob/96a6f9478b7f2e125cf0360a213383cf57533893/README.md#L79": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
   "https://github.com/mui/base-ui/blob/47b40521eab921c2756bf9bdb0b0f07fbfdb8c8c/packages/react/src/select/trigger/SelectTrigger.tsx": {
     "status": 200,
     "checked": "2026-11-06"
@@ -203,11 +215,27 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml": {
+  "https://github.com/ourostack/ouro-ui-android/blob/803227ecbe46f7099cf04e7cba2c014212902c20/README.md#L49": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-android/blob/803227ecbe46f7099cf04e7cba2c014212902c20/README.md#L56": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-android/blob/803227ecbe46f7099cf04e7cba2c014212902c20/README.md#L81": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-android/blob/803227ecbe46f7099cf04e7cba2c014212902c20/gradle/libs.versions.toml#L7": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml#L37-L48": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -335,11 +363,23 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#L26": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#L32": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#L330": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#whats-in-the-box": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#whats-in-the-box": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -431,11 +471,11 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -471,6 +511,10 @@
     "status": 200,
     "checked": "2026-11-18"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md#L20": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md": {
     "status": 200,
     "checked": "2026-11-18"
@@ -499,11 +543,11 @@
     "status": 200,
     "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml": {
+  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml#L37-L48": {
+  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -526,6 +570,14 @@
   "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/src/Ouro.UI.Windows/OuroComposedSurface.cs": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/7f62ae7a10e99669a81f0ac095430e030d7f947c/README.md#L11": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-windows/blob/7f62ae7a10e99669a81f0ac095430e030d7f947c/README.md#L131": {
+    "status": 200,
+    "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui-windows/releases/latest": {
     "status": 200,
@@ -706,6 +758,22 @@
   "https://html.spec.whatwg.org/multipage/semantics-other.html#selector-hover": {
     "status": 200,
     "checked": "2026-11-17"
+  },
+  "https://learn.microsoft.com/en-us/windows/ai/app-actions/": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://learn.microsoft.com/en-us/windows/ai/mcp/overview": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://modelcontextprotocol.io/specification/2026-07-28/changelog": {
+    "status": 200,
+    "checked": "2026-11-19"
   },
   "https://nodejs.org/api/typescript.html#type-stripping": {
     "status": 200,
