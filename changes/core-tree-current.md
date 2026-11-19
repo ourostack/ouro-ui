@@ -1,0 +1,1 @@
+- Changed: the composed tree the components vendor moves to the current core release, so a tree built against it matches the other kits.
