@@ -593,7 +593,7 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
 
 /* The home page's two showcases (home.tsx): the Nautilus in profile, large, beside the heading, drawn in the theme's own colours. */
 .site-ship-nautilus {
-  /* The stage's hull colours (stage.css, .stage-scene), so the profile matches the porthole's ship. */
+  /* The hull's colours, which its parts (below) are drawn in. */
   --sea-ink: var(--primary);
   --glow: var(--chart-3);
   --hull: color-mix(in oklab, var(--primary) 28%, oklch(0.34 0.025 250));
@@ -605,6 +605,97 @@ html[data-theme="cookbook"] .site-dot[data-site-preset="cookbook"] [data-theme] 
 }
 [data-theme="brass"] .site-ship-nautilus {
   --sea-ink: color-mix(in oklab, var(--chart-2) 55%, var(--primary));
+}
+/* The profile's parts (site/src/nautilus/art/nautilus.svg): steel lit from above, brass, glass and her lights. */
+.site-ship-nautilus .n-hull {
+  fill: var(--hull);
+}
+/* Lit from above: a bright crown, the steel's own colour, the belly in shadow and the sea's light thrown back along the keel. */
+.site-ship-nautilus .n-hull-sheen-top {
+  stop-color: color-mix(in oklab, var(--primary) 30%, white);
+  stop-opacity: 0.55;
+}
+.site-ship-nautilus .n-hull-sheen-mid {
+  stop-color: var(--primary);
+  stop-opacity: 0;
+}
+.site-ship-nautilus .n-hull-sheen-bottom {
+  stop-color: oklch(0.08 0.02 255);
+  stop-opacity: 0.6;
+}
+.site-ship-nautilus .n-hull-sheen-keel {
+  stop-color: color-mix(in oklab, var(--sea-ink) 60%, white);
+  stop-opacity: 0.35;
+}
+.site-ship-nautilus .n-plates {
+  fill: none;
+  stroke: color-mix(in oklab, var(--background) 26%, transparent);
+  stroke-width: 0.7;
+}
+.site-ship-nautilus .n-keel-light {
+  fill: none;
+  stroke: color-mix(in oklab, var(--sea-ink) 45%, white);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.4;
+}
+.site-ship-nautilus .n-lights circle {
+  fill: color-mix(in oklab, var(--glow) 70%, var(--background));
+  stroke: var(--metal);
+  stroke-width: 1.1;
+}
+.site-ship-nautilus .n-platform,
+.site-ship-nautilus .n-cage,
+.site-ship-nautilus .n-rudder,
+.site-ship-nautilus .n-spur-collar {
+  fill: var(--hull-trim);
+  stroke: color-mix(in oklab, var(--background) 30%, transparent);
+  stroke-width: 0.8;
+}
+.site-ship-nautilus .n-deck-edge {
+  stroke: color-mix(in oklab, white 55%, var(--hull-trim));
+  stroke-width: 1;
+  opacity: 0.7;
+}
+.site-ship-nautilus .n-cage-cap {
+  fill: var(--metal);
+}
+.site-ship-nautilus .n-glass {
+  fill: color-mix(in oklab, var(--glow) 35%, var(--background));
+  stroke: var(--metal);
+  stroke-width: 0.8;
+}
+.site-ship-nautilus .n-lantern {
+  fill: color-mix(in oklab, var(--glow) 80%, white);
+  stroke: var(--metal);
+  stroke-width: 1.2;
+}
+.site-ship-nautilus .n-screw {
+  fill: var(--metal);
+  stroke: var(--metal);
+  stroke-width: 1.4;
+}
+.site-ship-nautilus .n-spur {
+  fill: color-mix(in oklab, white 82%, var(--hull-trim));
+  stroke: color-mix(in oklab, var(--foreground) 55%, transparent);
+  stroke-width: 1;
+}
+.site-ship-nautilus .n-spur-edge {
+  stroke: white;
+  stroke-width: 1;
+  opacity: 0.85;
+}
+.site-ship-nautilus .n-highlight {
+  fill: none;
+  stroke: color-mix(in oklab, white 60%, var(--primary));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.site-ship-nautilus .n-outline {
+  fill: none;
+  stroke: color-mix(in oklab, var(--foreground) 45%, transparent);
+  stroke-width: 1;
 }
 /* Spoonjoy's X-ray screenshot across its showcase row: the theme's own shot, edges softly rounded, no frame or shadow. */
 .site-ship-shot-img {
