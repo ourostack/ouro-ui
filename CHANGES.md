@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: Ouro AX takes a `default` on an optional word or flag: `run()` receives it when the word or flag is left out, help shows it (`[<name>=<value>]` in usage, `(default: 90)` on a flag's line), `help --json` and the MCP input schema carry it typed, `defineCli` refuses a default that does not fit, and the X-ray checks that optional words come last and their defaults match.
