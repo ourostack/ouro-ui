@@ -29,6 +29,7 @@ Type: `SwitchProps`.
 
 | Prop | Type | Description |
 | --- | --- | --- |
+| `aria-describedby` | `string` | Ids of other elements that describe the switch, a hint elsewhere on the page. They join the switch's own description and error, each id once, and never replace them. |
 | `checked` | `boolean` | Whether it is on, for a controlled switch; pair it with `onCheckedChange`. |
 | `className` | `string` | Layout only: margins, width, grid placement (`mt-4`, `col-span-2`). Appearance classes warn in development; style switches in your theme. |
 | `defaultChecked` | `boolean` | Whether it starts on, for an uncontrolled switch. |
