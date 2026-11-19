@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, loadPageCode, renderPage, setScheme } from "../../../test/render";
 import { fleschKincaid, voice } from "../../../test/readability";
@@ -6,6 +6,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { allChapterTwoText, BOOK_ROUTE, CALL_AFTER, CATALOGUE, CHAPTER_TWO, CHAPTER_TWO_CONTROLS, CHART_ROOM, CLASSING, FINDS, PLANNING, PORTS, RADIO, RADIO_START, radioReply, ROUTE, START_DAY, START_ROUTE } from "./chapter-two-copy";
+import { RADIO_DELAY } from "./chapter-two-radio";
 import { crewFace } from "./crew-faces";
 import { ROLES } from "./frame";
 import { ALL_ROUTES, arrivals, isBook, isShortest, legs, routeLeagues, sayDay, SHORTEST, writeDay, writeLeagues } from "./route";
@@ -211,15 +212,47 @@ describe("the ship's radio", () => {
 
   it("shows who is writing back under the chat, with their face, until the reply lands", async () => {
     const radio = await openRadio();
-    const writing = () => document.querySelector<HTMLElement>("[data-chapter-writing]")!;
-    expect(writing().textContent).toBe("");
-    const box = radio.getByRole("textbox", { name: RADIO.compose });
-    await userEvent.click(box);
-    await userEvent.keyboard("Ahoy, crew!{Enter}");
-    await expect.poll(() => writing().textContent).toBe("Captain Nemo is writing…");
-    expect(writing().querySelector("[data-ouro='avatar'] img, [data-ouro='avatar']")).not.toBeNull();
-    await expect.element(radio.getByText("Good day, and welcome aboard.")).toBeInTheDocument();
-    await expect.poll(() => writing().textContent).toBe("");
+    const writing = document.querySelector<HTMLElement>("[data-chapter-writing]")!;
+    expect(writing.textContent).toBe("");
+    // The line shows for less than a second, so record what it shows as it happens rather than poll for it.
+    const announced = watchAnnouncements();
+    const faces: (string | null)[] = [];
+    const observer = new MutationObserver(() => writing.querySelectorAll("img").forEach((img) => faces.push(img.getAttribute("src"))));
+    observer.observe(writing, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
+    try {
+      const box = radio.getByRole("textbox", { name: RADIO.compose });
+      await userEvent.click(box);
+      await userEvent.keyboard("Ahoy, crew!{Enter}");
+      await expect.element(radio.getByText("Good day, and welcome aboard.")).toBeInTheDocument();
+      expect(announced.count("Captain Nemo is writing…")).toBe(1);
+      expect(faces).toContain(crewFace("Captain Nemo"));
+      expect(writing.textContent).toBe("");
+    } finally {
+      observer.disconnect();
+      announced.stop();
+    }
+  });
+
+  it("keeps the captain's typing line until his own reply lands, when the crew's reply lands first", async () => {
+    const radio = await openRadio();
+    const writing = () => document.querySelector<HTMLElement>("[data-chapter-writing]")!.textContent;
+    const box = () => radio.getByRole("textbox", { name: RADIO.compose });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await userEvent.click(box());
+      await userEvent.keyboard("Ahoy, crew!{Enter}");
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      await userEvent.click(radio.getByRole("list", { name: RADIO.channels }).getByRole("button", { name: new RegExp(RADIO.captain) }).filter({ hasNotText: RADIO.crew }));
+      await userEvent.click(box());
+      await userEvent.keyboard("Ahoy!{Enter}");
+      // The crew's reply lands now, 100ms before the captain's.
+      await act(() => vi.advanceTimersByTimeAsync(RADIO_DELAY.reply - 100));
+      expect(writing()).toBe("Captain Nemo is writing…");
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      expect(writing()).toBe("");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shows the crew's presence on their lines, as in the list of who is on the air", async () => {

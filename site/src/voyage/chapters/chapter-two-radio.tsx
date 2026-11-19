@@ -68,8 +68,8 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
   const [calling, setCalling] = useState(false);
   const [unread, setUnread] = useState(false);
   const [awake, setAwake] = useState(false);
-  // Who is writing back, and in which conversation: the typing line under that chat shows them until their reply lands.
-  const [writer, setWriter] = useState<{ to: ChannelId; name: string } | null>(null);
+  // Who is writing back, one entry per message sent: the typing line under that chat shows them until that reply lands.
+  const [writers, setWriters] = useState<{ id: number; to: ChannelId; name: string }[]>([]);
   const timers = useRef<number[]>([]);
   // Whoever signed on in Chapter I, by the name the crew call them.
   const you = useLogbook((log) => (log.you ? firstName(log.you.name) : null));
@@ -94,9 +94,9 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
     setSent((counts) => ({ ...counts, [to]: counts[to] + 1 }));
     setLines((all) => ({ ...all, [to]: [...all[to], mine] }));
     timers.current.push(
-      window.setTimeout(() => setWriter({ to, name: reply.line.name }), RADIO_DELAY.typing),
+      window.setTimeout(() => setWriters((all) => [...all, { id: mine.id, to, name: reply.line.name }]), RADIO_DELAY.typing),
       window.setTimeout(() => {
-        setWriter(null);
+        setWriters((all) => all.filter((writer) => writer.id !== mine.id));
         setLines((all) => ({ ...all, [to]: [...all[to], theirs] }));
         update(to, mine.id, (line) => ({ ...line, reactions: crewReacts(line.reactions, reply.reaction) }));
         if (reply.line.name === "Ned Land") setAwake(true);
@@ -131,7 +131,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
     return { name, src: src ?? crewFace(name, "md"), presence, presenceLabel: label, note: ROLES[name] };
   };
   const members: ChatMember[] = channel === "crew" ? CREW_NAMES.map((name) => memberOf(name)) : channel === "captain" ? [memberOf("Captain Nemo")] : [{ name: RADIO.caller }];
-  const writing = writer?.to === channel ? [{ name: writer.name, src: crewFace(writer.name) }] : [];
+  const writing = [...new Set(writers.filter((writer) => writer.to === channel).map((writer) => writer.name))].map((name) => ({ name, src: crewFace(name) }));
 
   return (
     <div className="grid gap-6 py-4 sm:py-6 md:grid-cols-[15rem_minmax(0,1fr)]" data-chapter-radio="" data-calling={calling ? "" : undefined}>
