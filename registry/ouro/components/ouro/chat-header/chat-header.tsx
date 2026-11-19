@@ -61,8 +61,11 @@ export interface ChatHeaderOwnProps {
   onBack?: ((event: MouseEvent<HTMLButtonElement>) => void) | undefined;
   /** What screen readers hear for the back button, for other languages. @default "Back" */
   backLabel?: string | undefined;
-  /** The title's heading level: `2` in a page that has its own `<h1>`, `1` when the chat is the page. @default 2 */
-  level?: 1 | 2 | 3 | (number & { 'Use 1, 2 or 3': never }) | undefined;
+  /**
+   * The title's heading level: `2` in a page that has its own `<h1>`, `1` when the chat is the page, and `3` or `4` for a
+   * chat inside a section with its own heading. @default 2
+   */
+  level?: 1 | 2 | 3 | 4 | (number & { 'Use 1, 2, 3 or 4': never }) | undefined;
   /**
    * The line under a group chat's title, from its members' names, for other languages.
    * @default the first name, then "and" the second, or the rest's count ("Captain Nemo and 3 others")
@@ -129,8 +132,8 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
     name,
     ...rest
   } = props;
-  const level = levelProp === 1 || levelProp === 3 ? levelProp : 2;
-  const Title = `h${level}` as "h1" | "h2" | "h3";
+  const level = levelProp === 1 || levelProp === 3 || levelProp === 4 ? levelProp : 2;
+  const Title = `h${level}` as "h1" | "h2" | "h3" | "h4";
   const group = members.length > 1;
   const person = members.length === 1 ? members[0] : undefined;
   useAppearanceClassNameCheck(
@@ -150,7 +153,7 @@ export function ChatHeader(props: ChatHeaderProps): JSX.Element {
             '<ChatHeader members={[{ name: "Ana Lind", presence: "busy", presenceLabel: "In a meeting" }]} />',
           ],
           members.length === 0 && ["members is empty, so the header shows no one", `<ChatHeader title="${title}" members={[{ name: "${title}" }]} />`],
-          level !== levelProp && [`level={${String(levelProp)}} is not a level; use 1, 2 or 3`, "<ChatHeader level={2} />"],
+          level !== levelProp && [`level={${String(levelProp)}} is not a level; use 1, 2, 3 or 4`, "<ChatHeader level={2} />"],
           (participants !== undefined || people !== undefined) && [
             `${participants !== undefined ? "participants" : "people"} is not a prop; a chat's people are members`,
             '<ChatHeader title="Crew" members={[{ name: "Ana Lind", src: ana }]} />',

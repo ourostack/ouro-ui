@@ -1,23 +1,24 @@
-import { startTransition, useEffect, useRef, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { ChatHeader, type ChatMember } from "@/registry/ouro/components/ouro/chat-header/chat-header";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { ConversationList, type ConversationListItem } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ReactionBar, type Reaction } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
+import { TypingIndicator } from "@/registry/ouro/components/ouro/typing-indicator/typing-indicator";
 import { RADIO, RADIO_START, REACTIONS, radioReply, type ChannelId, type RadioLine, type RadioLive, type ReactionKey } from "./chapter-two-copy";
 import { crewFace } from "./crew-faces";
 import { ROLES, useLiveCode } from "./frame";
 import { firstName, useLogbook } from "./logbook";
 
-/** One line on the radio as it shows: who, what, the reactions on it, and whether it is still being written. */
+/** One line on the radio as it shows: who, what and the reactions on it. */
 interface Line {
   id: number;
   role: "user" | "assistant" | "system";
   name: string;
   text: string;
   reactions: Reaction[];
-  streaming?: boolean;
   /** The captain's welcome, which greets you by name once you have signed on. */
   welcome?: boolean;
 }
@@ -67,6 +68,8 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
   const [calling, setCalling] = useState(false);
   const [unread, setUnread] = useState(false);
   const [awake, setAwake] = useState(false);
+  // Who is writing back, one entry per message sent: the typing line under that chat shows them until that reply lands.
+  const [writers, setWriters] = useState<{ id: number; to: ChannelId; name: string }[]>([]);
   const timers = useRef<number[]>([]);
   // Whoever signed on in Chapter I, by the name the crew call them.
   const you = useLogbook((log) => (log.you ? firstName(log.you.name) : null));
@@ -87,13 +90,14 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
     const to = channel;
     const reply = radioReply(text, to, sent[to]);
     const mine: Line = { id: nextId++, role: "user", name: RADIO.you, text, reactions: [] };
-    const theirs: Line = { id: nextId++, role: "assistant", name: reply.line.name, text: "", reactions: [], streaming: true };
+    const theirs: Line = { id: nextId++, role: "assistant", name: reply.line.name, text: reply.line.text, reactions: [] };
     setSent((counts) => ({ ...counts, [to]: counts[to] + 1 }));
     setLines((all) => ({ ...all, [to]: [...all[to], mine] }));
     timers.current.push(
-      window.setTimeout(() => startTransition(() => setLines((all) => ({ ...all, [to]: [...all[to], theirs] }))), RADIO_DELAY.typing),
+      window.setTimeout(() => setWriters((all) => [...all, { id: mine.id, to, name: reply.line.name }]), RADIO_DELAY.typing),
       window.setTimeout(() => {
-        update(to, theirs.id, (line) => ({ ...line, text: reply.line.text, streaming: false }));
+        setWriters((all) => all.filter((writer) => writer.id !== mine.id));
+        setLines((all) => ({ ...all, [to]: [...all[to], theirs] }));
         update(to, mine.id, (line) => ({ ...line, reactions: crewReacts(line.reactions, reply.reaction) }));
         if (reply.line.name === "Ned Land") setAwake(true);
         if (reply.call) call();
@@ -121,9 +125,16 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
     ...(calling ? [{ id: "caller", title: RADIO.caller, preview: RADIO.callerNote, unread, avatar: <Avatar name="?" shape="square" alt="" /> }] : []),
   ];
   const title = channel === "crew" ? RADIO.crew : channel === "captain" ? RADIO.captain : RADIO.caller;
+  // Who the open chat is with, as its header shows them: the whole crew with their roles, the captain alone, or the caller.
+  const memberOf = (name: (typeof CREW_NAMES)[number], src?: string): ChatMember => {
+    const { presence, label } = presenceOf(name);
+    return { name, src: src ?? crewFace(name, "md"), presence, presenceLabel: label, note: ROLES[name] };
+  };
+  const members: ChatMember[] = channel === "crew" ? CREW_NAMES.map((name) => memberOf(name)) : channel === "captain" ? [memberOf("Captain Nemo")] : [{ name: RADIO.caller }];
+  const writing = [...new Set(writers.filter((writer) => writer.to === channel).map((writer) => writer.name))].map((name) => ({ name, src: crewFace(name) }));
 
   return (
-    <div className="grid gap-6 py-4 sm:py-6 md:grid-cols-[15rem_minmax(0,1fr)]" data-chapter-radio="" data-calling={calling ? "" : undefined}>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 py-4 sm:py-6 md:grid-cols-[15rem_minmax(0,1fr)]" data-chapter-radio="" data-calling={calling ? "" : undefined}>
       <div className="grid content-start gap-5">
         <div data-chapter-control="channels">
           <ConversationList label={RADIO.channels} items={channels} selectedId={channel} onSelect={choose} density="compact" unreadLabel={RADIO.unread} />
@@ -148,7 +159,10 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
           </ul>
         </div>
       </div>
-      <div className="grid min-w-0 content-start gap-3">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3">
+        <div data-chapter-control="members">
+          <ChatHeader title={title} members={members} level={4} data-chapter-chat-header={channel} />
+        </div>
         <div data-chapter-control="react">
         <MessageList key={channel} label={RADIO.list(title)} className="h-80" data-chapter-messages={channel}>
           {lines[channel].map((line, index, all) => (
@@ -158,13 +172,11 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
               name={line.name}
               avatar={line.role === "assistant" ? crewFace(line.name) : undefined}
               {...dotOf(line)}
-              streaming={line.streaming}
-              streamingLabel={RADIO.writing}
               attachments={
                 line.role === "system" ? undefined : (
                   <ReactionBar
                     reactions={line.reactions}
-                    quick={line.role === "assistant" && !line.streaming && index === all.findLastIndex((each) => each.role === "assistant") ? QUICK : undefined}
+                    quick={line.role === "assistant" && index === all.findLastIndex((each) => each.role === "assistant") ? QUICK : undefined}
                     onReact={line.role === "assistant" ? (key) => update(channel, line.id, (each) => ({ ...each, reactions: toggle(each.reactions, key) })) : undefined}
                   />
                 )
@@ -175,6 +187,7 @@ export function Radio({ planned }: { planned: boolean }): JSX.Element {
           ))}
         </MessageList>
         </div>
+        <TypingIndicator people={writing} className="-my-1.5" data-chapter-writing="" />
         <div data-chapter-control="compose">
           <Composer label={RADIO.compose} placeholder={channel === "caller" ? RADIO.callerNote : RADIO.placeholder} sendLabel={RADIO.send} sendOn="enter" onSend={send} />
         </div>

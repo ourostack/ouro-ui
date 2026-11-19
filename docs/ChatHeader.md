@@ -29,7 +29,7 @@ Type: `ChatHeaderProps`.
 | `avatar` | `string` |  | The group's own picture, in place of its members' faces once it loads. Read only for a group chat. |
 | `backLabel` | `string` | `"Back"` | What screen readers hear for the back button, for other languages. |
 | `className` | `string` |  | Layout only: margins, padding, width (`px-4 py-2`). Appearance classes warn in development. |
-| `level` | `1 \| 2 \| 3` | `2` | The title's heading level: `2` in a page that has its own `<h1>`, `1` when the chat is the page. |
+| `level` | `1 \| 2 \| 3 \| 4` | `2` | The title's heading level: `2` in a page that has its own `<h1>`, `1` when the chat is the page, and `3` or `4` for a chat inside a section with its own heading. |
 | `members` (required) | `readonly ChatMember[]` |  | Who the chat is with, not counting the reader. One member makes a one-to-one chat: their avatar with their presence dot, and what the dot says under the title. Two or more make a group chat: the group's avatar drawn from its members (Avatar's `members`), "Captain Nemo and 3 others" under the title, and a button with the count that opens the member list, each with their face, name, note and presence. |
 | `membersLabel` | `((count: number) => string)` | `` (count) => `${count} members` `` | What screen readers hear for the member list's button, from the count, for other languages. |
 | `membersTitle` | `string` | `"Members"` | The member list's title, for other languages. |
@@ -115,8 +115,11 @@ interface ChatHeaderOwnProps {
   onBack?: ((event: MouseEvent<HTMLButtonElement>) => void) | undefined;
   /** What screen readers hear for the back button, for other languages. @default "Back" */
   backLabel?: string | undefined;
-  /** The title's heading level: `2` in a page that has its own `<h1>`, `1` when the chat is the page. @default 2 */
-  level?: 1 | 2 | 3 | (number & { 'Use 1, 2 or 3': never }) | undefined;
+  /**
+   * The title's heading level: `2` in a page that has its own `<h1>`, `1` when the chat is the page, and `3` or `4` for a
+   * chat inside a section with its own heading. @default 2
+   */
+  level?: 1 | 2 | 3 | 4 | (number & { 'Use 1, 2, 3 or 4': never }) | undefined;
   /**
    * The line under a group chat's title, from its members' names, for other languages.
    * @default the first name, then "and" the second, or the rest's count ("Captain Nemo and 3 others")

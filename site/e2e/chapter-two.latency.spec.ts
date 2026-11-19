@@ -57,6 +57,8 @@ const steps: Record<(typeof CHAPTER_TWO_CONTROLS)[number], { press: Step; before
     press: (page, index) =>
       (index % 2 ? radio(page).getByRole("button", { name: new RegExp(RADIO.crew) }) : radio(page).getByRole("button", { name: new RegExp(RADIO.captain) }).filter({ hasNotText: RADIO.crew })).click(),
   },
+  // The crew's member list, open and closed.
+  members: { press: (page) => radio(page).getByRole("button", { name: "4 members" }).click(), after: (page) => page.keyboard.press("Escape") },
   compose: {
     before: (page) => radio(page).getByRole("textbox", { name: RADIO.compose }).focus(),
     press: (page, index) => page.keyboard.press(index % 2 ? "Backspace" : "a"),
@@ -82,6 +84,7 @@ const BASELINE_MEDIAN: Record<(typeof CHAPTER_TWO_CONTROLS)[number], number> = {
   museum: 72,
   "radio-code": 64,
   channels: 64,
+  members: 64,
   compose: 32,
   react: 48,
 };

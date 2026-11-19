@@ -43,6 +43,19 @@ afterEach(async () => {
 const subtitleOf = (header: HTMLElement) => header.querySelector("[data-ouro-chat-header-subtitle]")?.textContent ?? null;
 
 describe("ChatHeader", () => {
+  it("stays inside a 320px container, even in an auto grid track, truncating the title and the line and keeping the members button", async () => {
+    const { host, header } = await render(
+      <div style={{ display: "grid" }}>
+        <ChatHeader title="The whole crew of the Nautilus, aboard for the long voyage under the sea" members={crew} subtitle="Captain Nemo, Professor Aronnax, Conseil, Ned Land and everyone else aboard" />
+      </div>,
+    );
+    host.style.width = "320px";
+    await expect.poll(() => host.scrollWidth).toBeLessThanOrEqual(320);
+    const members = header.querySelector<HTMLElement>('[data-ouro-part="members"]')!;
+    expect(members.getBoundingClientRect().right).toBeLessThanOrEqual(host.getBoundingClientRect().right);
+    expect(header.getBoundingClientRect().width).toBeLessThanOrEqual(320);
+  });
+
   it("shows a one-to-one chat as the person, with their presence under the title and no member list", async () => {
     const { header } = await render(<ChatHeader title="Captain Nemo" members={[nemo]} />);
     const avatar = header.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
@@ -164,7 +177,7 @@ describe("ChatHeader", () => {
     // Actions come last, after the member list's button.
     expect(members.compareDocumentPosition(call) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(call.getBoundingClientRect().right).toBeCloseTo(header.getBoundingClientRect().right, 0);
-    for (const level of [1, 3] as const) {
+    for (const level of [1, 3, 4] as const) {
       await render(<ChatHeader title={`Level ${level}`} members={[nemo]} level={level} actions={<Button>Call</Button>} />);
       await expect.element(page.getByRole("heading", { level, name: `Level ${level}` })).toBeVisible();
     }
@@ -213,7 +226,7 @@ describe("ChatHeader development messages", () => {
     ["people", { people: crew }, "people is not a prop; a chat's people are members", '<ChatHeader title="Crew" members={[{ name: "Ana Lind", src: ana }]} />'],
     ["description", { description: "Hi" }, "description is not a prop", '<ChatHeader subtitle="Planning the voyage" />'],
     ["name", { name: "Crew" }, "name is not a prop; the chat's name is title", '<ChatHeader title="The whole crew" />'],
-    ["level", { level: 4 }, "level={4} is not a level; use 1, 2 or 3", "<ChatHeader level={2} />"],
+    ["level", { level: 5 }, "level={5} is not a level; use 1, 2, 3 or 4", "<ChatHeader level={2} />"],
     ["an empty members", { members: [] }, "members is empty, so the header shows no one", '<ChatHeader title="Crew" members={[{ name: "Crew" }]} />'],
   ])("names the fix for %s", async (_name, extra, problem, fix) => {
     const props = { title: "Crew", members: crew, ...extra } as unknown as Parameters<typeof ChatHeader>[0];
