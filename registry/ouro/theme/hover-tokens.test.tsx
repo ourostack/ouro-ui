@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { applyThemeFixture, themeFixtures } from "@/test/theme-fixtures";
 
 const hosts: HTMLElement[] = [];
 afterEach(() => {
@@ -64,5 +65,21 @@ describe("hover tokens in the Ouro theme", () => {
     expect([read("--ouro-state-hover"), read("--ouro-state-pressed")]).toEqual(["5%", "12%"]);
     document.documentElement.classList.add("dark");
     expect([read("--ouro-state-hover"), read("--ouro-state-pressed")]).toEqual(["8%", "14%"]);
+  });
+});
+
+describe.each(Object.keys(themeFixtures))("hover tokens under the %s theme, with no ouro-theme", (name) => {
+  it.each(["light", "dark"] as const)("come from ouro-base and keep hover, selected and the page apart in %s", (scheme) => {
+    const remove = applyThemeFixture(name);
+    try {
+      const page = painted("--background", scheme);
+      const [hover, selected, selectedHover] = ["--ouro-row-hover", "--ouro-row-selected", "--ouro-row-selected-hover"].map((token) => painted(token, scheme));
+      expect(hover).not.toBe("rgba(0, 0, 0, 0)");
+      expect(Math.abs(lightness(hover!) - lightness(page)), "hover against the page").toBeGreaterThanOrEqual(0.01);
+      expect(Math.abs(lightness(hover!) - lightness(selected!)), "hover against selected").toBeGreaterThanOrEqual(0.015);
+      expect(Math.abs(lightness(selectedHover!) - lightness(selected!)), "selected hovered against selected").toBeGreaterThanOrEqual(0.01);
+    } finally {
+      remove();
+    }
   });
 });
