@@ -21,6 +21,7 @@ describe("X-ray's item names", () => {
     expect(unknown, "map these roots to their item in inspector-styles.ts").toEqual([]);
     expect([...names].filter((name) => itemFor(name) === null).every((name) => /-(portal|positioner|backdrop|viewport)$/.test(name))).toBe(true);
     expect(itemFor("radio")).toBe("radio-group");
+    expect(itemFor("page-section")).toBe("page-shell");
     expect(itemFor("sheet-portal")).toBeNull();
   });
 });

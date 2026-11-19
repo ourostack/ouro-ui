@@ -477,6 +477,7 @@ Components:
 `otp-field`,
 `ouro-mcp-app`,
 `page-header`,
+`page-shell`,
 `pagination`,
 `popover`,
 `porthole`,
@@ -810,6 +811,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Hero** — The top of a page: a headline with an optional line above it (`eyebrow`) and a status beside that (`badge`), a trail above them (`breadcrumb`), a lede under the headline (`description`), the page's buttons (`actions`), more such as a byline (`children`), and a big picture, or something live in its place (`media`), below. [Docs](docs/Hero.md)
 - **heroPreloadScript** — The inline script that preloads the hero's twin for the page's scheme, from the `<head>`, so the browser fetches that twin once. [Docs](docs/heroPreloadScript.md)
 - **PageHeader** — The top of a page: its title with an optional line above it (`eyebrow`), a description under it, the page's actions beside it, and a trail and an image above. [Docs](docs/PageHeader.md)
+- **PageSection** — One section of a page: generous space above and below, and a hairline on top that separates it from the one before. [Docs](docs/PageSection.md)
+- **PageShell** — The page column of a site: centred content with a side gutter that grows with the screen, and a wider column on big screens. [Docs](docs/PageShell.md)
 - **Resizable** — Panels side by side (or stacked) with a draggable handle between each pair: a file list beside an editor, a preview above a console. [Docs](docs/Resizable.md)
 - **ResizableHandle** — The draggable line between two panels in a `ResizablePanelGroup`, a focusable window splitter (`role="separator"`) for the panel before it. [Docs](docs/ResizableHandle.md)
 - **ResizablePanel** — One resizable area of a `Resizable` (or `ResizablePanelGroup`), sized in percent of the group. [Docs](docs/ResizablePanel.md)
