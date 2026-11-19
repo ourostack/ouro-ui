@@ -1,18 +1,13 @@
 {
   "allowedRegressions": [
     {
-      "fingerprint": "src/settings-main.tsx::(module)::third-party-control::@mantine/core.MantineProvider::",
+      "fingerprint": "src/pages/Settings.tsx::Settings::third-party-control::@mantine/core.Button::",
       "count": 1,
-      "reason": "the entry file wraps the incumbent's own page and provider; both are baselined until the page moves"
-    },
-    {
-      "fingerprint": "src/settings-main.tsx::(module)::uses-hand-rolled-control::src/pages/Settings#Settings::",
-      "count": 1,
-      "reason": "the entry file wraps the incumbent's own page and provider; both are baselined until the page moves"
+      "reason": "the incumbent page's pay button takes an action's controls props, still Mantine's Button until the page moves"
     }
   ],
   "offenders": {
-    "src/pages/Settings.tsx::Settings::third-party-control::@mantine/core.Button::": 2,
+    "src/pages/Settings.tsx::Settings::third-party-control::@mantine/core.Button::": 3,
     "src/pages/Settings.tsx::Settings::third-party-control::@mantine/core.Modal::": 1,
     "src/pages/Settings.tsx::Settings::third-party-control::@mantine/core.Select::": 1,
     "src/pages/Settings.tsx::Settings::third-party-control::@mantine/core.Switch::": 1,

@@ -1,7 +1,7 @@
 name: Incumbent
 # The fixture app in test/incumbent-fixture/ (Mantine's components, its own tokens, one page moved to Ouro HX
 # beside the rest): the source rule judges it against its baseline, then the app builds and Ouro check runs
-# over both pages. Not a required check; it shows whether Ouro works behind another design system.
+# over both pages, and the generated actions run behind Mantine's Button and Ouro HX's. Not a required check; it shows whether Ouro works behind another design system.
 on:
   pull_request:
     paths:
@@ -35,6 +35,9 @@ jobs:
       - name: Source rule over the fixture, against its baseline
         working-directory: test/incumbent-fixture
         run: node ../../registry/ouro/source-rules/source-rules.mjs
+      - name: Actions match their declaration
+        working-directory: test/incumbent-fixture
+        run: node ../../scripts/ouro-actions/ouro-actions.mts check billing.actions.mts src/generated --targets web,mcp,webmcp,actions
       - name: Install and build the fixture
         working-directory: test/incumbent-fixture
         run: |
@@ -54,3 +57,9 @@ jobs:
           npx vite preview --port 4173 --strictPort &
           for i in $(seq 30); do curl -sf http://localhost:4173 >/dev/null && break; sleep 1; done
           node xray.check.mjs http://localhost:4173
+      - name: Actions over both pages
+        working-directory: test/incumbent-fixture
+        run: |
+          npx vite preview --port 4174 --strictPort &
+          for i in $(seq 30); do curl -sf http://localhost:4174 >/dev/null && break; sleep 1; done
+          node actions.check.mjs http://localhost:4174
