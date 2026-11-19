@@ -34,18 +34,7 @@
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
   }
-  /* On a very wide screen at 1x (a 4K display at 100%), the type and the column grow a step, so the page reads at the
-     size a laptop's does instead of a strip of small print down the middle. Gutters and columns are set in rem. */
-  @media (width >= 150rem) {
-    html {
-      font-size: 112.5%;
-    }
-  }
-  @media (width >= 200rem) {
-    html {
-      font-size: 125%;
-    }
-  }
+  /* On a very wide screen the type and the column grow a step (ouro-base.css). Gutters and columns are set in rem. */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
