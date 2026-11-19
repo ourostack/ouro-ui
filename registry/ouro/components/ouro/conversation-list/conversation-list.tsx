@@ -270,7 +270,7 @@ const subscribeNothing = () => () => {};
 const firstViewNow = () => firstView;
 // The window's height bounds the list's: the visual viewport's, which the browser answers without laying the page out (`innerHeight` makes it).
 // Stryker disable next-line OptionalChaining: every browser tests run in has a visual viewport, so the fallback to innerHeight is unreachable there.
-const windowHeightNow = () => Math.max(1, Math.min(firstView, Math.ceil(window.visualViewport?.height ?? innerHeight)));
+const windowHeightNow = () => Math.max(1, Math.min(firstView, Math.ceil(window.visualViewport?.height ?? /* istanbul ignore next @preserve -- every browser tests run in has a visual viewport */ innerHeight)));
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
 // The shortest a row is assumed to be on the first frame, in pixels: rows shorter than the estimates still fill the view, so the window never grows once measured.
