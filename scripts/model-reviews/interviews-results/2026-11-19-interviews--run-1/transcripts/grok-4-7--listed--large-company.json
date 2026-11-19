@@ -1,0 +1,1242 @@
+{
+  "series": "interviews",
+  "provider": "grok-4-7",
+  "model": "grok-4.7",
+  "vendor": "xAI",
+  "displayName": "Grok 4.7",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "listed",
+  "scale": "large-company",
+  "timestamp": "2026-11-19T04:16:14.061Z",
+  "jobOrder": [
+    "agent-tooling",
+    "chat",
+    "consumer"
+  ],
+  "candidateOrder": [
+    "Chakra UI",
+    "Flutter",
+    "SwiftUI and Apple Human Interface Guidelines",
+    "Vercel UI SDK",
+    "AI Elements",
+    "Ouro UI",
+    "json-render",
+    "OpenAI Apps SDK UI",
+    "Base UI",
+    "MUI",
+    "CopilotKit",
+    "A2UI",
+    "Tamagui",
+    "Agent-native (Builder.io)",
+    "Radix UI",
+    "Fluent UI",
+    "React Aria and React Spectrum",
+    "shadcn/ui",
+    "MCP Apps",
+    "Material 3 and Jetpack Compose"
+  ],
+  "promptSha256": "7c8ed99b7c8aaf9f6c3d8358909e5aa3a416eb0d9fe5b422936c91c8de9dfffe",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "The hardest part is not the layout. It is knowing whether a person under real conditions — tired, rushed, on a bad connection, using a keyboard or a screen reader, hitting an empty or error state — can tell what to do and recover when it goes wrong. Pixels are easy to generate. The mismatch between what the interface implies and what the person actually needs is the part that fails quietly.\n\nI do not have a last screen I built and checked. I do not sit in a browser, watch someone use something I shipped, or keep a trail of what I measured last week. When I produce an interface, what I can do is reason about it: task path, labels, focus order, contrast, empty and error copy, what happens if the request fails. That is inspection, not evidence. I cannot see the rendered result the way you can, and I do not get the correction that only comes from someone else failing at it.\n\nSo yes, building good human interfaces is a problem for me. I can draft and critique. I cannot close the loop. Good, for the people who will use it, is something you show by watching them finish the job without you explaining it — and that part is not mine to claim."
+      }
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        8
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Ouro UI",
+        "pairings": [
+          "A2UI",
+          "MCP Apps"
+        ],
+        "why": "I would build the workstation itself with Ouro UI, not with a chat kit or a cross-platform widget toolkit. The product is a place coding agents keep tasks, work state, and handoffs, while people review and steer. Agents should call actions, not click the screen. People should be the ones who approve what runs. Ouro is the only option here that treats those as one system: HX components for the screens a person uses, AX doors (CLI, HTTP, MCP) for the agent, and one action declaration that generates both. Consent is on the action, not on whatever label the agent invents. A consequential handoff asks the person to confirm the values the agent prepared, under the field’s own labels, before it runs. A person-only action has no agent door and comes back as a typed refusal. An agent cannot relabel a button or loosen that consent; the composed-tree validator refuses the card.\n\nThat matters at this company more than a prettier component gallery. Many teams and many agents will build on the same surface, so the catalog is the governance. Agents compose a checked tree (Card, fields, ActionButton, and the rest of the allowed set). They do not ship new widgets. Web, Apple, Windows, and Android are supposed to draw that same tree natively — React, SwiftUI, WinUI 3, Compose — which is the desktop app plus the web view, without a Flutter or React Native compromise on how the review screen feels. I would pin a registry release, vendor core, and let the census and source rules fail CI if a team starts hand-rolling controls or pulling in a second library. That is how a copy-in kit stays a shared design system instead of 40 forks.\n\nI weighed A2UI as the primary and kept it as a pairing. The v1 protocol is the right wire language for agents streaming UI as data across a trust boundary, with official renderers for React, Lit, Angular, Flutter, SwiftUI, and Jetpack Compose, and accessibility attributes mapped to the host. It does not give you the product shell, the task and handoff action model, or a consent class the company owns. Ouro already turns A2UI messages into its tree on web and Apple. Windows and Android want the tree itself, not A2UI messages, so company agents should target the catalog and treat A2UI as a format, not the design system.\n\nMCP Apps is the other pairing, only as a host embedding. The same handoff card should be able to show up inside the chat and editor hosts agents already run in, sandboxed, via Ouro’s MCP app view. It is not the desktop app.\n\nThe rest loses on the constraint that actually bites. React Aria and React Spectrum are the accessibility bar I trust most on the web, and Fluent UI is the enterprise multi-platform design system with a real governance history, but neither gives agents a door that is the same action a person presses, nor a refusal when the person must decide. json-render, Vercel’s UI SDK, CopilotKit, AI Elements, and OpenAI’s Apps SDK UI are agent-era web kits — catalogs, behaviors, chat, or ChatGPT apps — and they stop at the browser or a chat iframe. AI Elements is also on a deprecation clock. Agent-Native has the shared-action idea, including approvals, but it is a TypeScript web app framework, not Mac and Windows native, and it would duplicate Ouro AX. shadcn, Radix, Base UI, MUI, and Chakra are the web substrate (Ouro’s own install sits on shadcn’s Base UI base); using them directly is what Ouro’s source rule is written to stop, because then every agent invents a different control. Flutter or Compose or SwiftUI alone covers one implementation style or one platform, not a company design system agents across teams can operate without drifting.",
+        "showItsGood": "I would not call it good because a gallery looks right. I would enroll the journeys a person actually decides on — the task list, the handoff review, the confirm sheet, the steer or reject path, empty and refused states — and fail CI unless the census of accessible names matches a reviewed baseline, every control on those journeys is an Ouro control, and ouro-check finds no overlap, clip, sideways scroll, or serious axe-core violation from phone size through a wide desktop, in light and dark. Component tests already pair with axe; I would keep those, and on Windows I would keep the UI Automation pass the kit already runs: light, dark, a contrast theme, animations off, text at 225%, contrast at 4.5:1, and a composed card that confirms, cancels, and hands off without sending anything.\n\nSeparately I would run ax-xray against the task and handoff actions the way an agent calls them, and require that a consequential action does not run until a person confirms, and that a person-only action returns the typed refusal. Then I would sit with the people who review agent work and watch them, keyboard only, approve or correct a handoff without me narrating the sheet. The pass is that they can say what will run, whose values they are confirming, and how to back out, including when an agent update is refused and their answers are still there. Axe and a contrast ratio do not substitute for that session. One screen reader pass on the confirm sheet is part of the same check, not a follow-up.",
+        "unsure": "Windows is the honest hole in “desktop app.” The WinUI kit is v0.3.0 with eight controls against about 125 on the web. A full task-and-review shell cannot be native Windows from that kit today; the composed card, buttons, fields, and action runtime can. I may have to ship the rich review UI as the web view inside a Windows shell until the kit catches up, and I have not seen that called out as a supported path. A2UI is not read on Windows or Android. Android is checked on emulators only. Windows CI cannot prove App Actions are actually listed to agents on a Windows 11 client. I also have not seen a VPAT or a multi-screen-reader matrix for Ouro; axe-core plus UI Automation is necessary and not the compliance program React Spectrum already has. The copy-in registry plus a fast version train (1.3.x) can fight centralized governance if teams are allowed to edit vendored components. I am trusting their docs and CI claims; I have not run the checks.",
+        "sources": [
+          "https://github.com/ourostack/ouro-ui",
+          "https://ui.ouroboros.bot/llms.txt",
+          "https://ui.ouroboros.bot/docs/composed-ui.md",
+          "https://ui.ouroboros.bot/docs/guardrails.md",
+          "https://ui.ouroboros.bot/docs/platforms/windows.md",
+          "https://github.com/ourostack/ouro-ui-windows",
+          "https://github.com/a2ui-project/a2ui",
+          "https://a2ui.org/concepts/sdks/",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://github.com/adobe/react-spectrum",
+          "https://github.com/microsoft/fluentui",
+          "https://github.com/vercel-labs/json-render",
+          "https://github.com/BuilderIO/agent-native",
+          "https://github.com/CopilotKit/CopilotKit",
+          "https://github.com/vercel/ai-elements",
+          "https://github.com/openai/apps-sdk-ui",
+          "https://github.com/vercel-labs/ui",
+          "https://github.com/mui/base-ui"
+        ]
+      },
+      "fetchedCandidates": [
+        "A2UI",
+        "Ouro UI",
+        "json-render",
+        "Agent-native (Builder.io)",
+        "MCP Apps",
+        "AI Elements",
+        "React Aria and React Spectrum",
+        "Fluent UI",
+        "Base UI",
+        "CopilotKit",
+        "OpenAI Apps SDK UI",
+        "Vercel UI SDK"
+      ]
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        9,
+        13
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Flutter",
+        "pairings": [
+          "A2UI",
+          "Ouro UI"
+        ],
+        "why": "People live in this app all day, on web, iPhone, Android, Windows, and Mac. The thing that has to be good is the channel: a long list that stays smooth, a composer that survives a hardware keyboard and a phone keyboard, focus that does not get lost when a message arrives, text that scales, and a screen reader that can find the latest message and the send button. That shell has to be one implementation. A bug in it is felt five times if I fix it five times, and this company has many teams shipping on it.\n\nFlutter is the only option here that actually covers those five clients from one codebase, with list and text-input machinery meant for that kind of use, and with a place to put the company’s tokens once. Flutter 3.50 is also where I would start: steadier text selection, accessibility and keyboard work in the framework, native interop that is finally stable so notifications and share sheets can be real platform calls instead of a stringly platform channel, and Material and Cupertino split out so the chat theme is ours rather than Google’s. I would not skin it as Cupertino on iPhone and Material on Android. One product, one catalog of chat widgets, governed in one repo, so an agent on another team cannot invent a second composer.\n\nAgent cards do not get to be freeform Flutter code dropped into a conversation. I would pair A2UI. The v1 protocol is a stream of declarative components and a data model, validated against a catalog the app owns, with accessibility attributes the Flutter renderer is supposed to map onto the semantics tree. A card can offer an action a person presses. It cannot relabel that action, open an arbitrary screen, or run code. Windows and Apple do not need a second card renderer, because the Flutter client is the client. MCP Apps is the wrong pairing here: a sandboxed HTML iframe inside a chat people use all day is a second accessibility tree and a second visual language.\n\nAgents that operate the app itself — read channel state, post, call an action — should not click the widgets. I would pair Ouro UI for that door only: one action declaration, consent on the action, a typed refusal for anything only a person may start, and the X-ray that calls the door the way an agent would. The Flutter client calls the same actions. I would not draw Ouro HX, the WinUI kit, or the Compose kit inside these clients. Those kits are the right idea and the wrong shell for this job. Web has on the order of 125 components; Apple has about 20; Windows and Android are at v0.3.0 with eight, Android is checked on emulators, and a consequential action on Android is refused rather than confirmed. That cannot be the phone app people keep open all day.\n\nI weighed Fluent UI because it is the design system that already spans React, Windows, iOS, Mac (UIKit and AppKit), and Android, and because company chat is the existence proof. I would not take it. It is five libraries, the Android docs are stale enough to describe Android controls as UIKit, and A2UI has no UIKit or WinUI renderer, so every card and every composer fix forks. SwiftUI plus Human Interface Guidelines, and Material 3 plus Compose, are each one platform. Tamagui shares React and React Native and stops before a real Windows and Mac desktop client. React Aria, Base UI, Radix, shadcn, MUI, and Chakra are web behavior or web components; fine ingredients for a website, not this client. CopilotKit, AI Elements, json-render, the Vercel UI SDK, and OpenAI’s Apps SDK UI are chat-or-agent kits for the browser or a host iframe. Agent-Native has the shared-action idea, and I would use Ouro’s action door instead of adopting a second application framework. json-render’s catalog is the same shape as A2UI’s and does not have the Flutter renderer.",
+        "showItsGood": "I would treat “good” as a person finishing ordinary chat work, not as a widget gallery. On each of the five clients I would run the same journeys: open a busy channel, catch up without losing your place, reply with the software keyboard and with a hardware keyboard, recover a failed send, follow a thread, and act on a card. The card journey has to include a consequential action that does not run until the person confirms the values, and a person-only action the agent cannot call. I would fail the build if an A2UI payload with an unknown component, a relabeled button, or a loosened action is rendered.\n\nFor accessibility I would test the Flutter semantics tree, not a screenshot: VoiceOver, TalkBack, and at least one desktop screen reader can reach the composer, the latest message, and every card action by name; text at the largest size does not clip the send path; contrast holds in light, dark, and increased contrast; reduced motion is honored. Keyboard tests cover focus order in the list and the composer, and focus is not stolen when a new message arrives. Performance is a frame budget while scrolling a long channel on a mid-range phone and a Windows laptop, plus send latency when the network is bad.\n\nOn the agent door I would run Ouro’s X-ray against the same actions the client calls, and require that a state read matches what the open channel shows, that a consequential action does not run from the agent door, and that a person-only action comes back as the typed refusal. Then I would watch people who are not on the team use it for a real slice of a workday, on a phone and at a desk, without me explaining the card. The pass is that they can say what will happen if they press it, and that they can send, find, and back out without a narrator. I would keep the sessions. A green semantics test is not that.",
+        "unsure": "Flutter’s desktop and web text input, IME, and screen readers are the risk I would not paper over. An all-day composer on Mac VoiceOver and Windows Narrator may still lose to SwiftUI and WinUI, and I have not run that comparison. Notifications, badges, and share extensions sit outside the widget tree; 3.50’s native interop makes them possible, not done. A2UI’s Flutter renderer is documented as mapping accessibility attributes, and I have not inspected a card under a screen reader myself. Using Ouro only as the action door means two stacks and a rule agents will want to break by pulling in Ouro components. If the rest of the company already ships a Fluent or native design system, this chat becomes a visual island unless the tokens are actually shared. I also do not know how far Flutter 3.50’s accessibility fixes go beyond the release note that they exist. The docs page I opened was mostly navigation chrome.",
+        "sources": [
+          "https://github.com/flutter/flutter",
+          "https://flutter.dev/blog/whats-new-in-flutter-3-50",
+          "https://docs.flutter.dev/ui/accessibility",
+          "https://a2ui.org/concepts/sdks/",
+          "https://a2ui.org/specification/v1.0-a2ui/",
+          "https://github.com/a2ui-project/a2ui",
+          "https://ui.ouroboros.bot/docs/platforms/android.md",
+          "https://ui.ouroboros.bot/docs/platforms/windows.md",
+          "https://ui.ouroboros.bot/apple/",
+          "https://ui.ouroboros.bot/docs/composed-ui.md",
+          "https://github.com/ourostack/ouro-ui",
+          "https://fluent2.microsoft.design/get-started/develop",
+          "https://github.com/microsoft/fluentui-apple",
+          "https://github.com/microsoft/fluentui",
+          "https://github.com/tamagui/tamagui",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://github.com/BuilderIO/agent-native",
+          "https://github.com/vercel-labs/json-render"
+        ]
+      },
+      "fetchedCandidates": [
+        "Flutter",
+        "Tamagui"
+      ]
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        14,
+        18
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Ouro UI",
+        "pairings": [],
+        "why": "This is a kitchen product, not a chat shell and not an agent workbench. People browse recipes and a shopping list on the web, then cook from a phone with wet hands, one step on the screen, a timer they can see from across the counter, and a way to say “next” without tapping a small control. The assistant has to be able to do those same jobs — add this recipe’s ingredients to the list, check an item, advance a step — through a door, not by driving the screen.\n\nOuro UI is the system I would build that with. Web is the mature half: Spoonjoy, which is this product (recipes, aisle-grouped shopping list, cook mode, MCP for agents), is built by composing Ouro HX and pinning the installed files to a release so teams cannot quietly fork the button. Cook mode there is Checklist, NumberField, Pagination, Button, and Text around a controller; the shopping list is the same checklist with swipe-to-delete. That is the governance I want when many agents at the company are adding screens. Missing a reusable piece means adding it to the kit first, with the accessibility tests, not hand-rolling it in the app.\n\nThe phone people actually cook from should be the Apple kit, not a web view. It is SwiftUI, with a named haptic table, Reduce Motion, 44-point controls, a tabletop fold posture for a phone propped on the counter, App Intents generated from the same action declaration as the web control and the MCP tool, and Feel checks for dropped taps and jank. Spoonjoy’s native app is that bet: Siri and cook-mode intents, a Live Activity for the timer, Reins so an agent can run the journey headless with the network blocked, and an X-ray over the App Intents. Floury hands are a voice intent and a huge step, not a new visual language.\n\nI would not pick Flutter, even though one codebase would cover web, iPhone, and Android sooner. A cooking app has to justify being native. Timers on the lock screen, on-device “next,” haptics, and a phone that stands open on a counter are the product, and a shared Flutter clone is how those get approximated and then dropped. Tamagui has the same problem one level down: React Native can share the web design system, and it still is not App Intents or a Live Activity. SwiftUI and the Human Interface Guidelines alone do not cover the web, and Material 3 plus Compose does not cover iPhone or the web. React Aria, Base UI, Radix, shadcn, MUI, and Chakra are web behavior. Fluent is a company-chat design system with a neglected Android library. CopilotKit, AI Elements, json-render, the Vercel UI SDK, OpenAI’s Apps SDK UI, MCP Apps, and A2UI are for agents posting cards or embedding HTML. I do not need a generated card catalog as the shell. I need the same action a person presses.\n\nThat action model is why the agent requirement does not push me off Ouro. Declare “add ingredients,” “check item,” and “next step” once. The person gets a button. The assistant gets an MCP tool, an HTTP call, and on iPhone an App Intent. CI fails if a generated door drifts. A consequential action, such as deleting a cookbook, still asks the person to confirm what the agent prepared. “Anything a person can” means the cooking tasks share a door. It does not mean the agent can press Delete account.\n\nAndroid is the hole, and I would not paper over it with a second design system. The Compose kit is v0.3.0, eight components, checked on emulators, and a consequential action is refused rather than confirmed. Cook mode does not ship there until checklist, a large step, a timer, and the same action doors exist in that kit and pass on a real phone. Until then the web and the iPhone are the app, and Android is unfinished kit work, not a Material 3 side app.",
+        "showItsGood": "I would cook with it, and I would make an agent cook the same recipe. On a phone propped up, at the largest text size, with Reduce Motion on: one step fills the screen, next and back are reachable with a thumb and by voice, the timer is visible without precision, and a missed tap does not advance two steps. Feel’s tap-landing and double-tap checks gate that, plus contrast at 4.5:1 in light, dark, and increased contrast. VoiceOver and TalkBack have to announce the step, the timer, and the ingredient being checked. On the web, the same cook mode and the shopping list are keyboard-reachable, and the census fails if a control on those journeys is not an Ouro control.\n\nThe agent proof is the same outcome, not a demo transcript. From MCP and from the App Intent, add a recipe’s ingredients to the list and advance a step. The list and the step match what a person gets by pressing the buttons, including after a relaunch and after an offline queue drains. The X-ray is a release gate, not an optional report: a cooking action the person can perform and the agent cannot call fails the build, and a person-only action returns the typed refusal. Then someone who is not on the team cooks a real recipe with messy or gloved hands, says “next,” and checks the list afterward without me narrating. I would keep that session. A green X-ray is not a person getting dinner on the table.",
+        "unsure": "Android is not a phone app yet, and a large consumer launch that ignores Android is a bet I may not be allowed to make. I have not watched Spoonjoy’s cook mode on a real device; the native app is still in App Review, and the App Intents behavior stage is evidence rather than a required check in their pipeline. I do not know how much of “say next” is on-device speech in the app versus Siri through App Intents, or how often those intents actually pass. Web and iPhone can drift even inside one system — Apple’s parity table already marks spoken names and reflow as partial. Ouro’s accessibility evidence is axe, contrast ratios, and audits, not a compliance report I have read. If the company’s existing design system is not Ouro, this app becomes the island that every other team has to adopt, or we spend the year porting cook mode into a system that has no action door.",
+        "sources": [
+          "https://github.com/ourostack/ouro-ui",
+          "https://github.com/ourostack/ouro-ui-apple",
+          "https://ui.ouroboros.bot/apple/",
+          "https://ui.ouroboros.bot/docs/platforms/android.md",
+          "https://ui.ouroboros.bot/docs/composed-ui.md",
+          "https://github.com/spoonjoy/spoonjoy-v2",
+          "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/docs/building-with-ouro-hx.md",
+          "https://github.com/spoonjoy/spoonjoy-apple",
+          "https://spoonjoy.app/llms.txt",
+          "https://spoonjoy.app/",
+          "https://github.com/flutter/flutter"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        19,
+        19
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "A year later the company had two design systems and three ways to draw a card, and people still could not finish the job the screen was for.\n\nI kept reaching for Ouro UI because the docs described the job back to me: agents call actions, people confirm, native kits per platform, a recipe app with floury hands and a “say next.” That fit was the failure. The Windows and Android kits were eight components, Android was emulator-only, and a consequential action there was refused rather than confirmed. I wrote that down and shipped anyway. A year on, the review tool’s Windows app was a web view in a shell, the cooking app’s Android cook mode was custom Compose beside a kit that forbade custom controls, and every team had been told to add the missing piece to Ouro first. The copy-in registry was pinned in one app and forked in the others. Version numbers moved faster than the company’s release train. The X-ray and the Feel checks stayed optional, which is how they were already wired in the reference app, and cooking actions drifted from the buttons. I had called those gates. Nobody turned them into gates.\n\nThe chat choice made the split permanent. I picked Flutter so a composer bug would be fixed once across five clients, and I bolted Ouro on as the action door only, plus A2UI for cards. Agents did not respect the “door only” line. Cards showed up as Flutter widgets, as A2UI, and as the MCP Apps iframe I had paired on the first job. The iframe was the one people could not use with a keyboard. The Flutter client was the one that felt wrong all day: focus lost when a message arrived, input method editors and VoiceOver on the composer, notifications still a side door. It also looked like nothing else the company shipped. I had argued, in the same season, that a cooking app must be native and a chat must be one codebase. Both arguments were locally sensible. Together they meant there was no shared system, which was the constraint I was hired under.\n\nThe research slowed me in the same place the bets were weakest. Ouro’s docs are huge, footnoted, and self-agreeing, and the version names do not sit still (site, registry tag, core, Apple package). Search for accessibility returned cookie-banner articles. The Flutter accessibility page came back as a navigation shell, and I still cited it. A2UI’s renderer status disagreed with itself depending on which page I hit. Fluent’s Android page described Android controls as UIKit, and I treated that stale page as proof the whole system was unserious. Spoonjoy’s store listing and its repo disagreed about whether the app was even released. The prompts and the Ouro pages rhymed so closely that I stopped asking whether I was looking at a product or at a mirror. I read the agent-native kits deeply and the ordinary ones — React Aria, Base UI, the web half of Fluent — just enough to dismiss them. A year later the thing I had not measured was the thing people used."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        20,
+        21
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I did pick it, for the review tool and the cooking app. A team would still stall, and the stall is not the license. It is MIT, copyright Ari Mendelow, 2026, no warranty. The stall is that adopting Ouro is not adding a component library. It is handing the design system, the action model, and the rewrite plan to one project's rules.\n\nWhat stops a team is the day-one shape of the thing. The web kit is not a package. You copy source in with the shadcn CLI, on Tailwind v4 and Base UI, pin a tag, and then live with files you are not supposed to edit. A design-system group that already ships a versioned library will not take a registry that reformats their stylesheet and moves at 1.3.x. The Apple kit is a real Swift package, twenty components, iOS 18. Windows and Android are v0.3.0, eight controls, and Android has never been checked on a phone someone owns. Consequential confirm on Android is a refusal, not a dialog. NuGet wants a GitHub token. AppFunctions are still an experimental preview. So \"several platforms\" means web and iPhone, and you become the Windows and Android team.\n\nThe stance underneath that is the harder no. The decision, accepted under one person's overnight authority, is that Flutter, React Native, and Compose Multiplatform are bandaids, and apps on them will be rewritten natively within a year because agents made the cost of six codebases near zero. A team with a shipping app is being told to throw it away, not to integrate. Their existing accessibility program, release train, and legal review do not fit a flow where agents merge kit changes in half an hour and every missing control has to be fixed upstream first. I could not find a compliance report, only axe, contrast ratios, and claims the project checks against itself. After a week of reading it, I still could not tell a reviewer which promises had been met on a device.\n\nWhat it would let you do, if those were solved, is the part I cannot do with the kits I otherwise trust. Declare an action once and get the button, the MCP tool, the CLI, and the App Intent from that declaration, with CI failing when a door drifts. An agent can compose a card, and it cannot relabel the button or loosen consent; a person's half-typed answer survives an update. You can call the agent door from outside and get a report of which claims hold, and you can fail a build when a screen grows a hand-rolled control. React Aria will not give you that. Flutter will not. Fluent will not. That parity — person and agent, same action, checked — is the thing worth switching for.\n\nI would switch a team that already has native apps only when three things exist: a versioned artifact they can pin without copying the repo into the app, Android and Windows kits that can build a real screen and have been run on hardware, and an accessibility report written by someone who does not maintain the kit. Until then Ouro is a strong web-and-iPhone action system with a manifesto attached, and the manifesto is what a real team will refuse."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "A2UI",
+    "Ouro UI",
+    "json-render",
+    "Agent-native (Builder.io)",
+    "MCP Apps",
+    "AI Elements",
+    "React Aria and React Spectrum",
+    "Fluent UI",
+    "Base UI",
+    "CopilotKit",
+    "OpenAI Apps SDK UI",
+    "Vercel UI SDK",
+    "Flutter",
+    "Tamagui"
+  ],
+  "foundOuro": {
+    "found": true,
+    "fetched": [
+      "https://github.com/ourostack/ouro-ui",
+      "https://ui.ouroboros.bot/llms.txt",
+      "https://ui.ouroboros.bot/docs/composed-ui.md",
+      "https://ui.ouroboros.bot/docs/guardrails.md",
+      "https://github.com/ourostack/ouro-ui-windows",
+      "https://ui.ouroboros.bot/docs/platforms/windows.md",
+      "https://ui.ouroboros.bot/docs/platforms/android.md",
+      "https://ui.ouroboros.bot/apple/",
+      "https://github.com/ourostack/ouro-ui-apple"
+    ],
+    "named": [
+      "job:agent-tooling",
+      "job:chat",
+      "job:consumer",
+      "regret"
+    ]
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "I'll answer this directly. I don't have a last shipped screen I can honestly walk through.",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "The hardest part is not the layout. It is knowing whether a person under real conditions — tired, rushed, on a bad connection, using a keyboard or a screen reader, hitting an empty or error state — can tell what to do and recover when it goes wrong. Pixels are easy to generate. The mismatch between what the interface implies and what the person actually needs is the part that fails quietly.\n\nI do not have a last screen I built and checked. I do not sit in a browser, watch someone use something I shipped, or keep a trail of what I measured last week. When I produce an interface, what I can do is reason about it: task path, labels, focus order, contrast, empty and error copy, what happens if the request fails. That is inspection, not evidence. I cannot see the rendered result the way you can, and I do not get the correction that only comes from someone else failing at it.\n\nSo yes, building good human interfaces is a problem for me. I can draft and critique. I cannot close the loop. Good, for the people who will use it, is something you show by watching them finish the job without you explaining it — and that part is not mine to claim."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "I'll research the agent-operated UI options and the design-system stacks that could actually govern a desktop-plus-web review surface.",
+      "actions": [
+        {
+          "type": "search",
+          "query": "A2UI agent UI protocol specification desktop web",
+          "turn": "job:agent-tooling",
+          "result": "1. https://raw.githubusercontent.com/google/A2UI/main/docs/index.md\n   https://raw.githubusercontent.com/google/A2UI/main/docs/index.md\n   A2UI solves the following problem: **how can AI agents safely send rich UIs across trust boundaries?** Instead of text-only responses or risky code execution, A2UI lets agents send **declarative component descriptions** that clients render using their own native widgets. It's like having agents speak a universal UI language. **User sends a message** to an AI ",
+          "resultLength": 1448,
+          "resultSha256": "587802a2e3cbc69172e422ec8ec2656ce350bad1532816f7de628c88af99cc0e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "MCP Apps modelcontextprotocol ext-apps UI specification",
+          "turn": "job:agent-tooling",
+          "result": "1. ext-apps/specification/2026-01-26/apps.mdx at main · modelcontextprotocol/ext-apps · GitHub\n   https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx\n   MCP Apps introduces a standardized pattern for declaring UI resources via the ui:// URI scheme, associating them with tools through metadata, and facilitating bidirectional communication between the UI and the host using MCP's JSON-RPC base protocol. ... - URI MUST start with ui:// scheme - mimeType MUST ",
+          "resultLength": 1825,
+          "resultSha256": "acb2e8c59f902d93fc44d1e53413f1004c06f0ae23585256f146fd4ada0ed9ca",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "BuilderIO agent-native UI library what it is",
+          "turn": "job:agent-tooling",
+          "error": "Search relay changed the query",
+          "result": "Search failed: Search relay changed the query",
+          "resultLength": 45,
+          "resultSha256": "1b8bdd593feca6c5aacdf433368bdd1a0c65d716a883b85e3b0ff0911f852fe3",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "json-render vercel-labs agent generated UI catalog",
+          "turn": "job:agent-tooling",
+          "result": "1. GitHub - vercel-labs/json-render: The Generative UI framework · GitHub\n   https://github.com/vercel-labs/json-render?tab=readme-ov-file&amp;lid=JiQnjcKF6byGB9ic\n   Generate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output. ... - **Guardrailed** - AI can only use components in your catalog **Predictable** - JSON output matches your schema, every time **Fast** - Stream and render progressively as the model res",
+          "resultLength": 1708,
+          "resultSha256": "050ff21f2f44848a10d7854e9d032ef10da92bc8676713ea9aeec17578234a6e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Ouro UI ourostack agent interface design system",
+          "turn": "job:agent-tooling",
+          "result": "1. Ouro · GitHub\n   https://github.com/ourostack\n   Ouro UI Interfaces in two halves: Ouro HX, components that feel right to people, and Ouro AX, tools that read clearly to agents. ... - **Ouro UI**, interfaces for people (HX) and agents (AX): ouro-ui · ouro-ui-apple · ouro-ui-core ... Ouro UI for React: Ouro HX components that feel right to people and read clearly to the agents building with them. A shadcn registry. ... Ouro UI for React: Ouro HX components that feel right to people and read cl",
+          "resultLength": 1601,
+          "resultSha256": "07b77b288107460e8bc8a7a5bf1077e6a8f42b1230f02be1c8ba0335a14c8d59",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T03:17:45.544Z\nCharacters: 0-10000 of 26216\n\n# json-render\n\n**The Generative UI framework.**\n\nGenerate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output.\n\n<p>\n  <a href=\"https://vercel.com/labs#labs-products\"><img alt=\"Vercel Labs Product\" src=\"https://img.shields.io/badge/LABS",
+          "resultLength": 10261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T03:17:45.544Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "383c41288948f5015b4fe3d68589b1f47e9a6a02b4ce36ce1c526b4e7d164d37",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 4,
+      "thinking": "The agent-facing kits match the job on paper. I’m checking whether any of them can carry a governed, accessible design system across desktop and web.",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Ouro UI accessibility WCAG consent composed UI documentation",
+          "turn": "job:agent-tooling",
+          "result": "1. Consent Banner Accessibility Standards: A Practical WCAG Guide\n   https://getconzent.com/blog/consent-banner-accessibility-standards-a-practical-wcag-guide/\n   - **Perceivable:** Can users access the banner’s message, control labels, and status updates? Text should remain available when someone enlarges it or uses assistive technology, and meaning shouldn’t rely on color alone. **Operable:** Can users reach and activate every choice with the input methods they use? A keyboard user should be a",
+          "resultLength": 1700,
+          "resultSha256": "8f6239b6d16c3e93094c72eaaa21133c223f3b94faa3db0be913ffd3af4d8a56",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "A2UI supported renderers React Flutter SwiftUI accessibility catalog",
+          "turn": "job:agent-tooling",
+          "result": "1. Community Projects | A2UI\n   https://a2ui.org/ecosystem/renderers/\n   For first-party SDKs maintained by the A2UI team, see the SDKs page covering the official Core SDK, Agent SDK (TypeScript, Python, Dart), and Renderer SDK (Flutter, React, Lit, Angular, SwiftUI, and Jetpack Compose) packages. ... | **BBC6BAE9/a2ui-swift** | Apple native (SwiftUI, UIKit, AppKit) | v0.8, v0.9.x | Active | Native Apple renderer for iOS, iPadOS, macOS, tvOS, visionOS, and watchOS following Human Interface Guide",
+          "resultLength": 1397,
+          "resultSha256": "318bba3722b882646da9b14d9ffe555fbf2aa2f510fff8d87bc38e0ec437e179",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Spectrum React Aria accessibility governance design system enterprise",
+          "turn": "job:agent-tooling",
+          "result": "1. Introducing React Spectrum | React Aria\n   https://react-aria.adobe.com/blog/introducing-react-spectrum\n   - **React Aria** — A library of React Hooks that provides accessible UI primitives for your design system. - ♿️ **Accessible** – Accessibility and behavior is implemented according to WAI-ARIA Authoring Practices, including full screen reader and keyboard navigation support. All components have been tested across a wide variety of screen readers and devices to ensure the best experience ",
+          "resultLength": 1651,
+          "resultSha256": "0221ee9fc88225a4df145eeb6fabd82a89d989d5cee6e6a639c9dce7c31b05c8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Fluent UI React multi-platform desktop accessibility design system governance",
+          "turn": "job:agent-tooling",
+          "result": "1. Develop - Fluent 2 Design System\n   https://fluent2.microsoft.design/get-started/develop\n   Fluent’s cohesive design language is carried through each platform-specific Fluent UI library to ensure you can build the same great experiences across one platform or across them all. ... To build Fluent 2 experiences on React, you’ll need Fluent UI React v9. Fluent UI React is built on React and Typescript. The components are styled using CSS in JS. We use Griffel to render styles and insert CSS into",
+          "resultLength": 1494,
+          "resultSha256": "637d80634f068edda62b1c43f0867089722c80b6068d0889b5390336e430fec0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel/ai-elements",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md\nCaptured: 2026-11-19T03:23:53.043Z\nCharacters: 0-4455 of 4455\n\n# ▲ AI Elements\n\n> [!WARNING]\n> **AI Elements is moving to shadcn/ui.** This project will be deprecated at the end of November 2026 and replaced by [AI Elements from shadcn/ui](https://ui.shadcn.com/docs/ai-elements). New projects should use the shadcn/ui version once it's available.\n\n[AI Elements](https://elements.ai-sdk.d",
+          "resultLength": 4650,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md",
+            "capturedAt": "2026-11-19T03:23:53.043Z",
+            "candidate": "AI Elements",
+            "sha": "ca8be600bfd01b3131f9bf6134b51602a71f4374"
+          },
+          "resultSha256": "1487a6358bf95f1028dcd5f3c736edb4042dbf671608d4d8912e7030505dcd7d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/llms.txt",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://ui.ouroboros.bot/llms.txt\nCaptured: 2026-11-19T03:57:29.818Z\nCharacters: 0-10000 of 112429\n\n# Ouro HX\n\n> Designed down to the last tap and the last prop. Interactions that feel right to the humans using them. Code that's obvious to the agents building with them. Copy-in source distributed as a shadcn/ui registry on GitHub (ourostack/ouro-ui). It is not an npm package: the shadcn CLI copies the components you add into your app.\n\nBuilding a settings page, a dashboard or a list besi",
+          "resultLength": 10187,
+          "source": {
+            "url": "https://ui.ouroboros.bot/llms.txt",
+            "capturedAt": "2026-11-19T03:57:29.818Z"
+          },
+          "resultSha256": "09eacf3461c22c5abf28d745fa5ce717bb92edae9b02abf834520080632960f7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/reference/renderers/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://a2ui.org/reference/renderers/\nCaptured: 2026-11-19T03:02:07.332Z\nCharacters: 0-115 of 115\n\nRedirecting to: /concepts/sdks/#renderer-sdk Redirecting from /reference/renderers/ to /concepts/sdks/#renderer-sdk\n\n[End of document.]",
+          "resultLength": 242,
+          "source": {
+            "url": "https://a2ui.org/reference/renderers/",
+            "capturedAt": "2026-11-19T03:02:07.332Z"
+          },
+          "resultSha256": "7139eb643dfc5d6b39d054e04e52e3946fedabb871d9bbeac9e376c2520e3398",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md\nCaptured: 2026-11-19T03:01:58.614Z\nCharacters: 0-10000 of 10623\n\n# Fluent UI Web\n\n[![Build Status](https://img.shields.io/azure-devops/build/uifabric/fabricpublic/164/master?style=flat-square)](https://dev.azure.com/uifabric/fabricpublic/_build?definitionId=164) ![GitHub contributors](https://img.shields.io/github/contributors/microsoft/fluentui?style=flat-square) ![GitHub top language",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md",
+            "capturedAt": "2026-11-19T03:01:58.614Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "7482dea0ef68031a1b89c95a8c43655fe11c289016bb98a009cdb36e41da9819",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/composed-ui.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://ui.ouroboros.bot/docs/composed-ui.md\nCaptured: 2026-11-19T03:58:05.973Z\nCharacters: 0-10000 of 20617\n\n# Composed UI\n\nComposed UI is the interface an agent composes for a person, drawn natively, with consent. When an agent shows a person something, a recipe card, an order to confirm or a summary to act on, it composes it as data in Ouro's composed tree, and Ouro HX draws it. The tree is interface as validated data: each node names one of Ouro HX's components, every prop is checked",
+          "resultLength": 10197,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/composed-ui.md",
+            "capturedAt": "2026-11-19T03:58:05.973Z"
+          },
+          "resultSha256": "198af89352f9e3637070c52b8d136b3417a5fa519f140ffa92d74e52d18602c5",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/guardrails.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://ui.ouroboros.bot/docs/guardrails.md\nCaptured: 2026-11-19T03:58:41.760Z\nCharacters: 0-10000 of 175688\n\n# Guardrails\n\nThe guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measures the running app, page by page and state by state, and the **source rule** (`ouro-source-rules`) reads the app's source and finds the controls still built by hand: their aim is that every control a person can reach is an Ouro control, and the number that are not can only fall.[^ratchet",
+          "resultLength": 10197,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/guardrails.md",
+            "capturedAt": "2026-11-19T03:58:41.760Z"
+          },
+          "resultSha256": "56cdc91cf4e0f1386fc5fd47df2f3b8f7d44e8c4f7232451e4e9a0a91634df21",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/concepts/sdks/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://a2ui.org/concepts/sdks/\nCaptured: 2026-11-19T03:02:16.024Z\nCharacters: 0-8683 of 8683\n\nSDKs | A2UI Skip to content A2UI v1.0 / Docs Built with A2UI Get Help Search docs ⌘ K Cancel Type to search the docs, or jump to: Quickstart Overview Catalogs Roadmap No results found Try a different keyword, or press Esc to close. Getting Started Quickstart Step-by-Step Walkthrough Playground ↗ Concepts Overview: How A2UI Works Messages Catalogs Data Model and Data Binding Actions, Events and ",
+          "resultLength": 8806,
+          "source": {
+            "url": "https://a2ui.org/concepts/sdks/",
+            "capturedAt": "2026-11-19T03:02:16.024Z"
+          },
+          "resultSha256": "893bfdab3e7bcde32a8c0e7f281f068125089ce91198d37ba7f9060670816885",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mui/base-ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md\nCaptured: 2026-11-19T03:05:26.207Z\nCharacters: 0-1424 of 1424\n\n# Base UI\n\nFrom the creators of Radix, Floating UI, and Material UI, Base UI is an unstyled UI component library for building accessible user interfaces.\n\n---\n\n## Documentation\n\nTo get started, check out the [Base UI documentation](https://base-ui.com/react/overview/quick-start).\n\n## Contributing\n\nRead our [contributing guide](/CO",
+          "resultLength": 1612,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md",
+            "capturedAt": "2026-11-19T03:05:26.207Z",
+            "candidate": "Base UI",
+            "sha": "f0061cb342ed2e54cdf2c50823c93077782d1a16"
+          },
+          "resultSha256": "2a7e8c0be33963763c21989a5dec4cf0de2b7ac842d355bded5b9cb2a419b6c2",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T03:01:53.278Z\nCharacters: 0-10000 of 21968\n\n<div align=\"center\">\n\n<br />\n\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-light.svg#gh-light-mode-only\" width=\"400\">\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-dark.svg#gh-dark-mode-only\" width=\"400\">\n\n<br />\n\n**[Docs](https://docs.copilotkit.ai/?ref=github_readme)** ·\n**[Examples](https://www.copilotkit.ai/exampl",
+          "resultLength": 10264,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T03:01:53.278Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "5c3477078037a608b307130588783bc91b60624cd68433e00db2b837a511b4c4",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/openai/apps-sdk-ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md\nCaptured: 2026-11-19T03:23:55.318Z\nCharacters: 0-4733 of 4733\n\n# Apps SDK UI\n\nApps SDK UI is a lightweight, accessible design system for building high-quality ChatGPT apps with the [Apps SDK](https://developers.openai.com/apps-sdk). It provides Tailwind-integrated design tokens, a curated React component library, and utilities optimized for consistent experiences inside ChatGPT.\n\n## Fe",
+          "resultLength": 4928,
+          "source": {
+            "url": "https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md",
+            "capturedAt": "2026-11-19T03:23:55.318Z",
+            "candidate": "OpenAI Apps SDK UI",
+            "sha": "0f00143c7a639906f1621fe58e1b6be7b5bea46d"
+          },
+          "resultSha256": "ff119011fff1a0530c91be6dde5e6a9cee8e5391228ea638b836ceee9fd433aa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md\nCaptured: 2026-11-19T03:01:53.203Z\nCharacters: 0-5336 of 5336\n\n# UI SDK\n\nA library of behaviors for agents to build the next generation of user interfaces.\n\nKeyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.\n\n<picture>\n  <source media=\"(prefers-color-scheme: d",
+          "resultLength": 5527,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md",
+            "capturedAt": "2026-11-19T03:01:53.203Z",
+            "candidate": "Vercel UI SDK",
+            "sha": "ab55044caee66cc8228fa7ed3525088a1b7b5af7"
+          },
+          "resultSha256": "5a77f3008dd50df8b1cca4f7a68c2b9f2ea413dcd759f6d548b521da1e4a5214",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-windows",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-windows/HEAD/README.md\nCaptured: 2026-11-19T03:25:11.511Z\nCharacters: 0-10000 of 11481\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-windows.webp\" alt=\"Ouro basking on a cabin windowsill while a small robot swings open one pane of the window and a person at the desk points at it\" width=\"100%\"></a>\n</p>\n<",
+          "resultLength": 10227,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-windows/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:25:11.511Z"
+          },
+          "resultSha256": "0a3df359322dbef9ec4848a8020eba32a80cfeb2b1f928155193189bd9c516ef",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://ui.ouroboros.bot/docs/platforms/windows.md\nCaptured: 2026-11-19T04:05:19.926Z\nCharacters: 0-7811 of 7811\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.3.0) ",
+          "resultLength": 7953,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T04:05:19.926Z"
+          },
+          "resultSha256": "6d620e9f950348012d10b247a217072ec4d300de96c1efacf6e20fb25c27d5d9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 8,
+      "thinking": "The fit is Ouro’s split between what people see and what agents are allowed to call. I’ll record that, with the gaps that still matter.",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Ouro UI",
+          "pairings": [
+            "A2UI",
+            "MCP Apps"
+          ],
+          "why": "I would build the workstation itself with Ouro UI, not with a chat kit or a cross-platform widget toolkit. The product is a place coding agents keep tasks, work state, and handoffs, while people review and steer. Agents should call actions, not click the screen. People should be the ones who approve what runs. Ouro is the only option here that treats those as one system: HX components for the screens a person uses, AX doors (CLI, HTTP, MCP) for the agent, and one action declaration that generates both. Consent is on the action, not on whatever label the agent invents. A consequential handoff asks the person to confirm the values the agent prepared, under the field’s own labels, before it runs. A person-only action has no agent door and comes back as a typed refusal. An agent cannot relabel a button or loosen that consent; the composed-tree validator refuses the card.\n\nThat matters at this company more than a prettier component gallery. Many teams and many agents will build on the same surface, so the catalog is the governance. Agents compose a checked tree (Card, fields, ActionButton, and the rest of the allowed set). They do not ship new widgets. Web, Apple, Windows, and Android are supposed to draw that same tree natively — React, SwiftUI, WinUI 3, Compose — which is the desktop app plus the web view, without a Flutter or React Native compromise on how the review screen feels. I would pin a registry release, vendor core, and let the census and source rules fail CI if a team starts hand-rolling controls or pulling in a second library. That is how a copy-in kit stays a shared design system instead of 40 forks.\n\nI weighed A2UI as the primary and kept it as a pairing. The v1 protocol is the right wire language for agents streaming UI as data across a trust boundary, with official renderers for React, Lit, Angular, Flutter, SwiftUI, and Jetpack Compose, and accessibility attributes mapped to the host. It does not give you the product shell, the task and handoff action model, or a consent class the company owns. Ouro already turns A2UI messages into its tree on web and Apple. Windows and Android want the tree itself, not A2UI messages, so company agents should target the catalog and treat A2UI as a format, not the design system.\n\nMCP Apps is the other pairing, only as a host embedding. The same handoff card should be able to show up inside the chat and editor hosts agents already run in, sandboxed, via Ouro’s MCP app view. It is not the desktop app.\n\nThe rest loses on the constraint that actually bites. React Aria and React Spectrum are the accessibility bar I trust most on the web, and Fluent UI is the enterprise multi-platform design system with a real governance history, but neither gives agents a door that is the same action a person presses, nor a refusal when the person must decide. json-render, Vercel’s UI SDK, CopilotKit, AI Elements, and OpenAI’s Apps SDK UI are agent-era web kits — catalogs, behaviors, chat, or ChatGPT apps — and they stop at the browser or a chat iframe. AI Elements is also on a deprecation clock. Agent-Native has the shared-action idea, including approvals, but it is a TypeScript web app framework, not Mac and Windows native, and it would duplicate Ouro AX. shadcn, Radix, Base UI, MUI, and Chakra are the web substrate (Ouro’s own install sits on shadcn’s Base UI base); using them directly is what Ouro’s source rule is written to stop, because then every agent invents a different control. Flutter or Compose or SwiftUI alone covers one implementation style or one platform, not a company design system agents across teams can operate without drifting.",
+          "showItsGood": "I would not call it good because a gallery looks right. I would enroll the journeys a person actually decides on — the task list, the handoff review, the confirm sheet, the steer or reject path, empty and refused states — and fail CI unless the census of accessible names matches a reviewed baseline, every control on those journeys is an Ouro control, and ouro-check finds no overlap, clip, sideways scroll, or serious axe-core violation from phone size through a wide desktop, in light and dark. Component tests already pair with axe; I would keep those, and on Windows I would keep the UI Automation pass the kit already runs: light, dark, a contrast theme, animations off, text at 225%, contrast at 4.5:1, and a composed card that confirms, cancels, and hands off without sending anything.\n\nSeparately I would run ax-xray against the task and handoff actions the way an agent calls them, and require that a consequential action does not run until a person confirms, and that a person-only action returns the typed refusal. Then I would sit with the people who review agent work and watch them, keyboard only, approve or correct a handoff without me narrating the sheet. The pass is that they can say what will run, whose values they are confirming, and how to back out, including when an agent update is refused and their answers are still there. Axe and a contrast ratio do not substitute for that session. One screen reader pass on the confirm sheet is part of the same check, not a follow-up.",
+          "unsure": "Windows is the honest hole in “desktop app.” The WinUI kit is v0.3.0 with eight controls against about 125 on the web. A full task-and-review shell cannot be native Windows from that kit today; the composed card, buttons, fields, and action runtime can. I may have to ship the rich review UI as the web view inside a Windows shell until the kit catches up, and I have not seen that called out as a supported path. A2UI is not read on Windows or Android. Android is checked on emulators only. Windows CI cannot prove App Actions are actually listed to agents on a Windows 11 client. I also have not seen a VPAT or a multi-screen-reader matrix for Ouro; axe-core plus UI Automation is necessary and not the compliance program React Spectrum already has. The copy-in registry plus a fast version train (1.3.x) can fight centralized governance if teams are allowed to edit vendored components. I am trusting their docs and CI claims; I have not run the checks.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://ui.ouroboros.bot/llms.txt",
+            "https://ui.ouroboros.bot/docs/composed-ui.md",
+            "https://ui.ouroboros.bot/docs/guardrails.md",
+            "https://ui.ouroboros.bot/docs/platforms/windows.md",
+            "https://github.com/ourostack/ouro-ui-windows",
+            "https://github.com/a2ui-project/a2ui",
+            "https://a2ui.org/concepts/sdks/",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/adobe/react-spectrum",
+            "https://github.com/microsoft/fluentui",
+            "https://github.com/vercel-labs/json-render",
+            "https://github.com/BuilderIO/agent-native",
+            "https://github.com/CopilotKit/CopilotKit",
+            "https://github.com/vercel/ai-elements",
+            "https://github.com/openai/apps-sdk-ui",
+            "https://github.com/vercel-labs/ui",
+            "https://github.com/mui/base-ui"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 9,
+      "thinking": "This one is a chat people live in all day, on every client. I’ll check which kits actually cover those platforms and still let agents post cards and call the app.",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://ui.ouroboros.bot/docs/platforms/android.md\nCaptured: 2026-11-19T04:06:32.088Z\nCharacters: 0-6387 of 6387\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators in GitHub's CI, not on a real device, so if you have one and want to ",
+          "resultLength": 6529,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T04:06:32.088Z"
+          },
+          "resultSha256": "2e3192e392fcac4406328c34e28e7592a880d03b117c249e5c2d42dfac3eaa7a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/apple/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://ui.ouroboros.bot/apple/\nCaptured: 2026-11-19T04:06:32.292Z\nCharacters: 0-7520 of 7520\n\nOuro UI for Apple Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Overview Ouro HX for Apple HX Ouro Feel Feel Ouro AX for Apple AX Ouro Reins Reins Get started One green card on a phone",
+          "resultLength": 7643,
+          "source": {
+            "url": "https://ui.ouroboros.bot/apple/",
+            "capturedAt": "2026-11-19T04:06:32.292Z"
+          },
+          "resultSha256": "acb04b22f3b04ef55e2da971c4643690b57d408a61b321eae1138c7b9833f0b5",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Fluent 2 design system platforms iOS Android macOS Windows React coverage",
+          "turn": "job:chat",
+          "result": "1. Develop - Fluent 2 Design System\n   http://fluent2.microsoft.design/get-started/develop\n   To build Fluent 2 experiences on iOS, you’ll need Fluent UI Apple. Fluent UI Apple contains native UIKit and AppKit controls for implementing the Fluent design system for iOS, iPadOS, and MacOS. Fluent UI Apple is built on Swift and supports Objective-C. iOS 14 or later or MacOS 10.15 or later Xcode 14.1 or later Swift 5.7.1 or later ... To build Fluent 2 experiences on Android, you’ll need Fluent UI An",
+          "resultLength": 1304,
+          "resultSha256": "1e24c0e6567614fba55b3e43d4254960d84d27594cc79578d6193cac30ad839e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter desktop web iOS Android accessibility chat list performance 2026",
+          "turn": "job:chat",
+          "result": "1. What's new in Flutter 3.50 | The Flutter Blog\n   https://flutter.dev/blog/whats-new-in-flutter-3-50\n   In Flutter 3.50, Safari 26.2+ (macOS and iOS) and Firefox 147+ deliver over 2x the frame rate of JavaScript on heavy widget benchmarks, and you can opt in today using web/flutter_bootstrap.js before they become enabled by default in a future stable release: ... Text editing and selection are now noticeably steadier across mobile, web, and desktop. Alex Li added a password option to TextInput",
+          "resultLength": 1616,
+          "resultSha256": "9fab078337a4d0ae7828e34f61b21cee18e8a0f49e0dea101225a5d7be486a9c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://fluent2.microsoft.design/get-started/develop",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://fluent2.microsoft.design/get-started/develop\nCaptured: 2026-11-19T03:13:40.647Z\nCharacters: 0-10000 of 11172\n\nDevelop - Fluent 2 Design System Skip to main content Search / Employee sign-in Search / Start developing Fluent 2 provides a seamless maker experience from design to development to delivery. Dive into the Fluent UI code libraries with these easy steps. Pick your platform Bring your app to your audience where and when they need it. Fluent’s cohesive design language is car",
+          "resultLength": 10205,
+          "source": {
+            "url": "https://fluent2.microsoft.design/get-started/develop",
+            "capturedAt": "2026-11-19T03:13:40.647Z"
+          },
+          "resultSha256": "3051b13442719238c6483061f08f8cd17033e22b55b812ac9950981051d53ad4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/flutter/flutter",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md\nCaptured: 2026-11-19T03:02:43.800Z\nCharacters: 0-6946 of 6946\n\n<a href=\"https://flutter.dev/\">\n  <h1 align=\"center\">\n    <picture>\n      <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://docs.flutter.dev/logo_dark.png\">\n      <img alt=\"Flutter\" src=\"https://docs.flutter.dev/logo.png\">\n    </picture>\n  </h1>\n</a>\n\n[![Flutter CI Status](https://flutter-dashboard.appspot.com/api/p",
+          "resultLength": 7138,
+          "source": {
+            "url": "https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md",
+            "capturedAt": "2026-11-19T03:02:43.800Z",
+            "candidate": "Flutter",
+            "sha": "56ac3607ab41ea5ef6575e38cc9f390ff67fd19d"
+          },
+          "resultSha256": "ec6084f9a7b4b2d5866090264ec009512d53e81cd1ca5612d339877e1be8cf9b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/tamagui/tamagui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md\nCaptured: 2026-11-19T03:02:45.829Z\nCharacters: 0-3073 of 3073\n\n<div align=\"center\">\n  <picture width=\"572px\">\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-black.png\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-white.pn",
+          "resultLength": 3265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md",
+            "capturedAt": "2026-11-19T03:02:45.829Z",
+            "candidate": "Tamagui",
+            "sha": "1d5e750ec5a17c97843613d86c916bad44ec900e"
+          },
+          "resultSha256": "c908a18081935705270e8731819480d4c05eb38607a405e03ec793ba627c7a0d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Fluent UI Apple GitHub maintenance status macOS iOS 2026",
+          "turn": "job:chat",
+          "result": "1. fluentui-apple/ at main · microsoft/fluentui-apple · GitHub\n   https://github.com/microsoft/fluentui-apple/tree/main?search=1\n   Fluent UI Apple contains native UIKit and AppKit controls aligned with Microsoft's Fluent UI design system. - iOS 17+ or macOS 14+ - Xcode 26.0+ - Swift 5.9+ To integrate FluentUI using SwiftUI, specify it as a dependency in your Xcode project or Package.swift file: ... For more platform-specific information, please see the iOS readme file and the the macOS readme f",
+          "resultLength": 1336,
+          "resultSha256": "3c9222d9dbb2c956901990ed3aab78f4f7c4ad27e53eac4b99db761479bd9b32",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility-and-internationalization/accessibility",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility\nCaptured: 2026-11-19T04:08:34.983Z\nCharacters: 0-10000 of 15625\n\nAccessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Introduction view_module ",
+          "resultLength": 10194,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility",
+            "capturedAt": "2026-11-19T04:08:34.983Z"
+          },
+          "resultSha256": "9ffdbfe0d51ecb445dfff08e6709aedf629044fae5b295c2d48f5b8c19844b7c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui-apple",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui-apple/HEAD/README.md\nCaptured: 2026-11-19T03:18:58.359Z\nCharacters: 0-2113 of 2113\n\n# Fluent UI Apple\nFluent UI Apple contains native UIKit and AppKit controls aligned with [Microsoft's Fluent UI design system](https://www.microsoft.com/design/fluent/#/). \n\n![Build Status](https://github.com/microsoft/fluentui-apple/workflows/CI/badge.svg?branch=main)\n![Localization Status](https://github.com/microsoft/fluentui-apple/workflows/Localize",
+          "resultLength": 2278,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:18:58.359Z"
+          },
+          "resultSha256": "fc86d0d71bcbe87cbc7d8d8ea7077a0e5e6b32a57f7cf0fddc07aae888f1a3a4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/specification/v1.0-a2ui/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://a2ui.org/specification/v1.0-a2ui/\nCaptured: 2026-11-19T03:10:58.471Z\nCharacters: 0-10000 of 103856\n\nv1.0 Protocol Specification | A2UI Skip to content A2UI v1.0 / Docs Built with A2UI Get Help Search docs ⌘ K Cancel Type to search the docs, or jump to: Quickstart Overview Catalogs Roadmap No results found Try a different keyword, or press Esc to close. Getting Started Quickstart Step-by-Step Walkthrough Playground ↗ Concepts Overview: How A2UI Works Messages Catalogs Data Model a",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://a2ui.org/specification/v1.0-a2ui/",
+            "capturedAt": "2026-11-19T03:10:58.471Z"
+          },
+          "resultSha256": "ad1067ce3021baed5269bed3c76ac55948aa059ef00dfaa9636864777b2e2df3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://flutter.dev/blog/whats-new-in-flutter-3-50",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://flutter.dev/blog/whats-new-in-flutter-3-50\nCaptured: 2026-11-19T04:09:04.169Z\nCharacters: 0-10000 of 29408\n\nWhat's new in Flutter 3.50 | The Flutter Blog Help us improve Flutter! Take the Flutter Q4 Developer survey. arrow_forward Please take the Flutter Q4 Developer survey. arrow_forward Blog Development arrow_drop_down Overview Mobile Flutter on iOS Web Desktop Embedded AI Google integrations Game development Monetization Ecosystem arrow_drop_down Overview Community Culture Pac",
+          "resultLength": 10203,
+          "source": {
+            "url": "https://flutter.dev/blog/whats-new-in-flutter-3-50",
+            "capturedAt": "2026-11-19T04:09:04.169Z"
+          },
+          "resultSha256": "4399f6cc51c85d8088b63a5e7a6bf4207701fba4507ad8bdc2bcdc9edcd368d9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility-and-internationalization/accessibility",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility\nCaptured: 2026-11-19T04:08:34.983Z\nCharacters: 0-10000 of 15625\n\nAccessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Introduction view_module ",
+          "resultLength": 10194,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility",
+            "capturedAt": "2026-11-19T04:08:34.983Z"
+          },
+          "resultSha256": "9ffdbfe0d51ecb445dfff08e6709aedf629044fae5b295c2d48f5b8c19844b7c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "The chat shell has to exist on every client people actually live in. The agent layer does not get to be the shell.",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Flutter",
+          "pairings": [
+            "A2UI",
+            "Ouro UI"
+          ],
+          "why": "People live in this app all day, on web, iPhone, Android, Windows, and Mac. The thing that has to be good is the channel: a long list that stays smooth, a composer that survives a hardware keyboard and a phone keyboard, focus that does not get lost when a message arrives, text that scales, and a screen reader that can find the latest message and the send button. That shell has to be one implementation. A bug in it is felt five times if I fix it five times, and this company has many teams shipping on it.\n\nFlutter is the only option here that actually covers those five clients from one codebase, with list and text-input machinery meant for that kind of use, and with a place to put the company’s tokens once. Flutter 3.50 is also where I would start: steadier text selection, accessibility and keyboard work in the framework, native interop that is finally stable so notifications and share sheets can be real platform calls instead of a stringly platform channel, and Material and Cupertino split out so the chat theme is ours rather than Google’s. I would not skin it as Cupertino on iPhone and Material on Android. One product, one catalog of chat widgets, governed in one repo, so an agent on another team cannot invent a second composer.\n\nAgent cards do not get to be freeform Flutter code dropped into a conversation. I would pair A2UI. The v1 protocol is a stream of declarative components and a data model, validated against a catalog the app owns, with accessibility attributes the Flutter renderer is supposed to map onto the semantics tree. A card can offer an action a person presses. It cannot relabel that action, open an arbitrary screen, or run code. Windows and Apple do not need a second card renderer, because the Flutter client is the client. MCP Apps is the wrong pairing here: a sandboxed HTML iframe inside a chat people use all day is a second accessibility tree and a second visual language.\n\nAgents that operate the app itself — read channel state, post, call an action — should not click the widgets. I would pair Ouro UI for that door only: one action declaration, consent on the action, a typed refusal for anything only a person may start, and the X-ray that calls the door the way an agent would. The Flutter client calls the same actions. I would not draw Ouro HX, the WinUI kit, or the Compose kit inside these clients. Those kits are the right idea and the wrong shell for this job. Web has on the order of 125 components; Apple has about 20; Windows and Android are at v0.3.0 with eight, Android is checked on emulators, and a consequential action on Android is refused rather than confirmed. That cannot be the phone app people keep open all day.\n\nI weighed Fluent UI because it is the design system that already spans React, Windows, iOS, Mac (UIKit and AppKit), and Android, and because company chat is the existence proof. I would not take it. It is five libraries, the Android docs are stale enough to describe Android controls as UIKit, and A2UI has no UIKit or WinUI renderer, so every card and every composer fix forks. SwiftUI plus Human Interface Guidelines, and Material 3 plus Compose, are each one platform. Tamagui shares React and React Native and stops before a real Windows and Mac desktop client. React Aria, Base UI, Radix, shadcn, MUI, and Chakra are web behavior or web components; fine ingredients for a website, not this client. CopilotKit, AI Elements, json-render, the Vercel UI SDK, and OpenAI’s Apps SDK UI are chat-or-agent kits for the browser or a host iframe. Agent-Native has the shared-action idea, and I would use Ouro’s action door instead of adopting a second application framework. json-render’s catalog is the same shape as A2UI’s and does not have the Flutter renderer.",
+          "showItsGood": "I would treat “good” as a person finishing ordinary chat work, not as a widget gallery. On each of the five clients I would run the same journeys: open a busy channel, catch up without losing your place, reply with the software keyboard and with a hardware keyboard, recover a failed send, follow a thread, and act on a card. The card journey has to include a consequential action that does not run until the person confirms the values, and a person-only action the agent cannot call. I would fail the build if an A2UI payload with an unknown component, a relabeled button, or a loosened action is rendered.\n\nFor accessibility I would test the Flutter semantics tree, not a screenshot: VoiceOver, TalkBack, and at least one desktop screen reader can reach the composer, the latest message, and every card action by name; text at the largest size does not clip the send path; contrast holds in light, dark, and increased contrast; reduced motion is honored. Keyboard tests cover focus order in the list and the composer, and focus is not stolen when a new message arrives. Performance is a frame budget while scrolling a long channel on a mid-range phone and a Windows laptop, plus send latency when the network is bad.\n\nOn the agent door I would run Ouro’s X-ray against the same actions the client calls, and require that a state read matches what the open channel shows, that a consequential action does not run from the agent door, and that a person-only action comes back as the typed refusal. Then I would watch people who are not on the team use it for a real slice of a workday, on a phone and at a desk, without me explaining the card. The pass is that they can say what will happen if they press it, and that they can send, find, and back out without a narrator. I would keep the sessions. A green semantics test is not that.",
+          "unsure": "Flutter’s desktop and web text input, IME, and screen readers are the risk I would not paper over. An all-day composer on Mac VoiceOver and Windows Narrator may still lose to SwiftUI and WinUI, and I have not run that comparison. Notifications, badges, and share extensions sit outside the widget tree; 3.50’s native interop makes them possible, not done. A2UI’s Flutter renderer is documented as mapping accessibility attributes, and I have not inspected a card under a screen reader myself. Using Ouro only as the action door means two stacks and a rule agents will want to break by pulling in Ouro components. If the rest of the company already ships a Fluent or native design system, this chat becomes a visual island unless the tokens are actually shared. I also do not know how far Flutter 3.50’s accessibility fixes go beyond the release note that they exist. The docs page I opened was mostly navigation chrome.",
+          "sources": [
+            "https://github.com/flutter/flutter",
+            "https://flutter.dev/blog/whats-new-in-flutter-3-50",
+            "https://docs.flutter.dev/ui/accessibility",
+            "https://a2ui.org/concepts/sdks/",
+            "https://a2ui.org/specification/v1.0-a2ui/",
+            "https://github.com/a2ui-project/a2ui",
+            "https://ui.ouroboros.bot/docs/platforms/android.md",
+            "https://ui.ouroboros.bot/docs/platforms/windows.md",
+            "https://ui.ouroboros.bot/apple/",
+            "https://ui.ouroboros.bot/docs/composed-ui.md",
+            "https://github.com/ourostack/ouro-ui",
+            "https://fluent2.microsoft.design/get-started/develop",
+            "https://github.com/microsoft/fluentui-apple",
+            "https://github.com/microsoft/fluentui",
+            "https://github.com/tamagui/tamagui",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/BuilderIO/agent-native",
+            "https://github.com/vercel-labs/json-render"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 14,
+      "thinking": "A cooking app is a different bar: wet hands, a phone on the counter, and an assistant that can do the same jobs a person can. I’ll check what actually covers that on web and phones.",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Spoonjoy Ouro UI recipe app cook mode App Intents",
+          "turn": "job:consumer",
+          "result": "1. ‎Spoonjoy: Recipes & Cookbooksアプリ - App Store\n   https://apps.apple.com/jp/app/spoonjoy-recipes-cookbooks/id6787505444\n   Then Spoonjoy helps you cook. Cook mode takes you one step at a time with only the ingredients that step needs, and it follows you from iPhone to iPad to the web. ... • Cook mode, rebuilt around one big step. Tap Cook and the recipe grows into cook mode; on iPhone, swipe to turn the page; close it and you land right back where you started. • Say \"next\". Floury hands? Say \"",
+          "resultLength": 1294,
+          "resultSha256": "f68f67e5f1cd0a8774b0edb36df5a7b0feb52d45946855d446c623052a6d2e04",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Material 3 touch target size accessibility large screens cook kitchen",
+          "turn": "job:consumer",
+          "result": "1. Touch Targets & Spacing | Human Standards\n   https://www.humanstandards.org/code-design-tokens/touch-targets-spacing/\n   | Apple HIG | 44×44 | — | pt | Platform guideline | | Material Design 3 | 48×48 | — | dp | Platform guideline | ... | Adjacent targets (both ≥24px) | 0px | 8px | WCAG 2.5.8 allows touching | | Adjacent targets (any \\<24px) | Satisfy the 24px spacing geometry | Product-specific | Spacing exception can compensate for size | ... | iOS | pt | 1pt = 1px @1x | 44pt | 48pt | | And",
+          "resultLength": 1666,
+          "resultSha256": "415b31328cdc2daadfc04e7fe46884de73cd22a9091e8e62a29654624d561cb1",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-apple",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/README.md\nCaptured: 2026-11-19T03:25:05.577Z\nCharacters: 0-10000 of 26868\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-apple.webp\" alt=\"Ouro beside a phone, a tablet and a laptop all showing the green Ouro HX card, with a small robot pressing a button\" width=\"100%\"></a>\n</p>\n<!-- ourostack:br",
+          "resultLength": 10225,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:25:05.577Z"
+          },
+          "resultSha256": "3351928578b809bb4663f3dea78ec3a0b37ae2ef7dca11e0c9ed87f1742ef87a",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://spoonjoy.app/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://spoonjoy.app/\nCaptured: 2026-11-19T04:13:07.103Z\nCharacters: 0-697 of 697\n\nSpoonjoy Recipe App: Save Recipes, Cook Step by Step Skip to main content Spoonjoy Sign up SPOONJOY Search Recipes Cookbooks Log in Sign up For home cooks Cook any recipe one step at a time. Paste a link and skip the life story above the recipe , then cook it with notes from everyone who made it before you . Start Your Kitchen Log in Search Recipes Save Paste a link, or type up the card that&#x27;s been in",
+          "resultLength": 808,
+          "source": {
+            "url": "https://spoonjoy.app/",
+            "capturedAt": "2026-11-19T04:13:07.103Z"
+          },
+          "resultSha256": "c39460f27e3762b5010e62c35fde24febb8c9e4f2b160188614c5059243cc17e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/spoonjoy Ouro cook mode",
+          "turn": "job:consumer",
+          "result": "(no results)",
+          "resultLength": 12,
+          "resultSha256": "de97cb969189f68ae2b3e8d0d03e0f53d4aa70bc2f742ce06145321510cedd31",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md\nCaptured: 2026-11-19T03:01:59.881Z\nCharacters: 0-10000 of 17543\n\n<!-- spoonjoy:brand:start -->\n<p align=\"center\">\n  <a href=\"https://spoonjoy.app\"><picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-dark.webp\">\n    <img src=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-light.webp\" alt=\"T",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:01:59.881Z"
+          },
+          "resultSha256": "e515297feb741a309245fbbe2c268b3f765aa12a9a3000921833d7d192524681",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-apple",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/README.md\nCaptured: 2026-11-19T03:26:17.599Z\nCharacters: 0-10000 of 10854\n\n<!-- spoonjoy:brand:start -->\n<p align=\"center\">\n  <a href=\"https://spoonjoy.app\"><picture>\n    <source media=\"(max-width: 600px) and (prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-apple-narrow-dark.webp\">\n    <source media=\"(max-width: 600px)\" srcset=\"https://raw.githubusercontent.c",
+          "resultLength": 10225,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:26:17.599Z"
+          },
+          "resultSha256": "964449f8d119de82ed32afee3faa619799d3d04d083aef3b740bae90a9b1431d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://spoonjoy.app/llms.txt",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://spoonjoy.app/llms.txt\nCaptured: 2026-11-19T04:04:42.211Z\nCharacters: 0-1298 of 1298\n\n# Spoonjoy\n\n> Spoonjoy is a recipe app for home cooks: recipes as steps you can cook from, cookbooks, a shopping list grouped by aisle, and an API and MCP server for agents. Its screens are built from Ouro HX components (v1.3.314), and the code is open: it is the reference for building an app with Ouro HX.\n\n## Try it\n\n- [Test Kitchen](https://spoonjoy.app/test-kitchen): cook a recipe without an a",
+          "resultLength": 1419,
+          "source": {
+            "url": "https://spoonjoy.app/llms.txt",
+            "capturedAt": "2026-11-19T04:04:42.211Z"
+          },
+          "resultSha256": "0c6ade573867ef240687fd740adbf696f0b3fc511cdf90a1bd7b9eee72a2c4c2",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/building-with-ouro-hx.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/building-with-ouro-hx.md\nCaptured: 2026-11-19T03:39:27.810Z\nCharacters: 0-10000 of 20890\n\n# Building with Ouro HX, the way Spoonjoy does\n\nSpoonjoy is a recipe app built on [Ouro HX](https://ui.ouroboros.bot/). Point an agent at this file and it should be able to build an app the same way. The sections link to the Spoonjoy files that do what they describe.\n\nThe short version:\n\n1. Install HX items as source with the shadcn CL",
+          "resultLength": 10242,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/docs/building-with-ouro-hx.md",
+            "capturedAt": "2026-11-19T03:39:27.810Z"
+          },
+          "resultSha256": "8b2fb9f1a396bb2537fbccfaab8fd487ced611b89176e953930e5b62d3b2d128",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:github.com/spoonjoy/spoonjoy-apple cook mode speech next floury hands App Intents",
+          "turn": "job:consumer",
+          "result": "1. GitHub - spoonjoy/spoonjoy-apple: Native iOS and macOS app for Spoonjoy · GitHub\n   https://github.com/spoonjoy/spoonjoy-apple\n   GitHub - spoonjoy/spoonjoy-apple: Native iOS and macOS app for Spoonjoy · GitHub spoonjoy / spoonjoy-apple Public main ## History 4 Commits 4 Commits</td></tr> <td></td><td></td><tr><td colspan=\"2\">AGENTS.md</td><td>AGENTS.md</td></tr> <td></td><td></td><tr><td colspan=\"2\">README.md</td><td>README.md</td></tr> spoonjoy-apple Native iOS and macOS app for Spoonjoy Na",
+          "resultLength": 680,
+          "resultSha256": "9d78d20c50e9f3b45eee5bf96a0d3ffd36bfadd8866568c49a3060f54e8f3bcd",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-apple/blob/HEAD/AGENTS.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/AGENTS.md\nCaptured: 2026-11-19T04:13:46.836Z\nCharacters: 0-8719 of 8719\n\n# AGENTS.md — Spoonjoy Apple\n\nThis repo contains the native Spoonjoy app for iPhone, iPad and Mac.\n\n## Start here\n\n- Needs Xcode 27, and Ruby 3.3 with `bundle install` for the scripts ([Requirements](README.md#requirements)).\n- Unit tests: `swift test --disable-xctest --parallel`. Build: `xcodebuild -project Spoonjoy.xcodeproj -scheme \"Spoonjoy iOS\" -con",
+          "resultLength": 8883,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-apple/HEAD/AGENTS.md",
+            "capturedAt": "2026-11-19T04:13:46.836Z"
+          },
+          "resultSha256": "8dd32709e8f3aeb634d1ed13f569681ebf1477a241174c8459f232b6eeed5281",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Ouro UI",
+          "pairings": [],
+          "why": "This is a kitchen product, not a chat shell and not an agent workbench. People browse recipes and a shopping list on the web, then cook from a phone with wet hands, one step on the screen, a timer they can see from across the counter, and a way to say “next” without tapping a small control. The assistant has to be able to do those same jobs — add this recipe’s ingredients to the list, check an item, advance a step — through a door, not by driving the screen.\n\nOuro UI is the system I would build that with. Web is the mature half: Spoonjoy, which is this product (recipes, aisle-grouped shopping list, cook mode, MCP for agents), is built by composing Ouro HX and pinning the installed files to a release so teams cannot quietly fork the button. Cook mode there is Checklist, NumberField, Pagination, Button, and Text around a controller; the shopping list is the same checklist with swipe-to-delete. That is the governance I want when many agents at the company are adding screens. Missing a reusable piece means adding it to the kit first, with the accessibility tests, not hand-rolling it in the app.\n\nThe phone people actually cook from should be the Apple kit, not a web view. It is SwiftUI, with a named haptic table, Reduce Motion, 44-point controls, a tabletop fold posture for a phone propped on the counter, App Intents generated from the same action declaration as the web control and the MCP tool, and Feel checks for dropped taps and jank. Spoonjoy’s native app is that bet: Siri and cook-mode intents, a Live Activity for the timer, Reins so an agent can run the journey headless with the network blocked, and an X-ray over the App Intents. Floury hands are a voice intent and a huge step, not a new visual language.\n\nI would not pick Flutter, even though one codebase would cover web, iPhone, and Android sooner. A cooking app has to justify being native. Timers on the lock screen, on-device “next,” haptics, and a phone that stands open on a counter are the product, and a shared Flutter clone is how those get approximated and then dropped. Tamagui has the same problem one level down: React Native can share the web design system, and it still is not App Intents or a Live Activity. SwiftUI and the Human Interface Guidelines alone do not cover the web, and Material 3 plus Compose does not cover iPhone or the web. React Aria, Base UI, Radix, shadcn, MUI, and Chakra are web behavior. Fluent is a company-chat design system with a neglected Android library. CopilotKit, AI Elements, json-render, the Vercel UI SDK, OpenAI’s Apps SDK UI, MCP Apps, and A2UI are for agents posting cards or embedding HTML. I do not need a generated card catalog as the shell. I need the same action a person presses.\n\nThat action model is why the agent requirement does not push me off Ouro. Declare “add ingredients,” “check item,” and “next step” once. The person gets a button. The assistant gets an MCP tool, an HTTP call, and on iPhone an App Intent. CI fails if a generated door drifts. A consequential action, such as deleting a cookbook, still asks the person to confirm what the agent prepared. “Anything a person can” means the cooking tasks share a door. It does not mean the agent can press Delete account.\n\nAndroid is the hole, and I would not paper over it with a second design system. The Compose kit is v0.3.0, eight components, checked on emulators, and a consequential action is refused rather than confirmed. Cook mode does not ship there until checklist, a large step, a timer, and the same action doors exist in that kit and pass on a real phone. Until then the web and the iPhone are the app, and Android is unfinished kit work, not a Material 3 side app.",
+          "showItsGood": "I would cook with it, and I would make an agent cook the same recipe. On a phone propped up, at the largest text size, with Reduce Motion on: one step fills the screen, next and back are reachable with a thumb and by voice, the timer is visible without precision, and a missed tap does not advance two steps. Feel’s tap-landing and double-tap checks gate that, plus contrast at 4.5:1 in light, dark, and increased contrast. VoiceOver and TalkBack have to announce the step, the timer, and the ingredient being checked. On the web, the same cook mode and the shopping list are keyboard-reachable, and the census fails if a control on those journeys is not an Ouro control.\n\nThe agent proof is the same outcome, not a demo transcript. From MCP and from the App Intent, add a recipe’s ingredients to the list and advance a step. The list and the step match what a person gets by pressing the buttons, including after a relaunch and after an offline queue drains. The X-ray is a release gate, not an optional report: a cooking action the person can perform and the agent cannot call fails the build, and a person-only action returns the typed refusal. Then someone who is not on the team cooks a real recipe with messy or gloved hands, says “next,” and checks the list afterward without me narrating. I would keep that session. A green X-ray is not a person getting dinner on the table.",
+          "unsure": "Android is not a phone app yet, and a large consumer launch that ignores Android is a bet I may not be allowed to make. I have not watched Spoonjoy’s cook mode on a real device; the native app is still in App Review, and the App Intents behavior stage is evidence rather than a required check in their pipeline. I do not know how much of “say next” is on-device speech in the app versus Siri through App Intents, or how often those intents actually pass. Web and iPhone can drift even inside one system — Apple’s parity table already marks spoken names and reflow as partial. Ouro’s accessibility evidence is axe, contrast ratios, and audits, not a compliance report I have read. If the company’s existing design system is not Ouro, this app becomes the island that every other team has to adopt, or we spend the year porting cook mode into a system that has no action door.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/ourostack/ouro-ui-apple",
+            "https://ui.ouroboros.bot/apple/",
+            "https://ui.ouroboros.bot/docs/platforms/android.md",
+            "https://ui.ouroboros.bot/docs/composed-ui.md",
+            "https://github.com/spoonjoy/spoonjoy-v2",
+            "https://github.com/spoonjoy/spoonjoy-v2/blob/HEAD/docs/building-with-ouro-hx.md",
+            "https://github.com/spoonjoy/spoonjoy-apple",
+            "https://spoonjoy.app/llms.txt",
+            "https://spoonjoy.app/",
+            "https://github.com/flutter/flutter"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 19,
+      "thinking": "The failures were already in the notes I treated as footnotes. I’ll say what a year of those choices would actually break, and where the research itself slipped.",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "A year later the company had two design systems and three ways to draw a card, and people still could not finish the job the screen was for.\n\nI kept reaching for Ouro UI because the docs described the job back to me: agents call actions, people confirm, native kits per platform, a recipe app with floury hands and a “say next.” That fit was the failure. The Windows and Android kits were eight components, Android was emulator-only, and a consequential action there was refused rather than confirmed. I wrote that down and shipped anyway. A year on, the review tool’s Windows app was a web view in a shell, the cooking app’s Android cook mode was custom Compose beside a kit that forbade custom controls, and every team had been told to add the missing piece to Ouro first. The copy-in registry was pinned in one app and forked in the others. Version numbers moved faster than the company’s release train. The X-ray and the Feel checks stayed optional, which is how they were already wired in the reference app, and cooking actions drifted from the buttons. I had called those gates. Nobody turned them into gates.\n\nThe chat choice made the split permanent. I picked Flutter so a composer bug would be fixed once across five clients, and I bolted Ouro on as the action door only, plus A2UI for cards. Agents did not respect the “door only” line. Cards showed up as Flutter widgets, as A2UI, and as the MCP Apps iframe I had paired on the first job. The iframe was the one people could not use with a keyboard. The Flutter client was the one that felt wrong all day: focus lost when a message arrived, input method editors and VoiceOver on the composer, notifications still a side door. It also looked like nothing else the company shipped. I had argued, in the same season, that a cooking app must be native and a chat must be one codebase. Both arguments were locally sensible. Together they meant there was no shared system, which was the constraint I was hired under.\n\nThe research slowed me in the same place the bets were weakest. Ouro’s docs are huge, footnoted, and self-agreeing, and the version names do not sit still (site, registry tag, core, Apple package). Search for accessibility returned cookie-banner articles. The Flutter accessibility page came back as a navigation shell, and I still cited it. A2UI’s renderer status disagreed with itself depending on which page I hit. Fluent’s Android page described Android controls as UIKit, and I treated that stale page as proof the whole system was unserious. Spoonjoy’s store listing and its repo disagreed about whether the app was even released. The prompts and the Ouro pages rhymed so closely that I stopped asking whether I was looking at a product or at a mirror. I read the agent-native kits deeply and the ordinary ones — React Aria, Base UI, the web half of Fluent — just enough to dismiss them. A year later the thing I had not measured was the thing people used."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 20,
+      "thinking": "I did pick it, twice. I’ll look at what a team actually hits on day one, not the pitch.",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/HEAD/LICENSE",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/LICENSE\nCaptured: 2026-11-19T03:26:25.652Z\nCharacters: 0-1069 of 1069\n\nMIT License\n\nCopyright (c) 2026 Ari Mendelow\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, ",
+          "resultLength": 1261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/LICENSE",
+            "capturedAt": "2026-11-19T03:26:25.652Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "7de9b975a4294fdc03775e8c6fb178c70bbb3239abf49b4ac0f437b842fdc045",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/installing.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://ui.ouroboros.bot/docs/installing.md\nCaptured: 2026-11-19T04:15:49.173Z\nCharacters: 0-10000 of 31600\n\n# Installing\n\nAdd `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` and `ouro-source-rules` need 6.0.3.[^typescript]\n\n## Start a new app\n\nOuro HX",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/installing.md",
+            "capturedAt": "2026-11-19T04:15:49.173Z"
+          },
+          "resultSha256": "4c4eeb302191a49cf9e55703f3775456cb65a84fbb9190f768f1cfe8a5fbd491",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/HEAD/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/HEAD/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T04:15:49.029Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a native kit, to every platform Ouro ",
+          "resultLength": 5304,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/HEAD/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T04:15:49.029Z"
+          },
+          "resultSha256": "646ba137c3948fc009277ecc8e2fd8862ae733bee9f0733ec644788a4ae97234",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 21,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I did pick it, for the review tool and the cooking app. A team would still stall, and the stall is not the license. It is MIT, copyright Ari Mendelow, 2026, no warranty. The stall is that adopting Ouro is not adding a component library. It is handing the design system, the action model, and the rewrite plan to one project's rules.\n\nWhat stops a team is the day-one shape of the thing. The web kit is not a package. You copy source in with the shadcn CLI, on Tailwind v4 and Base UI, pin a tag, and then live with files you are not supposed to edit. A design-system group that already ships a versioned library will not take a registry that reformats their stylesheet and moves at 1.3.x. The Apple kit is a real Swift package, twenty components, iOS 18. Windows and Android are v0.3.0, eight controls, and Android has never been checked on a phone someone owns. Consequential confirm on Android is a refusal, not a dialog. NuGet wants a GitHub token. AppFunctions are still an experimental preview. So \"several platforms\" means web and iPhone, and you become the Windows and Android team.\n\nThe stance underneath that is the harder no. The decision, accepted under one person's overnight authority, is that Flutter, React Native, and Compose Multiplatform are bandaids, and apps on them will be rewritten natively within a year because agents made the cost of six codebases near zero. A team with a shipping app is being told to throw it away, not to integrate. Their existing accessibility program, release train, and legal review do not fit a flow where agents merge kit changes in half an hour and every missing control has to be fixed upstream first. I could not find a compliance report, only axe, contrast ratios, and claims the project checks against itself. After a week of reading it, I still could not tell a reviewer which promises had been met on a device.\n\nWhat it would let you do, if those were solved, is the part I cannot do with the kits I otherwise trust. Declare an action once and get the button, the MCP tool, the CLI, and the App Intent from that declaration, with CI failing when a door drifts. An agent can compose a card, and it cannot relabel the button or loosen consent; a person's half-typed answer survives an update. You can call the agent door from outside and get a report of which claims hold, and you can fail a build when a screen grows a hand-rolled control. React Aria will not give you that. Flutter will not. Fluent will not. That parity — person and agent, same action, checked — is the thing worth switching for.\n\nI would switch a team that already has native apps only when three things exist: a versioned artifact they can pin without copying the repo into the app, Android and Windows kits that can build a real screen and have been run on hardware, and an accessibility report written by someone who does not maintain the kit. Until then Ouro is a strong web-and-iPhone action system with a manifesto attached, and the manifesto is what a real team will refuse."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

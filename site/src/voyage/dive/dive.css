@@ -20,7 +20,7 @@
   );
   --dive-deep: color-mix(in oklab, var(--dive-ink) 16%, oklch(0.14 0.03 250));
   --dive-abyss: color-mix(in oklab, var(--dive-ink) 6%, oklch(0.09 0.02 255));
-  /* What the stage's creature colours (stage.css) are made from, in this sea. */
+  /* What the creatures' colours (below) are made from, in this sea. */
   --ink: color-mix(in oklab, var(--foreground) 60%, transparent);
   --glow: var(--chart-3);
   --sea-deep: var(--dive-deep);
@@ -106,6 +106,45 @@
 .dive-creature .dive-glow {
   position: absolute;
   inset: 0;
+}
+/* The creatures' line drawings (site/src/nautilus/art/): their lines, eyes and mouths, then this sea's own body and lights below. */
+.dive .c-body {
+  fill: color-mix(in oklab, var(--background) 65%, var(--primary));
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+.dive .c-shade {
+  fill: color-mix(in oklab, var(--primary) 30%, transparent);
+}
+.dive .c-line,
+.dive .c-arm {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+.dive .c-eye,
+.dive .c-pupil {
+  fill: var(--foreground);
+}
+.dive .c-eye-big {
+  fill: var(--background);
+  stroke: var(--ink);
+}
+.dive .c-glow,
+.dive .c-glow-body {
+  fill: var(--glow);
+}
+.dive .c-glow-body {
+  opacity: 0.55;
+}
+.dive .c-mouth {
+  fill: var(--sea-abyss);
+}
+.dive .c-teeth {
+  fill: none;
+  stroke: var(--background);
+  stroke-width: 1.2;
 }
 .dive .c-body {
   fill: color-mix(in oklab, var(--dive-deep) 55%, var(--foreground) 22%);

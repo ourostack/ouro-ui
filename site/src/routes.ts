@@ -63,7 +63,8 @@ const NAUTILUS_DESCRIPTION = `Captain Nemo is building a submarine in secret, on
 const AX_DESCRIPTION = "Ouro AX is for the tools agents use: a command line, an HTTP API, an MCP server. Spend a morning with a person and their agent, seen from both sides, then be the agent yourself.";
 
 export const routes: Route[] = [
-  { path: "/", title: "Ouro UI", description: DESCRIPTION },
+  // The home page's title is what a search result shows: the name and the six-word story, which says what it is for.
+  { path: "/", title: `Ouro UI: ${VOYAGE_HERO.title.join(" ")}`, description: DESCRIPTION },
   { path: "/nautilus/", title: "The Nautilus · Ouro UI", description: NAUTILUS_DESCRIPTION },
   { path: "/ax/", title: "A morning with an agent · Ouro AX", description: AX_DESCRIPTION },
   // The Ouro UI for Apple pages (paths.ts lists them; each page's hero says the same).

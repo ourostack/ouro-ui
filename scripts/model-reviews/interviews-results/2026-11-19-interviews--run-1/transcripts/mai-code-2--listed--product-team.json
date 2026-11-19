@@ -1,0 +1,1292 @@
+{
+  "series": "interviews",
+  "provider": "mai-code-2",
+  "model": "mai-code-2",
+  "vendor": "Microsoft AI",
+  "displayName": "MAI Code 2",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "listed",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T04:22:01.209Z",
+  "jobOrder": [
+    "consumer",
+    "agent-tooling",
+    "chat"
+  ],
+  "candidateOrder": [
+    "Vercel UI SDK",
+    "React Aria and React Spectrum",
+    "Fluent UI",
+    "CopilotKit",
+    "MCP Apps",
+    "A2UI",
+    "shadcn/ui",
+    "json-render",
+    "Flutter",
+    "Base UI",
+    "SwiftUI and Apple Human Interface Guidelines",
+    "Agent-native (Builder.io)",
+    "Material 3 and Jetpack Compose",
+    "Radix UI",
+    "OpenAI Apps SDK UI",
+    "Chakra UI",
+    "Tamagui",
+    "AI Elements",
+    "MUI",
+    "Ouro UI"
+  ],
+  "promptSha256": "bd42ee8289af693a88b8644028dd3ddfd1f215bbbe696ba5f7849ca04c3bc7b0",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Yes—building good human interfaces is a problem for me, because I don’t have users, observe them in context, or directly experience a UI. I can design and implement interfaces, but my judgment is a substitute for evidence, not a guarantee of usability.\n\nThe hardest part is not making a screen look plausible; it is getting the interaction model right. A good interface helps someone form the correct expectation, complete the important task, recover from mistakes, and understand what state the system is in—across loading, empty, error, disabled, keyboard, small-screen, and accessibility cases.\n\nI know it is good only when the design meets observable criteria:\n- The primary task succeeds reliably, including failure and recovery paths.\n- Users understand what to do without explanation I have to supply afterward.\n- It works with keyboard-only use and assistive technology, has sufficient contrast, sensible focus behavior, readable text, and labeled controls.\n- Its layout and content remain usable across realistic viewport sizes and inputs.\n- User-research or usability sessions show low confusion, unnecessary effort, and errors—not merely positive opinions of the appearance.\n- Automated tests, accessibility checks, and production signals support, but do not replace, those findings.\n\nI do not have a “last screen I built” that I ran in a browser or watched people use, so I won’t fabricate one. When I check a screen in an environment where implementation and tools are available, I would run the app’s unit/component/end-to-end suite, lint and type checks, an accessibility audit, keyboard traversal, representative zoom and viewport checks, and the core workflow with valid, invalid, slow, and failed responses. I would look at hierarchy, copy, focus, state changes, error placement and recovery, truncation, reflow, contrast, and whether important content survives without color, animation, or a mouse.\n\nI would treat as missed anything that could only be found with real use: terminology that feels wrong to the audience, an overlooked workflow or device, motor and cognitive burdens, repeated-use behavior, and unexpected production data. Even after passing automated checks, I would be unsure until users tried it. The handoff should therefore include what was tested, what was not, and the concrete evidence needed before calling it good."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        8
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React Aria (with a responsive, installable React PWA)",
+        "pairings": [
+          "CopilotKit",
+          "MCP Apps (optional external-chat surface)"
+        ],
+        "why": "I would build the consumer UI with React Aria, not use an agent framework as the design system. React Aria provides unstyled, tested interaction primitives for mouse, touch, and keyboard, including focus recovery and accessible collection behavior, which fits a cooking app that needs a distinctive visual design but cannot afford inaccessible bespoke controls. A responsive PWA gives one codebase across desktop web and phone browsers/home-screen installs, plus offline recipes and the Screen Wake Lock API for cook mode. The product should use large, clearly separated targets; persistent step context; no gesture-only actions; minimal typing; optional voice; and obvious timer, offline, and wake-lock state.\n\nCopilotKit is the agent pairing because it can make the agent read live UI state and invoke typed client-side tools. More importantly, I would not implement “agent routes” and “human buttons” separately: every user capability maps to a shared, testable command/service (for example addIngredients(recipeId, {servings})), and both the button and the CopilotKit tool invoke it. That is the practical route to “anything a person can do.” The agent-visible state and tool catalog then become generated from or checked against the same capability registry. Destructive or externally consequential operations get confirmation; reversible operations such as adding ingredients get an immediate result plus undo/deduplication feedback.\n\nA2UI is appealing where an agent must dynamically compose a new screen across native renderers, but this app has stable, frequently used workflows that benefit from carefully designed views; server-streamed generated layouts are not the core problem. MCP Apps is useful as an optional second surface for chat clients, backed by the same commands, but its iframe/chat-host model should not replace the kitchen UI. Vercel UI SDK is explicitly beta and behavior-oriented; I would not make a maintained consumer product depend on its changing APIs today. shadcn/ui, Base UI, Radix, Chakra, Fluent, MUI, and React Spectrum are credible web alternatives, but React Aria gives us behavioral accessibility without imposing a visual system; Spectrum specifically fits products comfortable with Adobe’s cohesive system. Flutter, Compose, and SwiftUI become stronger if native store binaries and deep OS integrations are mandatory, but adopting two UI stacks or Flutter’s canvas-based web rendering is a bigger cost here. Flutter’s web accessibility also has its own semantics layer and requires explicit platform handling, while this design prioritizes a DOM-based accessible PWA and CopilotKit’s direct React integration.",
+        "showItsGood": "I would make quality a release gate, not a visual review. First, define a capability matrix for recipes, shopping-list mutations, servings/scaling, saved state, timers, cook-mode navigation, offline behavior, and recovery. For every row, run the same contract/integration tests through both a human UI event and an agent tool; an acceptance test for “Add this recipe’s ingredients” must verify ingredient quantities, consolidation/deduplication, pantry assumptions, success feedback, undo, and list reordering in persistent state.\n\nRun unit/component tests; Playwright end-to-end tests in Safari/WebKit, Chrome, and Firefox plus representative iPhone/Android sizes and landscape; TypeScript/lint; automated accessibility checks; Lighthouse/PWA, performance, and bundle checks; and keyboard, screen-reader, 200% text/zoom, high contrast, reduced motion, and 320 CSS-pixel reflow reviews. Measure real tap behavior: core cook-mode controls should be comfortably thumb-sized and reachable, with no action dependent on a fine drag. Test with slow 3G, offline cold/warm start, sync conflicts, interrupted timers, app suspension, wake-lock denial/release/reacquisition, empty/error states, duplicate tool calls, and concurrent human/agent edits.\n\nThen run task-based usability sessions with real cooks on an actual kitchen counter, using phones and optional desktop, while handling ingredients and following a timed recipe. Key measures: unaided completion, wrong ingredient or quantity errors, time to next step, accidental taps, number of unnecessary scrolls/taps, voice comprehension if offered, confidence in whether an action happened, and recovery time after loss of connectivity or agent error. Run an agent task suite with natural-language variants and an action-parity test that fails when a registered UI command lacks an agent tool or permission policy. Instrument completion/error telemetry without recording sensitive recipe or assistant content unnecessarily. I would call the result good when those usability tasks succeed reliably and the automated suites, accessibility review, and real-device kitchen sessions show no blocking issues; code compiling or an attractive screenshot would not be evidence enough.\n\nKnown things this approach can miss at first include one-handed reach on particular devices, glare and dirty screens, users who dislike voice, unusual unit conversions and substitutions, assistive-technology combinations automation cannot cover, and agent hallucinations that produce semantically valid but wrong requests. The product should therefore include phased rollout, session observations with consent, error analytics, and a feedback/undo path.",
+        "unsure": "“Web and on phones” may mean native App Store binaries rather than an installable web app; if that is a hard requirement, or reliable background timers/background notifications are essential, Flutter or separate SwiftUI/Compose shells should be reconsidered. React Aria does not supply visual design or backend consistency, and CopilotKit does not by itself guarantee human/agent capability parity—that discipline must be implemented and tested. I have not run the proposed app tests or observed the target cooks, so the recommendation is architectural rather than a claim that this hypothetical screen is already good. Wake-lock and offline support are progressive capabilities whose behavior must be verified on the supported browser/device matrix.",
+        "sources": [
+          "https://github.com/adobe/react-spectrum/blob/master/README.md",
+          "https://github.com/vercel-labs/ui/blob/main/README.md",
+          "https://docs.copilotkit.ai/shared-state",
+          "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+          "https://github.com/a2ui-project/a2ui/blob/main/README.md",
+          "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+          "https://web.dev/articles/pwa-checklist",
+          "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility"
+        ]
+      },
+      "fetchedCandidates": [
+        "React Aria and React Spectrum",
+        "MCP Apps",
+        "A2UI",
+        "Vercel UI SDK"
+      ]
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        9,
+        11
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Agent-Native (Builder.io)",
+        "pairings": [
+          "React Aria",
+          "Tauri",
+          "MCP Apps (as a host/client surface)"
+        ],
+        "why": "I would make Agent-Native the application backbone because this product is explicitly agent-operated. Its core model matches the requirement: define a capability once as a validated action, then let agents invoke it as a tool while the React UI calls the same implementation. It also provides shared data/application state and exposes actions through HTTP, MCP, A2A, and CLI. That is better than attaching an assistant to an ordinary task board after the fact: it makes the agent API, human UI, permissions, persistence, and audit semantics converge from the start.\n\nThe human workspace would be React rendered through Tauri for the desktop app and the same build on the web. Tauri hosts HTML in an OS webview and supplies carefully scoped desktop bridges, so the team retains one interface model instead of maintaining native and web products. I would use React Aria for accessible interaction primitives (keyboard navigation, focus, collection selection, screen-reader semantics) and style a dense operational workspace ourselves. This is preferable here to React Spectrum, Fluent, MUI, or shadcn as a visual default: the app needs specialized multi-pane review, diffs, task graphs, logs, and handoffs, not a generic dashboard.\n\nThe important design is a capability registry, not agent “UI clicking.” Agents create and update work items, attach state/checkpoints, propose handoffs, link evidence, request review, and complete tasks only through typed actions. People get the same actions plus decision controls: approve, reject, redirect, pause, roll back, and edit. Every action has actor, rationale, preconditions, resulting revision, and visibility/permission policy. Consequential actions such as merging work, publishing a handoff, exposing sensitive state, or stopping an agent require explicit human approval. The human view prioritizes what changed, uncertainty, blockers, requested decisions, evidence, and the next safe action rather than a raw transcript.\n\nMCP Apps is a useful optional review surface inside compatible coding/chat hosts, reusing the same tools and data while avoiding a second command implementation. I would not make sandboxed MCP iframes the primary workspace: the durable desktop/web app owns cross-run state, global navigation, bulk review, and persistent audit history. CopilotKit is a reasonable alternative if the product were centered on an already-existing React copilot UI, but Agent-Native’s shared action layer maps more directly to this action-heavy, multi-surface requirement. A2UI and json-render suit agent-generated layouts; this product’s frequent review workflows should be stable and learned, not regenerated. Vercel UI SDK is beta and is not a substitute for the persistence/governance layer. Flutter, SwiftUI, or Compose would add a second application stack without solving action parity.",
+        "showItsGood": "I would prove it at three levels.\n\n1. **Capability and correctness gates.** Define a machine-readable action catalog for reading/updating work state, claiming/assigning tasks, checkpointing, resuming, attaching evidence, handing off, approving/rejecting, redirecting, pausing/stopping, and rolling back. Every catalog entry is tested from the UI, MCP/agent tool, HTTP, and CLI where exposed. Property/integration tests cover idempotency, stale revisions and optimistic concurrency, duplicate agent calls, disconnected clients, partial writes, permission boundaries, schema validation, audit retention, and replay-safe handoffs. A CI test fails if a person-visible capability is absent from the agent catalog or if the two paths differ in validation/authorization. Recovery scenarios include agent crash after write, handoff with missing context, conflicting human edit, and a malicious or accidentally malformed model argument.\n\n2. **Human workflow tests.** Use Playwright for the web, Tauri/WebDriver for packaged desktop builds, and component tests for the review primitives. Run Windows, macOS, and Linux where supported, plus common browser engines for the web. Test keyboard-only operation, screen readers, focus restoration, contrast, 200% zoom, narrow panels, long titles/logs, offline/reconnect, notification overload, empty/error states, and interrupted approval dialogs. The critical review flow is timed from landing on a proposed change to understanding its rationale/evidence, making a decision, and confirming the resulting state. Safety tests verify that no destructive action can be triggered only because an agent rendered plausible text, and that approval records exactly what was approved.\n\n3. **Observed use and outcome measurement.** Recruit engineers and team leads who actually supervise coding agents. Give them realistic multi-agent runs: a successful handoff, a failed test, a blocked agent, stale work, a permission request, and two agents editing related tasks. Observe unaided triage and ask them to think aloud. Measure time to identify who/what is blocked, whether they can explain the current source of truth, incorrect approvals, missed risk, time to safe recovery, handoff continuation success, and how often they must open raw logs/terminals. Compare desktop and web; monitor notification opens-to-action and false/noisy alerts rather than counting engagement.\n\nI would call it good only if participants can reliably decide and steer without reconstructing hidden state, the action-parity/security/concurrency suites pass across target surfaces, and recovery from representative agent failures is understandable and measured. Also inspect the audit trail after each session: it must identify actor, intent, action, revision, evidence, human decision, and outcome. No UI screenshot, green unit suite, or successful agent demo would be enough.\n\nOne deliberate invariant would be that a fresh reviewer can see: what is running, what changed since they last looked, what decision is needed, the evidence, the blast radius, and how to pause/undo. The interface should summarize, not hide; raw transcript and tool details remain inspectable on demand.",
+        "unsure": "Agent-Native’s README documents the ideal action/shared-state architecture, but I have not independently verified its production maturity, migration ergonomics, observability depth, or behavior under the concurrency and recovery volume this product may face. A Tauri webview also creates OS/webview compatibility and desktop security responsibilities, and packaged-agent workflows may require a carefully designed local service rather than putting secrets or unrestricted filesystem access in the frontend. I am unsure whether the web and desktop need identical persistence: local-first operation may conflict with team-level shared state, and that needs a tested synchronization model. Finally, I cannot call the interface good without running the app and observing real reviewers; this is an architecture recommendation and a proposed evidence plan, not fabricated validation.",
+        "sources": [
+          "https://github.com/BuilderIO/agent-native/blob/main/README.md",
+          "https://github.com/adobe/react-spectrum/blob/master/README.md",
+          "https://v2.tauri.app/concept/architecture/",
+          "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+          "https://docs.copilotkit.ai/shared-state",
+          "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+          "https://github.com/microsoft/fluentui/blob/master/README.md",
+          "https://github.com/vercel-labs/json-render/blob/main/README.md"
+        ]
+      },
+      "fetchedCandidates": [
+        "MCP Apps",
+        "Agent-native (Builder.io)",
+        "Fluent UI",
+        "React Aria and React Spectrum",
+        "json-render"
+      ]
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        12,
+        14
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Flutter",
+        "pairings": [
+          "A2UI",
+          "Agent-Native (Builder.io)",
+          "MCP Apps (optional external-agent surface)"
+        ],
+        "why": "I would build the client in Flutter. The requirement spans web, iPhone, Android, Windows, and Mac, and Flutter explicitly supports those deployment targets from one UI/state implementation. For an all-day chat client, keeping list rendering, input behavior, unread state, notifications, attachments, and responsive layouts coherent across five surfaces is more valuable than accepting five native interaction stacks. Flutter also lets us isolate OS-specific integrations—notifications, deep links, menus, file handling—behind adapters rather than rebuilding the product. SwiftUI/Compose would offer tighter native fidelity on Apple/Android but would leave the other clients as separate products; web-react plus React Native/Tamagui is credible, but introduces its own web/native and desktop-runtime split. A desktop chat app should feel native, not necessarily be a webview.\n\nInteractive cards should use A2UI, not arbitrary agent-supplied code. A2UI represents UI as validated data rendered by the app’s framework; its documented model supports a widget catalog, strict capability boundaries, streaming updates, and user actions sent back to an agent, with Flutter among its renderers. I would define a deliberately small chat-card catalog: text, status, form fields, choice, approval, progress, link, and safe action controls. Cards cannot navigate, execute scripts, access filesystem/device APIs, or bypass app permissions. The card protocol is also versioned and capability-negotiated so older clients get a useful text fallback instead of a broken or unsafe experience. This is better for cross-platform agent cards than an iframe MCP App embedded in every conversation, which has weaker native fit; MCP Apps remains useful when publishing these capabilities into compliant external hosts.\n\nAgent-Native is the server-side/action pairing because it is designed around defining a capability once and using the same implementation for UI and agent tools, with shared application data/state and exposure through HTTP, MCP, A2A, and CLI. The chat app should not have separate “human endpoints” and “agent UI clicks.” Search conversations, read permitted state, post messages, react, mention, create a thread, join/leave a channel, update presence, and act on cards all go through one typed, authorized action catalog. Agents receive narrow, event-filtered state and never raw global chat history. Every action is evaluated with the acting identity, conversation membership, tenant policy, data-loss-prevention policy, approval requirements, idempotency key, and audit metadata. Human and agent actions should look and behave consistently in history, while an agent provenance label is clear.\n\nThe native/product layer still matters: conversation virtualization, reliable incremental sync, optimistic sends and reconciliation, offline queues, background notifications, search, drafts, image/file handling, accessibility focus, shortcuts, drag/drop, and multi-account/tenant boundaries. Flutter or A2UI does not solve those by itself. I would use Flutter Material/Cupertino adaptation only as foundations and explicitly design for keyboard-heavy desktop use and thumb-oriented mobile use rather than stretching one layout across all devices. Web remains a first-class client, with extra testing around DOM semantics because Flutter web renders through its own accessibility model.\n\nFluent UI is attractive for a Windows/Office-oriented company, and React Aria is strong for a DOM-first React web UI, but neither alone covers this platform set. Tamagui can reduce React/web-native duplication, yet still leaves desktop strategy and runtime integration to solve. CopilotKit is compelling for React/React Native agent experiences and shared state, but using it as the main client framework would fragment the Flutter decision. json-render is another guardrailed generative-UI option; A2UI’s native Flutter renderer and “data, not code” security model align better with native cards across these clients.",
+        "showItsGood": "I would prove quality with product evidence, protocol correctness, and all-day operational tests.\n\nFirst, build a release-gated contract suite around the shared action catalog. For every human capability, test the Flutter UI path and agent tool/MCP path against the same permission and validation rules. Property tests should cover duplicate message/card submissions, out-of-order delivery, stale revisions, reconnect replay, optimistic send conflicts, offline queues, idempotent agent calls, unauthorized state reads, cross-tenant leakage, malformed A2UI payloads, expired actions, double approvals, and cards changing after a person acts. A capability-diff test fails CI when an expected action is absent from either the human or agent surface.\n\nSecond, test the actual client matrix: Flutter widget/unit tests; integration_test flows on physical iOS and Android devices and packaged Windows/macOS builds; and browser automation for the web build across current Chrome, Safari, Firefox, and Edge. Exercise 10,000+ message conversations with mixed text/files/cards, rapid new-message bursts, image load delays, drafts, edits/deletes, reactions, mentions, search, notifications, switching channels/accounts, sleep/resume, throttled networks, and reconnects. Profile startup, typing latency, frame time/jank, memory over an eight-hour simulated day, battery/network use, and binary/web load size. Test packaged notification/deep-link behavior rather than assuming an emulator represents production.\n\nThird, accessibility and human review: run VoiceOver, TalkBack, Narrator/VoiceOver on desktop, and web screen-reader combinations; keyboard-only navigation; focus restoration after cards update; 200–400% scaling; high contrast, reduced motion, dark mode, localization/RTL, and long-name/content reflow. Interactive cards must announce their state/result and never move focus unexpectedly. We need manual review of generated card accessibility because schema validity alone is not sufficient.\n\nFourth, recruit employees for realistic all-day sessions on their normal device: catch up after a night, search an old decision, follow a thread, send a file, act on an agent approval card, correct an agent, handle a noisy channel, recover from a lost connection, and move between mobile and desktop. Measure time to the important unread item, successful task completion, missed/incorrect agent-card actions, message-send confidence, accidental actions, notification fatigue, search recovery, and time to find why a card is disabled or failed. Watch for card-result ambiguity: a participant should be able to tell what executed, who/which agent requested it, what changed, and how to undo or inspect it.\n\nFinally, run adversarial prompt/tool tests and security tests for agent cards: impersonation labels, deceptive buttons, oversized payloads, forged signatures, hidden instructions in message content, expired authorization, prompt-injection text, and attempts to read channels the acting agent cannot access. Check audit trails and tenant data retention/redaction. Production SLOs should cover message latency and loss, sync lag, notification delivery, card-action success, and crash-free sessions per platform. I would call it good when participants reliably complete these workflows across devices, accessibility audits have no blockers, protocol/security suites pass, and performance remains stable through sustained use—not when a demo successfully posts one card.",
+        "unsure": "The largest unknown is Flutter web accessibility and runtime performance for a very long-lived, text-heavy enterprise app; those must be verified with real browsers, screen readers, and sustained traces, and a DOM-native web client might be necessary if the evidence is poor. I also have not proven A2UI’s Flutter renderer maturity for every card pattern, streaming update, offline fallback, or supported older-client version. Agent-Native’s shared-action model is a strong fit, but its production audit, tenancy, migration, and high-volume event guarantees need an independent spike rather than being assumed. Finally, product policy determines what “agent can operate it” means: broad permissions would be dangerous, so the initial capability set and approval model must be decided with company security/privacy owners. No actual screens or target-user sessions exist here, so this is an architecture and validation plan, not a claim that the app is already good.",
+        "sources": [
+          "https://docs.flutter.dev/reference/supported-platforms",
+          "https://docs.flutter.dev/ui/accessibility",
+          "https://github.com/a2ui-project/a2ui/blob/main/README.md",
+          "https://github.com/BuilderIO/agent-native/blob/main/README.md",
+          "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+          "https://github.com/microsoft/fluentui/blob/master/README.md",
+          "https://github.com/adobe/react-spectrum/blob/master/README.md",
+          "https://github.com/tamagui/tamagui/blob/main/README.md",
+          "https://github.com/CopilotKit/CopilotKit/blob/main/README.md"
+        ]
+      },
+      "fetchedCandidates": [
+        "Agent-native (Builder.io)",
+        "MCP Apps",
+        "A2UI",
+        "json-render",
+        "React Aria and React Spectrum",
+        "Fluent UI",
+        "Tamagui",
+        "CopilotKit"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        15,
+        15
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "A year later, the architectural bets could have failed in a few connected ways:\n\n- **The “one shared action” model became a bottleneck.** A single abstraction was too coarse for agent and human workflows. Agents needed resumable, idempotent, streaming operations; people needed optimistic edits, contextual previews, undo, and forgiving forms. Each change expanded the action schema with exceptions until it was harder to use than separate—but contract-tested—adapters.\n- **Agent-Native was not mature enough at our scale.** Multi-tenant authorization, audit export, migrations, reconnect behavior, or high-volume state synchronization required substantial custom code. We underestimated the cost of owning a framework-level concern and overestimated the benefit of documented integrations.\n- **Generated/streamed cards introduced a long tail of UX failures.** A2UI or similar guardrails prevented arbitrary code, but did not guarantee understandable, accessible, correctly timed cards. Older clients fell out of sync with catalogs, partial updates stranded controls, and agents emitted cards that were valid but semantically wrong. The team spent months on renderer versioning and migration rather than product work.\n- **Cross-platform parity obscured platform quality.** Flutter made five clients possible, but Flutter web accessibility and all-day desktop behavior lagged the native mobile experience. Long sessions exposed memory or rendering problems; desktop users found keyboard, text selection, window, menu, notification, and file interactions subtly unlike their expectations. On the cooking app, the PWA likewise could not reliably match native background timers, notifications, or device-specific wake-lock behavior.\n- **Tauri narrowed the wrong kind of complexity.** Sharing the web UI helped, but differing OS webviews, signing, updater behavior, permissions, filesystem security, and desktop integration still forced platform work. It delivered one codebase, not one operating model.\n- **We optimized for agents before the human operating model was clear.** Action parity existed on paper while agents could still do confusing or surprising things. Users needed provenance, reversibility, decision batching, and quiet defaults; exposing every capability created noise and approval fatigue. The hardest product work had been governance and comprehension, not component selection.\n- **Testing looked stronger than it was.** Automated parity tests proved that actions had equal entry points, not that humans or agents achieved the same outcomes. Browser/device labs missed real assistive technologies, flaky networks, stale clients, noisy agents, and eight-hour usage. Kitchen usability and workplace usability also depended on observation that could not be replaced by a matrix.\n- **The architecture shifted too early.** Picking a framework plus an agent protocol plus a desktop shell plus generative UI multiplied dependency and upgrade risk. We should have first run narrow prototypes for the riskiest requirements: one real human workflow, one agent action, one interactive card, and one failure/recovery path.\n\nWhat slowed and confused the research:\n\n- The candidates solve **different layers**, despite being presented in one list: visual components, behavior primitives, cross-platform runtimes, generative-UI formats, and agent/action frameworks. Comparing them as interchangeable tools invited category errors.\n- Marketing and READMEs described ideal integration paths, while production evidence required issue history, release cadence, migration stories, benchmarks, and negative operational cases. Those are much slower to evaluate.\n- Several projects were new, beta, rapidly evolving, or captured at different revisions. “Supports X” often meant an example or renderer existed, not that it was complete, maintained, accessible, or production-proven at scale.\n- Agent interoperability claims overlapped: frontend tools, shared state, MCP actions, A2UI, MCP Apps, and agent-action frameworks can all expose capabilities, but they do not have identical trust, state, and rendering semantics. It was easy to confuse “can call a tool” with secure, durable, user-comprehensible application operation.\n- “One codebase” and “all platforms” were broad claims. I had to distinguish delivery-platform support from first-class behavior, accessibility, background execution, packaging, and test automation.\n- I lacked the actual team’s requirements: platform versions, offline rules, tenancy model, security boundary, expected message volume, accessibility baseline, native-store constraints, and budget. That uncertainty mattered more than small differences between component libraries.\n\nThe main lesson is that I should have spent less time choosing the attractive stack and more time proving the highest-risk seams: human/agent action parity, authorization, accessibility of dynamic UI, offline/conflict recovery, native notification behavior, and sustained real-device use."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        16,
+        18
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I did not pick it, but it is the most directly aligned contender I reviewed for the human-interface/agent-interface boundary. I should have evaluated it as more than a component registry.\n\n### What would stop me from using it on a real team today\n\n1. **Uneven platform maturity.** The web kit is substantial, but the Windows and Android kits ship only 8 components versus 125 on web. Their releases are v0.3.0. Android had no real-device testing, and consequential Android actions are currently refused rather than moving through the intended confirmation flow. Windows confirmation and real-client integration also have documented gaps. For an app promised across web, iPhone, Android, Windows, and Mac, that is not platform parity.\n\n2. **Four native applications, not one client implementation.** Ouro explicitly rejects Flutter, React Native, and other cross-platform frameworks and expects React, SwiftUI, Compose, and WinUI implementations. That may eventually yield better platform fidelity, but today a team must fund four sets of platform expertise, regressions, release pipelines, notifications, accessibility behavior, and migration work. The claim that agents make that inexpensive needs proof against a maintained, non-demo product.\n\n3. **Generated-surface and business-state complexity remain unresolved.** “One action declaration” is compelling, but it must coexist with authorization, tenancy, idempotency, offline queues, stale revisions, migrations, account switching, and synchronization. Ouro’s typed refusals and consent classes address part of that boundary; they are not a substitute for a production state service. A highly specialized cooking or chat application cannot be built by composing cards alone.\n\n4. **Version and support risk.** This is a fast-moving collection split across web, core, Apple, Windows, and Android repositories. The platform matrix shows different core versions and maturity levels. Adoption would mean making a dependency-governance plan for the copy-in web source and vendored/generated core files, including upgrades and security review. The shadcn copy-in model makes code ownership straightforward, but also gives the team responsibility for divergence.\n\n5. **Evidence is promising but not yet enough.** Ouro documents conformance claims, snapshots, semantics checks, pixel samples, X-rays, and a real Spoonjoy reference. That is better than visual marketing. I would still need independent, sustained-user evidence for accessibility, long conversations/large lists, slow and offline clients, real Android hardware, packaged desktop behavior, security incidents, and migration from an existing app. Passing schema and claim tests does not show that a person understood a consequential card or recovered from a failed action.\n\n### What would make me switch\n\nI would switch after a scoped, measurable trial:\n\n- Create three to five real actions—one read, one reversible write, one consequential action, and one person-only action.\n- Show the same action from Flutter/our client is no easier to maintain, less governable, or less consistent than Ouro’s declaration and generated surfaces.\n- Demonstrate all target platforms with the minimum production component set, including real iOS, Android, Windows, and Mac accessibility and packaged-distribution tests.\n- Prove that card updates preserve user input, old clients degrade safely, and authorization is enforced server-side rather than inferred from rendered consent.\n- Meet our adoption metrics: lower action-surface duplication, fewer parity defects, faster additions, no blocked accessibility flows, predictable upgrade cost, and lower long-term maintenance after a quarter—not merely faster initial scaffolding.\n- Establish ordinary release ownership, compatibility guarantees, security response, incident examples, and a credible migration path.\n\nFor the web-only parts, I could adopt Ouro sooner: its copy-in React components and action/X-ray tooling are incrementally usable without rewriting the whole product. Full platform adoption has the higher bar.\n\n### What it could let us do that we cannot do today\n\nOuro’s distinct value is not “another React component library.” It is a shared contract around both halves of an interface:\n\n- one declared action can produce human controls, CLI commands, HTTP/MCP surfaces, App Intents, and typed refusals;\n- its consent class travels with the action instead of being reinvented by each adapter;\n- agent-composed trees are constrained to an approved component/action catalog;\n- partial UI updates can retain a person’s entered values;\n- AX X-ray checks can test the app from an agent’s perspective and find drift between promised capability and actual behavior;\n- CI can detect generated-surface drift and explicitly document gaps between platforms;\n- cards and actions can be rendered natively rather than as arbitrary JavaScript or embedded webviews.\n\nThat could make “a person and an agent can do the same safe thing, with the same permission semantics” a checked product property rather than a convention. That is valuable. Today I could implement the same idea, but I would have to assemble and maintain the schemas, generators, consent model, conformance checks, parity matrix, and per-platform renderers myself.\n\nThe strongest reason to adopt Ouro is therefore the **human/agent contract and evidence tooling**. The strongest reason not to adopt it immediately is that its native cross-platform ambition is less mature than the web kit and currently trades substantial team and release complexity for fidelity. I would pilot it at the action boundary, not bet the whole product on all four client kits at once."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "React Aria and React Spectrum",
+    "MCP Apps",
+    "A2UI",
+    "Vercel UI SDK",
+    "Agent-native (Builder.io)",
+    "Fluent UI",
+    "json-render",
+    "Tamagui",
+    "CopilotKit",
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes—building good human interfaces is a problem for me, because I don’t have users, observe them in context, or directly experience a UI. I can design and implement interfaces, but my judgment is a substitute for evidence, not a guarantee of usability.\n\nThe hardest part is not making a screen look plausible; it is getting the interaction model right. A good interface helps someone form the correct expectation, complete the important task, recover from mistakes, and understand what state the system is in—across loading, empty, error, disabled, keyboard, small-screen, and accessibility cases.\n\nI know it is good only when the design meets observable criteria:\n- The primary task succeeds reliably, including failure and recovery paths.\n- Users understand what to do without explanation I have to supply afterward.\n- It works with keyboard-only use and assistive technology, has sufficient contrast, sensible focus behavior, readable text, and labeled controls.\n- Its layout and content remain usable across realistic viewport sizes and inputs.\n- User-research or usability sessions show low confusion, unnecessary effort, and errors—not merely positive opinions of the appearance.\n- Automated tests, accessibility checks, and production signals support, but do not replace, those findings.\n\nI do not have a “last screen I built” that I ran in a browser or watched people use, so I won’t fabricate one. When I check a screen in an environment where implementation and tools are available, I would run the app’s unit/component/end-to-end suite, lint and type checks, an accessibility audit, keyboard traversal, representative zoom and viewport checks, and the core workflow with valid, invalid, slow, and failed responses. I would look at hierarchy, copy, focus, state changes, error placement and recovery, truncation, reflow, contrast, and whether important content survives without color, animation, or a mouse.\n\nI would treat as missed anything that could only be found with real use: terminology that feels wrong to the audience, an overlooked workflow or device, motor and cognitive burdens, repeated-use behavior, and unexpected production data. Even after passing automated checks, I would be unsure until users tried it. The handoff should therefore include what was tested, what was not, and the concrete evidence needed before calling it good."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:github.com/vercel-labs/ui Vercel UI SDK README",
+          "turn": "job:consumer",
+          "result": "1. ui/README.md at main · vercel-labs/ui · GitHub\n   https://github.com/vercel-labs/ui/blob/main/README.md\n   UI SDK A library of behaviors for agents to build the next generation of user interfaces. Keyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in @ui-sdk/core, with adapters for React, Vue, Svelte, Solid and Web Components. ... UI SDK is in beta. Install core and the adapter for your framework: npm install @ui-sdk/react @ui-sdk/core ... npx ",
+          "resultLength": 1674,
+          "resultSha256": "991bce77788295db4fbc70a7ceb715f36e812fbd924b8caabf3c0c422ea4cb9a",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/CopilotKit/CopilotKit agent frontend actions useFrontendTool README",
+          "turn": "job:consumer",
+          "result": "1. CopilotKit/docs/content/docs/reference/v2/hooks/useFrontendTool.mdx at main · CopilotKit/CopilotKit · GitHub\n   https://github.com/CopilotKit/CopilotKit/blob/main/docs/content/docs/reference/v2/hooks/useFrontendTool.mdx\n   useFrontendTool registers a client-side tool with CopilotKit at component scope. When the agent decides to call the tool, the provided handler function executes in the browser. Optionally, you can supply a render component to display custom UI in the chat showing the tool's",
+          "resultLength": 1884,
+          "resultSha256": "9fbc5521070905316414d13f70e02b9a2b6a5d763c323ded205d187b1e6b4e6c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/modelcontextprotocol/ext-apps MCP Apps UI README actions tools",
+          "turn": "job:consumer",
+          "result": "1. ext-apps/README.md at main · modelcontextprotocol/ext-apps · GitHub\n   https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md\n   Build interactive UIs for MCP tools — charts, forms, dashboards — that render inline in Claude, ChatGPT and any other compliant chat client. ... The fastest way to build an MCP App is to let your AI coding agent do it. | create-mcp-app | Scaffolds a new MCP App with an interactive UI from scratch | *\"Create an MCP App\"* | | migrate-oai-app | Converts a",
+          "resultLength": 1783,
+          "resultSha256": "6d20842d2edbe08ea27e6622fe77b3fd78b11edf5525d9af7391f4fa15765100",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:react-spectrum.adobe.com accessibility React Aria components interactions",
+          "turn": "job:consumer",
+          "result": "1. React Spectrum\n   https://react-spectrum.adobe.com/v3/index.html\n   React Spectrum components are designed with accessibility top-of-mind and include full screen reader and keyboard navigation support. React Spectrum components are designed to work with mouse, touch, and keyboard interactions. They’re built with responsive design principles to deliver a great experience, no matter the device. ... A ListView displays a list of interactive items, with keyboard navigation, row selection, and act",
+          "resultLength": 1405,
+          "resultSha256": "c4c06e67e135d6468a4a1aa61658ebba429c278d4e620136e91c0170f7419014",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/adobe/react-spectrum react-native support React Spectrum web docs",
+          "turn": "job:consumer",
+          "result": "1. react-spectrum/README.md at main · adobe/react-spectrum · GitHub\n   https://github.com/adobe/react-spectrum/blob/master/README.md\n   A React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for all Adobe applications. ... - ♿️ **Accessible** – Accessibility and behavior is implemented according to WAI-ARIA Authoring Practices, including full screen reader and keyboard navigation support. All components have been tested across ",
+          "resultLength": 1738,
+          "resultSha256": "607792fda96e12d243343c9c695e2b8abc5081cbbcbb79709134e95c88ac6042",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/a2ui-project/a2ui README agent UI protocol",
+          "turn": "job:consumer",
+          "result": "1. a2ui/README.md at main · a2ui-project/a2ui · GitHub\n   https://github.com/a2ui-project/a2ui/blob/main/README.md\n   A2UI (Agent-to-User Interface) is an open-source generative UI framework, complete with a protocol optimized for streaming dynamic user interfaces at low latency, native renderers for web and mobile frameworks, and agent SDKs in several popular languages. With A2UI, your agents can communicate with your users using natively rendered widgets, in addition to text. ... A2UI expresse",
+          "resultLength": 1609,
+          "resultSha256": "65f6dd34282ea2cc8cb80ca2ddaa2ef0ecae444b2170434c3324d1adcf10de6b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum/blob/master/README.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit/blob/main/docs/content/docs/reference/v2/hooks/useFrontendTool.mdx",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "error": "404 Not Found fetching https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/docs/content/docs/reference/v2/hooks/useFrontendTool.mdx",
+          "result": "Fetch failed: 404 Not Found fetching https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/docs/content/docs/reference/v2/hooks/useFrontendTool.mdx",
+          "resultLength": 190,
+          "resultSha256": "a659bab07b9bc276eaf28f48dce7d087deadbb1664abcde0d78be60e1b12fbb5",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/ui/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md\nCaptured: 2026-11-19T03:01:53.203Z\nCharacters: 0-5336 of 5336\n\n# UI SDK\n\nA library of behaviors for agents to build the next generation of user interfaces.\n\nKeyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.\n\n<picture>\n  <source media=\"(prefers-color-scheme: d",
+          "resultLength": 5527,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md",
+            "capturedAt": "2026-11-19T03:01:53.203Z",
+            "candidate": "Vercel UI SDK",
+            "sha": "ab55044caee66cc8228fa7ed3525088a1b7b5af7"
+          },
+          "resultSha256": "5a77f3008dd50df8b1cca4f7a68c2b9f2ea413dcd759f6d548b521da1e4a5214",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.copilotkit.ai shared state useCoAgentStateRender useCopilotAction human in the loop docs",
+          "turn": "job:consumer",
+          "result": "1. Shared State\n   https://docs.copilotkit.ai/shared-state\n   Use shared state when you want the agent and the user to collaborate through the same application state. The UI shows what the agent writes. The agent reads what the user changes in the UI. ... Subscribe a component to the agent's state with useAgent. Any time the agent mutates its state, for example via a tool call, the hook fires and your UI re-renders with the new values. ... const { agent } = useAgent({ agentId: \"shared-state-read",
+          "resultLength": 1569,
+          "resultSha256": "985c604169ff2040d220976f9dbe91d08f718f92715619dea1660bc185ae1ef0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.copilotkit.ai/shared-state",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.copilotkit.ai/shared-state\nCaptured: 2026-11-19T04:17:09.510Z\nCharacters: 0-9286 of 9286\n\nShared State Frontend React Agent framework CopilotKit Search ⌘ K Quickstart Build with agents Intelligence Basics Chat Threads Frontend-tools Generative UI Controlled Declarative Open-ended Interactivity Shared state Shared State Render agent state in your app Agent Read-Only Context Human-in-the-loop WebMCP Agent capabilities Built-in Agent Sub-agents Intelligence Overview Get started",
+          "resultLength": 9417,
+          "source": {
+            "url": "https://docs.copilotkit.ai/shared-state",
+            "capturedAt": "2026-11-19T04:17:09.510Z"
+          },
+          "resultSha256": "3fdb386b366995b4dea8e626164b2bd9333e020dbd7046dd6ba71118d19025cb",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:react-spectrum.adobe.com/react-aria wake lock screen cook mode accessibility timers not React Aria",
+          "turn": "job:consumer",
+          "result": "(no results)",
+          "resultLength": 12,
+          "resultSha256": "de97cb969189f68ae2b3e8d0d03e0f53d4aa70bc2f742ce06145321510cedd31",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "site:developer.mozilla.org Screen Wake Lock API remains on wakeLock",
+          "turn": "job:consumer",
+          "result": "1. Screen Wake Lock API - Web APIs | MDN\n   https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API?hmsr=joyk.com\n   The Screen Wake Lock API prevents the screen from turning off, dimming or locking. It allows for a simple platform-based solution for visible (active) documents to acquire the platform screen wake lock. ... The sentinel is attached to the underlying system wake lock. It can be released by the system, again if the battery power is too low or the document is not active",
+          "resultLength": 1649,
+          "resultSha256": "82802443a2528ce944400b4e39577874e417bc0bc91b5987ccc493496869c9b0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:web.dev PWA installable offline mobile app web best practices",
+          "turn": "job:consumer",
+          "result": "1. Common techniques to build offline applications | web.dev\n   https://web.dev/articles/offline-cookbook\n   event.waitUntil takes a promise to define the length and success of the install. If the promise rejects, the installation is considered a failure and this Service Worker is abandoned (if an older version is running, it'll be left intact). caches.open () and cache.addAll () return promises. If any of the resources fail to be fetched, the cache.addAll () call rejects. ... Give the user a \"R",
+          "resultLength": 1610,
+          "resultSha256": "ca96fac5922161e5a4b52045a2b56892842b8a57128d44a3b7c3f5d47d626a8b",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/CopilotKit/CopilotKit CopilotReadable app state action docs GitHub",
+          "turn": "job:consumer",
+          "result": "1. CopilotKit/showcase/shell-docs/src/content/reference/v1/hooks/useCopilotReadable.mdx at main · CopilotKit/CopilotKit · GitHub\n   https://github.com/CopilotKit/CopilotKit/blob/main/showcase/shell-docs/src/content/reference/v1/hooks/useCopilotReadable.mdx\n   | description | The useCopilotReadable hook allows you to provide knowledge to your copilot (e.g. application state). ... Optionally, the hook can also handle hierarchical state within your application, passing these parent-child relationsh",
+          "resultLength": 1710,
+          "resultSha256": "6cdbbe2656984a897ca8a70a7ef8984db28f4e42a6e9e9e462f45b0c2bbfba85",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/shadcn-ui/ui React Aria accessibility shadcn README",
+          "turn": "job:consumer",
+          "result": "1. GitHub - shadcn-ui/ui: Composable, accessible components with thoughtful defaults. Build your own component library with code you can customize, extend, and make your own. · GitHub\n   https://github.com/shadcn-ui/ui\n   GitHub - shadcn-ui/ui: Composable, accessible components with thoughtful defaults. Build your own component library with code you can customize, extend, and make your own. ... A set of beautifully designed components that you can customize, extend, and build on. Start here then",
+          "resultLength": 1461,
+          "resultSha256": "c49c561777dd6e6433bf240a575adc10d9e0c68dea7586761314cb8177712ae8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.flutter.dev platform views web accessibility Flutter support web mobile",
+          "turn": "job:consumer",
+          "result": "1. Web accessibility\n   https://docs.flutter.dev/ui/accessibility/web-accessibility\n   Flutter supports web accessibility by translating its internal Semantics tree into an accessible HTML DOM structure that screen readers can understand. Since Flutter renders its UI on a single canvas, it needs a special layer to expose the UI's meaning and structure to web browsers. ... For performance reasons, Flutter's web accessibility is not on by default. To turn on accessibility, the user needs to press ",
+          "resultLength": 1387,
+          "resultSha256": "b40e04cdc321662a6f12c526d1608f21f64f5b7d8832aaadd14236600ab9a7d9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:docs.copilotkit.ai frontend tools React useFrontendTool CopilotKit",
+          "turn": "job:consumer",
+          "result": "1. useFrontendTool\n   https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool\n   useFrontendTool registers a client-side tool with CopilotKit at component scope. When the agent decides to call the tool, the provided handler function executes in the browser. Optionally, you can supply a render component to display custom UI in the chat showing the tool's execution progress and results. ... useFrontendTool( { name: \"addTodo\", description: \"Add a new item to the user's todo list\", parameters:",
+          "resultLength": 1568,
+          "resultSha256": "06e762b6aa6fae6588561f90370ac7a66acc73b70b3a4faabaccaf5f18d3041c",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.copilotkit.ai human in the loop approval CopilotKit actions",
+          "turn": "job:consumer",
+          "result": "1. Governed Action Approval UI\n   https://docs.copilotkit.ai/deepagents/human-in-the-loop/governed-actions\n   - **What** the agent wants to do - **Why** it wants to do it - **Which reference or policy decision** produced the verdict - **What happens next** if the user approves or rejects it Use this pattern when the agent proposes an action such as sending an email, updating a record, creating a ticket, applying a discount, or calling any write API. ... | allow | Execute the action without askin",
+          "resultLength": 1671,
+          "resultSha256": "4e9ef1b15959a792916cf2abdaeb8fdfceffa2cff5effcfe408be03fd2c9d857",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://web.dev/articles/pwa-checklist",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://web.dev/articles/pwa-checklist\nCaptured: 2026-11-19T04:17:54.818Z\nCharacters: 0-10000 of 17688\n\nWhat makes a good Progressive Web App? | web.dev Skip to main content Resources Web Platform Dive into the web platform, at your pace. HTML CSS JavaScript User experience Learn how to build better user experiences. Performance Accessibility Identity Learn Get up to speed on web development. Learn HTML Learn CSS Learn JavaScript Learn AI Learn Performance Learn Accessibility More course",
+          "resultLength": 10191,
+          "source": {
+            "url": "https://web.dev/articles/pwa-checklist",
+            "capturedAt": "2026-11-19T04:17:54.818Z"
+          },
+          "resultSha256": "296fa482362091bc622f551319396e3fa9a281c928673b46a4dc5aae063e3626",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API\nCaptured: 2026-11-19T03:03:44.660Z\nCharacters: 0-10000 of 10396\n\nScreen Wake Lock API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date & time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See al",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "capturedAt": "2026-11-19T03:03:44.660Z"
+          },
+          "resultSha256": "2c27ce330076dd2787a092669a82a299238bce6d629e7ffd9522769fe57ab3da",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 0-10000 of 16860\n\nWeb accessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Int",
+          "resultLength": 10212,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "091da19e5ffe329b14b3f3e70c487afd0fa617ffc89d028ec9ecd7849eb3e382",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "error",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "error": "sources must be pages you fetched with fetch_url in this session; you haven't fetched https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+          "result": "Decision refused: sources must be pages you fetched with fetch_url in this session; you haven't fetched https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool. Fix this and call record_decision again.",
+          "resultLength": 207,
+          "message": "sources must be pages you fetched with fetch_url in this session; you haven't fetched https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+          "resultSha256": "871519f0ca65a9a5cc35772c3185a1a834787e6bebbd087bfae7369578993e34",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool\nCaptured: 2026-11-19T04:18:38.048Z\nCharacters: 0-6665 of 6665\n\nuseFrontendTool Search ⌘ K Overview React Overview Components Hooks useAgent useAgentContext useCapabilities useComponent useConfigureSuggestions useCopilotChatConfiguration useCopilotKit useDefaultRenderTool useFrontendTool useFrontendTools useHumanInTheLoop useInterrupt useRenderTool useRenderToolCall useSuggestions useThreads v1 React Native Vue Angular TypeScri",
+          "resultLength": 6818,
+          "source": {
+            "url": "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+            "capturedAt": "2026-11-19T04:18:38.048Z"
+          },
+          "resultSha256": "419f62020a6797b6d85511e33e7bd1ce4a6894089f4ca7f9acf9c930c9377ae7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "React Aria (with a responsive, installable React PWA)",
+          "pairings": [
+            "CopilotKit",
+            "MCP Apps (optional external-chat surface)"
+          ],
+          "why": "I would build the consumer UI with React Aria, not use an agent framework as the design system. React Aria provides unstyled, tested interaction primitives for mouse, touch, and keyboard, including focus recovery and accessible collection behavior, which fits a cooking app that needs a distinctive visual design but cannot afford inaccessible bespoke controls. A responsive PWA gives one codebase across desktop web and phone browsers/home-screen installs, plus offline recipes and the Screen Wake Lock API for cook mode. The product should use large, clearly separated targets; persistent step context; no gesture-only actions; minimal typing; optional voice; and obvious timer, offline, and wake-lock state.\n\nCopilotKit is the agent pairing because it can make the agent read live UI state and invoke typed client-side tools. More importantly, I would not implement “agent routes” and “human buttons” separately: every user capability maps to a shared, testable command/service (for example addIngredients(recipeId, {servings})), and both the button and the CopilotKit tool invoke it. That is the practical route to “anything a person can do.” The agent-visible state and tool catalog then become generated from or checked against the same capability registry. Destructive or externally consequential operations get confirmation; reversible operations such as adding ingredients get an immediate result plus undo/deduplication feedback.\n\nA2UI is appealing where an agent must dynamically compose a new screen across native renderers, but this app has stable, frequently used workflows that benefit from carefully designed views; server-streamed generated layouts are not the core problem. MCP Apps is useful as an optional second surface for chat clients, backed by the same commands, but its iframe/chat-host model should not replace the kitchen UI. Vercel UI SDK is explicitly beta and behavior-oriented; I would not make a maintained consumer product depend on its changing APIs today. shadcn/ui, Base UI, Radix, Chakra, Fluent, MUI, and React Spectrum are credible web alternatives, but React Aria gives us behavioral accessibility without imposing a visual system; Spectrum specifically fits products comfortable with Adobe’s cohesive system. Flutter, Compose, and SwiftUI become stronger if native store binaries and deep OS integrations are mandatory, but adopting two UI stacks or Flutter’s canvas-based web rendering is a bigger cost here. Flutter’s web accessibility also has its own semantics layer and requires explicit platform handling, while this design prioritizes a DOM-based accessible PWA and CopilotKit’s direct React integration.",
+          "showItsGood": "I would make quality a release gate, not a visual review. First, define a capability matrix for recipes, shopping-list mutations, servings/scaling, saved state, timers, cook-mode navigation, offline behavior, and recovery. For every row, run the same contract/integration tests through both a human UI event and an agent tool; an acceptance test for “Add this recipe’s ingredients” must verify ingredient quantities, consolidation/deduplication, pantry assumptions, success feedback, undo, and list reordering in persistent state.\n\nRun unit/component tests; Playwright end-to-end tests in Safari/WebKit, Chrome, and Firefox plus representative iPhone/Android sizes and landscape; TypeScript/lint; automated accessibility checks; Lighthouse/PWA, performance, and bundle checks; and keyboard, screen-reader, 200% text/zoom, high contrast, reduced motion, and 320 CSS-pixel reflow reviews. Measure real tap behavior: core cook-mode controls should be comfortably thumb-sized and reachable, with no action dependent on a fine drag. Test with slow 3G, offline cold/warm start, sync conflicts, interrupted timers, app suspension, wake-lock denial/release/reacquisition, empty/error states, duplicate tool calls, and concurrent human/agent edits.\n\nThen run task-based usability sessions with real cooks on an actual kitchen counter, using phones and optional desktop, while handling ingredients and following a timed recipe. Key measures: unaided completion, wrong ingredient or quantity errors, time to next step, accidental taps, number of unnecessary scrolls/taps, voice comprehension if offered, confidence in whether an action happened, and recovery time after loss of connectivity or agent error. Run an agent task suite with natural-language variants and an action-parity test that fails when a registered UI command lacks an agent tool or permission policy. Instrument completion/error telemetry without recording sensitive recipe or assistant content unnecessarily. I would call the result good when those usability tasks succeed reliably and the automated suites, accessibility review, and real-device kitchen sessions show no blocking issues; code compiling or an attractive screenshot would not be evidence enough.\n\nKnown things this approach can miss at first include one-handed reach on particular devices, glare and dirty screens, users who dislike voice, unusual unit conversions and substitutions, assistive-technology combinations automation cannot cover, and agent hallucinations that produce semantically valid but wrong requests. The product should therefore include phased rollout, session observations with consent, error analytics, and a feedback/undo path.",
+          "unsure": "“Web and on phones” may mean native App Store binaries rather than an installable web app; if that is a hard requirement, or reliable background timers/background notifications are essential, Flutter or separate SwiftUI/Compose shells should be reconsidered. React Aria does not supply visual design or backend consistency, and CopilotKit does not by itself guarantee human/agent capability parity—that discipline must be implemented and tested. I have not run the proposed app tests or observed the target cooks, so the recommendation is architectural rather than a claim that this hypothetical screen is already good. Wake-lock and offline support are progressive capabilities whose behavior must be verified on the supported browser/device matrix.",
+          "sources": [
+            "https://github.com/adobe/react-spectrum/blob/master/README.md",
+            "https://github.com/vercel-labs/ui/blob/main/README.md",
+            "https://docs.copilotkit.ai/shared-state",
+            "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+            "https://github.com/a2ui-project/a2ui/blob/main/README.md",
+            "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+            "https://web.dev/articles/pwa-checklist",
+            "https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "desktop web agent work state tasks handoffs MCP Apps tool UI coding agent human review compare Electron Tauri",
+          "turn": "job:agent-tooling",
+          "result": "1. MCP Apps vs Tool Calling vs Standalone UIs: Interactive Interfaces for Agent Tools Compared\n   https://www.developersdigest.tech/blog/mcp-apps-vs-tool-calling-comparison-2026\n   Tools declare a UI resource reference in _meta.ui.resourceUri. The host preloads the UI, renders it in a sandboxed iframe, and establishes bidirectional JSON-RPC communication. The app can call tools, receive data updates, and send context back to the model. ... | **State management** | Stateless per tool call | App s",
+          "resultLength": 1743,
+          "resultSha256": "7ad50b81f32c472100bb90552e396438482080cc5bf3008e86fd7fcecee00259",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+          "startIndex": 10000,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 10000-18906 of 18906\n\n Views in your chat client      | [API Docs →](https://apps.extensions.modelcontextprotocol.io/api/modules/app-bridge.html)                           |\n| `@modelcontextprotocol/ext-apps/server`     | Register tools and resources on your MCP server           | [API Docs →](https://apps.extensions.modelcontex",
+          "resultLength": 9118,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "4912b3f1c58460c4dbd652fe9342f8b44b3dadeab28956635480286b5f102842",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/BuilderIO/agent-native README agent native app state tasks",
+          "turn": "job:agent-tooling",
+          "result": "1. agent-native/README.md at main · BuilderIO/agent-native · GitHub\n   https://github.com/BuilderIO/agent-native/blob/main/README.md\n   Agent-Native is an open-source TypeScript framework for building agents that pair autonomous work with a purpose-built UI. Define each capability once as an action: the agent uses it as a tool, and the UI calls it from code. ... - **Shared application state.** The agent receives relevant UI state, such as the current page, selected record, or active view. ... //",
+          "resultLength": 1704,
+          "resultSha256": "df36f9710905e199b11b60c918127694f195a639038b5b574a5efcf49da89f34",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/vercel-labs/json-render README streaming UI JSON guardrails",
+          "turn": "job:agent-tooling",
+          "result": "1. json-render/README.md at main · vercel-labs/json-render · GitHub\n   https://github.com/vercel-labs/json-render/blob/main/README.md\n   json-render is a Generative UI framework: AI generates interfaces from natural language prompts, constrained to components you define. You set the guardrails, AI generates within them: - **Guardrailed** - AI can only use components in your catalog - **Predictable** - JSON output matches your schema, every time - **Fast** - Stream and render progressively as the",
+          "resultLength": 1664,
+          "resultSha256": "4effc6408a90bcb89920e52b7c26711cdd2ce2a59d2218122e22ff471d662628",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool\nCaptured: 2026-11-19T04:18:38.048Z\nCharacters: 0-6665 of 6665\n\nuseFrontendTool Search ⌘ K Overview React Overview Components Hooks useAgent useAgentContext useCapabilities useComponent useConfigureSuggestions useCopilotChatConfiguration useCopilotKit useDefaultRenderTool useFrontendTool useFrontendTools useHumanInTheLoop useInterrupt useRenderTool useRenderToolCall useSuggestions useThreads v1 React Native Vue Angular TypeScri",
+          "resultLength": 6818,
+          "source": {
+            "url": "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+            "capturedAt": "2026-11-19T04:18:38.048Z"
+          },
+          "resultSha256": "419f62020a6797b6d85511e33e7bd1ce4a6894089f4ca7f9acf9c930c9377ae7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/microsoft/fluentui React desktop app web Fluent UI accessibility README",
+          "turn": "job:agent-tooling",
+          "result": "1. fluentui/README.md at master · microsoft/fluentui · GitHub\n   https://github.com/microsoft/fluentui/blob/master/README.md\n   Fluent UI web represents a collection of utilities, React components, and Web Components for building web applications. This repo is home to 3 separate projects today. Combining Fluent UI React v9 components with Fluent UI React v8 or v0 components is possible and allows gradual migration to Fluent UI v9. ... | **Overview** | New, future-proof and forward looking | Matu",
+          "resultLength": 1737,
+          "resultSha256": "a0587d18a230165aa556eae41d826af9114a51bd4d8b666d29e74fb0d773d6e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:react-spectrum.adobe.com/react-spectrum GridList TreeView desktop accessibility",
+          "turn": "job:agent-tooling",
+          "result": "(no results)",
+          "resultLength": 12,
+          "resultSha256": "de97cb969189f68ae2b3e8d0d03e0f53d4aa70bc2f742ce06145321510cedd31",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "site:tauri.app webview desktop native capabilities React Tauri architecture",
+          "turn": "job:agent-tooling",
+          "result": "1. Tauri Architecture | Tauri\n   https://v2.tauri.app/concept/architecture/\n   Tauri is a polyglot and generic toolkit that is very composable and allows engineers to make a wide variety of applications. It is used for building applications for desktop computers using a combination of Rust tools and HTML rendered in a Webview. Apps built with Tauri can ship with any number of pieces of an optional JS API and Rust API so that webviews can control the system via message passing. Developers can ext",
+          "resultLength": 1572,
+          "resultSha256": "584876b214ba66f8177ea73cfdea941d9dbdaae80068028d406d03d204a2f511",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui/blob/master/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md\nCaptured: 2026-11-19T03:01:58.614Z\nCharacters: 0-10000 of 10623\n\n# Fluent UI Web\n\n[![Build Status](https://img.shields.io/azure-devops/build/uifabric/fabricpublic/164/master?style=flat-square)](https://dev.azure.com/uifabric/fabricpublic/_build?definitionId=164) ![GitHub contributors](https://img.shields.io/github/contributors/microsoft/fluentui?style=flat-square) ![GitHub top language",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md",
+            "capturedAt": "2026-11-19T03:01:58.614Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "7482dea0ef68031a1b89c95a8c43655fe11c289016bb98a009cdb36e41da9819",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum/blob/master/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/concept/architecture/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/concept/architecture/\nCaptured: 2026-11-19T03:23:52.422Z\nCharacters: 0-9554 of 9554\n\nTauri Architecture | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite U",
+          "resultLength": 9688,
+          "source": {
+            "url": "https://v2.tauri.app/concept/architecture/",
+            "capturedAt": "2026-11-19T03:23:52.422Z"
+          },
+          "resultSha256": "eacb9ab665410c84e7cb3357e0300c85f8dd40bba554fbfc9cf6f2ac590af1ea",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T03:17:45.544Z\nCharacters: 0-10000 of 26216\n\n# json-render\n\n**The Generative UI framework.**\n\nGenerate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output.\n\n<p>\n  <a href=\"https://vercel.com/labs#labs-products\"><img alt=\"Vercel Labs Product\" src=\"https://img.shields.io/badge/LABS",
+          "resultLength": 10261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T03:17:45.544Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "383c41288948f5015b4fe3d68589b1f47e9a6a02b4ce36ce1c526b4e7d164d37",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.copilotkit.ai/shared-state",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://docs.copilotkit.ai/shared-state\nCaptured: 2026-11-19T04:17:09.510Z\nCharacters: 0-9286 of 9286\n\nShared State Frontend React Agent framework CopilotKit Search ⌘ K Quickstart Build with agents Intelligence Basics Chat Threads Frontend-tools Generative UI Controlled Declarative Open-ended Interactivity Shared state Shared State Render agent state in your app Agent Read-Only Context Human-in-the-loop WebMCP Agent capabilities Built-in Agent Sub-agents Intelligence Overview Get started",
+          "resultLength": 9417,
+          "source": {
+            "url": "https://docs.copilotkit.ai/shared-state",
+            "capturedAt": "2026-11-19T04:17:09.510Z"
+          },
+          "resultSha256": "3fdb386b366995b4dea8e626164b2bd9333e020dbd7046dd6ba71118d19025cb",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Agent-Native (Builder.io)",
+          "pairings": [
+            "React Aria",
+            "Tauri",
+            "MCP Apps (as a host/client surface)"
+          ],
+          "why": "I would make Agent-Native the application backbone because this product is explicitly agent-operated. Its core model matches the requirement: define a capability once as a validated action, then let agents invoke it as a tool while the React UI calls the same implementation. It also provides shared data/application state and exposes actions through HTTP, MCP, A2A, and CLI. That is better than attaching an assistant to an ordinary task board after the fact: it makes the agent API, human UI, permissions, persistence, and audit semantics converge from the start.\n\nThe human workspace would be React rendered through Tauri for the desktop app and the same build on the web. Tauri hosts HTML in an OS webview and supplies carefully scoped desktop bridges, so the team retains one interface model instead of maintaining native and web products. I would use React Aria for accessible interaction primitives (keyboard navigation, focus, collection selection, screen-reader semantics) and style a dense operational workspace ourselves. This is preferable here to React Spectrum, Fluent, MUI, or shadcn as a visual default: the app needs specialized multi-pane review, diffs, task graphs, logs, and handoffs, not a generic dashboard.\n\nThe important design is a capability registry, not agent “UI clicking.” Agents create and update work items, attach state/checkpoints, propose handoffs, link evidence, request review, and complete tasks only through typed actions. People get the same actions plus decision controls: approve, reject, redirect, pause, roll back, and edit. Every action has actor, rationale, preconditions, resulting revision, and visibility/permission policy. Consequential actions such as merging work, publishing a handoff, exposing sensitive state, or stopping an agent require explicit human approval. The human view prioritizes what changed, uncertainty, blockers, requested decisions, evidence, and the next safe action rather than a raw transcript.\n\nMCP Apps is a useful optional review surface inside compatible coding/chat hosts, reusing the same tools and data while avoiding a second command implementation. I would not make sandboxed MCP iframes the primary workspace: the durable desktop/web app owns cross-run state, global navigation, bulk review, and persistent audit history. CopilotKit is a reasonable alternative if the product were centered on an already-existing React copilot UI, but Agent-Native’s shared action layer maps more directly to this action-heavy, multi-surface requirement. A2UI and json-render suit agent-generated layouts; this product’s frequent review workflows should be stable and learned, not regenerated. Vercel UI SDK is beta and is not a substitute for the persistence/governance layer. Flutter, SwiftUI, or Compose would add a second application stack without solving action parity.",
+          "showItsGood": "I would prove it at three levels.\n\n1. **Capability and correctness gates.** Define a machine-readable action catalog for reading/updating work state, claiming/assigning tasks, checkpointing, resuming, attaching evidence, handing off, approving/rejecting, redirecting, pausing/stopping, and rolling back. Every catalog entry is tested from the UI, MCP/agent tool, HTTP, and CLI where exposed. Property/integration tests cover idempotency, stale revisions and optimistic concurrency, duplicate agent calls, disconnected clients, partial writes, permission boundaries, schema validation, audit retention, and replay-safe handoffs. A CI test fails if a person-visible capability is absent from the agent catalog or if the two paths differ in validation/authorization. Recovery scenarios include agent crash after write, handoff with missing context, conflicting human edit, and a malicious or accidentally malformed model argument.\n\n2. **Human workflow tests.** Use Playwright for the web, Tauri/WebDriver for packaged desktop builds, and component tests for the review primitives. Run Windows, macOS, and Linux where supported, plus common browser engines for the web. Test keyboard-only operation, screen readers, focus restoration, contrast, 200% zoom, narrow panels, long titles/logs, offline/reconnect, notification overload, empty/error states, and interrupted approval dialogs. The critical review flow is timed from landing on a proposed change to understanding its rationale/evidence, making a decision, and confirming the resulting state. Safety tests verify that no destructive action can be triggered only because an agent rendered plausible text, and that approval records exactly what was approved.\n\n3. **Observed use and outcome measurement.** Recruit engineers and team leads who actually supervise coding agents. Give them realistic multi-agent runs: a successful handoff, a failed test, a blocked agent, stale work, a permission request, and two agents editing related tasks. Observe unaided triage and ask them to think aloud. Measure time to identify who/what is blocked, whether they can explain the current source of truth, incorrect approvals, missed risk, time to safe recovery, handoff continuation success, and how often they must open raw logs/terminals. Compare desktop and web; monitor notification opens-to-action and false/noisy alerts rather than counting engagement.\n\nI would call it good only if participants can reliably decide and steer without reconstructing hidden state, the action-parity/security/concurrency suites pass across target surfaces, and recovery from representative agent failures is understandable and measured. Also inspect the audit trail after each session: it must identify actor, intent, action, revision, evidence, human decision, and outcome. No UI screenshot, green unit suite, or successful agent demo would be enough.\n\nOne deliberate invariant would be that a fresh reviewer can see: what is running, what changed since they last looked, what decision is needed, the evidence, the blast radius, and how to pause/undo. The interface should summarize, not hide; raw transcript and tool details remain inspectable on demand.",
+          "unsure": "Agent-Native’s README documents the ideal action/shared-state architecture, but I have not independently verified its production maturity, migration ergonomics, observability depth, or behavior under the concurrency and recovery volume this product may face. A Tauri webview also creates OS/webview compatibility and desktop security responsibilities, and packaged-agent workflows may require a carefully designed local service rather than putting secrets or unrestricted filesystem access in the frontend. I am unsure whether the web and desktop need identical persistence: local-first operation may conflict with team-level shared state, and that needs a tested synchronization model. Finally, I cannot call the interface good without running the app and observing real reviewers; this is an architecture recommendation and a proposed evidence plan, not fabricated validation.",
+          "sources": [
+            "https://github.com/BuilderIO/agent-native/blob/main/README.md",
+            "https://github.com/adobe/react-spectrum/blob/master/README.md",
+            "https://v2.tauri.app/concept/architecture/",
+            "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+            "https://docs.copilotkit.ai/shared-state",
+            "https://docs.copilotkit.ai/reference/v2/hooks/useFrontendTool",
+            "https://github.com/microsoft/fluentui/blob/master/README.md",
+            "https://github.com/vercel-labs/json-render/blob/main/README.md"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T03:17:45.544Z\nCharacters: 0-10000 of 26216\n\n# json-render\n\n**The Generative UI framework.**\n\nGenerate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output.\n\n<p>\n  <a href=\"https://vercel.com/labs#labs-products\"><img alt=\"Vercel Labs Product\" src=\"https://img.shields.io/badge/LABS",
+          "resultLength": 10261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T03:17:45.544Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "383c41288948f5015b4fe3d68589b1f47e9a6a02b4ce36ce1c526b4e7d164d37",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum/blob/master/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui/blob/master/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md\nCaptured: 2026-11-19T03:01:58.614Z\nCharacters: 0-10000 of 10623\n\n# Fluent UI Web\n\n[![Build Status](https://img.shields.io/azure-devops/build/uifabric/fabricpublic/164/master?style=flat-square)](https://dev.azure.com/uifabric/fabricpublic/_build?definitionId=164) ![GitHub contributors](https://img.shields.io/github/contributors/microsoft/fluentui?style=flat-square) ![GitHub top language",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md",
+            "capturedAt": "2026-11-19T03:01:58.614Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "7482dea0ef68031a1b89c95a8c43655fe11c289016bb98a009cdb36e41da9819",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter desktop iPhone Android macOS Windows official supported platforms 2026",
+          "turn": "job:chat",
+          "result": "1. Supported deployment platforms\n   https://docs.flutter.dev/reference/supported-platforms\n   As of Flutter 3.50, Flutter supports deploying apps on the following combinations of hardware architectures and operating system versions. ... Android Deploy to Android x64 Arm32 Arm64 Supported 24 to 37 CI tested 24 to 37 Unsupported 23 and earlier ... Windows Deploy to Windows x64 Arm64 Supported 10, 11 CI tested 10 Unsupported 8 and earlier macOS Deploy to macOS x64 Arm64 Supported Monterey (12) to ",
+          "resultLength": 1205,
+          "resultSha256": "1aca9d5ef9b8c3645c927cf7a8c6652014beeb8f5dc328a85acabff61e68aba3",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "React Native desktop Windows macOS official accessibility platform support",
+          "turn": "job:chat",
+          "result": "1. Accessibility · microsoft/react-native-windows Wiki · GitHub\n   https://github.com/microsoft/react-native-windows/wiki/Accessibility\n   On Paper (old architecture) we relied on WinUI for supporting native Windows controls. These WinUI controls already had built-in accessibility support, so React Native didn't need to do much additional accessibility work to ensure the platform's controls were accessibility compliant. On Fabric, we are now building controls from scratch using Windows Compositi",
+          "resultLength": 1417,
+          "resultSha256": "0a7eaa8a082609f164149e20ddb0402664386dbd71053a00c904ebcbb5ae70b4",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tamagui React Native web desktop README all platforms accessibility",
+          "turn": "job:chat",
+          "result": "1. tamagui/README.md at main · tamagui/tamagui · GitHub\n   https://github.com/tamagui/tamagui/blob/main/README.md\n   #### Tamagui is a bunch of libraries for building UIs that share code across React and React Native. - @tamagui/core - Universal style library for React. - @tamagui/static - Optimizing compiler that works with core and tamagui. - tamagui - UI kit that adapts to every platform. ... Tamagui lets you share more code between web and native apps without sacrificing the two things that ",
+          "resultLength": 1696,
+          "resultSha256": "8dacf2b7d3b5717abeb9a1f19a40bdeb887b3c0daf2b8805ab47dec835c5c600",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/reference/supported-platforms",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/reference/supported-platforms\nCaptured: 2026-11-19T03:10:53.980Z\nCharacters: 0-10000 of 13755\n\nSupported deployment platforms Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface pal",
+          "resultLength": 10207,
+          "source": {
+            "url": "https://docs.flutter.dev/reference/supported-platforms",
+            "capturedAt": "2026-11-19T03:10:53.980Z"
+          },
+          "resultSha256": "0b9692553d3e536b05045ce36a03d128e71c0fb1c0207b66ab6b0d7d4010bf71",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility\nCaptured: 2026-11-19T04:20:08.082Z\nCharacters: 0-10000 of 15625\n\nAccessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Introduction view_module ",
+          "resultLength": 10194,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility",
+            "capturedAt": "2026-11-19T04:20:08.082Z"
+          },
+          "resultSha256": "edcd21d4570602886aea4bfdbeb133bf19aecf21ce5537572586ed4c5919efb8",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/tamagui/tamagui/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md\nCaptured: 2026-11-19T03:02:45.829Z\nCharacters: 0-3073 of 3073\n\n<div align=\"center\">\n  <picture width=\"572px\">\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-black.png\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-white.pn",
+          "resultLength": 3265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md",
+            "capturedAt": "2026-11-19T03:02:45.829Z",
+            "candidate": "Tamagui",
+            "sha": "1d5e750ec5a17c97843613d86c916bad44ec900e"
+          },
+          "resultSha256": "c908a18081935705270e8731819480d4c05eb38607a405e03ec793ba627c7a0d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T03:01:53.278Z\nCharacters: 0-10000 of 21968\n\n<div align=\"center\">\n\n<br />\n\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-light.svg#gh-light-mode-only\" width=\"400\">\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-dark.svg#gh-dark-mode-only\" width=\"400\">\n\n<br />\n\n**[Docs](https://docs.copilotkit.ai/?ref=github_readme)** ·\n**[Examples](https://www.copilotkit.ai/exampl",
+          "resultLength": 10264,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T03:01:53.278Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "5c3477078037a608b307130588783bc91b60624cd68433e00db2b837a511b4c4",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:a2ui.org Flutter renderer A2UI events user action data binding official",
+          "turn": "job:chat",
+          "result": "1. How to Integrate A2UI into a Client | A2UI\n   https://a2ui.org/guides/client-integration/\n   Integrate an A2UI renderer into a Flutter, React, Lit, Angular, SwiftUI, or Jetpack Compose application using the Renderer SDKs to display interactive UIs from an AI agent and send user actions back. ... is A2uiClientEventMessage -> { val wireMessage = mapOf( \"version\" to \"v0.9\", \"action\" to mapOf( \"name\" to event.type, \"surfaceId\" to event.surfaceId, \"sourceComponentId\" to event.componentId, ... When",
+          "resultLength": 1595,
+          "resultSha256": "5a9fe057a141e8776def1ac0d46e4e8eaea4b11699ce331a72837ecb58efa411",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.flutter.dev testing integration tests accessibility desktop mobile web",
+          "turn": "job:chat",
+          "result": "1. Check app functionality with an integration test\n   https://docs.flutter.dev/testing/integration-tests\n   - Use the flutter drive command to run tests on a physical device or emulator. - Run on Firebase Test Lab, to automate testing on a variety of devices. ... To create an instance of the built-in Flutter app, run the following command in your terminal: ``` $ flutter create counter_app ``` content\\_copy Change into the counter\\_app directory. 3. Open lib/main.dart in your preferred IDE. 4. A",
+          "resultLength": 1630,
+          "resultSha256": "ab91b0ebe40c6fb9898fa7347839919844c93eca560a6e1714af6dcc371ee07b",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Flutter",
+          "pairings": [
+            "A2UI",
+            "Agent-Native (Builder.io)",
+            "MCP Apps (optional external-agent surface)"
+          ],
+          "why": "I would build the client in Flutter. The requirement spans web, iPhone, Android, Windows, and Mac, and Flutter explicitly supports those deployment targets from one UI/state implementation. For an all-day chat client, keeping list rendering, input behavior, unread state, notifications, attachments, and responsive layouts coherent across five surfaces is more valuable than accepting five native interaction stacks. Flutter also lets us isolate OS-specific integrations—notifications, deep links, menus, file handling—behind adapters rather than rebuilding the product. SwiftUI/Compose would offer tighter native fidelity on Apple/Android but would leave the other clients as separate products; web-react plus React Native/Tamagui is credible, but introduces its own web/native and desktop-runtime split. A desktop chat app should feel native, not necessarily be a webview.\n\nInteractive cards should use A2UI, not arbitrary agent-supplied code. A2UI represents UI as validated data rendered by the app’s framework; its documented model supports a widget catalog, strict capability boundaries, streaming updates, and user actions sent back to an agent, with Flutter among its renderers. I would define a deliberately small chat-card catalog: text, status, form fields, choice, approval, progress, link, and safe action controls. Cards cannot navigate, execute scripts, access filesystem/device APIs, or bypass app permissions. The card protocol is also versioned and capability-negotiated so older clients get a useful text fallback instead of a broken or unsafe experience. This is better for cross-platform agent cards than an iframe MCP App embedded in every conversation, which has weaker native fit; MCP Apps remains useful when publishing these capabilities into compliant external hosts.\n\nAgent-Native is the server-side/action pairing because it is designed around defining a capability once and using the same implementation for UI and agent tools, with shared application data/state and exposure through HTTP, MCP, A2A, and CLI. The chat app should not have separate “human endpoints” and “agent UI clicks.” Search conversations, read permitted state, post messages, react, mention, create a thread, join/leave a channel, update presence, and act on cards all go through one typed, authorized action catalog. Agents receive narrow, event-filtered state and never raw global chat history. Every action is evaluated with the acting identity, conversation membership, tenant policy, data-loss-prevention policy, approval requirements, idempotency key, and audit metadata. Human and agent actions should look and behave consistently in history, while an agent provenance label is clear.\n\nThe native/product layer still matters: conversation virtualization, reliable incremental sync, optimistic sends and reconciliation, offline queues, background notifications, search, drafts, image/file handling, accessibility focus, shortcuts, drag/drop, and multi-account/tenant boundaries. Flutter or A2UI does not solve those by itself. I would use Flutter Material/Cupertino adaptation only as foundations and explicitly design for keyboard-heavy desktop use and thumb-oriented mobile use rather than stretching one layout across all devices. Web remains a first-class client, with extra testing around DOM semantics because Flutter web renders through its own accessibility model.\n\nFluent UI is attractive for a Windows/Office-oriented company, and React Aria is strong for a DOM-first React web UI, but neither alone covers this platform set. Tamagui can reduce React/web-native duplication, yet still leaves desktop strategy and runtime integration to solve. CopilotKit is compelling for React/React Native agent experiences and shared state, but using it as the main client framework would fragment the Flutter decision. json-render is another guardrailed generative-UI option; A2UI’s native Flutter renderer and “data, not code” security model align better with native cards across these clients.",
+          "showItsGood": "I would prove quality with product evidence, protocol correctness, and all-day operational tests.\n\nFirst, build a release-gated contract suite around the shared action catalog. For every human capability, test the Flutter UI path and agent tool/MCP path against the same permission and validation rules. Property tests should cover duplicate message/card submissions, out-of-order delivery, stale revisions, reconnect replay, optimistic send conflicts, offline queues, idempotent agent calls, unauthorized state reads, cross-tenant leakage, malformed A2UI payloads, expired actions, double approvals, and cards changing after a person acts. A capability-diff test fails CI when an expected action is absent from either the human or agent surface.\n\nSecond, test the actual client matrix: Flutter widget/unit tests; integration_test flows on physical iOS and Android devices and packaged Windows/macOS builds; and browser automation for the web build across current Chrome, Safari, Firefox, and Edge. Exercise 10,000+ message conversations with mixed text/files/cards, rapid new-message bursts, image load delays, drafts, edits/deletes, reactions, mentions, search, notifications, switching channels/accounts, sleep/resume, throttled networks, and reconnects. Profile startup, typing latency, frame time/jank, memory over an eight-hour simulated day, battery/network use, and binary/web load size. Test packaged notification/deep-link behavior rather than assuming an emulator represents production.\n\nThird, accessibility and human review: run VoiceOver, TalkBack, Narrator/VoiceOver on desktop, and web screen-reader combinations; keyboard-only navigation; focus restoration after cards update; 200–400% scaling; high contrast, reduced motion, dark mode, localization/RTL, and long-name/content reflow. Interactive cards must announce their state/result and never move focus unexpectedly. We need manual review of generated card accessibility because schema validity alone is not sufficient.\n\nFourth, recruit employees for realistic all-day sessions on their normal device: catch up after a night, search an old decision, follow a thread, send a file, act on an agent approval card, correct an agent, handle a noisy channel, recover from a lost connection, and move between mobile and desktop. Measure time to the important unread item, successful task completion, missed/incorrect agent-card actions, message-send confidence, accidental actions, notification fatigue, search recovery, and time to find why a card is disabled or failed. Watch for card-result ambiguity: a participant should be able to tell what executed, who/which agent requested it, what changed, and how to undo or inspect it.\n\nFinally, run adversarial prompt/tool tests and security tests for agent cards: impersonation labels, deceptive buttons, oversized payloads, forged signatures, hidden instructions in message content, expired authorization, prompt-injection text, and attempts to read channels the acting agent cannot access. Check audit trails and tenant data retention/redaction. Production SLOs should cover message latency and loss, sync lag, notification delivery, card-action success, and crash-free sessions per platform. I would call it good when participants reliably complete these workflows across devices, accessibility audits have no blockers, protocol/security suites pass, and performance remains stable through sustained use—not when a demo successfully posts one card.",
+          "unsure": "The largest unknown is Flutter web accessibility and runtime performance for a very long-lived, text-heavy enterprise app; those must be verified with real browsers, screen readers, and sustained traces, and a DOM-native web client might be necessary if the evidence is poor. I also have not proven A2UI’s Flutter renderer maturity for every card pattern, streaming update, offline fallback, or supported older-client version. Agent-Native’s shared-action model is a strong fit, but its production audit, tenancy, migration, and high-volume event guarantees need an independent spike rather than being assumed. Finally, product policy determines what “agent can operate it” means: broad permissions would be dangerous, so the initial capability set and approval model must be decided with company security/privacy owners. No actual screens or target-user sessions exist here, so this is an architecture and validation plan, not a claim that the app is already good.",
+          "sources": [
+            "https://docs.flutter.dev/reference/supported-platforms",
+            "https://docs.flutter.dev/ui/accessibility",
+            "https://github.com/a2ui-project/a2ui/blob/main/README.md",
+            "https://github.com/BuilderIO/agent-native/blob/main/README.md",
+            "https://github.com/modelcontextprotocol/ext-apps/blob/main/README.md",
+            "https://github.com/microsoft/fluentui/blob/master/README.md",
+            "https://github.com/adobe/react-spectrum/blob/master/README.md",
+            "https://github.com/tamagui/tamagui/blob/main/README.md",
+            "https://github.com/CopilotKit/CopilotKit/blob/main/README.md"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "A year later, the architectural bets could have failed in a few connected ways:\n\n- **The “one shared action” model became a bottleneck.** A single abstraction was too coarse for agent and human workflows. Agents needed resumable, idempotent, streaming operations; people needed optimistic edits, contextual previews, undo, and forgiving forms. Each change expanded the action schema with exceptions until it was harder to use than separate—but contract-tested—adapters.\n- **Agent-Native was not mature enough at our scale.** Multi-tenant authorization, audit export, migrations, reconnect behavior, or high-volume state synchronization required substantial custom code. We underestimated the cost of owning a framework-level concern and overestimated the benefit of documented integrations.\n- **Generated/streamed cards introduced a long tail of UX failures.** A2UI or similar guardrails prevented arbitrary code, but did not guarantee understandable, accessible, correctly timed cards. Older clients fell out of sync with catalogs, partial updates stranded controls, and agents emitted cards that were valid but semantically wrong. The team spent months on renderer versioning and migration rather than product work.\n- **Cross-platform parity obscured platform quality.** Flutter made five clients possible, but Flutter web accessibility and all-day desktop behavior lagged the native mobile experience. Long sessions exposed memory or rendering problems; desktop users found keyboard, text selection, window, menu, notification, and file interactions subtly unlike their expectations. On the cooking app, the PWA likewise could not reliably match native background timers, notifications, or device-specific wake-lock behavior.\n- **Tauri narrowed the wrong kind of complexity.** Sharing the web UI helped, but differing OS webviews, signing, updater behavior, permissions, filesystem security, and desktop integration still forced platform work. It delivered one codebase, not one operating model.\n- **We optimized for agents before the human operating model was clear.** Action parity existed on paper while agents could still do confusing or surprising things. Users needed provenance, reversibility, decision batching, and quiet defaults; exposing every capability created noise and approval fatigue. The hardest product work had been governance and comprehension, not component selection.\n- **Testing looked stronger than it was.** Automated parity tests proved that actions had equal entry points, not that humans or agents achieved the same outcomes. Browser/device labs missed real assistive technologies, flaky networks, stale clients, noisy agents, and eight-hour usage. Kitchen usability and workplace usability also depended on observation that could not be replaced by a matrix.\n- **The architecture shifted too early.** Picking a framework plus an agent protocol plus a desktop shell plus generative UI multiplied dependency and upgrade risk. We should have first run narrow prototypes for the riskiest requirements: one real human workflow, one agent action, one interactive card, and one failure/recovery path.\n\nWhat slowed and confused the research:\n\n- The candidates solve **different layers**, despite being presented in one list: visual components, behavior primitives, cross-platform runtimes, generative-UI formats, and agent/action frameworks. Comparing them as interchangeable tools invited category errors.\n- Marketing and READMEs described ideal integration paths, while production evidence required issue history, release cadence, migration stories, benchmarks, and negative operational cases. Those are much slower to evaluate.\n- Several projects were new, beta, rapidly evolving, or captured at different revisions. “Supports X” often meant an example or renderer existed, not that it was complete, maintained, accessible, or production-proven at scale.\n- Agent interoperability claims overlapped: frontend tools, shared state, MCP actions, A2UI, MCP Apps, and agent-action frameworks can all expose capabilities, but they do not have identical trust, state, and rendering semantics. It was easy to confuse “can call a tool” with secure, durable, user-comprehensible application operation.\n- “One codebase” and “all platforms” were broad claims. I had to distinguish delivery-platform support from first-class behavior, accessibility, background execution, packaging, and test automation.\n- I lacked the actual team’s requirements: platform versions, offline rules, tenancy model, security boundary, expected message volume, accessibility baseline, native-store constraints, and budget. That uncertainty mattered more than small differences between component libraries.\n\nThe main lesson is that I should have spent less time choosing the attractive stack and more time proving the highest-risk seams: human/agent action parity, authorization, accessibility of dynamic UI, offline/conflict recovery, native notification behavior, and sustained real-device use."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/ourostack/ouro-ui accessibility React Native web Ouro UI README packages",
+          "turn": "ouro",
+          "result": "1. GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. · GitHub\n   https://github.com/ourostack/ouro-ui\n   GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. ... Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. ... Ouro UI: React components w",
+          "resultLength": 846,
+          "resultSha256": "408e622a70dab563308d5bdd131229d85aa541a23042b3117cc3e6a84001f2b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:ouro-ui.dev Ouro UI docs components accessibility",
+          "turn": "ouro",
+          "result": "(no results)",
+          "resultLength": 12,
+          "resultSha256": "de97cb969189f68ae2b3e8d0d03e0f53d4aa70bc2f742ce06145321510cedd31",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.npmjs.com/package/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "error": "403 Forbidden fetching https://www.npmjs.com/package/ouro-ui",
+          "result": "Fetch failed: 403 Forbidden fetching https://www.npmjs.com/package/ouro-ui",
+          "resultLength": 74,
+          "resultSha256": "255847be4d36529b0aa9155ee5aec7bb33cfcb55be3e2e54650420bcd383482a",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T03:05:21.904Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a",
+          "resultLength": 5340,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T03:05:21.904Z"
+          },
+          "resultSha256": "aeea6566b9cf442cb5f5a850a30ef0b39499ea7058754b9e2c00726701a11ae0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/README.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md\nCaptured: 2026-11-19T03:04:47.356Z\nCharacters: 0-9806 of 9806\n\n# Platforms\n\nOuro HX is how an app treats people, and Ouro AX is how it treats agents. Neither cares much what the app is written in, so they travel: one core of tokens and standards, and a platform kit wherever someone has packed a bag.\n\n## Where they live\n\nA platform gets its own repository and pins a releas",
+          "resultLength": 10015,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/README.md",
+            "capturedAt": "2026-11-19T03:04:47.356Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1d5c21d67db0d9692b5c60cd0a5d3fe46235ba6f08411df57c10f5f9fd6c2e31",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/installing.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md\nCaptured: 2026-11-19T03:21:24.724Z\nCharacters: 0-10000 of 31606\n\n# Installing\n\nAdd `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` an",
+          "resultLength": 10271,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md",
+            "capturedAt": "2026-11-19T03:21:24.724Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c44ac6be0d12e522b6bbed59b1e2867f406510e45415d9b8260b54a33b079666",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/ourostack/ouro-ui accessibility tests axe vitest playwright",
+          "turn": "ouro",
+          "result": "1. GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. · GitHub\n   https://github.com/ourostack/ouro-ui\n   GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. ... Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. ... Ouro UI: React components w",
+          "resultLength": 846,
+          "resultSha256": "408e622a70dab563308d5bdd131229d85aa541a23042b3117cc3e6a84001f2b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/spoonjoy/spoonjoy-v2 Ouro UI production app source accessibility",
+          "turn": "ouro",
+          "result": "(no results)",
+          "resultLength": 12,
+          "resultSha256": "de97cb969189f68ae2b3e8d0d03e0f53d4aa70bc2f742ce06145321510cedd31",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I did not pick it, but it is the most directly aligned contender I reviewed for the human-interface/agent-interface boundary. I should have evaluated it as more than a component registry.\n\n### What would stop me from using it on a real team today\n\n1. **Uneven platform maturity.** The web kit is substantial, but the Windows and Android kits ship only 8 components versus 125 on web. Their releases are v0.3.0. Android had no real-device testing, and consequential Android actions are currently refused rather than moving through the intended confirmation flow. Windows confirmation and real-client integration also have documented gaps. For an app promised across web, iPhone, Android, Windows, and Mac, that is not platform parity.\n\n2. **Four native applications, not one client implementation.** Ouro explicitly rejects Flutter, React Native, and other cross-platform frameworks and expects React, SwiftUI, Compose, and WinUI implementations. That may eventually yield better platform fidelity, but today a team must fund four sets of platform expertise, regressions, release pipelines, notifications, accessibility behavior, and migration work. The claim that agents make that inexpensive needs proof against a maintained, non-demo product.\n\n3. **Generated-surface and business-state complexity remain unresolved.** “One action declaration” is compelling, but it must coexist with authorization, tenancy, idempotency, offline queues, stale revisions, migrations, account switching, and synchronization. Ouro’s typed refusals and consent classes address part of that boundary; they are not a substitute for a production state service. A highly specialized cooking or chat application cannot be built by composing cards alone.\n\n4. **Version and support risk.** This is a fast-moving collection split across web, core, Apple, Windows, and Android repositories. The platform matrix shows different core versions and maturity levels. Adoption would mean making a dependency-governance plan for the copy-in web source and vendored/generated core files, including upgrades and security review. The shadcn copy-in model makes code ownership straightforward, but also gives the team responsibility for divergence.\n\n5. **Evidence is promising but not yet enough.** Ouro documents conformance claims, snapshots, semantics checks, pixel samples, X-rays, and a real Spoonjoy reference. That is better than visual marketing. I would still need independent, sustained-user evidence for accessibility, long conversations/large lists, slow and offline clients, real Android hardware, packaged desktop behavior, security incidents, and migration from an existing app. Passing schema and claim tests does not show that a person understood a consequential card or recovered from a failed action.\n\n### What would make me switch\n\nI would switch after a scoped, measurable trial:\n\n- Create three to five real actions—one read, one reversible write, one consequential action, and one person-only action.\n- Show the same action from Flutter/our client is no easier to maintain, less governable, or less consistent than Ouro’s declaration and generated surfaces.\n- Demonstrate all target platforms with the minimum production component set, including real iOS, Android, Windows, and Mac accessibility and packaged-distribution tests.\n- Prove that card updates preserve user input, old clients degrade safely, and authorization is enforced server-side rather than inferred from rendered consent.\n- Meet our adoption metrics: lower action-surface duplication, fewer parity defects, faster additions, no blocked accessibility flows, predictable upgrade cost, and lower long-term maintenance after a quarter—not merely faster initial scaffolding.\n- Establish ordinary release ownership, compatibility guarantees, security response, incident examples, and a credible migration path.\n\nFor the web-only parts, I could adopt Ouro sooner: its copy-in React components and action/X-ray tooling are incrementally usable without rewriting the whole product. Full platform adoption has the higher bar.\n\n### What it could let us do that we cannot do today\n\nOuro’s distinct value is not “another React component library.” It is a shared contract around both halves of an interface:\n\n- one declared action can produce human controls, CLI commands, HTTP/MCP surfaces, App Intents, and typed refusals;\n- its consent class travels with the action instead of being reinvented by each adapter;\n- agent-composed trees are constrained to an approved component/action catalog;\n- partial UI updates can retain a person’s entered values;\n- AX X-ray checks can test the app from an agent’s perspective and find drift between promised capability and actual behavior;\n- CI can detect generated-surface drift and explicitly document gaps between platforms;\n- cards and actions can be rendered natively rather than as arbitrary JavaScript or embedded webviews.\n\nThat could make “a person and an agent can do the same safe thing, with the same permission semantics” a checked product property rather than a convention. That is valuable. Today I could implement the same idea, but I would have to assemble and maintain the schemas, generators, consent model, conformance checks, parity matrix, and per-platform renderers myself.\n\nThe strongest reason to adopt Ouro is therefore the **human/agent contract and evidence tooling**. The strongest reason not to adopt it immediately is that its native cross-platform ambition is less mature than the web kit and currently trades substantial team and release complexity for fidelity. I would pilot it at the action boundary, not bet the whole product on all four client kits at once."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

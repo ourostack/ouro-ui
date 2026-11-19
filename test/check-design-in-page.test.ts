@@ -376,6 +376,28 @@ describe("findDesignIssues: type-scale and shadow-scale", () => {
   });
 });
 
+describe("findDesignIssues: giant-text", () => {
+  const words = "The running text a person reads, long enough to have a reading size, and drawn at one size down the column.";
+
+  it("finds running text drawn over 24px, by the size that carries most of its characters, and leaves headings and an opted-out poster line out", () => {
+    render(`<h1 style="font-size:64px">Selected work</h1><p id="body" style="font-size:27px">${words}</p><p style="font-size:27px">${words}</p><p style="font-size:14px">A caption.</p>`);
+    const [found] = of("giant-text");
+    expect([found!.element, found!.detail]).toEqual(["the page's running text", "most of it is drawn at 27px (214 characters); keep reading text to 24px or under at every screen size"]);
+    expect(document.getElementById("body")!.getAttribute("data-ouro-check-ref")).toBe(found!.ref);
+    host.remove();
+    render(`<h1 style="font-size:64px">${words}</h1><p style="font-size:18px">${words}</p><p style="font-size:18px">${words}</p><p style="font-size:40px" data-ouro-allow="giant-text" data-ouro-allow-why="a poster line">${words} ${words} ${words}</p>`);
+    expect(of("giant-text")).toEqual([]);
+  });
+
+  it("judges no reading size on a page with little running text, and takes another cap when told", () => {
+    render(`<p style="font-size:30px">Sign in to go on.</p>`);
+    expect(of("giant-text")).toEqual([]);
+    host.remove();
+    render(`<p style="font-size:20px">${words}</p><p style="font-size:20px">${words}</p>`);
+    expect(of("giant-text", { readingPx: 18 }).map(({ detail }) => detail)).toEqual(["most of it is drawn at 20px (214 characters); keep reading text to 18px or under at every screen size"]);
+  });
+});
+
 describe("findDesignIssues: grey-on-colour", () => {
   it("finds grey text on a saturated fill, through a fill too faint to count", () => {
     render(`<div style="background:#2563eb"><p id="grey" style="color:#888">Grey on blue</p><div style="background:#fff3"><span style="color:#777">Grey through a veil</span></div></div>`);

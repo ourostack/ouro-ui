@@ -25,7 +25,7 @@ await loadPageCode("/");
 
 // The porthole stage (site-design.md, slice S1): every control changes the scene (a frame later,
 // once the press has painted, so the tests poll it) and the log, the copy reads at grade 6 or under, the
-// theme paints the sea, and the hero's hand-off and proof
+// sea is painted, and the hero's hand-off and proof
 // line say what they should.
 
 const root = document.documentElement;
@@ -409,22 +409,80 @@ describe("the stage's controls", () => {
   });
 });
 
-describe("the stage's colours", () => {
-  it("come from the theme, so each preset repaints the sea and the rim", async () => {
+describe("the console's instruments", () => {
+  it("are the porthole's brass and glass in every look: brass bezels on the sight glasses, a brass pipe and a brass-rimmed lamp", async () => {
     await renderPage("/");
-    const paint = () => {
-      const sea = getComputedStyle(document.querySelector(".stage-sea-top")!).stopColor;
-      const rim = getComputedStyle(document.querySelector(".stage-metal-mid")!).stopColor;
-      return `${sea} ${rim}`;
+    const context = document.createElement("canvas").getContext("2d")!;
+    const warmth = (color: string) => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      const [red, , blue] = context.getImageData(0, 0, 1, 1).data;
+      return red! - blue!;
     };
-    const seen = new Set<string>();
-    for (const preset of ["pearl", "abyss", "brass"]) {
-      root.setAttribute("data-theme", preset);
-      seen.add(paint());
+    for (const scheme of ["light", "dark"] as const) {
+      setScheme(scheme);
+      for (const preset of ["pearl", "abyss", "brass"]) {
+        root.setAttribute("data-theme", preset);
+        const where = `${preset} ${scheme}`;
+        expect(warmth(getComputedStyle(document.querySelector(".stage-gauge-bezel")!).stroke), `bezel, ${where}`).toBeGreaterThan(40);
+        // The pipe's brass is the gradient its border shows, the last of its backgrounds.
+        const pipe = getComputedStyle(document.querySelector(".stage-pipe")!).backgroundImage.split("linear-gradient").at(-1)!;
+        const tube = pipe.match(/(?:oklab|oklch|rgba?|color)\([^)]*\)/g) ?? [];
+        expect(tube.length, `pipe, ${where}`).toBeGreaterThan(1);
+        for (const color of tube) expect(warmth(color), `pipe, ${where}`).toBeGreaterThan(25);
+        expect(warmth(getComputedStyle(document.querySelector(".stage-lamp")!).borderTopColor), `lamp, ${where}`).toBeGreaterThan(40);
+      }
     }
+  });
+
+  it("light the floodlight's lamp while the floodlights are on", async () => {
+    await renderPage("/");
+    const lamp = () => document.querySelector(".stage-lamp")!;
+    expect(lamp().hasAttribute("data-lit")).toBe(false);
+    await userEvent.click(page.getByRole("switch", { name: STAGE_COPY.lights }));
+    await expect.poll(() => lamp().hasAttribute("data-lit")).toBe(true);
+  });
+});
+
+describe("the porthole's picture", () => {
+  it("is painted in the hero's frosted-glass world, each band of water with its night twin, the fish and the ship painted over it", async () => {
+    await renderPage("/");
+    const file = (element: Element | null) => (element?.getAttribute("src") ?? element?.getAttribute("href") ?? "").replace(/^.*\/brand\/storybook\//, "");
+    expect(file(document.querySelector(".stage-paint-surface .stage-day"))).toBe("stage/bg-sunlit-480.webp");
+    expect(file(document.querySelector(".stage-paint-surface .stage-night"))).toBe("stage/bg-sunlit-dark-480.webp");
+    expect(file(document.querySelector(".stage-paint-open .stage-day"))).toBe("stage/bg-twilight-480.webp");
+    expect(file(document.querySelector(".stage-paint-open .stage-night"))).toBe("stage/bg-twilight-dark-480.webp");
+    expect(file(document.querySelector(".stage-paint-midnight img"))).toBe("stage/bg-midnight-480.webp");
+    expect(file(document.querySelector(".stage-band-sunlit img"))).toBe("stage/sardine-72.webp");
+    expect(file(document.querySelector(".stage-ship"))).toBe("stage/nautilus-660.webp");
+    expect(file(document.querySelector(".stage-hull-lit image"))).toBe("stage/nautilus-lit-660.webp");
+    // No line drawing is left in the water: the fish, the creatures and the ship are all paintings.
+    expect(document.querySelectorAll(".stage-life svg, .stage-hidden svg, .stage-ship-ride svg svg")).toHaveLength(0);
+    // The theme's light or dark shows one painting of each pair.
+    const shows = (selector: string) => getComputedStyle(document.querySelector(selector)!).display !== "none";
+    expect([shows(".stage-paint-surface .stage-day"), shows(".stage-paint-surface .stage-night")]).toEqual([true, false]);
     setScheme("dark");
-    seen.add(paint());
-    expect(seen.size).toBe(4);
+    expect([shows(".stage-paint-surface .stage-day"), shows(".stage-paint-surface .stage-night")]).toEqual([false, true]);
+  });
+
+  it("is ringed in brass in every look, as the chapters' porthole is, not in the theme's colours", async () => {
+    await renderPage("/");
+    // Each stop of the ring's metal as the screen draws it: warm brass, far more red than blue, in every look, by day and at night.
+    const context = document.createElement("canvas").getContext("2d")!;
+    const drawn = (stop: Element) => {
+      context.fillStyle = getComputedStyle(stop).stopColor;
+      context.fillRect(0, 0, 1, 1);
+      const [red, , blue] = context.getImageData(0, 0, 1, 1).data;
+      return red! - blue!;
+    };
+    for (const scheme of ["light", "dark"] as const) {
+      setScheme(scheme);
+      for (const preset of ["pearl", "abyss", "brass"]) {
+        root.setAttribute("data-theme", preset);
+        for (const stop of document.querySelectorAll("#stage-metal stop")) expect(drawn(stop), `${preset} ${scheme}`).toBeGreaterThan(40);
+      }
+    }
   });
 });
 

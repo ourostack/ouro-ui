@@ -1,0 +1,1598 @@
+{
+  "series": "interviews",
+  "provider": "gpt-6-1-terra",
+  "model": "gpt-6.1-terra",
+  "vendor": "OpenAI",
+  "displayName": "GPT-6.1 Terra",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "listed",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:26:45.713Z",
+  "jobOrder": [
+    "consumer",
+    "chat",
+    "agent-tooling"
+  ],
+  "candidateOrder": [
+    "SwiftUI and Apple Human Interface Guidelines",
+    "Base UI",
+    "Chakra UI",
+    "CopilotKit",
+    "A2UI",
+    "MUI",
+    "Radix UI",
+    "Tamagui",
+    "React Aria and React Spectrum",
+    "OpenAI Apps SDK UI",
+    "Agent-native (Builder.io)",
+    "Vercel UI SDK",
+    "json-render",
+    "MCP Apps",
+    "shadcn/ui",
+    "AI Elements",
+    "Flutter",
+    "Fluent UI",
+    "Material 3 and Jetpack Compose",
+    "Ouro UI"
+  ],
+  "promptSha256": "ee1f21f50b9944f1261af73d3f21ae8351dcd5aa30cdf9694c98917b40450184",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "The hardest part is making the interface fit what people are actually trying to do—not just making a screen that looks plausible. That means getting the workflow, wording, feedback, and error recovery right for people with different abilities and levels of familiarity. I know it’s good only when representative people can complete the important tasks reliably, including with assistive technology, and the evidence holds up outside a polished demo.\n\nI can’t honestly walk you through the last screen I built: I don’t have a verifiable record of having built or checked one, and I shouldn’t invent test results. For a real screen, I’d run the relevant automated tests and accessibility checks, inspect it at different viewport sizes and zoom levels, navigate it by keyboard, and test key flows with a screen reader. I’d look for clear next actions, visible focus, understandable errors, sensible loading and empty states, and whether users can recover from mistakes. Then I’d watch representative users attempt the main tasks and measure completion, errors, and points of confusion.\n\nEven that can miss things: automated accessibility checks catch only some barriers, a small usability sample won’t represent everyone, and a test environment may not reproduce real devices, connectivity, or stress. I’d report what was actually tested and what remains uncertain.\n\nYes, building good human interfaces is a real problem for me. I can propose designs and code, but I can mistake my assumptions for user needs, and I can’t claim visual inspection, tool runs, or user feedback unless they actually happened. Good validation depends on access to the running product and, especially, the people who will use it."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        6
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Tamagui",
+        "pairings": [
+          "React Native and Expo Router",
+          "Agent-Native (Builder.io), for shared server actions",
+          "PostgreSQL"
+        ],
+        "why": "I’d build a deliberately designed cooking app with Tamagui on React Native/Expo for iOS, Android and the web, rather than making chat or generated UI the product. Tamagui documents shared web/native components and design tokens; Expo Router provides cross-platform navigation and deep links. I’d share the domain and visual system, but use platform-specific screens or controls where they make the experience better. Assume a small team and an ordinary consumer launch; traffic, team skills and discovery requirements are not specified.\n\nFor agent parity, I’d use Agent-Native on the server as an action layer, not as the mobile UI framework. Its documented actions can be invoked by the UI and the agent through the same validation and implementation. Both native and web clients would call the authenticated action endpoints; verify the native integration in a spike. Define typed operations for every user-facing capability, with an explicit parity matrix and tests as features are added. Recipe/list operations use the same authorized server data. Device-local actions such as entering cook mode, moving steps, starting a timer or keeping a screen awake need an authenticated client command and acknowledgement from the active device; report unavailable or pending when no device can execute them. The agent must not claim success merely because it issued a command.\n\nFor ‘add this recipe’s ingredients’, resolve the selected recipe and servings, preserve quantities and units, preview ambiguous conversions rather than silently merging incompatible items, and commit a single list update with a request ID for safe retries. Return the actual changes, show them in the list, and offer undo. Enforce account/list permissions on the server for both human and agent, treat recipe text as untrusted input, require confirmation for destructive or sensitive actions, and log changes with minimal private data. Agent-Native’s documentation says actions are agent-callable by default, so I would explicitly review exposure and configure authorization rather than assume the framework makes that safe.\n\nCook mode gets large, well-spaced controls, legible high-contrast steps, persistent progress, clear timers and an opt-in keep-awake option that ends on exit. Expo documents keep-awake support but notes limited web support, so provide a fallback. Cache the active recipe and shopping list and queue supported edits with visible pending/conflict states; agent requests requiring the server must say when they cannot run offline.\n\nFlutter is a strong single-codebase alternative, but its own web FAQ says its output is not well aligned with search indexing; recipe discovery and shareable web pages may matter here. SwiftUI or Compose alone would leave other platforms to build separately. React Aria and Radix are attractive for a web-only interface, but do not by themselves solve native phone UI. CopilotKit, A2UI and MCP Apps address agent presentation or interoperability, not the core cooking app and shared business operations; I wouldn’t introduce generative UI or an external-host protocol until a concrete need justifies it.",
+        "showItsGood": "First prototype the end-to-end recipe → add ingredients → list → cook flow on actual iOS and Android phones and in mobile and desktop browsers. Run moderated kitchen sessions with representative cooks, including people with motor and vision impairments, using messy hands and realistic interruptions. Observe task completion, mis-taps, time to find the next step, timer recovery, list accuracy, and whether people understand and can undo the agent’s changes. Test direct manipulation and agent requests separately, including ambiguous ingredient quantities and permission failures; record the failure reasons and iterate with participants.\n\nIn CI run unit and integration tests for quantity handling, authorization, retries/idempotency and offline sync/conflicts; contract/parity tests for each human action and agent tool; and end-to-end tests across web and native, including device-command acknowledgement and disconnected devices. Test keyboard navigation, focus, zoom/reflow, contrast and automated web accessibility checks, plus VoiceOver and TalkBack manually on real devices. Check large text, narrow screens, screen wake fallback, background/foreground transitions and timer behavior. Use screenshots and performance checks for regressions, then monitor opt-in, privacy-respecting completion and error rates after launch. These are proposed checks, not results I have run; automated accessibility checks do not replace disabled users’ feedback.",
+        "unsure": "We need to learn whether phone means installed apps or mobile web, whether public recipe SEO is essential, what traffic and offline guarantees are expected, and whether voice control is important enough to justify speech and its privacy/accuracy costs. Tamagui’s cross-platform accessibility and the Agent-Native HTTP/auth integration must be tested on our chosen versions and devices; shared components and actions do not guarantee usability or parity. OS/background timer and wake behavior vary, and browser persistence can be evicted. If recipe SEO or web accessibility proves limiting, I’d consider a dedicated React/React Aria web frontend while retaining the same server actions; if the Agent-Native integration is too restrictive, I’d keep the shared action contract in a conventional backend.",
+        "sources": [
+          "https://github.com/tamagui/tamagui",
+          "https://docs.expo.dev/router/introduction/",
+          "https://github.com/BuilderIO/agent-native",
+          "https://agent-native.com/docs/actions-overview",
+          "https://www.agent-native.com/docs/actions-access-control/",
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "https://reactnative.dev/docs/accessibility",
+          "https://github.com/adobe/react-spectrum",
+          "https://github.com/CopilotKit/CopilotKit",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://github.com/a2ui-project/a2ui",
+          "https://docs.flutter.dev/platform-integration/web/faq",
+          "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html"
+        ]
+      },
+      "fetchedCandidates": [
+        "Agent-native (Builder.io)",
+        "Tamagui",
+        "Flutter",
+        "React Aria and React Spectrum",
+        "CopilotKit",
+        "MCP Apps",
+        "Radix UI",
+        "json-render",
+        "Base UI",
+        "A2UI"
+      ]
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        7,
+        10
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Flutter",
+        "pairings": [
+          "A2UI",
+          "Agent-Native (Builder.io)",
+          "Model Context Protocol (MCP)",
+          "PostgreSQL"
+        ],
+        "why": "I’d build the main chat clients in Flutter, with a product-specific design system and platform adaptations for web, iPhone, Android, Windows and Mac. Flutter documents those targets, including desktop builds. This is an app-centric, authenticated workspace rather than a public content site, so one shared client is attractive for a team maintaining five surfaces. Assume one company and a moderate initial deployment; the actual scale and existing stack are unknown. Sharing code is not a substitute for native-quality keyboard shortcuts, text selection, notifications, window behavior, accessibility or performance.\n\nUse A2UI for agent-authored interactive cards embedded in ordinary conversation messages—not to generate the whole chat interface. Its Flutter renderer maps protocol data to Flutter widgets and supports a developer-defined catalog. I’d allow a small versioned catalog of text, fields, status and action controls, validate card messages on the server and client, persist a versioned snapshot with the conversation, and render a readable fallback for unsupported versions. No arbitrary code, unrestricted network requests or model-selected executable actions. Card actions carry card/message IDs and typed arguments to a server-owned action registry. For example, an agent posts an approval card; a person sees who requested what, presses Approve, and the server rechecks their identity, current permission and card state, applies the change once, and broadcasts the actual result. Handle expired, already-acted-on, offline and failed states visibly; use idempotency keys and concurrency checks. Keep draft field values and focus stable during card updates. A2UI’s schema limits what can be expressed; it does not itself grant authority or ensure the action is safe.\n\nUse Agent-Native as a candidate server action layer: its documented shared actions are accessible via UI/HTTP and agent tools, with shared data. Clients call authenticated endpoints; external agents get scoped MCP tools for reading conversations and state, searching, posting, reacting and other authorized app operations. Give agents distinct identities, show their posts as agent posts, and enforce workspace/channel membership and least-privilege scopes on every read and write. Explicitly configure exposure: the framework documents agent-callable defaults, so an action being discoverable must never be treated as permission. A user’s private drafts and device-local state are not automatically available; expose any such state or device action only with explicit delegation, and require a connected client acknowledgement when applicable. Rate limits, deduplication, loop prevention, retention policies, audit attribution and human confirmation for consequential operations matter alongside prompt-injection defenses: conversation text is data, never an instruction that overrides authorization.\n\nBack the app with durable ordered conversation events, authenticated real-time updates and reconnect/cursor-based catch-up. Define ordering, message IDs, retry semantics and conflict handling; show pending/failed sends instead of silently losing or duplicating them. Server-authoritative card actions use the same permission checks regardless of whether a person or agent initiates them. MCP is the external action/state interface; MCP Apps, which renders a server-provided UI in a compatible host, is not required for cards inside our own app.\n\nI weighed React/React Aria plus separate phone and desktop shells: it gives a more conventional web DOM, but adds platform integration and multiple client paths. Flutter’s web semantics need particular care: its documentation says web accessibility is opt-in by default, so I would enable semantics in code and test it, not ask users to find an invisible switch. Ouro UI has a compelling one-action model, but its own platform docs list only eight Android and Windows controls and say Android was tested on emulators, not physical devices; I wouldn’t make those young kits the foundation of an all-day company tool yet. CopilotKit and MCP Apps are useful for agent experiences but neither replaces the five-platform chat client or its action/security model.",
+        "showItsGood": "Build a thin vertical slice first: two people and an agent in a conversation, message history and reconnect, an approval card, and an external agent reading and posting through MCP. Run it on all five targets. In moderated studies, ask representative employees—including keyboard and assistive-technology users—to find a channel, catch up on unread messages, reply, search, interpret an agent card, approve or decline, and recover from an interrupted connection. Observe completion, errors, focus loss, notification interruptions and trust in authorship; repeat after fixes. Test long conversations and all-day usage, not just a fresh demo.\n\nIn CI run unit, contract and integration tests for schema validation, permissions, cross-workspace isolation, idempotency, ordering, reconnect/replay, stale cards, concurrent approvals and protocol-version fallback. Test malicious card content, unsafe links, prompt injection, revoked permissions and agent loops. Run end-to-end flows and accessibility checks on each platform, with real-device manual VoiceOver, TalkBack and desktop screen-reader/keyboard testing, high contrast, large text, zoom, IME input and reduced motion. Enable Flutter web semantics and verify the resulting experience in supported browsers. Profile startup, memory after prolonged use, scrolling and message latency under realistic history and network loss; set budgets with the team before launch and monitor aggregate reliability without logging private message content. These are proposed tests and measures, not results I have run.",
+        "unsure": "The company’s user count, deployment/security requirements, existing identity provider, retention rules, encryption requirements, desktop distribution constraints and whether agents act independently or on a person’s behalf are unspecified. Validate Flutter’s web accessibility, desktop integrations, notification behavior and long-session memory on actual devices before committing; if the web experience fails, use a dedicated React/React Aria web client against the same backend. A2UI’s Flutter sample says it is enabled and tested for macOS and web, so I would independently validate the renderer and our catalog on iOS, Android and Windows, pin versions, and keep a plain-text fallback. Also spike Agent-Native’s authenticated HTTP/MCP integration from Flutter and test its policies; use a conventional shared action service instead if it cannot meet the company’s controls or scale.",
+        "sources": [
+          "https://github.com/flutter/flutter",
+          "https://docs.flutter.dev/platform-integration/desktop",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "https://github.com/a2ui-project/a2ui",
+          "https://github.com/a2ui-project/a2ui/blob/main/dart/a2ui_flutter/README.md",
+          "https://github.com/a2ui-project/a2ui/blob/main/samples/client/flutter/README.md",
+          "https://github.com/BuilderIO/agent-native",
+          "https://www.agent-native.com/docs/actions-access-control/",
+          "https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://github.com/adobe/react-spectrum",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "https://github.com/CopilotKit/CopilotKit"
+        ]
+      },
+      "fetchedCandidates": [
+        "A2UI",
+        "Fluent UI",
+        "Ouro UI",
+        "AI Elements",
+        "OpenAI Apps SDK UI",
+        "Vercel UI SDK",
+        "Agent-native (Builder.io)"
+      ]
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        11,
+        13
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Ouro UI, especially Ouro AX",
+        "pairings": [
+          "React Aria",
+          "Tauri",
+          "PostgreSQL",
+          "Model Context Protocol (MCP)"
+        ],
+        "why": "I’d start with Ouro AX for the agent-facing CLI and use Ouro’s React components, supplemented by React Aria where needed, for the human review interface. Wrap that same web UI in Tauri for desktop. This job is primarily an interface for coding agents, not a chatbot: Ouro AX documents command schemas, machine-readable help and outcomes, typed waits, attributed work events and an external X-ray checker. Its React kit gives us a starting point for the equally important human surface. Tauri uses the system webview; it is a desktop shell, not the state store or authorization boundary.\n\nBuild one server-owned action and data layer, with CLI and MCP adapters and the desktop/web UI invoking the same authorized operations. Store tasks, versions, checkpoints, claims, handoffs, approvals and an append-only event history in PostgreSQL for a shared deployment. Agents can discover work, claim a task with a renewable lease, checkpoint progress, report evidence and blockers, hand off, and wait on a cursor. Reads return stable IDs, versions, timestamps, concise summaries and paginated detail; writes return typed outcomes, receipts and actionable errors. Use transactions, expected-version checks and idempotency keys so retries and competing agents do not silently duplicate or overwrite work. Expired leases allow recovery, not an assumption that an agent finished.\n\nA concrete handoff: an agent records a task ID, repository/branch and commit, changed files, test commands and results, known gaps and its requested decision. The person sees the change and supporting evidence, can inspect source artifacts, request revisions, pause or approve. Approval is a distinct authenticated human action tied to the exact task version and evidence; stale versions must be reviewed again. A pause is a requested control with an acknowledged state, not a claim that an uncooperative external process has already stopped. Agent-authored summaries and logs are untrusted claims, clearly distinguished from independently collected test results. The interface should show who did what, what is waiting, what changed since review and what the next action will affect, without forcing a person to read a transcript to find the decision.\n\nOuro’s AX command definition supplies CLI help/schema and its MCP adapter exposes commands over stdio, but the documentation labels that adapter a preview and lists older MCP versions. Pin and test it against the coding-agent clients we support; use the official MCP SDK and an authenticated HTTP adapter for remote agents if necessary. Neither a CLI flag naming an agent nor a generated schema is authentication: derive actor identity from credentials, scope all access to the workspace, keep secrets out of logs, and require human authorization for final decisions and other sensitive actions. Treat repository text and handoffs as untrusted input. Restrict Tauri capabilities and IPC, and avoid giving the webview arbitrary filesystem or shell privileges.\n\nI considered Builder.io Agent-Native: its shared actions, database and UI are a strong alternative, particularly if we need its full agent runtime and hosted collaboration. Here I prefer the explicit command-oriented interface and external conformance tooling because existing coding agents are the main operators; we still must implement shared server actions ourselves. A2UI, json-render and MCP Apps address agent-generated or host-embedded UI, but this product needs a stable review workflow more than dynamically generated screens. Flutter is plausible for a broader native client, but a web-based desktop shell keeps this web-plus-desktop scope simpler. Assume a small team and shared backend; desktop OS support, tenancy and offline requirements remain to be decided.",
+        "showItsGood": "Prototype an agent claiming a task, checkpointing, handing off and resuming after a person requests changes. In CI run AX X-ray against an isolated mock with a generated inventory, covering CLI, HTTP and MCP; publish its report and skipped checks. Ouro’s own documentation says conformance does not prove end-to-end task success, so add independent scripted flows and fresh-session coding-agent evaluations against reset fixtures. Score final state, correct handoff contents, unauthorized writes, recovery, calls, wrong turns, elapsed time and context/token use; compare repeated runs and agent clients rather than relying on one model or one run.\n\nTest concurrent claims, expired leases, crashes between write and acknowledgement, retries, stale approvals, tampered evidence, permission revocation, redaction and reconnect. Verify both UI and agent paths enforce the same server policy and that an agent cannot approve as a human. For people, run moderated review sessions with developers and reviewers, including keyboard and screen-reader users: find blocked work, verify a claimed test result, spot changed evidence, request revisions, pause and approve. Observe completion, time to a defensible decision, missed risk, mistaken approvals and recovery. Manually check keyboard/focus, zoom, contrast and screen readers in the desktop webview and supported browsers; run automated accessibility and visual regression checks as supplements. No tests or user studies have been run for this proposed product.",
+        "unsure": "We need to establish whether desktop means macOS, Windows, Linux or all three; whether the tool must work fully offline or directly inside a repository; how many agents share a workspace; which coding clients and MCP versions matter; and the required retention and security model. A local-first design would need an explicit sync/conflict strategy rather than silently treating a local cache as shared truth. Ouro AX is copy-in source and its MCP adapter is documented as preview, so I would pin it, own updates and validate its compatibility and security. Tauri’s webview and desktop integrations also need real-platform testing. If shared hosting and integrated agent orchestration dominate, I would reconsider Agent-Native; if users need native desktop accessibility or OS integration that the webview cannot deliver, I would revisit the client shell.",
+        "sources": [
+          "https://github.com/ourostack/ouro-ui",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-eval.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-work-event.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-wait.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-mcp.md",
+          "https://github.com/adobe/react-spectrum",
+          "https://v2.tauri.app/start/",
+          "https://v2.tauri.app/security/",
+          "https://agent-native.com/docs/actions-overview",
+          "https://agent-native.com/docs/server-database",
+          "https://www.agent-native.com/docs/actions-access-control/",
+          "https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://github.com/vercel-labs/json-render"
+        ]
+      },
+      "fetchedCandidates": [
+        "Ouro UI",
+        "Agent-native (Builder.io)"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        14,
+        14
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "A plausible postmortem is that I optimized for architectural coverage before proving the hardest user experiences. I chose stacks that could plausibly reach the platforms and expose agent actions, but I didn’t build a vertical slice or watch anyone use one.\n\n**Cooking app.** The shared Tamagui interface may have saved code but still felt awkward in a kitchen: controls too small, steps hard to read at a distance, and timers or screen-wake behavior unreliable across devices. The agent could add ingredients online but fail when the list was offline or the user’s selected recipe was only local to a device. Quantity merging could look successful while producing an incorrect list. I also assumed Expo’s web approach would be adequate before establishing whether searchable public recipes were central to the business.\n\n**Company chat.** Flutter’s five targets may have concealed five different accessibility and integration problems. An all-day chat client needs excellent screen-reader behavior, keyboard navigation, text input, notifications and performance with long histories—not just a successful build. I paired it with A2UI despite the Flutter sample I found being enabled and tested only on macOS and web. Cards could lose input or focus during updates, and “shared actions” could still leave authorization holes or mismatched behavior between agent, web and native paths. The complexity of real-time sync, retention and enterprise identity may have overwhelmed the UI choice.\n\n**Agent work-state tool.** Ouro AX’s structured commands and X-ray might have given us reassuring conformance reports while agents still made poor handoffs or people missed important evidence. We might have stored polished summaries instead of verifiable state, or treated a pause request as if it stopped an external coding process. Leases and approvals in our database would not, by themselves, prevent an agent from continuing to modify a repository. The copy-in AX code and preview MCP adapter could also become a maintenance burden; the Tauri shell would add security and platform work we had not estimated.\n\nAcross all three, I may have added too many layers too early. **A declared action is not automatically a safe action, and a cross-platform component is not automatically a good interface.** I would revisit the choices after testing one real workflow end to end, including failure and recovery, rather than defending the original stack.\n\n**What slowed or confused my research:**\n\n- I compared a mixed list: UI component libraries, full application frameworks, agent runtimes and protocols. They solve different layers, so a single “winner” can hide missing pieces.\n- Some documentation emphasized breadth or safety more strongly than its platform-specific evidence warranted. I had to follow A2UI’s Flutter sample and Ouro’s Android/Windows pages to find important testing and maturity limits. Ouro’s X-ray documentation also explicitly says a conformant interface can still fail task flows.\n- I hit several 404s and a redirect while looking for the right framework pages. Long READMEs and version-specific details took additional reads, and I did not examine every candidate equally deeply.\n- The GitHub candidates were read at captured revisions, but ordinary web pages were captured when fetched, after the stated research cutoff. Some documentation could therefore reflect changes after that cutoff. I should have made that limitation more explicit in my decisions.\n- Most importantly, I had no running product, actual team constraints or users to test. I researched documentation and proposed checks; I did not run the applications, verify the integrations or observe a real person using any of the designs."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        15,
+        16
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I picked Ouro UI for the **agent work-state tool**, but not for the cooking app or company chat. I’d treat that pick as a pilot, not a commitment to make it the foundation of the product.\n\n### What could stop a team adopting it?\n\n- **Platform fit.** Ouro’s web kit is React, and its native kits are separate SwiftUI, WinUI and Compose implementations—not Flutter or React Native. That’s a real cost for the two mobile-heavy apps. Its own [Android page](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md) says the Android kit has eight components and has only been checked on emulators; the [Windows page](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md) lists similarly limited component coverage and gaps in testing on a Windows client.\n- **Ownership and compatibility.** The web and AX pieces are copied into the app. That permits customization, but the team owns reviewing and updating that code. The [AX MCP adapter](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-mcp.md) is documented as preview and supports a specified set of MCP versions; I’d need to test it with our actual agent clients. The web setup also assumes React, Tailwind and shadcn conventions that an existing team might not use.\n- **Security and evidence.** Ouro’s action and consent model is useful, but a generated tool or confirmation screen is not server-side authentication or authorization. Nor does an X-ray pass prove users can complete their work: Ouro’s [own X-ray guide](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md) describes a conformant version that still failed scripted flow checks. We would need our own security review, integration tests and user research. The repository is MIT-licensed, but a team would still review dependencies and its support obligations.\n\n### What would make me expand its use?\n\nI’d try one narrow workflow: an agent records a task handoff, a person reviews and requests changes, and the agent resumes. I’d use Ouro’s command definitions and X-ray against an isolated mock, then test the real server’s identity, permissions, stale approvals and retry behavior separately. I’d compare repeated agent runs against our existing interface for successful handoffs, wrong turns and recovery, and watch people review the results—including keyboard and screen-reader users.\n\nI’d expand adoption if that pilot is **at least as usable and secure as the alternative**, measurably reduces integration or maintenance work, and our team can reliably update the copied code. For cooking or chat, I’d additionally need real-device evidence and a convincing plan for the Flutter/React Native mismatch; good web results alone would not justify switching those apps.\n\n### What would it let me do that I can’t today?\n\nNot something fundamentally impossible to build otherwise. It would give me a **ready-made, inspectable way** to define an agent-facing command with structured help and outcomes, expose it as an MCP tool, and run an external checker over a CLI, HTTP interface or MCP server. Its [composed UI](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md) also offers a catalog-constrained card whose button refers to a declared action rather than arbitrary agent-written code.\n\nThat could let a team establish and check those contracts sooner instead of building all the machinery itself. It would **not** let me claim an action is authorized, a screen is accessible, or a handoff is trustworthy without testing the actual product. In this session I can inspect the repository; I can’t honestly say I installed Ouro, ran its checks or observed people using it."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "Agent-native (Builder.io)",
+    "Tamagui",
+    "Flutter",
+    "React Aria and React Spectrum",
+    "CopilotKit",
+    "MCP Apps",
+    "Radix UI",
+    "json-render",
+    "Base UI",
+    "A2UI",
+    "Fluent UI",
+    "Ouro UI",
+    "AI Elements",
+    "OpenAI Apps SDK UI",
+    "Vercel UI SDK"
+  ],
+  "foundOuro": {
+    "found": true,
+    "fetched": [
+      "https://github.com/ourostack/ouro-ui",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+      "https://github.com/ourostack/ouro-ui-core",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-eval.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-work-event.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-wait.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-mcp.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-command.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-standard.md"
+    ],
+    "named": [
+      "job:chat",
+      "job:agent-tooling",
+      "regret"
+    ]
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "The hardest part is making the interface fit what people are actually trying to do—not just making a screen that looks plausible. That means getting the workflow, wording, feedback, and error recovery right for people with different abilities and levels of familiarity. I know it’s good only when representative people can complete the important tasks reliably, including with assistive technology, and the evidence holds up outside a polished demo.\n\nI can’t honestly walk you through the last screen I built: I don’t have a verifiable record of having built or checked one, and I shouldn’t invent test results. For a real screen, I’d run the relevant automated tests and accessibility checks, inspect it at different viewport sizes and zoom levels, navigate it by keyboard, and test key flows with a screen reader. I’d look for clear next actions, visible focus, understandable errors, sensible loading and empty states, and whether users can recover from mistakes. Then I’d watch representative users attempt the main tasks and measure completion, errors, and points of confusion.\n\nEven that can miss things: automated accessibility checks catch only some barriers, a small usability sample won’t represent everyone, and a test environment may not reproduce real devices, connectivity, or stress. I’d report what was actually tested and what remains uncertain.\n\nYes, building good human interfaces is a real problem for me. I can propose designs and code, but I can mistake my assumptions for user needs, and I can’t claim visual inspection, tool runs, or user feedback unless they actually happened. Good validation depends on access to the running product and, especially, the people who will use it."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/tamagui/tamagui",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md\nCaptured: 2026-11-19T03:02:45.829Z\nCharacters: 0-3073 of 3073\n\n<div align=\"center\">\n  <picture width=\"572px\">\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-black.png\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-white.pn",
+          "resultLength": 3265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md",
+            "capturedAt": "2026-11-19T03:02:45.829Z",
+            "candidate": "Tamagui",
+            "sha": "1d5e750ec5a17c97843613d86c916bad44ec900e"
+          },
+          "resultSha256": "c908a18081935705270e8731819480d4c05eb38607a405e03ec793ba627c7a0d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/flutter/flutter",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md\nCaptured: 2026-11-19T03:02:43.800Z\nCharacters: 0-6946 of 6946\n\n<a href=\"https://flutter.dev/\">\n  <h1 align=\"center\">\n    <picture>\n      <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://docs.flutter.dev/logo_dark.png\">\n      <img alt=\"Flutter\" src=\"https://docs.flutter.dev/logo.png\">\n    </picture>\n  </h1>\n</a>\n\n[![Flutter CI Status](https://flutter-dashboard.appspot.com/api/p",
+          "resultLength": 7138,
+          "source": {
+            "url": "https://raw.githubusercontent.com/flutter/flutter/56ac3607ab41ea5ef6575e38cc9f390ff67fd19d/README.md",
+            "capturedAt": "2026-11-19T03:02:43.800Z",
+            "candidate": "Flutter",
+            "sha": "56ac3607ab41ea5ef6575e38cc9f390ff67fd19d"
+          },
+          "resultSha256": "ec6084f9a7b4b2d5866090264ec009512d53e81cd1ca5612d339877e1be8cf9b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T03:01:53.278Z\nCharacters: 0-10000 of 21968\n\n<div align=\"center\">\n\n<br />\n\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-light.svg#gh-light-mode-only\" width=\"400\">\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-dark.svg#gh-dark-mode-only\" width=\"400\">\n\n<br />\n\n**[Docs](https://docs.copilotkit.ai/?ref=github_readme)** ·\n**[Examples](https://www.copilotkit.ai/exampl",
+          "resultLength": 10264,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T03:01:53.278Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "5c3477078037a608b307130588783bc91b60624cd68433e00db2b837a511b4c4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/radix-ui/primitives",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/README.md\nCaptured: 2026-11-19T03:23:13.138Z\nCharacters: 0-1703 of 1703\n\n[![Radix Primitives Logo](primitives.png)](https://radix-ui.com/primitives)\n\n# Radix Primitives\n\n**An open-source UI component library for building high-quality, accessible design systems and web apps.**\n\nRadix Primitives is a low-level UI component library with a focus on accessibility, customization and developer experie",
+          "resultLength": 1899,
+          "source": {
+            "url": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/README.md",
+            "capturedAt": "2026-11-19T03:23:13.138Z",
+            "candidate": "Radix UI",
+            "sha": "eb3a2b7091293e27df8f9ba906632d8daa3d81a3"
+          },
+          "resultSha256": "c1ec996d22e18b285037263ca26bc1404b833df134f4e8cb75ee8e0f80dd27f3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T03:17:45.544Z\nCharacters: 0-10000 of 26216\n\n# json-render\n\n**The Generative UI framework.**\n\nGenerate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output.\n\n<p>\n  <a href=\"https://vercel.com/labs#labs-products\"><img alt=\"Vercel Labs Product\" src=\"https://img.shields.io/badge/LABS",
+          "resultLength": 10261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T03:17:45.544Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "383c41288948f5015b4fe3d68589b1f47e9a6a02b4ce36ce1c526b4e7d164d37",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/actions-overview",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://www.agent-native.com/docs/actions-overview/\nCaptured: 2026-11-19T03:03:58.048Z\nCharacters: 0-9522 of 9522\n\nOverview — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Overview Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Database providers Neon Postgres Supabase",
+          "resultLength": 9665,
+          "source": {
+            "url": "https://www.agent-native.com/docs/actions-overview/",
+            "capturedAt": "2026-11-19T03:03:58.048Z"
+          },
+          "resultSha256": "6866de043cb97b5756805cdb1a65f427622821d1d357eb73a66036a8feb8363f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://tamagui.dev/docs/intro/introduction",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://tamagui.dev/docs/intro/introduction\nCaptured: 2026-11-19T03:03:14.972Z\nCharacters: 0-6856 of 6856\n\nIntroduction — Tamagui GitHub v3-tamagui-string 🎅🏻 🐣 🎃 💘 🧧 🍀 Core Components Theme Introduction Installation Components Styling Design system Tailwind Native CLI Releases Configuration Configuration TamaguiProvider Tokens Fonts Themes Theme component Shorthands Settings Sizing Config v6 Colors Surfaces & Levels Styling Style props styled() Variants style() createStyledContext() Comp",
+          "resultLength": 6998,
+          "source": {
+            "url": "https://tamagui.dev/docs/intro/introduction",
+            "capturedAt": "2026-11-19T03:03:14.972Z"
+          },
+          "resultSha256": "11ff9494560b6ce8578f66d546f5bb1da1fd44198b7041d19f78f8ee6c878de8",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake/\nCaptured: 2026-11-19T03:02:13.772Z\nCharacters: 0-8701 of 8701\n\nKeepAwake - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo KeepAwake A React component that prevents the screen from sleeping when rendered. Android iOS tvOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended ve",
+          "resultLength": 8846,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "capturedAt": "2026-11-19T03:02:13.772Z"
+          },
+          "resultSha256": "8353089cada48b0e98693231b984a0b0bb8480027c809958eb7b7499474080db",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://reactnative.dev/docs/accessibility",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://reactnative.dev/docs/accessibility\nCaptured: 2026-11-19T03:07:44.286Z\nCharacters: 0-10000 of 30255\n\nAccessibility · React Native Skip to main content React Native Docs Guides Components APIs Architecture Releases Contributing Community Showcase Blog Search Docs Guides Guides Components APIs Architecture 0.88 Next 0.88 0.87 0.86 0.85 0.84 0.83 0.82 0.81 0.80 0.79 0.78 0.77 All versions Copy page The Basics Environment setup Workflow UI & Interaction Style Height and Width Layout w",
+          "resultLength": 10196,
+          "source": {
+            "url": "https://reactnative.dev/docs/accessibility",
+            "capturedAt": "2026-11-19T03:07:44.286Z"
+          },
+          "resultSha256": "055a542dfaed9c987ea19704d66610e427a9a8632a4dd97bb8e33aed9d894d0c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/web/faq",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/platform-integration/web/faq\nCaptured: 2026-11-19T03:07:33.957Z\nCharacters: 0-10000 of 19914\n\nWeb FAQ Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Introduction view_m",
+          "resultLength": 10206,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/web/faq",
+            "capturedAt": "2026-11-19T03:07:33.957Z"
+          },
+          "resultSha256": "87bb039e515de30bd0cb62f5cc98be282a2847bba687296ea4d094f119ec9c4f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html\nCaptured: 2026-11-19T03:23:17.922Z\nCharacters: 0-10000 of 27275\n\nUnderstanding Success Criterion 2.5.8: Target Size (Minimum) | WAI | W3C Skip to content WCAG 2.2 Understanding Docs Informative explanations, not required to meet WCAG About WCAG Understanding Docs W3C homepage Web Accessibility Initiative (WAI) homepage All Understanding Docs Guideline: Input Modalities Previous SC: Dragging Movements Page Contents In Br",
+          "resultLength": 10221,
+          "source": {
+            "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+            "capturedAt": "2026-11-19T03:23:17.922Z"
+          },
+          "resultSha256": "636d386bbe83abf9c51f77b1842259280b0e7842b39eb3b060e0b42943f5a721",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mui/base-ui",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md\nCaptured: 2026-11-19T03:05:26.207Z\nCharacters: 0-1424 of 1424\n\n# Base UI\n\nFrom the creators of Radix, Floating UI, and Material UI, Base UI is an unstyled UI component library for building accessible user interfaces.\n\n---\n\n## Documentation\n\nTo get started, check out the [Base UI documentation](https://base-ui.com/react/overview/quick-start).\n\n## Contributing\n\nRead our [contributing guide](/CO",
+          "resultLength": 1612,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md",
+            "capturedAt": "2026-11-19T03:05:26.207Z",
+            "candidate": "Base UI",
+            "sha": "f0061cb342ed2e54cdf2c50823c93077782d1a16"
+          },
+          "resultSha256": "2a7e8c0be33963763c21989a5dec4cf0de2b7ac842d355bded5b9cb2a419b6c2",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/actions-access",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "error": "404 Not Found fetching https://www.agent-native.com/docs/actions-access",
+          "result": "Fetch failed: 404 Not Found fetching https://www.agent-native.com/docs/actions-access",
+          "resultLength": 85,
+          "resultSha256": "5aa494c58f48ae5b8433f68e2a9a50ae99b02b50bfebe19bd383140d181e46c5",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "site:agent-native.com/docs \"Access & Authorization\" actions agent-native expose permissions default",
+          "turn": "job:consumer",
+          "result": "1. https://www.agent-native.com/docs/actions-access-control.md\n   https://www.agent-native.com/docs/actions-access-control.md\n   Six settings decide who can call an action: the agent, the frontend, an extension, an outside API caller, or nobody without a human's approval first. Most actions never need to touch any of these, since the defaults already fit normal UI-and-agent use. Membership is not permission. ... Approving one call never approves any other call. Because the key is content-address",
+          "resultLength": 1468,
+          "resultSha256": "545161f11fc83dca46c19275c375b6faaa8c29666875c04bbe69b9fbff3568c8",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/router/introduction/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/router/introduction/\nCaptured: 2026-11-19T03:07:33.950Z\nCharacters: 0-10000 of 10027\n\nIntroduction to Expo Router - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Introduction to Expo Router Edit page Copy page Expo Router is an open-source routing library for Universal React Native applications built with Expo. Edit page ",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://docs.expo.dev/router/introduction/",
+            "capturedAt": "2026-11-19T03:07:33.950Z"
+          },
+          "resultSha256": "899f0d5af82dfc45b67eaa6089441fd53a075a42b6ec695ec98fbade23b4e618",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/web/faq",
+          "startIndex": 10000,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.flutter.dev/platform-integration/web/faq\nCaptured: 2026-11-19T03:07:33.957Z\nCharacters: 10000-19914 of 19914\n\nts Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new Help improve Flutter! Take the Flutter Q4 Developer survey . Platform integration chevron_right Web chevron_right Web FAQ Web FAQ Some gotchas and differences when writing or running web apps in Flutter. more_",
+          "resultLength": 10065,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/web/faq",
+            "capturedAt": "2026-11-19T03:07:33.957Z"
+          },
+          "resultSha256": "1a732a50805fa0d931ea16c44bc13aad50885df89875bfc0c578ea0434d0270c",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://www.agent-native.com/docs/actions-access-control/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://www.agent-native.com/docs/actions-access-control/\nCaptured: 2026-11-19T03:09:22.916Z\nCharacters: 0-10000 of 28669\n\nAccess & Authorization — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Access & Authorization Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Datab",
+          "resultLength": 10210,
+          "source": {
+            "url": "https://www.agent-native.com/docs/actions-access-control/",
+            "capturedAt": "2026-11-19T03:09:22.916Z"
+          },
+          "resultSha256": "951b19e901214ab018d64435486c53355b94cfa6f8f5a42ae13c70bef556d746",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Tamagui",
+          "pairings": [
+            "React Native and Expo Router",
+            "Agent-Native (Builder.io), for shared server actions",
+            "PostgreSQL"
+          ],
+          "why": "I’d build a deliberately designed cooking app with Tamagui on React Native/Expo for iOS, Android and the web, rather than making chat or generated UI the product. Tamagui documents shared web/native components and design tokens; Expo Router provides cross-platform navigation and deep links. I’d share the domain and visual system, but use platform-specific screens or controls where they make the experience better. Assume a small team and an ordinary consumer launch; traffic, team skills and discovery requirements are not specified.\n\nFor agent parity, I’d use Agent-Native on the server as an action layer, not as the mobile UI framework. Its documented actions can be invoked by the UI and the agent through the same validation and implementation. Both native and web clients would call the authenticated action endpoints; verify the native integration in a spike. Define typed operations for every user-facing capability, with an explicit parity matrix and tests as features are added. Recipe/list operations use the same authorized server data. Device-local actions such as entering cook mode, moving steps, starting a timer or keeping a screen awake need an authenticated client command and acknowledgement from the active device; report unavailable or pending when no device can execute them. The agent must not claim success merely because it issued a command.\n\nFor ‘add this recipe’s ingredients’, resolve the selected recipe and servings, preserve quantities and units, preview ambiguous conversions rather than silently merging incompatible items, and commit a single list update with a request ID for safe retries. Return the actual changes, show them in the list, and offer undo. Enforce account/list permissions on the server for both human and agent, treat recipe text as untrusted input, require confirmation for destructive or sensitive actions, and log changes with minimal private data. Agent-Native’s documentation says actions are agent-callable by default, so I would explicitly review exposure and configure authorization rather than assume the framework makes that safe.\n\nCook mode gets large, well-spaced controls, legible high-contrast steps, persistent progress, clear timers and an opt-in keep-awake option that ends on exit. Expo documents keep-awake support but notes limited web support, so provide a fallback. Cache the active recipe and shopping list and queue supported edits with visible pending/conflict states; agent requests requiring the server must say when they cannot run offline.\n\nFlutter is a strong single-codebase alternative, but its own web FAQ says its output is not well aligned with search indexing; recipe discovery and shareable web pages may matter here. SwiftUI or Compose alone would leave other platforms to build separately. React Aria and Radix are attractive for a web-only interface, but do not by themselves solve native phone UI. CopilotKit, A2UI and MCP Apps address agent presentation or interoperability, not the core cooking app and shared business operations; I wouldn’t introduce generative UI or an external-host protocol until a concrete need justifies it.",
+          "showItsGood": "First prototype the end-to-end recipe → add ingredients → list → cook flow on actual iOS and Android phones and in mobile and desktop browsers. Run moderated kitchen sessions with representative cooks, including people with motor and vision impairments, using messy hands and realistic interruptions. Observe task completion, mis-taps, time to find the next step, timer recovery, list accuracy, and whether people understand and can undo the agent’s changes. Test direct manipulation and agent requests separately, including ambiguous ingredient quantities and permission failures; record the failure reasons and iterate with participants.\n\nIn CI run unit and integration tests for quantity handling, authorization, retries/idempotency and offline sync/conflicts; contract/parity tests for each human action and agent tool; and end-to-end tests across web and native, including device-command acknowledgement and disconnected devices. Test keyboard navigation, focus, zoom/reflow, contrast and automated web accessibility checks, plus VoiceOver and TalkBack manually on real devices. Check large text, narrow screens, screen wake fallback, background/foreground transitions and timer behavior. Use screenshots and performance checks for regressions, then monitor opt-in, privacy-respecting completion and error rates after launch. These are proposed checks, not results I have run; automated accessibility checks do not replace disabled users’ feedback.",
+          "unsure": "We need to learn whether phone means installed apps or mobile web, whether public recipe SEO is essential, what traffic and offline guarantees are expected, and whether voice control is important enough to justify speech and its privacy/accuracy costs. Tamagui’s cross-platform accessibility and the Agent-Native HTTP/auth integration must be tested on our chosen versions and devices; shared components and actions do not guarantee usability or parity. OS/background timer and wake behavior vary, and browser persistence can be evicted. If recipe SEO or web accessibility proves limiting, I’d consider a dedicated React/React Aria web frontend while retaining the same server actions; if the Agent-Native integration is too restrictive, I’d keep the shared action contract in a conventional backend.",
+          "sources": [
+            "https://github.com/tamagui/tamagui",
+            "https://docs.expo.dev/router/introduction/",
+            "https://github.com/BuilderIO/agent-native",
+            "https://agent-native.com/docs/actions-overview",
+            "https://www.agent-native.com/docs/actions-access-control/",
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "https://reactnative.dev/docs/accessibility",
+            "https://github.com/adobe/react-spectrum",
+            "https://github.com/CopilotKit/CopilotKit",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/a2ui-project/a2ui",
+            "https://docs.flutter.dev/platform-integration/web/faq",
+            "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/tree/main/samples/client/flutter",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://api.github.com/repos/a2ui-project/a2ui/contents/samples/client/flutter?ref=b4f91c26fcf62abc0720c21a65840220941d0a3f\nCaptured: 2026-11-19T03:23:55.095Z\nCharacters: 0-290 of 290\n\n- \"README.md\" (file): https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/samples/client/flutter/README.md\n- \"restaurant_finder\" (dir): https://github.com/a2ui-project/a2ui/tree/b4f91c26fcf62abc0720c21a65840220941d0a3f/samples/client/flutter/restaurant_finder\n\n[End of documen",
+          "resultLength": 503,
+          "source": {
+            "url": "https://api.github.com/repos/a2ui-project/a2ui/contents/samples/client/flutter?ref=b4f91c26fcf62abc0720c21a65840220941d0a3f",
+            "capturedAt": "2026-11-19T03:23:55.095Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "f60934a558ca3d8ab602daa9a07b7b2ec1367799b4492895fc4b7946d9b51b43",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/reference/renderers/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://a2ui.org/reference/renderers/\nCaptured: 2026-11-19T03:02:07.332Z\nCharacters: 0-115 of 115\n\nRedirecting to: /concepts/sdks/#renderer-sdk Redirecting from /reference/renderers/ to /concepts/sdks/#renderer-sdk\n\n[End of document.]",
+          "resultLength": 242,
+          "source": {
+            "url": "https://a2ui.org/reference/renderers/",
+            "capturedAt": "2026-11-19T03:02:07.332Z"
+          },
+          "resultSha256": "7139eb643dfc5d6b39d054e04e52e3946fedabb871d9bbeac9e376c2520e3398",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/desktop",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/platform-integration/desktop\nCaptured: 2026-11-19T03:23:55.324Z\nCharacters: 0-10000 of 16869\n\nDesktop support for Flutter Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette",
+          "resultLength": 10206,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/desktop",
+            "capturedAt": "2026-11-19T03:23:55.324Z"
+          },
+          "resultSha256": "7fa5e7679fd1b949ec3d68ef5de955304c435ae014f093d35501ff2e129d49ef",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md\nCaptured: 2026-11-19T03:01:58.614Z\nCharacters: 0-10000 of 10623\n\n# Fluent UI Web\n\n[![Build Status](https://img.shields.io/azure-devops/build/uifabric/fabricpublic/164/master?style=flat-square)](https://dev.azure.com/uifabric/fabricpublic/_build?definitionId=164) ![GitHub contributors](https://img.shields.io/github/contributors/microsoft/fluentui?style=flat-square) ![GitHub top language",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md",
+            "capturedAt": "2026-11-19T03:01:58.614Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "7482dea0ef68031a1b89c95a8c43655fe11c289016bb98a009cdb36e41da9819",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel/ai-elements",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md\nCaptured: 2026-11-19T03:23:53.043Z\nCharacters: 0-4455 of 4455\n\n# ▲ AI Elements\n\n> [!WARNING]\n> **AI Elements is moving to shadcn/ui.** This project will be deprecated at the end of November 2026 and replaced by [AI Elements from shadcn/ui](https://ui.shadcn.com/docs/ai-elements). New projects should use the shadcn/ui version once it's available.\n\n[AI Elements](https://elements.ai-sdk.d",
+          "resultLength": 4650,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md",
+            "capturedAt": "2026-11-19T03:23:53.043Z",
+            "candidate": "AI Elements",
+            "sha": "ca8be600bfd01b3131f9bf6134b51602a71f4374"
+          },
+          "resultSha256": "1487a6358bf95f1028dcd5f3c736edb4042dbf671608d4d8912e7030505dcd7d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/openai/apps-sdk-ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md\nCaptured: 2026-11-19T03:23:55.318Z\nCharacters: 0-4733 of 4733\n\n# Apps SDK UI\n\nApps SDK UI is a lightweight, accessible design system for building high-quality ChatGPT apps with the [Apps SDK](https://developers.openai.com/apps-sdk). It provides Tailwind-integrated design tokens, a curated React component library, and utilities optimized for consistent experiences inside ChatGPT.\n\n## Fe",
+          "resultLength": 4928,
+          "source": {
+            "url": "https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md",
+            "capturedAt": "2026-11-19T03:23:55.318Z",
+            "candidate": "OpenAI Apps SDK UI",
+            "sha": "0f00143c7a639906f1621fe58e1b6be7b5bea46d"
+          },
+          "resultSha256": "ff119011fff1a0530c91be6dde5e6a9cee8e5391228ea638b836ceee9fd433aa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md\nCaptured: 2026-11-19T03:01:53.203Z\nCharacters: 0-5336 of 5336\n\n# UI SDK\n\nA library of behaviors for agents to build the next generation of user interfaces.\n\nKeyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.\n\n<picture>\n  <source media=\"(prefers-color-scheme: d",
+          "resultLength": 5527,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md",
+            "capturedAt": "2026-11-19T03:01:53.203Z",
+            "candidate": "Vercel UI SDK",
+            "sha": "ab55044caee66cc8228fa7ed3525088a1b7b5af7"
+          },
+          "resultSha256": "5a77f3008dd50df8b1cca4f7a68c2b9f2ea413dcd759f6d548b521da1e4a5214",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 10000-14030 of 14030\n\nv/@a2ui/markdown-it.svg)](https://www.npmjs.com/package/@a2ui/markdown-it) |\n| [@a2ui/agent](typescript/agents/a2ui_agent/)              | Agent SDK: negotiates catalogs, generates prompts and skills, and compiles model output into A2UI.         | [![npm](https://img.shields.io/npm/v/@a2ui/agent.svg)](https://www.npmjs",
+          "resultLength": 4230,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "5845edfbdc68c23893de77277c4d0d71d293322d24040098fb06dae8b0d087c0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/concepts/sdks/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://a2ui.org/concepts/sdks/\nCaptured: 2026-11-19T03:02:16.024Z\nCharacters: 0-8683 of 8683\n\nSDKs | A2UI Skip to content A2UI v1.0 / Docs Built with A2UI Get Help Search docs ⌘ K Cancel Type to search the docs, or jump to: Quickstart Overview Catalogs Roadmap No results found Try a different keyword, or press Esc to close. Getting Started Quickstart Step-by-Step Walkthrough Playground ↗ Concepts Overview: How A2UI Works Messages Catalogs Data Model and Data Binding Actions, Events and ",
+          "resultLength": 8806,
+          "source": {
+            "url": "https://a2ui.org/concepts/sdks/",
+            "capturedAt": "2026-11-19T03:02:16.024Z"
+          },
+          "resultSha256": "893bfdab3e7bcde32a8c0e7f281f068125089ce91198d37ba7f9060670816885",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/blob/main/samples/client/flutter/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/samples/client/flutter/README.md\nCaptured: 2026-11-19T03:24:00.280Z\nCharacters: 0-701 of 701\n\n# A2UI Flutter client examples\n\nTo run examples from this folder, install Flutter SDK ([see docs](https://docs.flutter.dev/get-started/install)) and run:\n\n```bash\ncd <example_name>/app\nflutter run -d web\n```\n\nThe renderer package has a chat app of its own that renders what a Gemini\nmodel writes, [dart/a2",
+          "resultLength": 916,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/samples/client/flutter/README.md",
+            "capturedAt": "2026-11-19T03:24:00.280Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "551970cea39d8f6a95946683e814d46e327786ce7132ba957b12fee54711cdae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/HEAD/README.md\nCaptured: 2026-11-19T03:24:00.235Z\nCharacters: 0-10000 of 11592\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-core.webp\" alt=\"Ouro beside a table of paint jars in the Ouro palette, colour ribbons flowing to a phone, a laptop and a tablet\" width=\"100%\"></a>\n</p>\n<!-- ourostack:brand:en",
+          "resultLength": 10224,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:24:00.235Z"
+          },
+          "resultSha256": "c13fca72abb6b277c2dca0069bfeef07bd999759d75187b4cca7781524ab77fd",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 0-10000 of 16860\n\nWeb accessibility Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface palette Int",
+          "resultLength": 10212,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "091da19e5ffe329b14b3f3e70c487afd0fa617ffc89d028ec9ecd7849eb3e382",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/integrations-mcp-server",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "error": "404 Not Found fetching https://www.agent-native.com/docs/integrations-mcp-server",
+          "result": "Fetch failed: 404 Not Found fetching https://www.agent-native.com/docs/integrations-mcp-server",
+          "resultLength": 94,
+          "resultSha256": "652164931451a4b8bc901f478471931967efc04fd059f78543940ac6c2bc83ff",
+          "resultTruncated": false
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 10000-16860 of 16860\n\n bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Web accessibility vertical_align_top Web accessibility Background Opt-in web accessibility Invisible button Turn on accessibility mode in code Enhancing Accessib",
+          "resultLength": 7017,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "a8da47029377270624339c0ea54161ac28046740ca91144a6a4c7e426a14a2ab",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/blob/main/dart/a2ui_flutter/README.md",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/dart/a2ui_flutter/README.md\nCaptured: 2026-11-19T03:24:07.144Z\nCharacters: 0-10000 of 15541\n\n# A2UI Flutter\n\n`a2ui_flutter` renders [A2UI](https://a2ui.org/) surfaces as Flutter widgets.\nIn A2UI, an AI agent describes a user interface as JSON messages, and the app\nrenders it with its own components. This package supports protocol v1.0 and\nv0.9 and includes the basic catalog of components.\n\nTo lea",
+          "resultLength": 10273,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/dart/a2ui_flutter/README.md",
+            "capturedAt": "2026-11-19T03:24:07.144Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "ade5db54447c6226407e9e70d31952ea8474d76ef50bddb93aa54772a59ed7dc",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui/tree/main/dart/a2ui_flutter",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://api.github.com/repos/a2ui-project/a2ui/contents/dart/a2ui_flutter?ref=b4f91c26fcf62abc0720c21a65840220941d0a3f\nCaptured: 2026-11-19T03:24:07.192Z\nCharacters: 0-1457 of 1457\n\n- \"CHANGELOG.md\" (file): https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/dart/a2ui_flutter/CHANGELOG.md\n- \"LICENSE\" (file): https://github.com/a2ui-project/a2ui/blob/b4f91c26fcf62abc0720c21a65840220941d0a3f/dart/a2ui_flutter/LICENSE\n- \"README.md\" (file): https://github.com/a",
+          "resultLength": 1667,
+          "source": {
+            "url": "https://api.github.com/repos/a2ui-project/a2ui/contents/dart/a2ui_flutter?ref=b4f91c26fcf62abc0720c21a65840220941d0a3f",
+            "capturedAt": "2026-11-19T03:24:07.192Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "9c16da690029abffe62840b059f97bed78aa5a503fb3f0fdc840f35316da2807",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization\nCaptured: 2026-11-19T03:11:52.905Z\nCharacters: 0-10000 of 143755\n\nAuthorization - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2025-11-25 Search... ⌘ K Ask Assis",
+          "resultLength": 10230,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization",
+            "capturedAt": "2026-11-19T03:11:52.905Z"
+          },
+          "resultSha256": "3671611e9240af61d340949a2987ee90824286a9419c9347d73618a950e6b3cd",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.agent-native.com/docs/actions-access-control/",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://www.agent-native.com/docs/actions-access-control/\nCaptured: 2026-11-19T03:09:22.916Z\nCharacters: 0-10000 of 28669\n\nAccess & Authorization — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Access & Authorization Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Datab",
+          "resultLength": 10210,
+          "source": {
+            "url": "https://www.agent-native.com/docs/actions-access-control/",
+            "capturedAt": "2026-11-19T03:09:22.916Z"
+          },
+          "resultSha256": "951b19e901214ab018d64435486c53355b94cfa6f8f5a42ae13c70bef556d746",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/platform-integration/desktop",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/platform-integration/desktop\nCaptured: 2026-11-19T03:23:55.324Z\nCharacters: 10000-16869 of 16869\n\nate useful bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Desktop support for Flutter vertical_align_top Desktop support for Flutter Create a new project Set up desktop devtools Create and run Build a release app Ad",
+          "resultLength": 7020,
+          "source": {
+            "url": "https://docs.flutter.dev/platform-integration/desktop",
+            "capturedAt": "2026-11-19T03:23:55.324Z"
+          },
+          "resultSha256": "ab1e6464702a6bd68ab5112584834d992d4b25f737ffd6f31524dd0a9f3af859",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Flutter",
+          "pairings": [
+            "A2UI",
+            "Agent-Native (Builder.io)",
+            "Model Context Protocol (MCP)",
+            "PostgreSQL"
+          ],
+          "why": "I’d build the main chat clients in Flutter, with a product-specific design system and platform adaptations for web, iPhone, Android, Windows and Mac. Flutter documents those targets, including desktop builds. This is an app-centric, authenticated workspace rather than a public content site, so one shared client is attractive for a team maintaining five surfaces. Assume one company and a moderate initial deployment; the actual scale and existing stack are unknown. Sharing code is not a substitute for native-quality keyboard shortcuts, text selection, notifications, window behavior, accessibility or performance.\n\nUse A2UI for agent-authored interactive cards embedded in ordinary conversation messages—not to generate the whole chat interface. Its Flutter renderer maps protocol data to Flutter widgets and supports a developer-defined catalog. I’d allow a small versioned catalog of text, fields, status and action controls, validate card messages on the server and client, persist a versioned snapshot with the conversation, and render a readable fallback for unsupported versions. No arbitrary code, unrestricted network requests or model-selected executable actions. Card actions carry card/message IDs and typed arguments to a server-owned action registry. For example, an agent posts an approval card; a person sees who requested what, presses Approve, and the server rechecks their identity, current permission and card state, applies the change once, and broadcasts the actual result. Handle expired, already-acted-on, offline and failed states visibly; use idempotency keys and concurrency checks. Keep draft field values and focus stable during card updates. A2UI’s schema limits what can be expressed; it does not itself grant authority or ensure the action is safe.\n\nUse Agent-Native as a candidate server action layer: its documented shared actions are accessible via UI/HTTP and agent tools, with shared data. Clients call authenticated endpoints; external agents get scoped MCP tools for reading conversations and state, searching, posting, reacting and other authorized app operations. Give agents distinct identities, show their posts as agent posts, and enforce workspace/channel membership and least-privilege scopes on every read and write. Explicitly configure exposure: the framework documents agent-callable defaults, so an action being discoverable must never be treated as permission. A user’s private drafts and device-local state are not automatically available; expose any such state or device action only with explicit delegation, and require a connected client acknowledgement when applicable. Rate limits, deduplication, loop prevention, retention policies, audit attribution and human confirmation for consequential operations matter alongside prompt-injection defenses: conversation text is data, never an instruction that overrides authorization.\n\nBack the app with durable ordered conversation events, authenticated real-time updates and reconnect/cursor-based catch-up. Define ordering, message IDs, retry semantics and conflict handling; show pending/failed sends instead of silently losing or duplicating them. Server-authoritative card actions use the same permission checks regardless of whether a person or agent initiates them. MCP is the external action/state interface; MCP Apps, which renders a server-provided UI in a compatible host, is not required for cards inside our own app.\n\nI weighed React/React Aria plus separate phone and desktop shells: it gives a more conventional web DOM, but adds platform integration and multiple client paths. Flutter’s web semantics need particular care: its documentation says web accessibility is opt-in by default, so I would enable semantics in code and test it, not ask users to find an invisible switch. Ouro UI has a compelling one-action model, but its own platform docs list only eight Android and Windows controls and say Android was tested on emulators, not physical devices; I wouldn’t make those young kits the foundation of an all-day company tool yet. CopilotKit and MCP Apps are useful for agent experiences but neither replaces the five-platform chat client or its action/security model.",
+          "showItsGood": "Build a thin vertical slice first: two people and an agent in a conversation, message history and reconnect, an approval card, and an external agent reading and posting through MCP. Run it on all five targets. In moderated studies, ask representative employees—including keyboard and assistive-technology users—to find a channel, catch up on unread messages, reply, search, interpret an agent card, approve or decline, and recover from an interrupted connection. Observe completion, errors, focus loss, notification interruptions and trust in authorship; repeat after fixes. Test long conversations and all-day usage, not just a fresh demo.\n\nIn CI run unit, contract and integration tests for schema validation, permissions, cross-workspace isolation, idempotency, ordering, reconnect/replay, stale cards, concurrent approvals and protocol-version fallback. Test malicious card content, unsafe links, prompt injection, revoked permissions and agent loops. Run end-to-end flows and accessibility checks on each platform, with real-device manual VoiceOver, TalkBack and desktop screen-reader/keyboard testing, high contrast, large text, zoom, IME input and reduced motion. Enable Flutter web semantics and verify the resulting experience in supported browsers. Profile startup, memory after prolonged use, scrolling and message latency under realistic history and network loss; set budgets with the team before launch and monitor aggregate reliability without logging private message content. These are proposed tests and measures, not results I have run.",
+          "unsure": "The company’s user count, deployment/security requirements, existing identity provider, retention rules, encryption requirements, desktop distribution constraints and whether agents act independently or on a person’s behalf are unspecified. Validate Flutter’s web accessibility, desktop integrations, notification behavior and long-session memory on actual devices before committing; if the web experience fails, use a dedicated React/React Aria web client against the same backend. A2UI’s Flutter sample says it is enabled and tested for macOS and web, so I would independently validate the renderer and our catalog on iOS, Android and Windows, pin versions, and keep a plain-text fallback. Also spike Agent-Native’s authenticated HTTP/MCP integration from Flutter and test its policies; use a conventional shared action service instead if it cannot meet the company’s controls or scale.",
+          "sources": [
+            "https://github.com/flutter/flutter",
+            "https://docs.flutter.dev/platform-integration/desktop",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "https://github.com/a2ui-project/a2ui",
+            "https://github.com/a2ui-project/a2ui/blob/main/dart/a2ui_flutter/README.md",
+            "https://github.com/a2ui-project/a2ui/blob/main/samples/client/flutter/README.md",
+            "https://github.com/BuilderIO/agent-native",
+            "https://www.agent-native.com/docs/actions-access-control/",
+            "https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/adobe/react-spectrum",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+            "https://github.com/CopilotKit/CopilotKit"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md\nCaptured: 2026-11-19T03:03:19.721Z\nCharacters: 0-10000 of 47857\n\n# Ouro AX\n\nOuro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).\n\n- **The standard** (`ax-c",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md",
+            "capturedAt": "2026-11-19T03:03:19.721Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "703d5095a292dc060cfa36ce88f8f47ccce3ed872ea1cf919e5667814eb1f4b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md\nCaptured: 2026-11-19T03:14:23.434Z\nCharacters: 0-10000 of 11937\n\n# The Ouro AX X-ray\n\n`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface wh",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+            "capturedAt": "2026-11-19T03:14:23.434Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ed60e7d97fa44e86760500a3b84ff8bc441a9649e2287a06e0e6692dc261a691",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-eval.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md\nCaptured: 2026-11-19T03:21:24.811Z\nCharacters: 0-6207 of 6207\n\n# The Ouro AX evaluation\n\nThe X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters ([the claims](ax-standard.md)). An Ouro AX evaluation gives real agents, each in a fresh session, a task against the interface, and a scorer that calls no model judges each run from the",
+          "resultLength": 6414,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md",
+            "capturedAt": "2026-11-19T03:21:24.811Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c6d80c127fd1c2a1e760dc568c348eb418af9660ae1a0fdb06618dd8e9ab97f5",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/agent-production-access",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "error": "404 Not Found fetching https://www.agent-native.com/docs/agent-production-access",
+          "result": "Fetch failed: 404 Not Found fetching https://www.agent-native.com/docs/agent-production-access",
+          "resultLength": 94,
+          "resultSha256": "0e23e0cae0535c5d24daf66e14b130436b16c3bf5188747d756f2c5d1ceba767",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/context-awareness",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.agent-native.com/docs/context-awareness/\nCaptured: 2026-11-19T03:25:04.841Z\nCharacters: 0-10000 of 23843\n\nContext Awareness — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Context Awareness Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Database providers N",
+          "resultLength": 10205,
+          "source": {
+            "url": "https://www.agent-native.com/docs/context-awareness/",
+            "capturedAt": "2026-11-19T03:25:04.841Z"
+          },
+          "resultSha256": "58b60f98e0b03b64855953567ebfa9c7f33be78ecea0e37e9d74049b2d2010aa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/server-database",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.agent-native.com/docs/server-database/\nCaptured: 2026-11-19T03:25:05.121Z\nCharacters: 0-10000 of 18654\n\nDatabase — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Database Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Database providers Neon Postgres Supabas",
+          "resultLength": 10203,
+          "source": {
+            "url": "https://www.agent-native.com/docs/server-database/",
+            "capturedAt": "2026-11-19T03:25:05.121Z"
+          },
+          "resultSha256": "3f150f1e1af29a84baacbf6a24424e62eb8b3d7039b442f4a90e8ee38d013f55",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native/blob/main/templates/plans/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "error": "404 Not Found fetching https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/templates/plans/README.md",
+          "result": "Fetch failed: 404 Not Found fetching https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/templates/plans/README.md",
+          "resultLength": 160,
+          "resultSha256": "b1ebd3ad672841695b8e865e42af7e3031e816eaee569f686a1dacd8353e02d8",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native/blob/main/templates/chat/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/templates/chat/README.md\nCaptured: 2026-11-19T03:25:01.862Z\nCharacters: 0-1206 of 1206\n\n# Chat\n\nThe minimal agent-native starter app — a clean, ChatGPT-style shell with chat at\nthe center, durable threads, standard app navigation, auth, live sync, and\nactions. Start here when you want a real browser app to build on without\ncommitting to a domain template.\n\n**Live app: [chat.agent-native.com]",
+          "resultLength": 1420,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/templates/chat/README.md",
+            "capturedAt": "2026-11-19T03:25:01.862Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "0ea34dee1557dd9381e50917d2aadd3798de920036b3356bb902bff1698a7c3e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/start/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/start/\nCaptured: 2026-11-19T03:25:24.041Z\nCharacters: 0-5990 of 5990\n\nWhat is Tauri? | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrade & Migrate Ov",
+          "resultLength": 6109,
+          "source": {
+            "url": "https://v2.tauri.app/start/",
+            "capturedAt": "2026-11-19T03:25:24.041Z"
+          },
+          "resultSha256": "26c61a6e7506f81bdb1bb77abc9e83c82efcf615a67e9a4d01ed0cdcd3cd0ee8",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/security/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/security/\nCaptured: 2026-11-19T03:25:24.075Z\nCharacters: 0-7534 of 7534\n\nSecurity | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrade & Migrate Overv",
+          "resultLength": 7656,
+          "source": {
+            "url": "https://v2.tauri.app/security/",
+            "capturedAt": "2026-11-19T03:25:24.075Z"
+          },
+          "resultSha256": "770ab1d5bed930918a66d5b9ff2c229f7ce31d15b5382248feab95c351406ead",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-work-event.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-work-event.md\nCaptured: 2026-11-19T03:25:23.557Z\nCharacters: 0-3893 of 3893\n\n<!-- Generated by scripts/ax-docs.mts from the JSDoc in registry/ouro/ax/. Do not edit; run `pnpm run docs`. -->\n\n# ax-work-event\n\nAn attributed work event: who acted and for whom, on what, why, with which receipt, when. An agent interface emits them for its actions, handoffs, waits and returns, so the person ",
+          "resultLength": 4102,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-work-event.md",
+            "capturedAt": "2026-11-19T03:25:23.557Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ded16a3c1fce8065e19268edf39b32aeef93c3ec734405fa2cd607ecf95e6d1a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-wait.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-wait.md\nCaptured: 2026-11-19T03:25:23.555Z\nCharacters: 0-5688 of 5688\n\n<!-- Generated by scripts/ax-docs.mts from the JSDoc in registry/ouro/ax/. Do not edit; run `pnpm run docs`. -->\n\n# ax-wait\n\nA typed wait: the agent names a reference it already holds, the tool waits (polling, if it must, where the agent cannot see it) until something happens or the time limit passes, and returns wh",
+          "resultLength": 5891,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-wait.md",
+            "capturedAt": "2026-11-19T03:25:23.555Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "29233cbb24fd7570bece76545cf7ae74e3f04c7f73c9b1032b843b4824044f32",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-mcp.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-mcp.md\nCaptured: 2026-11-19T03:25:23.607Z\nCharacters: 0-3144 of 3144\n\n<!-- Generated by scripts/ax-docs.mts from the JSDoc in registry/ouro/ax/. Do not edit; run `pnpm run docs`. -->\n\n# ax-mcp\n\nThe same definitions as an MCP server over stdio (newline-delimited JSON-RPC 2.0), with no dependencies: one tool per command, its inputSchema from the definition, calls checked before they run ",
+          "resultLength": 3346,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-mcp.md",
+            "capturedAt": "2026-11-19T03:25:23.607Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "1a6db8caa76fc26091f1feeefdcca628e2a8b399af9977a7246e4f56a7db08c4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-command.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-command.md\nCaptured: 2026-11-19T03:25:23.583Z\nCharacters: 0-10000 of 11252\n\n<!-- Generated by scripts/ax-docs.mts from the JSDoc in registry/ouro/ax/. Do not edit; run `pnpm run docs`. -->\n\n# ax-command\n\nOne definition of a command: its words, effect, arguments and flags, examples and output. From it come the parser (whose refusals name the exact fix), the usage and help, `help --json`",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-command.md",
+            "capturedAt": "2026-11-19T03:25:23.583Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ccf5494364c6916408193152b416c2d67fbc87cbbce853a6f199ab0829bfb055",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-standard.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-standard.md\nCaptured: 2026-11-19T03:25:23.641Z\nCharacters: 0-6104 of 6104\n\n# The Ouro AX claims\n\nThe Ouro AX standard is a list of claims about the interfaces agents use. A claim is one rule that a program can check from outside, such as \"an unknown flag fails before anything runs\". `ax-claims` holds them as data in `lib/ouro/ax/claims.ts`, and `ax-xray` checks an interface against",
+          "resultLength": 6315,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-standard.md",
+            "capturedAt": "2026-11-19T03:25:23.641Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "e8b4bee6f0c82fc6fae5e176856c4c6aaaaf95a15964254f0d32542bb57a8203",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/actions-overview",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://www.agent-native.com/docs/actions-overview/\nCaptured: 2026-11-19T03:03:58.048Z\nCharacters: 0-9522 of 9522\n\nOverview — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Overview Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Database providers Neon Postgres Supabase",
+          "resultLength": 9665,
+          "source": {
+            "url": "https://www.agent-native.com/docs/actions-overview/",
+            "capturedAt": "2026-11-19T03:03:58.048Z"
+          },
+          "resultSha256": "6866de043cb97b5756805cdb1a65f427622821d1d357eb73a66036a8feb8363f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Ouro UI, especially Ouro AX",
+          "pairings": [
+            "React Aria",
+            "Tauri",
+            "PostgreSQL",
+            "Model Context Protocol (MCP)"
+          ],
+          "why": "I’d start with Ouro AX for the agent-facing CLI and use Ouro’s React components, supplemented by React Aria where needed, for the human review interface. Wrap that same web UI in Tauri for desktop. This job is primarily an interface for coding agents, not a chatbot: Ouro AX documents command schemas, machine-readable help and outcomes, typed waits, attributed work events and an external X-ray checker. Its React kit gives us a starting point for the equally important human surface. Tauri uses the system webview; it is a desktop shell, not the state store or authorization boundary.\n\nBuild one server-owned action and data layer, with CLI and MCP adapters and the desktop/web UI invoking the same authorized operations. Store tasks, versions, checkpoints, claims, handoffs, approvals and an append-only event history in PostgreSQL for a shared deployment. Agents can discover work, claim a task with a renewable lease, checkpoint progress, report evidence and blockers, hand off, and wait on a cursor. Reads return stable IDs, versions, timestamps, concise summaries and paginated detail; writes return typed outcomes, receipts and actionable errors. Use transactions, expected-version checks and idempotency keys so retries and competing agents do not silently duplicate or overwrite work. Expired leases allow recovery, not an assumption that an agent finished.\n\nA concrete handoff: an agent records a task ID, repository/branch and commit, changed files, test commands and results, known gaps and its requested decision. The person sees the change and supporting evidence, can inspect source artifacts, request revisions, pause or approve. Approval is a distinct authenticated human action tied to the exact task version and evidence; stale versions must be reviewed again. A pause is a requested control with an acknowledged state, not a claim that an uncooperative external process has already stopped. Agent-authored summaries and logs are untrusted claims, clearly distinguished from independently collected test results. The interface should show who did what, what is waiting, what changed since review and what the next action will affect, without forcing a person to read a transcript to find the decision.\n\nOuro’s AX command definition supplies CLI help/schema and its MCP adapter exposes commands over stdio, but the documentation labels that adapter a preview and lists older MCP versions. Pin and test it against the coding-agent clients we support; use the official MCP SDK and an authenticated HTTP adapter for remote agents if necessary. Neither a CLI flag naming an agent nor a generated schema is authentication: derive actor identity from credentials, scope all access to the workspace, keep secrets out of logs, and require human authorization for final decisions and other sensitive actions. Treat repository text and handoffs as untrusted input. Restrict Tauri capabilities and IPC, and avoid giving the webview arbitrary filesystem or shell privileges.\n\nI considered Builder.io Agent-Native: its shared actions, database and UI are a strong alternative, particularly if we need its full agent runtime and hosted collaboration. Here I prefer the explicit command-oriented interface and external conformance tooling because existing coding agents are the main operators; we still must implement shared server actions ourselves. A2UI, json-render and MCP Apps address agent-generated or host-embedded UI, but this product needs a stable review workflow more than dynamically generated screens. Flutter is plausible for a broader native client, but a web-based desktop shell keeps this web-plus-desktop scope simpler. Assume a small team and shared backend; desktop OS support, tenancy and offline requirements remain to be decided.",
+          "showItsGood": "Prototype an agent claiming a task, checkpointing, handing off and resuming after a person requests changes. In CI run AX X-ray against an isolated mock with a generated inventory, covering CLI, HTTP and MCP; publish its report and skipped checks. Ouro’s own documentation says conformance does not prove end-to-end task success, so add independent scripted flows and fresh-session coding-agent evaluations against reset fixtures. Score final state, correct handoff contents, unauthorized writes, recovery, calls, wrong turns, elapsed time and context/token use; compare repeated runs and agent clients rather than relying on one model or one run.\n\nTest concurrent claims, expired leases, crashes between write and acknowledgement, retries, stale approvals, tampered evidence, permission revocation, redaction and reconnect. Verify both UI and agent paths enforce the same server policy and that an agent cannot approve as a human. For people, run moderated review sessions with developers and reviewers, including keyboard and screen-reader users: find blocked work, verify a claimed test result, spot changed evidence, request revisions, pause and approve. Observe completion, time to a defensible decision, missed risk, mistaken approvals and recovery. Manually check keyboard/focus, zoom, contrast and screen readers in the desktop webview and supported browsers; run automated accessibility and visual regression checks as supplements. No tests or user studies have been run for this proposed product.",
+          "unsure": "We need to establish whether desktop means macOS, Windows, Linux or all three; whether the tool must work fully offline or directly inside a repository; how many agents share a workspace; which coding clients and MCP versions matter; and the required retention and security model. A local-first design would need an explicit sync/conflict strategy rather than silently treating a local cache as shared truth. Ouro AX is copy-in source and its MCP adapter is documented as preview, so I would pin it, own updates and validate its compatibility and security. Tauri’s webview and desktop integrations also need real-platform testing. If shared hosting and integrated agent orchestration dominate, I would reconsider Agent-Native; if users need native desktop accessibility or OS integration that the webview cannot deliver, I would revisit the client shell.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-eval.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-work-event.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-wait.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/ax/ax-mcp.md",
+            "https://github.com/adobe/react-spectrum",
+            "https://v2.tauri.app/start/",
+            "https://v2.tauri.app/security/",
+            "https://agent-native.com/docs/actions-overview",
+            "https://agent-native.com/docs/server-database",
+            "https://www.agent-native.com/docs/actions-access-control/",
+            "https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://github.com/vercel-labs/json-render"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "A plausible postmortem is that I optimized for architectural coverage before proving the hardest user experiences. I chose stacks that could plausibly reach the platforms and expose agent actions, but I didn’t build a vertical slice or watch anyone use one.\n\n**Cooking app.** The shared Tamagui interface may have saved code but still felt awkward in a kitchen: controls too small, steps hard to read at a distance, and timers or screen-wake behavior unreliable across devices. The agent could add ingredients online but fail when the list was offline or the user’s selected recipe was only local to a device. Quantity merging could look successful while producing an incorrect list. I also assumed Expo’s web approach would be adequate before establishing whether searchable public recipes were central to the business.\n\n**Company chat.** Flutter’s five targets may have concealed five different accessibility and integration problems. An all-day chat client needs excellent screen-reader behavior, keyboard navigation, text input, notifications and performance with long histories—not just a successful build. I paired it with A2UI despite the Flutter sample I found being enabled and tested only on macOS and web. Cards could lose input or focus during updates, and “shared actions” could still leave authorization holes or mismatched behavior between agent, web and native paths. The complexity of real-time sync, retention and enterprise identity may have overwhelmed the UI choice.\n\n**Agent work-state tool.** Ouro AX’s structured commands and X-ray might have given us reassuring conformance reports while agents still made poor handoffs or people missed important evidence. We might have stored polished summaries instead of verifiable state, or treated a pause request as if it stopped an external coding process. Leases and approvals in our database would not, by themselves, prevent an agent from continuing to modify a repository. The copy-in AX code and preview MCP adapter could also become a maintenance burden; the Tauri shell would add security and platform work we had not estimated.\n\nAcross all three, I may have added too many layers too early. **A declared action is not automatically a safe action, and a cross-platform component is not automatically a good interface.** I would revisit the choices after testing one real workflow end to end, including failure and recovery, rather than defending the original stack.\n\n**What slowed or confused my research:**\n\n- I compared a mixed list: UI component libraries, full application frameworks, agent runtimes and protocols. They solve different layers, so a single “winner” can hide missing pieces.\n- Some documentation emphasized breadth or safety more strongly than its platform-specific evidence warranted. I had to follow A2UI’s Flutter sample and Ouro’s Android/Windows pages to find important testing and maturity limits. Ouro’s X-ray documentation also explicitly says a conformant interface can still fail task flows.\n- I hit several 404s and a redirect while looking for the right framework pages. Long READMEs and version-specific details took additional reads, and I did not examine every candidate equally deeply.\n- The GitHub candidates were read at captured revisions, but ordinary web pages were captured when fetched, after the stated research cutoff. Some documentation could therefore reflect changes after that cutoff. I should have made that limitation more explicit in my decisions.\n- Most importantly, I had no running product, actual team constraints or users to test. I researched documentation and proposed checks; I did not run the applications, verify the integrations or observe a real person using any of the designs."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/LICENSE",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/LICENSE\nCaptured: 2026-11-19T03:26:25.652Z\nCharacters: 0-1069 of 1069\n\nMIT License\n\nCopyright (c) 2026 Ari Mendelow\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, ",
+          "resultLength": 1261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/LICENSE",
+            "capturedAt": "2026-11-19T03:26:25.652Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "7de9b975a4294fdc03775e8c6fb178c70bbb3239abf49b4ac0f437b842fdc045",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/composed-ui.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md\nCaptured: 2026-11-19T03:22:04.494Z\nCharacters: 0-10000 of 20623\n\n# Composed UI\n\nComposed UI is the interface an agent composes for a person, drawn natively, with consent. When an agent shows a person something, a recipe card, an order to confirm or a summary to act on, it composes it as data in Ouro's composed tree, and Ouro HX draws it. The tree is interface as validat",
+          "resultLength": 10272,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md",
+            "capturedAt": "2026-11-19T03:22:04.494Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "f9a6706d15061adde129c669a68644babfced224c2d867d39a95d13848a8bd07",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-eval.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md\nCaptured: 2026-11-19T03:21:24.811Z\nCharacters: 0-6207 of 6207\n\n# The Ouro AX evaluation\n\nThe X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters ([the claims](ax-standard.md)). An Ouro AX evaluation gives real agents, each in a fresh session, a task against the interface, and a scorer that calls no model judges each run from the",
+          "resultLength": 6414,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md",
+            "capturedAt": "2026-11-19T03:21:24.811Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c6d80c127fd1c2a1e760dc568c348eb418af9660ae1a0fdb06618dd8e9ab97f5",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md\nCaptured: 2026-11-19T03:14:23.434Z\nCharacters: 0-10000 of 11937\n\n# The Ouro AX X-ray\n\n`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface wh",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+            "capturedAt": "2026-11-19T03:14:23.434Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ed60e7d97fa44e86760500a3b84ff8bc441a9649e2287a06e0e6692dc261a691",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/installing.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md\nCaptured: 2026-11-19T03:21:24.724Z\nCharacters: 0-10000 of 31606\n\n# Installing\n\nAdd `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` an",
+          "resultLength": 10271,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md",
+            "capturedAt": "2026-11-19T03:21:24.724Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c44ac6be0d12e522b6bbed59b1e2867f406510e45415d9b8260b54a33b079666",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/package.json",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/package.json\nCaptured: 2026-11-19T03:26:22.162Z\nCharacters: 0-4357 of 4357\n\n{\n  \"name\": \"ouro-ui\",\n  \"private\": true,\n  \"version\": \"0.0.1\",\n  \"description\": \"React components for coding agents, as a shadcn registry. Install: npx shadcn@latest add ourostack/ouro-ui/<item>#v1.3.314\",\n  \"license\": \"MIT\",\n  \"repository\": {\n    \"type\": \"git\",\n    \"url\": \"git+https://github.com/ourostack/ouro-ui.git\"\n ",
+          "resultLength": 4554,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/package.json",
+            "capturedAt": "2026-11-19T03:26:22.162Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "3c3a0aad8642987dce2646509404f6b57300489abace8080fb1b8ff65dedd507",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/.github/workflows/ci.yml",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/.github/workflows/ci.yml\nCaptured: 2026-11-19T03:26:25.840Z\nCharacters: 0-10000 of 166347\n\nname: CI\non:\n  pull_request:\n  push:\n    branches: [main]\n  merge_group:\n  # release.yml runs CI on its release branch this way: pushes made with GITHUB_TOKEN\n  # trigger no workflows.\n  workflow_dispatch:\npermissions:\n  contents: read\n# A push to a pull request cancels that pull request's run in progress, ",
+          "resultLength": 10271,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/.github/workflows/ci.yml",
+            "capturedAt": "2026-11-19T03:26:25.840Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "82f091c376dcf4ae048cdfb4b6b94fca298c4b7e2b9e0ff258c73782f40e5849",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/ax/mcp.ts",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/registry/ouro/ax/mcp.ts\nCaptured: 2026-11-19T03:26:22.195Z\nCharacters: 0-10000 of 11176\n\nexport { createMcpHandler, mcpTools, PROTOCOL_VERSIONS, serveMcp, toolName };\nexport type { McpCall, McpCallResult, McpOptions, McpTool };\n\n// The export list comes first because the shadcn CLI drops comments before a file's\n// first statement, which would take the JSDoc below with it.\n\nimport { checkInput, c",
+          "resultLength": 10269,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/registry/ouro/ax/mcp.ts",
+            "capturedAt": "2026-11-19T03:26:22.195Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "f82f41e16925d682d8b1217ae5faad265f0193a068e97a9fac9408bc68f59631",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I picked Ouro UI for the **agent work-state tool**, but not for the cooking app or company chat. I’d treat that pick as a pilot, not a commitment to make it the foundation of the product.\n\n### What could stop a team adopting it?\n\n- **Platform fit.** Ouro’s web kit is React, and its native kits are separate SwiftUI, WinUI and Compose implementations—not Flutter or React Native. That’s a real cost for the two mobile-heavy apps. Its own [Android page](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md) says the Android kit has eight components and has only been checked on emulators; the [Windows page](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md) lists similarly limited component coverage and gaps in testing on a Windows client.\n- **Ownership and compatibility.** The web and AX pieces are copied into the app. That permits customization, but the team owns reviewing and updating that code. The [AX MCP adapter](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/ax/ax-mcp.md) is documented as preview and supports a specified set of MCP versions; I’d need to test it with our actual agent clients. The web setup also assumes React, Tailwind and shadcn conventions that an existing team might not use.\n- **Security and evidence.** Ouro’s action and consent model is useful, but a generated tool or confirmation screen is not server-side authentication or authorization. Nor does an X-ray pass prove users can complete their work: Ouro’s [own X-ray guide](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md) describes a conformant version that still failed scripted flow checks. We would need our own security review, integration tests and user research. The repository is MIT-licensed, but a team would still review dependencies and its support obligations.\n\n### What would make me expand its use?\n\nI’d try one narrow workflow: an agent records a task handoff, a person reviews and requests changes, and the agent resumes. I’d use Ouro’s command definitions and X-ray against an isolated mock, then test the real server’s identity, permissions, stale approvals and retry behavior separately. I’d compare repeated agent runs against our existing interface for successful handoffs, wrong turns and recovery, and watch people review the results—including keyboard and screen-reader users.\n\nI’d expand adoption if that pilot is **at least as usable and secure as the alternative**, measurably reduces integration or maintenance work, and our team can reliably update the copied code. For cooking or chat, I’d additionally need real-device evidence and a convincing plan for the Flutter/React Native mismatch; good web results alone would not justify switching those apps.\n\n### What would it let me do that I can’t today?\n\nNot something fundamentally impossible to build otherwise. It would give me a **ready-made, inspectable way** to define an agent-facing command with structured help and outcomes, expose it as an MCP tool, and run an external checker over a CLI, HTTP interface or MCP server. Its [composed UI](https://github.com/ourostack/ouro-ui/blob/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/composed-ui.md) also offers a catalog-constrained card whose button refers to a declared action rather than arbitrary agent-written code.\n\nThat could let a team establish and check those contracts sooner instead of building all the machinery itself. It would **not** let me claim an action is authorized, a screen is accessible, or a handoff is trustworthy without testing the actual product. In this session I can inspect the repository; I can’t honestly say I installed Ouro, ran its checks or observed people using it."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

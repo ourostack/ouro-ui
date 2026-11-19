@@ -12,7 +12,7 @@ const SPOONJOY_SOURCE = "https://github.com/spoonjoy/spoonjoy-v2";
 /** Ouro's one public home. */
 const OURO_HOME = "https://ouroboros.bot/";
 
-/** The Nautilus in profile, the stage's own drawing, coloured from the theme (stage.css); its one id renamed so the page has it once. */
+/** The Nautilus in profile, the stage's own drawing, coloured from the theme (voyage.css, .site-ship-nautilus); its one id renamed so the page has it once. */
 const SHIP = art.nautilus.inner.replaceAll("nautilus-sheen", "ship-card-sheen");
 
 /** One showcase: open text on the page under a hairline, no card around it, and its art beside it, or, when `wide`, under it across the row. */

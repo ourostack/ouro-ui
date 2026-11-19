@@ -19,7 +19,8 @@ export type Palette = Readonly<Record<string, string>>;
 
 /**
  * Each phase's colours over Pearl, light and dark. Text keeps 4.5:1 on every surface
- * (live.test.ts); `live-*` variables colour the porthole's sky, sun and sea (stage.css).
+ * (live.test.ts); `live-sky` and `live-sun` tint the porthole's painted sky, and `live-sea` its
+ * sea until the paintings arrive (stage.css).
  * Day is Pearl itself, under a daytime sky.
  */
 export const LIVE_PALETTES: Readonly<Record<Phase, { light: Palette; dark: Palette }>> = {

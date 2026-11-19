@@ -7,6 +7,7 @@ import { describe, test } from "node:test";
 
 import { chromium } from "playwright";
 import { BUDGETS, check, knownKey, merge, RULES, type Finding, type Gate, type Report } from "../../registry/ouro/check/run.ts";
+import { fragmentFocusScript } from "../../registry/ouro/lib/ouro/fragment-focus-script.ts";
 
 
 import { axe, browser, dir, fixtures, page, quiet, site, spots, two } from "./kit.mts";
@@ -14,6 +15,20 @@ import { axe, browser, dir, fixtures, page, quiet, site, spots, two } from "./ki
 // Part of Ouro check's Node side tests; scripts/check.test.mjs runs every file here under Node's coverage.
 
 describe("Ouro check", () => {
+  test("fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams", async () => {
+    // The pass page carries the item's own script, so the rule is tested against what apps install.
+    assert.ok(readFileSync(join(fixtures, "fragment-focus-pass.html"), "utf8").includes(`<script>${fragmentFocusScript()}</script>`));
+    const head = `<!doctype html><html lang="en"><meta charset="utf-8"><title>Fragment focus</title><link rel="stylesheet" href="data:text/css,p%7Bmargin:0%7D">`;
+    const folder = site("fragment-focus", {
+      "injected.html": `${head}<body><main data-app-ready="true"><h1>Fragment focus</h1><p>A script adds the copy as the page streams.</p></main><script type="text/plain" id="copy">${fragmentFocusScript()}</script><script>const copy = document.createElement("script"); copy.text = document.getElementById("copy").text; document.head.append(copy);</script><p>More of the page.</p></body>`,
+    });
+    const result = await check({ targets: [folder], out: dir("fragment-focus"), sizes: [[1440, 900]], themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(
+      result.findings.filter((f) => f.rule === "fragment-focus").map((f) => f.detail),
+      ["fragmentFocusScript ran after the page was parsed, too late to hold it: render it as a plain inline <script>, not one a script adds"],
+    );
+  });
+
   test("finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups", async () => {
     const out = dir("rules");
     // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
@@ -37,10 +52,10 @@ describe("Ouro check", () => {
     assert.match(swap.taker.first, /^<(button|a)\b/);
     assert.match(swap.taker.rest, /^<(button|a)\b/);
     assert.ok(swap.gone.rest === null || /^<(button|a)\b/.test(swap.gone.rest));
-    assert.equal(result.shots.length, 92 * 2);
+    assert.equal(result.shots.length, 96 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 92);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 92 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.equal(report.pages.length, 96);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 96 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -63,7 +78,7 @@ describe("Ouro check", () => {
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
     assert.deepEqual(spots(merged.findings), spots(whole.findings));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 46);
+    assert.equal(merged.pages.length, 48);
     assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });

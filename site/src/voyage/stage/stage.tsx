@@ -358,7 +358,7 @@ const GAUGE_BUBBLES: ReadonlyArray<[number, number, number, number]> = [
  */
 function SightGlass({ full }: { full: boolean }): JSX.Element {
   return (
-    <span className="stage-gauge" aria-hidden="true" data-full={full ? "" : undefined}>
+    <span className="stage-gauge" aria-hidden="true" data-full={full ? "" : undefined} data-ouro-allow="off-theme" data-ouro-allow-why="Part of the porthole's drawing: the water in the glass is the painted sea's.">
       <svg viewBox="0 0 44 44">
         <rect className="stage-gauge-face" x="5" y="5" width="34" height="34" rx="17" />
       </svg>
@@ -376,6 +376,8 @@ function SightGlass({ full }: { full: boolean }): JSX.Element {
       <svg viewBox="0 0 44 44">
         <path className="stage-gauge-ticks" d="M9 15 H12.5 M9 22 H14 M9 29 H12.5" />
         <rect className="stage-gauge-bezel" x="3" y="3" width="38" height="38" rx="19" />
+        <rect className="stage-gauge-seat" x="5" y="5" width="34" height="34" rx="17" />
+        <rect className="stage-gauge-shine" x="1.25" y="1.25" width="41.5" height="41.5" rx="20.75" />
         <path className="stage-gauge-glint" d="M14 10.5 Q22 7.5 30 10.5" />
       </svg>
     </span>
@@ -400,7 +402,7 @@ const TankSwitch = memo(function TankSwitch({ id, label, name, checked, onChange
 const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: number; dived: boolean; onPress: () => void }): JSX.Element {
   const ready = full === 3 && !dived;
   return (
-    <div className="stage-dive" data-stage-control="dive" data-ready={ready ? "" : undefined}>
+    <div className="stage-dive" data-stage-control="dive" data-ready={ready ? "" : undefined} data-ouro-allow="off-theme" data-ouro-allow-why="Its ready ring is the porthole's brass, with the lantern's light round it.">
       <Button
         size="md"
         disabled={full < 3}
@@ -465,6 +467,10 @@ const LightsControl = memo(function LightsControl({ lights, onChange }: { lights
     <div className="stage-lights" data-stage-control="lights">
       <span className="stage-heading" aria-hidden="true">
         {STAGE_COPY.lights}
+      </span>
+      {/* The lamp itself, a brass-rimmed lens that lights with the lantern's light while the switch is on (stage.css). */}
+      <span className="stage-lamp" aria-hidden="true" data-lit={lights ? "" : undefined} data-ouro-allow="off-theme" data-ouro-allow-why="Part of the porthole's drawing: the lamp's light is the lantern's, as the painting's is.">
+        <span className="stage-lamp-light" />
       </span>
       <Switch label={STAGE_COPY.lights} hideLabel checked={lights} onCheckedChange={onChange} />
     </div>

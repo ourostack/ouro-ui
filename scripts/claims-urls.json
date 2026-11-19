@@ -399,6 +399,10 @@
     "status": 200,
     "checked": "2026-11-03"
   },
+  "https://github.com/ourostack/ouro-ui-core/blob/98af0dde7494368d56a22a3cce6fc167bcc382c4/parity.json": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
   "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/MIGRATION.md#L20": {
     "status": 200,
     "checked": "2026-11-03"
@@ -459,10 +463,6 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/parity.json": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/c90da442be466dfd0f80b435c3a44d3c175c6092/test/composed.test.mts": {
     "status": 200,
     "checked": "2026-11-18"
@@ -495,9 +495,9 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.19.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.20.0": {
     "status": 200,
-    "checked": "2026-11-18"
+    "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml": {
     "status": 200,

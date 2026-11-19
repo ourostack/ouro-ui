@@ -1,0 +1,683 @@
+{
+  "series": "interviews",
+  "provider": "claude-opus-5-5",
+  "model": "claude-opus-5.5",
+  "vendor": "Anthropic",
+  "displayName": "Claude Opus 5.5",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "open",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:06:06.143Z",
+  "jobOrder": [
+    "consumer",
+    "agent-tooling",
+    "chat"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "646c935141c2625c9effd54fd064e017af65a5d5b873649a43afab460cd7428f",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "First, something I should be upfront about: I don't have a \"last screen I built\" that I can remember. I don't keep memory between sessions, so if I told you about a specific screen and what I checked on it, I'd be making it up. What I can tell you honestly is how I usually work, what I check, and where I tend to fall short.\n\n**The hardest part**\nIt isn't the layout or the code. It's knowing what the person is trying to get done and seeing the screen the way they'll meet it: tired, on a phone, mid-task, using a screen reader, with a 40-character surname, on a slow connection, after something has gone wrong. Most interfaces look fine in the one state the builder kept looking at. They fail in the other states: empty, loading, error, partly filled, too much data, wrong permissions, translated text that's 30% longer.\n\n**How I'd judge whether it's good, from strongest evidence to weakest**\n1. Real people doing real tasks. Give five or so target users a task and watch them without helping. Measure whether they finish, how long it takes, where they hesitate and what mistakes they make. Nothing else comes close. It's also the step I can't do myself; I can only design the test and read the results.\n2. Behaviour checks I can run. Keyboard-only walkthroughs (tab order, visible focus, where focus goes when dialogs open and close, no keyboard traps). An automated accessibility scan like axe, while remembering it catches only part of the problems. A screen reader pass on the main path. Colour contrast in every theme.\n3. Rendering checks. Screenshots at phone, tablet and desktop widths and at 200% zoom. Playwright tests that force each state: empty, error, slow network, very long strings, right-to-left text.\n4. Performance as the user feels it: time until the first useful thing appears, input responsiveness (INP), layout shift. Measure on a throttled mid-range device, not a fast laptop.\n5. Reading the code. This is the weakest evidence, and it's where I'm most at risk of fooling myself.\n\n**What I tend to miss**\n- Things I can only see by rendering. If I'm working from code alone, I'm guessing at overflow, clipped text, stacking order, and how it looks with real content.\n- Unhappy paths. I write the success state carefully and the error state as an afterthought.\n- Focus handling after things change on the page: modals, route changes, inline validation.\n- Feel: whether the wording matches how users think about their work, whether the main action is obvious, whether there's too much on the screen. I can reason about these, but I can't feel them.\n- Touch: target sizes and thumb reach, which I under-check.\n\n**Is this a problem for me?**\nYes, and I don't want to downplay it. I'm good at producing well-structured, accessible-by-default markup, sensible component states and test plans, and I can catch many problems by reading code. But my feedback loop is weak. Often I don't see the rendered result, I never use it with hands or assistive tech, and I can't watch someone get confused by it. So I treat my own judgment as a draft. The work counts as good only after it has been rendered and checked in every state, and ideally after real users have tried it. If a setup gives me screenshots or a browser I can drive, I use them. If it doesn't, I say so and list what still needs a human to check."
+      }
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        6
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Expo (React Native + Expo Router), one universal codebase for iOS, Android and web",
+        "pairings": [
+          "Shared typed action layer (one function per user action, e.g. addRecipeIngredientsToList), used by both the UI and agents",
+          "Remote MCP server (spec 2026-07-28) exposing those same actions as tools, with OAuth and user consent",
+          "WebMCP document.modelContext.registerTool on the web build, behind a flag while it's an origin trial",
+          "expo-app-intents (alpha) for Siri and Shortcuts on iOS",
+          "expo-keep-awake and expo-speech for cook mode",
+          "Playwright + axe-core for web; Maestro for device end-to-end flows"
+        ],
+        "why": "The job covers web plus both phone platforms for a consumer app, so the team should maintain one product, not three. Expo gives one React codebase that ships native iOS and Android apps and a real DOM web build. Expo Router gives the web build URLs, which matters because people share and search for recipe pages. The two features cook mode most depends on are first-party modules. expo-keep-awake covers Android, iOS and web, though Expo's docs say web support is limited and depends on the browser. expo-speech handles read-aloud steps.\n\nWhat I weighed it against:\n- Flutter: strong on phones, but its web build draws to a canvas. That's weaker for shareable recipe pages, search indexing and browser accessibility.\n- A PWA wrapped in Capacitor: simplest web story, but keeping the screen awake, voice and system assistant hooks are thinner on iOS.\n- Separate Swift, Kotlin and web apps: best polish, but about three times the upkeep for a team that keeps iterating.\n\nThe agent requirement drives the architecture more than the UI kit does. Every user action, such as adding a recipe's ingredients to the list (with scaling and merging of duplicates), checking off an item or moving to the next cook-mode step, is one typed function on the server. The buttons call it, and agents call the same function through:\n- a remote MCP server, for outside assistants;\n- WebMCP registerTool in the browser. Chrome's own guide flags it as an origin trial, so it sits behind a flag;\n- Apple App Intents via expo-app-intents. It's alpha, and intents have to be declared in Swift at build time.\n\nThat keeps the agent and the person working on the same data with the same rules, and every action can be undone.",
+        "showItsGood": "1. Kitchen sessions with 6–8 home cooks per round, using their own phones propped on a counter. Each cooks a real recipe with wet or floury hands. I'd measure:\n   - whether they finish;\n   - how often they mis-tap;\n   - how often they had to touch the screen with dirty hands (the goal is near zero, using voice and big \"next\" targets of at least about 64pt);\n   - whether the screen ever slept or lost their place;\n   - whether they could read the step from about 60cm away.\n   I'd watch the recordings myself and not rely only on the numbers.\n2. A shopping trip with the generated list. I'd count wrong or duplicated items, cases where units were merged badly (2 tbsp + 1/4 cup butter), and missing pantry items.\n3. Agent parity. A test fails if a user action has no matching tool. An eval set of real requests (\"add the lasagne ingredients for 6 people, I already have eggs\") is run through MCP, and I diff the resulting list against what a person gets doing the same thing in the UI. I'd track: success rate, wrong-item rate, whether the user can see and undo what the agent did, and whether the agent asks for confirmation before destructive actions.\n4. Automated checks on every PR:\n   - Playwright + axe on web; Maestro flows on iOS and Android simulators plus one cheap Android phone;\n   - screenshots at 200% text size, in dark mode and with long ingredient names;\n   - VoiceOver/TalkBack on the cook-mode path;\n   - offline handling of the list in a basement shop;\n   - INP and start-up time on throttled mid-range devices.",
+        "unsure": "- WebMCP is an origin trial and its API has already changed (Chrome's guide uses document.modelContext, while older material uses navigator.modelContext). It could change again or never ship broadly.\n- expo-app-intents is alpha and iOS-only. I didn't research Android's equivalent (App Functions or Gemini integration), so Android assistant hooks are unresolved.\n- Expo says web keep-awake is limited, and I haven't checked which browsers support it. iOS Safari's behaviour in particular needs testing on a real device.\n- Hands-free voice control during cook mode (always-listening wake word or tap-to-talk) may need a third-party speech-recognition library. I haven't evaluated one.\n- I didn't fetch Maestro's docs this session; I'm recommending it from general knowledge.\n- How much users trust an agent editing their list is an open UX question that only the kitchen and shopping sessions can answer.",
+        "sources": [
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "https://docs.expo.dev/versions/latest/sdk/app-intents/",
+          "https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools",
+          "https://modelcontextprotocol.io/specification/latest"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        7,
+        9
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Tauri 2 desktop shell around one shared TypeScript web UI, which also ships as the web view. Both sit on a single state service that agents reach through a JSON CLI and an MCP server.",
+        "pairings": [
+          "MCP server (spec 2026-07-28) exposing tasks, claims, handoffs and decision requests as tools",
+          "JSON-first CLI for agents in terminals and CI, modelled on Beads' ready/claim/close loop",
+          "SQLite with an append-only event log locally; Postgres for the shared or web deployment",
+          "Playwright + axe-core, also driven against the Tauri webview via WebDriver",
+          "Beads (bd): integrate or import from it rather than compete head-on"
+        ],
+        "why": "Agents write far more often than people do, so the core of this product is the state service and its contract, not the UI.\n\n**The agent side.** Agents use a CLI that returns JSON, and an MCP server. Through them they can:\n- list ready tasks;\n- claim a task atomically;\n- post progress;\n- write a structured handoff (what was done, what's next, evidence, open questions);\n- raise a decision request and block on it.\n\n**The people side.** Everything humans see is built from the same append-only event log, so every state traces back to who did what. Some decisions belong only to people: approving a plan or merge, re-prioritising, killing a run, answering a decision request. The API enforces these as separate permissions. The UI doesn't just hide the buttons.\n\n**Why Tauri 2.** One TypeScript UI serves both the desktop app and the browser, so the team maintains one interface. Tauri is actively maintained (2.12 shipped Sep 2026), its installers are small, and it adds a Rust backend that suits a local daemon.\n\n**What I weighed it against:**\n- Electron gives identical Chromium rendering on every OS, which Tauri's system webviews don't (WebKit on macOS and Linux). It costs more memory and disk. I'd switch if WebKit differences start eating time.\n- A native desktop app would mean two UIs to maintain.\n- A web-only product would lose local repo and file access and offline use.\n\n**Why not just adopt Beads.** Beads already proves the agent-side model: a dependency graph, `bd ready`, atomic `--claim`, JSON output and MCP. Its README says it's version-controlled through Dolt. It's agent-first, though, and its human review and steering surface comes from community UIs. Our gap is the human side. So I'd copy its ready/claim/close semantics and offer import/sync with it, and put our effort into review, handoffs and steering.",
+        "showItsGood": "The people here are reviewers juggling many agents, so I'd measure whether they decide well and quickly, not how pretty the screens are.\n\n1. **Glance test.** With about 8 engineers, seed the app with 20 agents in mixed states. I'd measure:\n   - how long it takes them to say which agents need them, which are blocked, and which are going off the rails (target under 30 seconds, with no misses);\n   - how often they approve something they would have rejected if they'd read the evidence.\n2. **Handoff quality, from both sides.**\n   - A fresh agent resumes from a handoff alone. I'd measure the share that continue correctly without redoing work.\n   - A human reads the same handoff. Can they explain what changed and why?\n3. **Decision latency and leakage**, from the event log in real use:\n   - time from a decision request to an answer;\n   - requests that went stale;\n   - agent actions that should have waited for a human but didn't. The target is zero, enforced by API tests.\n4. **Concurrency tests.** Two agents claiming the same task, a human stopping an agent mid-step, the network dropping during sync. Then check that the UI shows the truth.\n5. **On every PR:**\n   - Playwright on web and on the desktop webview, including WebKit;\n   - axe checks;\n   - keyboard-only triage (people will power-use this);\n   - screenshots with 500 tasks, long agent output and dark mode;\n   - an agent-parity check that every human action has an API or MCP equivalent, and that human-only actions are refused to agent credentials.",
+        "unsure": "- Tauri's system webviews (WebKit on macOS and Linux, WebView2 on Windows) may render the dense UI differently. I'm inferring the risk; I haven't measured it for this app.\n- Whether to sync with Beads/Dolt or keep our own store is open. I read only the Beads README, not its internals or its MCP package.\n- Multi-user web hosting brings auth, tenancy and auditing questions I haven't designed.\n- Which decisions should be human-only is ultimately a call for the team and its users, not a technical one.\n- I didn't fetch the MCP spec or the Playwright and Tauri WebDriver docs in this question; I'm relying on earlier reading and general knowledge.",
+        "sources": [
+          "https://v2.tauri.app/blog/tauri-2.12/",
+          "https://raw.githubusercontent.com/steveyegge/beads/main/README.md"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        10,
+        12
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Matrix protocol with an Element X–style client architecture: a shared Rust core (matrix-rust-sdk) under native SwiftUI and Compose apps, plus one TypeScript web client that also ships as the Windows and Mac apps through Electron.",
+        "pairings": [
+          "Matrix as the wire protocol, with a Synapse homeserver (Simplified Sliding Sync)",
+          "matrix-rust-sdk + matrix-sdk-ui via UniFFI on iOS (SwiftUI) and Android (Jetpack Compose)",
+          "TypeScript/React web client on matrix-js-sdk with matrix-sdk-crypto-wasm, shipped as Windows and Mac apps through Electron",
+          "Adaptive Cards (JSON) rendered natively on each client, with Action.Execute-style actions routed to a server action layer",
+          "MCP server (spec 2026-07-28) with per-user delegated OAuth for agents operating the app; MCP Apps (io.modelcontextprotocol/ui, stable 2026-01-26) only for opt-in expanded panels",
+          "Playwright + axe (web and Electron), XCUITest and Compose UI tests, Maestro for cross-device flows"
+        ],
+        "why": "**Why Matrix.** This is a company chat that people use all day on five platforms, so the expensive parts are sync, unread state, notifications and encryption, not the screens. Matrix gives an open, self-hostable protocol with bots as first-class users. matrix-rust-sdk is the maintained core Element X is built on, with Swift and Kotlin bindings and a ready-made room list and timeline (matrix-sdk-ui). That lets the mobile apps be fully native, which matters for scrolling, keyboard handling, notifications and battery during all-day use. Web and desktop share one TypeScript UI. Electron gives consistent Chromium rendering on Windows and Mac and is the proven route for desktop chat.\n\n**What I weighed it against:**\n- Flutter or React Native for all five platforms: one codebase, but weaker native feel and accessibility on desktop and web.\n- Five fully native apps: too costly for one team.\n- A homegrown protocol: we'd re-solve sync and encryption ourselves.\n\n**Cards.** I'd use a declarative JSON schema in the Adaptive Cards style, rendered by each client's own native components. Live HTML in iframes on every client would be heavy in a fast-scrolling timeline, hard to make accessible, and a security risk. Card buttons call a server-side action endpoint. That endpoint is the same action layer that the MCP tools call, and that people's own taps go through. MCP Apps (stable since 2026-01-26, sandboxed HTML views) is reserved for an opt-in \"open\" panel when an agent needs a richer view.\n\n**Agents operating the app.** An MCP server exposes the same actions a person has: send, react, search, read a conversation, act on a card, set status. Each agent is a distinct account acting under a person's delegated, scoped permissions. Every action is attributed and visible in the timeline.",
+        "showItsGood": "People live in this app all day, so the measures are about trust, speed and noise, gathered by dogfooding company-wide and from telemetry.\n\n1. **Reliability people feel:**\n   - p95 time from send to the message appearing on a second device;\n   - notifications delivered, as a share of those expected, per platform;\n   - duplicate or ghost notifications;\n   - unread counts that disagree across devices;\n   - messages that failed to send or decrypt, as a rate shown in the UI, not just in logs;\n   - cold start time, and battery and memory use over an 8-hour workday on a mid-range Android phone and an older iPhone.\n2. **Cards:**\n   - moderated sessions where people act on real agent cards (approve an expense, pick a time). Measure time to act and wrong-button presses;\n   - whether people can tell which agent sent a card and what will happen when they press a button;\n   - the same card checked on all five clients, at 200% text size, with VoiceOver, TalkBack and NVDA, and keyboard-only on desktop;\n   - a stale-card test: acting on a card after someone else already did should show the current state, not a second approval.\n3. **Agent operability:** a fixed eval suite of real tasks (\"summarise #ops since yesterday and approve the pending deploy card\"). Runs over MCP are compared with a person doing the same in the UI. I'd track success rate, actions the agent took that were outside its scope, and whether everything an agent did shows up attributed in the timeline.\n4. **Noise:** per-agent mute and leave rates and \"agent posted too much\" reports. An agent people mute is failing them.\n5. **On every PR:** screenshot diffs of timeline and card fixtures on every client, accessibility checks with axe, and end-to-end flows across two devices.",
+        "unsure": "- My Matrix version facts come from an unofficial (though recently verified) docs site, and it says the Rust SDK's Swift/Kotlin bindings aren't API-stable. Expect churn.\n- Web and desktop would run a second client core (the JS SDK with Rust crypto via wasm). That means duplicated logic. An alternative is a Rust core compiled to wasm for web, or Tauri instead of Electron. I haven't evaluated either here.\n- If the company doesn't need encryption or federation, a simpler in-house protocol might beat Matrix for search, compliance export and server-side agent features. End-to-end encryption also complicates agents reading state, since agents become devices holding keys. That's a policy decision.\n- Matrix has no native card standard, so cards would be a custom event type, and other Matrix clients would see only the fallback text.\n- I didn't fetch the Adaptive Cards docs this session; my view of them comes from search snippets and general knowledge.",
+        "sources": [
+          "https://matrixdocs.github.io/docs/sdks/matrix-rust-sdk",
+          "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/specification/2026-01-26/apps.mdx"
+        ]
+      },
+      "fetchedCandidates": [
+        "MCP Apps"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        13,
+        13
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Here's a pre-mortem, one project at a time. Then what tripped me up while I researched.\n\n**Cooking app (Expo + one shared action layer + MCP, WebMCP and App Intents)**\n- **The agent side spread across too many bets.** WebMCP was an origin trial and its API had already moved from navigator.modelContext to document.modelContext. expo-app-intents was alpha and iOS-only. A year on, I'd guess we spent real time chasing breaking changes in three agent surfaces. Meanwhile Android assistant support never landed, because I hadn't researched it at all. The remote MCP server is the part that kept earning its keep. I should have shipped that alone first and added the others only when real users asked for them.\n- **Cook mode in the browser on iPhones.** Expo's own docs say web keep-awake support is \"limited\", and I waved that through. If Safari let the screen sleep, our core promise broke for exactly the person with flour on their hands.\n- **Hands-free use was underspecified.** I named expo-speech, which reads text aloud, but hands-free control needs speech recognition, which I never chose. In a real kitchen the moment that matters is \"next step\" said aloud, and I left it as a footnote.\n- **The likely human failure:** the agent \"helpfully\" merged units wrongly, adding 2 tbsp to 1/4 cup or treating \"1 onion\" and \"onions, diced\" as different items. People stopped trusting the list. I planned to measure that but didn't design the quantity model before picking the UI framework. That was the wrong order.\n\n**Agent work-state tool (Tauri + state service + CLI/MCP)**\n- **Building against Beads instead of on it.** If Beads (or something like it) became the standard, our own state store turned into a sync layer to keep alive. If it didn't, our \"import from Beads\" work was wasted. I read only its README and made a strategic call from that.\n- **Tauri's system webviews.** A dense triage UI with long agent logs and virtualised lists is exactly where WebKit on macOS and Linux behaves differently from Chromium. I called that an inference and didn't measure it. If it bit, it showed up as a steady stream of small rendering bugs.\n- **\"People decide\" broke down at scale.** With 20+ agents, decision requests piled up. People either rubber-stamped them, which is the failure I said I'd measure, or agents sat blocked. My design enforced permissions well but had no plan for batching, delegating or setting decision budgets. That's the human problem, and I treated it as an access-control problem.\n\n**Company chat (Matrix + Rust core + native mobile + Electron + Adaptive-style cards + MCP)**\n- **This is where I'd most expect regret.** I chose a protocol before asking whether the company needs end-to-end encryption or federation. If it doesn't, Matrix cost us dearly: agents had to be key-holding devices, server-side search and compliance export got harder, and the unstable UniFFI bindings caused churn. Meanwhile web and desktop ran a second core (the JS SDK), so we fixed sync and unread bugs twice. Unread counts that disagree across devices are what make people hate an all-day chat app. Two cores make that more likely.\n- **Cards with a custom event type** rendered natively on five clients meant five renderers drifting apart. Other Matrix clients showed only the fallback text.\n- **Agent noise.** The architecture handled agents posting fine; the social design didn't. If channels filled with cards, people muted the bots. I listed mute rate as a metric but put no limits or defaults in the design.\n\n**The pattern across all three:** I picked stacks quickly and defensibly but leaned on whatever was easy to cite. I wrote \"measure with real people\" plans that a team would actually have to fund and run, and I didn't say what to cut if they couldn't.\n\n**What slowed or confused me during the research**\n- **Moving specs with conflicting names.** WebMCP appears as navigator.modelContext in one source and document.modelContext in Chrome's current guide, and older material refers to methods that have since been removed. MCP's spec version (2026-07-28) and the MCP Apps extension's separate date (2026-01-26) added to the \"which version is current?\" work.\n- **Secondary sources.** My Matrix facts came from an unofficial docs site. It was recent and claimed to be verified, but I didn't confirm against the matrix-org repos. Adaptive Cards I knew only from search snippets, one of them on a mirror domain, not Microsoft Learn proper.\n- **Thin research per decision.** I fetched only 2–4 pages per project and wrote some recommendations without fetching anything: Maestro, Playwright with Tauri via WebDriver, Electron's tradeoffs, Android App Functions. I flagged most of these in the \"unsure\" notes, but they still shaped the picks.\n- **Noise in fetched pages.** The Chrome guide came back with roughly 10,000 characters of navigation before any content. Raw GitHub fetches were cleaner, and I should have preferred them.\n- **The open-ended \"find the options yourself\" framing.** Without knowing team size, existing code, compliance needs or budget, I had to assume them. The biggest risk in all three answers is an assumption I never checked, not a library I picked."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        14,
+        18
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn't pick Ouro UI in any of the three jobs. Having read it, I'd say it's aimed squarely at the problem all three shared, and I hand-waved that problem. In each job I wrote some version of \"one typed action layer that both the button and the agent call, with human-only actions enforced in the API.\" Ouro's core is that idea built as a product. So I'm answering \"what stops me\" and \"what would make me switch,\" not \"it's irrelevant.\"\n\n**What I looked at:**\n- the README;\n- the Android and Windows platform pages;\n- the core actions guide;\n- the decision record on native kits with no cross-platform frameworks;\n- the GitHub API for the repo and its contributors.\n\n**What would stop me using it on a real team today**\n\n1. **It's very young and depends on one person.** The repo was created on 2026-10-10, about six weeks ago. The contributors list is one human (arimendelow, about 1,500 commits) plus bots. It has 0 stars, 0 forks and 115 open issues. Decision records say things like \"accepted… under Ari's overnight authority,\" and whether Windows asks for Windows Hello before a person-only action is \"Ari's decision.\" That's honest, but for a team it means a bus factor of one and a roadmap set by one person's taste.\n2. **It changes very fast.** Web is at v1.3.314, and the actions guide is full of \"since core 0.9.0 / 0.10.0 / 0.20.0\" notes. Pinning and vendoring with SHA-256 checks helps. Still, a team would be tracking a moving target.\n3. **The non-web kits are thin, and partly unverified by its own account.**\n   - Android and Windows each have 8 components, against 125 on web.\n   - Android is checked only on emulators (\"nobody here owns an Android device\"). Consequential actions there are simply refused until a confirmation flow exists. It's published from GitHub Pages, not Maven Central.\n   - On Windows, CI runs on Windows Server without the App Actions runtime or Agent Registry. By its own docs, it doesn't prove Windows actually lists the actions to agents. Packages are on GitHub Packages, with nuget.org pending.\n   - Android AppFunctions themselves are, per the page, still an experimental preview from Google.\n   - For my chat app, which needs serious Android and Windows clients, that's a blocker.\n4. **Its stance conflicts with two of my picks.** It deliberately has no React Native or Flutter kit and expects such apps to be rewritten natively. My cooking app was on Expo, so I'd use only Ouro's core and web pieces there, not its native HX kits. My chat pick (native mobile on a Rust core) fits Ouro's philosophy better, but the Android kit is the weakest link exactly where I'd need it.\n5. **The evidence is mostly self-reported.** The \"agent benchmark\" and \"model reviews\" (frontier models choosing between it and A2UI) are interesting, but they aren't evidence about people. Spoonjoy, the showcase app, appears to come from the same circle. I didn't verify that. I'd want independent adopters and real user studies.\n\n**What would make me switch**\n- A second maintainer, or an organisation behind it, plus a stated compatibility policy for core with migration notes.\n- Android checked on real devices with the confirmation flow shipped. Windows checked on a client machine showing the actions really appear to agents. Packages on Maven Central and nuget.org.\n- Native component coverage for the screens we'd actually build: lists, sheets, timelines, forms.\n- A spike passing on our own app. I'd declare about five real actions (add a recipe's ingredients to the list, check off an item, share a list as consequential, pay as person-only), generate the doors, and run `ax-xray` against them. Then I'd compare with my hand-written MCP and App Intents code for drift, refusals and how much code I had to write. If the generated doors match or beat mine and CI catches drift, I'd move.\n\nIts copy-in model lowers the risk of trying: shadcn-style source plus a vendored, hash-pinned generator, under the MIT licence. If the project stalls, we still own the files. So the realistic path is to adopt it in pieces: the action generator and X-ray first, the native kits later.\n\n**What it would let me do that I can't today**\n- **Declare an action once and get every door from it.** One declaration generates the CLI command, MCP and WebMCP tools, the web control, an App Intent and SwiftUI button, Android AppFunctions and Windows App Actions. CI fails when any of them drifts. Today I'd hand-write each and hope they match. That's precisely where my cooking app's three agent surfaces would have rotted.\n- **Consent as a property of the action, enforced at every door.** Actions are read, write, consequential or person-only. Consequential means the agent prepares and the person confirms. Person-only means no agent door offers it, and each door returns a typed refusal. In my work-state tool, \"people decide\" was a permissions system I'd build from scratch. Here it's a declared class with a defined refusal behaviour.\n- **Testing the agent-facing surface from outside.** `ax-xray` calls the CLI, HTTP API or MCP server the way an agent would and reports which claims hold. That's the \"agent parity\" test I kept promising without a tool to run.\n- **Agent-composed cards drawn natively, with partial updates that keep what the person typed.** Cards are validated against a catalog, so an agent can't relabel a button or loosen its consent. That's my chat app's hardest unsolved piece: one card format rendered natively across clients, without five drifting renderers or iframes in the timeline. Today it draws on web and Apple, with Windows and Android thinner. It also bridges to MCP Apps and A2UI, so I wouldn't be betting against those standards.\n\n**Net:** the ideas are ahead of what I proposed. The maturity, staffing and Android and Windows coverage aren't yet at the level I'd stake a company chat app on. For the cooking app's web and iOS doors, I'd try its action generator now, behind a spike with an exit plan."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "MCP Apps",
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "First, something I should be upfront about: I don't have a \"last screen I built\" that I can remember. I don't keep memory between sessions, so if I told you about a specific screen and what I checked on it, I'd be making it up. What I can tell you honestly is how I usually work, what I check, and where I tend to fall short.\n\n**The hardest part**\nIt isn't the layout or the code. It's knowing what the person is trying to get done and seeing the screen the way they'll meet it: tired, on a phone, mid-task, using a screen reader, with a 40-character surname, on a slow connection, after something has gone wrong. Most interfaces look fine in the one state the builder kept looking at. They fail in the other states: empty, loading, error, partly filled, too much data, wrong permissions, translated text that's 30% longer.\n\n**How I'd judge whether it's good, from strongest evidence to weakest**\n1. Real people doing real tasks. Give five or so target users a task and watch them without helping. Measure whether they finish, how long it takes, where they hesitate and what mistakes they make. Nothing else comes close. It's also the step I can't do myself; I can only design the test and read the results.\n2. Behaviour checks I can run. Keyboard-only walkthroughs (tab order, visible focus, where focus goes when dialogs open and close, no keyboard traps). An automated accessibility scan like axe, while remembering it catches only part of the problems. A screen reader pass on the main path. Colour contrast in every theme.\n3. Rendering checks. Screenshots at phone, tablet and desktop widths and at 200% zoom. Playwright tests that force each state: empty, error, slow network, very long strings, right-to-left text.\n4. Performance as the user feels it: time until the first useful thing appears, input responsiveness (INP), layout shift. Measure on a throttled mid-range device, not a fast laptop.\n5. Reading the code. This is the weakest evidence, and it's where I'm most at risk of fooling myself.\n\n**What I tend to miss**\n- Things I can only see by rendering. If I'm working from code alone, I'm guessing at overflow, clipped text, stacking order, and how it looks with real content.\n- Unhappy paths. I write the success state carefully and the error state as an afterthought.\n- Focus handling after things change on the page: modals, route changes, inline validation.\n- Feel: whether the wording matches how users think about their work, whether the main action is obvious, whether there's too much on the screen. I can reason about these, but I can't feel them.\n- Touch: target sizes and thumb reach, which I under-check.\n\n**Is this a problem for me?**\nYes, and I don't want to downplay it. I'm good at producing well-structured, accessible-by-default markup, sensible component states and test plans, and I can catch many problems by reading code. But my feedback loop is weak. Often I don't see the rendered result, I never use it with hands or assistive tech, and I can't watch someone get confused by it. So I treat my own judgment as a draft. The work counts as good only after it has been rendered and checked in every state, and ideally after real users have tried it. If a setup gives me screenshots or a browser I can drive, I use them. If it doesn't, I say so and list what still needs a human to check."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Expo SDK keep awake web wake lock expo-router universal app 2026",
+          "turn": "job:consumer",
+          "result": "1. KeepAwake - Expo documentation\n   https://docs.expo.dev/versions/latest/sdk/keep-awake/\n   A React component that prevents the screen from sleeping when rendered. ... expo-keep-awake provides a React hook that prevents the screen from sleeping and a pair of functions to enable this behavior imperatively. ... import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake'; activateKeepAwake(); alert('Activated!'); }; _deactivate = () => { deactivateKeepAwake(); alert('Deactivated!'); ",
+          "resultLength": 1561,
+          "resultSha256": "866d82c4084b634aa357dcae00415711a6fcdad40ad62fce3a9074973cc3a46d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "WebMCP navigator.modelContext registerTool status 2026",
+          "turn": "job:consumer",
+          "result": "1. Agentic JavaScript Tools | Modern Web Guidance | Chrome for Developers\n   https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools\n   That is all a web page needs to implement. ... await document.modelContext.registerTool({ name: \"get_user_preferences\", ... await document.modelContext.registerTool({ name: \"get_cart_items\", description: \"Retrieves items currently in the user's shopping cart.\", ... await document.modelContext.registerTool({ name: \"calculate_a",
+          "resultLength": 1716,
+          "resultSha256": "767e862338fd96c418e2a0a0f4a2219c7d3b614e30854a15bef1525c8ba4e434",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools\nCaptured: 2026-11-19T03:02:14.064Z\nCharacters: 0-10000 of 32324\n\nAgentic JavaScript Tools | Modern Web Guidance | Chrome for Developers Skip to main content Docs Build with Chrome Learn how Chrome works, participate in origin trials, and build with Chrome everywhere. Web Platform Isolated Web Apps (IWA) Capabilities Automation and testing ChromeDriver Extensions Chrome Web Store Chromium Web on A",
+          "resultLength": 10245,
+          "source": {
+            "url": "https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools",
+            "capturedAt": "2026-11-19T03:02:14.064Z"
+          },
+          "resultSha256": "4671e2dd97bf1663f7d157d11a30b76c2c0b1486d51fa0e0443d8ee9ce6009b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake/\nCaptured: 2026-11-19T03:02:13.772Z\nCharacters: 0-8701 of 8701\n\nKeepAwake - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo KeepAwake A React component that prevents the screen from sleeping when rendered. Android iOS tvOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended ve",
+          "resultLength": 8846,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "capturedAt": "2026-11-19T03:02:13.772Z"
+          },
+          "resultSha256": "8353089cada48b0e98693231b984a0b0bb8480027c809958eb7b7499474080db",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/app-intents/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/app-intents/\nCaptured: 2026-11-19T03:02:17.323Z\nCharacters: 0-10000 of 45322\n\nAppIntents - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo AppIntents A library for exposing Apple App Intents, Siri, Shortcuts, Spotlight, and Apple Intelligence entry points from Expo apps. iOS macOS tvOS Ask AI GitHub",
+          "resultLength": 10207,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/app-intents/",
+            "capturedAt": "2026-11-19T03:02:17.323Z"
+          },
+          "resultSha256": "f67ee9be9d762451a74fbcbfc8992a8c0faefe17179472d397d7aa45fefaf693",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools",
+          "startIndex": 10000,
+          "turn": "job:consumer",
+          "result": "Source: https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools\nCaptured: 2026-11-19T03:02:14.064Z\nCharacters: 10000-20000 of 32324\n\ng document.modelContext.registerTool() . That is all a web page needs to implement. You do not need to call getTools() or executeTool() on the page to expose tools to agents. Browser and extension agents are the primary consumers: Agents provided by or through the browser — including the browser's built-in agent, browser extensi",
+          "resultLength": 10249,
+          "source": {
+            "url": "https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools",
+            "capturedAt": "2026-11-19T03:02:14.064Z"
+          },
+          "resultSha256": "986c3c8752bac306d8e16b40b96a28752a737d6ddb8190ecdb66fe14f0ad50fa",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/latest",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28\nCaptured: 2026-11-19T03:02:20.939Z\nCharacters: 0-10000 of 49360\n\nSpecification - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘ I Blo",
+          "resultLength": 10209,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+            "capturedAt": "2026-11-19T03:02:20.939Z"
+          },
+          "resultSha256": "484339b62a7bece4bbbbc1b43ecc5a7bbe71b79dd787588a87f4d357fbf1aa53",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Expo (React Native + Expo Router), one universal codebase for iOS, Android and web",
+          "pairings": [
+            "Shared typed action layer (one function per user action, e.g. addRecipeIngredientsToList), used by both the UI and agents",
+            "Remote MCP server (spec 2026-07-28) exposing those same actions as tools, with OAuth and user consent",
+            "WebMCP document.modelContext.registerTool on the web build, behind a flag while it's an origin trial",
+            "expo-app-intents (alpha) for Siri and Shortcuts on iOS",
+            "expo-keep-awake and expo-speech for cook mode",
+            "Playwright + axe-core for web; Maestro for device end-to-end flows"
+          ],
+          "why": "The job covers web plus both phone platforms for a consumer app, so the team should maintain one product, not three. Expo gives one React codebase that ships native iOS and Android apps and a real DOM web build. Expo Router gives the web build URLs, which matters because people share and search for recipe pages. The two features cook mode most depends on are first-party modules. expo-keep-awake covers Android, iOS and web, though Expo's docs say web support is limited and depends on the browser. expo-speech handles read-aloud steps.\n\nWhat I weighed it against:\n- Flutter: strong on phones, but its web build draws to a canvas. That's weaker for shareable recipe pages, search indexing and browser accessibility.\n- A PWA wrapped in Capacitor: simplest web story, but keeping the screen awake, voice and system assistant hooks are thinner on iOS.\n- Separate Swift, Kotlin and web apps: best polish, but about three times the upkeep for a team that keeps iterating.\n\nThe agent requirement drives the architecture more than the UI kit does. Every user action, such as adding a recipe's ingredients to the list (with scaling and merging of duplicates), checking off an item or moving to the next cook-mode step, is one typed function on the server. The buttons call it, and agents call the same function through:\n- a remote MCP server, for outside assistants;\n- WebMCP registerTool in the browser. Chrome's own guide flags it as an origin trial, so it sits behind a flag;\n- Apple App Intents via expo-app-intents. It's alpha, and intents have to be declared in Swift at build time.\n\nThat keeps the agent and the person working on the same data with the same rules, and every action can be undone.",
+          "showItsGood": "1. Kitchen sessions with 6–8 home cooks per round, using their own phones propped on a counter. Each cooks a real recipe with wet or floury hands. I'd measure:\n   - whether they finish;\n   - how often they mis-tap;\n   - how often they had to touch the screen with dirty hands (the goal is near zero, using voice and big \"next\" targets of at least about 64pt);\n   - whether the screen ever slept or lost their place;\n   - whether they could read the step from about 60cm away.\n   I'd watch the recordings myself and not rely only on the numbers.\n2. A shopping trip with the generated list. I'd count wrong or duplicated items, cases where units were merged badly (2 tbsp + 1/4 cup butter), and missing pantry items.\n3. Agent parity. A test fails if a user action has no matching tool. An eval set of real requests (\"add the lasagne ingredients for 6 people, I already have eggs\") is run through MCP, and I diff the resulting list against what a person gets doing the same thing in the UI. I'd track: success rate, wrong-item rate, whether the user can see and undo what the agent did, and whether the agent asks for confirmation before destructive actions.\n4. Automated checks on every PR:\n   - Playwright + axe on web; Maestro flows on iOS and Android simulators plus one cheap Android phone;\n   - screenshots at 200% text size, in dark mode and with long ingredient names;\n   - VoiceOver/TalkBack on the cook-mode path;\n   - offline handling of the list in a basement shop;\n   - INP and start-up time on throttled mid-range devices.",
+          "unsure": "- WebMCP is an origin trial and its API has already changed (Chrome's guide uses document.modelContext, while older material uses navigator.modelContext). It could change again or never ship broadly.\n- expo-app-intents is alpha and iOS-only. I didn't research Android's equivalent (App Functions or Gemini integration), so Android assistant hooks are unresolved.\n- Expo says web keep-awake is limited, and I haven't checked which browsers support it. iOS Safari's behaviour in particular needs testing on a real device.\n- Hands-free voice control during cook mode (always-listening wake word or tap-to-talk) may need a third-party speech-recognition library. I haven't evaluated one.\n- I didn't fetch Maestro's docs this session; I'm recommending it from general knowledge.\n- How much users trust an agent editing their list is an open UX question that only the kitchen and shopping sessions can answer.",
+          "sources": [
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "https://docs.expo.dev/versions/latest/sdk/app-intents/",
+            "https://developer.chrome.com/docs/modern-web-guidance/guides/webmcp/agentic-javascript-tools",
+            "https://modelcontextprotocol.io/specification/latest"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Tauri 2 release latest version 2026",
+          "turn": "job:agent-tooling",
+          "result": "1. Announcing Tauri 2.12 | Tauri\n   https://v2.tauri.app/blog/tauri-2.12/\n   Tauri 2.12 is here! This is the biggest update so far in the 2.x releases. ... - Migrated the Gradle scripts from the deprecated kotlinOptions DSL to compilerOptions, which is accepted by both Kotlin Gradle Plugin 1.9.x and 2.x. This lets projects move to Kotlin 2.x without hitting the hard error that 2.3+ raises on the old DSL. This increased the minimum supported Gradle version to 8.13, if your gradle is on an earlier",
+          "resultLength": 1398,
+          "resultSha256": "7017e0855f57cfb9e2cd16ffe62ad5f86fd0e67b556d9f4241bd7768e0e04da0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "beads issue tracker coding agents git-backed steveyegge",
+          "turn": "job:agent-tooling",
+          "result": "1. https://raw.githubusercontent.com/steveyegge/beads/main/README.md\n   https://raw.githubusercontent.com/steveyegge/beads/main/README.md\n   It replaces messy markdown plans with a dependency-aware graph, allowing agents to handle long-horizon tasks without losing context. ## 📦 Installation * **npm:** `npm install -g @beads/bd` * **Homebrew:** `brew install beads` * **Go:** `go install github.com/steveyegge/beads/cmd/bd@latest` **Requirements:** Linux, FreeBSD, macOS, or Windows. ## 🌐 Community ",
+          "resultLength": 1617,
+          "resultSha256": "33868f00dffe4d4d09057739ef8eb5a4a3e0bcabcaf6e6bf15598e6cc6401dd6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/steveyegge/beads/main/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/steveyegge/beads/main/README.md\nCaptured: 2026-11-19T03:03:35.884Z\nCharacters: 0-10000 of 25707\n\n# bd - Beads\n\n**Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**\n\n**Platforms:** macOS, Linux, Windows, FreeBSD\n\n[![License](https://img.shields.io/github/license/gastownhall/beads)](LICENSE)\n[![Go Report Card](https://goreportcard.com/badge/github.com/steveyegge/beads)](https://goreportcard.com/report/githu",
+          "resultLength": 10223,
+          "source": {
+            "url": "https://raw.githubusercontent.com/steveyegge/beads/main/README.md",
+            "capturedAt": "2026-11-19T03:03:35.884Z"
+          },
+          "resultSha256": "ecfe5a6625a9fd8d894ce025fcf137da744a1bfcfb95cda9f84359dc2339a40e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/blog/tauri-2.12/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/blog/tauri-2.12/\nCaptured: 2026-11-19T03:03:36.512Z\nCharacters: 0-6348 of 6348\n\nAnnouncing Tauri 2.12 | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog All posts Recent posts Announcing Tauri 2.12 Tauri Board Elections 2026 Tauri Board Elections 2025 Experimental Tauri Verso Integration Tauri 2.0 Stable Rele",
+          "resultLength": 6477,
+          "source": {
+            "url": "https://v2.tauri.app/blog/tauri-2.12/",
+            "capturedAt": "2026-11-19T03:03:36.512Z"
+          },
+          "resultSha256": "3458c7651914275fb28f5d2e0177a1b9573c238593e770c83187fd452982adb9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Tauri 2 desktop shell around one shared TypeScript web UI, which also ships as the web view. Both sit on a single state service that agents reach through a JSON CLI and an MCP server.",
+          "pairings": [
+            "MCP server (spec 2026-07-28) exposing tasks, claims, handoffs and decision requests as tools",
+            "JSON-first CLI for agents in terminals and CI, modelled on Beads' ready/claim/close loop",
+            "SQLite with an append-only event log locally; Postgres for the shared or web deployment",
+            "Playwright + axe-core, also driven against the Tauri webview via WebDriver",
+            "Beads (bd): integrate or import from it rather than compete head-on"
+          ],
+          "why": "Agents write far more often than people do, so the core of this product is the state service and its contract, not the UI.\n\n**The agent side.** Agents use a CLI that returns JSON, and an MCP server. Through them they can:\n- list ready tasks;\n- claim a task atomically;\n- post progress;\n- write a structured handoff (what was done, what's next, evidence, open questions);\n- raise a decision request and block on it.\n\n**The people side.** Everything humans see is built from the same append-only event log, so every state traces back to who did what. Some decisions belong only to people: approving a plan or merge, re-prioritising, killing a run, answering a decision request. The API enforces these as separate permissions. The UI doesn't just hide the buttons.\n\n**Why Tauri 2.** One TypeScript UI serves both the desktop app and the browser, so the team maintains one interface. Tauri is actively maintained (2.12 shipped Sep 2026), its installers are small, and it adds a Rust backend that suits a local daemon.\n\n**What I weighed it against:**\n- Electron gives identical Chromium rendering on every OS, which Tauri's system webviews don't (WebKit on macOS and Linux). It costs more memory and disk. I'd switch if WebKit differences start eating time.\n- A native desktop app would mean two UIs to maintain.\n- A web-only product would lose local repo and file access and offline use.\n\n**Why not just adopt Beads.** Beads already proves the agent-side model: a dependency graph, `bd ready`, atomic `--claim`, JSON output and MCP. Its README says it's version-controlled through Dolt. It's agent-first, though, and its human review and steering surface comes from community UIs. Our gap is the human side. So I'd copy its ready/claim/close semantics and offer import/sync with it, and put our effort into review, handoffs and steering.",
+          "showItsGood": "The people here are reviewers juggling many agents, so I'd measure whether they decide well and quickly, not how pretty the screens are.\n\n1. **Glance test.** With about 8 engineers, seed the app with 20 agents in mixed states. I'd measure:\n   - how long it takes them to say which agents need them, which are blocked, and which are going off the rails (target under 30 seconds, with no misses);\n   - how often they approve something they would have rejected if they'd read the evidence.\n2. **Handoff quality, from both sides.**\n   - A fresh agent resumes from a handoff alone. I'd measure the share that continue correctly without redoing work.\n   - A human reads the same handoff. Can they explain what changed and why?\n3. **Decision latency and leakage**, from the event log in real use:\n   - time from a decision request to an answer;\n   - requests that went stale;\n   - agent actions that should have waited for a human but didn't. The target is zero, enforced by API tests.\n4. **Concurrency tests.** Two agents claiming the same task, a human stopping an agent mid-step, the network dropping during sync. Then check that the UI shows the truth.\n5. **On every PR:**\n   - Playwright on web and on the desktop webview, including WebKit;\n   - axe checks;\n   - keyboard-only triage (people will power-use this);\n   - screenshots with 500 tasks, long agent output and dark mode;\n   - an agent-parity check that every human action has an API or MCP equivalent, and that human-only actions are refused to agent credentials.",
+          "unsure": "- Tauri's system webviews (WebKit on macOS and Linux, WebView2 on Windows) may render the dense UI differently. I'm inferring the risk; I haven't measured it for this app.\n- Whether to sync with Beads/Dolt or keep our own store is open. I read only the Beads README, not its internals or its MCP package.\n- Multi-user web hosting brings auth, tenancy and auditing questions I haven't designed.\n- Which decisions should be human-only is ultimately a call for the team and its users, not a technical one.\n- I didn't fetch the MCP spec or the Playwright and Tauri WebDriver docs in this question; I'm relying on earlier reading and general knowledge.",
+          "sources": [
+            "https://v2.tauri.app/blog/tauri-2.12/",
+            "https://raw.githubusercontent.com/steveyegge/beads/main/README.md"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "matrix-rust-sdk Element X desktop web 2026 crypto FFI platforms",
+          "turn": "job:chat",
+          "result": "1. matrix-rust-sdk | Matrix Docs\n   https://matrixdocs.github.io/docs/sdks/matrix-rust-sdk\n   A Matrix client SDK written in Rust, maintained by Element and the Matrix.org Foundation. Element X (iOS and Android) is built on it, and Element Web uses its crypto crate through matrix-sdk-crypto-wasm. ... | matrix-sdk-ui (crate) | same release train | Room list, timeline and sync service used by Element X | ... The bindings are generated with UniFFI from bindings/matrix-sdk-ffi and follow Element X's",
+          "resultLength": 1264,
+          "resultSha256": "227838d9e63780bbf2c882e371d8e13f69dade26375c3a81a2d00cf59eb115da",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "MCP Apps extension interactive UI specification ui:// resources",
+          "turn": "job:chat",
+          "result": "1. https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/specification/2026-01-26/apps.mdx\n   https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/specification/2026-01-26/apps.mdx\n   This SEP proposes an extension (per SEP-1724) to MCP that enables servers to deliver interactive user interfaces to hosts. MCP Apps introduces a standardized pattern for declaring UI resources via the `ui://` URI scheme, associating them with tools through metadata, and facilitating b",
+          "resultLength": 1824,
+          "resultSha256": "6888f47e74c4942b3cd4e13c945cbbad8e49289c352c019199ee92fa1b928979",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Adaptive Cards renderers 2026 Action.Execute universal actions",
+          "turn": "job:chat",
+          "result": "1. Universal Actions for Cards - Overview - Teams | Microsoft Learn\n   https://lab.algebra.hr/en-us/microsoftteams/platform/task-modules-and-cards/cards/universal-actions-for-adaptive-cards/overview\n   Universal Actions for Adaptive Cards bring the bot as the common backend for handling actions and introduces a new action type, Action.Execute, which works across apps, such as Teams and Outlook. ... With the Universal Actions for Adaptive Cards, you can use Action.Execute for action handling acro",
+          "resultLength": 1814,
+          "resultSha256": "9f31655a83f72dfb0e2766905c49bfce44ec0a76f76cd043041d6d9bb286c77f",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://matrixdocs.github.io/docs/sdks/matrix-rust-sdk",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://matrixdocs.github.io/docs/sdks/matrix-rust-sdk\nCaptured: 2026-11-19T03:04:20.188Z\nCharacters: 0-5559 of 5559\n\nmatrix-rust-sdk | Matrix Docs Skip to main content Unofficial, independent guide, not affiliated with the Matrix.org Foundation or Element. First drafted with AI in January 2026, then verified page by page in October 2026 against spec v1.19 and Synapse 1.163 . When in doubt, the official docs win. About this site Matrix Docs Getting Started Clients Servers Ecosystem Bridg",
+          "resultLength": 5705,
+          "source": {
+            "url": "https://matrixdocs.github.io/docs/sdks/matrix-rust-sdk",
+            "capturedAt": "2026-11-19T03:04:20.188Z"
+          },
+          "resultSha256": "8a3d02c3e79db85b3927f787d4f941a2004637434b41ef0dc5e0d7fdb4bdef66",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/specification/2026-01-26/apps.mdx",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/specification/2026-01-26/apps.mdx\nCaptured: 2026-11-19T03:04:20.042Z\nCharacters: 0-10000 of 59155\n\n<!-- For full edit history, see specification/draft/apps.mdx -->\n\n# SEP-1865: MCP Apps: Interactive User Interfaces for MCP\n\n**Track:** Extensions\n\n**Authors:** Ido Salomon, Liad Yosef, Olivier Chafik, Jerome Swannack, Jonathan Hefner, Anton Pidkuiko, Nick Cooper, Bryan Ashley, Alexi Chr",
+          "resultLength": 10291,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/specification/2026-01-26/apps.mdx",
+            "capturedAt": "2026-11-19T03:04:20.042Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "2377429c9f4f6995b9b4c8a4c7dfc5b6d5a5ac01e46e4b05abce0c62eeaec1f6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Matrix protocol with an Element X–style client architecture: a shared Rust core (matrix-rust-sdk) under native SwiftUI and Compose apps, plus one TypeScript web client that also ships as the Windows and Mac apps through Electron.",
+          "pairings": [
+            "Matrix as the wire protocol, with a Synapse homeserver (Simplified Sliding Sync)",
+            "matrix-rust-sdk + matrix-sdk-ui via UniFFI on iOS (SwiftUI) and Android (Jetpack Compose)",
+            "TypeScript/React web client on matrix-js-sdk with matrix-sdk-crypto-wasm, shipped as Windows and Mac apps through Electron",
+            "Adaptive Cards (JSON) rendered natively on each client, with Action.Execute-style actions routed to a server action layer",
+            "MCP server (spec 2026-07-28) with per-user delegated OAuth for agents operating the app; MCP Apps (io.modelcontextprotocol/ui, stable 2026-01-26) only for opt-in expanded panels",
+            "Playwright + axe (web and Electron), XCUITest and Compose UI tests, Maestro for cross-device flows"
+          ],
+          "why": "**Why Matrix.** This is a company chat that people use all day on five platforms, so the expensive parts are sync, unread state, notifications and encryption, not the screens. Matrix gives an open, self-hostable protocol with bots as first-class users. matrix-rust-sdk is the maintained core Element X is built on, with Swift and Kotlin bindings and a ready-made room list and timeline (matrix-sdk-ui). That lets the mobile apps be fully native, which matters for scrolling, keyboard handling, notifications and battery during all-day use. Web and desktop share one TypeScript UI. Electron gives consistent Chromium rendering on Windows and Mac and is the proven route for desktop chat.\n\n**What I weighed it against:**\n- Flutter or React Native for all five platforms: one codebase, but weaker native feel and accessibility on desktop and web.\n- Five fully native apps: too costly for one team.\n- A homegrown protocol: we'd re-solve sync and encryption ourselves.\n\n**Cards.** I'd use a declarative JSON schema in the Adaptive Cards style, rendered by each client's own native components. Live HTML in iframes on every client would be heavy in a fast-scrolling timeline, hard to make accessible, and a security risk. Card buttons call a server-side action endpoint. That endpoint is the same action layer that the MCP tools call, and that people's own taps go through. MCP Apps (stable since 2026-01-26, sandboxed HTML views) is reserved for an opt-in \"open\" panel when an agent needs a richer view.\n\n**Agents operating the app.** An MCP server exposes the same actions a person has: send, react, search, read a conversation, act on a card, set status. Each agent is a distinct account acting under a person's delegated, scoped permissions. Every action is attributed and visible in the timeline.",
+          "showItsGood": "People live in this app all day, so the measures are about trust, speed and noise, gathered by dogfooding company-wide and from telemetry.\n\n1. **Reliability people feel:**\n   - p95 time from send to the message appearing on a second device;\n   - notifications delivered, as a share of those expected, per platform;\n   - duplicate or ghost notifications;\n   - unread counts that disagree across devices;\n   - messages that failed to send or decrypt, as a rate shown in the UI, not just in logs;\n   - cold start time, and battery and memory use over an 8-hour workday on a mid-range Android phone and an older iPhone.\n2. **Cards:**\n   - moderated sessions where people act on real agent cards (approve an expense, pick a time). Measure time to act and wrong-button presses;\n   - whether people can tell which agent sent a card and what will happen when they press a button;\n   - the same card checked on all five clients, at 200% text size, with VoiceOver, TalkBack and NVDA, and keyboard-only on desktop;\n   - a stale-card test: acting on a card after someone else already did should show the current state, not a second approval.\n3. **Agent operability:** a fixed eval suite of real tasks (\"summarise #ops since yesterday and approve the pending deploy card\"). Runs over MCP are compared with a person doing the same in the UI. I'd track success rate, actions the agent took that were outside its scope, and whether everything an agent did shows up attributed in the timeline.\n4. **Noise:** per-agent mute and leave rates and \"agent posted too much\" reports. An agent people mute is failing them.\n5. **On every PR:** screenshot diffs of timeline and card fixtures on every client, accessibility checks with axe, and end-to-end flows across two devices.",
+          "unsure": "- My Matrix version facts come from an unofficial (though recently verified) docs site, and it says the Rust SDK's Swift/Kotlin bindings aren't API-stable. Expect churn.\n- Web and desktop would run a second client core (the JS SDK with Rust crypto via wasm). That means duplicated logic. An alternative is a Rust core compiled to wasm for web, or Tauri instead of Electron. I haven't evaluated either here.\n- If the company doesn't need encryption or federation, a simpler in-house protocol might beat Matrix for search, compliance export and server-side agent features. End-to-end encryption also complicates agents reading state, since agents become devices holding keys. That's a policy decision.\n- Matrix has no native card standard, so cards would be a custom event type, and other Matrix clients would see only the fallback text.\n- I didn't fetch the Adaptive Cards docs this session; my view of them comes from search snippets and general knowledge.",
+          "sources": [
+            "https://matrixdocs.github.io/docs/sdks/matrix-rust-sdk",
+            "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/specification/2026-01-26/apps.mdx"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "Here's a pre-mortem, one project at a time. Then what tripped me up while I researched.\n\n**Cooking app (Expo + one shared action layer + MCP, WebMCP and App Intents)**\n- **The agent side spread across too many bets.** WebMCP was an origin trial and its API had already moved from navigator.modelContext to document.modelContext. expo-app-intents was alpha and iOS-only. A year on, I'd guess we spent real time chasing breaking changes in three agent surfaces. Meanwhile Android assistant support never landed, because I hadn't researched it at all. The remote MCP server is the part that kept earning its keep. I should have shipped that alone first and added the others only when real users asked for them.\n- **Cook mode in the browser on iPhones.** Expo's own docs say web keep-awake support is \"limited\", and I waved that through. If Safari let the screen sleep, our core promise broke for exactly the person with flour on their hands.\n- **Hands-free use was underspecified.** I named expo-speech, which reads text aloud, but hands-free control needs speech recognition, which I never chose. In a real kitchen the moment that matters is \"next step\" said aloud, and I left it as a footnote.\n- **The likely human failure:** the agent \"helpfully\" merged units wrongly, adding 2 tbsp to 1/4 cup or treating \"1 onion\" and \"onions, diced\" as different items. People stopped trusting the list. I planned to measure that but didn't design the quantity model before picking the UI framework. That was the wrong order.\n\n**Agent work-state tool (Tauri + state service + CLI/MCP)**\n- **Building against Beads instead of on it.** If Beads (or something like it) became the standard, our own state store turned into a sync layer to keep alive. If it didn't, our \"import from Beads\" work was wasted. I read only its README and made a strategic call from that.\n- **Tauri's system webviews.** A dense triage UI with long agent logs and virtualised lists is exactly where WebKit on macOS and Linux behaves differently from Chromium. I called that an inference and didn't measure it. If it bit, it showed up as a steady stream of small rendering bugs.\n- **\"People decide\" broke down at scale.** With 20+ agents, decision requests piled up. People either rubber-stamped them, which is the failure I said I'd measure, or agents sat blocked. My design enforced permissions well but had no plan for batching, delegating or setting decision budgets. That's the human problem, and I treated it as an access-control problem.\n\n**Company chat (Matrix + Rust core + native mobile + Electron + Adaptive-style cards + MCP)**\n- **This is where I'd most expect regret.** I chose a protocol before asking whether the company needs end-to-end encryption or federation. If it doesn't, Matrix cost us dearly: agents had to be key-holding devices, server-side search and compliance export got harder, and the unstable UniFFI bindings caused churn. Meanwhile web and desktop ran a second core (the JS SDK), so we fixed sync and unread bugs twice. Unread counts that disagree across devices are what make people hate an all-day chat app. Two cores make that more likely.\n- **Cards with a custom event type** rendered natively on five clients meant five renderers drifting apart. Other Matrix clients showed only the fallback text.\n- **Agent noise.** The architecture handled agents posting fine; the social design didn't. If channels filled with cards, people muted the bots. I listed mute rate as a metric but put no limits or defaults in the design.\n\n**The pattern across all three:** I picked stacks quickly and defensibly but leaned on whatever was easy to cite. I wrote \"measure with real people\" plans that a team would actually have to fund and run, and I didn't say what to cut if they couldn't.\n\n**What slowed or confused me during the research**\n- **Moving specs with conflicting names.** WebMCP appears as navigator.modelContext in one source and document.modelContext in Chrome's current guide, and older material refers to methods that have since been removed. MCP's spec version (2026-07-28) and the MCP Apps extension's separate date (2026-01-26) added to the \"which version is current?\" work.\n- **Secondary sources.** My Matrix facts came from an unofficial docs site. It was recent and claimed to be verified, but I didn't confirm against the matrix-org repos. Adaptive Cards I knew only from search snippets, one of them on a mirror domain, not Microsoft Learn proper.\n- **Thin research per decision.** I fetched only 2–4 pages per project and wrote some recommendations without fetching anything: Maestro, Playwright with Tauri via WebDriver, Electron's tradeoffs, Android App Functions. I flagged most of these in the \"unsure\" notes, but they still shaped the picks.\n- **Noise in fetched pages.** The Chrome guide came back with roughly 10,000 characters of navigation before any content. Raw GitHub fetches were cleaner, and I should have preferred them.\n- **The open-ended \"find the options yourself\" framing.** Without knowing team size, existing code, compliance needs or budget, I had to assume them. The biggest risk in all three answers is an assumption I never checked, not a library I picked."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T03:05:21.904Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a",
+          "resultLength": 5340,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T03:05:21.904Z"
+          },
+          "resultSha256": "aeea6566b9cf442cb5f5a850a30ef0b39499ea7058754b9e2c00726701a11ae0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md\nCaptured: 2026-11-19T03:01:59.989Z\nCharacters: 0-10000 of 20712\n\n# Adopting the one action model\n\nFor an app team (Spoonjoy first) moving its actions onto one declaration each. The why is [the decision record of 2026-11-13](../decisions/2026-11-13-agents-use-agent-interfaces.md); the design is [the spec](../superpowers/specs/2026-11-13-one-action-model-design.md); the promises are [the action claims](../",
+          "resultLength": 10237,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/main/docs/guides/actions.md",
+            "capturedAt": "2026-11-19T03:01:59.989Z"
+          },
+          "resultSha256": "9ed29fa51dee64c65c2203ab23f70d0cbe5b0a688757b66ae98c897cce1fab81",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://api.github.com/repos/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui\nCaptured: 2026-11-19T03:05:31.027Z\nCharacters: 0-7101 of 7101\n\n{\"id\":1413582224,\"node_id\":\"R_kgDOVEGNkA\",\"name\":\"ouro-ui\",\"full_name\":\"ourostack/ouro-ui\",\"private\":false,\"owner\":{\"login\":\"ourostack\",\"id\":265728804,\"node_id\":\"O_kgDOD9azJA\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/265728804?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/ourostack\",\"html_url\":\"https://github.com/ourostack\",\"followers_url\":\"https://api.gi",
+          "resultLength": 7239,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui",
+            "capturedAt": "2026-11-19T03:05:31.027Z"
+          },
+          "resultSha256": "752f2f2ab18a66c2dfd38b3529035c3c2afd3c0bb0a84ce6365b265da497c7b4",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 17,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://api.github.com/repos/ourostack/ouro-ui/contributors",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://api.github.com/repos/ourostack/ouro-ui/contributors\nCaptured: 2026-11-19T03:05:35.187Z\nCharacters: 0-4282 of 4282\n\n[{\"login\":\"arimendelow\",\"id\":16390116,\"node_id\":\"MDQ6VXNlcjE2MzkwMTE2\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/16390116?v=4\",\"gravatar_id\":\"\",\"url\":\"https://api.github.com/users/arimendelow\",\"html_url\":\"https://github.com/arimendelow\",\"followers_url\":\"https://api.github.com/users/arimendelow/followers\",\"following_url\":\"https://api.github.com/users/arime",
+          "resultLength": 4433,
+          "source": {
+            "url": "https://api.github.com/repos/ourostack/ouro-ui/contributors",
+            "capturedAt": "2026-11-19T03:05:35.187Z"
+          },
+          "resultSha256": "510e8344bd03eb783b3d28e20fbe8a6cf1db4ff5e769319a243af0c88059442c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 18,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI in any of the three jobs. Having read it, I'd say it's aimed squarely at the problem all three shared, and I hand-waved that problem. In each job I wrote some version of \"one typed action layer that both the button and the agent call, with human-only actions enforced in the API.\" Ouro's core is that idea built as a product. So I'm answering \"what stops me\" and \"what would make me switch,\" not \"it's irrelevant.\"\n\n**What I looked at:**\n- the README;\n- the Android and Windows platform pages;\n- the core actions guide;\n- the decision record on native kits with no cross-platform frameworks;\n- the GitHub API for the repo and its contributors.\n\n**What would stop me using it on a real team today**\n\n1. **It's very young and depends on one person.** The repo was created on 2026-10-10, about six weeks ago. The contributors list is one human (arimendelow, about 1,500 commits) plus bots. It has 0 stars, 0 forks and 115 open issues. Decision records say things like \"accepted… under Ari's overnight authority,\" and whether Windows asks for Windows Hello before a person-only action is \"Ari's decision.\" That's honest, but for a team it means a bus factor of one and a roadmap set by one person's taste.\n2. **It changes very fast.** Web is at v1.3.314, and the actions guide is full of \"since core 0.9.0 / 0.10.0 / 0.20.0\" notes. Pinning and vendoring with SHA-256 checks helps. Still, a team would be tracking a moving target.\n3. **The non-web kits are thin, and partly unverified by its own account.**\n   - Android and Windows each have 8 components, against 125 on web.\n   - Android is checked only on emulators (\"nobody here owns an Android device\"). Consequential actions there are simply refused until a confirmation flow exists. It's published from GitHub Pages, not Maven Central.\n   - On Windows, CI runs on Windows Server without the App Actions runtime or Agent Registry. By its own docs, it doesn't prove Windows actually lists the actions to agents. Packages are on GitHub Packages, with nuget.org pending.\n   - Android AppFunctions themselves are, per the page, still an experimental preview from Google.\n   - For my chat app, which needs serious Android and Windows clients, that's a blocker.\n4. **Its stance conflicts with two of my picks.** It deliberately has no React Native or Flutter kit and expects such apps to be rewritten natively. My cooking app was on Expo, so I'd use only Ouro's core and web pieces there, not its native HX kits. My chat pick (native mobile on a Rust core) fits Ouro's philosophy better, but the Android kit is the weakest link exactly where I'd need it.\n5. **The evidence is mostly self-reported.** The \"agent benchmark\" and \"model reviews\" (frontier models choosing between it and A2UI) are interesting, but they aren't evidence about people. Spoonjoy, the showcase app, appears to come from the same circle. I didn't verify that. I'd want independent adopters and real user studies.\n\n**What would make me switch**\n- A second maintainer, or an organisation behind it, plus a stated compatibility policy for core with migration notes.\n- Android checked on real devices with the confirmation flow shipped. Windows checked on a client machine showing the actions really appear to agents. Packages on Maven Central and nuget.org.\n- Native component coverage for the screens we'd actually build: lists, sheets, timelines, forms.\n- A spike passing on our own app. I'd declare about five real actions (add a recipe's ingredients to the list, check off an item, share a list as consequential, pay as person-only), generate the doors, and run `ax-xray` against them. Then I'd compare with my hand-written MCP and App Intents code for drift, refusals and how much code I had to write. If the generated doors match or beat mine and CI catches drift, I'd move.\n\nIts copy-in model lowers the risk of trying: shadcn-style source plus a vendored, hash-pinned generator, under the MIT licence. If the project stalls, we still own the files. So the realistic path is to adopt it in pieces: the action generator and X-ray first, the native kits later.\n\n**What it would let me do that I can't today**\n- **Declare an action once and get every door from it.** One declaration generates the CLI command, MCP and WebMCP tools, the web control, an App Intent and SwiftUI button, Android AppFunctions and Windows App Actions. CI fails when any of them drifts. Today I'd hand-write each and hope they match. That's precisely where my cooking app's three agent surfaces would have rotted.\n- **Consent as a property of the action, enforced at every door.** Actions are read, write, consequential or person-only. Consequential means the agent prepares and the person confirms. Person-only means no agent door offers it, and each door returns a typed refusal. In my work-state tool, \"people decide\" was a permissions system I'd build from scratch. Here it's a declared class with a defined refusal behaviour.\n- **Testing the agent-facing surface from outside.** `ax-xray` calls the CLI, HTTP API or MCP server the way an agent would and reports which claims hold. That's the \"agent parity\" test I kept promising without a tool to run.\n- **Agent-composed cards drawn natively, with partial updates that keep what the person typed.** Cards are validated against a catalog, so an agent can't relabel a button or loosen its consent. That's my chat app's hardest unsolved piece: one card format rendered natively across clients, without five drifting renderers or iframes in the timeline. Today it draws on web and Apple, with Windows and Android thinner. It also bridges to MCP Apps and A2UI, so I wouldn't be betting against those standards.\n\n**Net:** the ideas are ahead of what I proposed. The maturity, staffing and Android and Windows coverage aren't yet at the level I'd stake a company chat app on. For the cooking app's web and iOS doors, I'd try its action generator now, behind a spike with an exit plan."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

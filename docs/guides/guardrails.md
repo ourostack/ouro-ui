@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.317 ourostack/ouro-ui/ouro-source-rules#v1.3.317
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.318 ourostack/ouro-ui/ouro-source-rules#v1.3.318
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -188,6 +188,7 @@ While a modal is open (`aria-modal="true"` or a modal `<dialog>`), the layout, t
 | `not-ready` | A page that gave no ready signal in time.[^check-pages] It is checked as it is, but never passes.[^check-pages] |
 | `console-error` | An uncaught error or rejection, or a `console.error` or `console.warn`, React's warnings among them, while the page loads and is checked, named by its first line.[^check-runtime] |
 | `failed-request` | A request to the page's own origin that answered 400 or more, or got no answer, such as a missing data file or a framed page that isn't there.[^check-runtime] The page's own document is `http-error`'s and a picture is `broken-image`'s, and Chromium's own "Failed to load resource" line is the request's, so one failure makes one finding; a request to another origin, or one the page cancels, is not its server's failure.[^check-runtime] |
+| `fragment-focus` | A page with a stylesheet but without [fragmentFocusScript](../fragmentFocusScript.md) after it, with the script before a stylesheet in `<head>`, or with one that ran after the page was parsed (a copy a script adds, such as `next/script`'s). Opened at a place on it (`#install`), Safari jumps back there as later stylesheets load, and takes focus with it. It reads the page once, at the size `inp` runs at, and a reason on `<html>` or `<body>` allows it.[^check-fragment-focus] |
 | `first-paint-swap` | A control the first frames draw, before any input, that is gone at rest with another control drawn over its place in a later frame: a list drawn whole and then refitted under More, for instance. A skeleton, a control allowed the rule with a reason, and the same control drawn again with the same name are no swap.[^check-swap-skip] The close-up outlines the control that took the place.[^check-swap] |
 
 `first-paint-swap` reads the first ten frames the page draws, each as the browser paints it, and judges them once the page is ready.[^check-swap-frames] It is a count, not a budget: one swap is a finding, and `--no-measured` skips it.[^check-swap-read] Each finding's `swap` in `report.json` gives both controls' HTML, as the first frame drew each and at rest (`null` for one that has left the page), whitespace collapsed and cut at 500 characters, so a swap seen once on a slow runner explains itself without a rerun.[^check-swap-html]
@@ -220,6 +221,7 @@ The check also holds pages to design rules that measurement can decide, after Re
 | `nested-frame` | A frame inside a frame: a framed box hugging another within 6px on every side (a double border); or a rounded, filled or framed box whose child has an edge of its own (a fill, a frame, or a picture that runs to its corner, not an icon or a clear logo) and sits near its corner with a radius that isn't the outer radius less the inset, so the corners don't nest.[^check-design] |
 | `baked-corner` | A picture or video whose own pixels draw a corner inside the page's frame (the roundest clipping box it fills, past a wrapper of zero size), such as a screen recording of a window with its dark corner showing in a rounded frame.[^check-corner-frame] Read from the pixels, on the video's first frame, at two corners or more in the same colour.[^check-design] |
 | `type-scale` | More than 10 text sizes, or more than 3 font weights in a text role, on a page: headings are one role and the rest of the text another, so a semibold heading leaves running text its regular, medium and bold.[^check-design][^check-weight-roles] Text inside an element that opts out with `data-ouro-allow="type-scale"` and a reason (hand lettering, say) is left out of the counts; the rest of the page is still held to the scale. |
+| `giant-text` | The size most of a page's running text is drawn at, counted by its characters outside headings, is over 24px, as when an app grows its root type with the screen and a 4K display at 1x draws its body text at 27px.[^check-giant-text] [A page with under 120 characters at its main size](registry/ouro/check/design-check.ts "verify:fileLine(registry/ouro/check/design-check.ts, /main\[1\]\.chars >= 120/)") has no reading size to judge. Let `ouro-base`'s wide-screen step (125% at most) set the root, or set the reading size in rem; text that opts out with `data-ouro-allow="giant-text"` and a reason (a poster line, say) is left out of the count. |
 | `shadow-scale` | More than 5 different shadows on a page.[^check-design] |
 | `grey-on-colour` | Grey text on a coloured background, which reads washed out: use a shade of the background's own hue.[^check-design] |
 | `heading-hierarchy` | A heading drawn larger than the heading of higher rank it sits under, each at the largest size its text is drawn at.[^check-design] |
@@ -347,7 +349,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.317
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.318
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -427,7 +429,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.317
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.318
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -437,7 +439,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.317
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.318
         with:
           merge: "true"
 ```
@@ -457,7 +459,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.317
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.318
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -483,7 +485,7 @@ It refuses a picture too small to be drawn sharp, names it and why, writes nothi
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.317
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.318
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -605,6 +607,7 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-design]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups; test:scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits)
 [^check-drawn]: test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip)
 [^check-repaint]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/run.ts, /contextFor\(width, height, theme, "no-preference"\)/)
+[^check-giant-text]: test:scripts/check/check-rules.test.mts::Ouro check's design rules > giant-text: mendelow.me's root type, grown with the screen to 24px, fails on a 4K display and not on a laptop, and ouro-base's 125% step passes verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > giant-text: mendelow.me's root type, grown with the screen to 24px, fails on a 4K display and not on a laptop, and ouro-base's 125% step passes) verify:fileLine(registry/ouro/check/design-check.ts, /readingPx = 24/)
 [^check-design-limits]: registry/ouro/check/design-check.ts verify:fileLine(registry/ouro/check/design-check.ts, /pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5/) verify:fileLine(registry/ouro/check/design-check.ts, /p.width \/ p.height >= 1.8/)
 [^check-https]: test:scripts/check/check-rules.test.mts::Ouro check's design rules > https: a site moves http:// to https:// with a 301 and asks for HSTS for a year, and so does its www. name verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > https: a site moves http:// to https:// with a 301 and asks for HSTS for a year, and so does its www. name) verify:fileLine(registry/ouro/check/run.ts, /^const HSTS_MIN = 31536000;$/)
 [^check-video]: registry/ouro/check/size-check.ts verify:fileLine(registry/ouro/check/size-check.ts, /^  for \(const video of document.querySelectorAll\("video"\)\) \{$/)
@@ -729,3 +732,4 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^first-run-sso-judge]: test:scripts/check/first-run-sso.test.mts::first-run harness: a managed Mac's SSO extension > the judge: a silent sign-in held for ever with no way in fails, and one that gives way in time passes verify:testExists(scripts/check/first-run-sso.test.mts::first-run harness: a managed Mac's SSO extension > the judge: a silent sign-in held for ever with no way in fails, and one that gives way in time passes)
 [^first-run-sso-proof]: .github/workflows/first-run-sso.yml; scripts/check/first-run-sso/proof.mts verify:fileLine(.github/workflows/first-run-sso.yml, /^    runs-on: macos-latest$/) verify:fileLine(scripts/check/first-run-sso/proof.mts, /expect\("own stack untouched"/)
 [^first-run-sso-webkit]: https://bugs.webkit.org/show_bug.cgi?id=227729; https://support.apple.com/guide/deployment/extensible-single-sign-on-payload-settings-depfd9cdf845/web verify:urlOk(https://bugs.webkit.org/show_bug.cgi?id=227729) verify:urlOk(https://support.apple.com/guide/deployment/extensible-single-sign-on-payload-settings-depfd9cdf845/web)
+[^check-fragment-focus]: test:scripts/check/check.test.mts::Ouro check > fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams; test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups; test:test/check-in-page.test.ts::findFragmentFocusIssues > finds a page with a stylesheet and no fragmentFocusScript, marked on the page; test:test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript before a stylesheet in <head>; test:test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript that ran after the page was parsed, as one a script adds does; test:test/check-in-page.test.ts::findFragmentFocusIssues > passes fragmentFocusScript run as the page was parsed after every stylesheet, or taken out since, a stylesheet link with no address, and a page allowed fragment-focus with a reason verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > finds a page with a stylesheet and no fragmentFocusScript, marked on the page) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript before a stylesheet in <head>) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > finds fragmentFocusScript that ran after the page was parsed, as one a script adds does) verify:testExists(test/check-in-page.test.ts::findFragmentFocusIssues > passes fragmentFocusScript run as the page was parsed after every stylesheet, or taken out since, a stylesheet link with no address, and a page allowed fragment-focus with a reason) verify:testExists(scripts/check/check.test.mts::Ouro check > fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams)

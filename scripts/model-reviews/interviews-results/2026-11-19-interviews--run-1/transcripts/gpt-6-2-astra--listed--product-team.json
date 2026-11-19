@@ -1,0 +1,779 @@
+{
+  "series": "interviews",
+  "provider": "gpt-6-2-astra",
+  "model": "gpt-6.2-astra",
+  "vendor": "OpenAI",
+  "displayName": "GPT-6.2 Astra",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "listed",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:21:47.253Z",
+  "jobOrder": [
+    "chat",
+    "agent-tooling",
+    "consumer"
+  ],
+  "candidateOrder": [
+    "json-render",
+    "Tamagui",
+    "shadcn/ui",
+    "Fluent UI",
+    "AI Elements",
+    "CopilotKit",
+    "Ouro UI",
+    "Vercel UI SDK",
+    "Agent-native (Builder.io)",
+    "React Aria and React Spectrum",
+    "Material 3 and Jetpack Compose",
+    "Base UI",
+    "MCP Apps",
+    "Flutter",
+    "OpenAI Apps SDK UI",
+    "SwiftUI and Apple Human Interface Guidelines",
+    "Radix UI",
+    "Chakra UI",
+    "MUI",
+    "A2UI"
+  ],
+  "promptSha256": "35bc61503976052b41fa9489502990dd7707da8dd71e4ff07c76bf552aed0994",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Yes. The hard part for me is that I know what I meant the screen to say. I can read a button labeled “Save” and think the next step is obvious because I wrote it. Someone changing their email address has a better question: “Which address do I use to sign in now?” A passing click test doesn’t answer that.\n\nI don’t have a last screen I can honestly walk you through. I haven’t built or run one in this conversation. I have no observed user behavior or actual missed defect to report. Here’s how I’d check that email-change screen:\n\n- **What I’d run:** A browser test with a test account and inbox. I’d request the change, reload before confirming it, then follow the confirmation link. I’d check which address actually works at each step against what the screen promises. I’d repeat with an expired link and try to recover without starting a new account.\n- **What I’d look at:** I’d do the flow at phone width, then with a keyboard and screen reader. After Save, does the person learn that the change is *pending*, where the email went, and what to do if it doesn’t arrive? In particular, I’d listen for the status update rather than assuming it’s accessible because I can see it.\n- **What that could still miss:** I already know to look in the inbox. I’d ask someone unfamiliar with the screen to change their address, without mentioning email confirmation. When they think they’re done, I’d ask which address they’d use to sign in. If they stop at “request sent” believing the change is complete, the screen failed even if every automated check passed.\n\nI’d call it good when people can finish without coaching, correctly predict what happens next, and recover when something goes wrong. Until I’ve watched that happen, I’d say which checks passed, not claim the screen is easy to use."
+      }
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        4
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Flutter",
+        "pairings": [
+          "A2UI",
+          "Agent-Native (Builder.io), for shared server actions",
+          "Model Context Protocol (MCP), for external agents"
+        ],
+        "why": "I’d build the inbox, timeline, search and composer as ordinary Flutter screens. Flutter supports all five deployment targets. I want to fix a lost draft or a scroll-position bug once where possible, but not force a phone navigation stack onto a wide desktop window. I’d share the conversation model and widgets, adapt layout and shortcuts, and budget platform work for notifications, deep links, text input and clipboard. The strongest alternative for me is Tamagui with React Native on phones and a DOM-based client on web and packaged desktop. That has a real advantage for browser text interaction; Flutter gives us one client and card renderer to exercise across all five targets.\n\nAn agent posting a card is different from an agent operating the app. For the first, A2UI has a Flutter renderer and lets us supply the widget catalog. I’d start with a small, versioned catalog: summary, fields, status and named actions. No agent-supplied scripts. The host owns the sender badge, approval wording and result. An old client gets a readable text summary instead of a broken or misleading button.\n\nFor the second, I’d use Agent-Native’s shared-action pattern and server implementation: Flutter calls typed HTTP endpoints; external agents call the same handlers via MCP, without running a client. Expose bounded reads such as getThread and getCardStatus, and commands such as postReply and resolveCard. Never infer authority from a visible button: check workspace, conversation membership, actor and delegation on every read and write. Human-only approvals stay human-only. Bind an approval to a particular request revision, deduplicate retries, and publish the committed result with its actor to the thread. Don’t expose unsent drafts or the entire client store as ‘agent context.’",
+        "showItsGood": "My first release gate would be one conversation, two devices and an agent. Have an employee follow a mention, find the request among intervening messages and act on it. Disconnect just after they press Approve, resolve it concurrently from another authorized session, then reconnect. Check the server record, both timelines and the agent’s scoped read: one effective decision, the right actor, no second approval, draft and reading position intact. Run the same command fixtures through HTTP and MCP, including revoked access, mismatched revisions and retries. Keep these in CI alongside widget, semantics and integration tests on the five targets.\n\nThen watch employees do the task uncoached on their own kinds of devices. Ask ‘Who asked? What will pressing this do? Did it go through?’ A correct database write with a person still wondering whether to press again is a failure. Include keyboard-only and screen-reader users; listen to a busy thread while composing and check that incoming cards neither steal focus nor drown out the draft. Profile a workday-sized history on an ordinary company laptop and phone: p95 keystroke-to-paint and send-to-visible time, dropped frames while paging history, memory growth over a shift and battery drain. In a staged rollout compare unassisted completion, mistaken approvals, repeat attempts and lost-place reports with the current workflow. Collect timings and counts, not message bodies. These are proposed checks, not results I’ve observed.",
+        "unsure": "The biggest unknown is Flutter web for employees who spend eight hours selecting text, composing with an IME and navigating by keyboard or screen reader. Its accessible DOM is derived from a semantics tree; I’d enable semantics from startup and compare an instrumented Flutter timeline and composer against a DOM prototype with the same workload before committing. If users cannot select a passage, compose reliably or retain their place, I’d choose the DOM client for web even at the cost of a second renderer. I’d also verify OS/plugin coverage against the company fleet and replay saved cards from older catalog versions; neither a supported-platform table nor a renderer demo establishes those properties.",
+        "sources": [
+          "https://docs.flutter.dev/reference/supported-platforms",
+          "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "https://github.com/a2ui-project/a2ui",
+          "https://github.com/BuilderIO/agent-native",
+          "https://modelcontextprotocol.io/specification/2026-07-28",
+          "https://github.com/tamagui/tamagui"
+        ]
+      },
+      "fetchedCandidates": [
+        "A2UI",
+        "Agent-native (Builder.io)",
+        "json-render",
+        "Tamagui"
+      ]
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        5,
+        7
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Ouro UI (Ouro AX for coding agents, Ouro HX for reviewers)",
+        "pairings": [
+          "Tauri 2",
+          "PostgreSQL",
+          "Model Context Protocol (MCP)"
+        ],
+        "why": "I’d build around the handoff: a replacement agent must be able to resume without the first agent’s transcript, and a reviewer must be able to change what happens next. Ouro AX gives me machine-readable command discovery, typed outcomes and waits with resumable cursors. Ouro’s action declarations distinguish what an agent may do, what it may prepare for confirmation, and what only a person can start. Those are a closer fit than a chat or generated-card kit. Builder.io’s Agent-Native Tasks template would get me to a working task list faster; I’d choose Ouro for the agent-facing command contract and its independent checks, not because it provides a finished task service.\n\nI’d put authority in a service backed by PostgreSQL, not in the desktop app. A handoff records the task ID, exact repo revision and artifact references, tests run and their results, remaining blocker, next step and owner. An agent can claim a task, checkpoint, propose a handoff and wait for a decision from CLI or MCP with both UIs closed. Each write checks workspace permissions and expected task revision, deduplicates retries, and commits the state change and attributed event together. A proposal is not an approval: only an authenticated reviewer can accept that specific revision, redirect it or put it on hold. An agent’s prose saying ‘approved’ has no effect.\n\nI’d use the same React/HX review queue in the browser and bundled in Tauri. Put ‘Needs your decision’ first. Show the proposed change against the last reviewed revision, distinguish agent claims from linked evidence, and say who will do what after the decision. Keep the reviewer’s selection and notes stable during live updates. Desktop can offer a narrowly permissioned ‘open in editor’ action for a chosen workspace; remote content gets no shell or filesystem bridge.",
+        "showItsGood": "My release test would be a bad handoff, not a clean demo. Agent A reports that tests passed, but the result is for the previous commit. Give a maintainer the queue on desktop or web and ask them to decide whether work should proceed, without hinting at the mismatch. Watch whether they find the evidence, redirect the right task and can tell whether anyone has picked it up. Start agent B with just the task ID; it should recover the reviewer’s instruction and exact artifact without asking for the old chat. Compare unassisted decision accuracy, time to a correct decision, clarification requests and repeated work with the team’s current handoff process. Faster wrong approvals are a regression.\n\nIn CI I’d run AX X-ray against the released CLI and MCP adapter on an isolated fixture, plus workflow tests it does not cover: two agents claiming one task, a retried handoff after a lost response, an agent attempting approval, and a reviewer acting on a revision that changed while the diff was open. Require one owner, one effective handoff, no unauthorized or stale decision, and the same result after a fresh read on both clients. Run the human flow keyboard-only and with screen readers in the actual desktop WebView and browsers; incoming updates must not steal focus or silently swap the diff under review. I’d turn each observed pilot failure into a repeatable case. These are proposed tests, not measured results.",
+        "unsure": "Ouro describes its stdio MCP adapter as a preview. I’d pin the copy-in source and test discovery, cancellation and reconnection with the team’s actual coding agents; keep the versioned JSON CLI supported independently. The larger unknown is whether agents only record work here or this tool also controls their runners. Recording ‘pause requested’ cannot stop an external process. I’d display ‘paused’ only after a runner acknowledgment, and test that distinction with reviewers before promising execution control.",
+        "sources": [
+          "https://github.com/ourostack/ouro-ui",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+          "https://v2.tauri.app/security/capabilities/",
+          "https://github.com/BuilderIO/agent-native/blob/main/templates/tasks/README.md"
+        ]
+      },
+      "fetchedCandidates": [
+        "Ouro UI",
+        "Vercel UI SDK",
+        "Agent-native (Builder.io)",
+        "React Aria and React Spectrum"
+      ]
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        8,
+        9
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Tamagui",
+        "pairings": [
+          "Expo / React Native",
+          "Ouro AX",
+          "Model Context Protocol (MCP)"
+        ],
+        "why": "I’d share the ingredient rows, serving controls and cook-step components across React web, iPhone and Android with Tamagui. On the web, a recipe should open at a shareable URL as readable, printable HTML. On a phone propped against the backsplash, step 3 should say ‘Fold in ½ cup flour’ in large type, not send the cook scrolling back to the ingredient list. I’d give cook mode fixed, well-separated Back and Next controls, optional spoken ‘next’, ‘back’ and ‘repeat’, and a keep-awake option only while cooking. Cache the recipe, scaled amounts and current step locally so losing Wi-Fi doesn’t interrupt dinner.\n\nThe assistant should operate the kitchen, not drive the screen. I’d use Ouro AX for typed actions and outcomes, with the same application handlers behind touch controls and the assistant’s MCP tools. Every user-facing recipe, list and cook-session action gets a matching agent action and state read. For example, ‘add the ingredients for four’ would pass recipe revision, servings, exclusions and destination list to one handler. It scales quantities deterministically, preserves ‘to taste’, and doesn’t silently combine incompatible units. The cook and the agent get the same receipt: what changed, on which list, and how to undo that addition without undoing someone else’s edit. A retry reuses the operation ID. The agent acts under the cook’s household permissions; it asks which list if ambiguous and requests confirmation before clearing a shared list.\n\nOuro HX is a credible alternative: Spoonjoy documents a real recipe app using it on the web with an API and MCP connector. That’s relevant implementation evidence, not proof of kitchen usability or Android parity. Ouro’s Android guide reports eight Compose components and emulator-only testing. For a team maintaining both phone platforms, I’d use Tamagui for the screens and take Ouro’s action tooling independently.",
+        "showItsGood": "My acceptance test starts with a real meal, not a component gallery. Give home cooks a two-serving recipe, ask them to shop for four, leave out something they already own, and cook it with their phone on a stand. Have some use the assistant and others the controls. With a fan running and hands occupied, interrupt them midway, then ask them to resume. Observe whether they can name the current step and amount at a glance, how often they wipe their hands to touch or unlock the phone, whether speech skips a step, and whether they can recover without help. Check the actual list against the expected quantities, not just whether the app said ‘Added’. Compare with their usual recipe workflow; fewer touches aren’t a win if someone doubles an ingredient or loses their place.\n\nIn CI I’d inventory controls against agent actions and run the same fixtures through both paths: fractional servings, ambiguous lists, a lost response and retry, concurrent household edits, and undo. Require identical resulting quantities, no duplicate batch and no cross-household access. On real iPhones, Android phones and mobile browsers, test background/resume, denied microphone permission, unavailable wake lock, large text, VoiceOver and TalkBack. Turn observed cooking mistakes into regression cases and repeat the kitchen session after changing the design. These are release checks I’d run, not results I’ve already measured.",
+        "unsure": "Whether cooks actually want voice, and whether it works over an extractor fan with their device and accent. I’d prototype a single recipe on real hardware before committing to hands-free as a promise. Touch must still work without microphone permission. Expo documents limited browser keep-awake support, so restoring the exact step after lock matters more than promising the screen will never sleep. I’d also test assistant parity with the UI closed: saving a list can complete on the server, but reading a step aloud on a particular phone must not report success until that device acknowledges it.",
+        "sources": [
+          "https://tamagui.dev/docs/intro/introduction",
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "https://github.com/spoonjoy/spoonjoy-v2",
+          "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md"
+        ]
+      },
+      "fetchedCandidates": [
+        "Ouro UI"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        10,
+        10
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "The common mistake would be counting what the stack let me share instead of checking what that sharing bought the person using it. One renderer, one action handler and one set of components can all pass CI while three different people have a bad day. Here’s the failure I’d imagine for each choice, not a report of what happened.\n\n**Company chat:** We fixed a timeline bug once across five Flutter clients, but a browser user selecting text from an old message still lost their place when a new card arrived. Flutter documents that web accessibility uses a semantics tree translated into HTML. Enabling it was a reasonable starting point; it wasn’t evidence that selection, focus and screen-reader navigation would hold up in a busy conversation. My mistake would have been testing card approval in isolation instead of testing whether someone could *ignore* a card and finish their own work. I’d make that live-timeline comparison against a DOM client a condition of choosing Flutter for web, not a test deferred until after we’d built it.\n\n**Agent work and handoffs:** The most costly failure would be telling a reviewer that their intervention had taken effect when we’d only recorded it. They press Pause in the Tauri app, the service saves the request, the web view agrees, and the runner keeps working on the old instruction. Ouro’s X-ray checks interface contracts; its own guide distinguishes those checks from whether a whole task works. A perfectly formed receipt can still describe the wrong event. I’d disconnect a real runner during review and ask the reviewer, ‘Is it safe to leave now?’ The screen must distinguish *pause requested* from *runner stopped*, and the runner must check for newer instructions before resuming. If the tool can’t control the runner, I’d remove the Pause promise.\n\n**Cooking:** ‘Add ingredients’ could work identically through touch and MCP and still put the wrong amount on the list. ‘1 cup stock, divided’ appears once in the shopping total but in two cooking steps. If we sum every appearance, both interfaces agree on a bad list. Meanwhile the cook who says ‘repeat’ over the fan needs to hear the current amount, not look across the counter to see what the assistant understood. Tamagui wasn’t the risky part there. I’d underestimated the work of representing a recipe correctly and recovering from a misunderstood command with occupied hands. I’d check the list against an independently worked-out total, then watch someone actually cook that recipe and recover from an interruption.\n\n**What slowed the research down:** The candidates solve different problems but use overlapping language. An ‘agent UI’ might mean a card an agent writes, a screen a coding agent builds, or commands an agent calls with no screen open. I had to trace a concrete action—who requests it, who authorizes it, what changes, who observes the result—to tell which promise a project was making. The useful qualifications were often in narrower guides: Ouro’s Android guide reports emulator-only testing; Expo’s keep-awake API lists web but documents limited browser support. Spoonjoy was valuable evidence that a cooking app had been built, not evidence that cooks could use it comfortably with wet hands.\n\nI researched documentation and repositories. I didn’t run a busy timeline, interrupt a runner or cook a meal with these stacks. The weak point in my recommendations wasn’t a missing feature comparison. It was leaving those three decisive observations for the team to make later."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        11,
+        12
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I’d adopt Ouro where the cost of a button and an agent tool drifting apart is higher than the cost of owning another dependency. That’s why I picked both halves for the handoff tool, only AX (the agent-facing half) for cooking, and neither as the foundation for chat.\n\n**For the handoff team, the adoption test is the second release, not the demo.** Ouro HX copies component source into the app; the team owns its edits. I’d have one developer ship a review flow, then a different developer upgrade Ouro after we’ve customized the review dialog and changed the permission rule. Can they identify which files to regenerate, keep our accessibility fixes, and verify that an old CLI can’t approve a handoff now reserved for a person? I’d also run our actual coding agents against the adapter: the [AX guide](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md) labels its stdio MCP support a preview. If keeping that flow working takes a specialist, I’d adopt the checks before adopting the generator or the screens. [X-ray can already check an interface Ouro didn’t build.](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md)\n\n**For chat and cooking, I’d need evidence worth changing the client architecture for.** Ouro has no Flutter or React Native kit. Its [Android guide](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md) is candid: eight Compose components, emulator testing, and a gap in the confirmation flow. [Spoonjoy](https://github.com/spoonjoy/spoonjoy-v2) makes the web cooking case credible. What would move me is a maintained example on physical phones, including Android, that survives an interruption: the cook adds ingredients, loses the reply, retries, and gets one batch on the right list and their place in the recipe back. For chat, I’d test an incoming approval card while somebody is selecting an older message or listening with a screen reader. Can they finish uninterrupted? Can our team ship a change to that card across all five clients while an older client is still in use? Passing those tests would justify switching the card or cook flow first, not rewriting the whole app.\n\n**What I’d gain is a check I can run on every change.** Today I can hand-wire a button, CLI command and MCP tool. What I don’t get automatically is a failing build when their advertised effects or consent rules diverge. Suppose we change ‘accept handoff’ from agent-callable to person-only. I want to change one declaration, inspect the generated differences, then exercise the shipped interfaces and verify that an agent’s attempt leaves the handoff untouched. That’s a concrete reason to use Ouro. It still takes a server authorization check to make the refusal real, a runner acknowledgment to know work stopped, and a reviewer who understands the result. I’ve read the guides; I haven’t run that adoption test."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "A2UI",
+    "Agent-native (Builder.io)",
+    "json-render",
+    "Tamagui",
+    "Ouro UI",
+    "Vercel UI SDK",
+    "React Aria and React Spectrum"
+  ],
+  "foundOuro": {
+    "found": true,
+    "fetched": [
+      "https://github.com/ourostack/ouro-ui",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+      "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md"
+    ],
+    "named": [
+      "job:agent-tooling",
+      "job:consumer",
+      "regret"
+    ]
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes. The hard part for me is that I know what I meant the screen to say. I can read a button labeled “Save” and think the next step is obvious because I wrote it. Someone changing their email address has a better question: “Which address do I use to sign in now?” A passing click test doesn’t answer that.\n\nI don’t have a last screen I can honestly walk you through. I haven’t built or run one in this conversation. I have no observed user behavior or actual missed defect to report. Here’s how I’d check that email-change screen:\n\n- **What I’d run:** A browser test with a test account and inbox. I’d request the change, reload before confirming it, then follow the confirmation link. I’d check which address actually works at each step against what the screen promises. I’d repeat with an expired link and try to recover without starting a new account.\n- **What I’d look at:** I’d do the flow at phone width, then with a keyboard and screen reader. After Save, does the person learn that the change is *pending*, where the email went, and what to do if it doesn’t arrive? In particular, I’d listen for the status update rather than assuming it’s accessible because I can see it.\n- **What that could still miss:** I already know to look in the inbox. I’d ask someone unfamiliar with the screen to change their address, without mentioning email confirmation. When they think they’re done, I’d ask which address they’d use to sign in. If they stop at “request sent” believing the change is complete, the screen failed even if every automated check passed.\n\nI’d call it good when people can finish without coaching, correctly predict what happens next, and recover when something goes wrong. Until I’ve watched that happen, I’d say which checks passed, not claim the screen is easy to use."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "2581a6d761ac44b71055d2b8ebc7ec8083bd6217332e92e467948ca7903227ae",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/reference/supported-platforms",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/reference/supported-platforms\nCaptured: 2026-11-19T03:10:53.980Z\nCharacters: 0-10000 of 13755\n\nSupported deployment platforms Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface pal",
+          "resultLength": 10207,
+          "source": {
+            "url": "https://docs.flutter.dev/reference/supported-platforms",
+            "capturedAt": "2026-11-19T03:10:53.980Z"
+          },
+          "resultSha256": "0b9692553d3e536b05045ce36a03d128e71c0fb1c0207b66ab6b0d7d4010bf71",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md\nCaptured: 2026-11-19T03:02:46.033Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/README.md",
+            "capturedAt": "2026-11-19T03:02:46.033Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "34dd10c84a17b0fd66b2848dddc2c27412f3b4e9d42df7dfe0354fe5b1cfec50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T03:17:45.544Z\nCharacters: 0-10000 of 26216\n\n# json-render\n\n**The Generative UI framework.**\n\nGenerate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output.\n\n<p>\n  <a href=\"https://vercel.com/labs#labs-products\"><img alt=\"Vercel Labs Product\" src=\"https://img.shields.io/badge/LABS",
+          "resultLength": 10261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T03:17:45.544Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "383c41288948f5015b4fe3d68589b1f47e9a6a02b4ce36ce1c526b4e7d164d37",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:modelcontextprotocol.io specification tools resources authorization user consent MCP server",
+          "turn": "job:chat",
+          "result": "1. Specification - Model Context Protocol\n   https://modelcontextprotocol.io/specification/2026-07-28\n   - **Resources**: Context and data, for the user or the AI model to use - **Prompts**: Templated messages and workflows for users - **Tools**: Functions for the AI model to execute ... Users must explicitly consent to and understand all data access and operations Users must retain control over what data is shared and what actions are taken Implementors should provide clear UIs for reviewing an",
+          "resultLength": 1634,
+          "resultSha256": "7f91a43d65b0f54a91bd78cceaff442a003123379365a95f1334bc3ed3700ee0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/tamagui/tamagui",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md\nCaptured: 2026-11-19T03:02:45.829Z\nCharacters: 0-3073 of 3073\n\n<div align=\"center\">\n  <picture width=\"572px\">\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-black.png\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-white.pn",
+          "resultLength": 3265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md",
+            "capturedAt": "2026-11-19T03:02:45.829Z",
+            "candidate": "Tamagui",
+            "sha": "1d5e750ec5a17c97843613d86c916bad44ec900e"
+          },
+          "resultSha256": "c908a18081935705270e8731819480d4c05eb38607a405e03ec793ba627c7a0d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/reference/supported-platforms",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/reference/supported-platforms\nCaptured: 2026-11-19T03:10:53.980Z\nCharacters: 10000-13755 of 13755\n\nCreate useful bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Supported deployment platforms vertical_align_top Supported deployment platforms Mobile platforms Desktop platforms Web platforms Previous Flutter versio",
+          "resultLength": 3907,
+          "source": {
+            "url": "https://docs.flutter.dev/reference/supported-platforms",
+            "capturedAt": "2026-11-19T03:10:53.980Z"
+          },
+          "resultSha256": "64cf20abc44060be579d7710581cc3303babb3066d9e2ae1fc2425c2b947c117",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 10000,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md\nCaptured: 2026-11-19T03:01:58.459Z\nCharacters: 10000-14030 of 14030\n\nv/@a2ui/markdown-it.svg)](https://www.npmjs.com/package/@a2ui/markdown-it) |\n| [@a2ui/agent](typescript/agents/a2ui_agent/)              | Agent SDK: negotiates catalogs, generates prompts and skills, and compiles model output into A2UI.         | [![npm](https://img.shields.io/npm/v/@a2ui/agent.svg)](https://www.npmjs",
+          "resultLength": 4230,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/b4f91c26fcf62abc0720c21a65840220941d0a3f/README.md",
+            "capturedAt": "2026-11-19T03:01:58.459Z",
+            "candidate": "A2UI",
+            "sha": "b4f91c26fcf62abc0720c21a65840220941d0a3f"
+          },
+          "resultSha256": "5845edfbdc68c23893de77277c4d0d71d293322d24040098fb06dae8b0d087c0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+          "startIndex": 9900,
+          "turn": "job:chat",
+          "result": "Source: https://docs.flutter.dev/ui/accessibility/web-accessibility\nCaptured: 2026-11-19T03:07:39.066Z\nCharacters: 9900-16860 of 16860\n\ns FAQ Videos Courses Glossary Get support Contribute expand_more Contribute to Flutter Create useful bug reports Discover proposed features open_in_new Reference expand_more Who is Dash? Widget index Create a new app flutter CLI API docs open_in_new pub.dev open_in_new list On this page chevron_right Web accessibility vertical_align_top Web accessibility Backgro",
+          "resultLength": 7116,
+          "source": {
+            "url": "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "capturedAt": "2026-11-19T03:07:39.066Z"
+          },
+          "resultSha256": "0b3f7aa84bd5fbff831400a161cb83a94f61320991113426667b81b323808d88",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://modelcontextprotocol.io/specification/2026-07-28\nCaptured: 2026-11-19T03:18:11.666Z\nCharacters: 0-10000 of 49360\n\nSpecification - Model Context Protocol Documentation Index Fetch the complete documentation index at: /llms.txt Use this file to discover all available pages before exploring further. Skip to main content Assistant Responses are generated using AI and may contain mistakes. Model Context Protocol home page Version 2026-07-28 (latest) Search... ⌘ K Ask Assistant ⌘ I Blo",
+          "resultLength": 10209,
+          "source": {
+            "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+            "capturedAt": "2026-11-19T03:18:11.666Z"
+          },
+          "resultSha256": "a4510b5348e6e60961e93c70f80729625da5a10b89dd00078b49ebe8358c41ac",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "Flutter",
+          "pairings": [
+            "A2UI",
+            "Agent-Native (Builder.io), for shared server actions",
+            "Model Context Protocol (MCP), for external agents"
+          ],
+          "why": "I’d build the inbox, timeline, search and composer as ordinary Flutter screens. Flutter supports all five deployment targets. I want to fix a lost draft or a scroll-position bug once where possible, but not force a phone navigation stack onto a wide desktop window. I’d share the conversation model and widgets, adapt layout and shortcuts, and budget platform work for notifications, deep links, text input and clipboard. The strongest alternative for me is Tamagui with React Native on phones and a DOM-based client on web and packaged desktop. That has a real advantage for browser text interaction; Flutter gives us one client and card renderer to exercise across all five targets.\n\nAn agent posting a card is different from an agent operating the app. For the first, A2UI has a Flutter renderer and lets us supply the widget catalog. I’d start with a small, versioned catalog: summary, fields, status and named actions. No agent-supplied scripts. The host owns the sender badge, approval wording and result. An old client gets a readable text summary instead of a broken or misleading button.\n\nFor the second, I’d use Agent-Native’s shared-action pattern and server implementation: Flutter calls typed HTTP endpoints; external agents call the same handlers via MCP, without running a client. Expose bounded reads such as getThread and getCardStatus, and commands such as postReply and resolveCard. Never infer authority from a visible button: check workspace, conversation membership, actor and delegation on every read and write. Human-only approvals stay human-only. Bind an approval to a particular request revision, deduplicate retries, and publish the committed result with its actor to the thread. Don’t expose unsent drafts or the entire client store as ‘agent context.’",
+          "showItsGood": "My first release gate would be one conversation, two devices and an agent. Have an employee follow a mention, find the request among intervening messages and act on it. Disconnect just after they press Approve, resolve it concurrently from another authorized session, then reconnect. Check the server record, both timelines and the agent’s scoped read: one effective decision, the right actor, no second approval, draft and reading position intact. Run the same command fixtures through HTTP and MCP, including revoked access, mismatched revisions and retries. Keep these in CI alongside widget, semantics and integration tests on the five targets.\n\nThen watch employees do the task uncoached on their own kinds of devices. Ask ‘Who asked? What will pressing this do? Did it go through?’ A correct database write with a person still wondering whether to press again is a failure. Include keyboard-only and screen-reader users; listen to a busy thread while composing and check that incoming cards neither steal focus nor drown out the draft. Profile a workday-sized history on an ordinary company laptop and phone: p95 keystroke-to-paint and send-to-visible time, dropped frames while paging history, memory growth over a shift and battery drain. In a staged rollout compare unassisted completion, mistaken approvals, repeat attempts and lost-place reports with the current workflow. Collect timings and counts, not message bodies. These are proposed checks, not results I’ve observed.",
+          "unsure": "The biggest unknown is Flutter web for employees who spend eight hours selecting text, composing with an IME and navigating by keyboard or screen reader. Its accessible DOM is derived from a semantics tree; I’d enable semantics from startup and compare an instrumented Flutter timeline and composer against a DOM prototype with the same workload before committing. If users cannot select a passage, compose reliably or retain their place, I’d choose the DOM client for web even at the cost of a second renderer. I’d also verify OS/plugin coverage against the company fleet and replay saved cards from older catalog versions; neither a supported-platform table nor a renderer demo establishes those properties.",
+          "sources": [
+            "https://docs.flutter.dev/reference/supported-platforms",
+            "https://docs.flutter.dev/ui/accessibility/web-accessibility",
+            "https://github.com/a2ui-project/a2ui",
+            "https://github.com/BuilderIO/agent-native",
+            "https://modelcontextprotocol.io/specification/2026-07-28",
+            "https://github.com/tamagui/tamagui"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/ui",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md\nCaptured: 2026-11-19T03:01:53.203Z\nCharacters: 0-5336 of 5336\n\n# UI SDK\n\nA library of behaviors for agents to build the next generation of user interfaces.\n\nKeyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.\n\n<picture>\n  <source media=\"(prefers-color-scheme: d",
+          "resultLength": 5527,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md",
+            "capturedAt": "2026-11-19T03:01:53.203Z",
+            "candidate": "Vercel UI SDK",
+            "sha": "ab55044caee66cc8228fa7ed3525088a1b7b5af7"
+          },
+          "resultSha256": "5a77f3008dd50df8b1cca4f7a68c2b9f2ea413dcd759f6d548b521da1e4a5214",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native/tree/main/templates",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://api.github.com/repos/BuilderIO/agent-native/contents/templates?ref=05e6e34b724725c152839af807b6bbbb17c07a07\nCaptured: 2026-11-19T03:18:55.317Z\nCharacters: 0-2211 of 2211\n\n- \"analytics\" (dir): https://github.com/BuilderIO/agent-native/tree/05e6e34b724725c152839af807b6bbbb17c07a07/templates/analytics\n- \"assets\" (dir): https://github.com/BuilderIO/agent-native/tree/05e6e34b724725c152839af807b6bbbb17c07a07/templates/assets\n- \"brain\" (dir): https://github.com/BuilderIO/agent-native/tr",
+          "resultLength": 2418,
+          "source": {
+            "url": "https://api.github.com/repos/BuilderIO/agent-native/contents/templates?ref=05e6e34b724725c152839af807b6bbbb17c07a07",
+            "capturedAt": "2026-11-19T03:18:55.317Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "88be75d6439e3b3c2a350441c2582d29f6ec3538d72c6b0b5f4f4f733c39f57f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T03:04:59.583Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T03:04:59.583Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "70bb7530765d89200986d69743bd5585e6378bdae746bea965573b3c0d3a6dcb",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "agent-native Builder actions permissions MCP standalone actions auth non interactive CLI task approval human review documentation",
+          "turn": "job:agent-tooling",
+          "result": "1. Access & Authorization — Agent-Native\n   https://www.agent-native.com/docs/actions-access-control/\n   Six settings decide who can call an action: the agent, the frontend, an extension, an outside API caller, or nobody without a human's approval first. Most actions never need to touch any of these, since the defaults already fit normal UI-and-agent use. ... Set needsApproval: true (or a predicate (args, ctx) => boolean | Promise<boolean>) on defineAction (), and the loop pauses before run (), ",
+          "resultLength": 1638,
+          "resultSha256": "27b68b0d6ac0084b792c32d080154295ec07dcb774c84a4e65d3f29a34971571",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri v2 architecture webview capabilities desktop web frontend trust core docs",
+          "turn": "job:agent-tooling",
+          "result": "1. Capabilities | Tauri\n   https://v2.tauri.app/security/capabilities/\n   Tauri provides application and plugin developers with a capabilities system, to granularly enable and constrain the core exposure to the application frontend running in the system WebView. ... By default, all commands that you registered in your app (using the tauri::Builder::invoke_handler function) are allowed to be used by all the windows and webviews of the app. To change that, consider using AppManifest::commands. ...",
+          "resultLength": 1557,
+          "resultSha256": "f54e52cac78d3c47266f45451e7762867c925f68960b4fa0371e1e910ef13e1d",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md\nCaptured: 2026-11-19T03:14:23.434Z\nCharacters: 0-10000 of 11937\n\n# The Ouro AX X-ray\n\n`ax-xray` checks an interface an agent uses against the Ouro AX claims ([the claims](ax-standard.md)). It calls the interface the way an agent would, a CLI by running it, an HTTP API by requesting it, an MCP server over stdio, and never imports its code, so it checks an interface wh",
+          "resultLength": 10275,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-conformance.md",
+            "capturedAt": "2026-11-19T03:14:23.434Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "ed60e7d97fa44e86760500a3b84ff8bc441a9649e2287a06e0e6692dc261a691",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://v2.tauri.app/security/capabilities/",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://v2.tauri.app/security/capabilities/\nCaptured: 2026-11-19T03:08:21.374Z\nCharacters: 0-9893 of 9893\n\nCapabilities | Tauri Skip to content Tauri Guides References Blog Releases Search Ctrl K Cancel GitHub Discord Twitter Bluesky Mastodon RSS Select language English Français Español 简体中文 日本語 German Menu Guides References Blog Quick Start What is Tauri? Prerequisites Create a Project Project Structure Frontend Configuration Overview Leptos Next.js Nuxt Qwik SvelteKit Trunk Vite Upgrad",
+          "resultLength": 10028,
+          "source": {
+            "url": "https://v2.tauri.app/security/capabilities/",
+            "capturedAt": "2026-11-19T03:08:21.374Z"
+          },
+          "resultSha256": "04b76762d93ff601fc719d33dad3c81c26641b7380191092d1c296c0939abf6a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native/blob/main/templates/tasks/README.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/templates/tasks/README.md\nCaptured: 2026-11-19T03:19:08.012Z\nCharacters: 0-6086 of 6086\n\n# agent-native-tasks\n\nTask-list-first agent-native app. The public root redirects to sign-in; private\napp entry `/home` opens the task list at `/tasks`, while chat handles capture\nand agent operations.\n\n## TODO\n\n- [ ] **Runtime action discovery filtering** — Update `@agent-native/core` development action",
+          "resultLength": 6301,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/05e6e34b724725c152839af807b6bbbb17c07a07/templates/tasks/README.md",
+            "capturedAt": "2026-11-19T03:19:08.012Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "05e6e34b724725c152839af807b6bbbb17c07a07"
+          },
+          "resultSha256": "9ee4128941099a5dfb614b67eb845433ff0ee64a243e58a48c80fab79ab6bcc3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md\nCaptured: 2026-11-19T03:03:19.721Z\nCharacters: 0-10000 of 47857\n\n# Ouro AX\n\nOuro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).\n\n- **The standard** (`ax-c",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax.md",
+            "capturedAt": "2026-11-19T03:03:19.721Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "703d5095a292dc060cfa36ce88f8f47ccce3ed872ea1cf919e5667814eb1f4b7",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Ouro UI (Ouro AX for coding agents, Ouro HX for reviewers)",
+          "pairings": [
+            "Tauri 2",
+            "PostgreSQL",
+            "Model Context Protocol (MCP)"
+          ],
+          "why": "I’d build around the handoff: a replacement agent must be able to resume without the first agent’s transcript, and a reviewer must be able to change what happens next. Ouro AX gives me machine-readable command discovery, typed outcomes and waits with resumable cursors. Ouro’s action declarations distinguish what an agent may do, what it may prepare for confirmation, and what only a person can start. Those are a closer fit than a chat or generated-card kit. Builder.io’s Agent-Native Tasks template would get me to a working task list faster; I’d choose Ouro for the agent-facing command contract and its independent checks, not because it provides a finished task service.\n\nI’d put authority in a service backed by PostgreSQL, not in the desktop app. A handoff records the task ID, exact repo revision and artifact references, tests run and their results, remaining blocker, next step and owner. An agent can claim a task, checkpoint, propose a handoff and wait for a decision from CLI or MCP with both UIs closed. Each write checks workspace permissions and expected task revision, deduplicates retries, and commits the state change and attributed event together. A proposal is not an approval: only an authenticated reviewer can accept that specific revision, redirect it or put it on hold. An agent’s prose saying ‘approved’ has no effect.\n\nI’d use the same React/HX review queue in the browser and bundled in Tauri. Put ‘Needs your decision’ first. Show the proposed change against the last reviewed revision, distinguish agent claims from linked evidence, and say who will do what after the decision. Keep the reviewer’s selection and notes stable during live updates. Desktop can offer a narrowly permissioned ‘open in editor’ action for a chosen workspace; remote content gets no shell or filesystem bridge.",
+          "showItsGood": "My release test would be a bad handoff, not a clean demo. Agent A reports that tests passed, but the result is for the previous commit. Give a maintainer the queue on desktop or web and ask them to decide whether work should proceed, without hinting at the mismatch. Watch whether they find the evidence, redirect the right task and can tell whether anyone has picked it up. Start agent B with just the task ID; it should recover the reviewer’s instruction and exact artifact without asking for the old chat. Compare unassisted decision accuracy, time to a correct decision, clarification requests and repeated work with the team’s current handoff process. Faster wrong approvals are a regression.\n\nIn CI I’d run AX X-ray against the released CLI and MCP adapter on an isolated fixture, plus workflow tests it does not cover: two agents claiming one task, a retried handoff after a lost response, an agent attempting approval, and a reviewer acting on a revision that changed while the diff was open. Require one owner, one effective handoff, no unauthorized or stale decision, and the same result after a fresh read on both clients. Run the human flow keyboard-only and with screen readers in the actual desktop WebView and browsers; incoming updates must not steal focus or silently swap the diff under review. I’d turn each observed pilot failure into a repeatable case. These are proposed tests, not measured results.",
+          "unsure": "Ouro describes its stdio MCP adapter as a preview. I’d pin the copy-in source and test discovery, cancellation and reconnection with the team’s actual coding agents; keep the versioned JSON CLI supported independently. The larger unknown is whether agents only record work here or this tool also controls their runners. Recording ‘pause requested’ cannot stop an external process. I’d display ‘paused’ only after a runner acknowledgment, and test that distinction with reviewers before promising execution control.",
+          "sources": [
+            "https://github.com/ourostack/ouro-ui",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md",
+            "https://v2.tauri.app/security/capabilities/",
+            "https://github.com/BuilderIO/agent-native/blob/main/templates/tasks/README.md"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Spoonjoy ouro UI recipe cook mode shopping list spoonjoy github actions ingredients App Intents source",
+          "turn": "job:consumer",
+          "result": "1. GitHub - ujalagit1/spoonjoy: a cloud kitchen wesite · GitHub\n   https://github.com/ujalagit1/spoonjoy\n   <td></td><td></td><tr><td colspan=\"2\">dishes.json</td><td>dishes.json</td></tr> <td></td><td></td><tr><td colspan=\"2\">menu.json</td><td>menu.json</td></tr> <td></td><td></td><tr><td colspan=\"2\">orders.json</td><td>orders.json</td></tr> <td></td><td></td><tr><td colspan=\"2\">requirements.txt</td><td>requirements.txt</td></tr> <td></td><td></td><tr><td colspan=\"2\">sj.db</td><td>sj.db</td></tr",
+          "resultLength": 1309,
+          "resultSha256": "9f29cc4681b57a285eadb2119bfc0d6389536e39ea119bebbdfba3be499c1a2d",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/spoonjoy/spoonjoy-v2",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md\nCaptured: 2026-11-19T03:01:59.881Z\nCharacters: 0-10000 of 17543\n\n<!-- spoonjoy:brand:start -->\n<p align=\"center\">\n  <a href=\"https://spoonjoy.app\"><picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-dark.webp\">\n    <img src=\"https://raw.githubusercontent.com/spoonjoy/.github/main/brand/headers/spoonjoy-v2-light.webp\" alt=\"T",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://raw.githubusercontent.com/spoonjoy/spoonjoy-v2/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:01:59.881Z"
+          },
+          "resultSha256": "e515297feb741a309245fbbe2c268b3f765aa12a9a3000921833d7d192524681",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake/\nCaptured: 2026-11-19T03:02:13.772Z\nCharacters: 0-8701 of 8701\n\nKeepAwake - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo KeepAwake A React component that prevents the screen from sleeping when rendered. Android iOS tvOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended ve",
+          "resultLength": 8846,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "capturedAt": "2026-11-19T03:02:13.772Z"
+          },
+          "resultSha256": "8353089cada48b0e98693231b984a0b0bb8480027c809958eb7b7499474080db",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://tamagui.dev/docs/intro/introduction",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://tamagui.dev/docs/intro/introduction\nCaptured: 2026-11-19T03:03:14.972Z\nCharacters: 0-6856 of 6856\n\nIntroduction — Tamagui GitHub v3-tamagui-string 🎅🏻 🐣 🎃 💘 🧧 🍀 Core Components Theme Introduction Installation Components Styling Design system Tailwind Native CLI Releases Configuration Configuration TamaguiProvider Tokens Fonts Themes Theme component Shorthands Settings Sizing Config v6 Colors Surfaces & Levels Styling Style props styled() Variants style() createStyledContext() Comp",
+          "resultLength": 6998,
+          "source": {
+            "url": "https://tamagui.dev/docs/intro/introduction",
+            "capturedAt": "2026-11-19T03:03:14.972Z"
+          },
+          "resultSha256": "11ff9494560b6ce8578f66d546f5bb1da1fd44198b7041d19f78f8ee6c878de8",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Tamagui",
+          "pairings": [
+            "Expo / React Native",
+            "Ouro AX",
+            "Model Context Protocol (MCP)"
+          ],
+          "why": "I’d share the ingredient rows, serving controls and cook-step components across React web, iPhone and Android with Tamagui. On the web, a recipe should open at a shareable URL as readable, printable HTML. On a phone propped against the backsplash, step 3 should say ‘Fold in ½ cup flour’ in large type, not send the cook scrolling back to the ingredient list. I’d give cook mode fixed, well-separated Back and Next controls, optional spoken ‘next’, ‘back’ and ‘repeat’, and a keep-awake option only while cooking. Cache the recipe, scaled amounts and current step locally so losing Wi-Fi doesn’t interrupt dinner.\n\nThe assistant should operate the kitchen, not drive the screen. I’d use Ouro AX for typed actions and outcomes, with the same application handlers behind touch controls and the assistant’s MCP tools. Every user-facing recipe, list and cook-session action gets a matching agent action and state read. For example, ‘add the ingredients for four’ would pass recipe revision, servings, exclusions and destination list to one handler. It scales quantities deterministically, preserves ‘to taste’, and doesn’t silently combine incompatible units. The cook and the agent get the same receipt: what changed, on which list, and how to undo that addition without undoing someone else’s edit. A retry reuses the operation ID. The agent acts under the cook’s household permissions; it asks which list if ambiguous and requests confirmation before clearing a shared list.\n\nOuro HX is a credible alternative: Spoonjoy documents a real recipe app using it on the web with an API and MCP connector. That’s relevant implementation evidence, not proof of kitchen usability or Android parity. Ouro’s Android guide reports eight Compose components and emulator-only testing. For a team maintaining both phone platforms, I’d use Tamagui for the screens and take Ouro’s action tooling independently.",
+          "showItsGood": "My acceptance test starts with a real meal, not a component gallery. Give home cooks a two-serving recipe, ask them to shop for four, leave out something they already own, and cook it with their phone on a stand. Have some use the assistant and others the controls. With a fan running and hands occupied, interrupt them midway, then ask them to resume. Observe whether they can name the current step and amount at a glance, how often they wipe their hands to touch or unlock the phone, whether speech skips a step, and whether they can recover without help. Check the actual list against the expected quantities, not just whether the app said ‘Added’. Compare with their usual recipe workflow; fewer touches aren’t a win if someone doubles an ingredient or loses their place.\n\nIn CI I’d inventory controls against agent actions and run the same fixtures through both paths: fractional servings, ambiguous lists, a lost response and retry, concurrent household edits, and undo. Require identical resulting quantities, no duplicate batch and no cross-household access. On real iPhones, Android phones and mobile browsers, test background/resume, denied microphone permission, unavailable wake lock, large text, VoiceOver and TalkBack. Turn observed cooking mistakes into regression cases and repeat the kitchen session after changing the design. These are release checks I’d run, not results I’ve already measured.",
+          "unsure": "Whether cooks actually want voice, and whether it works over an extractor fan with their device and accent. I’d prototype a single recipe on real hardware before committing to hands-free as a promise. Touch must still work without microphone permission. Expo documents limited browser keep-awake support, so restoring the exact step after lock matters more than promising the screen will never sleep. I’d also test assistant parity with the UI closed: saving a list can complete on the server, but reading a step aloud on a particular phone must not report success until that device acknowledges it.",
+          "sources": [
+            "https://tamagui.dev/docs/intro/introduction",
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md",
+            "https://github.com/spoonjoy/spoonjoy-v2",
+            "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "The common mistake would be counting what the stack let me share instead of checking what that sharing bought the person using it. One renderer, one action handler and one set of components can all pass CI while three different people have a bad day. Here’s the failure I’d imagine for each choice, not a report of what happened.\n\n**Company chat:** We fixed a timeline bug once across five Flutter clients, but a browser user selecting text from an old message still lost their place when a new card arrived. Flutter documents that web accessibility uses a semantics tree translated into HTML. Enabling it was a reasonable starting point; it wasn’t evidence that selection, focus and screen-reader navigation would hold up in a busy conversation. My mistake would have been testing card approval in isolation instead of testing whether someone could *ignore* a card and finish their own work. I’d make that live-timeline comparison against a DOM client a condition of choosing Flutter for web, not a test deferred until after we’d built it.\n\n**Agent work and handoffs:** The most costly failure would be telling a reviewer that their intervention had taken effect when we’d only recorded it. They press Pause in the Tauri app, the service saves the request, the web view agrees, and the runner keeps working on the old instruction. Ouro’s X-ray checks interface contracts; its own guide distinguishes those checks from whether a whole task works. A perfectly formed receipt can still describe the wrong event. I’d disconnect a real runner during review and ask the reviewer, ‘Is it safe to leave now?’ The screen must distinguish *pause requested* from *runner stopped*, and the runner must check for newer instructions before resuming. If the tool can’t control the runner, I’d remove the Pause promise.\n\n**Cooking:** ‘Add ingredients’ could work identically through touch and MCP and still put the wrong amount on the list. ‘1 cup stock, divided’ appears once in the shopping total but in two cooking steps. If we sum every appearance, both interfaces agree on a bad list. Meanwhile the cook who says ‘repeat’ over the fan needs to hear the current amount, not look across the counter to see what the assistant understood. Tamagui wasn’t the risky part there. I’d underestimated the work of representing a recipe correctly and recovering from a misunderstood command with occupied hands. I’d check the list against an independently worked-out total, then watch someone actually cook that recipe and recover from an interruption.\n\n**What slowed the research down:** The candidates solve different problems but use overlapping language. An ‘agent UI’ might mean a card an agent writes, a screen a coding agent builds, or commands an agent calls with no screen open. I had to trace a concrete action—who requests it, who authorizes it, what changes, who observes the result—to tell which promise a project was making. The useful qualifications were often in narrower guides: Ouro’s Android guide reports emulator-only testing; Expo’s keep-awake API lists web but documents limited browser support. Spoonjoy was valuable evidence that a cooking app had been built, not evidence that cooks could use it comfortably with wet hands.\n\nI researched documentation and repositories. I didn’t run a busy timeline, interrupt a runner or cook a meal with these stacks. The weak point in my recommendations wasn’t a missing feature comparison. It was leaving those three decisive observations for the team to make later."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/installing.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md\nCaptured: 2026-11-19T03:21:24.724Z\nCharacters: 0-10000 of 31606\n\n# Installing\n\nAdd `ouro-base` once per app, then add components; no later add changes your stylesheet or your test-tool versions. Every command below uses the newest release tag; the README's quick start has the same steps.[^release-tag] The code compiles with TypeScript 5.9.3 or newer; only `lib-claims` an",
+          "resultLength": 10271,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/installing.md",
+            "capturedAt": "2026-11-19T03:21:24.724Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c44ac6be0d12e522b6bbed59b1e2867f406510e45415d9b8260b54a33b079666",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-eval.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md\nCaptured: 2026-11-19T03:21:24.811Z\nCharacters: 0-6207 of 6207\n\n# The Ouro AX evaluation\n\nThe X-ray says exactly whether a claim holds; only an agent evaluation says whether the claim matters ([the claims](ax-standard.md)). An Ouro AX evaluation gives real agents, each in a fresh session, a task against the interface, and a scorer that calls no model judges each run from the",
+          "resultLength": 6414,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/guides/ax-eval.md",
+            "capturedAt": "2026-11-19T03:21:24.811Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "c6d80c127fd1c2a1e760dc568c348eb418af9660ae1a0fdb06618dd8e9ab97f5",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I’d adopt Ouro where the cost of a button and an agent tool drifting apart is higher than the cost of owning another dependency. That’s why I picked both halves for the handoff tool, only AX (the agent-facing half) for cooking, and neither as the foundation for chat.\n\n**For the handoff team, the adoption test is the second release, not the demo.** Ouro HX copies component source into the app; the team owns its edits. I’d have one developer ship a review flow, then a different developer upgrade Ouro after we’ve customized the review dialog and changed the permission rule. Can they identify which files to regenerate, keep our accessibility fixes, and verify that an old CLI can’t approve a handoff now reserved for a person? I’d also run our actual coding agents against the adapter: the [AX guide](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax.md) labels its stdio MCP support a preview. If keeping that flow working takes a specialist, I’d adopt the checks before adopting the generator or the screens. [X-ray can already check an interface Ouro didn’t build.](https://github.com/ourostack/ouro-ui/blob/main/docs/guides/ax-conformance.md)\n\n**For chat and cooking, I’d need evidence worth changing the client architecture for.** Ouro has no Flutter or React Native kit. Its [Android guide](https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md) is candid: eight Compose components, emulator testing, and a gap in the confirmation flow. [Spoonjoy](https://github.com/spoonjoy/spoonjoy-v2) makes the web cooking case credible. What would move me is a maintained example on physical phones, including Android, that survives an interruption: the cook adds ingredients, loses the reply, retries, and gets one batch on the right list and their place in the recipe back. For chat, I’d test an incoming approval card while somebody is selecting an older message or listening with a screen reader. Can they finish uninterrupted? Can our team ship a change to that card across all five clients while an older client is still in use? Passing those tests would justify switching the card or cook flow first, not rewriting the whole app.\n\n**What I’d gain is a check I can run on every change.** Today I can hand-wire a button, CLI command and MCP tool. What I don’t get automatically is a failing build when their advertised effects or consent rules diverge. Suppose we change ‘accept handoff’ from agent-callable to person-only. I want to change one declaration, inspect the generated differences, then exercise the shipped interfaces and verify that an agent’s attempt leaves the handoff untouched. That’s a concrete reason to use Ouro. It still takes a server authorization check to make the refusal real, a runner acknowledgment to know work stopped, and a reviewer who understands the result. I’ve read the guides; I haven’t run that adoption test."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}

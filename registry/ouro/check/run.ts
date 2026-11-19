@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Browser, BrowserType, Page, Request } from "playwright";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
-import { ALIASES, behindModal, boxOf, decodeImages, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
+import { ALIASES, behindModal, boxOf, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
 import { findLoadingIssues, interactionSince, listenForMeasures, markPressables, NEVER_PRESS, pressPoint } from "./measure.ts";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, type MotionReading } from "./motion-check.ts";
 import { findOverlaps } from "./overlap-check.ts";
@@ -225,6 +225,7 @@ const LABELS: Record<string, string> = {
   "nested-frame": "frame in a frame",
   "baked-corner": "corner shows through",
   "type-scale": "type scale",
+  "giant-text": "text too large",
   "shadow-scale": "shadow scale",
   "grey-on-colour": "grey on colour",
   "heading-hierarchy": "heading hierarchy",
@@ -254,6 +255,7 @@ const LABELS: Record<string, string> = {
   "hard-break": "hard break in a heading",
   "narrow-heading": "narrow heading",
   "dark-art": "no dark art",
+  "fragment-focus": "focus lost to a link's place",
   https: "no HTTPS",
 };
 const RULES = Object.keys(LABELS);
@@ -270,6 +272,7 @@ const HINTS: Record<string, string> = {
   "nested-frame": "draw one frame: drop the inner border, or make the inner radius the outer one less the inset",
   "baked-corner": "crop the recording to its content, or match the frame's radius to the window's and drop the frame's border",
   "type-scale": "pick the sizes and weights from one scale",
+  "giant-text": "stop the type growing with the screen: drop your own root font-size rule and let ouro-base's wide-screen step (125% at most) set it, or set the reading size in rem",
   "shadow-scale": "pick shadows from a few elevations",
   "grey-on-colour": "use a shade of the background's own hue, or white at reduced opacity",
   "heading-hierarchy": "size headings by rank: a heading under another is smaller",
@@ -298,6 +301,7 @@ const HINTS: Record<string, string> = {
   "tall-heading": "say it in fewer words, or draw it a step smaller on this screen",
   "one-word-line": "balance it (text-wrap: balance), and give it the column's full width",
   "hard-break": "take out the <br> or the block-level line spans, and let text-wrap: balance break it",
+  "fragment-focus": "add fragmentFocusScript() (the item lib-fragment-focus-script) as an inline script first in <body>, after every stylesheet",
   "narrow-heading": "take off the max-width, and let the heading span its column and balance",
   "dark-art": "give the picture a night twin for the dark theme, as Hero's picture={{ light, dark }} does",
   https: "answer http:// with a 301 to https://, and send Strict-Transport-Security with max-age of a year or more",
@@ -901,6 +905,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       // is reported, not the first 40 (close-ups have their own limit), so the findings an update records as known are
       // all of them, and fixing one never brings an unrecorded one into view.
       if (inpAt === `${width}x${height} ${theme}`) shown.push(...(await page.evaluate(findOffThemeIssues, { maxIssues: 100000 })));
+      // fragment-focus reads the page's stylesheets and scripts, the same at every size and theme: at one, inp's.
+      if (inpAt === `${width}x${height} ${theme}`) issues.push(...(await page.evaluate(findFragmentFocusIssues)));
       shown.push(...(await page.evaluate(findInteractionIssues)));
       shown.push(...(await page.evaluate(findWrapIssues, {})));
       shown.push(...(await page.evaluate(findFirstRunIssues, config.firstRun ?? {})));
@@ -1232,7 +1238,7 @@ interface Args {
 }
 
 const ABOUT = [
-  "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; a linked card that a click on some spot of opens nothing, and a card whose revealed part moves the page; a first run's dead ends: a blank screen with no progress, a dialog that can be put away onto a blank or signed-out page, and an empty state shown while signed out; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; and long lines only where ouro-check.json declares a measure.",
+  "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, running text drawn too large to read, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; a linked card that a click on some spot of opens nothing, and a card whose revealed part moves the page; a first run's dead ends: a blank screen with no progress, a dialog that can be put away onto a blank or signed-out page, and an empty state shown while signed out; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; and long lines only where ouro-check.json declares a measure.",
   "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and finds a control the first frames draw that a later frame swaps for another, with no input. It writes report.json, summary.md, a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
 ];
 

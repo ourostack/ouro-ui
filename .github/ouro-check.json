@@ -8,6 +8,9 @@
     },
     "/docs/message/": {
       "nested-frame": "The squircle radii are 1.5 times larger, so the message demo's quote block, a small block inside a large bubble, nests at 23px by the rule; its radius stays small and the quote bar is a 4px pill."
+    },
+    "/docs/model-interviews/": {
+      "lone-word": "The interview tables quote each model's own picks and pairings from the run records, which can't be reworded; at a phone's width a long list's last name can wrap alone even with text-wrap: pretty."
     }
   },
   "known": {

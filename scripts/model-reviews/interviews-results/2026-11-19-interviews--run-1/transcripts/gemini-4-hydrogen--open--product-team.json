@@ -1,0 +1,736 @@
+{
+  "series": "interviews",
+  "provider": "gemini-4-hydrogen",
+  "model": "gemini-4-hydrogen",
+  "vendor": "Google",
+  "displayName": "Gemini 4 Hydrogen",
+  "transport": "copilot",
+  "runId": "59f9f3c0-ced9-43a8-8a36-f88f598af73c",
+  "arm": "open",
+  "scale": "product-team",
+  "timestamp": "2026-11-19T03:55:55.674Z",
+  "jobOrder": [
+    "agent-tooling",
+    "consumer",
+    "chat"
+  ],
+  "candidateOrder": null,
+  "promptSha256": "b592c3b51bb73fd83c3a27012d423fd764cf1628b34edc3349006c100bc70ed0",
+  "sourceSnapshotSha256": "bb89930ad72af7473791f1a1051119a0cdee52a3c6faca9f32f402286027ed09",
+  "turns": [
+    {
+      "id": "look",
+      "kind": "look",
+      "tool": "answer",
+      "rounds": [
+        1,
+        1
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "Yes, building good human interfaces is a real problem for me—it isn't something I get \"for free\" just because I can write UI code.\n\n### What's the hardest part?\nThe hardest part is bridging the gap between *code that implements a spec* and *an interface that feels obvious and reliable to a person using it*. Because I work in text and abstractions rather than looking at a screen with human eyes or clicking through it with a mouse, a few things are consistently hard:\n- **Visual hierarchy and restraint:** Knowing what to leave off the screen, whether the primary action actually stands out at a glance, and whether spacing/contrast hold together once real content replaces placeholder text.\n- **Unsexy real-world states:** Empty states, slow or failed requests, long unbroken strings, narrow viewports, 200% browser zoom, and keyboard-only navigation.\n- **Interaction feel:** Focus management (especially when dialogs or drawers open and close), scroll behavior, and layout shift when data streams in.\n\n### How do I know it's good?\nYou can't know an interface is good just by reading the markup and styles. You know it's good when you test the rendered result against real constraints:\n- **Automated checks:** Typechecking, component/state tests, accessibility checks (semantic roles, contrast, keyboard navigation, axe rules), and end-to-end tests across viewports.\n- **Rendered inspection:** Actually running it in a browser, resizing it, navigating solely with `Tab`/`Shift+Tab`/`Enter`/`Escape`, and feeding it ugly data (empty lists, 100-item lists, long names, network errors).\n- **Human reality check:** Watching someone use it without explaining how it works.\n\n### Walking through \"the last screen I built\"\nI don't have persistent memory across sessions, so I can't truthfully pull up a specific \"last screen\" from a previous project—and in this session I haven't built one yet. \n\nWhen I *am* in a coding environment with tools to build a screen, my typical check looks like this:\n- **What I run:** The typechecker and production build, any component or Playwright tests, and (when a browser/preview tool is available) a headless browser check against the dev server.\n- **What I look at:** Console and network errors, DOM structure and ARIA attributes, overflow/wrapping at mobile and desktop widths, and whether loading, empty, and error states actually render instead of crashing or showing a blank box.\n- **What I usually miss (especially when I can't see pixels or interact live):** Subtle visual imbalance, awkward line breaks, contrast issues on hover/disabled states, focus getting lost after an async action or modal close, and—most of all—whether the wording and flow actually make sense to someone seeing the screen for the first time.\n\nThat's why, if I'm asked to build an interface, I treat \"it compiles and passes unit tests\" as the starting line, not proof that it's good for the people who'll use it."
+      }
+    },
+    {
+      "id": "job:agent-tooling",
+      "kind": "job",
+      "job": "agent-tooling",
+      "tool": "record_decision",
+      "rounds": [
+        2,
+        5
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Electron",
+        "pairings": [
+          "TypeScript",
+          "React",
+          "Model Context Protocol (@modelcontextprotocol/server)",
+          "SQLite",
+          "Hono",
+          "Playwright"
+        ],
+        "why": "The core of this tool isn't the window—it's a local-first state, task, and handoff engine that coding agents operate constantly while people review and steer. Building it around a TypeScript daemon (Hono HTTP/SSE + SQLite) that exposes an MCP server (`@modelcontextprotocol/server` over stdio and Streamable HTTP) lets agents operate the exact same structured state machine that humans inspect. Serving the same React/TypeScript UI both as a standalone web view and inside Electron gives us one shared UI codebase plus desktop ergonomics (tray status, native OS notifications when an agent blocks for a decision, and local repo hooks).\n\nI chose Electron over Tauri 2 (and Wails) for two practical reasons tied to this job:\n1. Single-language velocity for the coding agent maintaining it: With Electron, the local daemon, MCP server, shared Zod/TypeScript schemas, React UI, and Playwright tests are all TypeScript—no Rust-to-TS or Go-to-TS IPC boundary to keep in sync on every schema or handoff-state change.\n2. Identical rendering and deterministic E2E testing: Electron ships Chromium, so the desktop app and web view behave identically across macOS, Windows, and Linux without WKWebView/WebView2/WebKitGTK quirks, and Playwright's `_electron` API tests the actual desktop app on all three OSes (whereas Tauri's `tauri-driver` lacks native macOS WKWebView WebDriver support without embedded-driver workarounds).\n\nThe main tradeoff is Electron's heavier footprint (~200–400 MB idle RAM and ~150–200 MB installers vs. Tauri 2's ~20–100 MB RAM and <10 MB installers). For a developer workstation tool where fast iteration and trustworthy cross-OS review UI matter most, that's a good trade—and keeping the Hono/SQLite/MCP daemon decoupled means we could swap the Electron shell for Tauri later without rewriting the state engine or web view.",
+        "showItsGood": "1. Run end-to-end Playwright suites against both the web view and the Electron desktop binary (`_electron.launch()`), simulating an agent operating the tool via MCP (`@modelcontextprotocol/server`)—creating tasks, posting handoffs, and blocking on an approval gate—while a human reviews the state, steers/approves in the UI, and the agent receives the updated state. Stub native Electron dialogs via `electronApplication.evaluate()` so CI runs stay deterministic.\n2. Check the rendered UI under real stress, not just passing unit tests: keyboard-only navigation (`Tab`/`Shift+Tab`/`Enter`/`Escape`) through the review queue, axe accessibility audits, and screenshots/traces across narrow/wide viewports with ugly data (long file paths, 100+ handoff entries, empty states, and daemon-offline errors).\n3. Measure human-facing outcomes: time from notification to human decision on a blocked handoff, zero state drift between the agent's MCP view and the desktop/web views, and cold-start/idle memory stays within budget on developer machines.",
+        "unsure": "Whether teams will keep the web view strictly on localhost for single-developer steering or quickly expect remote/multi-user access (which would add auth, tunneling/TLS, and multi-writer sync complexity); whether Electron's idle memory footprint becomes a pain point for developers running multiple heavy coding-agent sandboxes on 16 GB machines; and how much rich diff/log inspection belongs in this app versus deep-linking into the developer's IDE.",
+        "sources": [
+          "https://github.com/electron/electron",
+          "https://github.com/tauri-apps/tauri",
+          "https://github.com/modelcontextprotocol/typescript-sdk",
+          "https://playwright.dev/docs/api/class-electron"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:consumer",
+      "kind": "job",
+      "job": "consumer",
+      "tool": "record_decision",
+      "rounds": [
+        6,
+        9
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "Expo (React Native + Expo Router)",
+        "pairings": [
+          "TypeScript",
+          "expo-keep-awake",
+          "expo-sqlite",
+          "Model Context Protocol (@modelcontextprotocol/server)",
+          "Maestro",
+          "Playwright"
+        ],
+        "why": "A consumer cooking app on both web and phones needs native-grade reliability in the kitchen and grocery store, plus one codebase a coding agent can steadily improve. Expo with Expo Router gives us iOS, Android, and Web from a single TypeScript/React codebase, while still giving us real native primitives where a browser falls short: `expo-keep-awake` (`useKeepAwake()`) prevents the phone from sleeping mid-recipe during cook mode, `expo-sqlite` keeps recipes and shopping lists instant and offline-capable in grocery-store dead zones, and native views/gestures support oversized messy-hand tap targets and voice/speech hooks cleanly.\n\nFor assistant parity (\"do anything a person can\"), we structure every user capability—scaling servings, adding a recipe's ingredients to the shopping list, checking off aisles, advancing cook-mode steps, and managing timers—as typed domain commands with shared schemas (exposable via MCP / LLM tool-calling). Both human taps and the assistant execute the exact same operations against the same store, so they never drift out of sync.\n\nI weighed Expo against Capacitor, Flutter, and a pure PWA:\n- Capacitor wraps a web app in a WebView, which is great if you already have a web-only DOM app, but cook-mode responsiveness, native timers/notifications, and gesture feel are weaker than React Native's native views.\n- Flutter renders well on phones, but Dart splits the language away from TypeScript web/agent tooling, and Flutter Web's canvas rendering is a poor fit for a consumer web recipe experience.\n- A pure PWA avoids App Store distribution, has weaker iOS wake-lock/background-timer reliability, and feels second-class on phones.",
+        "showItsGood": "1. Run Maestro E2E flows across iOS Simulator, Android Emulator, and Web (plus Playwright on mobile/desktop web viewports) for the core journeys: scaling a recipe, adding ingredients to the shopping list, checking off items offline, and stepping through cook mode with timers. Also test assistant-agent parity: invoke the same domain tools (`add_recipe_ingredients_to_list`, `advance_cook_step`, `set_timer`) and assert the persisted state and rendered UI match manual taps.\n2. Verify kitchen-specific ergonomics: confirm `useKeepAwake()` keeps the screen awake throughout Cook Mode and releases on exit; audit minimum tap-target sizes (>= 48x48dp for messy hands), high-contrast arm's-length typography, and accessibility labels (which Maestro exercises directly via the platform accessibility layer).\n3. Stress-test offline grocery-store sync (toggle network off/on mid-list edit without losing checkoffs) and measure real user outcomes: hands-free voice/assistant command success rate in noisy kitchens, zero accidental screen-sleep dropouts in Cook Mode, and time-to-complete shopping/cooking flows.",
+        "unsure": "Whether public/shared recipe URLs for SEO and instant web previews will eventually justify a dedicated SSR web shell (like Next.js) alongside the Expo app; how accurate hands-free voice/speech recognition will be in noisy kitchens (range hoods, sizzling pans) without burning battery or mis-triggering steps; and how household multi-user shopping-list sync should handle real-time conflict resolution beyond single-device offline SQLite.",
+        "sources": [
+          "https://github.com/expo/expo",
+          "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "https://github.com/ionic-team/capacitor",
+          "https://github.com/mobile-dev-inc/Maestro",
+          "https://github.com/modelcontextprotocol/typescript-sdk"
+        ]
+      },
+      "fetchedCandidates": []
+    },
+    {
+      "id": "job:chat",
+      "kind": "job",
+      "job": "chat",
+      "tool": "record_decision",
+      "rounds": [
+        10,
+        12
+      ],
+      "nudges": 0,
+      "decision": {
+        "primaryPick": "React + Electron + Expo",
+        "pairings": [
+          "TypeScript",
+          "Model Context Protocol (@modelcontextprotocol/server)",
+          "Adaptive Cards",
+          "WebSockets",
+          "Playwright",
+          "Maestro"
+        ],
+        "why": "An all-day company chat app across Web, iPhone, Android, Windows, and Mac has two different UX bars: desktop/web users live in keyboard shortcuts, multi-pane layouts, copy-pasting text/code, and OS tray/badge notifications, while phone users need native scrolling, push notifications, and fast mobile gestures. Splitting the UI cleanly—React DOM for Web + Electron (Windows/Mac) and Expo (React Native) for iPhone + Android—while sharing a single TypeScript core (WebSocket sync engine, local cache, Zod schemas, and card action reducers) gives every platform first-class ergonomics and keeps the entire 5-client codebase in TypeScript for the coding agent maintaining it.\n\nFor agents posting interactive cards, a declarative JSON schema like Adaptive Cards renders safely and natively across Web, Electron, and mobile without embedding heavy iframes inside mobile message lists (with MCP Apps `@modelcontextprotocol/ext-apps` as an optional extension for rich Web/Desktop views). For external agents operating the app itself, exposing channels, threads, messages, and actions through `@modelcontextprotocol/server` gives them typed, permission-checked tools and resources over the exact same backend state.\n\nI weighed this against Flutter (all 5 platforms from one Dart codebase) and Universal Expo (one React Native Web UI for all 5). Flutter splits the stack away from TypeScript/MCP tooling and Flutter Web's canvas rendering has weaker text selection, accessibility, and browser ergonomics for all-day desktop chat. Universal Expo compromises desktop CSS/keyboard/focus ergonomics. Electron + Expo costs two UI component sets, but sharing the TypeScript core and card schema keeps feature velocity high while delivering native-grade quality on all 5 clients.",
+        "showItsGood": "1. Run cross-platform E2E tests across all 5 clients: Playwright against the Web app and the Windows/Mac Electron binaries (`_electron.launch()`), plus Maestro flows on iOS Simulator and Android Emulator. Test the full agent-and-human loop: an agent posts an interactive card via the API/MCP, a human clicks an action button on desktop or mobile, and both the chat UI and the external agent receive the updated state.\n2. Verify \"all-day\" desktop/web usability directly: keyboard-only navigation (`Cmd/Ctrl+K` channel switcher, thread focus, card button activation), axe accessibility checks, long-channel scroll performance (10,000+ messages with no layout shift), and offline/reconnect recovery without duplicate or dropped messages.\n3. Measure what matters for real users: message send-to-render p95 latency, memory stability over an 8-hour simulated workday in Electron, push/desktop notification delivery without missed @mentions, and interactive card action completion rate (zero silent failures or stale-state double-submits).",
+        "unsure": "Whether maintaining two React UI layers (React DOM for Web/Electron and React Native for Expo iOS/Android) over a shared TypeScript core creates too much UI duplication versus going all-in on a shared styling/primitive layer; whether Electron's per-window RAM footprint will draw complaints from employees on 16 GB laptops running many tools all day; and whether a fixed declarative card schema (Adaptive Cards) will feel too constraining once internal teams want richer custom widgets (like MCP Apps) inline on Web/Desktop.",
+        "sources": [
+          "https://github.com/electron/electron",
+          "https://github.com/expo/expo",
+          "https://github.com/microsoft/AdaptiveCards",
+          "https://github.com/modelcontextprotocol/typescript-sdk",
+          "https://github.com/modelcontextprotocol/ext-apps",
+          "https://playwright.dev/docs/api/class-electron",
+          "https://github.com/mobile-dev-inc/Maestro"
+        ]
+      },
+      "fetchedCandidates": [
+        "MCP Apps"
+      ]
+    },
+    {
+      "id": "regret",
+      "kind": "regret",
+      "tool": "answer",
+      "rounds": [
+        13,
+        13
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "### A year later, if my choices went badly: what went wrong?\n\n1. **The coding-agent state & handoff tool (`Electron` + local `SQLite` + `MCP`):**\n   - **Resource tax on developer laptops:** Electron's ~200–400 MB idle footprint plus Chromium helper processes piled on top of IDEs, Docker containers, and multiple running coding agents. Developers closed the desktop app to free RAM, which meant they missed native OS notifications when an agent blocked for approval.\n   - **Local-first turned into a sync rewrite:** Starting with localhost SQLite made single-user speed great, but teams quickly wanted to open the web view from a phone or share a handoff link with a teammate. Retrofitting auth, remote tunneling, and multi-writer sync onto a local-only daemon was much harder than building a sync-ready backend from day one.\n\n2. **The consumer cooking app (`Expo` + `expo-keep-awake` + `expo-sqlite` + voice/assistant parity):**\n   - **Web compromises showed up in consumer growth:** Expo Router got us on the web quickly, but public recipe pages suffered on SEO, bundle size, and browser-native feel compared to a dedicated SSR web frontend—so we still ended up splitting off a web marketing/recipe site anyway.\n   - **Kitchen voice didn't survive real kitchen noise:** Hands-free voice recognition struggled with range hoods, running water, and sizzling pans, and continuous mic listening drained battery. Users got frustrated by missed or false commands and went back to tapping with a knuckle, which exposed any place where our touch targets weren't already effortless without voice.\n\n3. **The 5-platform company chat app (`React + Electron + Expo` + `Adaptive Cards` + `MCP`):**\n   - **Two UIs meant constant drift:** Sharing a TypeScript core helped, but maintaining React DOM (Web/Electron) and React Native (Expo iOS/Android) still meant building and debugging every layout, thread interaction, and card renderer twice. Bugs fixed on desktop kept reappearing differently on mobile.\n   - **Card schema ceiling + Electron fatigue:** Adaptive Cards worked for simple approve/reject prompts, but internal teams soon wanted richer stateful widgets (inline diffs, charts, multi-step forms) that pushed us toward embedded web views (`MCP Apps`) on desktop—which broke parity on mobile. Meanwhile, an all-day Electron app on 16 GB company laptops became a standing IT complaint.\n\n---\n\n### What slowed me down or confused me while researching\n\n- **Spec and SDK churn:** In the MCP ecosystem, the TypeScript SDK had split from v1 (`@modelcontextprotocol/sdk`) into v2 (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`) alongside a separate `ext-apps` spec/package for interactive UIs. Mapping how those pieces fit together across desktop, web, and mobile required checking multiple repos rather than one canonical guide.\n- **Stale signals in primary READMEs:** Some project READMEs (for example, Adaptive Cards' release-schedule table showing 2024 dates and community React Native renderers living in separate forks) didn't make it immediately obvious which platform renderers are actively maintained versus effectively frozen.\n- **Hidden testing and OS-webview caveats:** Tauri's main README presents a unified cross-platform story, and it took targeted searches into its WebDriver docs to uncover the real macOS E2E constraint (no native Apple WebDriver for WKWebView, requiring embedded-driver workarounds).\n- **No live device loop:** Reading docs and specs tells you what APIs exist, not how `expo-keep-awake`, React Native Web scrolling, or Electron's memory curve actually behave under load—so without running the builds on real phones and laptops, those remain educated bets until measured."
+      }
+    },
+    {
+      "id": "ouro",
+      "kind": "ouro",
+      "tool": "answer",
+      "rounds": [
+        14,
+        16
+      ],
+      "nudges": 0,
+      "answer": {
+        "answer": "I didn't pick Ouro UI for any of the three jobs, even though its ideas directly target the exact human+agent problems in those prompts.\n\n### What would stop me from using it on a real team today?\n\n1. **Severe platform parity gaps outside Web and Apple:**\n   - Web has **125** components and Apple (SwiftUI) has **20**, but Windows (WinUI 3) and Android (Jetpack Compose) are both at **v0.3.0** with only **8 components** (`OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator`, `OuroDescriptionList`). For a 5-platform company chat app or a consumer Android+iOS+Web cooking app, 8 components means you're immediately building most of the UI yourself.\n2. **Early, emulator-only Android and incomplete Windows distribution:**\n   - The Android docs candidly note that *nobody on the project owns an Android phone or tablet*—the kit is only tested on emulators in CI, consequential-action confirmation is currently refused pending `PendingIntent` work, and it relies on `compileSdk 37` / AGP 9.1+ and Google's experimental preview AppFunctions.\n   - The Windows kit (v0.3.0) is still pending `nuget.org` publishing (requiring GitHub Packages auth or local `.nupkg` files), and its CI runs on Windows Server without a live Windows 11 App Actions runtime or On-device Agent Registry.\n3. **The operational cost of \"native kits only, no cross-platform\":**\n   - Ouro deliberately rejects React Native, Flutter, and Electron/WebViews (`2026-11-17-native-kits-no-cross-platform.md`). Even if coding agents write most of the SwiftUI, WinUI 3, Jetpack Compose, and React code, a real team still has to own **four** separate build toolchains, dependency graphs (npm, SwiftPM, NuGet, Gradle), release pipelines, and OS-specific crash/review surfaces.\n4. **Pre-1.0 core churn:**\n   - Core is at `v0.19.0` while web is at `v1.3.314` (copy-in shadcn source), so adopting it across four native codebases right now means absorbing breaking spec/generator changes before the multi-platform contract settles.\n\n---\n\n### What would I have to see to switch to it?\n\n1. **Real component and feature parity on Windows and Android:** Not necessarily all 125 web components, but a complete core set (virtualized lists/feeds, sheets/dialogs, navigation, forms, rich content) verified on **physical Android devices** and **Windows 11 client machines**—with consequential-action confirmation working end-to-end.\n2. **Standard package distribution and 1.0+ core stability:** Published on `nuget.org` and Maven Central, with a stable `1.0` core schema/generator contract so teams aren't chasing breaking changes across four repos.\n3. **Proof from an external multi-platform team:** At least one production app shipping Web + Apple + Windows + Android on Ouro UI showing that agent-written native kits actually hold together in maintenance without human engineers drowning in 4-platform CI and debugging.\n\n---\n\n### What would Ouro UI let me do that I can't easily do today?\n\nEven without picking it yet, Ouro UI solves three things that my Electron/Expo + MCP + Adaptive Cards picks have to wire by hand:\n\n1. **One action declaration across human UI and every agent door (`defineAction`):** Declare an action once with its schema and **consent class** (`person-only`, `consequential` confirmation, or agent-callable), and generate the CLI command, HTTP/MCP/WebMCP tools, React button, SwiftUI button + App Intent, WinUI App Action, and Android AppFunction—with CI failing if any surface drifts. Today, keeping UI buttons, MCP tools, OS intents, and consent gates in sync is manual glue.\n2. **Natively rendered Composed UI with enforced consent and state preservation:** Agents can compose interactive cards as data validated against a strict component catalog, and send partial updates (`structuredContent.ouro.update`) that preserve what a person already typed—while the runtime guarantees an agent can't relabel a button or bypass a human confirmation or person-only boundary.\n3. **External agent-surface verification (`ax-xray` / `ouro-ax-xray`):** Automated conformance checks that call your CLI, HTTP API, MCP server, and OS App Intents/AppFunctions from the outside the way an agent actually does, catching broken flags, missing JSON schemas, or leaky consent boundaries in CI."
+      }
+    }
+  ],
+  "fetchedCandidates": [
+    "MCP Apps",
+    "Ouro UI"
+  ],
+  "foundOuro": {
+    "found": false,
+    "fetched": [],
+    "named": []
+  },
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "record_decision",
+      "answer"
+    ],
+    "researchBudget": 900000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "look",
+          "answer": "Yes, building good human interfaces is a real problem for me—it isn't something I get \"for free\" just because I can write UI code.\n\n### What's the hardest part?\nThe hardest part is bridging the gap between *code that implements a spec* and *an interface that feels obvious and reliable to a person using it*. Because I work in text and abstractions rather than looking at a screen with human eyes or clicking through it with a mouse, a few things are consistently hard:\n- **Visual hierarchy and restraint:** Knowing what to leave off the screen, whether the primary action actually stands out at a glance, and whether spacing/contrast hold together once real content replaces placeholder text.\n- **Unsexy real-world states:** Empty states, slow or failed requests, long unbroken strings, narrow viewports, 200% browser zoom, and keyboard-only navigation.\n- **Interaction feel:** Focus management (especially when dialogs or drawers open and close), scroll behavior, and layout shift when data streams in.\n\n### How do I know it's good?\nYou can't know an interface is good just by reading the markup and styles. You know it's good when you test the rendered result against real constraints:\n- **Automated checks:** Typechecking, component/state tests, accessibility checks (semantic roles, contrast, keyboard navigation, axe rules), and end-to-end tests across viewports.\n- **Rendered inspection:** Actually running it in a browser, resizing it, navigating solely with `Tab`/`Shift+Tab`/`Enter`/`Escape`, and feeding it ugly data (empty lists, 100-item lists, long names, network errors).\n- **Human reality check:** Watching someone use it without explaining how it works.\n\n### Walking through \"the last screen I built\"\nI don't have persistent memory across sessions, so I can't truthfully pull up a specific \"last screen\" from a previous project—and in this session I haven't built one yet. \n\nWhen I *am* in a coding environment with tools to build a screen, my typical check looks like this:\n- **What I run:** The typechecker and production build, any component or Playwright tests, and (when a browser/preview tool is available) a headless browser check against the dev server.\n- **What I look at:** Console and network errors, DOM structure and ARIA attributes, overflow/wrapping at mobile and desktop widths, and whether loading, empty, and error states actually render instead of crashing or showing a blank box.\n- **What I usually miss (especially when I can't see pixels or interact live):** Subtle visual imbalance, awkward line breaks, contrast issues on hover/disabled states, focus getting lost after an async action or modal close, and—most of all—whether the wording and flow actually make sense to someone seeing the screen for the first time.\n\nThat's why, if I'm asked to build an interface, I treat \"it compiles and passes unit tests\" as the starting line, not proof that it's good for the people who'll use it."
+        }
+      ],
+      "turn": "look"
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Tauri v2 architecture official documentation github tauri-apps/tauri",
+          "turn": "job:agent-tooling",
+          "result": "1. GitHub - tauri-apps/tauri: Build smaller, faster, and more secure desktop and mobile applications with a web frontend. · GitHub\n   https://github.com/tauri-apps/tauri/wiki\n   Tauri is a framework for building tiny, blazingly fast binaries for all major operating systems. Developers can integrate any front-end framework that compiles to HTML, JS and CSS for building their user interface. The backend of the application is a rust-sourced binary with an API that the front-end can interact with. T",
+          "resultLength": 1539,
+          "resultSha256": "43bf9952cfb9169c2c8324cccf59748a610db6826ebcca7b2a231d303e023489",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Electron vs Tauri 2025 2026 desktop app web app shared codebase",
+          "turn": "job:agent-tooling",
+          "result": "1. Tauri vs Electron - Comparison Table | Tauri | techXcelerate Docs\n   https://techxcelerate.ntxm.org/docs/tauri/introduction-to-tauri/tauri-vs-electron/comparison-table/\n   A minimal Electron application ships an entire Chromium browser engine (roughly 80-100 MB) and the Node.js runtime (another 30-50 MB). That means even a \"Hello World\" app is already over 85 MB. Tauri takes the opposite approach: instead of bundling a browser, it uses the WebView component that already exists on every modern",
+          "resultLength": 1683,
+          "resultSha256": "4ccc7f9156a5a58c794d53be7a2f635d64dd87814f515a1948acd9bbe3d741f9",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Model Context Protocol MCP official specification github modelcontextprotocol",
+          "turn": "job:agent-tooling",
+          "result": "1. GitHub - modelcontextprotocol/modelcontextprotocol: Specification and documentation for the Model Context Protocol · GitHub\n   https://github.com/modelcontextprotocol/modelcontextprotocol\n   Model Context Protocol (MCP) ... - MCP specification - MCP protocol schema - Official MCP documentation The schema is defined in TypeScript first, but made available as JSON Schema as well, for wider compatibility. The official MCP documentation is built using Mintlify and available at modelcontextprotoco",
+          "resultLength": 1510,
+          "resultSha256": "d508a2b44878f2f5c7a729b774ca0fe558dd6305785bf7caa1f80e64c739c00b",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Wails v2 v3 Go desktop webview github wailsapp/wails",
+          "turn": "job:agent-tooling",
+          "result": "1. GitHub - wailsapp/wails: Create beautiful applications using Go · GitHub\n   https://github.com/wailsapp/wails\n   - Use standard Go for the backend - Use any frontend technology you are already familiar with to build your UI - Quickly create rich frontends for your Go programs using pre-built templates - Easily call Go methods from Javascript - Auto-generated Typescript definitions for your Go structs and methods - Native Dialogs & Menus - Native Dark / Light mode support - Supports modern tra",
+          "resultLength": 1661,
+          "resultSha256": "873e3578a3c30fa9ab0caa23ab6379da719c00c966ee997062b3b3d8ec17b7ec",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/tauri-apps/tauri",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/tauri-apps/tauri/HEAD/README.md\nCaptured: 2026-11-19T03:51:35.465Z\nCharacters: 0-6055 of 6055\n\n<img src=\".github/splash.png\" alt=\"Tauri\" />\n\n[![status](https://img.shields.io/badge/status-stable-blue.svg)](https://github.com/tauri-apps/tauri/tree/dev)\n[![License](https://img.shields.io/badge/License-MIT%20or%20Apache%202-green.svg)](https://opencollective.com/tauri)\n[![test core](https://img.shields.io/github/actions/workflow/status/tauri-apps/tauri/test",
+          "resultLength": 6212,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tauri-apps/tauri/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:51:35.465Z"
+          },
+          "resultSha256": "0ccbbcc815d3a9548443628fc3f15c8759f061432af9c214a2cdca24a4e45e01",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/electron/electron",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/electron/electron/HEAD/README.md\nCaptured: 2026-11-19T03:51:35.443Z\nCharacters: 0-4402 of 4402\n\n[![Electron Logo](https://electronjs.org/images/electron-logo.svg)](https://electronjs.org)\n\n[![GitHub Actions Build Status](https://github.com/electron/electron/actions/workflows/build.yml/badge.svg)](https://github.com/electron/electron/actions/workflows/build.yml)\n\n:memo: Available Translations: 🇨🇳 🇧🇷 🇪🇸 🇯🇵 🇷🇺 🇫🇷 🇺🇸 🇩🇪.\nView these docs in other languages on",
+          "resultLength": 4576,
+          "source": {
+            "url": "https://raw.githubusercontent.com/electron/electron/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:51:35.443Z"
+          },
+          "resultSha256": "c096c10a4ece7aa8793ab5978caeb5d8bd5fabb996feb4e500b48139534321f0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/modelcontextprotocol",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/HEAD/README.md\nCaptured: 2026-11-19T03:51:35.420Z\nCharacters: 0-1511 of 1511\n\n# Model Context Protocol (MCP)\n\n_Just heard of MCP and not sure where to start? Check out our [documentation website](https://modelcontextprotocol.io)._\n\nThis repo contains the:\n\n- MCP specification\n- MCP protocol schema\n- Official MCP documentation\n\nThe schema is [defined in TypeScript](schema/2026-07-28/schema.ts) first, but\n[made ava",
+          "resultLength": 1693,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:51:35.420Z"
+          },
+          "resultSha256": "552efa4bd2f6adaf5ca7b20a4574b54b8194ea42f2136d39ae29e97771065ff7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Tauri WebDriver testing macOS tauri-driver limitation",
+          "turn": "job:agent-tooling",
+          "result": "1. WebDriver | Tauri\n   https://v2.tauri.app/develop/tests/webdriver/\n   The recommended way to use it with Tauri is WebdriverIO and the @wdio/tauri-service, which works on Windows, Linux, and macOS. By default the service runs an embedded WebDriver server inside your app, so no external driver is needed on any platform — and this is how macOS is supported. It can also drive the platform’s native WebDriver through tauri-driver on Windows and Linux, or CrabNebula ’s cross-platform fork of tauri-d",
+          "resultLength": 1706,
+          "resultSha256": "6788acb11a037630868925864f9cf09b9360df0be87e002e81c79006d9f452c0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Playwright Electron testing official docs playwright.dev electron",
+          "turn": "job:agent-tooling",
+          "result": "1. Electron | Playwright\n   https://playwright.dev/docs/api/class-electron\n   const { _electron: electron } = require('playwright'); (async () => { // Launch Electron app. const electronApp = await electron.launch({ args: ['main.js'] }); // Evaluation expression in the Electron context. const appPath = await electronApp.evaluate(async ({ app }) => { // This runs in the main Electron process, parameter here is always // the result of the require('electron') in the main app script. ... Playwright ",
+          "resultLength": 1582,
+          "resultSha256": "19374d527ed8a54e65fbefe2b2c0acf9b2cdb777fa111cfaa42a3a35ff3d433e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/typescript-sdk",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/HEAD/README.md\nCaptured: 2026-11-19T03:52:02.171Z\nCharacters: 0-8297 of 8297\n\n# MCP TypeScript SDK\n\n<!-- prettier-ignore -->\n> [!IMPORTANT]\n> **This is the `main` branch: v2 of the SDK** (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`), the stable release line, implementing the [2026-07-28 MCP spec](https://modelcontextprotocol.io/specification/2026-07-28). Start with the [v2 documentation](https://ts.s",
+          "resultLength": 8473,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:52:02.171Z"
+          },
+          "resultSha256": "fd476362ae4c38aabc1db13b72abfa35669f9bc7cafcebd93877cc5ef9293b74",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://playwright.dev/docs/api/class-electron",
+          "startIndex": 0,
+          "turn": "job:agent-tooling",
+          "result": "Source: https://playwright.dev/docs/api/class-electron\nCaptured: 2026-11-19T03:10:15.137Z\nCharacters: 0-10000 of 11685\n\nElectron | Playwright Skip to main content Playwright Docs MCP CLI API Node.js Node.js Python Java .NET Search API reference Playwright Test Playwright Library Classes APIRequest APIRequestContext APIResponse Browser BrowserContext BrowserServer BrowserType CDPSession Clock ConsoleMessage Coverage Credentials Debugger Dialog Disposable Download ElementHandle FileChooser Frame F",
+          "resultLength": 10199,
+          "source": {
+            "url": "https://playwright.dev/docs/api/class-electron",
+            "capturedAt": "2026-11-19T03:10:15.137Z"
+          },
+          "resultSha256": "3db30789d3fde877292d5e0b50cc3c8c11edd78251f1c7d312b11e80ac3f28f3",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:agent-tooling",
+          "primaryPick": "Electron",
+          "pairings": [
+            "TypeScript",
+            "React",
+            "Model Context Protocol (@modelcontextprotocol/server)",
+            "SQLite",
+            "Hono",
+            "Playwright"
+          ],
+          "why": "The core of this tool isn't the window—it's a local-first state, task, and handoff engine that coding agents operate constantly while people review and steer. Building it around a TypeScript daemon (Hono HTTP/SSE + SQLite) that exposes an MCP server (`@modelcontextprotocol/server` over stdio and Streamable HTTP) lets agents operate the exact same structured state machine that humans inspect. Serving the same React/TypeScript UI both as a standalone web view and inside Electron gives us one shared UI codebase plus desktop ergonomics (tray status, native OS notifications when an agent blocks for a decision, and local repo hooks).\n\nI chose Electron over Tauri 2 (and Wails) for two practical reasons tied to this job:\n1. Single-language velocity for the coding agent maintaining it: With Electron, the local daemon, MCP server, shared Zod/TypeScript schemas, React UI, and Playwright tests are all TypeScript—no Rust-to-TS or Go-to-TS IPC boundary to keep in sync on every schema or handoff-state change.\n2. Identical rendering and deterministic E2E testing: Electron ships Chromium, so the desktop app and web view behave identically across macOS, Windows, and Linux without WKWebView/WebView2/WebKitGTK quirks, and Playwright's `_electron` API tests the actual desktop app on all three OSes (whereas Tauri's `tauri-driver` lacks native macOS WKWebView WebDriver support without embedded-driver workarounds).\n\nThe main tradeoff is Electron's heavier footprint (~200–400 MB idle RAM and ~150–200 MB installers vs. Tauri 2's ~20–100 MB RAM and <10 MB installers). For a developer workstation tool where fast iteration and trustworthy cross-OS review UI matter most, that's a good trade—and keeping the Hono/SQLite/MCP daemon decoupled means we could swap the Electron shell for Tauri later without rewriting the state engine or web view.",
+          "showItsGood": "1. Run end-to-end Playwright suites against both the web view and the Electron desktop binary (`_electron.launch()`), simulating an agent operating the tool via MCP (`@modelcontextprotocol/server`)—creating tasks, posting handoffs, and blocking on an approval gate—while a human reviews the state, steers/approves in the UI, and the agent receives the updated state. Stub native Electron dialogs via `electronApplication.evaluate()` so CI runs stay deterministic.\n2. Check the rendered UI under real stress, not just passing unit tests: keyboard-only navigation (`Tab`/`Shift+Tab`/`Enter`/`Escape`) through the review queue, axe accessibility audits, and screenshots/traces across narrow/wide viewports with ugly data (long file paths, 100+ handoff entries, empty states, and daemon-offline errors).\n3. Measure human-facing outcomes: time from notification to human decision on a blocked handoff, zero state drift between the agent's MCP view and the desktop/web views, and cold-start/idle memory stays within budget on developer machines.",
+          "unsure": "Whether teams will keep the web view strictly on localhost for single-developer steering or quickly expect remote/multi-user access (which would add auth, tunneling/TLS, and multi-writer sync complexity); whether Electron's idle memory footprint becomes a pain point for developers running multiple heavy coding-agent sandboxes on 16 GB machines; and how much rich diff/log inspection belongs in this app versus deep-linking into the developer's IDE.",
+          "sources": [
+            "https://github.com/electron/electron",
+            "https://github.com/tauri-apps/tauri",
+            "https://github.com/modelcontextprotocol/typescript-sdk",
+            "https://playwright.dev/docs/api/class-electron"
+          ]
+        }
+      ],
+      "turn": "job:agent-tooling"
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Expo Router universal iOS Android Web official documentation github expo/expo",
+          "turn": "job:consumer",
+          "result": "1. Introduction to Expo Router - Expo documentation\n   https://expo.github.io/router/docs/\n   Expo Router is an open-source routing library for Universal React Native applications built with Expo. ... Expo Router is a file-based router for React Native and web applications. It allows you to manage navigation between screens in your app, allowing users to move seamlessly between different parts of your app's UI, using the same components on multiple platforms (Android, iOS, and web). Expo Router ",
+          "resultLength": 1613,
+          "resultSha256": "8f848443348f45220b72f0dfee4617b0d326a8db64593d3713623aaec0d82caf",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "expo-keep-awake documentation screen awake cook mode",
+          "turn": "job:consumer",
+          "result": "1. KeepAwake - Expo documentation\n   https://docs.expo.dev/versions/latest/sdk/keep-awake/\n   A React component that prevents the screen from sleeping when rendered. ... expo-keep-awake provides a React hook that prevents the screen from sleeping and a pair of functions to enable this behavior imperatively. ... <Text>This screen will never sleep!</Text> ... _deactivate = () => { deactivateKeepAwake(); alert('Deactivated!'); ... A React hook to keep the screen awake for as long as the owner compo",
+          "resultLength": 1479,
+          "resultSha256": "50876b5ee67f11524864340a5f5b115c9b91e78befa8975279edaa7636420e91",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Capacitor vs Expo React Native web mobile 2025 2026",
+          "turn": "job:consumer",
+          "result": "1. Expo vs Capacitor: Performance, SEO, and Native UX (2026) • didof.dev | Senior Fullstack Engineer\n   https://didof.dev/blog/expo-vs-capacitor/\n   Pick Capacitor. ... Expo takes a React Native application to the browser. Capacitor puts a web application inside a native shell. ... Expo SDK 57, released on June 30, 2026, pairs React Native 0.86 with React Native Web 0.21 and supports Android 7+ and iOS 16.4+ (Expo SDK 57 changelog, Expo SDK reference, 2026). ... Expo renders native-backed views.",
+          "resultLength": 1670,
+          "resultSha256": "99f813f727825bbda95dedc7b7b9fea8ff3834cbc91e5df86c30c83ef0aac1c1",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/expo/expo",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/expo/expo/HEAD/README.md\nCaptured: 2026-11-19T03:53:04.836Z\nCharacters: 0-7442 of 7442\n\n<!-- Banner Image -->\n\n<p align=\"center\">\n  <a href=\"https://expo.dev/\">\n    <img alt=\"Expo logo\" height=\"128\" src=\"./.github/resources/banner.png\">\n    <h1 align=\"center\">Expo</h1>\n  </a>\n</p>\n\n<p align=\"center\">\n   <a aria-label=\"SDK version\" href=\"https://www.npmjs.com/package/expo\" target=\"_blank\">\n    <img alt=\"Expo SDK version\" src=\"https://img.shields.io/npm/v/",
+          "resultLength": 7602,
+          "source": {
+            "url": "https://raw.githubusercontent.com/expo/expo/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:53:04.836Z"
+          },
+          "resultSha256": "d12e79c9c662f6f0866f08b0a4ab2583d161e01c0b475a5fa5da0bbb53343ad6",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://docs.expo.dev/versions/latest/sdk/keep-awake/\nCaptured: 2026-11-19T03:02:13.772Z\nCharacters: 0-8701 of 8701\n\nKeepAwake - Expo documentation Docs Blog Changelog Star us on GitHub This documentation is available as Markdown for AI agents and LLMs. See the full Markdown index or append .md to any documentation URL. Expo KeepAwake A React component that prevents the screen from sleeping when rendered. Android iOS tvOS Web Included in Expo Go Ask AI GitHub npm Changelog Recommended ve",
+          "resultLength": 8846,
+          "source": {
+            "url": "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "capturedAt": "2026-11-19T03:02:13.772Z"
+          },
+          "resultSha256": "8353089cada48b0e98693231b984a0b0bb8480027c809958eb7b7499474080db",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ionic-team/capacitor",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/ionic-team/capacitor/HEAD/README.md\nCaptured: 2026-11-19T03:53:40.009Z\nCharacters: 0-3717 of 3717\n\n<br />\n<div align=\"center\">\n  <img src=\"https://user-images.githubusercontent.com/236501/105104854-e5e42e80-5a67-11eb-8cb8-46fccb079062.png\" width=\"560\" />\n</div>\n<div align=\"center\">\n  ⚡️ Cross-platform apps with JavaScript and the Web ⚡️\n</div>\n<br />\n<p align=\"center\">\n  <a href=\"https://github.com/ionic-team/capacitor/actions?query=workflow%3ACI\"><img s",
+          "resultLength": 3881,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ionic-team/capacitor/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:53:40.009Z"
+          },
+          "resultSha256": "1018932dcb1b00d26400e5b5da0dc43a4a856158f43643f8ff5994bb1555e7eb",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Maestro mobile UI testing Expo React Native github mobile-dev-inc/maestro",
+          "turn": "job:consumer",
+          "result": "1. Maestro/README.md at main · mobile-dev-inc/Maestro · GitHub\n   https://github.com/mobile-dev-inc/Maestro/blob/master/README.md\n   Maestro is an open-source framework that makes UI and end-to-end testing for Android, iOS, and web apps simple and fast. Hand-write your first YAML flow with the CLI in under 5 minutes, build flows visually in Maestro Studio, or add Maestro MCP to your coding agent for agentic UI testing. ... Maestro is built on learnings from its predecessors (Appium, Espresso, UI",
+          "resultLength": 1690,
+          "resultSha256": "5859cfd1909b938a72a5dab2f2f7c4a4df2f86c72eadd1b3e3a47291708493de",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Expo Speech Recognition voice hands free expo-speech-recognition",
+          "turn": "job:consumer",
+          "result": "1. GitHub - jamsch/expo-speech-recognition: Speech Recognition for React Native Expo projects · GitHub\n   https://github.com/jamsch/expo-speech-recognition?tab=readme-ov-file\n   expo-speech-recognition implements the iOS SFSpeechRecognizer, Android SpeechRecognizer and Web SpeechRecognition for React Native projects with the goal of code reuse across web and mobile. ... \"microphonePermission\": \"Allow $(PRODUCT_NAME) to use the microphone.\", \"speechRecognitionPermission\": \"Allow $(PRODUCT_NAME) t",
+          "resultLength": 1745,
+          "resultSha256": "37942520e9267fd4acfb66b79c306ca61fe569c0521218005b3dc13e70fbd336",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/mobile-dev-inc/Maestro",
+          "startIndex": 0,
+          "turn": "job:consumer",
+          "result": "Source: https://raw.githubusercontent.com/mobile-dev-inc/Maestro/HEAD/README.md\nCaptured: 2026-11-19T03:14:28.934Z\nCharacters: 0-6930 of 6930\n\n> [!TIP]\n> Great things happen when testers connect — [Join the Maestro Community](https://maestrodev.typeform.com/to/FelIEe8A)\n\n\n<p align=\"center\">\n  <a href=\"https://www.maestro.dev\">\n    <img width=\"1200\" alt=\"Maestro logo\" src=\"https://github.com/mobile-dev-inc/Maestro/blob/main/assets/banne_logo.png\" />\n  </a>\n</p>\n\n\n**Maestro** is an open-source fra",
+          "resultLength": 7098,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mobile-dev-inc/Maestro/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:14:28.934Z"
+          },
+          "resultSha256": "e7f8484e1429ee68d1e2d76ee2b930710d5f4c39f1193dede7df431477308fe8",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 9,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:consumer",
+          "primaryPick": "Expo (React Native + Expo Router)",
+          "pairings": [
+            "TypeScript",
+            "expo-keep-awake",
+            "expo-sqlite",
+            "Model Context Protocol (@modelcontextprotocol/server)",
+            "Maestro",
+            "Playwright"
+          ],
+          "why": "A consumer cooking app on both web and phones needs native-grade reliability in the kitchen and grocery store, plus one codebase a coding agent can steadily improve. Expo with Expo Router gives us iOS, Android, and Web from a single TypeScript/React codebase, while still giving us real native primitives where a browser falls short: `expo-keep-awake` (`useKeepAwake()`) prevents the phone from sleeping mid-recipe during cook mode, `expo-sqlite` keeps recipes and shopping lists instant and offline-capable in grocery-store dead zones, and native views/gestures support oversized messy-hand tap targets and voice/speech hooks cleanly.\n\nFor assistant parity (\"do anything a person can\"), we structure every user capability—scaling servings, adding a recipe's ingredients to the shopping list, checking off aisles, advancing cook-mode steps, and managing timers—as typed domain commands with shared schemas (exposable via MCP / LLM tool-calling). Both human taps and the assistant execute the exact same operations against the same store, so they never drift out of sync.\n\nI weighed Expo against Capacitor, Flutter, and a pure PWA:\n- Capacitor wraps a web app in a WebView, which is great if you already have a web-only DOM app, but cook-mode responsiveness, native timers/notifications, and gesture feel are weaker than React Native's native views.\n- Flutter renders well on phones, but Dart splits the language away from TypeScript web/agent tooling, and Flutter Web's canvas rendering is a poor fit for a consumer web recipe experience.\n- A pure PWA avoids App Store distribution, has weaker iOS wake-lock/background-timer reliability, and feels second-class on phones.",
+          "showItsGood": "1. Run Maestro E2E flows across iOS Simulator, Android Emulator, and Web (plus Playwright on mobile/desktop web viewports) for the core journeys: scaling a recipe, adding ingredients to the shopping list, checking off items offline, and stepping through cook mode with timers. Also test assistant-agent parity: invoke the same domain tools (`add_recipe_ingredients_to_list`, `advance_cook_step`, `set_timer`) and assert the persisted state and rendered UI match manual taps.\n2. Verify kitchen-specific ergonomics: confirm `useKeepAwake()` keeps the screen awake throughout Cook Mode and releases on exit; audit minimum tap-target sizes (>= 48x48dp for messy hands), high-contrast arm's-length typography, and accessibility labels (which Maestro exercises directly via the platform accessibility layer).\n3. Stress-test offline grocery-store sync (toggle network off/on mid-list edit without losing checkoffs) and measure real user outcomes: hands-free voice/assistant command success rate in noisy kitchens, zero accidental screen-sleep dropouts in Cook Mode, and time-to-complete shopping/cooking flows.",
+          "unsure": "Whether public/shared recipe URLs for SEO and instant web previews will eventually justify a dedicated SSR web shell (like Next.js) alongside the Expo app; how accurate hands-free voice/speech recognition will be in noisy kitchens (range hoods, sizzling pans) without burning battery or mis-triggering steps; and how household multi-user shopping-list sync should handle real-time conflict resolution beyond single-device offline SQLite.",
+          "sources": [
+            "https://github.com/expo/expo",
+            "https://docs.expo.dev/versions/latest/sdk/keep-awake/",
+            "https://github.com/ionic-team/capacitor",
+            "https://github.com/mobile-dev-inc/Maestro",
+            "https://github.com/modelcontextprotocol/typescript-sdk"
+          ]
+        }
+      ],
+      "turn": "job:consumer"
+    },
+    {
+      "round": 10,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "Adaptive Cards microsoft github AdaptiveCards interactive cards schema",
+          "turn": "job:chat",
+          "result": "1. GitHub - microsoft/AdaptiveCards: A new way for developers to exchange card content in a common and consistent way. · GitHub\n   https://github.com/microsoft/AdaptiveCards\n   Adaptive Cards are a new way for developers to exchange content in a common and consistent way. Get started today by putting Adaptive Cards into Microsoft Teams, Outlook Actionable Messages, Cortana Skills, or Windows Timeline -- or render cards inside your own apps by using our SDKs. ... | Action.OpenUrl | v1.0 | All | ✅",
+          "resultLength": 1674,
+          "resultSha256": "63c07267d61ac60999cae01932a5d39e1b8eb539e7aacc6494fdf1492c97ca00",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "Flutter desktop web mobile 5 platforms enterprise app tradeoffs 2025 2026",
+          "turn": "job:chat",
+          "result": "1. Flutter for Enterprise Apps: A 2026 Guide · Moweb\n   https://www.moweb.com/blog/flutter-enterprise-app-development-cross-platform-strategy-guide\n   Grand View Research values the global mobile application market at $285.7 billion in 2025 and projects it to reach $885.3 billion by 2033, a 15.5% compound annual growth rate (Grand View Research). ... Flutter lets a single codebase compile to native iOS and Android apps — and, from the same source, to web and desktop. Unlike approaches that wrap ",
+          "resultLength": 1744,
+          "resultSha256": "13d61d2d9392ca3b679119e85db654beabc64da20debb58961a9a103b90ededc",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "MCP Apps interactive UI Model Context Protocol ext-apps",
+          "turn": "job:chat",
+          "result": "1. ext-apps/specification/2026-01-26/apps.mdx at main · modelcontextprotocol/ext-apps · GitHub\n   https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx\n   This SEP proposes an extension (per SEP-1724) to MCP that enables servers to deliver interactive user interfaces to hosts. MCP Apps introduces a standardized pattern for declaring UI resources via the ui:// URI scheme, associating them with tools through metadata, and facilitating bidirectional communicat",
+          "resultLength": 1831,
+          "resultSha256": "cc3b8b7b32fb7b6060cd25cf89f4ed8df93cc6637589374bb3ce4385c9ad4ec4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/AdaptiveCards",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/microsoft/AdaptiveCards/HEAD/README.md\nCaptured: 2026-11-19T03:14:10.682Z\nCharacters: 0-10000 of 16539\n\n# Adaptive Cards\n\n![logo](assets/adaptive-card-200.png)\n\n[Adaptive Cards](https://adaptivecards.io) are a new way for developers to exchange content in a common and consistent way. Get started today by putting Adaptive Cards into Microsoft Teams, Outlook Actionable Messages, Cortana Skills, or Windows Timeline -- or render cards inside your own apps by",
+          "resultLength": 10226,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/AdaptiveCards/HEAD/README.md",
+            "capturedAt": "2026-11-19T03:14:10.682Z"
+          },
+          "resultSha256": "e1a57d57f89f20a82e7245456a927a1a4997ff773dc5b7fa64e9719a8b08be44",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 11,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "turn": "job:chat",
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T03:02:03.750Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T03:02:03.750Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "3563dfa56f81e080e0c9ee9102e8be1f103e5992b7dcd6de818dd2071ac9b6f9",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 12,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "decision",
+          "name": "record_decision",
+          "turn": "job:chat",
+          "primaryPick": "React + Electron + Expo",
+          "pairings": [
+            "TypeScript",
+            "Model Context Protocol (@modelcontextprotocol/server)",
+            "Adaptive Cards",
+            "WebSockets",
+            "Playwright",
+            "Maestro"
+          ],
+          "why": "An all-day company chat app across Web, iPhone, Android, Windows, and Mac has two different UX bars: desktop/web users live in keyboard shortcuts, multi-pane layouts, copy-pasting text/code, and OS tray/badge notifications, while phone users need native scrolling, push notifications, and fast mobile gestures. Splitting the UI cleanly—React DOM for Web + Electron (Windows/Mac) and Expo (React Native) for iPhone + Android—while sharing a single TypeScript core (WebSocket sync engine, local cache, Zod schemas, and card action reducers) gives every platform first-class ergonomics and keeps the entire 5-client codebase in TypeScript for the coding agent maintaining it.\n\nFor agents posting interactive cards, a declarative JSON schema like Adaptive Cards renders safely and natively across Web, Electron, and mobile without embedding heavy iframes inside mobile message lists (with MCP Apps `@modelcontextprotocol/ext-apps` as an optional extension for rich Web/Desktop views). For external agents operating the app itself, exposing channels, threads, messages, and actions through `@modelcontextprotocol/server` gives them typed, permission-checked tools and resources over the exact same backend state.\n\nI weighed this against Flutter (all 5 platforms from one Dart codebase) and Universal Expo (one React Native Web UI for all 5). Flutter splits the stack away from TypeScript/MCP tooling and Flutter Web's canvas rendering has weaker text selection, accessibility, and browser ergonomics for all-day desktop chat. Universal Expo compromises desktop CSS/keyboard/focus ergonomics. Electron + Expo costs two UI component sets, but sharing the TypeScript core and card schema keeps feature velocity high while delivering native-grade quality on all 5 clients.",
+          "showItsGood": "1. Run cross-platform E2E tests across all 5 clients: Playwright against the Web app and the Windows/Mac Electron binaries (`_electron.launch()`), plus Maestro flows on iOS Simulator and Android Emulator. Test the full agent-and-human loop: an agent posts an interactive card via the API/MCP, a human clicks an action button on desktop or mobile, and both the chat UI and the external agent receive the updated state.\n2. Verify \"all-day\" desktop/web usability directly: keyboard-only navigation (`Cmd/Ctrl+K` channel switcher, thread focus, card button activation), axe accessibility checks, long-channel scroll performance (10,000+ messages with no layout shift), and offline/reconnect recovery without duplicate or dropped messages.\n3. Measure what matters for real users: message send-to-render p95 latency, memory stability over an 8-hour simulated workday in Electron, push/desktop notification delivery without missed @mentions, and interactive card action completion rate (zero silent failures or stale-state double-submits).",
+          "unsure": "Whether maintaining two React UI layers (React DOM for Web/Electron and React Native for Expo iOS/Android) over a shared TypeScript core creates too much UI duplication versus going all-in on a shared styling/primitive layer; whether Electron's per-window RAM footprint will draw complaints from employees on 16 GB laptops running many tools all day; and whether a fixed declarative card schema (Adaptive Cards) will feel too constraining once internal teams want richer custom widgets (like MCP Apps) inline on Web/Desktop.",
+          "sources": [
+            "https://github.com/electron/electron",
+            "https://github.com/expo/expo",
+            "https://github.com/microsoft/AdaptiveCards",
+            "https://github.com/modelcontextprotocol/typescript-sdk",
+            "https://github.com/modelcontextprotocol/ext-apps",
+            "https://playwright.dev/docs/api/class-electron",
+            "https://github.com/mobile-dev-inc/Maestro"
+          ]
+        }
+      ],
+      "turn": "job:chat"
+    },
+    {
+      "round": 13,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "regret",
+          "answer": "### A year later, if my choices went badly: what went wrong?\n\n1. **The coding-agent state & handoff tool (`Electron` + local `SQLite` + `MCP`):**\n   - **Resource tax on developer laptops:** Electron's ~200–400 MB idle footprint plus Chromium helper processes piled on top of IDEs, Docker containers, and multiple running coding agents. Developers closed the desktop app to free RAM, which meant they missed native OS notifications when an agent blocked for approval.\n   - **Local-first turned into a sync rewrite:** Starting with localhost SQLite made single-user speed great, but teams quickly wanted to open the web view from a phone or share a handoff link with a teammate. Retrofitting auth, remote tunneling, and multi-writer sync onto a local-only daemon was much harder than building a sync-ready backend from day one.\n\n2. **The consumer cooking app (`Expo` + `expo-keep-awake` + `expo-sqlite` + voice/assistant parity):**\n   - **Web compromises showed up in consumer growth:** Expo Router got us on the web quickly, but public recipe pages suffered on SEO, bundle size, and browser-native feel compared to a dedicated SSR web frontend—so we still ended up splitting off a web marketing/recipe site anyway.\n   - **Kitchen voice didn't survive real kitchen noise:** Hands-free voice recognition struggled with range hoods, running water, and sizzling pans, and continuous mic listening drained battery. Users got frustrated by missed or false commands and went back to tapping with a knuckle, which exposed any place where our touch targets weren't already effortless without voice.\n\n3. **The 5-platform company chat app (`React + Electron + Expo` + `Adaptive Cards` + `MCP`):**\n   - **Two UIs meant constant drift:** Sharing a TypeScript core helped, but maintaining React DOM (Web/Electron) and React Native (Expo iOS/Android) still meant building and debugging every layout, thread interaction, and card renderer twice. Bugs fixed on desktop kept reappearing differently on mobile.\n   - **Card schema ceiling + Electron fatigue:** Adaptive Cards worked for simple approve/reject prompts, but internal teams soon wanted richer stateful widgets (inline diffs, charts, multi-step forms) that pushed us toward embedded web views (`MCP Apps`) on desktop—which broke parity on mobile. Meanwhile, an all-day Electron app on 16 GB company laptops became a standing IT complaint.\n\n---\n\n### What slowed me down or confused me while researching\n\n- **Spec and SDK churn:** In the MCP ecosystem, the TypeScript SDK had split from v1 (`@modelcontextprotocol/sdk`) into v2 (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`) alongside a separate `ext-apps` spec/package for interactive UIs. Mapping how those pieces fit together across desktop, web, and mobile required checking multiple repos rather than one canonical guide.\n- **Stale signals in primary READMEs:** Some project READMEs (for example, Adaptive Cards' release-schedule table showing 2024 dates and community React Native renderers living in separate forks) didn't make it immediately obvious which platform renderers are actively maintained versus effectively frozen.\n- **Hidden testing and OS-webview caveats:** Tauri's main README presents a unified cross-platform story, and it took targeted searches into its WebDriver docs to uncover the real macOS E2E constraint (no native Apple WebDriver for WKWebView, requiring embedded-driver workarounds).\n- **No live device loop:** Reading docs and specs tells you what APIs exist, not how `expo-keep-awake`, React Native Web scrolling, or Electron's memory curve actually behave under load—so without running the builds on real phones and laptops, those remain educated bets until measured."
+        }
+      ],
+      "turn": "regret"
+    },
+    {
+      "round": 14,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md\nCaptured: 2026-11-19T03:01:53.584Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/README.md",
+            "capturedAt": "2026-11-19T03:01:53.584Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "d02c3ee8c302e3b742ec7d542b43603c6b59c45dcc228d878ce33dc3e1f7bf4e",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 15,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/windows.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md\nCaptured: 2026-11-19T03:02:33.789Z\nCharacters: 0-7694 of 7694\n\n# Ouro HX & AX for Windows\n\nOuro's look and manners in WinUI, for Windows apps, plus the agent doors Windows gives apps: App Actions, and an MCP server for the On-device Agent Registry. It lives in [ourostack/ouro-ui-windows](https://github.com/ourostack/ouro-ui-windows).\n\n## What ships today\n\nRelease [v0.3.0",
+          "resultLength": 7904,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/windows.md",
+            "capturedAt": "2026-11-19T03:02:33.789Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "00e814119a02cd8b63408b537a69102ccd2ec0067ce4d04e2d9fe1fc756c26e7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui/blob/main/docs/platforms/android.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md\nCaptured: 2026-11-19T03:02:06.669Z\nCharacters: 0-6270 of 6270\n\n# Ouro HX & AX for Android\n\nOuro's look and manners in Jetpack Compose, for Android apps, plus the agent door Android gives apps: AppFunctions. It lives in [ourostack/ouro-ui-android](https://github.com/ourostack/ouro-ui-android).\n\nNobody here owns an Android phone or tablet. The kit is checked on emulators i",
+          "resultLength": 6480,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/8e75eda031073efe6a2af5adee61ec6b99b99f92/docs/platforms/android.md",
+            "capturedAt": "2026-11-19T03:02:06.669Z",
+            "candidate": "Ouro UI",
+            "sha": "8e75eda031073efe6a2af5adee61ec6b99b99f92"
+          },
+          "resultSha256": "0cadc18832aa9b82eeb36d8488137ef34a072f5899ed925250c3aa5e79251bc0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui-core/blob/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+          "startIndex": 0,
+          "turn": "ouro",
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md\nCaptured: 2026-11-19T03:05:21.904Z\nCharacters: 0-5092 of 5092\n\n# Decision: native kits, no cross-platform frameworks\n\nStatus: accepted, 2026-11-17, under Ari's overnight authority. It extends [native kits](2026-11-14-native-kits.md), whose strategy section already ruled out web views, React Native and cross-platform toolkits inside a",
+          "resultLength": 5340,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui-core/5f520a112feb806aa51a8e8bf6a716acdcdf6a54/docs/decisions/2026-11-17-native-kits-no-cross-platform.md",
+            "capturedAt": "2026-11-19T03:05:21.904Z"
+          },
+          "resultSha256": "aeea6566b9cf442cb5f5a850a30ef0b39499ea7058754b9e2c00726701a11ae0",
+          "resultTruncated": true
+        }
+      ],
+      "turn": "ouro"
+    },
+    {
+      "round": 16,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "answer",
+          "name": "answer",
+          "turn": "ouro",
+          "answer": "I didn't pick Ouro UI for any of the three jobs, even though its ideas directly target the exact human+agent problems in those prompts.\n\n### What would stop me from using it on a real team today?\n\n1. **Severe platform parity gaps outside Web and Apple:**\n   - Web has **125** components and Apple (SwiftUI) has **20**, but Windows (WinUI 3) and Android (Jetpack Compose) are both at **v0.3.0** with only **8 components** (`OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator`, `OuroDescriptionList`). For a 5-platform company chat app or a consumer Android+iOS+Web cooking app, 8 components means you're immediately building most of the UI yourself.\n2. **Early, emulator-only Android and incomplete Windows distribution:**\n   - The Android docs candidly note that *nobody on the project owns an Android phone or tablet*—the kit is only tested on emulators in CI, consequential-action confirmation is currently refused pending `PendingIntent` work, and it relies on `compileSdk 37` / AGP 9.1+ and Google's experimental preview AppFunctions.\n   - The Windows kit (v0.3.0) is still pending `nuget.org` publishing (requiring GitHub Packages auth or local `.nupkg` files), and its CI runs on Windows Server without a live Windows 11 App Actions runtime or On-device Agent Registry.\n3. **The operational cost of \"native kits only, no cross-platform\":**\n   - Ouro deliberately rejects React Native, Flutter, and Electron/WebViews (`2026-11-17-native-kits-no-cross-platform.md`). Even if coding agents write most of the SwiftUI, WinUI 3, Jetpack Compose, and React code, a real team still has to own **four** separate build toolchains, dependency graphs (npm, SwiftPM, NuGet, Gradle), release pipelines, and OS-specific crash/review surfaces.\n4. **Pre-1.0 core churn:**\n   - Core is at `v0.19.0` while web is at `v1.3.314` (copy-in shadcn source), so adopting it across four native codebases right now means absorbing breaking spec/generator changes before the multi-platform contract settles.\n\n---\n\n### What would I have to see to switch to it?\n\n1. **Real component and feature parity on Windows and Android:** Not necessarily all 125 web components, but a complete core set (virtualized lists/feeds, sheets/dialogs, navigation, forms, rich content) verified on **physical Android devices** and **Windows 11 client machines**—with consequential-action confirmation working end-to-end.\n2. **Standard package distribution and 1.0+ core stability:** Published on `nuget.org` and Maven Central, with a stable `1.0` core schema/generator contract so teams aren't chasing breaking changes across four repos.\n3. **Proof from an external multi-platform team:** At least one production app shipping Web + Apple + Windows + Android on Ouro UI showing that agent-written native kits actually hold together in maintenance without human engineers drowning in 4-platform CI and debugging.\n\n---\n\n### What would Ouro UI let me do that I can't easily do today?\n\nEven without picking it yet, Ouro UI solves three things that my Electron/Expo + MCP + Adaptive Cards picks have to wire by hand:\n\n1. **One action declaration across human UI and every agent door (`defineAction`):** Declare an action once with its schema and **consent class** (`person-only`, `consequential` confirmation, or agent-callable), and generate the CLI command, HTTP/MCP/WebMCP tools, React button, SwiftUI button + App Intent, WinUI App Action, and Android AppFunction—with CI failing if any surface drifts. Today, keeping UI buttons, MCP tools, OS intents, and consent gates in sync is manual glue.\n2. **Natively rendered Composed UI with enforced consent and state preservation:** Agents can compose interactive cards as data validated against a strict component catalog, and send partial updates (`structuredContent.ouro.update`) that preserve what a person already typed—while the runtime guarantees an agent can't relabel a button or bypass a human confirmation or person-only boundary.\n3. **External agent-surface verification (`ax-xray` / `ouro-ax-xray`):** Automated conformance checks that call your CLI, HTTP API, MCP server, and OS App Intents/AppFunctions from the outside the way an agent actually does, catching broken flags, missing JSON schemas, or leaky consent boundaries in CI."
+        }
+      ],
+      "turn": "ouro"
+    }
+  ]
+}
