@@ -147,6 +147,7 @@ Gap cells: 365.[^matrix]
 | [cover](https://ui.ouroboros.bot/docs/cover/) | `cover` | Not yet | Not yet | Not yet |
 | [section-header](https://ui.ouroboros.bot/docs/section-header/) | `section-header` | Not yet | Not yet | Not yet |
 | [thread-layout](https://ui.ouroboros.bot/docs/thread-layout/) | `thread-layout` | Not yet | Not yet | Not yet |
+| [typing-indicator](https://ui.ouroboros.bot/docs/typing-indicator/) | `typing-indicator` | Not yet | Not yet | Not yet |
 
 ### Claims
 

@@ -229,6 +229,23 @@ describe("Message", () => {
     expect(bubbleOf(message).textContent).toBe("Done");
   });
 
+  it("draws the typing indicator's dots in the text's colour under forced colours, so they never vanish into the page", async () => {
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const { message } = await render(<Message role="assistant" name="Ouro" streaming />);
+      const probe = document.createElement("span");
+      probe.style.color = "CanvasText";
+      document.body.append(probe);
+      const canvasText = getComputedStyle(probe).color;
+      probe.remove();
+      const dots = [...message.querySelectorAll<HTMLElement>("[data-ouro-message-typing] > [aria-hidden]")];
+      expect(dots).toHaveLength(3);
+      for (const dot of dots) expect(getComputedStyle(dot).backgroundColor).toBe(canvasText);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("pulses the typing indicator's three dots in turn, each 0.2s after the one before", async () => {
     const { message } = await render(<Message role="assistant" name="Ouro" streaming />);
     const dots = [...message.querySelectorAll("[data-ouro-message-typing] > [aria-hidden]")];
