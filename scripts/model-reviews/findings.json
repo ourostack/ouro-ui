@@ -781,8 +781,8 @@
         }
       ],
       "issue": 2300,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "A guide shows how to adopt Ouro HX beside an incumbent design system: the incumbent's tokens drive the colors, pages move one at a time, and the source rule and census baselines record what the incumbent still draws."
     },
     {
       "id": "native-challenge-one-codebase",

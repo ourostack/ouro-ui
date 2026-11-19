@@ -237,7 +237,7 @@ All eight models raised the copy-in model: fine for one team, a governance probl
 
 #### A company with a design system won't take on a second one, so Ouro has to fit behind the incumbent and its stack.
 
-Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2300](https://github.com/ourostack/ouro-ui/issues/2300).
+Signal: stakeholder. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2300](https://github.com/ourostack/ouro-ui/issues/2300). What changed: A guide shows how to adopt Ouro HX beside an incumbent design system: the incumbent's tokens drive the colors, pages move one at a time, and the source rule and census baselines record what the incumbent still draws.
 
 Seven models said the design-system owners are the gate at a large company: a second set of components and tokens makes consistency worse, and an app on Ouro becomes the island every other team must adopt; seven also said the company's existing system, which the brief didn't give, was the fact that would most change their pick. Ouro's source rule fails other libraries' controls, so a team can't try it on one page, and its toolchain floors (Tailwind v4, shadcn, React 19, iOS 18) shut out many existing apps. Ouro should show its actions and checks running behind someone else's components and tokens, adopted page by page beside an incumbent library.
 
