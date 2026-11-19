@@ -462,7 +462,8 @@ async function findSizeIssues({ measures = [], density = Math.min(2, window.devi
   // The rule that set a cap, best effort: the element's own style first (it wins the cascade), else the last stylesheet rule
   // that matches it under a media query that holds. A cross-origin sheet has no rules a script may read, so it is skipped.
   const capSource = (el: Element) => {
-    if (el.style.maxWidth) return `style="max-width: ${el.style.maxWidth}" on ${describe(el)}`;
+    const inline = (el as HTMLElement).style?.maxWidth;
+    if (inline) return `style="max-width: ${inline}" on ${describe(el)}`;
     let found: string | null = null;
     const matches = (selector: string) => {
       try {
