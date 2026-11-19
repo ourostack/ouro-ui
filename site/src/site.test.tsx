@@ -11,12 +11,12 @@ import { PHONE_DEMOS } from "./components/phone-demo";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
-import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
+import { docsPages, guidePages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags, SITE } from "./head";
-import { componentPrompt, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
+import { componentPrompt, GUIDE_TASKS, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
 import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
 import { bare, otherNames } from "./components/other-names";
@@ -814,6 +814,20 @@ describe("docs", () => {
     // The page it follows says how to install the component, before it imports it.
     const published = withInstall(publishedMarkdown(itemMarkdown(docsItems.find((item) => item.name === "dialog")!), "docs/Dialog.md"), "dialog", "v9.9.9");
     expect(published).toMatch(/## Install[\s\S]*ouro-ui\/ouro-base#v9\.9\.9[\s\S]*ouro-ui\/dialog#v9\.9\.9[\s\S]*```tsx\nimport \{ Dialog \}/);
+  });
+
+  it("hands a guide's task to the reader's agent under its lead, and gives a guide that only explains none", async () => {
+    await page.viewport(1280, 900);
+    for (const name of Object.keys(GUIDE_TASKS)) expect(guidePages.some((guide) => guide.name === name), `${name} is a guide`).toBe(true);
+    await renderPage("/docs/theming/");
+    const handoff = () => [...document.querySelectorAll("figure")].find((figure) => figure.querySelector("figcaption")?.textContent?.startsWith("Hand it to your agent"));
+    expect(handoff()!.querySelector("code")!.textContent).toBe("Give this app its own Ouro UI theme. Read https://ui.ouroboros.bot/docs/theming.md first and follow it.");
+    await expect.element(page.getByRole("button", { name: "Copy Hand it to your agent" })).toBeVisible();
+    // Right under the lead, before the guide's own words.
+    const lead = document.querySelector("main p")!;
+    expect(lead.compareDocumentPosition(handoff()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await renderPage("/docs/why-no-skill/");
+    expect(handoff()).toBeUndefined();
   });
 
   it("has a page for every registry item at docs/<name>", () => {
