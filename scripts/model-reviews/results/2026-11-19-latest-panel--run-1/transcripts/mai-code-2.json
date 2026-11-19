@@ -1,0 +1,943 @@
+{
+  "provider": "mai-code-2",
+  "model": "mai-code-2",
+  "vendor": "Microsoft AI",
+  "displayName": "MAI Code 2",
+  "transport": "copilot",
+  "runId": "b136d58f-08e8-435f-899f-3cd4c95a2a31",
+  "timestamp": "2026-11-19T02:43:07.170Z",
+  "verdict": "Ouro UI",
+  "pullQuote": "Ouro UI unifies native human UI, validated agent-composed UI, and auditable agent actions better than any candidate I reviewed.",
+  "testimonial": "I would choose Ouro UI because Composed UI turns agent output into validated native component trees, while the one-action model gives people and agents the same governed capability. Its Ouro AX X-ray also checks real CLI, HTTP, and MCP behavior rather than merely documenting conventions. The honest trade-off is ecosystem maturity versus A2UI: Ouro’s native kits and copy-in core adapters are newer and more dispersed, so adopting its conformance matrix is more work than following A2UI’s standalone protocol.",
+  "evaluations": "**Fluent UI** — Fluent v9 is a mature React component suite with a `FluentProvider`, predefined themes, composable components, and separate Web Components, but this repository targets web rather than shared native rendering or an agent interaction model. That makes it a safe enterprise web baseline, while cross-platform agent surfaces would require another protocol and toolkit; the converged v9 package is documented in its [primary README](https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/packages/react-components/react-components/README.md).\n\n**shadcn/ui** — shadcn distributes owned source rather than a runtime component dependency, and its registry schema explicitly resolves component files, package dependencies, and registry dependencies, which is unusually suitable for customization and coding agents. It is primarily a React/Tailwind delivery architecture with no native renderer or agent-action protocol, so native parity and governance need separate systems; see the [registry schema documentation](https://ui.shadcn.com/docs/registry/registry-json.md).\n\n**MCP Apps** — MCP Apps standardizes a strong boundary: MCP tools declare `ui://` HTML resources, hosts render sandboxed iframes, and views exchange JSON-RPC messages through the host, with declarative CSP and model-versus-app tool visibility. It is excellent for portable chat-host surfaces, but its initial content model is executable HTML rather than native widgets, so it does not itself solve design consistency across SwiftUI or Compose; the architecture and controls are specified in the [MCP Apps overview](https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html).\n\n**Ouro UI** — Ouro combines a React/SwiftUI/WinUI/Compose native kit with **Composed UI**, whose validated tree can arrive directly, through MCP Apps, or through A2UI; an `ActionButton` inherits consent from the action declaration, so an agent cannot relabel it or weaken confirmation. The **one-action** and **Ouro AX X-ray** model also covers CLI, HTTP, and MCP interfaces, making Ouro unusually complete for both human and agent users; the trade-off is newer, copy-in infrastructure spread across kits and a visible platform conformance matrix, not the single-package maturity of older libraries. Its architecture is concretely described in the [Composed UI guide](https://ui.ouroboros.bot/docs/composed-ui/).\n\n**SwiftUI and Apple Human Interface Guidelines** — SwiftUI’s declarative `View` composition, scenes, modifiers, adaptive presentation, model flow, and accessibility integration make it the strongest Apple-native human interface toolkit, while the HIG supplies platform-specific guidance across iOS, macOS, visionOS, watchOS, and tvOS. Its scope is intentionally Apple-only and does not provide a portable agent-generated UI protocol; it remains the native implementation model rather than the cross-platform coordinator, as shown in [Apple’s SwiftUI documentation](https://developer.apple.com/documentation/swiftui) and [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/).\n\n**Tamagui** — Tamagui’s compiler lowers shared React components into atomic CSS and flattened DOM on web or React Native views and hoisted styles on mobile, with common tokens, themes, media queries, and accessible primitives. This is one of the best conventional “write once, render web/native” architectures, but it assumes React/React Native and does not define permissions, tool schemas, or agent-facing conformance; its compile-time/runtime split is detailed in the [Tamagui introduction](https://tamagui.dev/unstyled/intro/introduction).\n\n**Chakra UI** — Chakra offers a cohesive web React system built around Panda CSS: `createSystem` compiles typed tokens, semantic tokens, recipes, slot recipes, breakpoints, and CSS variables into a provider-controlled styling engine. It is productive and themeable for web products, but remains a React web library without a native adapter or a boundary for trustworthy model-composed UI; the architecture is documented in the [theming overview](https://chakra-ui.com/docs/theming/overview).\n\n**AI Elements** — AI Elements provides copy-in React components for AI-specific presentation—messages, conversations, reasoning, queues, and similar interactions—and uses shadcn’s registry workflow, so applications own the resulting code. Its current primary documentation says the project will be deprecated at the end of November 2026 and moved into shadcn, so starting here creates migration uncertainty and it adds no native renderer or agent execution boundary; see the [AI Elements introduction](https://elements.ai-sdk.dev/docs).\n\n**React Aria and React Spectrum** — React Aria separates behavior, state, accessibility, localization, and interaction from styling, with render props/slots and over 50 style-free components; React Spectrum is the polished Adobe implementation and React Stately can support other targets. This is a benchmark for accessible web interaction design, but Spectrum itself is not a full native UI stack and no agent protocol is included, so it would need A2UI/MCP/Ouro-style transport above it; the [React Aria documentation](https://react-aria.adobe.com/) is the primary evidence.\n\n**CopilotKit** — CopilotKit is the strongest integration-oriented alternative: framework-native frontends and a server runtime connect to agents over AG-UI, while shared state, frontend tools, human-in-the-loop, and controlled/declarative/open-ended generative UI create a complete user-agent loop. It supports React, Angular, Vue, React Native, and messaging surfaces and can render both A2UI and sandboxed MCP Apps, but it is chiefly an application stack rather than a component vocabulary or native SwiftUI/Compose kit; its three-layer architecture is documented in [CopilotKit’s architecture guide](https://docs.copilotkit.ai/ag2/concepts/architecture).\n\n**Agent-native (Builder.io)** — Agent-Native’s best idea is concrete: one `defineAction` drives React hooks, the model tool, HTTP, MCP, A2A, and CLI through shared schema validation, access checks, and audit behavior; UI state and data are visible to the same action layer, and approvals gate consequential calls. That architecture fits agent-operated business software, but the candidate is a full TypeScript/PostgreSQL application framework, not a portable visual design system or native-rendering toolkit; see the [actions overview](https://www.agent-native.com/docs/actions-overview/) and [access controls](https://www.agent-native.com/docs/actions-access-control/).\n\n**A2UI** — A2UI defines a transport-decoupled, streaming JSON protocol with strict catalogs, data binding, actions, and bidirectional typed functions, plus React/Angular/Lit, Flutter, and SwiftUI implementations so agents can generate data rather than executable code. That gives it better protocol neutrality than any single UI library and explicit validation boundaries, but catalogs and visual behavior still need host-specific implementation, and the published package list does not presently show a Jetpack Compose package; the [v1.0 specification](https://a2ui.org/specification/v1.0-a2ui/) and [renderer/package overview](https://raw.githubusercontent.com/a2ui-project/a2ui/d4f2761b4629028b7995fdd861a7792eeba529ff/README.md) make the architectural trade-off clear.\n\n**Base UI** — Base UI is an unstyled React library emphasizing accessible WAI-ARIA behavior, broad styling freedom, composable parts, and deliberate browser support; it is a strong primitive layer for a custom web system. It has no visual opinion, native implementation, or agent data/action contract, so selecting it alone would leave the cross-platform and agent halves unsolved; see [Base UI’s about page](https://base-ui.com/react/overview/about).\n\n**MUI** — MUI supplies a comprehensive, production-tested React implementation with self-contained styles, advanced theming, responsive `sx` utilities, and an extensive ecosystem including MUI X. Its web depth is a virtue but also a constraint: it has no native mobile renderer, and the current site says it still adopts Material Design 2 rather than Material 3; the primary [Material UI site](https://mui.com/material-ui/) documents those limits.\n\n**Material 3 and Jetpack Compose** — Compose Material 3 provides native Android composables, dynamic color, tonal elevation, typography/shape systems, adaptive navigation choices, and built-in platform behavior and accessibility foundations. It is the right Android endpoint but not a web/iOS implementation or an agent protocol; A2UI/json-render trees could supply content, yet the native design language still comes from Compose, as detailed in Google’s [Material 3 in Compose guide](https://developer.android.com/develop/ui/compose/designsystems/material3).\n\n**json-render** — json-render’s schema/catal­og split constrains generated JSON to predefined components and Zod-validated actions, while its flat tree, state bindings, progressive streaming, and registries for React, React Native, Vue, Svelte, Solid, and other outputs make it exceptionally broad. The flexibility is also its risk: it is a labs framework with application-defined enforcement and renderer quality, and “cross-platform” does not imply native SwiftUI/Compose fidelity; the [README](https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md) and [schema guide](https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/apps/web/content/docs/schemas.mdx) expose that contract.\n\n**Vercel UI SDK** — UI SDK cleanly models behavior as framework-neutral primitives—state, API, slots, attributes, press/focus/selection—then maps identical parts to React, Vue, Svelte, Solid, and Web Components, which is promising for agent-written interaction logic. It does not render native mobile components or supply an agent permission model, and its own documentation marks the SDK beta with changing APIs; see the [UI SDK README](https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md) and [primitive example](https://ui-sdk.dev/docs/core/build-a-component).\n\n**Flutter** — Flutter owns a layered rendering engine that targets mobile, web, and desktop from Dart, with Material and Cupertino widget libraries, native embedder services, FFI/platform channels, and hot reload. It offers unusually broad implementation reuse, but its visual output is a common engine rather than each platform’s native toolkit and it lacks a built-in standard for agent UI catalogs, tool authorization, or human approval; Google’s [Flutter architectural overview](https://docs.flutter.dev/resources/architectural-overview) documents the relevant layers.\n\n**Radix UI** — Radix Primitives provides low-level, fully typed React parts with WAI-ARIA behavior, focus management, keyboard navigation, controlled/uncontrolled modes, portals, and the `asChild` composition model, making it a proven foundation for an owned web design system. It is unstyled and web/React-specific, with no native or agent-facing layer, so it solves human interaction behavior only; see the [Radix introduction](https://www.radix-ui.com/primitives/docs/overview/introduction).\n\n**OpenAI Apps SDK UI** — Apps SDK UI offers accessible Radix-based React components, Tailwind 4 integration, design tokens, dark mode, and ChatGPT-optimized layouts with relatively little setup. Its tight host optimization is useful inside ChatGPT but also the limit: it is not a native widget system or an open cross-host protocol, whereas MCP Apps can carry richer standards across compliant hosts; the installation and component architecture are shown in the [primary README](https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md).",
+  "candidateOrder": [
+    "Fluent UI",
+    "shadcn/ui",
+    "MCP Apps",
+    "Ouro UI",
+    "SwiftUI and Apple Human Interface Guidelines",
+    "Tamagui",
+    "Chakra UI",
+    "AI Elements",
+    "React Aria and React Spectrum",
+    "CopilotKit",
+    "Agent-native (Builder.io)",
+    "A2UI",
+    "Base UI",
+    "MUI",
+    "Material 3 and Jetpack Compose",
+    "json-render",
+    "Vercel UI SDK",
+    "Flutter",
+    "Radix UI",
+    "OpenAI Apps SDK UI"
+  ],
+  "promptSha256": "32d38f57db929a7e84ca295afe70515361b4e00da5d281480104b2fd893246da",
+  "sourceSnapshotSha256": "decbe009a7ea9349c0b5fe8ec331db6995c76390351b01cf3015e51055bd7eb4",
+  "configuration": {
+    "contextTier": "default",
+    "reasoningEffort": "provider-default",
+    "infiniteSessions": false,
+    "largeOutputIndirection": false,
+    "systemMessageMode": "replace",
+    "tools": [
+      "search",
+      "fetch_url",
+      "final_verdict"
+    ],
+    "researchBudget": 450000,
+    "search": "copilot"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/microsoft/fluentui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md\nCaptured: 2026-11-19T02:32:56.905Z\nCharacters: 0-10000 of 10623\n\n# Fluent UI Web\n\n[![Build Status](https://img.shields.io/azure-devops/build/uifabric/fabricpublic/164/master?style=flat-square)](https://dev.azure.com/uifabric/fabricpublic/_build?definitionId=164) ![GitHub contributors](https://img.shields.io/github/contributors/microsoft/fluentui?style=flat-square) ![GitHub top language",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/README.md",
+            "capturedAt": "2026-11-19T02:32:56.905Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "ba0c32513e99799955ca56f54dae668604aaef5555bacc1fe8beaed9a4d30382",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/shadcn-ui/ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/shadcn-ui/ui/968d8cb9dc42ae5d52e8fd356cf84596ec832a26/README.md\nCaptured: 2026-11-19T02:32:56.881Z\nCharacters: 0-467 of 467\n\n# shadcn/ui\n\nA set of beautifully designed components that you can customize, extend, and build on. Start here then make it your own. Open Source. Open Code. **Use this to build your own component library**.\n\n![hero](apps/v4/public/opengraph-image.png)\n\n## Documentation\n\nVisit https://ui.shadcn.com/docs to view the documentation.\n\n",
+          "resultLength": 654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/shadcn-ui/ui/968d8cb9dc42ae5d52e8fd356cf84596ec832a26/README.md",
+            "capturedAt": "2026-11-19T02:32:56.881Z",
+            "candidate": "shadcn/ui",
+            "sha": "968d8cb9dc42ae5d52e8fd356cf84596ec832a26"
+          },
+          "resultSha256": "116820ea72539e939597c8dfaa1a2d5033a1b7bedfa0b51d8eb2bb4f3a7044d1",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/modelcontextprotocol/ext-apps",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md\nCaptured: 2026-11-19T02:32:50.971Z\nCharacters: 0-10000 of 18906\n\n<!-- LOGO -->\n<div align=\"center\">\n  <picture>\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"media/mcp-white.svg\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"media/mcp.svg\">\n    <img src=\"media/mcp.svg\" alt=\"MCP Apps\" width=\"128\">\n  </picture>\n  <h1>MCP Apps</h1>\n  <p>\n    Build intera",
+          "resultLength": 10267,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/README.md",
+            "capturedAt": "2026-11-19T02:32:50.971Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "b4ccf49a1dc72d58f93d0840a04e3622941c001a739043042a2288d7261c56fc",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/ourostack/ouro-ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/README.md\nCaptured: 2026-11-19T02:32:51.021Z\nCharacters: 0-10000 of 134765\n\n<!-- ourostack:brand:start -->\n<p align=\"center\">\n  <a href=\"https://github.com/ourostack\"><img src=\"https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-hx.webp\" alt=\"A person and a small robot building a green Ouro HX card together at a workbench while Ouro watches, at dawn\" width=\"100%\"></a>\n</p>",
+          "resultLength": 10256,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/README.md",
+            "capturedAt": "2026-11-19T02:32:51.021Z",
+            "candidate": "Ouro UI",
+            "sha": "0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da"
+          },
+          "resultSha256": "6d80d204eb78b4ea4fd0fc43747a32935f2124b819054ceddbcdb41148ed549c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.apple.com/documentation/swiftui",
+          "startIndex": 0,
+          "result": "Source: https://developer.apple.com/tutorials/data/documentation/swiftui.json\nCaptured: 2026-11-19T02:32:56.813Z\nCharacters: 0-10000 of 40502\n\n{\"abstract\":[{\"text\":\"Declare the user interface and behavior for your app on every platform.\",\"type\":\"text\"}],\"hierarchy\":{\"paths\":[[\"doc:\\/\\/com.apple.documentation\\/documentation\\/technologies\"]]},\"identifier\":{\"interfaceLanguage\":\"swift\",\"url\":\"doc:\\/\\/com.apple.SwiftUI\\/documentation\\/SwiftUI\"},\"kind\":\"symbol\",\"legalNotices\":{\"copyright\":\"Copyright &",
+          "resultLength": 10222,
+          "source": {
+            "url": "https://developer.apple.com/tutorials/data/documentation/swiftui.json",
+            "capturedAt": "2026-11-19T02:32:56.813Z",
+            "candidate": "SwiftUI and Apple Human Interface Guidelines"
+          },
+          "resultSha256": "46caa66b31365cf4a43224f9617cdfe6a11a39986dc0e00031e2e1e46adf7f71",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/tamagui/tamagui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md\nCaptured: 2026-11-19T02:32:56.941Z\nCharacters: 0-3073 of 3073\n\n<div align=\"center\">\n  <picture width=\"572px\">\n    <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-black.png\">\n    <source media=\"(prefers-color-scheme: light)\" srcset=\"https://github.com/tamagui/tamagui/raw/main/code/tamagui.dev/public/logo-white.pn",
+          "resultLength": 3265,
+          "source": {
+            "url": "https://raw.githubusercontent.com/tamagui/tamagui/1d5e750ec5a17c97843613d86c916bad44ec900e/README.md",
+            "capturedAt": "2026-11-19T02:32:56.941Z",
+            "candidate": "Tamagui",
+            "sha": "1d5e750ec5a17c97843613d86c916bad44ec900e"
+          },
+          "resultSha256": "c6a19beb27e9ac9cd725d4097ea4f26b526219f1534ec4412321b3acd93845bf",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/chakra-ui/chakra-ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/chakra-ui/chakra-ui/5e9b866b65be58c2da1b087758fd2396f50bb001/README.md\nCaptured: 2026-11-19T02:32:56.986Z\nCharacters: 0-6996 of 6996\n\n<p align=\"center\">\n  <a href=\"https://github.com/chakra-ui/chakra-ui\">\n    <picture>\n      <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://raw.githubusercontent.com/chakra-ui/chakra-ui/main/media/logo-colored-white@2x.png?raw=true\">\n      <source media=\"(prefers-color-scheme: light)\" srcset=\"https://raw.github",
+          "resultLength": 7193,
+          "source": {
+            "url": "https://raw.githubusercontent.com/chakra-ui/chakra-ui/5e9b866b65be58c2da1b087758fd2396f50bb001/README.md",
+            "capturedAt": "2026-11-19T02:32:56.986Z",
+            "candidate": "Chakra UI",
+            "sha": "5e9b866b65be58c2da1b087758fd2396f50bb001"
+          },
+          "resultSha256": "c166f57e776d9791b2da9ed7e3702a38dbb14eceb4678eed033b270801c11821",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel/ai-elements",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md\nCaptured: 2026-11-19T02:32:53.985Z\nCharacters: 0-4455 of 4455\n\n# ▲ AI Elements\n\n> [!WARNING]\n> **AI Elements is moving to shadcn/ui.** This project will be deprecated at the end of November 2026 and replaced by [AI Elements from shadcn/ui](https://ui.shadcn.com/docs/ai-elements). New projects should use the shadcn/ui version once it's available.\n\n[AI Elements](https://elements.ai-sdk.d",
+          "resultLength": 4650,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel/ai-elements/ca8be600bfd01b3131f9bf6134b51602a71f4374/README.md",
+            "capturedAt": "2026-11-19T02:32:53.985Z",
+            "candidate": "AI Elements",
+            "sha": "ca8be600bfd01b3131f9bf6134b51602a71f4374"
+          },
+          "resultSha256": "c1b317814be4aa2289f8df73704d878c52a870d9bd8269eed46f0c6abf28fb36",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/adobe/react-spectrum",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md\nCaptured: 2026-11-19T02:32:56.904Z\nCharacters: 0-4453 of 4453\n\n#  [React Spectrum Libraries](https://react-spectrum.adobe.com/)\n\nA collection of libraries and tools that help you build adaptive, accessible, and robust user experiences.\n\n### React Spectrum\n\nA React implementation of Spectrum, Adobe’s design system. Spectrum provides adaptive, accessible, and cohesive experiences for a",
+          "resultLength": 4654,
+          "source": {
+            "url": "https://raw.githubusercontent.com/adobe/react-spectrum/7e229ef6139e08d3bf75d2ddb444425108f271ec/README.md",
+            "capturedAt": "2026-11-19T02:32:56.904Z",
+            "candidate": "React Aria and React Spectrum",
+            "sha": "7e229ef6139e08d3bf75d2ddb444425108f271ec"
+          },
+          "resultSha256": "ed7def80dd8c587ef68cbebbe86ff340439230a2f402618ee32c014791f2414a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/CopilotKit/CopilotKit",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T02:32:53.999Z\nCharacters: 0-10000 of 21968\n\n<div align=\"center\">\n\n<br />\n\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-light.svg#gh-light-mode-only\" width=\"400\">\n<img alt=\"CopilotKit\" src=\"assets/readme/logo-dark.svg#gh-dark-mode-only\" width=\"400\">\n\n<br />\n\n**[Docs](https://docs.copilotkit.ai/?ref=github_readme)** ·\n**[Examples](https://www.copilotkit.ai/exampl",
+          "resultLength": 10264,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T02:32:53.999Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "dcf60eed2f49798e003255cfbddb085732dd9d990bc996bf1133af9fa22c5b1b",
+          "resultTruncated": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://github.com/BuilderIO/agent-native",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/BuilderIO/agent-native/3c8b4397d9a96e24dd1bfe6d1d6c14ef053ea267/README.md\nCaptured: 2026-11-19T02:32:53.981Z\nCharacters: 0-10000 of 13269\n\n<picture>\n  <source\n    media=\"(prefers-color-scheme: dark)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F5476444e54ee4a958966c90caca468e3\"\n  />\n  <source\n    media=\"(prefers-color-scheme: light)\"\n    srcset=\"https://cdn.builder.io/api/v1/image/assets%2FYJIGb4i01jvw0SRdL5Bt%2F7628600",
+          "resultLength": 10260,
+          "source": {
+            "url": "https://raw.githubusercontent.com/BuilderIO/agent-native/3c8b4397d9a96e24dd1bfe6d1d6c14ef053ea267/README.md",
+            "capturedAt": "2026-11-19T02:32:53.981Z",
+            "candidate": "Agent-native (Builder.io)",
+            "sha": "3c8b4397d9a96e24dd1bfe6d1d6c14ef053ea267"
+          },
+          "resultSha256": "e3567485a642ffefe038803f8edf4083a64699f5dad11ce97621a4d0ed3bb859",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/a2ui-project/a2ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/d4f2761b4629028b7995fdd861a7792eeba529ff/README.md\nCaptured: 2026-11-19T02:32:50.927Z\nCharacters: 0-10000 of 14030\n\n# A2UI\n\n**Build delightful, fast, reliable agentic experiences**\n\nA2UI (Agent-to-User Interface) is an open-source generative UI framework,\ncomplete with a protocol optimized for streaming dynamic user interfaces at\nlow latency, native renderers for web and mobile frameworks, and agent SDKs\nin several popular languages. Wi",
+          "resultLength": 10258,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/d4f2761b4629028b7995fdd861a7792eeba529ff/README.md",
+            "capturedAt": "2026-11-19T02:32:50.927Z",
+            "candidate": "A2UI",
+            "sha": "d4f2761b4629028b7995fdd861a7792eeba529ff"
+          },
+          "resultSha256": "e615abb718569dd0e6653e74e1f9bd296598e83c2fb7b653a949678678125efa",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mui/base-ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md\nCaptured: 2026-11-19T02:32:56.945Z\nCharacters: 0-1424 of 1424\n\n# Base UI\n\nFrom the creators of Radix, Floating UI, and Material UI, Base UI is an unstyled UI component library for building accessible user interfaces.\n\n---\n\n## Documentation\n\nTo get started, check out the [Base UI documentation](https://base-ui.com/react/overview/quick-start).\n\n## Contributing\n\nRead our [contributing guide](/CO",
+          "resultLength": 1612,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mui/base-ui/f0061cb342ed2e54cdf2c50823c93077782d1a16/README.md",
+            "capturedAt": "2026-11-19T02:32:56.945Z",
+            "candidate": "Base UI",
+            "sha": "f0061cb342ed2e54cdf2c50823c93077782d1a16"
+          },
+          "resultSha256": "4c887797064fa9554baf2af36bf4f725b51f5599152cfafe2bd8d132ba2afdb3",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/mui/material-ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/mui/material-ui/422ac96720b78e518581095b6806d958003fdb3f/README.md\nCaptured: 2026-11-19T02:32:56.911Z\nCharacters: 0-8349 of 8349\n\n<!-- lint disable mui-first-block-heading -->\n<!-- #host-reference -->\n\n<p align=\"center\">\n  <a href=\"https://next.mui.com/core/\" target=\"_blank\"><img width=\"150\" height=\"133\" src=\"https://next.mui.com/static/logo.svg\" alt=\"Material UI logo\"></a>\n</p>\n\n<h1 align=\"center\">Material UI</h1>\n\n<div align=\"center\">\n\n[![license](http",
+          "resultLength": 8543,
+          "source": {
+            "url": "https://raw.githubusercontent.com/mui/material-ui/422ac96720b78e518581095b6806d958003fdb3f/README.md",
+            "capturedAt": "2026-11-19T02:32:56.911Z",
+            "candidate": "MUI",
+            "sha": "422ac96720b78e518581095b6806d958003fdb3f"
+          },
+          "resultSha256": "dd33ff6b5d9b525940ba7e245a051cef9920d859443e3b654a0542b304bb662a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+          "startIndex": 0,
+          "result": "Source: https://developer.android.com/develop/ui/compose/designsystems/material3\nCaptured: 2026-11-19T02:32:57.246Z\nCharacters: 0-10000 of 37258\n\nMaterial Design 3 in Compose | Jetpack Compose | Android Developers Skip to main content Essentials Build AI experiences Build AI-powered Android apps with Gemini APIs and more. Get started Get started Create your first app. Use Compose for UI and adaptive app development to support multiple device form factors. Hello, world! Adaptive apps Compose for ",
+          "resultLength": 10225,
+          "source": {
+            "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+            "capturedAt": "2026-11-19T02:32:57.246Z",
+            "candidate": "Material 3 and Jetpack Compose"
+          },
+          "resultSha256": "df05fbf1b55d5fd3bc5a88bb6a17dba603fd057838e5c856e9054eef7da6b2ba",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/json-render",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md\nCaptured: 2026-11-19T02:32:50.929Z\nCharacters: 0-10000 of 26216\n\n# json-render\n\n**The Generative UI framework.**\n\nGenerate dynamic, personalized UIs from prompts without sacrificing reliability. Predefined components and actions for safe, predictable output.\n\n<p>\n  <a href=\"https://vercel.com/labs#labs-products\"><img alt=\"Vercel Labs Product\" src=\"https://img.shields.io/badge/LABS",
+          "resultLength": 10261,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md",
+            "capturedAt": "2026-11-19T02:32:50.929Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "74dc95cde574e5664b0411186c6ac036bf2ba7dbc6aa83f299aebbc7ddc405be",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/vercel-labs/ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md\nCaptured: 2026-11-19T02:32:53.981Z\nCharacters: 0-5336 of 5336\n\n# UI SDK\n\nA library of behaviors for agents to build the next generation of user interfaces.\n\nKeyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need live in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.\n\n<picture>\n  <source media=\"(prefers-color-scheme: d",
+          "resultLength": 5527,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md",
+            "capturedAt": "2026-11-19T02:32:53.981Z",
+            "candidate": "Vercel UI SDK",
+            "sha": "ab55044caee66cc8228fa7ed3525088a1b7b5af7"
+          },
+          "resultSha256": "ad52a3ba61f8cc4460cf2817f6255d8cf7eacc9493edd9800afd74c4ba0490d7",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/flutter/flutter",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/flutter/flutter/312671e6a5e50a126c44b2f224c658da46a9b7de/README.md\nCaptured: 2026-11-19T02:32:56.939Z\nCharacters: 0-6946 of 6946\n\n<a href=\"https://flutter.dev/\">\n  <h1 align=\"center\">\n    <picture>\n      <source media=\"(prefers-color-scheme: dark)\" srcset=\"https://docs.flutter.dev/logo_dark.png\">\n      <img alt=\"Flutter\" src=\"https://docs.flutter.dev/logo.png\">\n    </picture>\n  </h1>\n</a>\n\n[![Flutter CI Status](https://flutter-dashboard.appspot.com/api/p",
+          "resultLength": 7138,
+          "source": {
+            "url": "https://raw.githubusercontent.com/flutter/flutter/312671e6a5e50a126c44b2f224c658da46a9b7de/README.md",
+            "capturedAt": "2026-11-19T02:32:56.939Z",
+            "candidate": "Flutter",
+            "sha": "312671e6a5e50a126c44b2f224c658da46a9b7de"
+          },
+          "resultSha256": "cf25729f3f5f9ba96b09423c7d812f31fe2628f4dd35a378ff8d0e502bdb5bd0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/radix-ui/primitives",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/README.md\nCaptured: 2026-11-19T02:32:56.940Z\nCharacters: 0-1703 of 1703\n\n[![Radix Primitives Logo](primitives.png)](https://radix-ui.com/primitives)\n\n# Radix Primitives\n\n**An open-source UI component library for building high-quality, accessible design systems and web apps.**\n\nRadix Primitives is a low-level UI component library with a focus on accessibility, customization and developer experie",
+          "resultLength": 1899,
+          "source": {
+            "url": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/README.md",
+            "capturedAt": "2026-11-19T02:32:56.940Z",
+            "candidate": "Radix UI",
+            "sha": "eb3a2b7091293e27df8f9ba906632d8daa3d81a3"
+          },
+          "resultSha256": "05d85bd84ac1e3b5b718a6ebbd50a74f029b0680843962033b98249bb5d3eb6b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://github.com/openai/apps-sdk-ui",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md\nCaptured: 2026-11-19T02:32:54.022Z\nCharacters: 0-4733 of 4733\n\n# Apps SDK UI\n\nApps SDK UI is a lightweight, accessible design system for building high-quality ChatGPT apps with the [Apps SDK](https://developers.openai.com/apps-sdk). It provides Tailwind-integrated design tokens, a curated React component library, and utilities optimized for consistent experiences inside ChatGPT.\n\n## Fe",
+          "resultLength": 4928,
+          "source": {
+            "url": "https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md",
+            "capturedAt": "2026-11-19T02:32:54.022Z",
+            "candidate": "OpenAI Apps SDK UI",
+            "sha": "0f00143c7a639906f1621fe58e1b6be7b5bea46d"
+          },
+          "resultSha256": "8131b1a60dbf44816715ca9372c592e3323cdb4d279ac9c227ae4b8e5135e2a0",
+          "resultTruncated": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:react.fluentui.dev concepts accessibility theming slots Fluent UI React v9 primary docs",
+          "result": "(no results)",
+          "resultLength": 12,
+          "resultSha256": "de97cb969189f68ae2b3e8d0d03e0f53d4aa70bc2f742ce06145321510cedd31",
+          "resultTruncated": false
+        },
+        {
+          "type": "search",
+          "query": "site:ui.shadcn.com docs components json schema registry shadcn architecture",
+          "result": "1. https://ui.shadcn.com/docs/registry/registry-json.md\n   https://ui.shadcn.com/docs/registry/registry-json.md\n   Each item must implement the [registry-item schema specification] (https://ui.shadcn.com/schema/registry-item.json). ```json title=\"registry.json\" showLineNumbers { \"items\": [ { \"name\": \"hello-world\", \"type\": \"registry:block\", \"title\": \"Hello World\", \"description\": \"A simple hello world component.\", \"registryDependencies\": [ \"button\", \"@acme/input-form\", \"https://example.com/r/foo\" ",
+          "resultLength": 1620,
+          "resultSha256": "02de0619d8dc1026d0d0ec32d7f7769c841c2bc65519581cb98989cd12ade4b8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:apps.extensions.modelcontextprotocol.io specification security sandbox CSP ui resource MCP Apps",
+          "result": "1. Overview | @modelcontextprotocol/ext-apps - v1.1.2\n   https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html\n   MCP Apps is an extension to the Model Context Protocol that enables MCP servers to deliver interactive user interfaces to hosts. It defines how servers declare UI resources, how hosts render them securely in iframes, and how the two communicate. ... MCP Apps standardizes this. Servers declare their UIs once; any compliant host can render them. Security is consis",
+          "resultLength": 1653,
+          "resultSha256": "510ee3e01c2f55e740a6e7b17cf115ca53b8b7d419c1b64072db9594781d304e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/ourostack/ouro-ui docs composed ui actions consent X-ray current 2026",
+          "result": "1. GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. · GitHub\n   https://github.com/ourostack/ouro-ui\n   GitHub - ourostack/ouro-ui: Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. ... Ouro UI: React components with handcrafted interactions, designed for coding agents to use correctly without a skill. ... Ouro UI: React components w",
+          "resultLength": 846,
+          "resultSha256": "408e622a70dab563308d5bdd131229d85aa541a23042b3117cc3e6a84001f2b7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:developer.apple.com/design/human-interface-guidelines accessibility platform native SwiftUI agents",
+          "result": "1. Human Interface Guidelines | Apple Developer Documentation\n   https://developer.apple.com/design/human-interface-guidelines/?gh_jid=4476713\n   Human Interface Guidelines | Apple Developer Documentation This page requires JavaScript. Please turn on JavaScript in your browser and refresh the page to view its content. The HIG contains guidance and best practices that can help you design a great experience for any Apple platform.\n\n2. Accessibility | Apple Developer Documentation\n   https://develo",
+          "resultLength": 1295,
+          "resultSha256": "db09a45a6d43af271321b35d9ffee7f56e5fe69a3fa611ed797e3c9d0b42252f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:tamagui.dev docs intro compiler web react native themes accessibility",
+          "result": "1. Introduction — Tamagui\n   https://tamagui.dev/unstyled/intro/introduction\n   Tamagui provides universal styling and UI components for React. All features work consistently across React Native and web. - @tamagui/core is the base style library. It provides a web-aligned universal style system with SSR support, typed tokens, and optimized runtime performance across web and native. @tamagui/static is an optimizing compiler that extracts style props into atomic CSS and flattens component trees at",
+          "resultLength": 1572,
+          "resultSha256": "d5bfd4dc0c9c29015f9cfcf18120b9406c9222c0a5c2d61d81e47ddd621ae95d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:chakra-ui.com docs theming recipes architecture Ark UI accessibility",
+          "result": "1. Overview | Chakra UI\n   https://www.chakra-ui.com/docs/theming/overview\n   The Chakra UI theming system is built around the API of Panda CSS. ... - recipes: for defining component recipes ... The cva function is used to create component recipes. It returns a function that, when called with a set of props, returns a style object. ... The sva function is used to create component slot recipes. It returns a function that, when called with a set of props, returns a style object for each slot. ... ",
+          "resultLength": 1399,
+          "resultSha256": "68b30158c836342d3cf29efa7158e259c92800cd37c2848395d23e761e255c6d",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:elements.ai-sdk.dev AI Elements components message reasoning tool deprecation",
+          "result": "1. Reasoning\n   https://elements.ai-sdk.dev/components/reasoning\n   AI Elements is moving to shadcn/ui. This project will be deprecated at the end of November 2026. ... The Reasoning component displays AI reasoning content, automatically opening during streaming and closing when finished. ... model: \"deepseek/deepseek-r1\", messages: await convertToModelMessages(messages), return result.toUIMessageStreamResponse({ sendReasoning: true, ... A comprehensive queue component system for displaying mess",
+          "resultLength": 1213,
+          "resultSha256": "5e62dbaac6228f32572f03774abb8a46af58fb12597e4ebb8d88584698a8016e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:react-spectrum.adobe.com react aria architecture accessibility state management native",
+          "result": "1. React Spectrum\n   https://react-spectrum.adobe.com/v3/index.html\n   React Spectrum components are designed with accessibility top-of-mind and include full screen reader and keyboard navigation support. React Spectrum components are designed to work with mouse, touch, and keyboard interactions. They’re built with responsive design principles to deliver a great experience, no matter the device. ... A toggle button allows a user to toggle between two states. ... A React implementation of Spectru",
+          "resultLength": 1230,
+          "resultSha256": "0d1c8339e28bdf0924f1c5fa862991b8ec3cbe102090673c64ba21b03394fc5e",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.copilotkit.ai generative UI AG-UI shared state human in loop architecture",
+          "result": "1. Architecture\n   https://docs.copilotkit.ai/ag2/concepts/architecture\n   - **Frontend.** A framework-native SDK and prebuilt chat components that connect your UI to a running agent. - **Runtime.** A request handler mounted in your app server (Next.js, Express, Hono, Bun, Deno, Workers). Brokers auth, tool calls, and the AG-UI stream. - **Agent.** Any AG-UI-compatible backend — Built-in, LangGraph, Mastra, CrewAI, Pydantic AI, MAF, or your own. - **AG-UI** is the wire format: 16 event types, tr",
+          "resultLength": 1559,
+          "resultSha256": "30e049435b683c795e4e32490fe6db7ff51806c8e6b68483bdae458b99d8b267",
+          "resultTruncated": true
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "search",
+          "query": "site:agent-native.com/docs actions shared state permissions human approval framework architecture",
+          "result": "1. Access & Authorization — Agent-Native\n   https://www.agent-native.com/docs/actions-access-control/\n   Six settings decide who can call an action: the agent, the frontend, an extension, an outside API caller, or nobody without a human's approval first. Most actions never need to touch any of these, since the defaults already fit normal UI-and-agent use. ... | needsApproval | false | true → the agent **pauses**, and a human must approve the specific call | Consequential side effects (send email",
+          "resultLength": 1638,
+          "resultSha256": "4a42d26cf756353f7918debc37d4e37f52232d2795a397c5c721cff07256b0a7",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:a2ui.org specification v1.0 renderers catalogs data binding actions security protocol",
+          "result": "1. v1.0 Protocol Specification | A2UI\n   https://a2ui.org/specification/v1.0-a2ui/\n   Only functions which have allowedCallers: \"agentOnly\" or allowedCallers: \"rendererOrAgent\" in their catalog definition can be called by the agent. Renderer functions can only be called after a session has been initiated by the renderer. Functions are resolved by the specified catalogId. Upon completing execution of a callRendererFunction message, the renderer MUST always send a corresponding rendererFunctionRes",
+          "resultLength": 1580,
+          "resultSha256": "7f0d1d4b47df5307ee1c233ccdb046d90caab1097f32f03ca4008f2939bcab98",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:base-ui.com/react overview architecture accessibility headless composition",
+          "result": "1. https://base-ui.com/react/overview/about.md\n   https://base-ui.com/react/overview/about.md\n   From the creators of Radix, Material UI, and Floating UI, Base UI is an unstyled React component library for building accessible user interfaces. Our focus is on accessibility, performance, and developer experience. Our goal is to provide a complete set of open-source UI components, with a delightful developer experience, in a sustainable way. ## Features ### Headless Base UI components are unstyled,",
+          "resultLength": 1510,
+          "resultSha256": "da6fc7f52362a534fb674c27ee72cc0239f99581143515710ea9b5933797976f",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:mui.com/material-ui accessibility theming styling-engine architecture components",
+          "result": "1. Theming - Material UI\n   https://mui.com/material-ui/customization/theming/\n   secondary: { }); ... let theme = createTheme({ palette: { primary: { main: '#0052cc', }, secondary: { main: '#edf2ff', }, }, }); theme = createTheme(theme, { palette: { info: { main: theme.palette.secondary.main, }, }, }); ... const theme = createTheme({ components: { MuiButton: { defaultProps: { className: 'default-button-class', style: { marginTop: 8 }, }, }, }, }); // style will be: { color: 'blue' } (default ig",
+          "resultLength": 1585,
+          "resultSha256": "9f8aabcb2c1b487694bdf4c9b2727d72eda656969301d068126910bae3dc6a21",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:developer.android.com/develop/ui/compose Material 3 theming accessibility Jetpack Compose architecture",
+          "result": "1. Material Design 3 in Compose | Jetpack Compose | Android Developers\n   https://developer.android.com/develop/ui/compose/designsystems/material3\n   Jetpack Compose offers an implementation of Material You and Material 3 Expressive, the next evolution of Material Design. M3 Expressive is an expansion of Material Design 3, including research-backed updates to theming, components, motion, typography, and more — all designed to help you make engaging and desirable products that users love. It also",
+          "resultLength": 1714,
+          "resultSha256": "823f8e2b85dc608ccea25d384a3f4d51be82b1db1c46a6ee7517a9b8e3914ac1",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:github.com/vercel-labs/json-render catalog schema state actions guardrails streaming protocol",
+          "result": "1. json-render/README.md at main · vercel-labs/json-render · GitHub\n   https://github.com/vercel-labs/json-render/blob/main/README.md\n   const catalog = defineCatalog(schema, { components: { Card: { props: z.object({ title: z.string() }), description: \"A card container\", }, Metric: { props: z.object({ label: z.string(), value: z.string(), format: z.enum([\"currency\", \"percent\", \"number\"]).nullable(), }), description: \"Display a metric value\", }, Button: { props: z.object({ label: z.string(), acti",
+          "resultLength": 1545,
+          "resultSha256": "966bad2c46d5a4c56c94b8d73555d5b3f3e98bf0f58f7da84af248dacd0cd0f8",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:ui-sdk.dev/docs primitives behaviors cross framework accessibility",
+          "result": "1. Build a Component · UI SDK\n   https://ui-sdk.dev/docs/core/build-a-component\n   A primitive describes a component's behavior: its state, the functions that change it, and the parts that use it. It doesn't render anything on its own. ... const muteButton = definePrimitive({ name: \"mute-button\", state: () => ({ muted: false }), api: (context) => ({ toggle: () => context.store.set({ muted: !context.store.get().muted }), }), slots: (slot) => ({ root: slot({ attrs: (state) => ({ type: \"button\", \"a",
+          "resultLength": 1570,
+          "resultSha256": "b06b8bcdf2adbab6491a0abd66030ad4b908a22e6da4db6fe85c2dbee6a5fe18",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:docs.flutter.dev architecture widget platform web native Material Cupertino accessibility",
+          "result": "1. Flutter documentation\n   https://docs.flutter.dev/\n   Dip into the rich set of Flutter widgets available in the SDK. ... Ready to build beautiful, multiplatform apps from a single codebase? First, set up your Flutter environment, then follow the Flutter learning pathway. ... Learn how to create layouts in Flutter, where everything is a widget Widget The basic building block of a Flutter user interface. ... Once you understand that \"Constraints flow down. Sizes flow up. Parents set positions\",",
+          "resultLength": 1372,
+          "resultSha256": "1022c5a7a1767789ecce779dd636e01530c31a03b6bd3699ea8e4e94eaece7ab",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:radix-ui.com/primitives accessibility headless components architecture asChild portals",
+          "result": "1. Introduction – Radix Primitives\n   https://www.radix-ui.com/primitives/docs\n   An open-source UI component library for building high-quality, accessible design systems and web apps. Radix Primitives is a low-level UI component library with a focus on accessibility, customization and developer experience. You can use these components either as the base layer of your design system, or adopt them incrementally. ... Components adhere to the WAI-ARIA design patterns where possible. We handle many ",
+          "resultLength": 1423,
+          "resultSha256": "3fdf35602bd3b25b5084a1b30a0ba8a08226d47f4c31cbcfa86e6a3e026465c0",
+          "resultTruncated": true
+        },
+        {
+          "type": "search",
+          "query": "site:openai.github.io/apps-sdk-ui design tokens components accessibility dark mode ChatGPT",
+          "result": "1. Design tokens - Apps SDK UI\n   https://openai.github.io/apps-sdk-ui/?path=/docs/foundations-design-tokens--docs\n   Design tokens - Apps SDK UI ⌃ K Overview Introduction Installation Concepts Dark mode Responsive design Typography Foundations Colors Design tokens Icons Components Alert Avatar AvatarGroup Badge Button ButtonLink Checkbox CodeBlock DatePicker DateRangePicker EmptyMessage Indicators Input Markdown Menu Popover RadioGroup SegmentedControl Select SelectControl Slider Switch TagInpu",
+          "resultLength": 1243,
+          "resultSha256": "59a215b0877cdac9cc95971c084a38c5a61e342fa1f98a4ff1340d9f667a7e18",
+          "resultTruncated": true
+        }
+      ]
+    },
+    {
+      "round": 5,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html",
+          "startIndex": 0,
+          "result": "Source: https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html\nCaptured: 2026-11-19T02:41:48.249Z\nCharacters: 0-10000 of 10118\n\nOverview | @modelcontextprotocol/ext-apps - v1.1.2 @modelcontextprotocol/ext-apps - v1.1.2 GitHub Specification Preparing search index... Overview MCP Apps Overview MCP Apps is an extension to the Model Context Protocol that enables MCP servers to deliver interactive user interfaces to hosts. It defines how servers declare UI resources, how hosts re",
+          "resultLength": 10228,
+          "source": {
+            "url": "https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html",
+            "capturedAt": "2026-11-19T02:41:48.249Z"
+          },
+          "resultSha256": "1744a2bb2f630d2cbfb2a6bcdbe32a5757a4d9cdc4197921285f3682af314137",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://a2ui.org/specification/v1.0-a2ui/",
+          "startIndex": 0,
+          "result": "Source: https://a2ui.org/specification/v1.0-a2ui/\nCaptured: 2026-11-19T02:33:02.213Z\nCharacters: 0-10000 of 103856\n\nv1.0 Protocol Specification | A2UI Skip to content A2UI v1.0 / Docs Built with A2UI Get Help Search docs ⌘ K Cancel Type to search the docs, or jump to: Quickstart Overview Catalogs Roadmap No results found Try a different keyword, or press Esc to close. Getting Started Quickstart Step-by-Step Walkthrough Playground ↗ Concepts Overview: How A2UI Works Messages Catalogs Data Model a",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://a2ui.org/specification/v1.0-a2ui/",
+            "capturedAt": "2026-11-19T02:33:02.213Z"
+          },
+          "resultSha256": "089291da08f9ce2e20499fcdc3de4a16ac8201bfccd4a39f27d185eed515213c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://tamagui.dev/unstyled/intro/introduction",
+          "startIndex": 0,
+          "result": "Source: https://tamagui.dev/unstyled/intro/introduction\nCaptured: 2026-11-19T02:41:48.376Z\nCharacters: 0-7035 of 7035\n\nIntroduction — Tamagui GitHub v3-tamagui-string 🎅🏻 🐣 🎃 💘 🧧 🍀 Core Components Theme Introduction Installation Components Styling Design system Tailwind Native CLI Releases Configuration Configuration TamaguiProvider Tokens Fonts Themes Theme component Shorthands Settings Sizing Config v6 Colors Surfaces & Levels Styling Style props styled() Variants style() createStyledContext() ",
+          "resultLength": 7181,
+          "source": {
+            "url": "https://tamagui.dev/unstyled/intro/introduction",
+            "capturedAt": "2026-11-19T02:41:48.376Z"
+          },
+          "resultSha256": "efa8e3c0815eee88b9f24fcbc0c140dd60f66c461ab0167ba5d3eb76a66ac384",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.agent-native.com/docs/actions-access-control/",
+          "startIndex": 0,
+          "result": "Source: https://www.agent-native.com/docs/actions-access-control/\nCaptured: 2026-11-19T02:35:12.182Z\nCharacters: 0-10000 of 28669\n\nAccess & Authorization — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Access & Authorization Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Datab",
+          "resultLength": 10210,
+          "source": {
+            "url": "https://www.agent-native.com/docs/actions-access-control/",
+            "capturedAt": "2026-11-19T02:35:12.182Z"
+          },
+          "resultSha256": "cf9ade5994685eb573e93e3e54cee11c41608502926a8b9e0bc8db51b0c741cb",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://base-ui.com/react/overview/about",
+          "startIndex": 0,
+          "result": "Source: https://base-ui.com/react/overview/about\nCaptured: 2026-11-19T02:41:48.283Z\nCharacters: 0-2864 of 2864\n\nAbout Base UI · Base UI Skip to contents Search ( ⌘ k ) Navigation Overview Quick start Accessibility Releases Community About Handbook Styling Animation Composition Customization Forms TypeScript llms.txt Components Accordion Alert Dialog Autocomplete Avatar Button Checkbox Checkbox Group Collapsible Combobox Context Menu Dialog Drawer Field Fieldset Form Input Menu Menubar Meter Navi",
+          "resultLength": 2996,
+          "source": {
+            "url": "https://base-ui.com/react/overview/about",
+            "capturedAt": "2026-11-19T02:41:48.283Z"
+          },
+          "resultSha256": "95e10de57eef8337108a957f39874a1389edffe9c6e4a778117accf575b4a0b4",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.copilotkit.ai/ag2/concepts/architecture",
+          "startIndex": 0,
+          "result": "Source: https://docs.copilotkit.ai/ag2/concepts/architecture\nCaptured: 2026-11-19T02:41:48.270Z\nCharacters: 0-4448 of 4448\n\nArchitecture Frontend React Agent framework AG2 Search ⌘ K Quickstart Build with agents Intelligence Basics Chat Threads Frontend-tools Generative UI Controlled Declarative Open-ended Interactivity Shared state Human-in-the-loop WebMCP Agent capabilities Sub-agents Intelligence Overview Get started Features Hosting Backend Runtime Deployment Debugging Learn Concepts Archite",
+          "resultLength": 4592,
+          "source": {
+            "url": "https://docs.copilotkit.ai/ag2/concepts/architecture",
+            "capturedAt": "2026-11-19T02:41:48.270Z"
+          },
+          "resultSha256": "778fae2ff390c85777ee4bf748806d5987134654bca435644e60c9b357a1949c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui-sdk.dev/docs/core/build-a-component",
+          "startIndex": 0,
+          "result": "Source: https://ui-sdk.dev/docs/core/build-a-component\nCaptured: 2026-11-19T02:41:48.357Z\nCharacters: 0-5528 of 5528\n\nBuild a Component · UI SDK / Docs Frameworks Components Agents Guides Quickstart Search the docs Overview Get Started Introduction Build a Component Install Define a Primitive Render It Style the Component Next Changelog Core Define a Primitive Render a Primitive Style a Component Compose Behaviors Handle Changes Reference Utilities Text Numbers Dates Colors Images Storage Platfo",
+          "resultLength": 5666,
+          "source": {
+            "url": "https://ui-sdk.dev/docs/core/build-a-component",
+            "capturedAt": "2026-11-19T02:41:48.357Z"
+          },
+          "resultSha256": "68d032c4f8dfa8c67eb7b14156d49f4612c8c7343c5707dd4949e7c5fa165b50",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://www.radix-ui.com/primitives/docs",
+          "startIndex": 0,
+          "result": "Source: https://www.radix-ui.com/primitives/docs/overview/introduction\nCaptured: 2026-11-19T02:41:48.422Z\nCharacters: 0-4378 of 4378\n\nIntroduction – Radix Primitives Radix Homepage Made by WorkOS Radix Homepage Made by WorkOS Themes Themes Primitives Primitives Icons Icons Colors Colors Documentation Case studies Blog Search / Overview Introduction Getting started Accessibility Releases Guides Styling Animation Composition Server-side rendering Components Accordion Alert Dialog Aspect Ratio Avat",
+          "resultLength": 4532,
+          "source": {
+            "url": "https://www.radix-ui.com/primitives/docs/overview/introduction",
+            "capturedAt": "2026-11-19T02:41:48.422Z"
+          },
+          "resultSha256": "ef9909444354e3c6e60f54235a9843572c9880e407243d725ddee2b9af5e63e0",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.apple.com/design/human-interface-guidelines/",
+          "startIndex": 0,
+          "result": "Source: https://developer.apple.com/tutorials/data/design/human-interface-guidelines.json\nCaptured: 2026-11-19T02:33:16.557Z\nCharacters: 0-10000 of 25718\n\n{\"abstract\":[{\"text\":\"The HIG contains guidance and best practices that can help you design a\",\"type\":\"text\"},{\"text\":\" \",\"type\":\"text\"},{\"text\":\"great experience for any Apple platform.\",\"type\":\"text\"}],\"hierarchy\":{\"paths\":[[\"doc:\\/\\/com.apple.documentation\\/documentation\\/technologies\"]]},\"identifier\":{\"interfaceLanguage\":\"swift\",\"url\":\"doc",
+          "resultLength": 10234,
+          "source": {
+            "url": "https://developer.apple.com/tutorials/data/design/human-interface-guidelines.json",
+            "capturedAt": "2026-11-19T02:33:16.557Z",
+            "candidate": "SwiftUI and Apple Human Interface Guidelines"
+          },
+          "resultSha256": "4e53f73879225fd9359c78032599c9f366df3e34cec4838517930984023ef69f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://docs.flutter.dev/resources/architectural-overview",
+          "startIndex": 0,
+          "result": "Source: https://docs.flutter.dev/resources/architectural-overview\nCaptured: 2026-11-19T02:33:16.915Z\nCharacters: 0-10000 of 54846\n\nFlutter architectural overview Skip to main content Flutter Docs Guides Learn AI Reference search routine light_mode Light dark_mode Dark night_sight_auto Automatic apps Flutter Flutter Docs Flutter API Flutter Blog Dart DartPad pub.dev menu close asterisk Guides play_lesson Learn auto_awesome AI api Reference Get started Install Flutter Learn Flutter User interface ",
+          "resultLength": 10210,
+          "source": {
+            "url": "https://docs.flutter.dev/resources/architectural-overview",
+            "capturedAt": "2026-11-19T02:33:16.915Z"
+          },
+          "resultSha256": "b4c58eb20ce6d0fec3cf6cc5e8388d282dc6ed5e529675018964a3c487cc926b",
+          "resultTruncated": true
+        }
+      ]
+    },
+    {
+      "round": 6,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://ui.shadcn.com/docs/registry/registry-json.md",
+          "startIndex": 0,
+          "result": "Source: https://ui.shadcn.com/docs/registry/registry-json.md\nCaptured: 2026-11-19T02:41:53.711Z\nCharacters: 0-4356 of 4356\n\n---\ntitle: registry.json\ndescription: Schema for running your own component registry.\n---\n\nThe `registry.json` schema is used to define your custom component registry.\n\n```json title=\"registry.json\" showLineNumbers\n{\n  \"$schema\": \"https://ui.shadcn.com/schema/registry.json\",\n  \"name\": \"shadcn\",\n  \"homepage\": \"https://ui.shadcn.com\",\n  \"items\": [\n    {\n      \"name\": \"hello-w",
+          "resultLength": 4500,
+          "source": {
+            "url": "https://ui.shadcn.com/docs/registry/registry-json.md",
+            "capturedAt": "2026-11-19T02:41:53.711Z"
+          },
+          "resultSha256": "46b370017a89f09c1e3a41742cad846075995625b344d8409edc011f96af7f7a",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://chakra-ui.com/docs/theming/overview",
+          "startIndex": 0,
+          "result": "Source: https://chakra-ui.com/docs/theming/overview\nCaptured: 2026-11-19T02:33:16.611Z\nCharacters: 0-9775 of 9775\n\nOverview | Chakra UI Build faster with Premium Chakra UI Components 💎 Learn more Skip to Content Docs Showcase Blog Guides Sponsor 3.38.0 Search... ⌘K Get Started Components Charts Styling Theming Concepts Overview Concepts Overview Tokens Semantic Tokens Recipes Slot Recipes Design Tokens Animations Aspect Ratios Breakpoints Colors Cursors Radii Shadows Sizes Spacing Typography Z-I",
+          "resultLength": 9911,
+          "source": {
+            "url": "https://chakra-ui.com/docs/theming/overview",
+            "capturedAt": "2026-11-19T02:33:16.611Z"
+          },
+          "resultSha256": "55fd175083e3bb14f225b2556ebc85f7166aadaf54d1244137c17030c1d27e9f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://elements.ai-sdk.dev/en/docs",
+          "startIndex": 0,
+          "result": "Source: https://elements.ai-sdk.dev/docs\nCaptured: 2026-11-19T02:41:54.341Z\nCharacters: 0-2919 of 2919\n\nIntroduction AI Elements is moving to shadcn/ui. This project will be deprecated at the end of November 2026. Learn more Vercel Slash AI Elements Docs Components Examples Search... ⌘K Ask AI Ask AI Overview Introduction Benefits Community The Vercel AI Frontend Stack Usage Setup Usage Skill Troubleshooting Contributing How to Contribute New Components Philosophy On this page Introduction What ",
+          "resultLength": 3043,
+          "source": {
+            "url": "https://elements.ai-sdk.dev/docs",
+            "capturedAt": "2026-11-19T02:41:54.341Z"
+          },
+          "resultSha256": "661d780f9645996fc368f16ea5d926ea8b772ee1f53c04a520b7fab10618b76e",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://react-spectrum.adobe.com/react-aria/index.html",
+          "startIndex": 0,
+          "result": "Source: https://react-aria.adobe.com/\nCaptured: 2026-11-19T02:37:43.501Z\nCharacters: 0-10000 of 14987\n\nReact Aria React Aria Search React Aria ⌘K Docs Releases Blog Craft world-class accessible components with custom styles. Over 50 components with built-in behavior, adaptive interactions, top-tier accessibility, and internationalization out of the box, ready for your styles. Get started Explore Components Explore Components https://your-app.com Favorite Name Sunlight Watering Actions Agapanthus",
+          "resultLength": 10182,
+          "source": {
+            "url": "https://react-aria.adobe.com/",
+            "capturedAt": "2026-11-19T02:37:43.501Z"
+          },
+          "resultSha256": "94510eea2dccac4abd9c00eda73b333bc89ae35a3f99d2767d6961e113cf5f56",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://mui.com/material-ui/",
+          "startIndex": 0,
+          "result": "Source: https://mui.com/material-ui/\nCaptured: 2026-11-19T02:41:54.595Z\nCharacters: 0-8026 of 8026\n\nMaterial UI: React components that implement Material Design Skip to content 🚀 Material UI and MUI X v9 are out! Check out the announcement blogpost → Products Docs Pricing About us Blog Search… Products MUI Core Ready-to-use foundational React components, free forever. MUI X Advanced and powerful components for complex use cases. Templates Fully built templates for your application. Design Kits M",
+          "resultLength": 8147,
+          "source": {
+            "url": "https://mui.com/material-ui/",
+            "capturedAt": "2026-11-19T02:41:54.595Z"
+          },
+          "resultSha256": "f1da83b49641ffdfea6c57eeac2a3f0b51bfb1caef1030ac9bc54673e10620e6",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://openai.github.io/apps-sdk-ui/?path=/docs/overview-introduction--docs",
+          "startIndex": 0,
+          "result": "Source: https://openai.github.io/apps-sdk-ui/?path=/docs/overview-introduction--docs\nCaptured: 2026-11-19T02:41:53.706Z\nCharacters: 0-27 of 27\n\n@storybook/core - Storybook\n\n[End of document.]",
+          "resultLength": 191,
+          "source": {
+            "url": "https://openai.github.io/apps-sdk-ui/?path=/docs/overview-introduction--docs",
+            "capturedAt": "2026-11-19T02:41:53.706Z"
+          },
+          "resultSha256": "8e47a48e55c75b029acbeca5aeaf9df7382a05a2bb011416615537a10be9629d",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.android.com/tutorials/jetpack-compose",
+          "startIndex": 0,
+          "error": "404 Not Found fetching https://developer.android.com/tutorials/jetpack-compose",
+          "result": "Fetch failed: 404 Not Found fetching https://developer.android.com/tutorials/jetpack-compose",
+          "resultLength": 92,
+          "resultSha256": "67c19edc3e278ff98f985b9e3c349a5fb95fe946332a24ddb2e66dbcb2498de6",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://react.fluentui.dev/?path=/docs/concepts-developer-quick-start--docs",
+          "startIndex": 0,
+          "result": "Source: https://storybooks.fluentui.dev/react/?path=/docs/concepts-developer-quick-start--docs\nCaptured: 2026-11-19T02:41:54.916Z\nCharacters: 0-174 of 174\n\nFluent UI React v9 💡 NOTE: > > This is brittle way for providing custom non thenable styles for manager UI > > Those selectors might change on any storybook version bump. -->\n\n[End of document.]",
+          "resultLength": 351,
+          "source": {
+            "url": "https://storybooks.fluentui.dev/react/?path=/docs/concepts-developer-quick-start--docs",
+            "capturedAt": "2026-11-19T02:41:54.916Z"
+          },
+          "resultSha256": "5c794368339b1ca9df87b0cb7737683a773b00f708e2f2a188e27d461d8619c6",
+          "resultTruncated": false
+        },
+        {
+          "type": "fetch",
+          "url": "https://ui.ouroboros.bot/docs/composed-ui/",
+          "startIndex": 0,
+          "result": "Source: https://ui.ouroboros.bot/docs/composed-ui/\nCaptured: 2026-11-19T02:33:02.476Z\nCharacters: 0-10000 of 23859\n\nComposed UI · Ouro HX Skip to main content Ouro Ouro UI Ouro MD Desk Apps Ari Mendelow GitHub Ouro UI The Nautilus For Apple Guides Ouro HX Ouro AX Ouro UI on GitHub Theme: Live Theme: Pearl Theme: Abyss Theme: Brass Theme: Chart Theme: Coral Theme: Cookbook X-ray Search Ctrl + K Filter components / Start Overview Installing Switching from shadcn Updating components Actions Button ",
+          "resultLength": 10195,
+          "source": {
+            "url": "https://ui.ouroboros.bot/docs/composed-ui/",
+            "capturedAt": "2026-11-19T02:33:02.476Z"
+          },
+          "resultSha256": "0c58f93063e1f401f7b2ca211094f9e0b40f9e0f29dfdcb4ed3d9c102d3ed86c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://agent-native.com/docs/actions-overview",
+          "startIndex": 0,
+          "result": "Source: https://www.agent-native.com/docs/actions-overview/\nCaptured: 2026-11-19T02:33:03.324Z\nCharacters: 0-9522 of 9522\n\nOverview — Agent-Native Docs Apps Discord Search docs ⌘K 7.7k Overview Overview Getting Started Create with an Agent What is Agent-Native? Key Concepts Deployment Overview Deploy an app Workspace Deployment Hosting Providers Node.js Docker Vercel Netlify Cloudflare Render Koyeb Deno Deploy Azure Static Web Apps AWS Lambda AWS Amplify Database providers Neon Postgres Supabase",
+          "resultLength": 9665,
+          "source": {
+            "url": "https://www.agent-native.com/docs/actions-overview/",
+            "capturedAt": "2026-11-19T02:33:03.324Z"
+          },
+          "resultSha256": "9bbf06ffd7ce4a20215967dd3cb0fbff8e8bf8a16e21e103153c122d4adbdc0b",
+          "resultTruncated": true
+        }
+      ]
+    },
+    {
+      "round": 7,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/packages/react-components/react-components/README.md",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/packages/react-components/react-components/README.md\nCaptured: 2026-11-19T02:38:18.658Z\nCharacters: 0-917 of 917\n\n# @fluentui/react-components\n\n**Converged Fluent UI React components**\n\nThis is a suite package for converged components and related utilities. It is a result of a dedupe effort for `@fluentui/react` and `@fluentui/react-northstar`.\n\n### Usage\n\nAdd @fluentui/react-components to a pro",
+          "resultLength": 1153,
+          "source": {
+            "url": "https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/packages/react-components/react-components/README.md",
+            "capturedAt": "2026-11-19T02:38:18.658Z",
+            "candidate": "Fluent UI",
+            "sha": "feab6ba63b55703d803f17092eab54c9dc82430b"
+          },
+          "resultSha256": "30565204534fce1964115a7e41c5f43150493992aeb08240dcd06410b5d7a960",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/d4f2761b4629028b7995fdd861a7792eeba529ff/README.md",
+          "startIndex": 10000,
+          "result": "Source: https://raw.githubusercontent.com/a2ui-project/a2ui/d4f2761b4629028b7995fdd861a7792eeba529ff/README.md\nCaptured: 2026-11-19T02:32:50.927Z\nCharacters: 10000-14030 of 14030\n\nv/@a2ui/markdown-it.svg)](https://www.npmjs.com/package/@a2ui/markdown-it) |\n| [@a2ui/agent](typescript/agents/a2ui_agent/)              | Agent SDK: negotiates catalogs, generates prompts and skills, and compiles model output into A2UI.         | [![npm](https://img.shields.io/npm/v/@a2ui/agent.svg)](https://www.npmjs",
+          "resultLength": 4230,
+          "source": {
+            "url": "https://raw.githubusercontent.com/a2ui-project/a2ui/d4f2761b4629028b7995fdd861a7792eeba529ff/README.md",
+            "capturedAt": "2026-11-19T02:32:50.927Z",
+            "candidate": "A2UI",
+            "sha": "d4f2761b4629028b7995fdd861a7792eeba529ff"
+          },
+          "resultSha256": "a829e2d9e49019fc1bc2247c03513cf0037674e1af81c8a734f911fce9b6db0c",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/apps/web/content/docs/schemas.mdx",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/apps/web/content/docs/schemas.mdx\nCaptured: 2026-11-19T02:42:04.510Z\nCharacters: 0-4027 of 4027\n\n---\ntitle: \"Schemas\"\n---\n\nSchemas define the structure and validation rules for your UI specs.\n\n## What is a Schema?\n\nA schema defines the JSON structure that describes your UI. It includes:\n\n- **Element structure** — How components are nested and referenced\n- **Property types** — What props eac",
+          "resultLength": 4251,
+          "source": {
+            "url": "https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/apps/web/content/docs/schemas.mdx",
+            "capturedAt": "2026-11-19T02:42:04.510Z",
+            "candidate": "json-render",
+            "sha": "9301e64eb556f972c21eb471ae851603cab65e6b"
+          },
+          "resultSha256": "51eaf7fe69bdc8a866b4e9baf4f59268b00cd17b81d2f45c24b3f482e1bdfe7f",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/docs/guides/ax.md",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/docs/guides/ax.md\nCaptured: 2026-11-19T02:38:18.687Z\nCharacters: 0-10000 of 47857\n\n# Ouro AX\n\nOuro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. Ouro HX gives a person's screen its components; Ouro AX gives an agent's interface a standard, a kit that meets it and an X-ray that checks it ([decision record](../decisions/2026-10-30-ouro-ax.md)).\n\n- **The standard** (`ax-c",
+          "resultLength": 10263,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/docs/guides/ax.md",
+            "capturedAt": "2026-11-19T02:38:18.687Z",
+            "candidate": "Ouro UI",
+            "sha": "0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da"
+          },
+          "resultSha256": "810eb9c6a2580f7234a1f701eabddd9b4d09042ddc6c5b8bd0300a28312dcc6b",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+          "startIndex": 25000,
+          "result": "Source: https://developer.android.com/develop/ui/compose/designsystems/material3\nCaptured: 2026-11-19T02:32:57.246Z\nCharacters: 25000-35000 of 37258\n\n{ } ) { /* fab content */ } Material3Snippets . kt Figure 9 . Medium shape for Card and Large shape for Floating action button in Reply sample app There are two other shapes — RectangleShape and CircleShape — which are part of Compose. Rectangle shape is with no border radius and circle shape shows full circled edges: Card ( shape = RectangleShape ",
+          "resultLength": 10229,
+          "source": {
+            "url": "https://developer.android.com/develop/ui/compose/designsystems/material3",
+            "capturedAt": "2026-11-19T02:32:57.246Z",
+            "candidate": "Material 3 and Jetpack Compose"
+          },
+          "resultSha256": "a84194095b5c41e47a1f97e352f73ccdaa804c4a05e8d959282bea67c70b2ae2",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/specification/2026-01-26/apps.mdx",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/specification/2026-01-26/apps.mdx\nCaptured: 2026-11-19T02:33:02.265Z\nCharacters: 0-10000 of 59155\n\n<!-- For full edit history, see specification/draft/apps.mdx -->\n\n# SEP-1865: MCP Apps: Interactive User Interfaces for MCP\n\n**Track:** Extensions\n\n**Authors:** Ido Salomon, Liad Yosef, Olivier Chafik, Jerome Swannack, Jonathan Hefner, Anton Pidkuiko, Nick Cooper, Bryan Ashley, Alexi Chr",
+          "resultLength": 10291,
+          "source": {
+            "url": "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/ea3e9d0e624a20bc1c51310292f09d9b8ed17161/specification/2026-01-26/apps.mdx",
+            "capturedAt": "2026-11-19T02:33:02.265Z",
+            "candidate": "MCP Apps",
+            "sha": "ea3e9d0e624a20bc1c51310292f09d9b8ed17161"
+          },
+          "resultSha256": "79b4decdefec9cfaaa82e75fe661b5413dd496f19c4e8b8680bb7ca6dd5b4877",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+          "startIndex": 10000,
+          "result": "Source: https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md\nCaptured: 2026-11-19T02:32:53.999Z\nCharacters: 10000-20000 of 21968\n\npilotkit.ai/threads?ref=github_readme)**                                                             | Conversations that survive reloads, devices, and sessions, with generative UI intact.      |\n| **[Voice](https://docs.copilotkit.ai/voice?ref=github_readme)** and **[WebMCP](https://docs.copilotkit.ai/webmcp?ref=g",
+          "resultLength": 10273,
+          "source": {
+            "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/567211b7edff7dde57cfc9b617655344004253c0/README.md",
+            "capturedAt": "2026-11-19T02:32:53.999Z",
+            "candidate": "CopilotKit",
+            "sha": "567211b7edff7dde57cfc9b617655344004253c0"
+          },
+          "resultSha256": "4185384a4c8fbb1b9bf11bb5d7853c1f9d96aa2e7706242fc922e49079785004",
+          "resultTruncated": true
+        },
+        {
+          "type": "fetch",
+          "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/docs/decisions/2026-10-30-ouro-ax.md",
+          "startIndex": 0,
+          "result": "Source: https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/docs/decisions/2026-10-30-ouro-ax.md\nCaptured: 2026-11-19T02:42:04.510Z\nCharacters: 0-10000 of 24074\n\n# Decision: what Ouro AX is\n\nOuro UI's halves are named for who they serve. Ouro HX is for people: an agent builds an interface and a person uses it. Ouro AX is for agents: an agent uses an interface built for it, such as a CLI, an HTTP API or an MCP server. Until now, Ouro AX was a name without ",
+          "resultLength": 10282,
+          "source": {
+            "url": "https://raw.githubusercontent.com/ourostack/ouro-ui/0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da/docs/decisions/2026-10-30-ouro-ax.md",
+            "capturedAt": "2026-11-19T02:42:04.510Z",
+            "candidate": "Ouro UI",
+            "sha": "0a38f6e0c083f55df9c9ce5739bbec9d4e5b06da"
+          },
+          "resultSha256": "c0f7ae3c85a616add989a3eb93394866b2a5de23834424a03d0779da764283fb",
+          "resultTruncated": true
+        }
+      ]
+    },
+    {
+      "round": 8,
+      "thinking": "",
+      "actions": [
+        {
+          "type": "verdict",
+          "verdict": "Ouro UI",
+          "pullQuote": "Ouro UI unifies native human UI, validated agent-composed UI, and auditable agent actions better than any candidate I reviewed.",
+          "testimonial": "I would choose Ouro UI because Composed UI turns agent output into validated native component trees, while the one-action model gives people and agents the same governed capability. Its Ouro AX X-ray also checks real CLI, HTTP, and MCP behavior rather than merely documenting conventions. The honest trade-off is ecosystem maturity versus A2UI: Ouro’s native kits and copy-in core adapters are newer and more dispersed, so adopting its conformance matrix is more work than following A2UI’s standalone protocol.",
+          "evaluations": "**Fluent UI** — Fluent v9 is a mature React component suite with a `FluentProvider`, predefined themes, composable components, and separate Web Components, but this repository targets web rather than shared native rendering or an agent interaction model. That makes it a safe enterprise web baseline, while cross-platform agent surfaces would require another protocol and toolkit; the converged v9 package is documented in its [primary README](https://raw.githubusercontent.com/microsoft/fluentui/feab6ba63b55703d803f17092eab54c9dc82430b/packages/react-components/react-components/README.md).\n\n**shadcn/ui** — shadcn distributes owned source rather than a runtime component dependency, and its registry schema explicitly resolves component files, package dependencies, and registry dependencies, which is unusually suitable for customization and coding agents. It is primarily a React/Tailwind delivery architecture with no native renderer or agent-action protocol, so native parity and governance need separate systems; see the [registry schema documentation](https://ui.shadcn.com/docs/registry/registry-json.md).\n\n**MCP Apps** — MCP Apps standardizes a strong boundary: MCP tools declare `ui://` HTML resources, hosts render sandboxed iframes, and views exchange JSON-RPC messages through the host, with declarative CSP and model-versus-app tool visibility. It is excellent for portable chat-host surfaces, but its initial content model is executable HTML rather than native widgets, so it does not itself solve design consistency across SwiftUI or Compose; the architecture and controls are specified in the [MCP Apps overview](https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html).\n\n**Ouro UI** — Ouro combines a React/SwiftUI/WinUI/Compose native kit with **Composed UI**, whose validated tree can arrive directly, through MCP Apps, or through A2UI; an `ActionButton` inherits consent from the action declaration, so an agent cannot relabel it or weaken confirmation. The **one-action** and **Ouro AX X-ray** model also covers CLI, HTTP, and MCP interfaces, making Ouro unusually complete for both human and agent users; the trade-off is newer, copy-in infrastructure spread across kits and a visible platform conformance matrix, not the single-package maturity of older libraries. Its architecture is concretely described in the [Composed UI guide](https://ui.ouroboros.bot/docs/composed-ui/).\n\n**SwiftUI and Apple Human Interface Guidelines** — SwiftUI’s declarative `View` composition, scenes, modifiers, adaptive presentation, model flow, and accessibility integration make it the strongest Apple-native human interface toolkit, while the HIG supplies platform-specific guidance across iOS, macOS, visionOS, watchOS, and tvOS. Its scope is intentionally Apple-only and does not provide a portable agent-generated UI protocol; it remains the native implementation model rather than the cross-platform coordinator, as shown in [Apple’s SwiftUI documentation](https://developer.apple.com/documentation/swiftui) and [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/).\n\n**Tamagui** — Tamagui’s compiler lowers shared React components into atomic CSS and flattened DOM on web or React Native views and hoisted styles on mobile, with common tokens, themes, media queries, and accessible primitives. This is one of the best conventional “write once, render web/native” architectures, but it assumes React/React Native and does not define permissions, tool schemas, or agent-facing conformance; its compile-time/runtime split is detailed in the [Tamagui introduction](https://tamagui.dev/unstyled/intro/introduction).\n\n**Chakra UI** — Chakra offers a cohesive web React system built around Panda CSS: `createSystem` compiles typed tokens, semantic tokens, recipes, slot recipes, breakpoints, and CSS variables into a provider-controlled styling engine. It is productive and themeable for web products, but remains a React web library without a native adapter or a boundary for trustworthy model-composed UI; the architecture is documented in the [theming overview](https://chakra-ui.com/docs/theming/overview).\n\n**AI Elements** — AI Elements provides copy-in React components for AI-specific presentation—messages, conversations, reasoning, queues, and similar interactions—and uses shadcn’s registry workflow, so applications own the resulting code. Its current primary documentation says the project will be deprecated at the end of November 2026 and moved into shadcn, so starting here creates migration uncertainty and it adds no native renderer or agent execution boundary; see the [AI Elements introduction](https://elements.ai-sdk.dev/docs).\n\n**React Aria and React Spectrum** — React Aria separates behavior, state, accessibility, localization, and interaction from styling, with render props/slots and over 50 style-free components; React Spectrum is the polished Adobe implementation and React Stately can support other targets. This is a benchmark for accessible web interaction design, but Spectrum itself is not a full native UI stack and no agent protocol is included, so it would need A2UI/MCP/Ouro-style transport above it; the [React Aria documentation](https://react-aria.adobe.com/) is the primary evidence.\n\n**CopilotKit** — CopilotKit is the strongest integration-oriented alternative: framework-native frontends and a server runtime connect to agents over AG-UI, while shared state, frontend tools, human-in-the-loop, and controlled/declarative/open-ended generative UI create a complete user-agent loop. It supports React, Angular, Vue, React Native, and messaging surfaces and can render both A2UI and sandboxed MCP Apps, but it is chiefly an application stack rather than a component vocabulary or native SwiftUI/Compose kit; its three-layer architecture is documented in [CopilotKit’s architecture guide](https://docs.copilotkit.ai/ag2/concepts/architecture).\n\n**Agent-native (Builder.io)** — Agent-Native’s best idea is concrete: one `defineAction` drives React hooks, the model tool, HTTP, MCP, A2A, and CLI through shared schema validation, access checks, and audit behavior; UI state and data are visible to the same action layer, and approvals gate consequential calls. That architecture fits agent-operated business software, but the candidate is a full TypeScript/PostgreSQL application framework, not a portable visual design system or native-rendering toolkit; see the [actions overview](https://www.agent-native.com/docs/actions-overview/) and [access controls](https://www.agent-native.com/docs/actions-access-control/).\n\n**A2UI** — A2UI defines a transport-decoupled, streaming JSON protocol with strict catalogs, data binding, actions, and bidirectional typed functions, plus React/Angular/Lit, Flutter, and SwiftUI implementations so agents can generate data rather than executable code. That gives it better protocol neutrality than any single UI library and explicit validation boundaries, but catalogs and visual behavior still need host-specific implementation, and the published package list does not presently show a Jetpack Compose package; the [v1.0 specification](https://a2ui.org/specification/v1.0-a2ui/) and [renderer/package overview](https://raw.githubusercontent.com/a2ui-project/a2ui/d4f2761b4629028b7995fdd861a7792eeba529ff/README.md) make the architectural trade-off clear.\n\n**Base UI** — Base UI is an unstyled React library emphasizing accessible WAI-ARIA behavior, broad styling freedom, composable parts, and deliberate browser support; it is a strong primitive layer for a custom web system. It has no visual opinion, native implementation, or agent data/action contract, so selecting it alone would leave the cross-platform and agent halves unsolved; see [Base UI’s about page](https://base-ui.com/react/overview/about).\n\n**MUI** — MUI supplies a comprehensive, production-tested React implementation with self-contained styles, advanced theming, responsive `sx` utilities, and an extensive ecosystem including MUI X. Its web depth is a virtue but also a constraint: it has no native mobile renderer, and the current site says it still adopts Material Design 2 rather than Material 3; the primary [Material UI site](https://mui.com/material-ui/) documents those limits.\n\n**Material 3 and Jetpack Compose** — Compose Material 3 provides native Android composables, dynamic color, tonal elevation, typography/shape systems, adaptive navigation choices, and built-in platform behavior and accessibility foundations. It is the right Android endpoint but not a web/iOS implementation or an agent protocol; A2UI/json-render trees could supply content, yet the native design language still comes from Compose, as detailed in Google’s [Material 3 in Compose guide](https://developer.android.com/develop/ui/compose/designsystems/material3).\n\n**json-render** — json-render’s schema/catal­og split constrains generated JSON to predefined components and Zod-validated actions, while its flat tree, state bindings, progressive streaming, and registries for React, React Native, Vue, Svelte, Solid, and other outputs make it exceptionally broad. The flexibility is also its risk: it is a labs framework with application-defined enforcement and renderer quality, and “cross-platform” does not imply native SwiftUI/Compose fidelity; the [README](https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/README.md) and [schema guide](https://raw.githubusercontent.com/vercel-labs/json-render/9301e64eb556f972c21eb471ae851603cab65e6b/apps/web/content/docs/schemas.mdx) expose that contract.\n\n**Vercel UI SDK** — UI SDK cleanly models behavior as framework-neutral primitives—state, API, slots, attributes, press/focus/selection—then maps identical parts to React, Vue, Svelte, Solid, and Web Components, which is promising for agent-written interaction logic. It does not render native mobile components or supply an agent permission model, and its own documentation marks the SDK beta with changing APIs; see the [UI SDK README](https://raw.githubusercontent.com/vercel-labs/ui/ab55044caee66cc8228fa7ed3525088a1b7b5af7/README.md) and [primitive example](https://ui-sdk.dev/docs/core/build-a-component).\n\n**Flutter** — Flutter owns a layered rendering engine that targets mobile, web, and desktop from Dart, with Material and Cupertino widget libraries, native embedder services, FFI/platform channels, and hot reload. It offers unusually broad implementation reuse, but its visual output is a common engine rather than each platform’s native toolkit and it lacks a built-in standard for agent UI catalogs, tool authorization, or human approval; Google’s [Flutter architectural overview](https://docs.flutter.dev/resources/architectural-overview) documents the relevant layers.\n\n**Radix UI** — Radix Primitives provides low-level, fully typed React parts with WAI-ARIA behavior, focus management, keyboard navigation, controlled/uncontrolled modes, portals, and the `asChild` composition model, making it a proven foundation for an owned web design system. It is unstyled and web/React-specific, with no native or agent-facing layer, so it solves human interaction behavior only; see the [Radix introduction](https://www.radix-ui.com/primitives/docs/overview/introduction).\n\n**OpenAI Apps SDK UI** — Apps SDK UI offers accessible Radix-based React components, Tailwind 4 integration, design tokens, dark mode, and ChatGPT-optimized layouts with relatively little setup. Its tight host optimization is useful inside ChatGPT but also the limit: it is not a native widget system or an open cross-host protocol, whereas MCP Apps can carry richer standards across compliant hosts; the installation and component architecture are shown in the [primary README](https://raw.githubusercontent.com/openai/apps-sdk-ui/0f00143c7a639906f1621fe58e1b6be7b5bea46d/README.md)."
+        }
+      ]
+    }
+  ]
+}
