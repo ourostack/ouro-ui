@@ -339,18 +339,20 @@ test("every setup-node that restores the pnpm cache in ci.yml has a time limit a
 
 /**
  * A job whose steps read no package from node_modules installs none: no pnpm, no pnpm store cache and no pnpm i, so it
- * restores nothing from the cache (#2194). The merge of the coverage and the motion check each read only Node's own
- * modules and this repository's files (scripts/coverage-merge.mjs, scripts/motion-coverage.mts).
+ * restores nothing from the cache (#2194). The motion check reads only Node's own modules and this repository's files
+ * (scripts/motion-coverage.mts). The ci job's full-suite merge loads @vitest/coverage-istanbul's istanbul library
+ * (scripts/coverage-merge.mjs), so the ci job installs the packages before it (#2259).
  */
-test("the jobs whose steps read no package install none and run no pnpm (#2194)", () => {
+test("the jobs whose steps read no package install none and run no pnpm (#2194), and the ci job installs before its coverage merge (#2259)", () => {
   const jobs = ciJobs();
-  for (const id of ["ci", "motion-coverage"]) {
-    assert.ok(jobs[id], `ci.yml has a ${id} job`);
-    assert.doesNotMatch(jobs[id], /\bpnpm\b/, `${id} runs no pnpm, so it installs no package`);
-    assert.doesNotMatch(jobs[id], /cache: pnpm/, `${id} restores no pnpm store`);
-  }
-  assert.match(jobs.ci, /uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}node-version: 24\n {10}cache: ""\n/, "ci sets node up without a cache, for coverage-merge.mjs");
+  assert.ok(jobs["motion-coverage"], "ci.yml has a motion-coverage job");
+  assert.doesNotMatch(jobs["motion-coverage"], /\bpnpm\b/, "motion-coverage runs no pnpm, so it installs no package");
+  assert.doesNotMatch(jobs["motion-coverage"], /cache: pnpm/, "motion-coverage restores no pnpm store");
   assert.match(jobs["motion-coverage"], /uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}node-version: 24\n {10}cache: ""\n/, "motion-coverage sets node up without a cache, for motion-coverage.mts");
+  assert.match(readFileSync(join(root, "scripts/coverage-merge.mjs"), "utf8"), /resolve\("@vitest\/coverage-istanbul"\)/, "coverage-merge.mjs loads @vitest/coverage-istanbul");
+  const install = jobs.ci.indexOf("run: pnpm i --frozen-lockfile");
+  assert.ok(install > 0, "the ci job installs the packages");
+  assert.ok(install < jobs.ci.indexOf("node scripts/coverage-merge.mjs"), "the ci job installs the packages before its coverage merge reads them");
 });
 
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
