@@ -317,8 +317,9 @@ export async function heard(sr: ScreenReader, action: () => Promise<unknown>, ma
  * describes the element around it (`describesContainer`). A miss in which VoiceOver said something
  * `contradicts` accepts (the old state, say) fails as it is: the fallback is for silence, not for a
  * wrong announcement. Only for a step VoiceOver is known to skip at times: the Checkbox and
- * Checklist toggles (ourostack/ouro-ui#118, on macOS 15 only: `olderMacOS`) and the Dialog's opening
- * (ourostack/ouro-ui#119). On NVDA it is `heard`, and so it is on newer macOS for an `olderMacOS` finding.
+ * Checklist toggles (ourostack/ouro-ui#118, on macOS 15 only: `olderMacOS`), the Dialog's opening
+ * (ourostack/ouro-ui#119), and Select's focus and Menu's first item when macOS 26 says only their hint
+ * (ourostack/ouro-ui#2085). On NVDA it is `heard`, and so it is on newer macOS for an `olderMacOS` finding.
  */
 export async function heardOrDescribed(
   sr: ScreenReader,
