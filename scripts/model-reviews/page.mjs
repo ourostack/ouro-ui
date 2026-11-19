@@ -32,6 +32,7 @@ export function publishedRuns(dir = RESULTS_DIR) {
 export function seriesOf(runs) {
   const groups = new Map();
   for (const run of runs) {
+    if (run.series !== undefined) throw new Error(`${run.folder} is a run of the ${run.series} series, whose counts never mix with the model reviews'. Move it to its own series' results.`);
     const split = run.folder.indexOf("--");
     if (split <= 0) throw new Error(`${run.folder}: a results folder is named <series>--<run>`);
     if (run.status === "preflight" || run.status === "running") throw new Error(`${run.folder} is a ${run.status} record, not a finished run. Remove it from results/.`);
