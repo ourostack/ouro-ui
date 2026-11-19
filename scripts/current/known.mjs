@@ -18,6 +18,13 @@ const checkFolders = (files) => [...new Set(Object.keys(files).filter((path) => 
 /** Whether an update writes to a vendored Ouro check (a check/ folder's .ts file), the only kind seedKnown records for. */
 export const bringsCheck = (files) => checkFolders(files).length > 0;
 
+/**
+ * Where each vendored check reads its ouro-check.json: the app's own folder, the one the check's `scripts/ouro/check/`
+ * sits in, as the check reads it from where it runs (a package in a monorepo, such as `packages/app/`), else the
+ * repository's root.
+ */
+export const checkConfigs = (files) => [...new Set(checkFolders(files).map((folder) => (/(^|\/)scripts\/ouro\/check\/$/.test(folder) ? folder.replace(/scripts\/ouro\/check\/$/, "") : "") + CONFIG))];
+
 const parse = (text) => {
   if (!text) return {};
   try {
@@ -97,17 +104,18 @@ export async function seedKnown({ files, oldCheck, reports, base, branch, widene
  * new-rules.json gives one (`listed`), and the findings recorded as known for it (`seed`, from seedKnown). A rule the
  * release does not list, but whose findings were recorded, is named too.
  */
-export function checkRulesSection(listed, seed) {
+export function checkRulesSection(listed, seed, config = CONFIG) {
   const rules = new Map();
   for (const rule of listed) if (!rules.has(rule.rule)) rules.set(rule.rule, rule);
   for (const rule of Object.keys(seed?.counts ?? {}).sort()) if (!rules.has(rule)) rules.set(rule, { rule });
   if (!rules.size) return null;
   const id = (rule) => `ouro-check-${rule.replace(/[^\w-]/g, "-")}`;
+  const file = seed?.path ?? config;
   const recorded = (rule) => {
     const count = seed?.counts?.[rule];
-    if (count === undefined) return `The findings this app already has are recorded in \`${CONFIG}\`'s \`known\` once this pull request's checks report them: they pass, and a new one fails.`;
+    if (count === undefined) return `The findings this app already has are recorded in \`${file}\`'s \`known\` once this pull request's checks report them: they pass, and a new one fails.`;
     if (count === 0) return "This app's live site has no finding of it, so none is recorded: a new one fails.";
-    return `\`${count}\` findings this app already has are recorded in \`${CONFIG}\`'s \`known\`: they pass, and a new one fails.`;
+    return `\`${count}\` findings this app already has are recorded in \`${file}\`'s \`known\`: they pass, and a new one fails.`;
   };
   const cited = [...rules.values()].filter((rule) => rule.summary);
   return [

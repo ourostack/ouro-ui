@@ -400,6 +400,7 @@ Then type check and build your app. CI runs steps 1 to 3 on a v0.1.0 app, with t
 Components:
 `a2ui-surface`,
 `accordion`,
+`agent-handoff`,
 `agent-presence`,
 `alert`,
 `app-window`,
@@ -524,6 +525,7 @@ Components:
 `toggle-group`,
 `toolbar`,
 `tooltip`,
+`typing-indicator`,
 `unread-dot`.
 
 Each component has an optional `<name>-tests` item (`button-tests`) with its Vitest browser tests, type tests, stories and Playwright spec; it also installs the tests of everything the component installs. `ouro-tests` adds every component with all of its tests, and `ouro-testing` is the test kit the `-tests` items bring.
@@ -659,6 +661,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Actions
 
+- **AgentHandoff** — What a person does once they have seen something built for agents: hand it to their coding agent, as one line to paste, with Copy beside it. [Docs](docs/AgentHandoff.md)
 - **Button** — A button, or a link styled as one. [Docs](docs/Button.md)
 - **ButtonGroup** — Related buttons joined into one control, such as Previous, a page number and Next, or a split button. [Docs](docs/ButtonGroup.md)
 - **canShare** — Whether the browser has a share sheet for this data: most phones and Safari do, most desktop browsers do not. [Docs](docs/canShare.md)
@@ -857,6 +860,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **readFailure** — Whether a failed read's HTTP status is the service's (`"failed"`: no answer, signed out, throttled, timed out or failing, so every read waits) or this person's (`"missing"`: the service refused them alone, so they are kept as missing and no one waits). [Docs](docs/readFailure.md)
 - **ThreadRail** — A thread beside its conversation: a labelled landmark with a header and a close button. [Docs](docs/ThreadRail.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
+- **TypingIndicator** — The line under a chat that says who is writing: their faces, pulsing dots and "Ned Land is writing…". [Docs](docs/TypingIndicator.md)
 - **usePerson** — One person from a cache made with `createPeopleCache`, for a component that shows them, such as an avatar or a message's author: their entry, read while the component shows it and again whenever it runs out. [Docs](docs/usePerson.md)
 - **webStorage** — Storage for `createPeopleCache` in `localStorage`, or another `Storage`, under one key. [Docs](docs/webStorage.md)
 

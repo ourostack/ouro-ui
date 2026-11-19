@@ -19,6 +19,8 @@ const run = promisify(execFile);
 
 /** Alt+Escape: sends the foreground window to the back, so the next one comes forward. */
 const SWITCH_APPLICATION = { keyCode: [WindowsKeyCodes.Escape], modifiers: [WindowsModifiers.Alt] };
+/** Escape: closes Windows' Search pane, which a run left in front of the browser (#2357). */
+const ESCAPE = { keyCode: [WindowsKeyCodes.Escape] };
 /** Control+Home: the start of the page. */
 const MOVE_TO_TOP = { keyCode: [WindowsKeyCodes.Home], modifiers: [WindowsModifiers.Control] };
 
@@ -50,6 +52,18 @@ export async function stopNVDA(): Promise<string[]> {
 }
 
 /**
+ * Asks Windows itself to bring the window whose title holds the page's title to the front. Playwright's `bringToFront`
+ * moves the page within the browser, not the browser in front of other windows, and twice the runner's own agent console
+ * kept the foreground through every try (#2355, #2357). The title goes in through the environment, never into the script.
+ */
+async function activateBrowser(pageTitle: string): Promise<void> {
+  const script =
+    "$t = $env:OURO_SR_TITLE; $p = Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle.Contains($t) } | Select-Object -First 1; " +
+    "if ($p) { [void](New-Object -ComObject WScript.Shell).AppActivate($p.Id) }";
+  await run("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], { env: { ...process.env, OURO_SR_TITLE: pageTitle } }).catch(() => undefined);
+}
+
+/**
  * Brings the browser window forward until NVDA reports it (`readsBrowser`), at most ten times as
  * @guidepup/playwright does, and fails as infrastructure when it never does: a run where NVDA read
  * "Start, window" instead hung until the test timed out.
@@ -59,8 +73,10 @@ async function focusBrowser(page: Page): Promise<void> {
   let windowTitle = "";
   for (let attempt = 0; attempt <= 10; attempt++) {
     if (attempt > 0) {
+      if (/^Search\b/i.test(windowTitle)) await nvda.perform(ESCAPE, { capture: false });
       await nvda.perform(SWITCH_APPLICATION, { capture: false });
       await page.bringToFront();
+      await activateBrowser(pageTitle);
       await sleep(500);
     }
     await nvda.perform(nvda.keyboardCommands.reportTitle);
