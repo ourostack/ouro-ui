@@ -215,11 +215,11 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml#L37-L48": {
+  "https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/.github/workflows/ci.yml": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -383,10 +383,6 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
-    "status": 200,
-    "checked": "2026-11-18"
-  },
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#L26": {
     "status": 200,
     "checked": "2026-11-19"
@@ -400,6 +396,10 @@
     "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md#whats-in-the-box": {
+    "status": 200,
+    "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -459,10 +459,6 @@
     "status": 200,
     "checked": "2026-11-03"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/98af0dde7494368d56a22a3cce6fc167bcc382c4/parity.json": {
-    "status": 200,
-    "checked": "2026-11-19"
-  },
   "https://github.com/ourostack/ouro-ui-core/blob/9f6a0aa65c3e74b2d6b3287bc621c8cd12f66d52/MIGRATION.md#L20": {
     "status": 200,
     "checked": "2026-11-03"
@@ -491,11 +487,11 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts#L54-L130": {
+  "https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/src/composed.mts": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -527,17 +523,21 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/e2ab6ea4072dff1674cecf1b1df70933e4c0f0f9/docs/decisions/2026-11-14-native-kits.md#windows-v010": {
+  "https://github.com/ourostack/ouro-ui-core/blob/d4e9e81336b0a03e0797e0d787f67b78f7369865/parity.json": {
     "status": 200,
-    "checked": "2026-11-18"
+    "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md": {
+  "https://github.com/ourostack/ouro-ui-core/blob/e2ab6ea4072dff1674cecf1b1df70933e4c0f0f9/docs/decisions/2026-11-14-native-kits.md#windows-v010": {
     "status": 200,
     "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md#L20": {
     "status": 200,
     "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui-core/blob/e90f749fdb14e738aad01141d18c03f6cc18d99c/docs/decisions/2026-11-14-android-kit.md": {
+    "status": 200,
+    "checked": "2026-11-18"
   },
   "https://github.com/ourostack/ouro-ui-core/blob/fdbbd24ecb91929f4a090552db3b66d4a51a90a3/tokens/ouro.tokens.json": {
     "status": 200,
@@ -559,7 +559,7 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.20.0": {
+  "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.21.0": {
     "status": 200,
     "checked": "2026-11-19"
   },
@@ -567,11 +567,11 @@
     "status": 200,
     "checked": "2026-11-19"
   },
-  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml": {
+  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml#L37-L48": {
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml#L37-L48": {
+  "https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/.github/workflows/ci.yml": {
     "status": 200,
     "checked": "2026-11-18"
   },
@@ -739,9 +739,9 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.24": {
+  "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.331": {
     "status": 200,
-    "checked": "2026-11-18"
+    "checked": "2026-11-19"
   },
   "https://github.com/ourostack/ouro-ui/releases/tag/v1.3.5": {
     "status": 200,
