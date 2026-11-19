@@ -13,8 +13,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: incumbent-${{ github.ref }}
-  cancel-in-progress: true
+  group: incumbent-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   incumbent:
     runs-on: ubuntu-24.04

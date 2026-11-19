@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { treeFiles } from "./tree.mjs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { main } from "../registry/ouro/source-rules/source-rules.mjs";
@@ -18,7 +19,7 @@ function run(extra = {}) {
       code = status;
     },
     readFile: (file) => extra[path.relative(root, file)] ?? readFileSync(file, "utf8"),
-    readdir: (directory) => [...readdirSync(directory, { recursive: true }), ...extraFiles.map((file) => path.relative(path.join(root, "src"), path.join(root, file)))],
+    readdir: (directory) => [...treeFiles(directory), ...extraFiles.map((file) => path.relative(path.join(root, "src"), path.join(root, file)))],
   });
   return { code, text: [...logs, ...errors].join("\n") };
 }
