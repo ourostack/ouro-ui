@@ -571,6 +571,14 @@
     "status": 200,
     "checked": "2026-11-16"
   },
+  "https://github.com/ourostack/ouro-ui/issues/2294": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
+  "https://github.com/ourostack/ouro-ui/issues/2315": {
+    "status": 200,
+    "checked": "2026-11-19"
+  },
   "https://github.com/ourostack/ouro-ui/pull/354": {
     "status": 200,
     "checked": "2026-11-06"
