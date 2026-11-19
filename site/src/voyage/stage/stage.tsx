@@ -358,7 +358,7 @@ const GAUGE_BUBBLES: ReadonlyArray<[number, number, number, number]> = [
  */
 function SightGlass({ full }: { full: boolean }): JSX.Element {
   return (
-    <span className="stage-gauge" aria-hidden="true" data-full={full ? "" : undefined}>
+    <span className="stage-gauge" aria-hidden="true" data-full={full ? "" : undefined} data-ouro-allow="off-theme" data-ouro-allow-why="Part of the porthole's drawing: the water in the glass is the painted sea's.">
       <svg viewBox="0 0 44 44">
         <rect className="stage-gauge-face" x="5" y="5" width="34" height="34" rx="17" />
       </svg>
@@ -402,7 +402,7 @@ const TankSwitch = memo(function TankSwitch({ id, label, name, checked, onChange
 const DiveControl = memo(function DiveControl({ full, dived, onPress }: { full: number; dived: boolean; onPress: () => void }): JSX.Element {
   const ready = full === 3 && !dived;
   return (
-    <div className="stage-dive" data-stage-control="dive" data-ready={ready ? "" : undefined}>
+    <div className="stage-dive" data-stage-control="dive" data-ready={ready ? "" : undefined} data-ouro-allow="off-theme" data-ouro-allow-why="Its ready ring is the porthole's brass, with the lantern's light round it.">
       <Button
         size="md"
         disabled={full < 3}
@@ -469,7 +469,7 @@ const LightsControl = memo(function LightsControl({ lights, onChange }: { lights
         {STAGE_COPY.lights}
       </span>
       {/* The lamp itself, a brass-rimmed lens that lights with the lantern's light while the switch is on (stage.css). */}
-      <span className="stage-lamp" aria-hidden="true" data-lit={lights ? "" : undefined}>
+      <span className="stage-lamp" aria-hidden="true" data-lit={lights ? "" : undefined} data-ouro-allow="off-theme" data-ouro-allow-why="Part of the porthole's drawing: the lamp's light is the lantern's, as the painting's is.">
         <span className="stage-lamp-light" />
       </span>
       <Switch label={STAGE_COPY.lights} hideLabel checked={lights} onCheckedChange={onChange} />
