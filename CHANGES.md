@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: `ConversationList` sizes its first frame from the density's row height instead of a fixed guess, and takes an `estimatedRowHeight` prop for rows shorter than the density's.
