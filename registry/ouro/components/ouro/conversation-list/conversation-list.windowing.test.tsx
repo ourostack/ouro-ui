@@ -430,6 +430,25 @@ describe("ConversationList windowing", () => {
     await expect.poll(() => { try { expectBand(pane, ["c0"]); return "ok"; } catch (error) { return (error as Error).message; } }).toBe("ok");
   });
 
+  it("scrolls no further back to a row the keyboard reached before it rendered once the next key moves focus on", async () => {
+    const { pane, rows } = await render(<ConversationList label="Conversations" items={many(80)} onSelect={() => {}} />, 200);
+    const last = rows().at(-1)!;
+    const reached = `c${Number(titleOf(last)!.slice(1)) + 1}`;
+    await act(async () => last.focus());
+    // Two keys with no frame between them, as a key held down or a fast runner sends them: the second moves focus on
+    // before a quiet frame lets go of the first's reach.
+    const down = () => document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    await act(async () => down());
+    expect(titleOf(document.activeElement)).toBe(reached);
+    await act(async () => {
+      down();
+      pane.scrollTop = 2000;
+      pane.dispatchEvent(new Event("scroll"));
+    });
+    await frames();
+    expect(pane.scrollTop).toBe(2000);
+  });
+
   it("moves on from a row with focus that the pane scrolled away from, showing the next row at the nearest edge", async () => {
     const { pane, rows } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
     // The row is in view. Without preventScroll, WebKit's scroll to it runs on a timer and could bring it back after the scroll below.
