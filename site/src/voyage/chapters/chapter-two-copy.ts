@@ -31,7 +31,7 @@ export interface RadioLive {
  * site/e2e/chapter-two.spec.ts operates each in a test named "control: <id>" and asserts what it
  * changes; site/scripts/stage-census.test.mjs fails when one here has no such test.
  */
-export const CHAPTER_TWO_CONTROLS = ["chart-room-code", "ports", "departure", "legs", "catalogue-code", "sort", "filter", "notes", "classify", "museum", "radio-code", "channels", "react", "compose"] as const;
+export const CHAPTER_TWO_CONTROLS = ["chart-room-code", "ports", "departure", "legs", "catalogue-code", "sort", "filter", "notes", "classify", "museum", "radio-code", "channels", "members", "react", "compose"] as const;
 export type ChapterTwoControl = (typeof CHAPTER_TWO_CONTROLS)[number];
 
 export const CHAPTER_TWO = {
@@ -252,12 +252,14 @@ export const CODE_SHEETS_TWO = {
     hx: [
       { text: "ConversationList: who you can call, with a dot for news, and one Tab stop.", code: ({ channel }: RadioLive) => `<ConversationList label="${RADIO.channels}" items={channels} selectedId="${channel}" onSelect={setChannel} />` },
       { text: `MessageList and Message: the chat, which keeps up with new lines and reads them out. ${claim("Each line shows its writer's dot.", { source: { file: "site/src/voyage/chapters/chapter-two-radio.tsx" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > shows the crew's presence on their lines, as in the list of who is on the air" } })}`, code: `<MessageList label="Radio: The whole crew">\n  <Message role="assistant" name="Ned Land" presence="away" presenceLabel="Napping">Ha. Good one.</Message>\n</MessageList>` },
+      { text: `ChatHeader: who the chat is with. ${claim("The whole crew shows their faces and who is aboard; the captain shows his dot.", { source: { file: "site/src/voyage/chapters/chapter-two-radio.tsx" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > heads the open chat with who it is with: the crew's faces and roles, or the captain and his dot" } })}`, code: ({ channel }: RadioLive) => (channel === "crew" ? `<ChatHeader title="The whole crew" members={crew} level={4} />` : channel === "captain" ? `<ChatHeader title="Captain Nemo" members={[nemo]} level={4} />` : `<ChatHeader title="${RADIO.caller}" members={[caller]} level={4} />`) },
+      { text: `TypingIndicator: who is writing back. ${claim("The writer's face shows under the chat until the reply lands.", { source: { file: "site/src/voyage/chapters/chapter-two-radio.tsx" }, verify: { testExists: "site/src/voyage/chapters/chapter-two.test.tsx::the ship's radio > shows who is writing back under the chat, with their face, until the reply lands" } })}`, code: `<TypingIndicator people={[{ name: "Ned Land", src: ned }]} />` },
       { text: "Composer: the box you write in. Enter sends, and Shift and Enter start a new line.", code: `<Composer label="Message" sendOn="enter" onSend={send} />` },
       { text: "ReactionBar: the emoji under a line. Press one to add yours, and again to take it back.", code: `<ReactionBar reactions={line.reactions} quick={quick} onReact={react} />` },
       { text: "Avatar: who is on the radio, and a dot that shows if they are free, busy or away.", code: `<Avatar name="Ned Land" presence="away" presenceLabel="Napping" />` },
     ],
     site: ["What the crew says back, and who says it.", "When someone new calls."],
-    uses: ["ConversationList", "MessageList", "Message", "Composer", "ReactionBar", "Avatar"],
+    uses: ["ConversationList", "ChatHeader", "MessageList", "Message", "TypingIndicator", "Composer", "ReactionBar", "Avatar"],
     start: { channel: "crew" } as RadioLive,
   },
 } as const;
@@ -353,7 +355,6 @@ export const RADIO = {
   compose: "Message",
   placeholder: "Write to the crew…",
   send: "Send",
-  writing: "Writing",
   /** Each of the crew's presence on the radio, by name. */
   presence: {
     "Captain Nemo": { presence: "available", label: "On the bridge" },

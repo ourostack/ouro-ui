@@ -116,7 +116,9 @@ const CEILINGS = { voyage: 281 * 1024, docs: 167_396 + 1024 } as const;
 // The docs' rose to 47 KiB for X-ray's opening scan (Ari, 2026-11-18: the "oh, nice" moment a first visitor tries): the
 // band that sweeps down the screen and the outlines it shows as it passes, whose rules the docs' Tailwind build carries:
 // 47,158 bytes with them, built locally over main at ca591b4f.
-const CSS_CEILINGS = { voyage: 45 * 1024, docs: 47 * 1024 } as const;
+// The docs' rose to 48 KiB for the pieces a group chat needs (ChatHeader, TypingIndicator and ReadReceipt), whose classes
+// the docs' Tailwind build carries: 48,160 bytes with them, on CI merged with main at 95a472ce.
+const CSS_CEILINGS = { voyage: 45 * 1024, docs: 48 * 1024 } as const;
 
 /**
  * What the components index's previews load once it is live, gzip bytes, on top of its first load: the demos of the

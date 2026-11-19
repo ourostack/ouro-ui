@@ -149,7 +149,7 @@ Gap cells: 374.[^matrix]
 | [thread-layout](https://ui.ouroboros.bot/docs/thread-layout/) | `thread-layout` | Not yet | Not yet | Not yet |
 | [chat-header](https://ui.ouroboros.bot/docs/chat-header/) | `chat-header` | Not yet | Not yet | Not yet |
 | [typing-indicator](https://ui.ouroboros.bot/docs/typing-indicator/) | `typing-indicator` | Not yet | Not yet | Not yet |
-| [theme-picker](https://ui.ouroboros.bot/docs/theme-picker/) | `theme-picker` | Not yet | Not yet | Not yet |
+| [read-receipt](https://ui.ouroboros.bot/docs/read-receipt/) | `read-receipt` | Not yet | Not yet | Not yet |
 
 ### Claims
 
