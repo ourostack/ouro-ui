@@ -1,0 +1,72 @@
+{
+  "generator": "ouro-actions 0.21.0",
+  "set": "incumbent-billing",
+  "tools": [
+    {
+      "name": "list_invoices",
+      "title": "List invoices",
+      "description": "List the account's invoices: each one's id, amount and whether it is paid. Take an id from here for pay_invoice.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "invoices": {
+            "type": "string",
+            "description": "The invoices, as JSON."
+          }
+        },
+        "required": [
+          "invoices"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "pay_invoice",
+      "title": "Pay invoice",
+      "description": "Pay one invoice with the card on file. Take the id from list_invoices.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The invoice's id, from list_invoices."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The invoice that was paid."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "refusals": {}
+}
