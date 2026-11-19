@@ -257,7 +257,7 @@ const shown = (node: ReactNode): boolean => node !== undefined && node !== null 
 const windowAbove = 20;
 // How far past the view's top and bottom edges rows still render, in pixels, so a scroll shows rows already drawn.
 const overscan = 320;
-// How much of the list renders before the view is known, as in server HTML, in pixels.
+// How much of the list renders before the view is known, as in server HTML, in pixels; the first layout narrows it to what the view shows.
 const firstView = 1000;
 // A row's height before any is measured, with the gap before it, by density; a header's too, until one is measured.
 const estimates: Readonly<Record<ConversationListDensity, number>> = { comfortable: 58, compact: 34 };
@@ -541,6 +541,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const [measured, setMeasured] = useState<{ density: ConversationListDensity; heights: ReadonlyMap<string, number> } | null>(null);
   const [range, setRange] = useState<readonly [number, number] | null>(null);
   const [reach, setReach] = useState<string | null>(null);
+  const [firstHeight, setFirstHeight] = useState(firstView);
   const controls = useRef(new Map<string, HTMLButtonElement>());
   const latest = useRef<Laid | null>(null);
   const clips = useRef<HTMLElement[] | null>(null);
@@ -623,7 +624,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   // The first frame counts its rows from the estimates alone: counting from measured heights would grow the window after the first measurement.
   const guessed = place(keys, noHeights, Math.min(estimates[density], shortest)).offsets;
   // Stryker disable next-line EqualityOperator: a slot that starts exactly where the first view ends may render or not, and the first layout corrects it.
-  const firstRows = guessed.filter((offset) => offset < firstView).length;
+  const firstRows = guessed.filter((offset) => offset < firstHeight).length;
   const [start, end] = range ?? [0, firstRows];
   const indexes = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
   const kept = useMemo(() => new Set([tabStop, current, reach]), [tabStop, current, reach]);
@@ -733,6 +734,19 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     } else control.focus();
   };
 
+  // Before the first paint, narrows the first frame's rows from `firstView` to the part of the list the boxes around it show.
+  useLayoutEffect(() => {
+    if (!windowed) return;
+    const top = listRef.current!.getBoundingClientRect().top;
+    let bottom = innerHeight;
+    for (let node = listRef.current!.parentElement; node; node = node.parentElement) {
+      if (getComputedStyle(node).overflowY !== "visible") bottom = Math.min(bottom, node.getBoundingClientRect().bottom);
+    }
+    // Stryker disable next-line ArithmeticOperator: the list sits at the top of the test panes, so the offset it subtracts is zero there.
+    setFirstHeight(Math.max(1, Math.min(firstView, Math.ceil(bottom - top))));
+  },
+  // Stryker disable next-line ArrayDeclaration: the windowed flag is fixed while a list is mounted, so the effect runs once either way.
+  [windowed]);
   // The boxes that clip the list, which scroll it and whose size sets its view, and the box that scrolls it.
   // Nothing is read while the list mounts: the first rows render in flow at their estimates, and the observer's first
   // callback, which comes with the page already laid out, finds the boxes, measures the rows and sets the window.

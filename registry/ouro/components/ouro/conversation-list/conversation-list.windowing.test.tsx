@@ -99,8 +99,14 @@ function expectBand(pane: HTMLElement, kept: readonly string[]) {
   if (last.index < count - 1) expect(last.end, `c${last.index + 1} is outside the view`).toBeGreaterThanOrEqual(bottom);
 }
 
+/** The reads a mount makes other than the first view's: the list's own rectangle, its ancestors' overflow and the window's height. */
+const beyondFirstView = (reads: ReturnType<typeof watchLayoutReads>, pane: HTMLElement) =>
+  reads.reads
+    .filter((read) => !(read.name === "getComputedStyle" || read.name === "innerHeight" || (read.name === "getBoundingClientRect" && read.target === pane.querySelector("ul"))))
+    .map((read) => read.name);
+
 describe("ConversationList windowing", () => {
-  it("forces no layout while a windowed list mounts, and then sets its window from the observer's first callback", async () => {
+  it("forces no layout but the first view's while a windowed list mounts, and then sets its window from the observer's first callback", async () => {
     const warm = document.createElement("div");
     document.body.append(warm);
     mounted.push(warm);
@@ -115,7 +121,7 @@ describe("ConversationList windowing", () => {
     roots.push(root);
     const reads = watchLayoutReads();
     flushSync(() => root.render(<ConversationList label="Conversations" items={many(200)} onSelect={() => {}} />));
-    const mount = reads.names();
+    const mount = beyondFirstView(reads, pane);
     reads.stop();
     expect(mount).toEqual([]);
     const view = { pane, rows: () => [...pane.querySelectorAll<HTMLButtonElement>('[data-ouro-part="row"]')] };
@@ -182,7 +188,7 @@ describe("ConversationList windowing", () => {
     expect(inView(document.activeElement!, view.pane)).toBe(true);
   });
 
-  it("forces no layout while a windowed list whose rows have menus mounts", async () => {
+  it("forces no layout but the first view's while a windowed list whose rows have menus mounts", async () => {
     const warm = document.createElement("div");
     document.body.append(warm);
     mounted.push(warm);
@@ -196,12 +202,12 @@ describe("ConversationList windowing", () => {
     roots.push(root);
     const reads = watchLayoutReads();
     flushSync(() => root.render(<ConversationList label="Chats" items={many(200, () => ({ menu: [{ label: "Pin", onClick: () => {} }] }))} onSelect={() => {}} />));
-    const mount = reads.names();
+    const mount = beyondFirstView(reads, pane);
     reads.stop();
     expect(mount).toEqual([]);
   });
 
-  it("forces no style or layout while a list with many sections mounts", async () => {
+  it("forces no style or layout but the first view's while a list with many sections mounts", async () => {
     const warm = document.createElement("div");
     document.body.append(warm);
     mounted.push(warm);
@@ -217,7 +223,7 @@ describe("ConversationList windowing", () => {
     const items = many(60).map((item, index) => ({ ...item, section: `s${index % 12}` }));
     const reads = watchLayoutReads();
     flushSync(() => root.render(<ConversationList label="Sectioned" sections={sections} items={items} onSelect={() => {}} />));
-    const mount = reads.names();
+    const mount = beyondFirstView(reads, pane);
     reads.stop();
     expect(mount).toEqual([]);
   });
@@ -858,6 +864,28 @@ describe("ConversationList windowing with sections", () => {
     const view = await render(<ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} />);
     expect(view.rows().length).toBeLessThan(50);
     expect(view.pane.scrollTop).toBe(0);
+  });
+
+  it("mounts only the rows the list's own height shows on the first frame, with each row's position and the set's size intact, and no blank at the first scroll", async () => {
+    const pane = document.createElement("div");
+    pane.style.cssText = "width: 360px; height: 400px; overflow-y: auto";
+    document.body.append(pane);
+    mounted.push(pane);
+    const root = createRoot(pane);
+    roots.push(root);
+    flushSync(() => root.render(<ConversationList label="Chats" items={many(500)} onSelect={() => {}} />));
+    const first = [...pane.querySelectorAll<HTMLElement>('[data-ouro-part="row"]')];
+    // 400 pixels at the first frame's assumed 40 pixels a row.
+    expect(first).toHaveLength(10);
+    expect(first.map((row) => row.closest("li")!.getAttribute("aria-posinset"))).toEqual(first.map((_, at) => String(at + 1)));
+    expect(new Set(first.map((row) => row.closest("li")!.getAttribute("aria-setsize")))).toEqual(new Set(["500"]));
+    // The first frame's rows already fill the pane, so nothing is blank before the first callback sets the window.
+    expect(first.at(-1)!.parentElement!.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(pane.getBoundingClientRect().bottom);
+    await frames();
+    await scrollPane(pane, 200);
+    expectBand(pane, []);
+    await scrollPane(pane, 1500);
+    expectBand(pane, ["c0"]);
   });
 
   it("renders exactly the rows that start inside the first view on a short list's first commit", () => {
