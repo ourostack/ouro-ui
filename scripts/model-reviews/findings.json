@@ -1155,8 +1155,8 @@
         }
       ],
       "issue": 2310,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "Windows and Android now read A2UI: each draws an A2UI card through the same composed surface as Ouro's own cards, passes core's A2UI test cases, and says so in its README (ourostack/ouro-ui-windows#22, ourostack/ouro-ui-android#17)."
     },
     {
       "id": "consent-on-the-action",
@@ -1397,8 +1397,8 @@
         }
       ],
       "issue": 2316,
-      "status": "open",
-      "change": null
+      "status": "in progress",
+      "change": "A decision record sets release sets, the rule for core 1.0, a deprecation rule and a security policy (ourostack/ouro-ui-core#98), and core now writes which release of each kit meets which core (ourostack/ouro-ui-core#99). Core 1.0 waits for the first full release set."
     },
     {
       "id": "card-catalog-ceiling-or-queue",
