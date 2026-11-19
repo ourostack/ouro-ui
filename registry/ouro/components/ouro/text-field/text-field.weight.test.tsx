@@ -84,22 +84,26 @@ describe("TextField's constraints", () => {
 });
 
 // Base UI's Field.Root settles twice in layout effects as its control registers, so a field commits three times
-// on mount; a count is exact on any host. A change that makes a field commit more fails here.
+// on mount. A shown error commits once more a frame later, when Base UI's FieldError ends its "starting"
+// transition status (useTransitionStatus). The count is taken after two frames, so that commit is always in it
+// rather than only when a slow host reaches a frame before the mount's act returns. A change that makes a field
+// commit more fails here.
 describe("TextField's commits on mount", () => {
   it.each([
-    { variant: "a plain field", field: <TextField label="Name" /> },
-    { variant: "a field with a description and an error", field: <TextField label="Name" description="As on your card." error="Enter a name." /> },
-    { variant: "a required password field", field: <TextField label="Password" type="password" required /> },
-  ])("commits $variant no more than three times", async ({ field }) => {
+    { variant: "a plain field", field: <TextField label="Name" />, budget: 3 },
+    { variant: "a field with a description and an error", field: <TextField label="Name" description="As on your card." error="Enter a name." />, budget: 4 },
+    { variant: "a required password field", field: <TextField label="Password" type="password" required />, budget: 3 },
+  ])("commits $variant no more than $budget times, counted once its frames have run", async ({ field, budget }) => {
     const host = document.createElement("div");
     host.dataset["testHarness"] = "";
     document.body.append(host);
     const root = createRoot(host);
     let commits = 0;
     await act(async () => root.render(<Profiler id="field" onRender={() => commits++}>{field}</Profiler>));
+    await act(() => new Promise<void>((settle) => requestAnimationFrame(() => requestAnimationFrame(() => settle()))));
     await act(async () => root.unmount());
     host.remove();
-    expect(commits, "commits").toBeLessThanOrEqual(3);
+    expect(commits, "commits").toBeLessThanOrEqual(budget);
   });
 });
 
