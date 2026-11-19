@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { Profiler, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
@@ -80,6 +80,26 @@ describe("TextField's constraints", () => {
     await act(async () => root.unmount());
     host.remove();
     expect(drawn, `components with ${constraint}`).toBeGreaterThanOrEqual(17);
+  });
+});
+
+// Base UI's Field.Root settles twice in layout effects as its control registers, so a field commits three times
+// on mount; a count is exact on any host. A change that makes a field commit more fails here.
+describe("TextField's commits on mount", () => {
+  it.each([
+    { variant: "a plain field", field: <TextField label="Name" /> },
+    { variant: "a field with a description and an error", field: <TextField label="Name" description="As on your card." error="Enter a name." /> },
+    { variant: "a required password field", field: <TextField label="Password" type="password" required /> },
+  ])("commits $variant no more than three times", async ({ field }) => {
+    const host = document.createElement("div");
+    host.dataset["testHarness"] = "";
+    document.body.append(host);
+    const root = createRoot(host);
+    let commits = 0;
+    await act(async () => root.render(<Profiler id="field" onRender={() => commits++}>{field}</Profiler>));
+    await act(async () => root.unmount());
+    host.remove();
+    expect(commits, "commits").toBeLessThanOrEqual(3);
   });
 });
 
