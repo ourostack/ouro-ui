@@ -96,6 +96,15 @@ export function headline(series, subject = SUBJECT) {
   return `${subject} is not yet the models' choice: ${t.subjectPicks} of ${t.completed} models chose it${rest}.`;
 }
 
+/** The search backend a series' runs used; a run that records none is from before 2026-11-19, which used Perplexity. */
+export function searchOf(series) {
+  const backends = [...new Set(series.runs.map((run) => run.runtime?.search?.backend ?? "perplexity"))];
+  if (backends.length > 1) throw new Error(`Series ${series.id} mixes search backends (${backends.join(", ")}): a series uses one`);
+  return backends[0];
+}
+
+const SEARCH_NAMES = { copilot: "GitHub Copilot's web search, returning each result's title, address and snippets", perplexity: "Perplexity's `sonar`, which answers with a written summary" };
+
 /** The page, from `runs` (publishedRuns()). */
 export function renderPage(runs, subject = SUBJECT) {
   const all = seriesOf(runs);
@@ -170,6 +179,9 @@ export function renderPage(runs, subject = SUBJECT) {
   out.push(`- Sources were pinned at each run's cutoff; ${subject} was read at [\`${pinned.sha.slice(0, 8)}\`](${REPO}/tree/${pinned.sha}).`);
   out.push(`- Runs in this review: ${latest.runs.map((run) => `[\`${run.folder}\`](${blob(run, "run.json")}) (cutoff ${run.asOf.slice(0, 16).replace("T", " ")} UTC)`).join(", ")}. A model that gave no verdict was run again with the same input, and the table links its earlier attempts; a verdict is never asked for twice.`);
   out.push(`- Inference: ${[...new Set(latest.runs.map((run) => run.runtime?.name).filter(Boolean))].join(", ")} for models in its catalog, and a model's own API for the rest (${[...new Set(latest.rows.filter((r) => r.review?.transport === "direct-api").map((r) => r.displayName))].join(", ") || "none"}).`);
+  const search = searchOf(latest);
+  const before = previous ? searchOf(previous) : search;
+  out.push(`- Search: ${SEARCH_NAMES[search]}.${before !== search ? ` The ${date(previous)} review searched with ${SEARCH_NAMES[before]}, so a difference between the two may come from search as well as from the models or the candidates.` : ""}`);
   out.push(`- One verdict per model is a sample, not a rate. A result is about the models that ran, on that date.`);
   if (all.length > 1) out.push(`- Earlier reviews, still published: ${all.slice(0, -1).map((s) => `${date(s)} (${headline(s, subject)})`).join("; ")}`);
   out.push("");

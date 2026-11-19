@@ -90,5 +90,6 @@ Ouro UI — My pick, and the closest fit to the brief. It's built as a 2×2 grid
 - Sources were pinned at each run's cutoff; Ouro UI was read at [`2a45b7a3`](https://github.com/ourostack/ouro-ui/tree/2a45b7a321c839537d41b0f3aca6b63d6a79b9a0).
 - Runs in this review: [`2026-11-14-rerun--run-1`](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/results/2026-11-14-rerun--run-1/run.json) (cutoff 2026-11-14 11:04 UTC), [`2026-11-14-rerun--run-2-no-verdict-retry`](https://github.com/ourostack/ouro-ui/blob/main/scripts/model-reviews/results/2026-11-14-rerun--run-2-no-verdict-retry/run.json) (cutoff 2026-11-14 11:31 UTC). A model that gave no verdict was run again with the same input, and the table links its earlier attempts; a verdict is never asked for twice.
 - Inference: GitHub Copilot CLI for models in its catalog, and a model's own API for the rest (none).
+- Search: Perplexity's `sonar`, which answers with a written summary.
 - One verdict per model is a sample, not a rate. A result is about the models that ran, on that date.
 - Earlier reviews, still published: 2026-11-13 (Ouro UI is not yet the models' choice: 2 of 8 models chose it; 6 chose A2UI.)

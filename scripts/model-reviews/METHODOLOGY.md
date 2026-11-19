@@ -10,7 +10,7 @@ Every model gets the same system prompt ([`renderSystemPrompt`](model-reviews.mj
 
 > You are choosing the design system or interface toolkit you would use to build interfaces that both people and agents use, across web and native platforms.
 
-It then lists the candidates by name and URL, and gives three tools: `search` (Perplexity's `sonar`), `fetch_url` and `final_verdict`. The model researches until it calls `final_verdict` once, with its choice, a pull quote, a testimonial and an evaluation of every candidate that links a page it fetched.
+It then lists the candidates by name and URL, and gives three tools: `search`, `fetch_url` and `final_verdict`. The model researches until it calls `final_verdict` once, with its choice, a pull quote, a testimonial and an evaluation of every candidate that links a page it fetched.
 
 ## The rules that keep it fair
 
@@ -25,6 +25,13 @@ It then lists the candidates by name and URL, and gives three tools: `search` (P
 9. **One research budget for every model.** A session can read [450,000 characters](model-reviews.mjs "verify:fileLine(scripts/model-reviews/model-reviews.mjs, /export const RESEARCH_BUDGET = 450_000;/)") of search and fetch results, and the prompt says so. Past it, both tools return the same message, "Research budget reached: call final_verdict with what you have.", and read nothing more; the result that crosses the budget is returned whole. Without it, a model that reads thoroughly in a smaller context window compacted before it could vote, and a compacted run is rejected (rule 3): Gemini 4 Carbon compacted on every attempt in the 2026-11-13 and 2026-11-14 series ([#1225](https://github.com/ourostack/ouro-ui/issues/1225)). The budget cuts other models' sessions short of what they read before, so it counts only for a series in which the whole panel ran under it; each review records it (`configuration.researchBudget`).
 
 Where this differs from the Ouroboros script, it is on purpose: the choices in the verdict schema are shuffled with the prompt (the original lists its subject first), the panel is every reachable frontier model rather than one per vendor, and every session has the same research budget (rule 9).
+
+## Search
+
+Every model gets the same `search` tool, with the same name, description and parameters, whichever backend answers it. A run records its backend in `run.json` (`runtime.search`), and a series uses one backend; the page says which, and says so when it differs from the review before.
+
+- **GitHub Copilot's web search** (`--search copilot`, the default with `--inference copilot-first`, from 2026-11-19). The query goes, unchanged, to the GitHub MCP server's `web_search`, the search Copilot's own agents use, and the model gets the results themselves: each result's title, address and snippets, numbered ([`formatSearchResults`](model-reviews.mjs)). The runtime offers that tool only inside a session, so a relay session on `claude-haiku-4.5` with no other tool makes the call. The harness checks that it made exactly one web search with the query exactly as given, or the search fails ([`relayedSearch`](model-reviews.mjs)), so the relay can't reword a query or answer it. Nothing it writes reaches the model, not even in an error. Before any review, the run checks the relay model is in the catalog and makes one search; a run whose every search failed is not saved as finished, and `run.json` records how many searches were made and failed (`runtime.searches`).
+- **Perplexity's `sonar`** (`--search perplexity`). It answers each query with a written summary. The 2026-11-13 and 2026-11-14 reviews used it. Ari moved search to Copilot on 2026-11-18 ("can we use copilot instead?"), so a review needs only a Copilot sign-in. A summary and a list of results read differently, so a change between those reviews and later ones may come from search as well as from the models or the candidates.
 
 ## The candidates
 
@@ -41,8 +48,10 @@ Defined in `REVIEW_MODELS`: the frontier models reachable through GitHub Copilot
 Nothing is printed or committed.
 
 - **Model inference (`--inference copilot-first`).** The GitHub account signed in to `gh` (`gh auth login`, read through the Copilot SDK's logged-in-user path). Alternatively set `COPILOT_GITHUB_TOKEN`, `GH_TOKEN` or `GITHUB_TOKEN`. No other sign-in is needed.
-- **Search.** `PERPLEXITY_API_KEY`, or `integrations.perplexityApiKey` in an agent secret store, `~/.agentsecrets/<agent>/secrets.json` for `model-reviews`, `ouroboros` or `slugger`, the first that has it.
+- **Search.** With `--inference copilot-first`, nothing more: search is GitHub Copilot's own. `--search perplexity` (the default for `--inference direct-api`) needs `PERPLEXITY_API_KEY`, or `integrations.perplexityApiKey` in an agent secret store, `~/.agentsecrets/<agent>/secrets.json` for `model-reviews`, `ouroboros` or `slugger`, the first that has it.
 - **Direct vendor APIs** (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `MINIMAX_API_KEY`, or `providers.<vendor>.apiKey` in the same stores) are used only for a model Copilot's catalog lacks. Today that is MiniMax M3.
+
+- **GitHub's API, optionally.** `OURO_MODEL_REVIEWS_GITHUB_TOKEN`, one token or several separated by spaces, goes with reads of `api.github.com` and nothing else ([`requestHeaders`](model-reviews.mjs)). A token GitHub refuses, such as one an organization's SAML blocks, gives way to the next, then to none. GitHub answers the same, and a shared machine's 60 unauthenticated calls an hour no longer run out mid-review.
 
 The model runtime runs with these removed from its environment.
 
@@ -54,7 +63,7 @@ The Copilot SDK is not a dependency of this repository (it would change every co
 mkdir ../model-reviews-deps && (cd ../model-reviews-deps && npm i @github/copilot-sdk@1.0.13)
 export OURO_MODEL_REVIEWS_SDK=$PWD/../model-reviews-deps
 
-node scripts/model-reviews/model-reviews.mjs --preflight --inference copilot-first --output-dir <new folder>   # access check, no inference
+node scripts/model-reviews/model-reviews.mjs --preflight --inference copilot-first --output-dir <new folder>   # access check and one search; no model reviews anything
 node scripts/model-reviews/model-reviews.mjs --inference copilot-first --output-dir <new folder>
 node scripts/model-reviews/model-reviews.mjs --inference copilot-first --models grok-4-7,gpt-6-astra --output-dir <new folder>
 node scripts/model-reviews/model-reviews.mjs --inference copilot-first --concurrency 3 --max-load 60 --output-dir <new folder>   # on a shared machine
