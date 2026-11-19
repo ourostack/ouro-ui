@@ -41,7 +41,11 @@ The list is the real alternatives for web and native interfaces that people and 
 
 ## The models
 
-Defined in `REVIEW_MODELS`: the frontier models reachable through GitHub Copilot's catalog at the time (Claude Opus 5.5, Opus 5 and Sonnet 5.5, GPT-6.1 Sol and GPT-6 Astra, Gemini 4 Carbon and Hydrogen, Grok 4.7), plus MiniMax M3 through its own API, which Copilot does not carry. That is the 2026-11-13 baseline panel. A model added later carries `addedAfterBaseline` with its date (GPT-6.1 Terra, 2026-11-14, the one model of the newest generation that Copilot's catalog added beside the panel); it is an extra row, and a comparison with an earlier run counts only the models both runs share. A result is a statement about the models that ran, never about "every frontier model".
+Defined in `REVIEW_MODELS`: the newest model of each frontier family that GitHub Copilot's catalog serves, plus MiniMax M3 through its own API, which Copilot does not carry. A result is a statement about the models that ran, never about "every frontier model", and a comparison with an earlier review counts only the models both share.
+
+- **2026-11-13:** Claude Opus 5.5, Opus 5 and Sonnet 5.5, GPT-6.1 Sol and GPT-6 Astra, Gemini 4 Carbon and Hydrogen, Grok 4.7, and MiniMax M3.
+- **2026-11-14:** GPT-6.1 Terra added, the one model of the newest generation that Copilot's catalog had added beside the panel.
+- **2026-11-19:** at Ari's request ("switch to latest, so gpt 6.2 models", and "add the strongest new MAI model"), GPT-6.2 Sol and GPT-6.2 Astra replace GPT-6.1 Sol and GPT-6 Astra, MAI Code 2 joins (the catalog also has MAI Code 2 Flash, a smaller model), and Claude Opus 5 leaves, since the catalog no longer serves it. Copilot serves no GPT-6.2 Terra, so GPT-6.1 Terra stays. The catalog's Gemini 4 Argon and Neon are not added: they're the same generation as Carbon and Hydrogen, and the panel keeps the two it already had.
 
 ## Credentials
 
@@ -65,7 +69,7 @@ export OURO_MODEL_REVIEWS_SDK=$PWD/../model-reviews-deps
 
 node scripts/model-reviews/model-reviews.mjs --preflight --inference copilot-first --output-dir <new folder>   # access check and one search; no model reviews anything
 node scripts/model-reviews/model-reviews.mjs --inference copilot-first --output-dir <new folder>
-node scripts/model-reviews/model-reviews.mjs --inference copilot-first --models grok-4-7,gpt-6-astra --output-dir <new folder>
+node scripts/model-reviews/model-reviews.mjs --inference copilot-first --models grok-4-7,gpt-6-2-astra --output-dir <new folder>
 node scripts/model-reviews/model-reviews.mjs --inference copilot-first --concurrency 3 --max-load 60 --output-dir <new folder>   # on a shared machine
 ```
 

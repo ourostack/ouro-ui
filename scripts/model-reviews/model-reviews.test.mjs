@@ -314,18 +314,16 @@ test("a model Copilot lists goes through Copilot, a model it lacks needs its ven
 
 test("the panel has stable unique provider slugs and keeps every vendor's flagship", () => {
   assert.equal(new Set(REVIEW_MODELS.map(({ provider }) => provider)).size, REVIEW_MODELS.length);
-  assert.deepEqual([...new Set(REVIEW_MODELS.map(({ vendor }) => vendor))].sort(), ["Anthropic", "Google", "MiniMax", "OpenAI", "xAI"]);
+  assert.deepEqual([...new Set(REVIEW_MODELS.map(({ vendor }) => vendor))].sort(), ["Anthropic", "Google", "Microsoft AI", "MiniMax", "OpenAI", "xAI"]);
 });
 
-test("models added after the 2026-11-13 baseline are marked, so a comparison reads only the baseline's own panel", () => {
-  const baseline = ["claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "gpt-6-1-sol", "gpt-6-astra", "gemini-4-carbon", "gemini-4-hydrogen", "grok-4-7", "minimax-m3"];
-  assert.deepEqual(REVIEW_MODELS.filter(({ addedAfterBaseline }) => !addedAfterBaseline).map(({ provider }) => provider), baseline);
-  for (const review of REVIEW_MODELS.filter(({ addedAfterBaseline }) => addedAfterBaseline)) assert.match(review.addedAfterBaseline, /^\d{4}-\d{2}-\d{2}$/);
-  assert.ok(REVIEW_MODELS.some(({ provider }) => provider === "gpt-6-1-terra"));
+test("the panel is the newest model of each family Copilot serves, as of 2026-11-19, and MiniMax through its own API", () => {
+  assert.deepEqual(REVIEW_MODELS.map(({ model }) => model), ["claude-opus-5.5", "claude-sonnet-5.5", "gpt-6.2-sol", "gpt-6.2-astra", "gpt-6.1-terra", "gemini-4-carbon", "gemini-4-hydrogen", "grok-4.7", "mai-code-2", "MiniMax-M3"]);
+  assert.deepEqual(REVIEW_MODELS.filter(({ fallback }) => fallback).map(({ provider }) => provider), ["minimax-m3"]);
 });
 
 test("options require a new output folder outside the repository and a known inference mode and panel", () => {
-  assert.deepEqual(parseOptions(["--output-dir", "/x", "--inference", "copilot-first", "--models", "grok-4-7, gpt-6-astra", "--preflight"]), { outputDir: "/x", preflight: true, inferenceMode: "copilot-first", models: ["grok-4-7", "gpt-6-astra"], concurrency: Infinity, maxLoad: Infinity, search: "copilot" });
+  assert.deepEqual(parseOptions(["--output-dir", "/x", "--inference", "copilot-first", "--models", "grok-4-7, gpt-6-2-astra", "--preflight"]), { outputDir: "/x", preflight: true, inferenceMode: "copilot-first", models: ["grok-4-7", "gpt-6-2-astra"], concurrency: Infinity, maxLoad: Infinity, search: "copilot" });
   assert.deepEqual(parseOptions(["--output-dir", "/x"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: Infinity, maxLoad: Infinity, search: "perplexity" });
   assert.deepEqual(parseOptions(["--output-dir", "/x", "--concurrency", "3", "--max-load", "60"]), { outputDir: "/x", preflight: false, inferenceMode: "direct-api", models: null, concurrency: 3, maxLoad: 60, search: "perplexity" });
   assert.throws(() => parseOptions(["--output-dir", "/x", "--concurrency", "0"]), /--concurrency/);

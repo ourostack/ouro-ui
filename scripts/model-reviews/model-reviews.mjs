@@ -81,15 +81,14 @@ export const SUBJECT = "Ouro UI";
 /** Models reached through GitHub Copilot where its catalog lists them, otherwise through the vendor's own API. */
 export const REVIEW_MODELS = [
   { provider: "claude-opus-5-5", model: "claude-opus-5.5", vendor: "Anthropic", displayName: "Claude Opus 5.5" },
-  { provider: "claude-opus-5", model: "claude-opus-5", vendor: "Anthropic", displayName: "Claude Opus 5" },
   { provider: "claude-sonnet-5-5", model: "claude-sonnet-5.5", vendor: "Anthropic", displayName: "Claude Sonnet 5.5" },
-  { provider: "gpt-6-1-sol", model: "gpt-6.1-sol", vendor: "OpenAI", displayName: "GPT-6.1 Sol" },
-  { provider: "gpt-6-astra", model: "gpt-6-astra", vendor: "OpenAI", displayName: "GPT-6 Astra" },
-  // Added after the 2026-11-13 baseline: an extra row, so a comparison with the baseline reads only the rows without this mark.
-  { provider: "gpt-6-1-terra", model: "gpt-6.1-terra", vendor: "OpenAI", displayName: "GPT-6.1 Terra", addedAfterBaseline: "2026-11-14" },
+  { provider: "gpt-6-2-sol", model: "gpt-6.2-sol", vendor: "OpenAI", displayName: "GPT-6.2 Sol" },
+  { provider: "gpt-6-2-astra", model: "gpt-6.2-astra", vendor: "OpenAI", displayName: "GPT-6.2 Astra" },
+  { provider: "gpt-6-1-terra", model: "gpt-6.1-terra", vendor: "OpenAI", displayName: "GPT-6.1 Terra" },
   { provider: "gemini-4-carbon", model: "gemini-4-carbon", vendor: "Google", displayName: "Gemini 4 Carbon" },
   { provider: "gemini-4-hydrogen", model: "gemini-4-hydrogen", vendor: "Google", displayName: "Gemini 4 Hydrogen" },
   { provider: "grok-4-7", model: "grok-4.7", vendor: "xAI", displayName: "Grok 4.7" },
+  { provider: "mai-code-2", model: "mai-code-2", vendor: "Microsoft AI", displayName: "MAI Code 2" },
   {
     provider: "minimax-m3",
     model: "MiniMax-M3",
