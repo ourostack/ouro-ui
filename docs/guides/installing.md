@@ -93,7 +93,7 @@ To change a token afterwards, edit it where the CLI wrote it, or set it in a `:r
 Add [fragmentFocusScript](../fragmentFocusScript.md) once, too, first in `<body>`, so that Safari keeps a person's focus on a page whose address names a place on it (`/guide#install`).[^fragment-focus] Without it, Safari jumps back to that place and takes focus as later stylesheets load, once the page finished parsing, or a link to the place was followed, while a stylesheet was still loading, such as a route's CSS your script adds as the page starts (ourostack/ouro-ui#2224): an open menu closes, and a field loses the person mid-word. Other browsers don't, and the script leaves them alone. Ouro check names a page without it (`fragment-focus`).[^fragment-focus-rule]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/lib-fragment-focus-script#v1.3.318
+npx shadcn@latest add ourostack/ouro-ui/lib-fragment-focus-script#v1.3.319
 ```
 
 In Vite, from `vite.config.ts`'s plugins, as an inline script after the stylesheets:
