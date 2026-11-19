@@ -1,0 +1,7 @@
+{
+  "waive": {
+    "/": {
+      "off-theme": "The page is the incumbent's: Mantine's own stylesheet sets its colours, fonts and outlines, so the rule names them. They move with the page, which is why Billing carries none."
+    }
+  }
+}

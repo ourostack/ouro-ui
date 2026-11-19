@@ -1,0 +1,60 @@
+@import "tailwindcss" source(none);
+@import "../../../registry/ouro/theme/ouro-base.css";
+@source "../../../registry";
+@import "./theme.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Ouro HX reads shadcn's token names; the incumbent's own tokens answer to them here, and ouro-theme is not imported. */
+:root {
+  --background: var(--acme-paper);
+  --foreground: var(--acme-ink);
+  --card: var(--acme-paper);
+  --card-foreground: var(--acme-ink);
+  --popover: var(--acme-paper);
+  --popover-foreground: var(--acme-ink);
+  --primary: var(--acme-brand);
+  --primary-foreground: var(--acme-brand-contrast);
+  --secondary: #e9e5da;
+  --secondary-foreground: var(--acme-ink);
+  --muted: #e9e5da;
+  --muted-foreground: #4a5568;
+  --accent: #e9e5da;
+  --accent-foreground: var(--acme-ink);
+  --destructive: #b00020;
+  --border: var(--acme-line);
+  --input: var(--acme-line);
+  --ring: var(--acme-brand);
+  --radius: var(--acme-radius);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.6);
+  --radius-md: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 0.8);
+  --radius-lg: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1));
+  --radius-xl: calc(var(--radius) * var(--ouro-radius-scale, 1) * var(--ouro-corner-fallback, 1) * 1.4);
+}
+
+@layer base {
+  body {
+    @apply m-0 bg-(--acme-paper) p-4 font-sans text-(--acme-ink);
+  }
+}
