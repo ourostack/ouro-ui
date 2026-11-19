@@ -72,9 +72,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * where the day's alt names the time of day, its own alt, with which the home page measured 283,771 bytes on CI at 08f7bc91.
  * Then 1 KiB more (279 KiB) for Button's data-tone, which the sameness sweep keys looks by (home measured 284,720 bytes).
  * Then 1 KiB more (280 KiB) for the hand-off's Copy as HX's CopyButton, which says "Copied" on itself instead of a toast
- * in the corner (critics' D10): home measured 285,795 bytes with it, on CI at 0d69280b.
+ * in the corner (critics' D10): home measured 285,795 bytes with it, on CI at 0d69280b. Then 1 KiB more (281 KiB) for
+ * part names, a `data-slot` on every element a component styles (#2323): home measured 287,117 bytes with them, on CI at
+ * fd1c4f4d.
  */
-const CEILINGS = { voyage: 280 * 1024, docs: 167_396 + 1024 } as const;
+const CEILINGS = { voyage: 281 * 1024, docs: 167_396 + 1024 } as const;
 
 /**
  * The CSS each page loads before it paints, gzip bytes: every stylesheet together (site-design.md, Budgets). The voyage's
