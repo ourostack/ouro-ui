@@ -280,7 +280,7 @@ export function Slider<Value extends SliderValue = number>(props: SliderProps<Va
 
   return (
     <FieldOwnerContext.Provider value={fieldOwner}>
-      <Field data-slot="slider" label={label} hideLabel={hideLabel} description={description} error={error} disabled={disabled} name={name} className={className}>
+      <Field label={label} hideLabel={hideLabel} description={description} error={error} disabled={disabled} name={name} className={className}>
         <SliderControl
           label={label}
           labelId={isRange ? labelId : undefined}

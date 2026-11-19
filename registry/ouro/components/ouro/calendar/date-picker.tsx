@@ -383,7 +383,6 @@ export function DatePicker(props: DatePickerProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="date-picker"
         label={label}
         hideLabel={hideLabel}
         description={description}

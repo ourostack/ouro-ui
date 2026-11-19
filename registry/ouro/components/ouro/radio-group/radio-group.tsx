@@ -328,7 +328,6 @@ export function RadioGroup(props: RadioGroupProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={groupOwner}>
       <Field
-        data-slot="radio-group"
         label={legend}
         hideLabel={hideLegend}
         description={description}

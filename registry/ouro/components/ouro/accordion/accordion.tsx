@@ -127,7 +127,7 @@ function Row({ item, Heading, open }: { item: AccordionItem; Heading: `h${Accord
   const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <BaseAccordion.Header data-slot="accordion-header" render={<Heading />} className={headerClass}>
+      <BaseAccordion.Header data-slot="accordion-header" render={<Heading data-slot="accordion-header" />} className={headerClass}>
         <BaseAccordion.Trigger
           data-slot="accordion-trigger"
           ref={triggerRef}

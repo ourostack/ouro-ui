@@ -33,7 +33,8 @@ export const mutates = (paths) => paths.some(runtimeSource);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** A `data-slot` part name written in JSX, with the space before it (scripts/part-names.mts). */
-const partNameAttribute = /\s?data-slot="[a-z0-9-]*"/g;
+// A JSX attribute (`data-slot="x"`) or a props object's entry (`"data-slot": "x",`), never a selector (`'[data-slot="x"]'`).
+const partNameAttribute = /\s?(?<![[\w-])(?:data-slot="[a-z0-9-]*"|"data-slot": "[a-z0-9-]*",?)/g;
 
 /**
  * Whether a hunk changed only part names: its removed and added lines, each with its `data-slot`

@@ -52,4 +52,4 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Part names
 
-Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `radio-group`, `radio-group-circle`, `radio-group-indicator`, `radio-group-list`.
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `radio`, `radio-group`, `radio-group-circle`, `radio-group-indicator`, `radio-group-list`.

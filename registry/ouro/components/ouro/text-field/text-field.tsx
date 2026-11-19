@@ -396,7 +396,6 @@ export function TextField(props: TextFieldProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="text-field"
         label={label}
         hideLabel={hideLabel}
         description={description}

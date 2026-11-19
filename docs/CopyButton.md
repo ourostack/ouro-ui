@@ -27,6 +27,7 @@ Type: `CopyButtonProps`.
 | --- | --- | --- | --- |
 | `className` | `string` |  | Layout only: margins, grid placement (`ms-auto`). Appearance classes warn in development. |
 | `copiedLabel` | `string` | `"Copied"` | What the button says, and screen readers hear, once the text is on the clipboard. |
+| `data-slot` | `string` | `"copy-button"` | The root's part name, for a component that draws CopyButton as one of its parts (`code-block-copy`). |
 | `failedLabel` | `string` | `"Browser blocked copying"` | What the button says for two seconds when the browser refused to copy: short, so the button keeps its width. |
 | `failedMessage` | `string` | `"The browser blocked copying. Select the text and copy it by hand."`, or `failedLabel` when only that is given | What screen readers hear, and the button's tooltip says while it shows `failedLabel`, when the browser refused to copy: what happened and what to do instead. |
 | `hideLabel` | `boolean` |  | Shows only the icon; the label stays the button's name for screen readers. For a corner of a code block or a field. |

@@ -219,8 +219,11 @@ function excludedLines() {
 
 /** Whether a string is the value of a JSX `data-slot` attribute, a part name (scripts/part-names.mts). */
 export function isPartName(path) {
-  const parent = path.parentPath;
-  return path.isStringLiteral() && parent?.isJSXAttribute?.() === true && nameOf(parent.node.name) === "data-slot";
+  if (!path.isStringLiteral()) return false;
+  // `data-slot="x"`, `data-slot={"x"}` or a props object's `"data-slot": "x"` (createElement's).
+  const parent = path.parentPath?.isJSXExpressionContainer?.() ? path.parentPath.parentPath : path.parentPath;
+  if (parent?.isJSXAttribute?.() === true) return nameOf(parent.node.name) === "data-slot";
+  return parent?.isObjectProperty?.() === true && parent.node.value === path.node && parent.node.key.type === "StringLiteral" && parent.node.key.value === "data-slot";
 }
 
 /** Why Stryker leaves a node's mutants out, or undefined to mutate it. */

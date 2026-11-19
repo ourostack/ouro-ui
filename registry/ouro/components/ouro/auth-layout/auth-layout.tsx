@@ -111,10 +111,10 @@ export function AuthLayout(props: AuthLayoutProps): JSX.Element {
         <div data-slot="auth-layout-content" className="grid gap-6">
           <div data-slot="auth-layout-header" className="grid gap-2">
             {brand !== undefined && <div data-slot="auth-layout-brand" className="mb-2 flex items-center">{brand}</div>}
-            <Heading level={1} size="lg">
+            <Heading data-slot="auth-layout-title" level={1} size="lg">
               {title}
             </Heading>
-            {description !== undefined && <Text tone="muted">{description}</Text>}
+            {description !== undefined && <Text data-slot="auth-layout-description" tone="muted">{description}</Text>}
           </div>
           {children}
         </div>

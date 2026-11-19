@@ -9,6 +9,8 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 
 /** The props CopyButton adds to the `<button>` attributes it passes through. */
 export interface CopyButtonOwnProps {
+  /** The root's part name, for a component that draws CopyButton as one of its parts (`code-block-copy`). @default "copy-button" */
+  "data-slot"?: string | undefined;
   /** The text the button puts on the clipboard. */
   value: string;
   /** The button's label, and its name for screen readers when `hideLabel` is set. @default "Copy" */
@@ -162,6 +164,8 @@ export function CopyButton(props: CopyButtonProps): JSX.Element {
     children,
     timeout,
     onClick,
+    // A parent's name for this part (CodeBlock's `code-block-copy`) goes on the root, not the button.
+    "data-slot": slot,
     ...rest
   } = props;
   const variant = (variants as readonly string[]).includes(variantProp) ? (variantProp as (typeof variants)[number]) : "outline";
@@ -213,7 +217,7 @@ export function CopyButton(props: CopyButtonProps): JSX.Element {
   const shown = status === "copied" ? copiedLabel : status === "failed" ? failedLabel : label;
   const Icon = status === "copied" ? CheckIcon : status === "failed" ? FailedIcon : CopyIcon;
   return (
-    <span data-slot="copy-button" data-ouro="copy-button" data-status={status} className={cn("inline-flex", className)}>
+    <span data-slot="copy-button" {...(slot && { "data-slot": slot })} data-ouro="copy-button" data-status={status} className={cn("inline-flex", className)}>
       <Button
         data-slot="copy-button-trigger"
         data-ouro-control="copy-button"

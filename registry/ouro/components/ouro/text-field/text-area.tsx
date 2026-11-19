@@ -388,7 +388,6 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="text-area"
         label={label}
         hideLabel={hideLabel}
         description={description}

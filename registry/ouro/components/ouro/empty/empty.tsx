@@ -157,11 +157,11 @@ export function Empty(props: EmptyProps): JSX.Element {
         </div>
       )}
       <div data-slot="empty-header" className={cn("flex flex-col gap-1.5", aligns[align])}>
-        <Heading level={level} size="md">
+        <Heading data-slot="empty-title" level={level} size="md">
           {title}
         </Heading>
         {description && (
-          <Text as="div" size="sm" tone="muted">
+          <Text data-slot="empty-description" as="div" size="sm" tone="muted">
             {description}
           </Text>
         )}

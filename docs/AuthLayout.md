@@ -64,4 +64,4 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Part names
 
-Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `auth-layout`, `auth-layout-brand`, `auth-layout-card`, `auth-layout-content`, `auth-layout-footer`, `auth-layout-header`.
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `auth-layout`, `auth-layout-brand`, `auth-layout-card`, `auth-layout-content`, `auth-layout-description`, `auth-layout-footer`, `auth-layout-header`, `auth-layout-title`.

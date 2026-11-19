@@ -356,7 +356,6 @@ export function Select(props: SelectProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="select"
         label={label}
         hideLabel={hideLabel}
         description={description}

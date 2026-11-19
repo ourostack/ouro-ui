@@ -216,7 +216,6 @@ export function NativeSelect(props: NativeSelectProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="native-select"
         label={label}
         hideLabel={hideLabel}
         description={description}

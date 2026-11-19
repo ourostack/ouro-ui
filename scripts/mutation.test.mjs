@@ -101,6 +101,9 @@ test("changedLines leaves out a hunk that only adds or renames part names, and k
   assert.equal(namesOnly(['  <i className="y" />'], ['  <i data-slot="d-icon" className="y" />']), true);
   assert.equal(namesOnly([], ["", '  data-slot="d"']), true);
   assert.equal(namesOnly(['  <i className="y" />'], ['  <i data-slot="d-icon" className="z" />']), false);
+  // A props object's entry, as createElement takes, is a name too; a selector that reads one is code.
+  assert.equal(namesOnly(["    {", "      ...rest,"], ["    {", '      "data-slot": "d",', "      ...rest,"]), true);
+  assert.equal(namesOnly([`  q('[data-slot="d-a"]');`], [`  q('[data-slot="d-b"]');`]), false);
 });
 
 test("mutateRanges names each changed range of runtime source as Stryker's path:start-end", () => {
@@ -205,15 +208,16 @@ test("the ouro-classes ignorer leaves out only strings in class positions (class
       input.setAttribute("aria-invalid", "true");
       input.removeAttribute("aria-busy");
       input.closest("[inert]");
+      const props = { "data-slot": "part-root", "data-kind": "part-kind" };
       return (
         <div data-slot="part-frame" className={cn("grid gap-1", open && "data-open:block")} data-ouro-part="thumb-label" iconClassName="size-4 shrink-0" aria-describedby="field-description" data-name="part-label">
-          <span className={\`flex \${open ? "ring-2" : ""}\`} />
+          <span data-slot={"part-icon"} className={\`flex \${open ? "ring-2" : ""}\`} />
         </div>
       );
     }
   `);
-  for (const text of ["m-0 flex gap-2 ", "rounded-md", "inline-flex items-center", "grid gap-1", "data-open:block", "size-4 shrink-0", "ring-2", "h-8 px-2", "part-frame"]) assert.equal(found[text], true, text);
-  for (const text of ["a[href]", "aria-invalid", "aria-busy", "[inert]", "thumb-label", "field-description", "h-9 px-3", "part-label"]) assert.equal(found[text], false, text);
+  for (const text of ["m-0 flex gap-2 ", "rounded-md", "inline-flex items-center", "grid gap-1", "data-open:block", "size-4 shrink-0", "ring-2", "h-8 px-2", "part-frame", "part-root", "part-icon"]) assert.equal(found[text], true, text);
+  for (const text of ["a[href]", "aria-invalid", "aria-busy", "[inert]", "thumb-label", "field-description", "h-9 px-3", "part-label", "part-kind"]) assert.equal(found[text], false, text);
 });
 
 test("disableProblems fails every Stryker comment a change adds to runtime source that is not next-line <Mutator>: <reason>", () => {

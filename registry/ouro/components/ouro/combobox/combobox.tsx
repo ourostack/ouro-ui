@@ -558,7 +558,6 @@ export function Combobox(props: ComboboxProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="combobox"
         label={label}
         hideLabel={hideLabel}
         description={description}

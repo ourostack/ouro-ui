@@ -50,8 +50,13 @@ test("the part-name scan fails an HTML element or a package's component with cla
       'export const p = createElement("div", { "data-slot": kind, className: "flex" });',
       'export const q = createElement("div", { "data-slot": "row", className: "flex" });',
       'export const r = createElement("div", { id: "x" }, createElement(Other, rest));',
+      'export const s = <Heading level={2}>Title</Heading>;',
+      'export const t = <Text data-slot="chip-description">Words</Text>;',
+      'export const u = <span {...rest} data-slot="chip-late" className="x" />;',
+      'const owner = { name: "Pill", data: "pill" }; export const v = <span data-slot="pill-label" className="x" />;',
     ].join("\n"),
     "registry/ouro/components/ouro/chip/chip.test.tsx": 'export const t = <span className="ignored" />;',
+    "registry/ouro/components/ouro/chip/parts/stray.tsx": 'export const s = <span className="x" />;',
     "registry/ouro/components/ouro/chip/chip-group.tsx": 'export const g = <div data-slot="chip-group-list" className="grid" />;\nexport const h = <div data-slot="chip-list" className="grid" />;',
     "registry/ouro/components/ouro/toast/component.json": JSON.stringify({ order: 2, components: ["toaster"] }),
     "registry/ouro/components/ouro/toast/toaster.tsx": 'export const t = <li data-slot="toast" data-ouro="toast" className="grid" />;\nexport const u = <p data-slot="toast-title" className="m-0" />;',
@@ -68,16 +73,19 @@ test("the part-name scan fails an HTML element or a package's component with cla
     'registry/ouro/components/ouro/chip/chip.tsx:15 createElement carries classes but no part name. Fix: "data-slot": "chip" (docs/guides/part-names.md).',
     'registry/ouro/components/ouro/chip/chip.tsx:16 createElement\'s data-slot is not a string literal. Fix: "data-slot": "chip-<part>".',
     'registry/ouro/components/ouro/chip/chip.tsx:17 createElement({ "data-slot": "row" }): a part name starts with its stem. Fix: data-slot="chip-row".',
+    'registry/ouro/components/ouro/chip/chip.tsx:19 <Heading> draws a part with no name of its own. Fix: data-slot="chip-<part>", such as "chip-title" (docs/guides/part-names.md).',
+    "registry/ouro/components/ouro/chip/chip.tsx:21 <span>'s data-slot comes after a spread, so it overrides a parent's name for the part. Fix: write data-slot first.",
+    "registry/ouro/components/ouro/chip/parts/stray.tsx belongs to no component its folder's component.json lists, so its parts have no stem. Fix: name the file <stem>.tsx or <stem>-<part>.tsx.",
     'registry/ouro/lib/ouro/hit-area.tsx:1 <span> carries classes but no part name. Fix: data-slot="hit-area-<part>" (docs/guides/part-names.md).',
   ]);
   // A file belongs to the longest stem that names it, a name may start with a data-ouro value its folder writes (Toaster's toast), and an element with no classes needs no name.
   assert.deepEqual(
     names.map((name) => `${name.stem}:${name.name}`),
-    ["chip-group:chip-group-list", "chip-group:chip-list", "chip:chip", "chip:chip-icon", "chip:chip-hint", "chip:chip", "toaster:toast", "toaster:toast-title"],
+    ["chip-group:chip-group-list", "chip-group:chip-list", "chip:chip", "chip:chip-icon", "chip:chip-hint", "chip:chip", "chip:chip-description", "chip:chip-late", "chip:pill", "chip:pill-label", "toaster:toast", "toaster:toast-title"],
   );
   assert.deepEqual([...namesByStem(dir)], [
     ["chip-group", ["chip-group-list", "chip-list"]],
-    ["chip", ["chip", "chip-hint", "chip-icon"]],
+    ["chip", ["chip", "chip-description", "chip-hint", "chip-icon", "chip-late", "pill", "pill-label"]],
     ["toaster", ["toast", "toast-title"]],
   ]);
 });

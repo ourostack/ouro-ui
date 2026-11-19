@@ -38,9 +38,12 @@ describe("part names", () => {
         <Badge>Beta</Badge>
         <Alert title="Saved" description="The recipe is in your cookbook." />
       </div>,
-      '[data-slot="badge"] { background-color: rgb(1, 2, 3); } [data-slot="alert-title"] { color: rgb(4, 5, 6); letter-spacing: 3px; }',
+      '[data-slot="badge"] { --ouro-bg: rgb(1, 2, 3); } [data-slot="alert-title"] { color: rgb(4, 5, 6); letter-spacing: 3px; }',
     );
-    expect(getComputedStyle(host.querySelector('[data-slot="badge"]')!).backgroundColor).toBe("rgb(1, 2, 3)");
+    // A squircle surface's fill is the badge's own background, or where the engine has no corner-shape the layer under it.
+    const badge = host.querySelector<HTMLElement>('[data-slot="badge"]')!;
+    const painted = CSS.supports("corner-shape: squircle") ? badge : badge.querySelector<HTMLElement>("[data-ouro-surface]")!;
+    expect(getComputedStyle(painted).backgroundColor).toBe("rgb(1, 2, 3)");
     const title = host.querySelector<HTMLElement>('[data-slot="alert-title"]')!;
     expect(title.textContent).toBe("Saved");
     expect(getComputedStyle(title).color).toBe("rgb(4, 5, 6)");
@@ -49,8 +52,8 @@ describe("part names", () => {
 
   it("name a component another renders as its own part after that part, so a rule for the part reaches only it", async () => {
     const host = await render(<CodeBlock code="pnpm i" title="Install" />, '[data-slot="code-block-copy"] { outline: 2px solid rgb(7, 8, 9); }');
-    const copy = host.querySelector<HTMLElement>('[data-ouro-control="code-block"][data-ouro-part="copy"]')!;
-    expect(copy.getAttribute("data-slot")).toBe("code-block-copy");
+    const copy = host.querySelector<HTMLElement>('[data-slot="code-block-copy"]')!;
+    expect(copy.getAttribute("data-ouro")).toBe("copy-button");
     expect(getComputedStyle(copy).outlineColor).toBe("rgb(7, 8, 9)");
     expect(host.querySelector('[data-slot="copy-button"]')).toBeNull();
   });

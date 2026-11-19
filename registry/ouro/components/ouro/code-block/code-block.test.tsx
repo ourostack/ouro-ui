@@ -135,6 +135,8 @@ describe("CodeBlock", () => {
     expect(code.top - first!.getBoundingClientRect().top).toBeGreaterThanOrEqual(44);
     expect(second!.querySelector("figcaption")!.textContent).toBe("txt");
     expect(first!.querySelector('[data-ouro-control="code-block"][data-ouro-part="copy"]')).not.toBeNull();
+    // CopyButton's root takes CodeBlock's name for the part.
+    expect(first!.querySelector('[data-slot="code-block-copy"]')!.getAttribute("data-ouro")).toBe("copy-button");
     expect(second!.querySelector("button")).toBeNull();
   });
 
@@ -527,7 +529,7 @@ describe("CodeBlock terminal output", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const html = renderToString(<CodeBlock language="ansi" code={`${esc}[2mthinking${esc}[0m reply`} />);
     expect(html).not.toContain(esc);
-    expect(html).toMatch(/<span data-ouro-ansi="" class="[^"]*muted-foreground[^"]*">thinking<\/span> reply/);
+    expect(html).toMatch(/<span data-slot="code-block-ansi" data-ouro-ansi="" class="[^"]*muted-foreground[^"]*">thinking<\/span> reply/);
     expect(error).not.toHaveBeenCalled();
   });
 

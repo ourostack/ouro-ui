@@ -325,7 +325,7 @@ export function Card(props: CardProps): JSX.Element {
   // A rising title lies on a surface of its own over the media, so it keeps an outlined card's inset whatever the variant.
   const titlePad = rise ? inset.outline[size] : pad;
   const heading = title ? (
-    <Heading level={level} size={size === "sm" ? "sm" : "md"}>
+    <Heading data-slot="card-title" level={level} size={size === "sm" ? "sm" : "md"}>
       {linked ? (
         <RouterLink
           data-slot="card-link"
@@ -362,7 +362,7 @@ export function Card(props: CardProps): JSX.Element {
                 </Text>
               </div>
             ) : (
-              <Text as="div" size="sm" tone="muted">
+              <Text data-slot="card-description" as="div" size="sm" tone="muted">
                 {description}
               </Text>
             ))}

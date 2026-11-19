@@ -69,7 +69,7 @@ Alignment classes (`text-center`) warn too: set alignment on a parent element.
 
 ## Part names
 
-Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `file-field-drop-zone`, `file-field-icon`, `file-field-input`, `file-field-item`, `file-field-item-content`, `file-field-list`, `file-field-name`, `file-field-preview`, `file-field-prompt`, `file-field-rejections`, `file-field-rejections-list`, `file-field-remove`, `file-field-remove-label`, `file-field-size`.
+Its parts' `data-slot` names, for styling it from plain CSS ([Part names](guides/part-names.md)): `file-field`, `file-field-drop-zone`, `file-field-icon`, `file-field-input`, `file-field-item`, `file-field-item-content`, `file-field-list`, `file-field-name`, `file-field-preview`, `file-field-prompt`, `file-field-rejections`, `file-field-rejections-list`, `file-field-remove`, `file-field-remove-label`, `file-field-size`.
 
 ## Types
 

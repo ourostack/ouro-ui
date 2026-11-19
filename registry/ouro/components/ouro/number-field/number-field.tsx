@@ -286,7 +286,6 @@ export function NumberField(props: NumberFieldProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="number-field"
         label={label}
         hideLabel={hideLabel}
         description={description}

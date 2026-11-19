@@ -183,7 +183,6 @@ export function Switch(props: SwitchProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="switch"
         label={label}
         hideLabel={hideLabel}
         description={description}

@@ -282,7 +282,6 @@ export function OtpField(props: OtpFieldProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={owner}>
       <Field
-        data-slot="otp-field"
         label={label}
         hideLabel={hideLabel}
         description={description}

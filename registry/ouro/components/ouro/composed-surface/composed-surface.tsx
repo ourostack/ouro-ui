@@ -220,13 +220,13 @@ function renderNode(node: ComposedNode, ctx: Context, key: string): ReactNode {
       );
     case "Heading":
       return (
-        <Heading key={key} level={p.level as 1 | 2 | 3}>
+        <Heading data-slot="composed-surface-heading" key={key} level={p.level as 1 | 2 | 3}>
           {text(p.text)}
         </Heading>
       );
     case "Text":
       return (
-        <Text key={key} tone={p.tone === "muted" ? "muted" : "default"}>
+        <Text data-slot="composed-surface-text" key={key} tone={p.tone === "muted" ? "muted" : "default"}>
           {text(p.text)}
         </Text>
       );

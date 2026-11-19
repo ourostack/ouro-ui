@@ -263,7 +263,6 @@ export function CheckboxGroup(props: CheckboxGroupProps): JSX.Element {
   return (
     <FieldOwnerContext.Provider value={groupOwner}>
       <Field
-        data-slot="checkbox-group"
         label={legend}
         hideLabel={hideLegend}
         description={description}

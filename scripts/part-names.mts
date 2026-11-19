@@ -1,16 +1,20 @@
 // Part names: every element a registry component styles carries `data-slot`, a stable name an app
 // that styles with plain CSS (no Tailwind), a test or an agent can target, as shadcn/ui's parts do
 // (docs/guides/part-names.md). A root's name is its stem (`dialog`); a part's is the stem and the
-// part (`dialog-title`), so names never collide between components and `[data-slot="dialog-title"]`
-// never matches a nested component's title.
+// part (`dialog-title`), so two components' own parts never share a name.
 //
 // `partNames` reads the components' runtime source (and `lib/ouro`'s components) with the TypeScript
-// compiler and returns every name, by stem, and the problems: an HTML or SVG element, or a package's
-// component (Base UI's parts), with a `className` and no `data-slot` (an Ouro component names its
-// own root), a `data-slot` that is not a string literal, or a name that is not kebab case or does
-// not start with its stem. The one expression allowed is the element's own `data-ouro` expression,
-// for a root shared by several components (Field writes `data-ouro={owner.data}`, and its owners
-// name it where they render it: `<Field data-slot="number-field">`). `pnpm run docs` lists each component's names on its page from here, and
+// compiler and returns every name, by stem, and the problems:
+// - an HTML or SVG element, or a package's component (Base UI's parts), with a `className` and no
+//   `data-slot`, or the props object of a `createElement` root with a `className` and none (an Ouro
+//   component such as Button names its own root, so a name on it is optional);
+// - an Ouro Heading or Text with no `data-slot`: their own names say what they are, not which part;
+// - a `data-slot` that is not a string literal, that comes after a `{...spread}` (it would override
+//   a parent's name for the part), or a name that is not kebab case or does not start with its stem;
+// - a runtime file that belongs to no stem.
+// Field's root writes `data-slot={owner.data}`, the same expression as its `data-ouro`, which is
+// allowed; each owner's `{ name: "FileField", data: "file-field" }` registers that name for its own
+// file. `pnpm run docs` lists each component's names on its page from here, and
 // scripts/part-names.test.mjs fails on any problem.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
@@ -51,20 +55,20 @@ function rootNames(files: string[]): Set<string> {
 }
 
 /** The files to read, each with its stem and the prefixes its names may start with. */
-function sources(root: string): { file: string; stem: string; prefixes: Set<string> }[] {
-  const found: { file: string; stem: string; prefixes: Set<string> }[] = [];
+function sources(root: string): { file: string; stem: string | undefined; prefixes: Set<string> }[] {
+  const found: { file: string; stem: string | undefined; prefixes: Set<string> }[] = [];
   const components = join(root, componentsDir);
   for (const folder of readdirSync(components)) {
     const manifest = join(components, folder, MANIFEST);
     if (!existsSync(manifest)) continue;
     const stems = (JSON.parse(readFileSync(manifest, "utf8")) as { components: string[] }).components;
     const files = treeFiles(join(components, folder))
-      .filter((file: string) => !file.includes("/") && runtimeFile(file))
+      .filter((file: string) => runtimeFile(basename(file)))
       .map((file: string) => join(components, folder, file));
     const roots = rootNames(files);
     for (const file of files) {
       const stem = stemOf(file, stems);
-      if (stem) found.push({ file, stem, prefixes: new Set([stem, ...roots]) });
+      found.push({ file, stem, prefixes: new Set(stem ? [stem, ...roots] : []) });
     }
   }
   const lib = join(root, libDir);
@@ -100,6 +104,9 @@ function packageImports(source: ts.SourceFile): Set<string> {
   return found;
 }
 
+/** Ouro's type components, whose own names (`heading`, `text`) say what they are, not which part: a component that draws one names it (`card-title`). */
+const typography = new Set(["Heading", "Text"]);
+
 /**
  * Whether an element's classes land on an element this file must name: an HTML or SVG element
  * (`div`, `svg`), or a package's component (`BaseDialog.Popup`), which names nothing itself. An
@@ -120,6 +127,10 @@ export function partNames(root: string = repoRoot): { names: PartName[]; problem
   const names: PartName[] = [];
   const problems: string[] = [];
   for (const { file, stem, prefixes } of sources(root)) {
+    if (stem === undefined) {
+      problems.push(`${relative(root, file)} belongs to no component its folder's component.json lists, so its parts have no stem. Fix: name the file <stem>.tsx or <stem>-<part>.tsx.`);
+      continue;
+    }
     const text = readFileSync(file, "utf8");
     const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
     const outside = packageImports(source);
@@ -135,6 +146,8 @@ export function partNames(root: string = repoRoot): { names: PartName[]; problem
         const named = (name: string) => attributes.find((attribute) => attribute.name.getText(source) === name);
         const slot = named("data-slot");
         const tag = node.tagName.getText(source);
+        const spread = node.attributes.properties.findIndex(ts.isJsxSpreadAttribute);
+        if (slot && spread !== -1 && spread < node.attributes.properties.indexOf(slot)) problems.push(`${where} <${tag}>'s data-slot comes after a spread, so it overrides a parent's name for the part. Fix: write data-slot first.`);
         if (slot) {
           const name = literal(slot);
           // A shared root that writes its owner's `data-ouro` (Field's `owner.data`) is named the same.
@@ -145,6 +158,17 @@ export function partNames(root: string = repoRoot): { names: PartName[]; problem
           else check(where, `<${tag} data-slot="${name}">`, name);
         } else if (named("className") && styledHere(tag, outside)) {
           problems.push(`${where} <${tag}> carries classes but no part name. Fix: data-slot="${stem}-<part>" (docs/guides/part-names.md).`);
+        } else if (typography.has(tag) && !outside.has(tag)) {
+          problems.push(`${where} <${tag}> draws a part with no name of its own. Fix: data-slot="${stem}-<part>", such as "${stem}-title" (docs/guides/part-names.md).`);
+        }
+      }
+      // A Field owner (`{ name: "FileField", data: "file-field" }`) names the Field root it renders: Field writes `data-slot={owner.data}`.
+      if (ts.isObjectLiteralExpression(node)) {
+        const entry = (name: string) => node.properties.find((property): property is ts.PropertyAssignment => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === name);
+        const [ownerName, data] = [entry("name")?.initializer, entry("data")?.initializer];
+        if (ownerName && data && ts.isStringLiteral(ownerName) && ts.isStringLiteral(data)) {
+          prefixes.add(data.text);
+          check(`${relative(root, file)}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`, `{ data: "${data.text}" }`, data.text);
         }
       }
       // A root built with `createElement(element, { "data-slot": "card", ...rest, className })` is held the same way.
