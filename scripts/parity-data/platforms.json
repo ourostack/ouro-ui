@@ -89,8 +89,8 @@
   },
   "android": {
     "repo": "ourostack/ouro-ui-android",
-    "tag": "v0.3.0",
-    "commit": "8ba5196a9e9062e495dde8c23f136913094cbdf4",
+    "tag": "v0.5.0",
+    "commit": "e38acea984aa202707f6a0c8ea9c6fd889aabf1f",
     "components": [
       {
         "name": "OuroBadge",
@@ -139,8 +139,8 @@
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": "v0.3.0",
-    "commit": "2138b3d29b89e335857da610ae05eab99511faa1",
+    "tag": "v0.4.0",
+    "commit": "7f62ae7a10e99669a81f0ac095430e030d7f947c",
     "components": [
       {
         "name": "OuroBadge",
