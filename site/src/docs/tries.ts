@@ -21,4 +21,8 @@ export const tries: Readonly<Record<string, string>> = {
   calendar: "Pick two days for a trip. Page Down jumps to the next month.",
   "image-cropper": "Open it, press Plus to zoom in, then drag the photo to frame it.",
   "color-scheme-toggle": "Pick Dark. The whole page goes dark, not just the demo.",
+  timer: "Start Focus, then reload the page. It keeps counting from where it was.",
+  celebrate: "Press Finish the task. Confetti bursts from the badge. With reduced motion on, the badge just fades in.",
+  combobox: "On a phone, tap Herb. It opens as a sheet with the search on top.",
+  carousel: "Swipe it, scroll it sideways on a trackpad, or tab to it and press the arrow keys. It stops on a slide.",
 };

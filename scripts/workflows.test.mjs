@@ -32,7 +32,7 @@ const checkoutGuard = new RegExp(
     String.raw` {6}- (?:\*checkout-stalled\n|&checkout-stalled\n(?: {8}.*\n| *\n)+?)`,
     String.raw` {6}- id: checkout-again\n {8}if: steps\.checkout\.outcome == 'failure'\n {8}uses: \2\n {8}timeout-minutes: 1\n {8}continue-on-error: true\n {8}env:\n {10}GIT_TRACE_CURL: \S+\n {10}GIT_TRACE_CURL_NO_DATA: "1"\n {10}GIT_TRACE_PACKET: \S+\n\3`,
     String.raw` {6}- (?:\*checkout-stalled-again\n|&checkout-stalled-again\n(?: {8}.*\n| *\n)+?)`,
-    String.raw` {6}- if: steps\.checkout-again\.outcome == 'failure'\n((?: {8}continue-on-error: true\n)?) {8}uses: \2\n {8}timeout-minutes: 1\n {8}env:\n {10}GIT_TRACE_CURL: \S+\n {10}GIT_TRACE_CURL_NO_DATA: "1"\n {10}GIT_TRACE_PACKET: \S+\n\3`,
+    String.raw` {6}- (?:id: checkout-last\n {8})?if: steps\.checkout-again\.outcome == 'failure'\n((?: {8}continue-on-error: true\n)?) {8}uses: \2\n {8}timeout-minutes: 1\n {8}env:\n {10}GIT_TRACE_CURL: \S+\n {10}GIT_TRACE_CURL_NO_DATA: "1"\n {10}GIT_TRACE_PACKET: \S+\n\3`,
   ].join(""),
   "gm",
 );
@@ -80,7 +80,9 @@ const expandNodeAliases = (text) => {
     })
     .replace(/^( {6}- )&node-[\w-]+\n {8}/gm, "$1");
 };
-const unguarded = (text) => foldPnpm(foldNode(expandNodeAliases(text))).replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
+// The tarball last resort (#1765) folds away with its alias, so the other tests read each checkout as it did before it.
+const foldTarball = (text) => text.replace(/^ {6}- &checkout-tarball\n[\s\S]*?(?=^ {6}\S)|^ {6}- \*checkout-tarball\n/gm, "");
+const unguarded = (text) => foldPnpm(foldNode(expandNodeAliases(foldTarball(text)))).replace(checkoutGuard, (_, condition, uses, withBlock, continues) => `      - ${`${condition}${continues}        uses: ${uses}\n`.slice(8)}${withBlock}`);
 const rawWorkflows = readdirSync(dir)
   .filter((file) => file.endsWith(".yml"))
   .map((file) => ({ file, text: readFileSync(join(dir, file), "utf8") }));
@@ -124,7 +126,7 @@ test("a CI git transfer over HTTP/1.1 that stalls ends after a minute below 1 KB
 test("a checkout that stalls or fails is cleared and tried again, twice, each try a minute long, with a trace of its HTTP requests and packets (#1765)", () => {
   const ci = rawWorkflows.find(({ file }) => file === "ci.yml").text;
   // Every guard folds back into the step it guards, and the fold leaves none behind (the other tests read the fold).
-  assert.doesNotMatch(unguarded(ci), /checkout-stalled|checkout-again|steps\.checkout\.outcome|ouro-checkout-(trace|packets)/);
+  assert.doesNotMatch(unguarded(ci), /checkout-stalled|checkout-again|checkout-last|checkout-tarball|steps\.checkout\.outcome|ouro-checkout-(trace|packets)/);
   // Each step, by its "- " at the steps' indent, with its lines.
   const steps = ci.split(/\n(?= {6}- )/).map((step) => step.split(/\n(?! {8}| {6}- |\s*$)/)[0]);
   const checkouts = steps.flatMap((step, index) => (/uses: actions\/checkout@/.test(step) ? [index] : []));
@@ -138,7 +140,7 @@ test("a checkout that stalls or fails is cleared and tried again, twice, each tr
     assert.match(stalled, /^ {6}- (\*checkout-stalled$|&checkout-stalled\n)/);
     assert.match(retry, /^ {6}- id: checkout-again\n {8}if: steps\.checkout\.outcome == 'failure'\n {8}uses: actions\/checkout@\S+ # v[\d.]+\n {8}timeout-minutes: 1\n {8}continue-on-error: true\n {8}env:\n {10}GIT_TRACE_CURL: \/tmp\/ouro-checkout-trace\.log\n {10}GIT_TRACE_CURL_NO_DATA: "1"\n {10}GIT_TRACE_PACKET: \/tmp\/ouro-checkout-packets\.log\n/);
     assert.match(stalledAgain, /^ {6}- (\*checkout-stalled-again$|&checkout-stalled-again\n)/);
-    assert.match(lastTry, /^ {6}- if: steps\.checkout-again\.outcome == 'failure'\n(?: {8}continue-on-error: true\n)? {8}uses: actions\/checkout@\S+ # v[\d.]+\n {8}timeout-minutes: 1\n {8}env:\n {10}GIT_TRACE_CURL: \/tmp\/ouro-checkout-trace\.log\n {10}GIT_TRACE_CURL_NO_DATA: "1"\n {10}GIT_TRACE_PACKET: \/tmp\/ouro-checkout-packets\.log\n/);
+    assert.match(lastTry, /^ {6}- (?:id: checkout-last\n {8})?if: steps\.checkout-again\.outcome == 'failure'\n(?: {8}continue-on-error: true\n)? {8}uses: actions\/checkout@\S+ # v[\d.]+\n {8}timeout-minutes: 1\n {8}env:\n {10}GIT_TRACE_CURL: \/tmp\/ouro-checkout-trace\.log\n {10}GIT_TRACE_CURL_NO_DATA: "1"\n {10}GIT_TRACE_PACKET: \/tmp\/ouro-checkout-packets\.log\n/);
     assert.equal(withBlock(retry), withBlock(attempt), `the retry fetches what the first try did:\n${attempt}`);
     assert.equal(withBlock(lastTry), withBlock(attempt), `the last try fetches what the first try did:\n${attempt}`);
   }
@@ -153,6 +155,117 @@ test("a checkout that stalls or fails is cleared and tried again, twice, each tr
   assert.match(stalledAgain, /::warning title=actions\/checkout stalled again::.*ourostack\/ouro-ui#1765/);
   assert.match(stalledAgain, /tail -n 60 \/tmp\/ouro-checkout-packets\.log/);
   assert.match(stalledAgain, /rm -rf "\$GITHUB_WORKSPACE\/\.git"/);
+});
+
+/**
+ * ci.yml's last try, when it stalls too, is followed by the commit's tarball (#1765), in every job whose steps need no
+ * history: a tarball has none. Each other job keeps its checkout as it was, with its last try left to fail and a comment
+ * saying why (the list below is the sweep of those jobs' steps and the scripts they run).
+ */
+test("a checkout that stalls three times is followed by the commit's tarball, in every job that needs no history (#1765)", () => {
+  const ci = rawWorkflows.find(({ file }) => file === "ci.yml").text;
+  const withoutTarball = [
+    "attribution",
+    "checks",
+    "design",
+    "e2e-shard",
+    "fresh-main",
+    "install",
+    "install-checks",
+    "install-current",
+    "install-github",
+    "install-prep",
+    "install-shard",
+    "latency-shard",
+    "lighthouse",
+    "mutation-plan",
+    "mutation-shard",
+    "plan",
+    "scripts",
+    "sweep-shard",
+    "theme-install",
+  ];
+  const blocks = Object.fromEntries(ci.split("\njobs:\n")[1].split(/\n(?= {2}[\w-]+:\n)/).map((block) => [block.match(/^ {2}([\w-]+):/)[1], block]));
+  const checkoutJobs = Object.keys(blocks).filter((job) => /uses: actions\/checkout@/.test(blocks[job]));
+  assert.equal(ci.match(/^ {6}- &checkout-tarball$/gm)?.length, 1, "one anchor for the tarball step");
+  for (const job of withoutTarball) {
+    assert.ok(checkoutJobs.includes(job), `${job} checks out`);
+    assert.doesNotMatch(blocks[job], /checkout-last|checkout-tarball/, `${job} keeps its last try as it was`);
+    const steps = blocks[job].split(/\n(?= {6}- )/);
+    const last = steps.find((step) => /^ {6}- if: steps\.checkout-again\.outcome == 'failure'\n/.test(step) && /uses: actions\/checkout@/.test(step));
+    assert.ok(last, `${job} has its last try as before`);
+    assert.doesNotMatch(last, /continue-on-error/, `${job} leaves its last try to fail, as before`);
+    assert.match(blocks[job], /^ {6}# .*\(#1765\)\.$/m, `${job} says why it has no last resort`);
+  }
+  for (const job of checkoutJobs.filter((job) => !withoutTarball.includes(job))) {
+    const steps = blocks[job].split(/\n(?= {6}- )/);
+    const index = steps.findIndex((step) => /^ {6}- id: checkout-last\n/.test(step));
+    assert.notEqual(index, -1, `${job} has a last try with an id`);
+    assert.match(steps[index], /^ {6}- id: checkout-last\n {8}if: steps\.checkout-again\.outcome == 'failure'\n {8}continue-on-error: true\n {8}uses: actions\/checkout@\S+ # v[\d.]+\n {8}timeout-minutes: 1\n/, job);
+    assert.match(steps[index + 1] ?? "", /^ {6}- (?:&checkout-tarball|\*checkout-tarball)$/m, `${job}: the tarball follows its last try`);
+  }
+  assert.equal(ci.match(/^ {6}- (?:&checkout-tarball|\*checkout-tarball)$/gm).length, checkoutJobs.length - withoutTarball.length);
+});
+
+/**
+ * The tarball step's script, run with stubs for curl and gh (the network), and the real tar and git: it downloads the
+ * commit's tarball with the job's token, unpacks it into the workspace, commits it locally with the tree of the commit (so
+ * `HEAD^{tree}` reads what the checkout would), and fails when the tree differs (#1765).
+ */
+test("the tarball step downloads the commit's tarball with the job's token, unpacks it, and fails when its tree is not the commit's (#1765)", () => {
+  const ci = rawWorkflows.find(({ file }) => file === "ci.yml").text;
+  const step = ci.match(/^ {6}- &checkout-tarball\n[\s\S]*?(?=^ {6}\S)/m)[0];
+  assert.match(step, /^ {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {10}REPO: \$\{\{ github\.repository \}\}\n {10}SHA: \$\{\{ github\.sha \}\}\n/m);
+  const script = step.split("        run: |\n")[1].split("\n").map((line) => line.slice(10)).join("\n");
+  const sha = "0123456789abcdef0123456789abcdef01234567";
+  const top = "ourostack-ouro-ui-0123456";
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const work = mkdtempSync(join(root, ".tmp", "ci-tarball-"));
+  try {
+    // A source tree as GitHub's tarball holds it: a folder named for the repository and the commit, without .git. The
+    // ignored file is in the commit, so the unpacked tree must include it too.
+    const source = join(work, "source", top);
+    mkdirSync(join(source, "scripts"), { recursive: true });
+    writeFileSync(join(source, "package.json"), "{}\n");
+    writeFileSync(join(source, "scripts/run.sh"), "echo ok\n", { mode: 0o755 });
+    writeFileSync(join(source, ".gitignore"), "generated.json\n");
+    writeFileSync(join(source, "generated.json"), "{}\n");
+    execFileSync("git", ["init", "-q"], { cwd: source });
+    execFileSync("git", ["add", "--force", "--all"], { cwd: source });
+    const tree = execFileSync("git", ["write-tree"], { cwd: source, encoding: "utf8" }).trim();
+    rmSync(join(source, ".git"), { recursive: true, force: true });
+    const tarball = join(work, "src.tar.gz");
+    execFileSync("tar", ["-czf", tarball, "-C", join(work, "source"), top]);
+    const workspace = join(work, "workspace");
+    const runnerTemp = join(work, "runner-temp");
+    mkdirSync(workspace);
+    mkdirSync(runnerTemp);
+    // What the stalled checkout left behind must go.
+    writeFileSync(join(workspace, "stale.txt"), "left by the stalled checkout\n");
+    const stubs = `export GH_TOKEN=token-for-test
+curl() { printf 'CALL curl %s\\n' "$*" >&2; while [ $# -gt 0 ]; do if [ "$1" = -o ]; then cp "$TARBALL" "$2"; fi; shift; done; }
+gh() { printf 'CALL gh %s\\n' "$*" >&2; echo "$TREE"; }
+`;
+    // The ceiling keeps a repository the step did not make out of reach: its git then fails, rather than committing into this checkout.
+    const run = (env) => runStep(`${stubs}${script}`, { REPO: "ourostack/ouro-ui", SHA: sha, GITHUB_WORKSPACE: workspace, RUNNER_TEMP: runnerTemp, TARBALL: tarball, TREE: tree, GIT_CEILING_DIRECTORIES: work, ...env });
+
+    const unpacked = run({});
+    assert.equal(unpacked.status, 0, `${unpacked.stdout}${unpacked.calls}`);
+    assert.match(unpacked.calls, new RegExp(`^CALL curl .*Authorization: Bearer token-for-test .*https://api\\.github\\.com/repos/ourostack/ouro-ui/tarball/${sha}$`, "m"));
+    assert.match(unpacked.calls, new RegExp(`^CALL gh api repos/ourostack/ouro-ui/git/commits/${sha} --jq \\.tree\\.sha$`, "m"));
+    assert.match(unpacked.stdout, /::warning title=actions\/checkout stalled three times::/);
+    assert.equal(existsSync(join(workspace, "stale.txt")), false);
+    assert.equal(readFileSync(join(workspace, "scripts/run.sh"), "utf8"), "echo ok\n");
+    assert.equal(readFileSync(join(workspace, "generated.json"), "utf8"), "{}\n");
+    assert.equal(execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: workspace, encoding: "utf8" }).trim(), tree);
+    assert.equal(execFileSync("git", ["log", "-1", "--format=%s"], { cwd: workspace, encoding: "utf8" }).trim(), `tarball of ${sha}`);
+
+    const other = run({ TREE: "0".repeat(40) });
+    assert.notEqual(other.status, 0);
+    assert.match(other.stdout, /::error title=Tarball tree differs::/);
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
 });
 
 /**
@@ -226,18 +339,20 @@ test("every setup-node that restores the pnpm cache in ci.yml has a time limit a
 
 /**
  * A job whose steps read no package from node_modules installs none: no pnpm, no pnpm store cache and no pnpm i, so it
- * restores nothing from the cache (#2194). The merge of the coverage and the motion check each read only Node's own
- * modules and this repository's files (scripts/coverage-merge.mjs, scripts/motion-coverage.mts).
+ * restores nothing from the cache (#2194). The motion check reads only Node's own modules and this repository's files
+ * (scripts/motion-coverage.mts). The ci job's full-suite merge loads @vitest/coverage-istanbul's istanbul library
+ * (scripts/coverage-merge.mjs), so the ci job installs the packages before it (#2259).
  */
-test("the jobs whose steps read no package install none and run no pnpm (#2194)", () => {
+test("the jobs whose steps read no package install none and run no pnpm (#2194), and the ci job installs before its coverage merge (#2259)", () => {
   const jobs = ciJobs();
-  for (const id of ["ci", "motion-coverage"]) {
-    assert.ok(jobs[id], `ci.yml has a ${id} job`);
-    assert.doesNotMatch(jobs[id], /\bpnpm\b/, `${id} runs no pnpm, so it installs no package`);
-    assert.doesNotMatch(jobs[id], /cache: pnpm/, `${id} restores no pnpm store`);
-  }
-  assert.match(jobs.ci, /uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}node-version: 24\n {10}cache: ""\n/, "ci sets node up without a cache, for coverage-merge.mjs");
+  assert.ok(jobs["motion-coverage"], "ci.yml has a motion-coverage job");
+  assert.doesNotMatch(jobs["motion-coverage"], /\bpnpm\b/, "motion-coverage runs no pnpm, so it installs no package");
+  assert.doesNotMatch(jobs["motion-coverage"], /cache: pnpm/, "motion-coverage restores no pnpm store");
   assert.match(jobs["motion-coverage"], /uses: actions\/setup-node@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}node-version: 24\n {10}cache: ""\n/, "motion-coverage sets node up without a cache, for motion-coverage.mts");
+  assert.match(readFileSync(join(root, "scripts/coverage-merge.mjs"), "utf8"), /resolve\("@vitest\/coverage-istanbul"\)/, "coverage-merge.mjs loads @vitest/coverage-istanbul");
+  const install = jobs.ci.indexOf("run: pnpm i --frozen-lockfile");
+  assert.ok(install > 0, "the ci job installs the packages");
+  assert.ok(install < jobs.ci.indexOf("node scripts/coverage-merge.mjs"), "the ci job installs the packages before its coverage merge reads them");
 });
 
 test("every action is pinned to a full commit SHA, with its version in a comment", () => {
@@ -1135,7 +1250,7 @@ test("each check main's rules require comes from a workflow Release can start by
   const all = readWorkflows();
   const { producers, problems } = requiredProducers(requiredChecks, all);
   assert.deepEqual(problems, []);
-  assert.deepEqual(producers, ["ci.yml", "conformance-exemptions.yml"]);
+  assert.deepEqual(producers, ["ci.yml", "conformance-exemptions.yml", "release-note.yml"]);
   const spec = (on) => ({ file: "x.yml", text: `on:\n  pull_request:\n${on}jobs:\n  check:\n    name: lane\n    runs-on: ubuntu-latest\n` });
   assert.deepEqual(requiredProducers(["lane"], [spec("")]).problems, ['x.yml reports the required check "lane" but has no workflow_dispatch trigger, so Release cannot start it']);
   assert.deepEqual(requiredProducers(["lane"], [spec("  workflow_dispatch:\n")]), { producers: ["x.yml"], problems: [] });
@@ -2271,6 +2386,16 @@ test("a pull request calls only the read-only lane: ci.yml's job grants contents
   assert.doesNotMatch(workflow("ci.yml"), /issues: write/);
 });
 
+test("the screen-reader lane's report upload is tried twice and never decides the lane's verdict (#2254)", () => {
+  const lane = srJobs().lane;
+  const first = lane.match(/- id: upload\n {8}if: (.*)\n {8}uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}continue-on-error: true\n {8}with: &sr-report\n/);
+  assert.ok(first, "the first upload continues on error and names its settings");
+  assert.equal(first[1], "always() && steps.classify.outcome != 'skipped'");
+  assert.match(lane, /^ {10}overwrite: true$/m);
+  assert.match(lane, /- id: upload-again\n {8}if: always\(\) && steps\.upload\.outcome == 'failure'\n {8}uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}continue-on-error: true\n {8}with: \*sr-report\n/);
+  assert.match(lane, /if: always\(\) && steps\.upload-again\.outcome == 'failure'\n {8}run: echo "::warning title=Screen-reader report not uploaded::/);
+});
+
 test("the screen-reader lane gates on VoiceOver on macos-26 and NVDA on windows-2025, with VoiceOver on macos-15 advisory nightly, at the commit it was given", () => {
   const lane = srJobs().lane;
   // The matrix for an event: the nightly run adds the advisory macos-15 job; a push to main, a dispatch and a pull request's call run the two that gate (#2097).
@@ -2461,6 +2586,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "form-answer-proof.yml": "  group: form-answer-proof-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "flow-review.yml": "  group: flow-review-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "required-checks.yml": "  group: required-checks-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "release-note.yml": "  group: release-note-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}",
     "stale-pages.yml": "  group: stale-pages-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "squircle-cost.yml": "  group: squircle-cost-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "ax-xray.yml": "  group: ax-xray-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
@@ -2612,6 +2738,16 @@ test("the conformance exemptions check runs on each pull request and its descrip
   for (const step of steps.filter((step) => !queue.includes(step))) assert.match(step, /^if: github\.event_name != 'merge_group'$/m, step);
   assert.match(text, /^ {10}BASE_REF: \$\{\{ github\.base_ref \|\| 'main' \}\}$/m);
   assert.match(text, /BASE_REF="origin\/\$BASE_REF" node scripts\/conformance-exemptions\.mjs/);
+});
+
+test("the release note check runs on each pull request and its description's edits, reads the description from the environment only, and installs nothing", () => {
+  const { text } = workflows.find(({ file }) => file === "release-note.yml");
+  assert.match(text, /^on:\n {2}pull_request:\n {4}types: \[opened, edited, synchronize, reopened\]\n {2}merge_group:\n(?: {2}#.*\n)? {2}push:\n {4}branches: \[main\]\n {2}workflow_dispatch:\n/m);
+  assert.match(text, /^ {4}name: release note$/m);
+  assert.match(text, /^ {10}PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}$/m);
+  assert.equal(text.match(/pull_request\.body/g).length, 1);
+  assert.doesNotMatch(text, /pnpm/);
+  assert.match(text, /BASE_REF="origin\/\$BASE_REF" node scripts\/release-note\.mjs/);
 });
 
 test("CI rehearses the release commit on every run: release.yml's own edits, for a version with no tag yet, then the checks and the site build that read them", () => {

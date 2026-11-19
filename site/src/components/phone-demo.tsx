@@ -3,6 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { docsItems } from "../docs/items";
 import { href } from "../paths";
 import { LiveDemo } from "./live-demo";
+import { PhoneStatus } from "./phone-status";
 
 // A component page's live demo can show itself on a phone: the demo-only page (/docs/demo/?name=…) in a frame a phone's
 // width, so its media queries see a phone and the component lays out as it does on one (a Dialog comes up as a sheet).
@@ -49,14 +50,11 @@ export function DemoStage({ name, title }: { name: string; title: string }): JSX
         </Button>
       )}
       {phone ? (
-        <iframe
-          title={`${title} on a phone`}
-          src={demoAddress(name)}
-          width={390}
-          height={720}
-          data-site-phone-frame=""
-          className="block max-w-full rounded-[2.5rem] border-8 border-foreground bg-background dark:border-secondary"
-        />
+        // The phone's case around its screen: the status bar, with the reader's time and sky, over the demo's page.
+        <div data-site-phone-frame="" className="max-w-full overflow-hidden rounded-[2.5rem] border-8 border-foreground bg-background dark:border-secondary">
+          <PhoneStatus />
+          <iframe title={`${title} on a phone`} src={demoAddress(name)} width={390} height={688} className="block max-w-full" />
+        </div>
       ) : (
         <LiveDemo name={name} title={title} />
       )}

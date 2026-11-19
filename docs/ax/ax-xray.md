@@ -9,7 +9,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.313
+npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.315
 ```
 
 It installs `scripts/ouro/ax/xray.kit.mts` and `scripts/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-cli`, `ax-command`, `ax-component`, `ax-dev-commands`, `ax-exit-codes`, `ax-outcome`, `ax-precise-copy`, `ax-problem`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`, and the shared kit as `#ouro-ax/<file>`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
@@ -224,6 +224,14 @@ function usageWords(usage: string): string[]
 type Verdict = "pass" | "fail" | "skip";
 ```
 
+### `wordProblems`
+
+Returns the problems with a command's words, as lines with their fixes, and the count of words in its busiest usage line. Words come in the order the command reads them: an optional word, bracketed in usage, comes after the required ones. A schema default is a string of the word's values, not on a required word, and usage shows it as `[<name>=<value>]`.
+
+```ts
+function wordProblems(cmd: CliCommand): { words: number; problems: string[]; }
+```
+
 ### `xray`
 
 Runs the X-ray: the guard, the safety proof, then the surfaces given; returns the report.
@@ -241,7 +249,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 ```
 
 ```ts
-const XRAY_VERSION: "1.6.0"
+const XRAY_VERSION: "1.7.0"
 ```
 
 ### `XrayOptions`

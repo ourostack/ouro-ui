@@ -26,6 +26,7 @@ import {
   stateDelta,
   summarize,
   usageWords,
+  wordProblems,
   xray,
   XRAY_VERSION,
   type Report,
@@ -402,7 +403,7 @@ test("the command: claims, help, usage errors with the fix, exit codes, written 
 test("the kit answers help, an unknown flag is one line with its fix, and repeat flags keep every value", async () => {
   const h = io();
   assert.equal(await main(["help"], h.io), 0);
-  assert.match(h.o.out, /^ax-xray 1\.6\.0: checks an agent-facing interface/);
+  assert.match(h.o.out, /^ax-xray 1\.7\.0: checks an agent-facing interface/);
   assert.match(h.o.out, /--env K=V\.\.\./);
   const u = io();
   assert.equal(await main(["--cli", "x", "--jsn", "--json"], u.io), 2);
@@ -782,7 +783,44 @@ test("a tool with one command conforms: its reads take the folder with no comman
   assert.deepEqual(failing, []);
   assert.equal(report.conformant, true);
   assert.deepEqual([verdictOf(report, "cli.help-parses", "help"), verdictOf(report, "cli.command-help", "sizes"), verdictOf(report, "cli.read-json", "sizes")], ["pass", "pass", "pass"]);
+  assert.equal(verdictOf(report, "cli.optional-args", "sizes"), "pass");
   assert.match(report.results.find((r) => r.claim === "cli.read-json" && r.surface === "sizes")!.note, /^`images site\/showcase --json` → one JSON document/);
+});
+
+test("the optional words come last and are bracketed, and each default is the schema's string of the word's values", () => {
+  const check = (usage: string[], inputSchema: unknown = null) => wordProblems({ name: "tasks", protocol: false, words: ["tasks"], effect: "private", readOnly: true, usage, scope: null, inputSchema });
+  const sizes = { type: "object", properties: { folder: { type: "string" }, set: { type: "string", enum: ["web", "print"], default: "web" }, quality: { type: "number", default: 80 } }, required: ["folder"] };
+  // Passing: in order, each optional word bracketed, its default shown as the schema gives it; a flag is no word.
+  assert.deepEqual(check(["tasks <folder> [<set>=web] [--quality <N>]"], sizes), { words: 2, problems: [] });
+  assert.deepEqual(check(['tasks [<status>="open tasks"]'], { properties: { status: { type: "string", default: "open tasks" } } }), { words: 1, problems: [] });
+  assert.deepEqual(check(["tasks <from> [<to...>=now]"], { properties: { from: { type: "string" }, to: { type: "string", default: "now" } }, required: ["from"] }), { words: 2, problems: [] });
+  assert.deepEqual(check(["tasks [<status>]"], { properties: { status: { type: "string" } } }), { words: 1, problems: [] });
+  // Without a schema, only the order and the brackets can be read.
+  assert.deepEqual(check(["tasks <title>"]), { words: 1, problems: [] });
+  assert.deepEqual(check(["tasks [<limit>]"]), { words: 1, problems: [] });
+  // Failing: each with its fix.
+  const refused = (usage: string[], inputSchema: unknown) => wordProblems({ name: "tasks", protocol: false, words: ["tasks"], effect: "private", readOnly: true, usage, scope: null, inputSchema }).problems;
+  assert.deepEqual(refused(["tasks [<limit>] <title>"], { properties: { limit: { type: "string" }, title: { type: "string" } }, required: ["title"] }), ["tasks: <limit> is optional but comes before <title>, which is required. Fix: put <title> before <limit>."]);
+  assert.deepEqual(refused(["tasks [<limit>] <title>"], undefined), ["tasks: <limit> is optional but comes before <title>, which is required. Fix: put <title> before <limit>."]);
+  assert.deepEqual(refused(["tasks [<title>]"], { properties: { title: { type: "string" } }, required: ["title"] }), ["tasks: <title> is required, but its usage brackets it. Fix: write <title> without brackets."]);
+  assert.deepEqual(refused(["tasks <limit>"], { properties: { limit: { type: "string" } }, required: [] }), ["tasks: <limit> is optional, but its usage shows it bare. Fix: write [<limit>]."]);
+  assert.deepEqual(refused(["tasks <title>"], { properties: { title: { type: "string", default: "x" } }, required: ["title"] }), ['tasks: <title> is required, so it takes no default. Fix: remove "default" from its schema.']);
+  assert.deepEqual(refused(["tasks [<days>=mon]"], { properties: { days: { type: "array", default: "mon" } } }), ['tasks: <days> is typed array, not a string, so it takes no string default. Fix: remove "default" from its schema.']);
+  assert.deepEqual(refused(["tasks [<limit>=20]"], { properties: { limit: { type: "string", default: 20 } } }), ['tasks: <limit>\'s default is 20, not a string. Fix: give "default" as a string, such as "20".']);
+  assert.deepEqual(refused(["tasks [<status>=opn]"], { properties: { status: { type: "string", enum: ["open", "closed"], default: "opn" } } }), ['tasks: <status>\'s default "opn" is not one of open, closed. Fix: use one of them, such as "open".']);
+  assert.deepEqual(refused(["tasks [<status>]"], { properties: { status: { type: "string", enum: ["open", "closed"], default: "open" } } }), ["tasks: the usage line does not show <status>'s default. Fix: write [<status>=open]."]);
+  assert.deepEqual(refused(["tasks [<status>=closed]"], { properties: { status: { type: "string", default: "open" } } }), ["tasks: the usage line does not show <status>'s default. Fix: write [<status>=open]."]);
+  assert.deepEqual(refused(["tasks [<status>=open]"], { properties: { status: { type: "string" } } }), ['tasks: the usage line shows a default for <status>, which its schema does not give. Fix: give "status" a "default" in its schema, or leave it out of usage.']);
+});
+
+test("the optional-words check fails a CLI whose help puts an optional word first and types a default wrong, naming the fix", async () => {
+  const help = { tool: "bad-words", about: ["bad-words: a tool."], commands: [{ name: "tasks", effect: "private", readOnly: true, usage: ["bad-words tasks [<limit>] <title>"], inputSchema: { type: "object", properties: { limit: { type: "string", default: 20 }, title: { type: "string" } }, required: ["title"] } }] };
+  const cli = join(scratch, "bad-words.mjs");
+  writeFileSync(cli, [`const help = ${JSON.stringify(help)};`, 'if (process.argv[2] === "help") { console.log(JSON.stringify(help)); process.exit(0); }', 'console.error("bad-words: there is no command that way");', "process.exit(2);"].join("\n"));
+  const report = await xray(base({ cli: `node ${cli}`, name: "bad-words" }));
+  const finding = report.results.find((r) => r.claim === "cli.optional-args" && r.surface === "tasks");
+  assert.equal(finding?.verdict, "fail");
+  assert.equal(finding?.note, "tasks: <limit> is optional but comes before <title>, which is required. Fix: put <title> before <limit>. tasks: <limit>'s default is 20, not a string. Fix: give \"default\" as a string, such as \"20\".");
 });
 
 test("ourostack/desk: --app records the app in target.app.name, and leaves target.app out otherwise", async () => {

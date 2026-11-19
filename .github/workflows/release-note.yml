@@ -1,0 +1,50 @@
+name: Release note
+# A pull request that changes a file apps install and run (registry runtime code, components, lib,
+# a theme stylesheet) needs a changes/ line, so Release ships it, or a `no-release: <reason>` line in
+# its description (scripts/release-note.mjs). It runs again when the description is edited, without
+# the rest of CI. A required check: in the merge queue, where the pull request's description was
+# already checked, it passes without checking. Release dispatches it (workflow_dispatch) on the pull
+# requests and queue entries it makes with GITHUB_TOKEN, which start no run of their own
+# (scripts/required-producers.mjs); a dispatched run has no pull request to check, so it passes.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  merge_group:
+  # Main has no merge queue, so Release finds this required check's verdict on main's own commit.
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+# A push to a pull request cancels that pull request's run in progress. Every other run, a merge-queue
+# entry's or one Release dispatches on a queue branch, is in a group of its own (its run id), so it is
+# never cancelled or replaced.
+concurrency:
+  group: release-note-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  release-note:
+    name: release note
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - if: github.event_name != 'pull_request'
+        run: echo "Checked on the pull request, against its description; nothing to check here."
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The merge base with main needs the history; the files on each side are fetched as they are read.
+          fetch-depth: 0
+          filter: blob:none
+      - if: github.event_name == 'pull_request'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # The description comes through the environment, never into the script's text.
+      - if: github.event_name == 'pull_request'
+        name: Release note against the base
+        env:
+          BASE_REF: ${{ github.base_ref || 'main' }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: BASE_REF="origin/$BASE_REF" node scripts/release-note.mjs

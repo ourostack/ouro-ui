@@ -7,16 +7,19 @@ import { demos } from "./docs/demos";
 import { followSystemScheme, THEME_KEY } from "./themes/prepaint";
 import { choiceList } from "./voyage/presets";
 import { finishReveal } from "./voyage/theme-store";
+import { setXray } from "./voyage/xray-store";
 import { PHONE_DEMOS } from "./components/phone-demo";
+import { NO_PREVIEW } from "./components/catalog-preview";
+import { phoneTime } from "./components/phone-status";
 import { SURPRISES, surpriseNav } from "./components/surprise-me";
 import { docsItems, itemMarkdown, summary } from "./docs/items";
 import { tries } from "./docs/tries";
-import { docsPages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
+import { docsPages, guidePages, platformPages, publishedMarkdown, repositoryLink } from "./docs/pages";
 import { unpinnedAddresses } from "../../scripts/addresses.mjs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Markdown, parse, prose, sourceHref } from "./docs/markdown";
 import { headTags, SITE } from "./head";
-import { componentPrompt, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
+import { componentPrompt, GUIDE_TASKS, PROMPT_SITE, withInstall } from "./docs/agent-prompt";
 import { headerPath } from "./components/docs-header";
 import { componentGroups, docsSections, filterHint, rankedComponents } from "./components/docs-sections";
 import { bare, otherNames } from "./components/other-names";
@@ -392,6 +395,62 @@ describe("docs", () => {
     }
   });
 
+  it("draws each component small beside its name on the index, a picture the row's link covers, filled as it nears the screen", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const frames = [...document.querySelectorAll<HTMLElement>("[data-site-preview]")];
+    expect(frames.map((frame) => frame.dataset["sitePreview"])).toEqual(docsItems.map((item) => item.name));
+    for (const name of NO_PREVIEW) expect(Object.hasOwn(demos, name), `${name} has a demo`).toBe(true);
+    // A picture: hidden from screen readers, out of the tab order and the reach of a press.
+    for (const frame of frames) {
+      expect(frame.getAttribute("aria-hidden")).toBe("true");
+      expect(frame.inert).toBe(true);
+    }
+    // The first row's frame fills with its component's own demo.
+    const first = frames[0]!;
+    await expect.poll(() => first.querySelector("[data-ouro]") !== null).toBe(true);
+    // A press on the picture lands on the row's link.
+    first.scrollIntoView({ block: "center" });
+    const box = first.getBoundingClientRect();
+    expect(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest("a")?.getAttribute("href")).toBe(href(`/docs/${docsItems[0]!.name}/`));
+    // X-ray tells what the page is made of: the pictures step out of its sight while it is on.
+    setXray(true);
+    try {
+      await expect.poll(() => getComputedStyle(first.firstElementChild!).visibility).toBe("hidden");
+    } finally {
+      setXray(false);
+    }
+    await expect.poll(() => getComputedStyle(first.firstElementChild!).visibility).toBe("visible");
+    // A row far down the page is drawn only once it nears the screen.
+    const last = frames.findLast((frame) => !NO_PREVIEW.has(frame.dataset["sitePreview"]!))!;
+    expect(last.children).toHaveLength(0);
+    last.scrollIntoView({ block: "center" });
+    await expect.poll(() => last.querySelector("[data-ouro]") !== null).toBe(true);
+    // A demo that runs something for the whole page stays a plain frame.
+    const at = frames.findIndex((frame) => NO_PREVIEW.has(frame.dataset["sitePreview"]!) && frames[frames.indexOf(frame) + 1] && !NO_PREVIEW.has(frames[frames.indexOf(frame) + 1]!.dataset["sitePreview"]!));
+    frames[at]!.scrollIntoView({ block: "center" });
+    // Its neighbour, drawn with it, says the frames there have had their turn.
+    await expect.poll(() => frames[at + 1]!.querySelector("[data-ouro]") !== null).toBe(true);
+    expect(frames[at]!.children).toHaveLength(0);
+  });
+
+  it("fades a preview in, and with reduced motion only fades it, faster: nothing moves", async () => {
+    await commands.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      await page.viewport(1280, 900);
+      await renderPage("/docs/");
+      const first = document.querySelector<HTMLElement>("[data-site-preview]")!;
+      first.scrollIntoView({ block: "center" });
+      await expect.poll(() => first.firstElementChild).not.toBeNull();
+      const style = getComputedStyle(first.firstElementChild!);
+      expect(style.transitionProperty).toBe("opacity");
+      const seconds = (time: string) => (time.endsWith("ms") ? parseFloat(time) / 1000 : parseFloat(time));
+      expect(seconds(style.transitionDuration)).toBe(seconds(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast").trim()));
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  });
+
   it("keeps linked guide summaries as text inside their catalog links", async () => {
     expect(summary("# Guide\n\nRead [the `Form` guide](form.md). More detail.")).toBe("Read the `Form` guide.");
     const host = await renderPage("/docs/");
@@ -541,8 +600,29 @@ describe("docs", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toEqual(["TextField"]);
     await expect.element(nav.getByRole("list", { name: "Forms", exact: true })).toBeVisible();
     await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "zzz");
-    expect(nav.getByRole("link").elements()).toHaveLength(0);
-    await expect.element(nav.getByRole("status")).toHaveTextContent("No component is called that.");
+    // No component's link; the line under the filter offers to ask for one.
+    expect(nav.getByRole("link").elements().filter((link) => !link.closest('[role="status"]'))).toHaveLength(0);
+    await expect.poll(() => nav.getByRole("status").query()?.textContent?.replace(/\s+/g, " ")).toMatch(/^No component is called that\. Want one\? Ask for “zzz”/);
+  });
+
+  it("turns a filter that finds nothing into a request for it, filled in on GitHub", async () => {
+    await page.viewport(1280, 900);
+    await renderPage("/docs/");
+    const nav = page.getByRole("navigation", { name: "Docs" });
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), "  zzz   gizmo ");
+    const ask = nav.getByRole("status").getByRole("link", { name: /^Ask for “zzz gizmo”/ });
+    await expect.element(ask).toBeVisible();
+    const url = new URL(ask.element().getAttribute("href")!);
+    expect(`${url.origin}${url.pathname}`).toBe("https://github.com/ourostack/ouro-ui/issues/new");
+    expect(url.searchParams.get("title")).toBe("Component request: zzz gizmo");
+    expect(url.searchParams.get("body")).toContain('"zzz gizmo"');
+    await expect.element(ask).toHaveAttribute("target", "_blank");
+    // A long one is cut short in the sentence, never in the request.
+    const long = "a component that does a great many things at once";
+    await userEvent.fill(nav.getByRole("searchbox", { name: "Filter components" }), long);
+    const cut = nav.getByRole("status").getByRole("link", { name: /^Ask for “.{31}…”/ });
+    await expect.element(cut).toBeVisible();
+    expect(new URL(cut.element().getAttribute("href")!).searchParams.get("title")).toBe(`Component request: ${long}`);
   });
 
   it("forgives one slip in a filter of four letters or more, after the names that hold it", async () => {
@@ -559,7 +639,8 @@ describe("docs", () => {
     expect(nav.getByRole("link").elements().map((link) => link.textContent)).toContain("Sheet");
     // Three letters must be exact.
     await userEvent.fill(filter, "dlg");
-    expect(nav.getByRole("link").elements()).toHaveLength(0);
+    // No component's link: only the line that offers to ask for one.
+    expect(nav.getByRole("link").elements().filter((link) => !link.closest('[role="status"]'))).toHaveLength(0);
   });
 
   it("finds a component by the name another kit gives it, and says what it is called here", async () => {
@@ -684,6 +765,15 @@ describe("docs", () => {
     expect(document.querySelector("[data-site-try]")).toBeNull();
   });
 
+  it("says what to try under the Timer, Celebrate, Combobox and Carousel demos: a reload, the confetti, the phone sheet and the keys", async () => {
+    for (const [name, words] of [["timer", "reload the page"], ["celebrate", "Confetti"], ["combobox", "sheet"], ["carousel", "arrow keys"]] as const) {
+      await renderPage(`/docs/${name}/`);
+      const line = document.querySelector("[data-site-try]");
+      expect(line?.textContent, name).toBe(`Try it: ${tries[name]}`);
+      expect(line?.textContent, name).toContain(words);
+    }
+  });
+
   it("repaints the page, demo and all, from a look under the demo, and keeps its room so nothing moves", async () => {
     await page.viewport(1280, 900);
     const root = document.documentElement;
@@ -742,6 +832,38 @@ describe("docs", () => {
     await page.viewport(390, 844);
     await renderPage("/docs/dialog/");
     expect(getComputedStyle(document.querySelector("[data-site-phone]")!).display).toBe("none");
+  });
+
+  it("tops the phone's frame with a status bar: the reader's own time, and under Live their own sky", async () => {
+    expect(phoneTime(new Date(2026, 10, 18, 21, 41), "en-US")).toBe("9:41");
+    expect(phoneTime(new Date(2026, 10, 18, 21, 41), "en-GB")).toBe("21:41");
+    const root = document.documentElement;
+    const attributes = ["data-live", "data-sky"].map((name) => [name, root.getAttribute(name)] as const);
+    try {
+      root.removeAttribute("data-live");
+      await page.viewport(1280, 900);
+      await renderPage("/docs/dialog/");
+      await userEvent.click(page.getByRole("button", { name: "Phone" }));
+      const bar = () => document.querySelector<HTMLElement>("[data-site-phone-status]")!;
+      await expect.poll(() => bar()?.textContent).toMatch(/^\d{1,2}:\d{2}$/);
+      expect([phoneTime(new Date(Date.now() - 60_000)), phoneTime(new Date())]).toContain(bar().textContent);
+      expect(bar().getAttribute("aria-hidden")).toBe("true");
+      // The frame's screen is a phone's width, under the bar.
+      expect((page.getByTitle("Dialog on a phone").element() as HTMLIFrameElement).getBoundingClientRect().width).toBeCloseTo(390, -1);
+      // No sky but Live's.
+      expect(bar().querySelector("svg")).toBeNull();
+      root.setAttribute("data-live", "");
+      root.setAttribute("data-sky", "night");
+      await expect.poll(() => bar().dataset["sitePhoneStatus"]).toBe("night");
+      expect(bar().querySelector("svg")).not.toBeNull();
+      root.setAttribute("data-sky", "dawn");
+      await expect.poll(() => bar().dataset["sitePhoneStatus"]).toBe("dawn");
+    } finally {
+      for (const [name, value] of attributes) {
+        if (value === null) root.removeAttribute(name);
+        else root.setAttribute(name, value);
+      }
+    }
   });
 
   it("follows a look chosen in another page of the site, as the phone's frame follows the page around it", async () => {
@@ -807,6 +929,20 @@ describe("docs", () => {
     expect(published).toMatch(/## Install[\s\S]*ouro-ui\/ouro-base#v9\.9\.9[\s\S]*ouro-ui\/dialog#v9\.9\.9[\s\S]*```tsx\nimport \{ Dialog \}/);
   });
 
+  it("hands a guide's task to the reader's agent under its lead, and gives a guide that only explains none", async () => {
+    await page.viewport(1280, 900);
+    for (const name of Object.keys(GUIDE_TASKS)) expect(guidePages.some((guide) => guide.name === name), `${name} is a guide`).toBe(true);
+    await renderPage("/docs/theming/");
+    const handoff = () => [...document.querySelectorAll("figure")].find((figure) => figure.querySelector("figcaption")?.textContent?.startsWith("Hand it to your agent"));
+    expect(handoff()!.querySelector("code")!.textContent).toBe("Give this app its own Ouro UI theme. Read https://ui.ouroboros.bot/docs/theming.md first and follow it.");
+    await expect.element(page.getByRole("button", { name: "Copy Hand it to your agent" })).toBeVisible();
+    // Right under the lead, before the guide's own words.
+    const lead = document.querySelector("main p")!;
+    expect(lead.compareDocumentPosition(handoff()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await renderPage("/docs/why-no-skill/");
+    expect(handoff()).toBeUndefined();
+  });
+
   it("has a page for every registry item at docs/<name>", () => {
     const names = registry.items.filter((item) => item.type === "registry:ui").map((item) => item.name);
     expect(names).toEqual(expect.arrayContaining(["button", "text", "heading", "link", "field", "fieldset", "text-field", "text-area", "sheet", "dialog", "confirm-dialog"]));
@@ -843,7 +979,9 @@ describe("docs", () => {
       await expect.element(main.getByRole("status")).toHaveTextContent("One page by that name.");
       await expect.element(main.getByRole("link", { name: "TextField", exact: true })).toHaveAttribute("href", href("/docs/text-field/"));
       await userEvent.fill(field, "zzz");
-      await expect.element(main.getByRole("status")).toHaveTextContent("Nothing on our charts by that name. Try a component, like Button.");
+      await expect.poll(() => main.getByRole("status").query()?.textContent?.replace(/\s+/g, " ")).toMatch(/^Nothing on our charts by that name\. Want one\? Ask for “zzz”/);
+      // The lost page asks for what it can't find, as the docs' searches do.
+      expect(new URL(main.getByRole("status").getByRole("link").element().getAttribute("href")!).searchParams.get("title")).toBe("Component request: zzz");
     } finally {
       history.replaceState(null, "", before);
     }

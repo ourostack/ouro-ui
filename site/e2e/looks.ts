@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { type BrowserContext, expect, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { waived } from "./waivers.ts";
+import { waived, waivedPages } from "./waivers.ts";
 import { siteReady } from "./ready";
 
 // The shared half of the site's cross-page checks (sameness-sweep.ts, states-sweep.ts): the routes of the
@@ -27,7 +27,8 @@ export function routes(): string[] {
   return found.filter((route) => !/^\/(storybook|r)\//.test(route)).sort();
 }
 
-export const LOOK_SELECTOR = "[data-ouro], [data-ouro-part], [data-ouro-control]";
+// The components index's previews (components/catalog-preview.tsx) are pictures, scaled down and inert: no look of a page.
+export const LOOK_SELECTOR = ":is([data-ouro], [data-ouro-part], [data-ouro-control]):not([data-site-preview] *)";
 
 export interface Look {
   index: number;
@@ -397,7 +398,8 @@ export class Looks {
       const bySig = new Map<string, string[]>();
       for (const s of samples) bySig.set(s.sig, [...(bySig.get(s.sig) ?? []), s.where]);
       if (bySig.size < 2) continue;
-      const [majority, ...rest] = [...bySig].sort((a, b) => b[1].length - a[1].length);
+      // The most samples stand for the look; on a tie, a page a waiver is for never does (#2249).
+      const [majority, ...rest] = [...bySig].sort((a, b) => b[1].length - a[1].length || Number(waivedPages(key, a[1])) - Number(waivedPages(key, b[1])));
       for (const [sig, where] of rest) {
         const left = majority![0].split(" ; ");
         const diff = sig.split(" ; ").filter((p) => !left.includes(p));

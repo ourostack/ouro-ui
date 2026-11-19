@@ -20,6 +20,8 @@
  *   page of square cards. --ouro-check-radius and --ouro-check-corner-shape do the same for the
  *   checkbox's box (Checkbox and Checklist), such as circles (9999px and round).
  * - --ouro-layer: the z-index of sheet and dialog portals.
+ * - The root type on a very wide screen: 112.5% from 150rem and 125% from 200rem, so a 4K display
+ *   at 1x reads at a laptop's size.
  * - --input and --radius, with shadcn's stock values, for an app whose theme has neither:
  *   fields draw their border in --input and round their corners on the --radius-ouro-* steps.
  *   shadcn add writes a variable only when the app's stylesheet lacks it, and a theme
@@ -153,6 +155,19 @@
   }
   [data-ouro-surface] {
     display: none;
+  }
+  /* A very wide screen at 1x (a 4K display at 100%, 3840px across) reads at a laptop's size: the root grows one step
+     at 150rem (2400px) and another at 200rem (3200px), then stops, so rem-sized type, gutters and columns grow a
+     little and never past 125% (20px). An app's own `html { font-size }` outside any layer wins. */
+  @media (width >= 150rem) {
+    html {
+      font-size: 112.5%;
+    }
+  }
+  @media (width >= 200rem) {
+    html {
+      font-size: 125%;
+    }
   }
 }
 
