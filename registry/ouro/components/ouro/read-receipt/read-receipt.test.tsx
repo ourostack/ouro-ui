@@ -45,10 +45,10 @@ describe("ReadReceipt", () => {
     // Each face after the first overlaps the one before.
     expect(faces[1]!.getBoundingClientRect().left).toBeLessThan(faces[0]!.getBoundingClientRect().right);
     expect(receipt!.querySelector("[data-ouro-read-receipt-more]")!.textContent).toBe("+2");
-    // Three or fewer have no count, and a lowercase name still shows a capital.
-    const few = (await render(<ReadReceipt readers={crew.slice(2, 4)} />)).receipt!;
+    // Exactly three have no count, and a lowercase name with spaces before it still shows its capital.
+    const few = (await render(<ReadReceipt readers={[crew[1]!, crew[2]!, { name: "  ned land" }]} />)).receipt!;
     expect(few.querySelector("[data-ouro-read-receipt-more]")).toBeNull();
-    expect(few.querySelectorAll('[data-ouro="avatar"]')[1]!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("N");
+    expect(few.querySelectorAll('[data-ouro="avatar"]')[2]!.querySelector("[data-ouro-avatar-initials]")!.getAttribute("data-ouro-avatar-initials")).toBe("N");
     expect(warn).not.toHaveBeenCalled();
   });
 
