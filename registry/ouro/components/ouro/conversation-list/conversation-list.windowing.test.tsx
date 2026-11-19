@@ -902,10 +902,11 @@ describe("ConversationList windowing with sections", () => {
     const first = vi.fn();
     const second = vi.fn();
     avatarRenders.count = 0;
-    const view = await render(<ConversationList label="Chats" items={items} selectedId="c0" onSelect={first} />);
+    const view = await render(<ConversationList label="Chats" items={items} selectedId="c0" onSelect={first} membersLabel={(names) => names.join()} />);
     expect(avatarRenders.count).toBe(10);
     avatarRenders.count = 0;
-    await view.rerender(<ConversationList label="Chats" items={items} selectedId="c3" onSelect={second} />);
+    // An inline membersLabel, as a translated app passes it, still re-renders only the two rows.
+    await view.rerender(<ConversationList label="Chats" items={items} selectedId="c3" onSelect={second} membersLabel={(names) => names.join()} />);
     expect(avatarRenders.count).toBe(2);
     await act(async () => view.rows()[5]!.click());
     expect(first).not.toHaveBeenCalled();

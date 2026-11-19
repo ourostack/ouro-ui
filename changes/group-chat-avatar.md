@@ -1,0 +1,1 @@
+- New: Avatar draws a group chat from its `members` (`<Avatar name="Crew" members={[{ name, src }]} />`): the person's squircle cut into slices of its members' pictures or initials, so a group chat no longer looks like a channel's `shape="square"`; ConversationList rows take `members` too.

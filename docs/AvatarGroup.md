@@ -22,7 +22,7 @@ The "+N" count is drawn like Avatar's initials, not written, and screen readers 
 
 ## Use instead when
 
-- Use a list of `Avatar`s with names beside them instead when readers need to see who each person is.
+- Use a list of `Avatar`s with names beside them instead when readers need to see who each person is, and `<Avatar members>` for a group chat's avatar, which keeps to one avatar's size.
 
 ## Props
 

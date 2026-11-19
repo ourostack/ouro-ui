@@ -9,12 +9,16 @@ import { Avatar, AvatarGroup } from "@/components/ouro/avatar/avatar";
 // expect: data-shape="square"
 // expect: aria-label="Ouro cooks"
 // expect: data-ouro-avatar-count="+1"
+// expect: aria-label="Ouro crew, group chat with Ana Lind, Grace Hopper and Alan Turing"
+// expect: data-shape="group"
+// expect: data-ouro-avatar-slice
 export default function AvatarSection() {
   return (
     <>
       <Avatar name="Ouro avatar" />
       <Avatar name="Ouro person" presence="busy" presenceLabel="Busy" />
       <Avatar name="Ouro team" shape="square" />
+      <Avatar name="Ouro crew" members={[{ name: "Ana Lind" }, { name: "Grace Hopper" }, { name: "Alan Turing" }]} />
       <AvatarGroup label="Ouro cooks" max={1}>
         <Avatar name="Ana Lind" />
         <Avatar name="Grace Hopper" />

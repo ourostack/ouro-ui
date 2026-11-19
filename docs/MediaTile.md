@@ -93,6 +93,23 @@ Where the initials' colors come from: a hue picked from the name, the theme's pr
 type AvatarColor = "colorful" | "brand" | "neutral";
 ```
 
+### `AvatarMember`
+
+One member of a group chat, as Avatar's `members` takes them.
+
+```ts
+interface AvatarMember {
+  /** The member's name: their initial comes from it, and screen readers hear it in the group's name. */
+  name: string;
+  /** The member's picture. Until it loads, and if it fails, their initial shows in their hue. */
+  src?: string | undefined;
+  /** What their hue is picked from, when it should not be `name`, as Avatar's `idForColor`. */
+  idForColor?: string | undefined;
+  /** The letters to take their initial from, when it should not come from `name`. */
+  initials?: string | undefined;
+}
+```
+
 ### `AvatarNoPresenceProps`
 
 An Avatar without a presence dot.
@@ -145,7 +162,27 @@ interface AvatarOwnProps {
    * agent (a less-rounded tile, white in light mode, with the glyph in its own color and a
    * presence dot). The initials, icon or picture fill the shape, centered. @default "circle"
    */
-  shape?: AvatarShape | (string & { 'Use "circle", "square" or "agent"; rounded is "square", hexagon is "agent"': never }) | undefined;
+  shape?: AvatarShape | (string & { 'Use "circle", "square" or "agent"; rounded is "square", hexagon is "agent", a group chat is members': never }) | undefined;
+  /**
+   * A group chat's members, which draw the avatar as the group: the person's squircle cut into
+   * slices, one per member shown, with a gap between them that lets what lies behind show
+   * through. Below 40px it shows the first two, side by side; from 40px up, the first three (one
+   * half and two quarters). Each slice is the member's picture, or their initial in their own
+   * hue. One member fills the whole avatar. A group draws no presence dot and takes no `shape`:
+   * a person is the circle, a group chat `members`, and a team, a channel, an app or a bot
+   * `shape="square"`.
+   *
+   * Screen readers hear the group's name and who is in it: "The whole crew, group chat with
+   * Captain Nemo, Professor Aronnax and 2 others" (`membersLabel` for other languages). Pass
+   * `src` for a picture the group set for itself, which shows in place of the slices once it
+   * loads.
+   */
+  members?: readonly AvatarMember[] | undefined;
+  /**
+   * The words screen readers hear after a group's name, for other languages, from its members'
+   * names. @default "group chat with" the first two names, then the rest's count ("and 2 others")
+   */
+  membersLabel?: ((names: readonly string[]) => string) | undefined;
   /**
    * How the initials are colored. `"colorful"` picks one of eight hues from `idForColor`
    * (else `name`), so the same person always gets the same one, and the initials keep at
@@ -173,6 +210,12 @@ interface AvatarOwnProps {
   children?: { 'Use <Avatar name="Ana Lind" initials="AL" />': never };
   /** Not a prop. The initials come from `name`, or pass `initials`: `<Avatar name="Ana Lind" initials="AL" />`. */
   fallback?: { 'Use <Avatar name="Ana Lind" initials="AL" />': never };
+  /** Not a prop. A group chat's people are `members`: `<Avatar name="Crew" members={[{ name: "Ana Lind", src }]} />`. */
+  participants?: { 'Use members={[{ name, src }]}': never };
+  /** Not a prop. A group chat's people are `members`: `<Avatar name="Crew" members={[{ name: "Ana Lind", src }]} />`. */
+  people?: { 'Use members={[{ name, src }]}': never };
+  /** Not a prop. A group chat's people are `members`: `<Avatar name="Crew" members={[{ name: "Ana Lind", src }]} />`. */
+  users?: { 'Use members={[{ name, src }]}': never };
 }
 ```
 
