@@ -979,7 +979,9 @@ describe("docs", () => {
       await expect.element(main.getByRole("status")).toHaveTextContent("One page by that name.");
       await expect.element(main.getByRole("link", { name: "TextField", exact: true })).toHaveAttribute("href", href("/docs/text-field/"));
       await userEvent.fill(field, "zzz");
-      await expect.element(main.getByRole("status")).toHaveTextContent("Nothing on our charts by that name. Try a component, like Button.");
+      await expect.poll(() => main.getByRole("status").query()?.textContent?.replace(/\s+/g, " ")).toMatch(/^Nothing on our charts by that name\. Want one\? Ask for “zzz”/);
+      // The lost page asks for what it can't find, as the docs' searches do.
+      expect(new URL(main.getByRole("status").getByRole("link").element().getAttribute("href")!).searchParams.get("title")).toBe("Component request: zzz");
     } finally {
       history.replaceState(null, "", before);
     }
