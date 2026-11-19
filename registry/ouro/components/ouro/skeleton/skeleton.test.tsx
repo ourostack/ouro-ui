@@ -275,6 +275,8 @@ describe("Skeleton", () => {
     const host = (await render(list(131))).parentElement!;
     const animated = () => [...host.querySelectorAll("[data-ouro=skeleton]")].filter((el) => getComputedStyle(el).animationName === "ouro-skeleton-breathe").length;
     expect(animated()).toBe(24);
+    const phased = [...host.querySelectorAll<HTMLElement>("[data-ouro=skeleton]")].filter((el) => el.style.getPropertyValue("--ouro-skeleton-delay") !== "").length;
+    expect(phased, "only the placeholders that breathe join the wave").toBe(24);
     const again = (await render(list(5))).parentElement!;
     expect(animated()).toBe(24);
     expect([...again.querySelectorAll("[data-ouro=skeleton]")].filter((el) => getComputedStyle(el).animationName === "ouro-skeleton-breathe")).toHaveLength(0);
