@@ -222,8 +222,8 @@ function curvePath(points: ReadonlyArray<readonly [number, number]>): string {
 function barSlots(width: number, count: number): Array<{ x: number; width: number }> {
   const side = width * 0.1;
   const room = width - side * 2;
-  // Bars too thin for the gap between them touch instead.
-  const gap = count > 1 && room - (count - 1) * 4 >= count ? 4 : 0;
+  // Bars too thin for the gap between them touch instead. (A lone bar has no gap to leave, whatever this gives.)
+  const gap = room - (count - 1) * 4 >= count ? 4 : 0;
   const bar = Math.max((room - (count - 1) * gap) / count, 0);
   return Array.from({ length: count }, (_, index) => ({ x: side + index * (bar + gap), width: bar }));
 }

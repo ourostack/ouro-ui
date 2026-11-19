@@ -928,6 +928,8 @@ describe("Chart geometry", () => {
     expect(curvePath([])).toBe("");
     expect(curvePath([[1, 2]])).toBe("M1,2");
     expect(curvePath([[0, 0], [10, 5]])).toBe("M0,0L10,5");
+    // The path d3's curveMonotoneX draws through these points, its ends' slopes included.
+    expect(curvePath([[0, 0], [10, 10], [20, 30], [30, 35]])).toBe("M0,0C3.33,2.5 6.67,5 10,10C13.33,15 16.67,26.67 20,30C23.33,33.33 26.67,34.17 30,35");
     const points = [[0, 50], [10, 20], [20, 30], [30, 30], [40, 0]] as const;
     const path = curvePath(points);
     const segments = [...path.matchAll(/C([^C]+)/g)].map((match) => match[1]!.trim().split(/[ ,]+/).map(Number));
@@ -950,5 +952,143 @@ describe("Chart geometry", () => {
     const thin = barSlots(10, 3);
     expect(thin.map((slot) => slot.width)).toEqual([8 / 3, 8 / 3, 8 / 3]);
     expect(thin.map((slot) => slot.x)).toEqual([1, 1 + 8 / 3, 1 + 16 / 3]);
+    // Bars exactly as wide as a pixel each keep the gap.
+    expect(barSlots(7.5, 2)).toEqual([{ x: 0.75, width: 1 }, { x: 5.75, width: 1 }]);
+  });
+});
+
+describe("Chart plot", () => {
+  const values = [
+    { at: "A", value: 30 },
+    { at: "B", value: 10 },
+    { at: "C", value: -5 },
+  ];
+  const one = { value: { label: "Value" } } satisfies ChartConfig<(typeof values)[number]>;
+  const numbers = (element: Element, ...names: string[]) => names.map((name) => Number(element.getAttribute(name)));
+  /** The plot's box and scale, as its grid and y axis draw them. */
+  function scale(chart: HTMLElement, ticks: number[]) {
+    const svg = surface(chart)!;
+    const [width, height] = numbers(svg, "width", "height");
+    const grid = [...chart.querySelectorAll('[data-ouro-chart-grid] line')].map((line) => numbers(line, "x1", "x2", "y1"));
+    const [top, bottom, left, right] = [8, Math.max(height! - 30, 9), grid[0]![0]!, grid[0]![1]!];
+    const y = (value: number) => bottom - ((value - ticks[0]!) / (ticks.at(-1)! - ticks[0]!)) * (bottom - top);
+    return { width: width!, height: height!, grid, top, bottom, left, right, y };
+  }
+
+  it("lays its grid, axes and bars out on a scale from its smallest tick at the bottom to its largest at the top", async () => {
+    const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const box = chart.querySelector("[data-ouro-chart-plot]")!;
+    const ticks = niceTicks(-5, 30);
+    const { width, height, grid, bottom, left, right, y } = scale(chart, ticks);
+    expect([width, height]).toEqual([box.clientWidth, box.clientHeight]);
+    // The y axis is as wide as its widest label and the room beside it; the plot ends 8px from the right.
+    const yLabels = [...chart.querySelectorAll<SVGTextElement>('[data-ouro-chart-axis="y"] text')];
+    expect(yLabels.map((label) => label.textContent)).toEqual(ticks.map((tick) => tick.toLocaleString("en-US")));
+    expect(Math.abs(left - (Math.max(...yLabels.map((label) => label.getComputedTextLength())) + 14))).toBeLessThanOrEqual(1);
+    expect(right).toBe(width - 8);
+    expect(grid.map(([x1, x2]) => [x1, x2])).toEqual(ticks.map(() => [left, right]));
+    grid.forEach(([, , y1], place) => expect(y1).toBeCloseTo(y(ticks[place]!), 6));
+    for (const [place, label] of yLabels.entries()) expect(numbers(label, "x", "y")).toEqual([left - 14, y(ticks[place]!)]);
+    // A band per category; each bar a tenth in from its band's sides, from 0 to its value.
+    const band = (right - left) / 3;
+    bars(chart, "value").forEach((bar, category) => {
+      const [x, top, barWidth, barHeight] = numbers(bar, "x", "y", "width", "height");
+      expect(x).toBeCloseTo(left + band * category + band * 0.1, 6);
+      expect(barWidth).toBeCloseTo(band * 0.8, 6);
+      const ends = [y(0), y(values[category]!.value)];
+      expect(top).toBeCloseTo(Math.min(...ends), 6);
+      expect(barHeight).toBeCloseTo(Math.abs(ends[1]! - ends[0]!), 6);
+    });
+    // Each category's label in the middle of its band, under the plot.
+    const xLabels = [...chart.querySelectorAll('[data-ouro-chart-axis="x"] text')];
+    expect(xLabels.map((label) => label.textContent)).toEqual(["A", "B", "C"]);
+    xLabels.forEach((label, category) => expect(numbers(label, "x", "y")).toEqual([left + band * (category + 0.5), bottom + 14]));
+  });
+
+  it("puts a line's points a step apart from edge to edge, and a lone point in the middle", async () => {
+    const { chart, rerender } = await render(<Chart title="Scale" type="line" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const { left, right, y } = scale(chart, niceTicks(-5, 30));
+    const step = (right - left) / 2;
+    const points = values.map((row, category) => [left + step * category, y(row.value)] as const);
+    expect(chart.querySelector("[data-ouro-chart-line]")!.getAttribute("d")).toBe(curvePath(points));
+    const dots = [...chart.querySelectorAll("[data-ouro-chart-dot]")].map((dot) => dot.getAttribute("transform"));
+    expect(dots).toEqual(points.map(([x, at]) => `translate(${x} ${at})`));
+    expect([...chart.querySelectorAll('[data-ouro-chart-axis="x"] text')].map((label) => Number(label.getAttribute("x")))).toEqual(points.map(([x]) => x));
+    await rerender(<Chart title="Scale" type="line" data={[{ at: "A", value: 5 }]} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const lone = scale(chart, niceTicks(0, 5));
+    expect(chart.querySelector("[data-ouro-chart-dot]")!.getAttribute("transform")).toBe(`translate(${(lone.left + lone.right) / 2} ${lone.y(5)})`);
+  });
+
+  it("breaks a line and its area at each missing value, drawing each run between them once", async () => {
+    const gappy = [{ at: "A", value: 5 }, { at: "B" }, { at: "C" }, { at: "D", value: 7 }, { at: "E", value: 8 }, { at: "F" }];
+    const { chart } = await render(<Chart title="Gaps" type="area" data={gappy} categoryKey="at" config={one} />);
+    await drawn(chart);
+    const { left, right, y } = scale(chart, niceTicks(0, 8));
+    const x = (category: number) => left + ((right - left) / 5) * category;
+    const runs = [[[x(0), y(5)]], [[x(3), y(7)], [x(4), y(8)]]] as const;
+    expect([...chart.querySelectorAll("[data-ouro-chart-line]")].map((line) => line.getAttribute("d"))).toEqual(runs.map((run) => curvePath(run)));
+    expect([...chart.querySelectorAll("[data-ouro-chart-area]")].map((area) => area.getAttribute("d"))).toEqual(
+      runs.map((run) => `${curvePath(run)}L${run.at(-1)![0]},${y(0)}L${run[0]![0]},${y(0)}Z`),
+    );
+  });
+
+  it("keeps a plot too small for its axes a pixel wide and a pixel tall", async () => {
+    const { chart } = await render(<Chart title="Tiny" type="bar" data={values} categoryKey="at" config={one} />, 30);
+    await drawn(chart);
+    const { height, grid, left } = scale(chart, niceTicks(-5, 30));
+    expect(height - 30).toBeLessThan(9);
+    expect(grid.map(([x1, x2]) => x2! - x1!)).toEqual(grid.map(() => 1));
+    expect([grid[0]![0], grid[0]![2], grid.at(-1)![2]]).toEqual([left, 9, 8]);
+  });
+
+  it("writes the y axis with formatValue, naming no series, as all of them share it", async () => {
+    const formatValue = (value: number, series: string) => `${series || "axis"} ${value}`;
+    const { chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} formatValue={formatValue} />);
+    await drawn(chart);
+    expect([...chart.querySelectorAll('[data-ouro-chart-axis="y"] text')].map((label) => label.textContent)).toEqual(niceTicks(-5, 30).map((tick) => `axis ${tick}`));
+  });
+
+  it("draws in the commit that mounts it, before any frame", () => {
+    const host = document.createElement("div");
+    host.style.width = "600px";
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    flushSync(() => root.render(<Chart title="Now" type="bar" data={values} categoryKey="at" config={one} />));
+    expect(host.querySelectorAll("[data-ouro-chart-bar]")).toHaveLength(3);
+  });
+
+  it("follows its box as it resizes, and stops watching it when it unmounts", async () => {
+    const disconnect = vi.spyOn(ResizeObserver.prototype, "disconnect");
+    const { host, chart } = await render(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    host.style.width = "400px";
+    await expect.poll(() => scale(chart, niceTicks(-5, 30)).right).toBe(chart.querySelector("[data-ouro-chart-plot]")!.clientWidth - 8);
+    expect(disconnect).not.toHaveBeenCalled();
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+    expect(disconnect).toHaveBeenCalled();
+  });
+
+  it("leaves a recharts chart's box to recharts, and measures it once the chart draws by type", async () => {
+    const observe = vi.spyOn(ResizeObserver.prototype, "observe");
+    const custom = (
+      <Chart title="Scale" data={values} categoryKey="at" config={one}>
+        <LineChart>
+          <Line dataKey="value" />
+        </LineChart>
+      </Chart>
+    );
+    const { chart, rerender } = await render(custom);
+    await drawn(chart);
+    const box = chart.querySelector("[data-ouro-chart-plot]")!;
+    expect(observe.mock.calls.map(([target]) => target)).not.toContain(box);
+    await rerender(<Chart title="Scale" type="bar" data={values} categoryKey="at" config={one} />);
+    await drawn(chart);
+    expect(observe.mock.calls.map(([target]) => target)).toContain(box);
+    expect(bars(chart, "value")).toHaveLength(3);
   });
 });

@@ -51,13 +51,14 @@ function loadRecharts(): Promise<RechartsParts> {
  */
 function useRecharts(): RechartsParts | undefined {
   const [, setLoaded] = useState(recharts);
+  // Once Recharts is loaded, this sets the state to what it already holds, which renders nothing again.
   useEffect(() => {
-    if (!recharts)
-      loadRecharts().then(setLoaded, (error: unknown) =>
-        setLoaded(() => {
-          throw error;
-        }),
-      );
+    loadRecharts().then(setLoaded, (error: unknown) =>
+      setLoaded(() => {
+        throw error;
+      }),
+    );
+    // Stryker disable next-line ArrayDeclaration: a dependency list that never changes runs the effect once, as an empty one does
   }, []);
   return recharts;
 }
@@ -538,13 +539,11 @@ function usePlotSize(ref: RefObject<HTMLDivElement | null>, enabled: boolean): P
   return size;
 }
 
-let measuring: CanvasRenderingContext2D | null | undefined;
+let measuring: CanvasRenderingContext2D | undefined;
 
-/** How wide a label draws in a font, in CSS pixels. */
+/** How wide a label draws in a font, in CSS pixels. A new canvas always has a 2D context to give. */
 function textWidth(text: string, font: string): number {
-  measuring ??= document.createElement("canvas").getContext("2d");
-  /* istanbul ignore if @preserve -- every browser the tests run gives a canvas a 2D context */
-  if (!measuring) return text.length * 7;
+  measuring ??= document.createElement("canvas").getContext("2d")!;
   measuring.font = font;
   return measuring.measureText(text).width;
 }
@@ -698,7 +697,7 @@ function SeriesPlot({ type, data, categoryKey, series, formatValue, plotProps, s
       data.forEach((row, category) => {
         const value = row[item.key];
         if (isValue(value)) runs.at(-1)!.push([x(category), y(value)]);
-        else if (runs.at(-1)!.length > 0) runs.push([]);
+        else runs.push([]);
       });
       const lines = runs.filter((run) => run.length > 0);
       return (
