@@ -22,9 +22,10 @@ const prefix = "ourostack/ouro-ui/";
  */
 // Set 2026-11-18 over main at 0e124635, from a bare app of 67,836 bytes of JavaScript and 3,619 of CSS. Before minifying,
 // about two thirds of what list-detail-page and settings-page add is Base UI and Floating UI (ColorSchemeToggle's Menu
-// in all three, Select in settings-page); about three fifths of dashboard-page's is Recharts and what it brings, for Chart.
+// in all three, Select in settings-page). dashboard-page's lowered 2026-11-18 from 190,829 and 10,161, once Chart drew
+// its own marks and stopped loading Recharts.
 export const CEILINGS = {
-  "dashboard-page": { js: 190_829 + 1024, css: 10_161 + 512 },
+  "dashboard-page": { js: 80_788 + 1024, css: 10_381 + 512 },
   "list-detail-page": { js: 81_466 + 1024, css: 9_303 + 512 },
   "settings-page": { js: 99_526 + 1024, css: 13_357 + 512 },
 };

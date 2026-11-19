@@ -106,7 +106,7 @@ const kindLabel = (kind: SpecimenClass) => CLASSES.find((each) => each.value ===
  * HoverCard, Combobox and Sheet show the finds and you sort each new one; and the ship's radio,
  * HX's chat parts (chapter-two-radio.tsx). Each has a Code sheet saying which part is HX's and
  * which the site's. The page
- * hydrates it only as it nears the screen, so its Chart (and Recharts with it) never loads first.
+ * hydrates it only as it nears the screen, so its Chart never loads first.
  */
 export default function ChapterTwo(): JSX.Element {
   const root = useRef<HTMLElement>(null);
@@ -352,7 +352,7 @@ function Total({ route, last }: { route: readonly PortId[]; last: string }): JSX
   );
 }
 
-/** One of the chart's axis labels, where Recharts put it, from the top left of the chart's box. */
+/** One of the chart's axis labels, where Chart put it, from the top left of the chart's box. */
 interface AxisLabel {
   x: number;
   y: number;
@@ -360,7 +360,7 @@ interface AxisLabel {
 }
 
 /**
- * The legs chart's x-axis labels, read from where Recharts drew them. Recharts draws them as SVG
+ * The legs chart's x-axis labels, read from where Chart drew them. Chart draws them as SVG
  * text, which costs WebKit a whole-page layout and repaint on every press (htmlLabels in art.ts),
  * so chapter-two.css hides them and Legs puts these over the chart as HTML instead.
  */
@@ -371,9 +371,9 @@ function useAxisLabels(host: RefObject<HTMLElement | null>): AxisLabel[] {
     let last = "";
     const read = () => {
       const origin = element.getBoundingClientRect();
-      const svg = element.querySelector("svg.recharts-surface");
+      const svg = element.querySelector("svg[data-ouro-chart-surface]");
       const surface = svg?.getBoundingClientRect();
-      const next = [...element.querySelectorAll(".recharts-xAxis-tick-labels .recharts-cartesian-axis-tick-value")].map((text) => ({
+      const next = [...element.querySelectorAll('[data-ouro-chart-axis="x"] [data-ouro-chart-tick]')].map((text) => ({
         x: surface!.left - origin.left + Number(text.getAttribute("x")),
         y: surface!.top - origin.top + Number(text.getAttribute("y")),
         text: text.textContent ?? "",
@@ -410,7 +410,7 @@ const Legs = memo(function Legs({ route }: { route: readonly PortId[] }): JSX.El
         className="pointer-events-none absolute inset-0 text-xs text-muted-foreground"
         data-chapter-axis=""
         data-ouro-allow="overlap"
-        data-ouro-allow-why="The chart's own x-axis labels, set where Recharts would draw them, in the band its SVG keeps for them below the bars."
+        data-ouro-allow-why="The chart's own x-axis labels, set where Chart would draw them, in the band its SVG keeps for them below the bars."
       >
         {labels.map((label) => (
           <span key={`${label.text}-${label.x}`} className="absolute whitespace-nowrap leading-none" style={{ left: label.x, top: label.y, translate: "-50%" }}>

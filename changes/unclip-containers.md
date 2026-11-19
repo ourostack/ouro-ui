@@ -1,0 +1,1 @@
+- Fixed: ItemGroup, ChoiceCard and CodeBlock no longer clip their content to their squircle, so a change inside repaints only its own part.
