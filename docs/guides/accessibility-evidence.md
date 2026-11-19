@@ -1,4 +1,4 @@
-# Accessibility evidence, per component
+# Accessibility evidence
 
 Ouro HX's accessibility claims are checked by the project's own CI. This page lets anyone run the same checks, or open the CI run behind each one, without taking the project's word. It is generated from the repository's files, so a component with no screen-reader spec shows that here rather than being left out.
 

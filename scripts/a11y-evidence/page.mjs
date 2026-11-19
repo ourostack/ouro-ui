@@ -56,7 +56,7 @@ export function evidenceRows(base = root) {
 export function renderEvidencePage({ rows, others }) {
   const withSpec = rows.filter((row) => row.spec);
   const out = [];
-  out.push("# Accessibility evidence, per component");
+  out.push("# Accessibility evidence");
   out.push("");
   out.push("Ouro HX's accessibility claims are checked by the project's own CI. This page lets anyone run the same checks, or open the CI run behind each one, without taking the project's word. It is generated from the repository's files, so a component with no screen-reader spec shows that here rather than being left out.");
   out.push("");
