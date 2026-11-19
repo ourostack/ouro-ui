@@ -106,4 +106,13 @@ describe("PageSection", () => {
       await page.viewport(size.width, size.height);
     }
   });
+
+  it("lets the app's layout class win and warns about an appearance class", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const host = await render(<PageSection className="mt-8 bg-red-500">x</PageSection>);
+    const el = host.firstElementChild as HTMLElement;
+    expect(el.getAttribute("data-ouro")).toBe("page-section");
+    expect(getComputedStyle(el).marginTop).toBe("32px");
+    expect(warn.mock.calls.map((c) => String(c[0])).join("\n")).toContain("[ouro-ui] PageSection:");
+  });
 });
