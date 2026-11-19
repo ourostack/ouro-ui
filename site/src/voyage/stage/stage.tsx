@@ -376,6 +376,8 @@ function SightGlass({ full }: { full: boolean }): JSX.Element {
       <svg viewBox="0 0 44 44">
         <path className="stage-gauge-ticks" d="M9 15 H12.5 M9 22 H14 M9 29 H12.5" />
         <rect className="stage-gauge-bezel" x="3" y="3" width="38" height="38" rx="19" />
+        <rect className="stage-gauge-seat" x="5" y="5" width="34" height="34" rx="17" />
+        <rect className="stage-gauge-shine" x="1.25" y="1.25" width="41.5" height="41.5" rx="20.75" />
         <path className="stage-gauge-glint" d="M14 10.5 Q22 7.5 30 10.5" />
       </svg>
     </span>
@@ -465,6 +467,10 @@ const LightsControl = memo(function LightsControl({ lights, onChange }: { lights
     <div className="stage-lights" data-stage-control="lights">
       <span className="stage-heading" aria-hidden="true">
         {STAGE_COPY.lights}
+      </span>
+      {/* The lamp itself, a brass-rimmed lens that lights with the lantern's light while the switch is on (stage.css). */}
+      <span className="stage-lamp" aria-hidden="true" data-lit={lights ? "" : undefined}>
+        <span className="stage-lamp-light" />
       </span>
       <Switch label={STAGE_COPY.lights} hideLabel checked={lights} onCheckedChange={onChange} />
     </div>

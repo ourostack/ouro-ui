@@ -17,9 +17,6 @@
   --sea-bottom: color-mix(in oklab, var(--sea-deep), var(--sea-abyss) calc(var(--d) * 100%));
   /* The painted sea's own light: the pale cyan of its sunbeams and of the deep's creatures. */
   --glow: oklch(0.86 0.1 200);
-  --lantern: oklch(0.9 0.11 85);
-  /* The rim's brass (below), here so the gradient's stops in the scene's first drawing can read it. */
-  --brass: color-mix(in oklab, oklch(0.7 0.1 78) 88%, var(--background));
   --stage-fade: var(--ouro-duration-slow) ease;
   position: relative;
   display: block;
@@ -815,11 +812,22 @@
  * glass and ink and opens onto the page's sea, Abyss glows, Brass is a Victorian instrument.
  */
 .stage {
+  /*
+   * The porthole's materials, which the console's instruments share: brass, turned and lit from above, as the
+   * porthole's rim and the chapters' are (brass in every look; at night a little darker); the lantern's warm light;
+   * and the painted sea's water, behind frosted glass.
+   */
+  --brass: color-mix(in oklab, oklch(0.7 0.1 78) 88%, var(--background));
+  --brass-light: color-mix(in oklab, var(--brass) 55%, white);
+  --brass-dark: color-mix(in oklab, var(--brass) 55%, oklch(0.2 0.02 60));
+  --lantern: oklch(0.9 0.11 85);
   --panel: var(--card);
   --panel-line: color-mix(in oklab, var(--border) 80%, transparent);
-  --dial: color-mix(in oklab, var(--muted) 70%, var(--card));
+  /* A sight glass's face: frosted glass with the sea's light in it. */
+  --dial: color-mix(in oklab, oklch(0.95 0.03 205) 82%, var(--card));
+  --dial-dark: color-mix(in oklab, oklch(0.3 0.05 220) 80%, var(--card));
   --quiet: color-mix(in oklab, var(--muted-foreground) 72%, var(--foreground));
-  --water: color-mix(in oklab, var(--primary) 70%, var(--chart-2, var(--primary)));
+  --water: oklch(0.6 0.1 205);
   --glass-radius: 17;
   --numeral-font: var(--font-mono);
   --numeral-glow: none;
@@ -829,6 +837,9 @@
   --frame-shadow: var(--shadow-md);
   position: relative;
   container-type: inline-size;
+}
+.dark .stage {
+  --dial: var(--dial-dark);
 }
 /* The frame's shadow, on a layer of its own: drawn on the frame, its blur was redrawn with every word that changed on the
    console, 250 ms a time on CI's WebKit phone (ourostack/ouro-ui#667). */
@@ -1077,13 +1088,17 @@
   align-self: start;
   position: relative;
   z-index: 0;
-  height: 0.5rem;
-  margin-top: calc(var(--glass) / 2 - 0.25rem);
   /* From the first glass's centre to the last's on a phone, on to Dive on a wide screen. */
   margin-inline: calc((100% - 1.5rem) / 6);
   border-radius: 999px;
-  background: color-mix(in oklab, var(--muted) 90%, var(--foreground));
-  box-shadow: inset 0 1px 1px color-mix(in oklab, black 18%, transparent);
+  /* A brass tube, lit from above; its water shows through a glass window along it. */
+  height: 0.625rem;
+  margin-top: calc(var(--glass) / 2 - 0.3125rem);
+  border: 2px solid transparent;
+  background:
+    linear-gradient(to bottom, color-mix(in oklab, var(--dial) 80%, var(--brass-dark)), var(--dial)) padding-box,
+    linear-gradient(to bottom, var(--brass-light), var(--brass) 55%, var(--brass-dark)) border-box;
+  box-shadow: 0 1px 2px color-mix(in oklab, black 20%, transparent);
   overflow: hidden;
 }
 @container (min-width: 30rem) {
@@ -1096,7 +1111,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(to bottom, color-mix(in oklab, var(--water) 70%, white), var(--water));
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--water) 55%, white), var(--water) 60%, color-mix(in oklab, var(--water) 75%, black));
   transform-origin: left center;
   transform: scaleX(var(--fill));
 }
@@ -1180,14 +1195,26 @@
   width: 100%;
   height: 100%;
 }
+/* A brass bezel round the glass, a darker seat where the glass sits in it, and a bright edge where the light falls. */
 .stage-gauge-bezel {
   fill: none;
-  stroke: color-mix(in oklab, var(--foreground) 35%, var(--panel));
-  stroke-width: 2.5;
+  stroke: var(--brass);
+  stroke-width: 3.5;
   rx: calc(var(--glass-radius) * 1px + 2px);
 }
-.stage-gauge[data-full] .stage-gauge-bezel {
-  stroke: color-mix(in oklab, var(--water) 70%, var(--foreground));
+.stage-gauge-seat {
+  fill: none;
+  stroke: var(--brass-dark);
+  stroke-width: 1;
+  rx: calc(var(--glass-radius) * 1px);
+}
+.stage-gauge-shine {
+  fill: none;
+  stroke: var(--brass-light);
+  stroke-width: 1.2;
+  stroke-dasharray: 0 8 38 200;
+  rx: calc(var(--glass-radius) * 1px + 3.5px);
+  opacity: 0.9;
 }
 .stage-gauge-water {
   background: var(--water);
@@ -1210,7 +1237,7 @@
   opacity: 0;
 }
 .stage-gauge-ticks {
-  stroke: color-mix(in oklab, var(--foreground) 45%, transparent);
+  stroke: var(--brass-dark);
   stroke-width: 1.2;
   stroke-linecap: round;
 }
@@ -1237,9 +1264,12 @@
     text-align: start;
   }
 }
-/* Ready: Dive is the panel's one bright button, ringed in light. */
+/* Ready: Dive is the panel's one bright button, in a brass ring with the lantern's light round it. */
 .stage-dive[data-ready] button {
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 22%, transparent);
+  box-shadow:
+    0 0 0 2px var(--brass),
+    0 0 0 3px var(--brass-dark),
+    0 0 16px 3px color-mix(in oklab, var(--lantern) 45%, transparent);
 }
 .stage-ready,
 .stage-hint {
@@ -1269,8 +1299,41 @@
   align-items: center;
   gap: 0.75rem;
 }
+/* The floodlight itself: a lens of frosted glass in a brass rim, lit with the lantern's light while the lights are on. */
+.stage-lamp {
+  position: relative;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 3px solid var(--brass);
+  background: radial-gradient(circle at 38% 32%, color-mix(in oklab, var(--dial) 60%, white), var(--dial) 55%, color-mix(in oklab, var(--dial) 70%, var(--brass-dark)));
+  box-shadow:
+    inset 0 0 0 1px var(--brass-dark),
+    0 1px 2px color-mix(in oklab, black 25%, transparent);
+}
+.stage-lamp-light {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, white, var(--lantern) 45%, color-mix(in oklab, var(--lantern) 70%, oklch(0.75 0.15 70)));
+  box-shadow: 0 0 14px 4px color-mix(in oklab, var(--lantern) 60%, transparent);
+  opacity: 0;
+  transition: opacity var(--ouro-duration-fast) ease;
+}
+.stage-lamp[data-lit] .stage-lamp-light {
+  opacity: 1;
+}
+/* The bell is brass too. */
+.stage-bell .stage-bell-icon {
+  color: color-mix(in oklab, var(--brass) 70%, oklch(0.3 0.04 60));
+}
+.dark .stage-bell .stage-bell-icon {
+  color: var(--brass);
+}
 .stage-log-fold {
-  flex: 1 1 10rem;
+  /* Narrow enough at the start that the lamp, the log and the bell share one row on a wide console. */
+  flex: 1 1 7.5rem;
   min-width: 0;
   /* Its own layer, so its count changing repaints none of the console (#667). */
   will-change: transform;
@@ -1358,7 +1421,7 @@
   position: absolute;
   inset: -5px;
   border-radius: calc(var(--radius-lg) + 4px);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 30%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--lantern) 55%, transparent);
   opacity: 0;
   pointer-events: none;
   animation: stage-dive-ready 900ms ease-in-out 3 alternate;
@@ -1444,7 +1507,7 @@
     color: currentColor;
   }
   30% {
-    color: var(--primary);
+    color: oklch(0.78 0.15 78);
   }
 }
 @keyframes stage-bell-glow-b {
@@ -1453,7 +1516,7 @@
     color: currentColor;
   }
   30% {
-    color: var(--primary);
+    color: oklch(0.78 0.15 78);
   }
 }
 
@@ -1586,21 +1649,18 @@
 }
 
 /*
- * Abyss: bioluminescent. Near-black panels; the sight glasses are rounded pods whose water glows,
- * the pipe is a lit conduit, and the numbers glow in Space Grotesk.
+ * Abyss: bioluminescent. Near-black panels, rounded sight glasses, and numbers that glow in Space
+ * Grotesk. The instruments keep the porthole's brass and glass, as in every look.
  */
 [data-theme="abyss"] .stage {
   --numeral-font: var(--font-heading);
   --panel-line: color-mix(in oklab, var(--primary) 26%, transparent);
-  --dial: color-mix(in oklab, var(--primary) 8%, var(--card));
-  --water: var(--primary);
   --glass-radius: 8;
 }
 [data-theme="abyss"].dark .stage,
 .dark[data-theme="abyss"] .stage {
   --numeral-glow: 0 0 12px color-mix(in oklab, var(--primary) 70%, transparent);
   --panel: color-mix(in oklab, var(--card) 85%, black);
-  --dial: color-mix(in oklab, var(--primary) 6%, black);
 }
 [data-theme="abyss"] .stage {
   --frame-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 14%, transparent), 0 24px 80px -24px color-mix(in oklab, var(--primary) 35%, transparent);
@@ -1612,30 +1672,6 @@
   font-size: 1.75rem;
   font-weight: 500;
   letter-spacing: -0.02em;
-}
-[data-theme="abyss"] .stage-gauge-bezel {
-  stroke: color-mix(in oklab, var(--primary) 45%, var(--panel));
-  stroke-width: 1.5;
-}
-[data-theme="abyss"] .stage-gauge[data-full] .stage-gauge-bezel {
-  stroke: var(--primary);
-  filter: drop-shadow(0 0 4px var(--primary));
-}
-[data-theme="abyss"] .stage-gauge[data-full] .stage-gauge-water {
-  background: color-mix(in oklab, var(--primary) 80%, white);
-}
-[data-theme="abyss"] .stage-gauge-ticks {
-  stroke: color-mix(in oklab, var(--primary) 60%, transparent);
-}
-[data-theme="abyss"] .stage-pipe {
-  height: 0.25rem;
-  margin-top: calc(var(--glass) / 2 - 0.125rem);
-  background: color-mix(in oklab, var(--primary) 14%, var(--panel));
-  box-shadow: none;
-}
-[data-theme="abyss"] .stage-pipe-water {
-  background: var(--primary);
-  box-shadow: 0 0 10px var(--primary);
 }
 [data-theme="abyss"] .stage-band-name {
   border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
@@ -1660,19 +1696,13 @@
   animation-play-state: paused;
 }
 
-/* Brass: a Victorian instrument. Brass bezel and screws, ivory dials, serif numerals, engraved rules. */
+/* Brass: a Victorian instrument. Brass frame and screws, serif numerals, engraved rules. */
 [data-theme="brass"] .stage,
 [data-theme="cookbook"] .stage {
 }
 [data-theme="brass"] .stage {
   --numeral-font: var(--font-heading);
   --panel-line: color-mix(in oklab, var(--chart-3) 45%, var(--border));
-  --dial: color-mix(in oklab, oklch(0.97 0.02 90) 85%, var(--chart-3));
-  --water: color-mix(in oklab, var(--chart-2, var(--primary)) 55%, var(--primary));
-}
-[data-theme="brass"].dark .stage,
-.dark[data-theme="brass"] .stage {
-  --dial: color-mix(in oklab, oklch(0.9 0.035 88) 80%, var(--chart-3));
 }
 [data-theme="brass"] .stage-frame {
   border-width: 2px;
@@ -1701,19 +1731,6 @@
   font-family: var(--font-heading);
   font-size: 1.125rem;
   letter-spacing: 0.01em;
-}
-/* The manifold in brass: ivory sight glasses in thick brass bezels on a brass pipe. */
-[data-theme="brass"] .stage-gauge-bezel {
-  stroke: color-mix(in oklab, var(--chart-3) 85%, black 10%);
-  stroke-width: 3.5;
-}
-[data-theme="brass"] .stage-gauge-ticks {
-  stroke: oklch(0.35 0.04 60);
-}
-[data-theme="brass"] .stage-pipe {
-  height: 0.625rem;
-  margin-top: calc(var(--glass) / 2 - 0.3125rem);
-  background: linear-gradient(to bottom, color-mix(in oklab, var(--chart-3) 55%, white), var(--chart-3) 55%, color-mix(in oklab, var(--chart-3) 70%, black));
 }
 [data-theme="brass"] .stage-tank-name {
   font-family: var(--font-heading);
@@ -1764,7 +1781,12 @@
    * vanish. They keep the drawing's colours, as the SVG fills around them do.
    */
   .stage-gauge-water,
-  .stage-speck {
+  .stage-speck,
+  .stage-lamp-light {
     forced-color-adjust: none;
+  }
+  /* The pipe's brass is its border, which forced colours would keep transparent: give it the text colour. */
+  .stage-pipe {
+    border-color: CanvasText;
   }
 }
