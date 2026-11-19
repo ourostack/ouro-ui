@@ -58,6 +58,7 @@ async function mountMs(render: () => ReactElement, count: number): Promise<numbe
 }
 
 const constraints: { constraint: string; field: ReactElement }[] = [
+  { constraint: "required", field: <TextField label="Name" required /> },
   { constraint: "email", field: <TextField label="Name" type="email" /> },
   { constraint: "url", field: <TextField label="Name" type="url" /> },
   { constraint: "pattern", field: <TextField label="Name" pattern="[a-z]+" /> },
