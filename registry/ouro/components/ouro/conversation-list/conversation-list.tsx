@@ -565,7 +565,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   const keepInView = useRef<{ key: string; block: "nearest" | "center" } | null>(null);
   const known = useMemo(() => new Set<string | undefined>(sections.map((section) => section.id)), [sections]);
   const stray = items.find((item) => item.section !== undefined && !known.has(item.section));
-  const grouped = process.env.NODE_ENV !== "production" ? items.find((item) => isValidElement(item.avatar) && (item.avatar as ReactElement).type === AvatarGroup) : undefined;
+  const grouped = process.env.NODE_ENV !== "production" ? items.find((item) => isValidElement(item.avatar) && (item.avatar as ReactElement).type === AvatarGroup) : /* istanbul ignore next @preserve -- production only */ undefined;
   useAppearanceClassNameCheck(
     "ConversationList",
     className,
