@@ -19,7 +19,10 @@ export type ChatMember = AvatarMember & {
 export interface ChatMemberPresence {
   /** Their presence, as a dot on their avatar in a one-to-one chat's header and in the member list. */
   presence: AvatarPresence;
-  /** What the dot says ("In a meeting"): a one-to-one chat's header shows it under the title. Required with `presence`, so no dot is silent. */
+  /**
+   * What the dot says ("In a meeting"): a one-to-one chat's header shows it under the title. Required with `presence`, so no dot is silent.
+   * @claim "Required with `presence`, so no dot is silent" registry/ouro/components/ouro/chat-header/chat-header.test-d.ts verify:fileLine(registry/ouro/components/ouro/chat-header/chat-header.test-d.ts, /presence: "busy" \}\] \}>\(\)\.not\.toExtend<ChatHeaderProps>/)
+   */
   presenceLabel: string;
 }
 

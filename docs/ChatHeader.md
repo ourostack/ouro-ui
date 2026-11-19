@@ -87,6 +87,68 @@ A person's presence, drawn as a dot with its own shape: a check (available), a s
 type AvatarPresence = "available" | "busy" | "away" | "do-not-disturb" | "offline" | "out-of-office";
 ```
 
+### `ChatHeaderOwnProps`
+
+The props ChatHeader adds to the `<div>` attributes it passes through.
+
+```ts
+interface ChatHeaderOwnProps {
+  /** The chat's name: the person's name in a one-to-one chat, the group's in a group chat. It is the header's heading. */
+  title: string;
+  /**
+   * Who the chat is with, not counting the reader. One member makes a one-to-one chat: their avatar with their
+   * presence dot, and what the dot says under the title. Two or more make a group chat: the group's avatar drawn
+   * from its members (Avatar's `members`), "Captain Nemo and 3 others" under the title, and a button with the
+   * count that opens the member list, each with their face, name, note and presence.
+   */
+  members: readonly ChatMember[];
+  /** The group's own picture, in place of its members' faces once it loads. Read only for a group chat. */
+  avatar?: string | undefined;
+  /** The line under the title, in place of the presence or "Captain Nemo and 3 others", such as "Ned Land is writing…". */
+  subtitle?: ReactNode;
+  /** Buttons at the end of the header, such as a call button or a menu. */
+  actions?: ReactNode;
+  /**
+   * Shows a back button at the start, for a phone layout where the chat covers the list of chats. It is called when
+   * the button is pressed.
+   */
+  onBack?: ((event: MouseEvent<HTMLButtonElement>) => void) | undefined;
+  /** What screen readers hear for the back button, for other languages. @default "Back" */
+  backLabel?: string | undefined;
+  /** The title's heading level: `2` in a page that has its own `<h1>`, `1` when the chat is the page. @default 2 */
+  level?: 1 | 2 | 3 | (number & { 'Use 1, 2 or 3': never }) | undefined;
+  /**
+   * The line under a group chat's title, from its members' names, for other languages.
+   * @default the first name, then "and" the second, or the rest's count ("Captain Nemo and 3 others")
+   */
+  othersLabel?: ((names: readonly string[]) => string) | undefined;
+  /** What screen readers hear for the member list's button, from the count, for other languages. @default (count) => `${count} members` */
+  membersLabel?: ((count: number) => string) | undefined;
+  /** The member list's title, for other languages. @default "Members" */
+  membersTitle?: string | undefined;
+  /** Layout only: margins, padding, width (`px-4 py-2`). Appearance classes warn in development. */
+  className?: string | undefined;
+  ref?: Ref<HTMLDivElement> | undefined;
+
+  /** Not a prop. The chat's people are `members`: `<ChatHeader title="Crew" members={[{ name: "Ana Lind" }]} />`. */
+  participants?: { 'Use members={[{ name, src }]}': never };
+  /** Not a prop. The chat's people are `members`: `<ChatHeader title="Crew" members={[{ name: "Ana Lind" }]} />`. */
+  people?: { 'Use members={[{ name, src }]}': never };
+  /** Not a prop. The line under the title is `subtitle`: `<ChatHeader subtitle="Planning the voyage" />`. */
+  description?: { 'Use subtitle="..."': never };
+  /** Not a prop. The chat's name is `title`: `<ChatHeader title="The whole crew" />`. */
+  name?: { 'Use title="The whole crew"': never };
+}
+```
+
+### `ChatHeaderProps`
+
+Props for `ChatHeader`: its own props and the `<div>` attributes it passes through.
+
+```ts
+type ChatHeaderProps = Omit<HTMLAttributes<HTMLDivElement>, keyof ChatHeaderOwnProps> & ChatHeaderOwnProps;
+```
+
 ### `ChatMember`
 
 Someone in a chat, as ChatHeader takes them: an Avatar's member, with their presence and a note.
@@ -119,7 +181,9 @@ A member with a presence dot and the words it says.
 interface ChatMemberPresence {
   /** Their presence, as a dot on their avatar in a one-to-one chat's header and in the member list. */
   presence: AvatarPresence;
-  /** What the dot says ("In a meeting"): a one-to-one chat's header shows it under the title. Required with `presence`, so no dot is silent. */
+  /**
+   * What the dot says ("In a meeting"): a one-to-one chat's header shows it under the title. Required with `presence`, so no dot is silent.
+   */
   presenceLabel: string;
 }
 ```
