@@ -48,13 +48,13 @@ A VoiceOver start that fails because VoiceOver cannot be started, or was not run
 - Nightly, on main (`.github/workflows/screen-reader.yml`).
 - Before every release: main's push runs the lane, and `release.yml` tags a commit only when that push run concluded `success` for that exact SHA.[^sr-release]
 - By hand: `gh workflow run screen-reader.yml --ref <branch> -f source_sha=<the branch's tip SHA>`. The lane refuses any other commit.
-- On a pull request from this repository whose change reaches a screen-reader spec, through ci.yml's `screen-reader` job, which calls the lane's own read-only workflow, `.github/workflows/screen-reader-lane.yml` ([below](#on-a-pull-request)).
+- Never on a pull request: the lane needs macOS and Windows runners, which are scarce, so ci.yml's plan selects no spec for a pull request and its `screen-reader` job is skipped. Main's push run is the gate, and a red one is the red-main alarm. The job stays, calling the lane's own read-only workflow, `.github/workflows/screen-reader-lane.yml`, for a plan that selects specs ([below](#on-a-pull-request)).
 
 It never runs for a fork's pull request.[^sr-triggers]
 
 ## On a pull request
 
-A pull request from this repository runs the specs its change can reach, so a failure lands on the pull request rather than on main, where it would block the next release.[^sr-pr-why]
+Today the plan selects no spec for a pull request, so none of this runs there and a failure lands on main, where it blocks the next release. When a plan does select specs, a pull request from this repository runs the ones its change can reach, so a failure lands on the pull request rather than on main.[^sr-pr-why]
 
 - **Which specs.** `scripts/sr-impact.mjs` finds each spec's story through its `storyIds` entry in `stories.ts`, and every file that story loads at run time, directly or through another file.[^sr-closure] A change to a component selects each spec whose story loads it: a change to TextField selects the TextField spec, which also opens Form's server-errors story, because Form renders TextField.[^sr-each-spec] A change to anything the lane shares runs every spec: the library, the theme, the harness and its story ids, the lane's workflow and scripts, the dependencies and the build.[^sr-shared] So does a change the mapping cannot place.[^sr-unmapped] Prose, change fragments, the site and other workflows select none.[^sr-none]
 - **Same repository only.** ci.yml calls this workflow only when the pull request's head repository is this one, and the lane refuses a fork's pull request too.[^sr-fork] A fork's code is not a branch of this repository.

@@ -298,24 +298,17 @@ jobs:
             echo "Design check run: $EVENT."
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
-      # Which screen-reader specs the change can reach (scripts/sr-impact.mjs), for the screen-reader job below. Only a
-      # pull request from this repository gets any: a fork's code is not this repository's branch. A change the mapping
-      # cannot place selects every spec; every other event selects none, since main's own lane runs are screen-reader.yml's
-      # push and schedule runs.
+      # No screen-reader lane on a pull request: it needs macOS and Windows runners, which are scarce, so a pull request waits for
+      # none. Main's own lane runs are screen-reader.yml's push and schedule runs, and release.yml tags only a commit whose push
+      # run passed (docs/guides/screen-reader-lane.md). The screen-reader job below stays for a plan that selects specs.
       - id: lane
         name: Which screen-reader specs can the change reach?
         env:
           EVENT: ${{ github.event_name }}
-          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
-          REPO: ${{ github.repository }}
         run: |
-          if [ "$EVENT" = pull_request ] && [ "$HEAD_REPO" = "$REPO" ]; then
-            node scripts/sr-impact.mjs plan HEAD^1 HEAD
-          else
-            echo "No screen-reader lane for $EVENT${HEAD_REPO:+ from $HEAD_REPO}."
-            echo "screen_reader=none" >> "$GITHUB_OUTPUT"
-            echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
-          fi
+          echo "No screen-reader lane for $EVENT: it runs on main after the merge."
+          echo "screen_reader=none" >> "$GITHUB_OUTPUT"
+          echo "screen_reader_specs=" >> "$GITHUB_OUTPUT"
   sr-yield:
     # Waits while main's screen-reader lane holds or waits for a macOS runner (scripts/sr-yield.mjs), so a pull request's
     # lane takes the runners after it. It fails open and never fails: at worst the lane starts after 10 minutes.

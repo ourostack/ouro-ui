@@ -2369,17 +2369,14 @@ test("ci.yml calls the lane for a pull request from this repository only, with i
   // The caller grants what the lane needs, and no secret reaches it.
   assert.match(ci["screen-reader"], /^ {4}permissions:\n {6}contents: read\n?$/m);
   assert.doesNotMatch(ci["screen-reader"], /secrets/);
-  // The plan's lane step selects specs for a pull request from this repository and nothing for any other event or fork.
+  // The plan's lane step selects no spec for any event: macOS and Windows runners never gate a pull request; main's push run does.
   const lane = stepScript(ci.plan, "Which screen-reader specs can the change reach?");
-  const fork = runStep(lane, { EVENT: "pull_request", HEAD_REPO: "someone/fork", REPO: "ourostack/ouro-ui" });
-  assert.equal(fork.status, 0, fork.stdout + fork.stderr);
-  assert.doesNotMatch(fork.calls, /sr-impact/);
-  assert.equal(fork.output.screen_reader, "none");
-  const pushed = runStep(lane, { EVENT: "push", HEAD_REPO: "", REPO: "ourostack/ouro-ui" });
-  assert.doesNotMatch(pushed.calls, /sr-impact/);
-  assert.equal(pushed.output.screen_reader, "none");
-  const sameRepo = runStep(lane, { EVENT: "pull_request", HEAD_REPO: "ourostack/ouro-ui", REPO: "ourostack/ouro-ui" });
-  assert.match(sameRepo.calls, /^CALL node scripts\/sr-impact\.mjs plan HEAD\^1 HEAD$/m);
+  for (const [event, headRepo] of [["pull_request", "someone/fork"], ["push", ""], ["pull_request", "ourostack/ouro-ui"]]) {
+    const ran = runStep(lane, { EVENT: event, HEAD_REPO: headRepo, REPO: "ourostack/ouro-ui" });
+    assert.equal(ran.status, 0, ran.stdout + ran.stderr);
+    assert.doesNotMatch(ran.calls, /sr-impact/);
+    assert.equal(ran.output.screen_reader, "none");
+  }
   // The ci check passes the lane's skip only when the plan selected no spec, and counts every other result.
   const parts = stepScript(ci.ci, "Every part passed");
   const passing = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", FALLBACK: "", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false" };
