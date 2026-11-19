@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { classify, navigationSummary, why } from "./sr-classify.mjs";
+import { classify, navigationSummary, why, hintOnlySummary } from "./sr-classify.mjs";
 import { speechTimeline, withTimeline } from "../registry/ouro/e2e/screen-reader/phrases.ts";
 import { START_DIAGNOSTICS_PREFIX, START_RETRY_PREFIX } from "../registry/ouro/e2e/screen-reader/start-retry.ts";
 
@@ -262,4 +262,12 @@ test("the run summary names VoiceOver start retries beside the navigation retrie
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("hintOnlySummary: the steps judged from a description after only hints, against the steps, flagged above 1 in 50", () => {
+  const heard = (n) => Array.from({ length: n }, (_, i) => `[sr] heard "Step ${i}", button: "Step ${i} button" (VoiceOver said: "Step ${i} button")`).join("\n");
+  const fallback = '[sr] heard "Dark", selected or checked, after ArrowRight, described: "Dark selected radio button, 2 of 3"\n[sr] finding: hint-only (ourostack/ouro-ui#2085): VoiceOver said only its hint for "Dark" ("You are currently on a selected radio button, 2 of 3."); described, the focus is "Dark selected radio button, 2 of 3"';
+  assert.equal(hintOnlySummary(heard(60)), "");
+  assert.equal(hintOnlySummary(`${heard(59)}\n${fallback}`), "VoiceOver hint-only fallbacks: 1 in 60 steps (1 in 60), each judged from a description of the focus (ourostack/ouro-ui#2085).");
+  assert.match(hintOnlySummary(`${heard(29)}\n${fallback}`), /1 in 30 steps .*Above 1 in 50 steps: a cause to find, not noise\.$/);
 });
