@@ -174,11 +174,21 @@ export const test: ScreenReaderTest =
 export async function startReading(sr: ScreenReader, page: Page): Promise<void> {
   const began = Date.now();
   // VoiceOver's navigation is bounded and retried once if it hangs (navigation.ts); NVDA's is not.
-  if (isVoiceOver(sr)) await navigateWithRetry({ navigate: () => sr.navigateToWebContent(), stop: () => sr.stop(), start: () => sr.start({ capture: "initial" }), settle: settleVoiceOver, log: (line) => console.log(line) });
+  if (isVoiceOver(sr)) await navigateWithRetry({ navigate: () => sr.navigateToWebContent(), stop: () => sr.stop(), start: () => sr.start({ capture: "initial" }), settle: settleVoiceOver, log: (line) => console.log(line), outside: () => outsideWebArea(sr) });
   else await sr.navigateToWebContent();
   console.log(`[sr] navigation took ${((Date.now() - began) / 1000).toFixed(1)} s`);
   console.log(`[sr] first utterance: "${await sr.lastSpokenPhrase()}"`);
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+}
+
+/**
+ * Why VoiceOver is not inside the page's web area after a navigation, or null when it is. Inside, the navigation's last
+ * step reads the page's first item (835 of the 836 first utterances in 40 lane runs; the 836th is the failure below); left on the web area's edge,
+ * VoiceOver said nothing, then only how to enter it (main's run 44585088416).
+ */
+async function outsideWebArea(sr: VoiceOverPlaywright): Promise<string | null> {
+  const phrase = (await sr.lastSpokenPhrase()).trim();
+  return phrase === "" || /\benter the web area\b/i.test(phrase) ? `VoiceOver stayed outside the page's web area (it said "${phrase}")` : null;
 }
 
 /** The phrases VoiceOver says while it is watched: see `watchVoiceOver`. */
