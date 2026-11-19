@@ -684,6 +684,15 @@ describe("docs", () => {
     expect(document.querySelector("[data-site-try]")).toBeNull();
   });
 
+  it("says what to try under the Timer, Celebrate, Combobox and Carousel demos: a reload, the confetti, the phone sheet and the keys", async () => {
+    for (const [name, words] of [["timer", "reload the page"], ["celebrate", "Confetti"], ["combobox", "sheet"], ["carousel", "arrow keys"]] as const) {
+      await renderPage(`/docs/${name}/`);
+      const line = document.querySelector("[data-site-try]");
+      expect(line?.textContent, name).toBe(`Try it: ${tries[name]}`);
+      expect(line?.textContent, name).toContain(words);
+    }
+  });
+
   it("repaints the page, demo and all, from a look under the demo, and keeps its room so nothing moves", async () => {
     await page.viewport(1280, 900);
     const root = document.documentElement;
