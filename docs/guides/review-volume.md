@@ -35,7 +35,7 @@ A declared action reaches several surfaces, and the decision to run it can look 
 - **Retries.** An agent may call again after a refusal or a failure. Make the action safe to repeat, or say in its description why it is not.
 - **Explanation.** Name the action the way a person knows it, and write the confirmation's text for the person, not for the agent.
 
-See [Platforms](../platforms/README.md) for what the kits do today, and [what is proven on a device](../platforms/proof.md) for where they have run.
+See [Platforms](../platforms/README.md) for what the kits do today.
 
 [^description]: test:registry/ouro/components/ouro/dialog/confirm-dialog.test.tsx::ConfirmDialog > is an alert dialog named by its title and described by its description verify:testExists(registry/ouro/components/ouro/dialog/confirm-dialog.test.tsx::ConfirmDialog > is an alert dialog named by its title and described by its description)
 [^consent]: docs/guides/composed-ui.md verify:fileLine(docs/guides/composed-ui.md, /\*\*consequential\*\* asks the person to confirm, on a sheet that shows each value the agent prepared under the field's own label/)
