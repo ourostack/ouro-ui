@@ -123,7 +123,8 @@ test.describe("each control in Chapter II", () => {
   test("control: channels switches who you talk to, and someone new calls once you mention the squid", async ({ page }) => {
     await open(page);
     const list = radio(page).getByRole("list", { name: RADIO.channels });
-    await list.getByRole("button", { name: new RegExp(`^${RADIO.captain}`) }).click();
+    // The crew's group chat names the captain too, so his own row is the one without the crew's title.
+    await list.getByRole("button", { name: new RegExp(RADIO.captain) }).filter({ hasNotText: RADIO.crew }).click();
     await expect(radio(page).getByRole("region", { name: RADIO.list(RADIO.captain) })).toBeVisible();
     await expect(list.getByRole("button", { name: new RegExp(RADIO.caller) })).toHaveCount(0);
     await say(page, "Any squid out there?");

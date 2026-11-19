@@ -52,7 +52,11 @@ const steps: Record<(typeof CHAPTER_TWO_CONTROLS)[number], { press: Step; before
   museum: { press: (page) => catalogue(page).getByRole("button", { name: CATALOGUE.museum }).click(), after: (page) => page.keyboard.press("Escape") },
   "radio-code": { press: (page) => radio(page).getByRole("button", { name: CHAPTER_ONE.code }).click(), after: (page) => page.keyboard.press("Escape") },
   // Calling the captain, then the whole crew, in turn: the chat swaps to that conversation.
-  channels: { press: (page, index) => radio(page).getByRole("button", { name: new RegExp(`^${index % 2 ? RADIO.crew : RADIO.captain}`) }).click() },
+  // The crew's group chat names the captain too, so his own row is the one without the crew's title.
+  channels: {
+    press: (page, index) =>
+      (index % 2 ? radio(page).getByRole("button", { name: new RegExp(RADIO.crew) }) : radio(page).getByRole("button", { name: new RegExp(RADIO.captain) }).filter({ hasNotText: RADIO.crew })).click(),
+  },
   compose: {
     before: (page) => radio(page).getByRole("textbox", { name: RADIO.compose }).focus(),
     press: (page, index) => page.keyboard.press(index % 2 ? "Backspace" : "a"),
