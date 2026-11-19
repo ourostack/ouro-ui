@@ -833,6 +833,8 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         keepInView.current = { key: focusNext.current!, block: "nearest" };
         focusNext.current = null;
         reached.focus({ preventScroll: true });
+        // Focused, the row is the Tab stop, which stays rendered; kept as the row reached as well, it would stay once focus moved on.
+        setReach(null);
       }
       if (keepInView.current) reveal(controls.current, keepInView.current.key, keepInView.current.block);
       // A row to keep in view stays so until nothing new is measured, since rows measured around it may move it.

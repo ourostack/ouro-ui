@@ -403,6 +403,17 @@ describe("ConversationList windowing", () => {
     expect(pane.scrollTop).toBe(0);
   });
 
+  it("lets the row End reached go once focus leaves the list and the view returns to the top (#2042)", async () => {
+    const { pane, rows } = await render(<ConversationList label="Conversations" items={many(500)} onSelect={() => {}} />);
+    await act(async () => rows()[0]!.focus());
+    await userEvent.keyboard("{End}");
+    expect(titleOf(document.activeElement)).toBe("c499");
+    // Focus leaves the list, so no row is kept for it, and the view goes back to the top.
+    await act(async () => (document.activeElement as HTMLElement).blur());
+    await scrollPane(pane, 0);
+    await expect.poll(() => { try { expectBand(pane, []); return "ok"; } catch (error) { return (error as Error).message; } }).toBe("ok");
+  });
+
   it("walks down past the rows first rendered with the Down arrow, scrolling only as far as the row with focus needs", async () => {
     const { pane, rows } = await render(<ConversationList label="Conversations" items={many(80)} onSelect={() => {}} />, 200);
     await act(async () => rows()[0]!.focus());
