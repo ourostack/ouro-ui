@@ -1257,7 +1257,7 @@ describe("platforms", () => {
 
   it("lists the platforms last in the docs sidebar, a platform only ever after for", () => {
     const platforms = docsSections().find((section) => section.label === "Platforms")!;
-    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "For Windows", "Parity across platforms", "For your platform", "A guide for platform builders"]);
+    expect(platforms.items.map((item) => ("label" in item ? item.label : ""))).toEqual(["Overview", "For Apple", "For Android", "What is proven on a device", "For Windows", "Parity across platforms", "For your platform", "A guide for platform builders"]);
     expect(platforms.items.map((item) => ("href" in item ? item.href : ""))).toEqual(platformPages.map((doc) => href(`/docs/${doc.name}/`)));
   });
 
