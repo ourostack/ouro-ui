@@ -975,6 +975,10 @@ describe("ConversationList windowing with sections", () => {
     expect(count({ density: "compact" })).toBe(Math.ceil(900 / 34));
     expect(count({ estimatedRowHeight: 44 })).toBe(Math.ceil(900 / 44));
     expect(count({ density: "compact", estimatedRowHeight: 50 })).toBe(Math.ceil(900 / 50));
+    // A height under one pixel is no estimate: the density's rows are used.
+    expect(count({ estimatedRowHeight: 0 })).toBe(Math.ceil(900 / 58));
+    expect(count({ estimatedRowHeight: 0.5 })).toBe(Math.ceil(900 / 58));
+    expect(count({ estimatedRowHeight: 1 })).toBe(200);
   });
   it("renders exactly the rows that start inside the first view on a short list's first commit", () => {
     const count = (density: "comfortable" | "compact") =>

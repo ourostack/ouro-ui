@@ -205,7 +205,7 @@ export interface ConversationListOwnProps {
   /**
    * How tall a row is, in pixels, before it is measured: the first render mounts as many rows as fill the view at this height, and the space of rows not drawn is counted with it.
    * Set it when your rows are shorter than the defaults, so the first view mounts no more rows than it shows; rows taller than it are measured and shift the rows below.
-   * @default 58 for `comfortable` and 34 for `compact`
+   * @default The row height of the `density`
    */
   estimatedRowHeight?: number | undefined;
   /** What screen readers hear for an unread row's dot, and a closed section's, for other languages. @default "Unread" */
