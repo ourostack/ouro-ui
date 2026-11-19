@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Narrow text: passes</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px}.about p{max-width:46rem}.split{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}.split>aside{flex:0 0 300px}.split>div{flex:1 1 400px}</style>
+<h1>Narrow text</h1>
+<p>Prose with no cap runs the full width of its column, so every line fills the space the page gives it, as a reader of a wide screen expects.</p>
+<p style="text-align:center;max-width:46rem">A centred lede is not a hard wrap, so a short cap on it is a choice of layout rather than a reading measure that holds the text back.</p>
+<div class="split"><aside><p>A sidebar is narrow by its layout, not by a cap on its words, so its text wraps at the width the sidebar was given and passes here.</p></aside><div><p>The body beside the sidebar takes the width left over, with no cap on its words, so the column fills the rest of the row.</p></div></div>
+<div data-ouro="card" style="max-width:320px"><p>A card holds its own text to its own width by design, as a card should, so a narrow card is not a reading measure in a wide page.</p></div>
+<table style="width:100%"><tr><td><p>A table cell is narrow by its column, and its words wrap where the column ends, which is how a table is meant to read.</p></td><td>Beside it</td></tr></table>
+<section class="about" style="width:min(1200px,100%)"><p>Short.</p></section>

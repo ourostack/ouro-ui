@@ -704,6 +704,65 @@ describe("findSizeIssues: long-lines", () => {
   });
 });
 
+describe("findSizeIssues: narrow-text", () => {
+  const narrow = (issues: { rule: string; element: string; detail: string }[]) => issues.filter((issue) => issue.rule === "narrow-text");
+
+  it("flags prose a max-width holds under three quarters of a column at least 900px wide, naming the cap and the rule that set it", async () => {
+    render(`<section style="width:1200px"><style>.about p { max-width: 46rem }</style><div class="about"><p id="cap">${LONG} ${LONG}</p></div></section>`);
+    const issues = narrow(await findSizeIssues());
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#cap"]);
+    const width = Math.round(document.getElementById("cap")!.getBoundingClientRect().width);
+    expect(issues[0]!.detail).toMatch(new RegExp(`^This paragraph wraps at ${width}px in a 1200px column, leaving the rest empty\\. Let it use the width it has: remove \`\\.about p \\{ max-width: 46rem \\}\`\\.`));
+    expect(issues[0]!.detail).toContain('declare it in ouro-check.json ("measure")');
+    expect(document.getElementById("cap")!.getAttribute("data-ouro-check-ref")).toBeTruthy();
+  });
+
+  it("finds one cap once, naming its first paragraph, and names an inline style as the cap's source", async () => {
+    render(`<section style="width:1200px"><div style="max-width:46rem"><p id="first">${LONG} ${LONG}</p><p>${LONG} ${LONG}</p></div></section>`);
+    const issues = narrow(await findSizeIssues());
+    expect(issues.map((issue) => issue.element.split(" ")[0])).toEqual(["p#first"]);
+    expect(issues[0]!.detail).toContain("leaving the rest empty");
+    expect(issues[0]!.detail).toContain('`style="max-width: 46rem" on div`');
+  });
+
+  it("leaves text a declared measure covers, a page's prose included, and text an opt-out with a reason allows", async () => {
+    const html = `<section style="width:1200px"><div class="about"><p style="max-width:46rem">${LONG} ${LONG}</p></div></section>`;
+    render(html);
+    expect(narrow(await findSizeIssues({ measures: [{ selector: null, measure: "72ch" }] }))).toEqual([]);
+    host.remove();
+    render(html);
+    expect(narrow(await findSizeIssues({ measures: [{ selector: ".about p", measure: "72ch" }] }))).toEqual([]);
+    host.remove();
+    render(`<section style="width:1200px"><p style="max-width:46rem" data-ouro-allow="narrow-text" data-ouro-allow-why="a pull quote on purpose">${LONG} ${LONG}</p></section>`);
+    expect(narrow(await findSizeIssues())).toEqual([]);
+    host.remove();
+    render(`<section style="width:1200px"><p style="max-width:46rem" data-ouro-allow="narrow-text">${LONG} ${LONG}</p></section>`);
+    expect(narrow(await findSizeIssues())).toHaveLength(1);
+  });
+
+  it("finds nothing in a column under 900px wide, however far its text is capped", async () => {
+    render(`<section style="width:800px"><p style="max-width:30rem">${LONG} ${LONG}</p></section>`);
+    expect(narrow(await findSizeIssues())).toEqual([]);
+  });
+
+  it("passes what is narrow by its layout or a container, not by a max-width on the text: sidebars, grids, cards, cells, centred and one-line text", async () => {
+    render(`
+      <section style="width:1200px">
+        <div style="width:300px"><p>${LONG}</p></div>
+        <div style="display:grid;grid-template-columns:300px 1fr"><p>${LONG}</p><p>${LONG}</p></div>
+        <div style="max-width:46rem;width:300px"><p>${LONG}</p></div>
+        <p style="text-align:center;max-width:46rem">${LONG} ${LONG}</p>
+        <p style="max-width:46rem">Short.</p>
+        <div data-ouro="card" style="max-width:320px"><p>${LONG}</p></div>
+        <table style="width:1200px"><tr><td style="max-width:320px"><p>${LONG}</p></td></tr></table>
+        <aside style="width:300px"><p>${LONG}</p></aside>
+      </section>
+      <div style="max-width:46rem"><div style="display:flex"><p>${LONG}</p></div></div>
+      <main style="max-width:46rem"><p>${LONG} ${LONG}</p></main>`);
+    expect(narrow(await findSizeIssues())).toEqual([]);
+  });
+});
+
 describe("findOverlaps", () => {
   it("finds a line of text drawn over another line, or over a picture, in the same section", async () => {
     const url = await picture(100, 100);

@@ -2,7 +2,7 @@ name: Ouro check
 description: >-
   Runs Ouro check (node scripts/ouro/check/check.ts, from the ouro-check item) on a built folder or
   URLs: every page at every screen size, light and dark, for overlap, sideways scroll, clipped
-  text, long lines, blurry pictures and serious axe-core violations, and measures layout shift, first
+  text, long lines, narrow text, blurry pictures and serious axe-core violations, and measures layout shift, first
   content and each press against their budgets. Writes the report to the job's
   summary and uploads the out folder (report.json, summary.md, a contact sheet per page and a
   captioned close-up per finding) as an artifact. With shard (k/n) it checks the kth of n shares;

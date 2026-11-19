@@ -343,6 +343,16 @@ describe("Ouro check", () => {
     assert.match(selected.findings.find((f) => f.rule === "long-lines")!.detail, /^lines up to \d+px wide \(measure 800px\)$/);
   });
 
+  test("flags narrow text held under three quarters of its column at 1440, naming the cap, and passes it under a declared measure", async () => {
+    const options = { targets: [fixtures], pages: "narrow-text-*", sizes: [[1440, 900]] as [number, number][], themes: ["light"], chromium, log: quiet };
+    const found = await check({ ...options, out: dir("narrow-text") });
+    const narrow = found.findings.filter((f) => f.rule === "narrow-text");
+    assert.deepEqual(narrow.map((f) => [f.page, f.element.split(" ")[0]]), [["/narrow-text-fail.html", "p"]]);
+    assert.match(narrow[0]!.detail, /^This paragraph wraps at \d+px in a 1200px column, leaving the rest empty\. Let it use the width it has: remove `\.about p \{ max-width: 46rem \}`\. If the design sets a measure on purpose, declare it in ouro-check\.json \("measure"\)\.$/);
+    const declared = await check({ ...options, out: dir("narrow-text-declared"), config: { measure: { "**": "72ch" } } });
+    assert.deepEqual(declared.findings.filter((f) => f.rule === "narrow-text"), []);
+  });
+
   test("names an axe finding the same at every size, whatever the other rules marked on the page", async () => {
     const faint = '<p style="width:60px;overflow:hidden;white-space:nowrap;color:#999;background:#aaa">Faint text cut off by its box</p>';
     const folder = site("faint", { "page.html": page(`<h1>Faint</h1>${faint}${faint}`) });

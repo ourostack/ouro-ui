@@ -31,8 +31,9 @@ describe("Ouro check", () => {
 
   test("finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups", async () => {
     const out = dir("rules");
-    // long-lines is checked only against a declared measure; "**" with "100 chars" is the rule as it always counted.
-    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "**": "100 chars" } }, chromium, log: quiet });
+    // long-lines is checked only against a declared measure, on main's paragraphs; "**" would also declare a measure on every
+    // page's prose, which holds narrow-text off everywhere.
+    const result = await check({ targets: [fixtures], out, sizes: two, themes: ["light"], axe, config: { measure: { "main p": "100 chars" } }, chromium, log: quiet });
     // http-error and not-ready are about the page, not its content, https about a site on the web, and dark-art compares
     // a light run with a dark one: each has tests of its own.
     // The wrap rules read where a font broke a page's lines, and the system font the other fixtures' words are set in breaks
