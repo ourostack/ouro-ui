@@ -1,1 +1,1 @@
-- TextField draws two fewer components per field when its constraints can't fail the browser's validation (no `required`, `pattern`, length or range, and not `email` or `url`): the empty error slot is left out until the field has an error, and the error's wiring is unchanged.
+- TextField draws a plain field with fewer components: [the empty error slot is left out until the field has an error](registry/ouro/components/ouro/text-field/text-field.tsx "verify:fileLine(registry/ouro/components/ouro/text-field/text-field.tsx, /quietOwner/)").
