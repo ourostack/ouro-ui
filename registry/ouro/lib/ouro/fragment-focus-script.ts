@@ -6,8 +6,11 @@ export { fragmentFocusScript, FRAGMENT_FOCUS_WAIT_MS };
 const FRAGMENT_FOCUS_WAIT_MS = 2000;
 
 const script =
+  // Once a page. Whether it ran as the page was parsed, and which element it is, for Ouro check's fragment-focus rule:
+  // a copy a script adds later runs too late to hold the parser.
+  `(function(w,d){if(w.__ouroFragmentFocus)return;w.__ouroFragmentFocus={parsed:d.readyState==="loading",script:d.currentScript};` +
   // Only Safari jumps back, so only WebKit (every browser on iOS, and Safari) gets the rest; Chrome and Edge say so.
-  `(function(w,d){var ua=navigator.userAgent;if(w.__ouroFragmentFocus||!/AppleWebKit/.test(ua)||/Chrome\\/|Edg\\//.test(ua))return;w.__ouroFragmentFocus=1;` +
+  `var ua=navigator.userAgent;if(!/AppleWebKit/.test(ua)||/Chrome\\/|Edg\\//.test(ua))return;` +
   // The stylesheets above the script have loaded (or failed): the parser waited for them before it ran the script.
   `var done=new WeakSet,failed=new WeakSet,jump=null,until=0,i,l=d.querySelectorAll('link[rel~="stylesheet"]');for(i=0;i<l.length;i++)done.add(l[i]);` +
   `function pending(x){return !done.has(x)&&x.getAttribute("href")&&!x.disabled&&!/\\balternate\\b/i.test(x.rel)}` +

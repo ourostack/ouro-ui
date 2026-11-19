@@ -78,8 +78,34 @@ describe("fragmentFocusScript", () => {
       made.push(frame);
       const view = frame.contentWindow as Window & typeof globalThis;
       runAs(view, userAgent);
-      expect((view as unknown as { __ouroFragmentFocus?: number }).__ouroFragmentFocus).toBeUndefined();
+      const sheet = Object.assign(view.document.createElement("link"), { rel: "stylesheet", href: URL.createObjectURL(new Blob(["i{}"], { type: "text/css" })) });
+      const anchor = Object.assign(view.document.createElement("a"), { href: "#ff-chrome" });
+      view.document.head.append(sheet);
+      view.document.body.append(anchor);
+      // After the script's own listener, as heldBack reads it; the frame goes nowhere.
+      let held = true;
+      view.addEventListener(
+        "click",
+        (event) => {
+          held = event.defaultPrevented;
+          event.preventDefault();
+        },
+        { once: true },
+      );
+      anchor.dispatchEvent(new view.MouseEvent("click", { bubbles: true, cancelable: true }));
+      expect(held).toBe(false);
+      view.document.dispatchEvent(new view.Event("DOMContentLoaded", { bubbles: true }));
+      expect(sheet.disabled).toBe(false);
     }
+  });
+
+  it("says whether it ran as the page was parsed, and which element it is, for Ouro check", () => {
+    const frame = document.createElement("iframe");
+    document.body.append(frame);
+    made.push(frame);
+    const view = frame.contentWindow as Window & typeof globalThis;
+    runAs(view, SAFARI);
+    expect((view as unknown as { __ouroFragmentFocus: unknown }).__ouroFragmentFocus).toEqual({ parsed: false, script: null });
   });
 
   it("leaves a link to a place on the page to the browser while no stylesheet is loading", () => {
