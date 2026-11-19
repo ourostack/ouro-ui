@@ -1218,4 +1218,33 @@ describe("findFragmentFocusIssues", () => {
     document.documentElement.setAttribute("data-ouro-allow-why", "a page no link points into");
     expect(findFragmentFocusIssues()).toEqual([]);
   });
+
+  it("reads an allow of every rule on <body>, needs its reason, and judges a record with no script, or a stylesheet in <body> after the script", () => {
+    sheet();
+    document.body.setAttribute("data-ouro-allow", "all");
+    try {
+      // An allow with no reason at all allows nothing.
+      expect(findFragmentFocusIssues()).toHaveLength(1);
+      document.body.setAttribute("data-ouro-allow-why", "a page no link points into");
+      expect(findFragmentFocusIssues()).toEqual([]);
+    } finally {
+      document.body.removeAttribute("data-ouro-allow");
+      document.body.removeAttribute("data-ouro-allow-why");
+    }
+    // A record that names no script: parsed, so nothing comes after it in <head>.
+    page.__ouroFragmentFocus = { parsed: true, script: null };
+    expect(findFragmentFocusIssues()).toEqual([]);
+    // A stylesheet in <body> after the script holds no fragment jump the parser makes.
+    const script = ran(true);
+    const late = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "data:text/css,u{}" });
+    script.after(late);
+    added.push(late);
+    expect(findFragmentFocusIssues()).toEqual([]);
+    // Two findings on one page each add their own mark to <body>.
+    document.body.removeAttribute("data-ouro-check-ref");
+    page.__ouroFragmentFocus = { parsed: false, script };
+    const [first] = findFragmentFocusIssues();
+    const [second] = findFragmentFocusIssues();
+    expect(document.body.getAttribute("data-ouro-check-ref")).toBe(`${first!.ref} ${second!.ref}`);
+  });
 });
