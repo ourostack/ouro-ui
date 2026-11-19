@@ -1,0 +1,69 @@
+import type { ReactElement } from "react";
+import { createRoot } from "react-dom/client";
+import { describe, expect, it } from "vitest";
+import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+// A view of many items draws a TextField for each, so its count of elements and components is paid once per
+// field. Each budget is what the variant draws now: a change that adds to one fails here, and a cut lowers it.
+
+const RATIO = 50;
+
+const variants: { variant: string; field: ReactElement; elements: number; components: number }[] = [
+  { variant: "a plain field", field: <TextField label="Name" />, elements: 6, components: 15 },
+  { variant: "a field with a description", field: <TextField label="Name" description="As on your card." />, elements: 7, components: 17 },
+  { variant: "a field with an error", field: <TextField label="Name" error="Enter a name." />, elements: 7, components: 17 },
+  { variant: "a required field", field: <TextField label="Name" required />, elements: 6, components: 17 },
+  { variant: "a password field", field: <TextField label="Password" type="password" />, elements: 15, components: 20 },
+];
+
+/** The components React keeps for what the root draws: every fiber but the root, elements and text, context providers included. */
+function componentsUnder(host: HTMLElement): number {
+  const key = Object.keys(host).find((name) => name.startsWith("__reactContainer$"))!;
+  // React's fibers: 3 is the root, 5 an element, 6 a text node; everything else is a component, provider or fragment.
+  type Fiber = { tag: number; child: Fiber | null; sibling: Fiber | null; stateNode: { current: Fiber } };
+  const count = (fiber: Fiber | null): number => (fiber === null ? 0 : (fiber.tag === 5 || fiber.tag === 6 ? 0 : 1) + count(fiber.child) + count(fiber.sibling));
+  // The container keeps the root's first fiber; the tree on screen hangs from the root's current one.
+  return count((host as unknown as Record<string, Fiber>)[key]!.stateNode.current.child);
+}
+
+describe("TextField's weight", () => {
+  it.each(variants)("draws $variant in no more than $elements elements and $components components", async ({ field, elements, components }) => {
+    const host = document.createElement("div");
+    host.dataset["testHarness"] = "";
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(field));
+    const drawnElements = host.querySelectorAll("*").length;
+    const drawnComponents = componentsUnder(host);
+    await act(async () => root.unmount());
+    host.remove();
+    expect(drawnElements, "elements").toBeLessThanOrEqual(elements);
+    expect(drawnComponents, "components").toBeLessThanOrEqual(components);
+  });
+});
+
+// Mounting is timed against bare inputs drawn the same way, so the ratio holds on a slow or busy host.
+async function mountMs(render: () => ReactElement, count: number): Promise<number> {
+  const host = document.createElement("div");
+  host.dataset["testHarness"] = "";
+  document.body.append(host);
+  const root = createRoot(host);
+  const start = performance.now();
+  await act(async () => root.render(<>{Array.from({ length: count }, (_, index) => <div key={index}>{render()}</div>)}</>));
+  const took = performance.now() - start;
+  await act(async () => root.unmount());
+  host.remove();
+  return took;
+}
+
+describe("TextField's mount time", () => {
+  it("mounts 40 plain fields in a bounded multiple of the time 40 bare inputs take", async () => {
+    await mountMs(() => <TextField label="Name" />, 40);
+    const runs: number[] = [];
+    for (let run = 0; run < 3; run++) runs.push(await mountMs(() => <TextField label="Name" />, 40));
+    const field = Math.min(...runs);
+    const bare = Math.max(1, await mountMs(() => <label>Name<input /></label>, 40));
+    expect(field / bare, `ratio (field ${field.toFixed(1)} ms, bare ${bare.toFixed(1)} ms)`).toBeLessThan(RATIO);
+  });
+});

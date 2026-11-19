@@ -83,6 +83,12 @@ export interface FieldOwner {
    * `aria-labelledby` (Base UI's `nativeLabel={false}`).
    */
   nativeLabel?: false | undefined;
+  /**
+   * `true` when the control can never fail the browser's own validation, so the field draws no
+   * error slot until it has an error of its own. Without it, an empty slot waits for the browser's
+   * message.
+   */
+  quiet?: true | undefined;
 }
 
 /**
