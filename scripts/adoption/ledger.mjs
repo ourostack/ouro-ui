@@ -32,6 +32,11 @@ export function realGh(args, { binary = false } = {}) {
 }
 
 const norm = (tag) => String(tag ?? "").replace(/^v/, "");
+/** Two versions' order, part by part, as numbers: negative when a is older. */
+const compareVersions = (a, b) => {
+  const [x, y] = [a, b].map((v) => v.split(".").map(Number));
+  return [0, 1, 2].map((i) => (x[i] ?? 0) - (y[i] ?? 0)).find((d) => d !== 0) ?? 0;
+};
 const short = (sha) => String(sha).slice(0, 7);
 const blob = (repo, path) => `https://github.com/${repo}/blob/HEAD/${path}`;
 
@@ -180,6 +185,12 @@ function measurePin(ctx, surface, pin, latest) {
     }
     const tag = pin.from === "json" ? JSON.parse(raw)[pin.key] : (new RegExp(pin.regex).exec(raw) ?? [])[1];
     if (!tag) throw new Error(`no version found in ${file}`);
+    // A library's floor (SwiftPM's `from:`) with no resolved file committed builds against the newest release of its major,
+    // so it lacks none while that release is in its range; it keeps the floor low on purpose, for apps on older minors.
+    const [floorMajor] = norm(tag).split(".");
+    if (pin.range === "major" && norm(target.tag).split(".")[0] === floorMajor && compareVersions(norm(target.tag), norm(tag)) >= 0) {
+      return { ...base, source, tag: `${tag} and up`, behind: 0, late: 0, note: `A floor, from: "${tag}", with no resolved file: it builds against the newest ${floorMajor}.x, ${target.tag}.` };
+    }
     const releases = ctx.releases(target.repo);
     const found = releases.find((release) => norm(release.tag) === norm(tag));
     if (!found) {

@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Missed dark mode: passes</title>
-<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px;background:#121212;color:#ededed}main{max-width:36rem;margin:0 auto}.note{background:#262626;padding:16px;border-radius:12px}button{font:inherit;padding:8px 16px;border:0;border-radius:8px;background:#9af3f7;color:#121212}</style>
-<main><h1>Missed dark mode</h1><p>The note takes a dark fill, and the button keeps its accent.</p><div class="note">Soak the beans overnight.</div><p><button>Start cooking</button></p></main>
+<style>:root{--background:#ffffff;--foreground:#121212;--muted:#f2f2f2;--accent:#0e7490;--accent-foreground:#ffffff;--primary:#171717;--primary-foreground:#fafafa}.dark{--background:#121212;--foreground:#ededed;--muted:#262626;--accent:#9af3f7;--accent-foreground:#121212;--primary:#d4d4d4;--primary-foreground:#121212}body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:16px;background:var(--background);color:var(--foreground)}main{max-width:36rem;margin:0 auto}.note{background:var(--muted);padding:16px;border-radius:12px}.sent{background:var(--primary);color:var(--primary-foreground);padding:16px;border-radius:12px;margin-top:16px}button{font:inherit;padding:8px 16px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-foreground)}</style>
+<main><h1>Missed dark mode</h1><p>The note takes a dark fill, the button keeps its accent, and a sent message keeps the light grey the theme chose for its dark primary.</p><div class="note">Soak the beans overnight.</div><div class="sent">I will print the seating plan tonight.</div><p><button>Start cooking</button></p></main>

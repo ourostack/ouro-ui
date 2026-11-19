@@ -263,6 +263,32 @@ test("Gatefold's pin is read from the ouro-ui-apple package in its XcodeGen proj
   assert.equal(cellValue.source, "https://github.com/ourostack/gatefold/blob/HEAD/project.yml");
 });
 
+test("a library's from: floor with no resolved file lacks no release in its major, and is measured as a pin past it", () => {
+  const real = JSON.parse(readFileSync(configPath, "utf8"));
+  const shell = real.surfaces.find((surface) => surface.id === "app-shell");
+  const manifest = '.package(url: "https://github.com/ourostack/ouro-ui-apple.git", from: "1.0.0"),\n';
+  const apple = [
+    { tag: "v1.0.0", at: "2026-11-10T00:00:00Z" },
+    { tag: "v1.1.0", at: "2026-11-15T00:00:00Z" },
+    { tag: "v1.2.0", at: "2026-11-17T00:00:00Z" },
+    { tag: "v2.0.0", at: "2026-11-17T12:00:00Z" },
+  ];
+  const gh = (args) => {
+    const line = args.join(" ");
+    if (line.includes("contents/Package.swift")) return b64(manifest);
+    if (/repos\/ourostack\/ouro-ui-apple\/releases/.test(line)) return apple.map((item) => JSON.stringify({ ...item, url: "u" })).join("\n");
+    throw new Error(`unexpected gh call: ${line}`);
+  };
+  const measure = (tag) => measurePins(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), shell, { apple: { repo: "ourostack/ouro-ui-apple", tag } });
+  const inRange = measure("v1.2.0");
+  assert.deepEqual([inRange.value[0].tag, inRange.value[0].behind, inRange.value[0].late], ["1.0.0 and up", 0, 0]);
+  assert.equal(inRange.value[0].note, 'A floor, from: "1.0.0", with no resolved file: it builds against the newest 1.x, v1.2.0.');
+  assert.equal(isCurrent(inRange), true);
+  // A new major is out of the floor's range: the floor is a pin again, three releases behind.
+  const nextMajor = measure("v2.0.0");
+  assert.deepEqual([nextMajor.value[0].tag, nextMajor.value[0].behind], ["1.0.0", 3]);
+});
+
 test("actions count what ouro-actions generated, once each, and leave out fixtures and benchmark copies", () => {
   const calls = [];
   const cellValue = measureActions(ctx(calls), config.surfaces[0]);
