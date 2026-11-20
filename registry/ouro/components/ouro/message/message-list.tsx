@@ -364,12 +364,13 @@ const LINE = 40;
 /** How close to the bottom, in pixels, counts as "at the bottom", where the list follows new messages (zoom leaves fractions). */
 const AT_BOTTOM = 2;
 /**
- * "Loading older messages": a raised pill over the top of the list, fading in where motion is allowed, its ring
+ * "Loading older messages": a raised pill over the top of the list, fading in where motion is allowed when loading starts after mount, its ring
  * spinning (pulsing with reduced motion).
  */
 const olderClass =
   "relative m-0 box-border inline-flex h-8 items-center gap-2 rounded-full border border-solid border-border bg-background px-3 " +
-  "text-sm text-muted-foreground shadow-(--shadow-md) whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) starting:opacity-0";
+  "text-sm text-muted-foreground shadow-(--shadow-md) whitespace-nowrap transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out)";
+const olderFadeClass = "starting:opacity-0";
 
 /**
  * How many of the newest children's keys, with the first child's, say the list's messages changed enough to look again for a switch.
@@ -1066,6 +1067,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     defaultItemHeight,
     ...rest
   } = props;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   // The height an app gives for a row not measured yet, where it is a positive number of pixels.
   const estimate = Number.isFinite(estimatedItemHeight) && estimatedItemHeight! > 0 ? estimatedItemHeight : undefined;
   useAppearanceClassNameCheck(
@@ -2713,7 +2718,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       <div data-ouro-message-list-older="" className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
         <div aria-live="polite">
           {loadingOlder && (
-            <span className={olderClass}>
+            <span className={cn(olderClass, mounted && olderFadeClass)}>
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-4 animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
                 <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />

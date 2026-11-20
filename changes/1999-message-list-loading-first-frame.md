@@ -1,0 +1,1 @@
+- Changed: a MessageList that mounts with `loadingOlder` draws its loading pill on the first frame; the pill fades in only when loading starts after mount.
