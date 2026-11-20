@@ -182,7 +182,7 @@ All eight models valued consent classes and typed person-only refusals on the ac
 
 #### Challenges the native decision: teams with a shipping cross-platform app read the no-Flutter, no-React-Native stance as a manifesto they will refuse.
 
-Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: open. [#2304](https://github.com/ourostack/ouro-ui/issues/2304).
+Signal: pain. Raised by 8 models: Claude Opus 5.5, Claude Sonnet 5.5, GPT-6.2 Sol, GPT-6.2 Astra, GPT-6.1 Terra, Gemini 4 Hydrogen, Grok 4.7, MAI Code 2. Status: changed. [#2304](https://github.com/ourostack/ouro-ui/issues/2304). What changed: A guide for teams with a shipping React Native or Flutter app says that Ouro AX and its X-ray work beside it with the steps that were run, and marks Ouro check on those toolkits and composed cards there as not yet. The measurement the finding asks for is still not made, so the issue stays open.
 
 All eight models named the deliberate refusal of Flutter and React Native as a cost, and none accepted without data that coding agents make four native codebases cheap. Grok put it most sharply: a team with a shipping app is told to throw it away rather than integrate, and 'the manifesto is what a real team will refuse'. Ouro should prove the agent-maintained-native claim with measurements on a real product, and offer a path that layers Ouro AX and composed cards onto existing React Native, Flutter or Electron apps.
 
