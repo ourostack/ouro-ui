@@ -21,8 +21,8 @@ let input = "";
  * saw the press), and a `Tooltip` never opens after a touch.
  *
  * The same listeners keep `data-ouro-modality="keyboard"` or `"pointer"` on `<html>` for `ouro-base`'s
- * keyboard-only focus rings: `pointer` after a press, `keyboard` after a key other than a lone modifier, and
- * no attribute before either, when the browser's own `:focus-visible` decides. Moving the mouse changes neither.
+ * keyboard-only focus rings: `pointer` after a press and `keyboard` after a key other than a lone modifier. Before either, the
+ * attribute is absent and the browser's own `:focus-visible` decides. Moving the mouse changes neither.
  *
  * Internal: Ouro UI components use it; apps don't need to.
  *
