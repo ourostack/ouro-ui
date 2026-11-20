@@ -937,8 +937,8 @@
         }
       ],
       "issue": 2304,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "A guide for teams with a shipping React Native or Flutter app says that Ouro AX and its X-ray work beside it with the steps that were run, and marks Ouro check on those toolkits and composed cards there as not yet. The measurement the finding asks for is still not made, so the issue stays open."
     },
     {
       "id": "native-kits-drift",
