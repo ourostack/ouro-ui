@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: a guide on how the A2UI conformance cases are checked on the web and the native kits.
