@@ -15,6 +15,10 @@ export const uncommitted = [
   "site/src/docs/page-index.json",
   "test/generated/control-matrix.json",
   "test/generated/motion-matrix.json",
+  // The model reviews and interviews pages, rendered from scripts/model-reviews/: several pull requests a day change that
+  // data, and each committed page went stale on the next one's merge (#2600).
+  "docs/guides/model-reviews.md",
+  "docs/guides/model-interviews.md",
   // Ouro Feel's probe, built from feel/probe/probe.ts: committed, any change to probe.ts that merged beside it could leave it stale.
   "registry/ouro/feel/ouro-feel-probe.js",
 ];
