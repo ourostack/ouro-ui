@@ -89,8 +89,8 @@
   },
   "android": {
     "repo": "ourostack/ouro-ui-android",
-    "tag": "v0.6.0",
-    "commit": "78e4e5fd72aac5235ed9bff4653a68516728a5ca",
+    "tag": "v0.7.0",
+    "commit": "42378463d033f34b6610835e5247df29ea270343",
     "components": [
       {
         "name": "OuroBadge",
@@ -113,8 +113,16 @@
         "web": "composed-surface"
       },
       {
+        "name": "OuroConfirmDialog",
+        "web": "confirm-dialog"
+      },
+      {
         "name": "OuroDescriptionList",
         "web": "description-list"
+      },
+      {
+        "name": "OuroDialog",
+        "web": "dialog"
       },
       {
         "name": "OuroItem",
@@ -125,12 +133,25 @@
         "web": "separator"
       },
       {
+        "name": "OuroSheet",
+        "web": "sheet"
+      },
+      {
+        "name": "OuroTabBar",
+        "web": "tab-bar"
+      },
+      {
+        "name": "OuroTabs",
+        "web": "tabs"
+      },
+      {
         "name": "OuroTextField",
         "web": "text-field"
       }
     ],
     "claims": [
       "contrast.text",
+      "dismiss.reachable",
       "motion.reduced",
       "name.spoken",
       "target.touch",
@@ -139,8 +160,8 @@
   },
   "windows": {
     "repo": "ourostack/ouro-ui-windows",
-    "tag": "v0.5.0",
-    "commit": "5adcd329bc0ed4b0cdebd1e2dc10a77404b9682f",
+    "tag": "v0.6.0",
+    "commit": "9048aa47b7e4461dba21d35ff80ff38dde29439b",
     "components": [
       {
         "name": "OuroBadge",
@@ -163,16 +184,52 @@
         "web": "composed-surface"
       },
       {
+        "name": "OuroConfirmDialog",
+        "web": "confirm-dialog"
+      },
+      {
         "name": "OuroDescriptionList",
         "web": "description-list"
+      },
+      {
+        "name": "OuroDialog",
+        "web": "dialog"
       },
       {
         "name": "OuroItem",
         "web": "item"
       },
       {
+        "name": "OuroListButton",
+        "web": "list-button"
+      },
+      {
+        "name": "OuroNavButton",
+        "web": "nav-button"
+      },
+      {
         "name": "OuroSeparator",
         "web": "separator"
+      },
+      {
+        "name": "OuroSheet",
+        "web": "sheet"
+      },
+      {
+        "name": "OuroSidebar",
+        "web": "sidebar"
+      },
+      {
+        "name": "OuroSidebarButton",
+        "web": "sidebar-button"
+      },
+      {
+        "name": "OuroTabBar",
+        "web": "tab-bar"
+      },
+      {
+        "name": "OuroTabs",
+        "web": "tabs"
       },
       {
         "name": "OuroTextField",
@@ -181,6 +238,7 @@
     ],
     "claims": [
       "contrast.text",
+      "dismiss.reachable",
       "motion.reduced",
       "name.spoken",
       "target.touch",
