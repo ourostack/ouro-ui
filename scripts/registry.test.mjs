@@ -757,7 +757,7 @@ test("each lib helper is its own item, so an item installs only the helpers it i
     const files = [...installed].flatMap((name) => (item(name).files ?? []).map((file) => file.path));
     const imported = new Set();
     for (const path of files) {
-      for (const match of readFileSync(join(root, path), "utf8").matchAll(/from "@\/(registry\/ouro\/lib\/ouro\/[\w-]+)"/g)) imported.add(match[1]);
+      for (const match of readFileSync(join(root, path), "utf8").matchAll(/(?:from|^import) "@\/(registry\/ouro\/lib\/ouro\/[\w-]+)"/gm)) imported.add(match[1]);
     }
     // OuroProvider is the one helper the app imports: it comes with the components that render links.
     const helpers = files

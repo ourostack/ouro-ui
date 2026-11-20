@@ -43,7 +43,7 @@ const slotClass =
   "m-0 box-border block h-(--ouro-otp-slot) w-[min(var(--ouro-otp-slot),100%)] min-w-0 shrink p-0 text-center tabular-nums " +
   "[--ouro-otp-slot:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-otp-slot:calc(var(--spacing)*9)] " +
   "rounded-ouro-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm font-[inherit] caret-transparent " +
-  "outline-ring outline-offset-2 focus:outline-2 focus:outline-solid " +
+  "ouro-field-cue outline-ring outline-offset-2 focus:outline-2 focus:outline-solid " +
   "transition-[border-color] duration-(--ouro-duration-fast) ease-[ease] " +
   "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50 " +
   "dark:bg-input/30";

@@ -509,6 +509,7 @@ describe("TextField looks", () => {
   it("outlines the box when the input has keyboard focus", async () => {
     const { group, input } = await render(<TextField label="Name" />);
     expect(getComputedStyle(group).outlineStyle).toBe("none");
+    await userEvent.keyboard("{ArrowDown}");
     input.focus();
     await expect.poll(() => getComputedStyle(group).outlineStyle).toBe("solid");
   });
@@ -536,6 +537,7 @@ describe("TextField variant and size", () => {
     expect(box.paddingLeft).toBe("0px");
     expect(box.paddingRight).toBe("0px");
     expect(box.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    await userEvent.keyboard("{ArrowDown}");
     input.focus();
     await expect.poll(() => getComputedStyle(group).outlineStyle).toBe("solid");
     expect(warn).not.toHaveBeenCalled();

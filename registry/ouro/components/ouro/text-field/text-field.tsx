@@ -1,5 +1,6 @@
 "use client";
 
+import "@/registry/ouro/lib/ouro/last-input";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { JSX, MouseEvent, ReactNode, Ref } from "react";

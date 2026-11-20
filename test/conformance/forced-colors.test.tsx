@@ -210,6 +210,9 @@ const partOf = (control: Element) => `${control.getAttribute("data-ouro-control"
 /** The gaps under `root`, each described with the state it was found in. */
 async function gaps(root: ParentNode, state: string): Promise<string[]> {
   const found: string[] = [];
+  // The check is of keyboard focus: a story that opened by a click leaves the page in pointer modality.
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+  await frames();
   const controls = seenControls(root);
   for (const control of controls) {
     // A grid's cells (a calendar's days) are text in a table, like a list's rows.
