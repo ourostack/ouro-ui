@@ -141,10 +141,4 @@ export const knownFindings: KnownFinding[] = [
   { story: "Toggle/States", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "ToggleGroup/Modes", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
   { story: "Toolbar/Disabled", rule: "disabled-no-reason", issue: 1953, reason: disabledReason },
-  {
-    story: "LiveCaptions/ReadAloud",
-    rule: "lone-word",
-    issue: 1955,
-    reason: "The caption's last line is one word, 'week?', at this width; the caption text is the story's copy.",
-  },
 ];
