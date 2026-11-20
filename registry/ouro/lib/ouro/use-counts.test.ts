@@ -187,6 +187,10 @@ describe("createUseCounts", () => {
       for (const entry of report.counts) {
         expect(Object.keys(entry).sort()).toEqual(["count", "moment", "part", "screen"]);
         expect(useMoments).toContain(entry.moment);
+        expect(typeof entry.screen).toBe("string");
+        expect(typeof entry.part).toBe("string");
+        expect(entry.screen).toMatch(/^[a-z][a-z0-9-]*$/);
+        expect(entry.part).toMatch(/^[a-z][a-z0-9-]*$/);
         expect(Number.isInteger(entry.count)).toBe(true);
         expect(entry.count).toBeGreaterThan(0);
       }
