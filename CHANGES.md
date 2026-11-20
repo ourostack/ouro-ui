@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: `createUseCounts` counts, from real use, the moments a person got stuck, as counts only and off by default; your app decides where a report goes.
