@@ -204,6 +204,14 @@ describe("home page", () => {
     }
   });
 
+  it("says in the README's at-a-glance list what Ouro UI is, in the words a search for it uses, without calling it a shadcn registry", () => {
+    const bullet = readme.split("\n").find((line) => line.startsWith("- **What it is:**"))!;
+    for (const term of ["React", "Base UI", "Tailwind CSS", "SwiftUI", "WinUI", "Jetpack Compose", "A2UI", "MCP Apps", "shadcn CLI"]) {
+      expect(bullet).toContain(term);
+    }
+    expect(bullet).not.toMatch(/shadcn registry/i);
+  });
+
   it("uses the approved rich HX artwork decoratively beside its accessible name", async () => {
     await renderPage("/");
     const home = page.getByRole("banner").getByRole("link", { name: "Ouro UI", exact: true }).element();

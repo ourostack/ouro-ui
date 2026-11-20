@@ -10,6 +10,7 @@
 
 **At a glance.** The short version. The sections below have the detail, and the live site is https://ui.ouroboros.bot/.
 
+- **What it is:** accessible React components on Base UI and Tailwind CSS, with SwiftUI, WinUI and Jetpack Compose kits, for agents building apps and A2UI and MCP Apps interfaces.[^glance-what] It installs with the shadcn CLI.
 - **Licence:** MIT ([LICENSE](LICENSE)). Maintained by Ari Mendelow, who holds its copyright.[^glance-licence]
 - **Web** (React, this repository): the components in [the catalog](#components).
 - **Apple** (SwiftUI, [ourostack/ouro-ui-apple](https://github.com/ourostack/ouro-ui-apple)): [20 components](site/src/apple/kit.json "verify:count(site/src/apple/kit.json#components)=20").[^glance-apple]
@@ -919,6 +920,7 @@ The rules:
 
 MIT
 
+[^glance-what]: test/stories.test.tsx verify:testExists(test/stories.test.tsx::at $width px > %s > $id has no axe violations, closed and with each overlay open) verify:fileLine(package.json, /"@base-ui\/react"/) verify:fileLine(package.json, /"tailwindcss"/) verify:fileLine(docs/platforms/apple.md, /Swift/) verify:fileLine(docs/platforms/windows.md, /WinUI/) verify:fileLine(docs/platforms/android.md, /Compose/) verify:testExists(registry/ouro/components/ouro/a2ui-surface/a2ui-surface.test.tsx::A2UISurface > renders the agent's card with HX components, its data bound and its template repeated) verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > draws a composed tree in structuredContent.ouro with ComposedSurface) verify:fileLine(scripts/install-test.sh, /shadcn@4\.21\.1/)
 [^glance-licence]: LICENSE verify:fileLine(LICENSE, /^MIT License$/) verify:fileLine(LICENSE, /Copyright \(c\) 2026 Ari Mendelow/)
 [^glance-apple]: site/src/apple/kit.json verify:fileLine(site/src/apple/kit.json, /"components"/)
 [^glance-windows]: docs/platforms/windows.md verify:fileLine(docs/platforms/windows.md, /The kit has eight of core's components as WinUI 3 controls/)
