@@ -71,3 +71,27 @@ it("sees a press or key that a handler below stops, because it listens in the ca
     target.remove();
   }
 });
+
+const pressedFocus = (element: Element) => element.hasAttribute("data-ouro-pressed-focus");
+
+it("marks the focused element after a press and unmarks it after a key, when focus leaves, and never marks the page", () => {
+  const first = document.body.appendChild(document.createElement("button"));
+  const second = document.body.appendChild(document.createElement("button"));
+  try {
+    key("Tab");
+    first.focus();
+    expect(pressedFocus(first)).toBe(false);
+    press("mouse");
+    expect(pressedFocus(first)).toBe(true);
+    second.focus();
+    expect([pressedFocus(first), pressedFocus(second)]).toEqual([false, true]);
+    key("ArrowDown");
+    expect(pressedFocus(second)).toBe(false);
+    second.blur();
+    press("mouse");
+    expect([pressedFocus(document.body), pressedFocus(document.documentElement)]).toEqual([false, false]);
+  } finally {
+    first.remove();
+    second.remove();
+  }
+});
