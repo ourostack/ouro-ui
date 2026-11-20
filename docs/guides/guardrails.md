@@ -168,7 +168,7 @@ The source rule's `gated-load` category finds the loads that wait.[^gated-load] 
 
 ## The screen check
 
-Every state of a screen handled and checked is the aim, and the check is the floor under it: it finds the broken states that measurement can decide, on the pages it opens and the states you list, and an installed Mac or Windows app's first run.[^check-states-lead] A person still judges the rest, as the end of this section says.
+The aim is every state handled and checked.[^check-states-lead] The check is the floor under it. It opens the pages and the states you list, and it finds the broken ones that measurement can decide.[^check-states] A person still judges the rest, as the end of this section says.
 
 The screen check (`ouro-check`) opens every page of your built app in headless Chromium at every screen size from a 320px phone to a 3840px screen, and four short landscape screens, light and dark, at density 2 up to 3072px wide, the widest real 2x screen, and 1 above it, so a 3840 screen asks for the pictures a 4K monitor shows.[^check-sizes] Each finding records the density it was found at.[^check-sizes] It finds six things, by measurement rather than by looking at pictures:[^check-rules]
 

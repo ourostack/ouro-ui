@@ -6,7 +6,7 @@ At a glance:
 
 - Licence: MIT (LICENSE), copyright Ari Mendelow.[^glance-licence]
 - Native kits, no Flutter or React Native on purpose:[^native] web (React, here: the catalog below); Apple (SwiftUI, https://github.com/ourostack/ouro-ui-apple), 20 components;[^glance-apple] Windows (WinUI 3, https://github.com/ourostack/ouro-ui-windows) and Android (Compose, https://github.com/ourostack/ouro-ui-android), 8 of core's components each,[^glance-windows][^glance-android] Android on CI emulators, not a real device.[^android-first]
-- States: error, loading and disabled are one prop on a component, which handles its markup, announcements and motion,[^states-prop] and Ouro check opens your built pages and the states you list, and reports the ones it can decide are broken: the floor, not proof a person gets through them.[^states-check]
+- States: a field's error is one prop that shows the error and marks the control,[^states-prop] and Ouro check opens your built pages and the states you list, and reports the ones it can decide are broken: the floor, not proof a person gets through them.[^states-check]
 - Accessibility: every story passes axe.[^glance-axe] VoiceOver and NVDA read the components on every released commit, right after its tag, and a commit that breaks them is reverted and the revert released.[^glance-sr]
 - Open questions: outside audit (https://github.com/ourostack/ouro-ui/issues/2315); Android on real devices (https://github.com/ourostack/ouro-ui/issues/2294).[^glance-open]
 
