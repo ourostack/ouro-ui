@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { CHAPTER_TWO } from "../src/voyage/chapters/chapter-two-copy";
 import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, codeLines, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD, type PartId, type SheetCopy } from "../src/voyage/chapters/copy";
 import { railStaysInView } from "./chapters";
-import { diagnostics } from "./diagnostics";
+import { diagnostics, watchHang } from "./diagnostics";
 import { watchToasts } from "./toasts";
 
 // Chapter I, "Build the ship", against the production build (site-design.md, "Verification in
@@ -13,6 +13,13 @@ import { watchToasts } from "./toasts";
 // touch, and under reduced motion nothing moves. Each control's latency is stage.latency.spec.ts's.
 
 /** Opens the voyage and scrolls to Chapter I, waiting for it to hydrate. */
+// A page that stops answering is paused before the test runs out of time, and where its JavaScript was is recorded (#2488).
+let stopWatching = () => {};
+test.beforeEach(async ({ page }) => {
+  stopWatching = await watchHang(page);
+});
+test.afterEach(() => stopWatching());
+
 async function open(page: Page): Promise<void> {
   await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();

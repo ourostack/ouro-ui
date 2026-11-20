@@ -26,3 +26,38 @@ export function diagnostics(page: Page): string[] {
   });
   return errors;
 }
+
+/**
+ * Watches a Chromium test for a page that stops answering: shortly before the test's time runs out, if the page's main
+ * thread doesn't answer, it is paused over CDP and the top of its stack attached to the test and logged. A press that
+ * never returns (Chapter I's trade Select, ourostack/ouro-ui#2488) leaves no other trace of why. Call it from a
+ * beforeEach (awaited), and the function it returns from an afterEach; in another browser it watches nothing.
+ */
+export async function watchHang(page: Page): Promise<() => void> {
+  const info = test.info();
+  if (page.context().browser()?.browserType().name() !== "chromium") return () => {};
+  // The debugger is turned on now: turning it on needs the page's main thread, which a held page never gives back.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Debugger.enable");
+  const check = async () => {
+    const answered = await Promise.race([page.evaluate(() => true).catch(() => true), new Promise<false>((resolve) => setTimeout(() => resolve(false), 4_000))]);
+    if (answered) return;
+    type Frame = { functionName: string; url: string; location: { lineNumber: number; columnNumber: number } };
+    const paused = new Promise<string[]>((resolve) =>
+      cdp.once("Debugger.paused", (event: { callFrames: Frame[] }) =>
+        resolve(event.callFrames.slice(0, 30).map((frame) => `${frame.functionName || "(anonymous)"} ${frame.url.split("/").pop()}:${frame.location.lineNumber + 1}:${frame.location.columnNumber + 1}`)),
+      ),
+    );
+    await cdp.send("Debugger.pause");
+    const stack = await Promise.race([paused, new Promise<string[]>((resolve) => setTimeout(() => resolve(["(no pause within 4 s: the thread was not in JavaScript)"]), 4_000))]);
+    await cdp.send("Debugger.resume").catch(() => undefined);
+    const report = `the page stopped answering; its JavaScript was at:\n${stack.join("\n")}`;
+    await info.attach("hung page", { body: report, contentType: "text/plain" }).catch(() => undefined);
+    console.log(`[hung page] ${info.title}: ${report}`);
+  };
+  const timer = setTimeout(() => void check().catch(() => undefined), Math.max(info.timeout - 12_000, 1_000));
+  return () => {
+    clearTimeout(timer);
+    void cdp.detach().catch(() => undefined);
+  };
+}
