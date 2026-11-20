@@ -91,7 +91,7 @@ const NOT_BARE_LEADS: readonly string[]
 
 ### `statesCause`
 
-Whether the text after a failure phrase states the cause in the same sentence: after a colon, a dash or "because", a substitution (`${…}`) or at least two words whose first is not in `NOT_A_CAUSE`, with no vague phrase in it.
+Whether the text after a failure phrase states the cause in the same sentence: after a colon, a dash or "because", a substitution (`${…}`) or at least two words whose first is not in `NOT_A_CAUSE`, that are not a cause naming nothing (`VAGUE_CAUSE`), with no vague phrase in it.
 
 ```ts
 function statesCause(rest: string): boolean
@@ -102,6 +102,14 @@ Example:
 ```ts
 statesCause(" send: you're offline. Try again later."); // true
 statesCause(" send: try again."); // false
+```
+
+### `VAGUE_CAUSE`
+
+A cause that names nothing: the whole of it is "it broke", "it didn't work", "there was a problem", "an issue occurred" and the like, so it says neither what failed nor why. A cause that goes on ("it failed because the disk is full") names something and passes.
+
+```ts
+const VAGUE_CAUSE: RegExp
 ```
 
 ### `VAGUE_FAILURE_PHRASES`
