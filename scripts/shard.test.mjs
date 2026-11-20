@@ -83,9 +83,9 @@ test("CI's browser shards: every file runs exactly once, and no shard's total ti
   for (const [index, shard] of shards.entries()) assert.ok(shard.weight <= total / count + tolerance, `shard ${index + 1}: ${shard.weight}ms of a ${Math.round(total / count)}ms share`);
 });
 
-test("CI's 14 browser shards never put a site suite over a minute beside a windowing test, which reads frames and times out on a loaded runner", () => {
+test("CI's 22 browser shards never put a site suite over a minute beside a windowing test, which reads frames and times out on a loaded runner", () => {
   const timings = readTimings("vitest");
-  for (const [index, shard] of browserBalance(14).entries()) {
+  for (const [index, shard] of browserBalance(22).entries()) {
     if (!shard.keys.some((key) => key.includes(".windowing.test"))) continue;
     const heavy = shard.keys.filter((key) => key.startsWith("site ") && timings[key] > 60_000);
     assert.deepEqual(heavy, [], `shard ${index + 1} runs a windowing test beside a heavy site suite`);
