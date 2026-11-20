@@ -98,6 +98,10 @@ usage="usage: install-test.sh <shadcn|ouro|github|current|namespace|next|upgrade
 variant=${1:?$usage}
 app=${2:?$usage}
 root=$(cd "$(dirname "$0")/.." && pwd)
+# A registry that resets a connection mid-download (ECONNRESET) fails the one `npm install` an add runs, and with it the job
+# (#487): npm retries each such fetch itself, with backoff, as scripts/retry.sh does for the browser downloads. A real
+# install error (a version that doesn't exist) still fails at once: npm retries only the network.
+export npm_config_fetch_retries=5 npm_config_fetch_retry_mintimeout=2000 npm_config_fetch_retry_maxtimeout=60000
 ref=${3:-$(git -C "$root" rev-parse HEAD)}
 # The pinned CLI, or SHADCN_VERSION (CI's install-latest job sets "latest" on a release branch,
 # so a release is tagged only when every item also installs with the newest shadcn).
