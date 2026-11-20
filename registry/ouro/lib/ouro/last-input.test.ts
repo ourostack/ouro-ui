@@ -44,12 +44,35 @@ it("marks the page's modality: pointer after a press, keyboard after a key, and 
   expect(modality()).toBe("keyboard");
 });
 
+it("switches to keyboard only on a key that moves focus: Tab and Shift+Tab, the arrows, Home, End, Page Up and Page Down", () => {
+  for (const name of ["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"]) {
+    press("mouse");
+    key(name);
+    expect(modality(), name).toBe("keyboard");
+  }
+  press("mouse");
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true }));
+  expect(modality()).toBe("keyboard");
+});
+
+it("stays in pointer modality for Escape, Enter, Space, a command shortcut and typed characters, though lastInput() still says keyboard", () => {
+  for (const name of ["Escape", "Enter", " ", "k", "a", "Backspace", "Delete", "F6"]) {
+    press("mouse");
+    key(name);
+    expect(modality(), name).toBe("pointer");
+    expect(lastInput()).toBe("keyboard");
+  }
+  press("mouse");
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+  expect(modality()).toBe("pointer");
+});
+
 it("leaves the attribute alone when the modality has not changed", () => {
-  key("a");
+  key("Tab");
   const seen: string[] = [];
   const observer = new MutationObserver((records) => records.forEach((record) => seen.push(record.attributeName ?? "")));
   observer.observe(document.documentElement, { attributes: true });
-  key("b");
+  key("ArrowDown");
   return Promise.resolve().then(() => {
     observer.disconnect();
     expect(seen).toEqual([]);
