@@ -354,7 +354,7 @@ Claude Opus and Claude Sonnet, in their open-arm large-company sessions, said th
 
 #### The model-reviews page works against Ouro: readers take away that seven of eight models chose A2UI.
 
-Signal: pain. Raised by 2 models: Claude Opus 5.5, Claude Sonnet 5.5. Status: open. [#2293](https://github.com/ourostack/ouro-ui/issues/2293).
+Signal: pain. Raised by 2 models: Claude Opus 5.5, Claude Sonnet 5.5. Status: changed. [#2293](https://github.com/ourostack/ouro-ui/issues/2293). What changed: The page now opens with what the findings changed in Ouro and what is still open, and states the A2UI result with Ouro's answer. Every result is kept.
 
 Two models followed the README to the model-reviews page, and the fact they carried away was that seven of eight models chose A2UI and one chose Ouro. Opus also grew wary that the page, and this interview, could reward a project for being written to persuade agents. It's only two models, but they're the ones who opened it, so the page acts as negative social proof. Keep it published and honest, but stop citing it as evidence from the README, or lead it with what the reviews asked Ouro to change.
 

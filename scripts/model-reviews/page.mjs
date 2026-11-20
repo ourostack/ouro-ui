@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
+import { readFindings } from "./interviews-page.mjs";
 import { BUDGET_REACHED, FETCH_DESC, REVIEW_MODELS, SEARCH_DESC, SUBJECT, VERDICT_DESC, evaluationSection, renderSystemPrompt } from "./model-reviews.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -221,7 +222,23 @@ export function runItYourself(latest) {
 }
 
 /** The page, from `runs` (publishedRuns()). */
-export function renderPage(runs, subject = SUBJECT, replays = searchReplays()) {
+/** The lead: what the model reviews and interviews changed in Ouro, and what is still open, from findings.json. */
+export function findingsLead(findings, runs = []) {
+  const list = findings.findings;
+  const line = (f) => `- [#${f.issue}](${REPO}/issues/${f.issue}): ${f.finding}${f.change ? ` ${f.change}` : ""}`;
+  const done = list.filter((f) => f.status === "changed" || f.status === "answered");
+  const rest = list.filter((f) => !["changed", "answered"].includes(f.status));
+  const out = ["## What the findings changed in Ouro", ""];
+  out.push(`The reviews and the [interviews](model-interviews.md) produced ${list.length} findings, filed as issues. ${done.length} are changed or answered and ${rest.length} are open or in progress. The results below are kept whole, including the ones that went against Ouro.`);
+  out.push("", "### Changed or answered", "", ...done.map(line), "", "### Still open", "", ...rest.map((f) => `- [#${f.issue}](${REPO}/issues/${f.issue}) (${f.status}): ${f.finding}`), "");
+  const a2ui = runs.length ? seriesOf(runs).map((series) => ({ day: date(series), t: tally(series) })) : [];
+  const worst = a2ui.filter(({ t }) => (t.picks.find(([name]) => name === "A2UI")?.[1] ?? 0) * 2 > t.completed);
+  const toldRuns = worst.map(({ day, t }) => `${day} (${t.picks.find(([name]) => name === "A2UI")[1]} of ${t.completed} chose A2UI)`).join(" and ");
+  out.push("### The A2UI result", "", `${toldRuns ? `A2UI was the majority pick in the ${toldRuns} runs. ` : ""}Ouro's answer is that A2UI and MCP Apps are formats it speaks: an agent can send A2UI messages that the A2UI adapter turns into Ouro's tree, or send the tree itself ([composed UI](https://ui.ouroboros.bot/docs/composed-ui/)). Web reads A2UI messages with \`A2UISurface\` and Apple with \`OuroA2UI\`. Windows and Android added A2UI reading after the reviews flagged it (finding #2310).`, "");
+  return out;
+}
+
+export function renderPage(runs, subject = SUBJECT, replays = searchReplays(), findings = readFindings()) {
   const all = seriesOf(runs);
   if (!all.length) throw new Error("No published run in scripts/model-reviews/results/. Run the reviews and copy the run there first.");
   const latest = all.at(-1);
@@ -231,6 +248,7 @@ export function renderPage(runs, subject = SUBJECT, replays = searchReplays()) {
   const out = [];
   out.push("# Which toolkit models choose");
   out.push("");
+  out.push(...findingsLead(findings, runs));
   out.push(headline(latest, subject));
   out.push("");
   // At a glance: each model's pick and its own one-line reason, in the table's order, before the method and the detail.

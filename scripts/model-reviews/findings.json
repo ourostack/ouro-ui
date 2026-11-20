@@ -495,8 +495,8 @@
         }
       ],
       "issue": 2293,
-      "status": "open",
-      "change": null
+      "status": "changed",
+      "change": "The page now opens with what the findings changed in Ouro and what is still open, and states the A2UI result with Ouro's answer. Every result is kept."
     },
     {
       "id": "kits-unproven-on-real-hardware",
