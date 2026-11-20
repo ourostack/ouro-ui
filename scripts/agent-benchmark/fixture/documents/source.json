@@ -8,6 +8,8 @@
   },
   "generatedMcp": {
     "path": "Sources/OuroMD/Generated/mcp.json",
-    "sha256": "dbe044e8e632f90db311792796033b23ad0125365d1c1333b2f921a4332035d1"
+    "sha256": "6a64dabae9420926e7596ec49bf2fb48b8888f1fd92927b373f7dec3e35a903e",
+    "shippedSha256": "dbe044e8e632f90db311792796033b23ad0125365d1c1333b2f921a4332035d1",
+    "differsFromShipped": "regenerated with ouro-actions 1.2.0; the shipped file, made by 0.15.0, differs only in the generator line and the confirm text in _meta"
   }
 }

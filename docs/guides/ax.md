@@ -6,6 +6,8 @@ Ouro AX is for the interfaces agents use: a CLI, an HTTP API or an MCP server. O
 - **The kit** builds an interface that meets the standard from one definition per command.
 - **The X-ray** (`ax-xray`) checks any interface against the claims from outside, whether the kit built it or not ([the X-ray](ax-conformance.md)).
 
+Already have an app and no Ouro HX? [Add Ouro AX to it](ax-standalone.md): a pair of actions, wired to your buttons and served over MCP.
+
 ## Install
 
 ```sh

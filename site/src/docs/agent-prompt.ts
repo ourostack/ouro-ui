@@ -24,6 +24,7 @@ export const GUIDE_TASKS: Readonly<Record<string, string>> = {
   "status-dashboards": "Build a status dashboard with Ouro UI.",
   testing: "Run Ouro UI's tests in this app.",
   guardrails: "Hold this app to Ouro UI with the guardrail kits.",
+  "ax-standalone": "Add Ouro AX to this app: two actions, wired to its buttons and served over MCP.",
   "ax-adopt": "Make this app's command line pass Ouro AX.",
 };
 

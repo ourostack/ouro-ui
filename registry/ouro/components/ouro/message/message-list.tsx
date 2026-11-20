@@ -298,19 +298,6 @@ function touchesItems(record: MutationRecord): boolean {
 }
 
 /**
- * Whether a change put in or took out a message, or the room kept above the first one: either moves the messages
- * after it. Read as the change happens, so the reader's place is held before the browser draws it.
- */
-function movesItems(record: MutationRecord): boolean {
-  return (
-    // Stryker disable next-line ConditionalExpression: holding for a change that moved nothing finds nothing moved, as the observer below says of its own check.
-    touchesItems(record) ||
-    // Stryker disable next-line MethodExpression,ConditionalExpression: the room goes in or out as a node of its own, never beside another in one record; and holding for a change that moved nothing finds nothing moved.
-    [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && node.hasAttribute("data-ouro-message-list-older-room"))
-  );
-}
-
-/**
  * The messages, with each child of a slot that holds none (a day's heading), in page order: the children found slot by slot,
  * rather than with a `:has()` selector over the whole content, which a scroll landing where nothing is drawn yet would pay for.
  * @claim "The messages, with each child of a slot that holds none" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the reader's place over rows not drawn yet without a :has() selector over the whole conversation, which reads every element against every message)
@@ -1840,14 +1827,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const moves = new MutationObserver((all) => {
       const records = all.filter((record) => !barOnly(record));
       if (records.length === 0) return;
-      const touched = records.some(movesItems);
       // The first messages, which may come after the list mounted empty, open it, before the browser draws them.
       if (!opened) return open();
       // The mark holds the scroll height, so a committed change of the content's own height is looked for too.
       // Stryker disable next-line ConditionalExpression,ArrowFunction: not equivalent; "drops the room at once when hasOlder ends" (message-list.test.tsx) fails on both mutants, but per-test coverage attributes this observer callback to another test, so the shard never runs it.
       const floorMoved = () => floor !== 0 && content.offsetHeight !== floor;
       // Stryker disable next-line ConditionalExpression,LogicalOperator: a change that resizes the list is followed or held by the resize observer in the same frame, and holding when nothing moved finds nothing moved; both only spare the work.
-      if (pinned.current ? farthest() !== end || floorMoved() : touched) hold();
+      if (!pinned.current || farthest() !== end || floorMoved()) hold();
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {

@@ -1,9 +1,10 @@
 {
-  "generator": "ouro-actions 0.15.0",
+  "generator": "ouro-actions 1.2.0",
   "set": "pantry",
   "tools": [
     {
       "name": "get_shopping_list",
+      "title": "Shopping list",
       "description": "Read the person's shopping list: each item's id, name, quantity, unit and whether it is checked.",
       "inputSchema": {
         "type": "object",
@@ -18,6 +19,7 @@
     },
     {
       "name": "add_shopping_list_item",
+      "title": "Add to list",
       "description": "Add one item to the person's shopping list. Give the name as the person said it; leave quantity and unit out when they gave none.",
       "inputSchema": {
         "type": "object",
@@ -48,6 +50,7 @@
     },
     {
       "name": "set_shopping_list_item_checked",
+      "title": "Bought",
       "description": "Mark one item on the person's shopping list as bought (checked) or not bought. Take the id from get_shopping_list.",
       "inputSchema": {
         "type": "object",
@@ -74,6 +77,7 @@
     },
     {
       "name": "search_recipes",
+      "title": "Search recipes",
       "description": "Search the person's recipes by title. Returns each match's id and title.",
       "inputSchema": {
         "type": "object",
@@ -95,6 +99,7 @@
     },
     {
       "name": "add_recipe_to_shopping_list",
+      "title": "Add ingredients to list",
       "description": "Add every ingredient of one recipe to the person's shopping list. Take the recipe's id from search_recipes.",
       "inputSchema": {
         "type": "object",

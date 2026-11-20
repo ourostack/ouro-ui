@@ -35,6 +35,28 @@ test("the generated projections match the declarations, and the claims hold", ()
   assert.equal(summary.mustHolding, summary.must);
 });
 
+test("every surface shows the declaration's own words for each action", async () => {
+  const { actionText } = await import("./ouro-actions/ouro-actions.mts");
+  const set = (await import("../actions/registry.actions.mts")).default;
+  const read = (file) => readFileSync(join(root, "actions/generated", file), "utf8");
+  const mcp = JSON.parse(read("mcp.json")).tools;
+  const webmcp = JSON.parse(read("webmcp.json")).tools;
+  const swift = read("OuroActions.swift");
+  assert.ok(set.actions.length > 0);
+  for (const action of set.actions) {
+    const text = actionText(action);
+    const tool = (tools) => tools.find((t) => t.name === action.id);
+    for (const [surface, found] of [["mcp.json", tool(mcp)], ["webmcp.json", tool(webmcp)]]) {
+      assert.ok(found, `${surface} has no tool for ${action.id}`);
+      assert.equal(found.title, text.label, `${surface} names ${action.id} differently from its declaration`);
+      assert.equal(found.description, text.agent, `${surface} describes ${action.id} differently from its declaration`);
+      assert.equal(found._meta?.["ouro.bot/confirm"], text.confirm, `${surface} words the consent for ${action.id} differently from its declaration`);
+    }
+    assert.ok(swift.includes(`"${text.label}"`), `the App Intent names ${action.id} differently from its declaration`);
+    assert.ok(swift.includes(`IntentDescription(${JSON.stringify(text.description)})`), `the App Intent describes ${action.id} differently from its declaration`);
+  }
+});
+
 const server = await import("../actions/server/registry-mcp.mts");
 
 test("the registry door lists items, pins install commands to the release and reads docs", async () => {
