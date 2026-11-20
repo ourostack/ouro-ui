@@ -92,8 +92,10 @@ const REFERENCE = /(?:[\w.-]+\/[\w.-]+)?#\d+\b/g;
 const RUN_ID = /(?<=\b(?:run|job)s?\s+)\d{6,}\b/gi;
 /** A commit SHA: a run of lowercase hex characters, long enough for a short SHA, with a digit and a letter, so a plain number or a word such as "deadbeef" is not one. */
 const COMMIT = /\b(?=[0-9a-f]{7,40}\b)(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7,40}\b/g;
+/** A commit named on its repository, "owner/repo@9836987", GitHub's commit reference: a short SHA of digits only is still a commit there. */
+const COMMIT_REFERENCE = /(?<=\b[\w.-]+\/[\w.-]+@)[0-9a-f]{7,40}\b/g;
 /** The names a sentence may use for a thread, run or commit are not counts. */
-const IDENTIFIERS = [REFERENCE, RUN_ID, COMMIT];
+const IDENTIFIERS = [REFERENCE, RUN_ID, COMMIT, COMMIT_REFERENCE];
 
 /** Numbers in words: "three themes", "a dozen helpers". Not "one", which mostly means "a" ("in one app"). */
 const NUMBER_WORDS = /\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|dozens?)\b/gi;

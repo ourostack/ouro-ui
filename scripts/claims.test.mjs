@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { scratchDir } from "./scratch.mjs";
 import {
   applyAllowed,
+  baseRatchets,
   branchFragments,
   checkClaims,
   classify,
@@ -100,6 +101,9 @@ test("triggers: a run or job ID, a run's URL and a commit SHA are not numbers, a
   assert.deepEqual(kinds("See https://github.com/ourostack/ouro-ui/actions/runs/43581029577/attempts/2 for it."), []);
   assert.deepEqual(kinds("Fixed in commit d8ac2bea9."), []);
   assert.deepEqual(kinds("Deadbeef and facade are helper names."), []);
+  // A brand sync's title names its source commit, and a short SHA can be digits only (#2286).
+  assert.deepEqual(kinds("Sync the storybook art with ourostack/.github@9836987"), []);
+  assert.deepEqual(triggers("Synced 12 files from ourostack/.github@9836987.")[0].words, ["12"]);
   assert.deepEqual(lintMarkdown("Evidence: run 43625890667 was green.\n", { file: "a.md" }), []);
   assert.deepEqual(triggers("Each ran 11 to 12 minutes in run 43558819164.").map((found) => found.words), [["11", "12"], ["Each"]]);
   assert.deepEqual(triggers("Rebased onto 80b0b861 and cut 3 files.")[0].words, ["3"]);
@@ -171,6 +175,48 @@ test("branchFragments: the change fragments a branch adds or changes, against or
   git("update-ref", "-d", "refs/remotes/origin/main");
   git("branch", "-D", "main");
   assert.deepEqual(branchFragments(root), { base: undefined, files: [] });
+});
+
+test("lint --pr also runs the exemption and real-clock ratchets against the branch's merge base, with the body it lints", () => {
+  const root = fixture({});
+  const git = (...args) => execFileSync("git", ["-c", "user.name=claims", "-c", "user.email=claims@example.com", "-c", "commit.gpgsign=false", ...args], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  git("init", "-q");
+  writeFileSync(join(root, "a.md"), "a\n");
+  git("add", "-A");
+  git("commit", "-qm", "main");
+  git("branch", "-M", "main");
+  const forked = git("rev-parse", "HEAD");
+  git("checkout", "-qb", "feature");
+  writeFileSync(join(root, "b.md"), "b\n");
+  git("add", "-A");
+  git("commit", "-qm", "feature");
+  git("checkout", "-q", "main");
+  writeFileSync(join(root, "c.md"), "c\n");
+  git("add", "-A");
+  git("commit", "-qm", "main moved on");
+  git("checkout", "-q", "feature");
+  writeFileSync(join(root, "body.md"), "Adds an exemption for docs/x.md.");
+  const calls = [];
+  const run = (code) => (where, args, env) => {
+    calls.push({ where, args, body: env.PR_BODY, ref: env.CLAIMS_BASE_REF ?? env.REAL_CLOCK_BASE_REF });
+    return code(args);
+  };
+  assert.equal(baseRatchets(["lint", "--pr", "--title", "T", "--body-file", join(root, "body.md")], root, {}, run(() => 0)), 0);
+  assert.deepEqual(calls, [
+    { where: root, args: ["scripts/claims.mjs", "ratchet"], body: "Adds an exemption for docs/x.md.", ref: forked },
+    { where: root, args: ["scripts/real-clock-ratchet.mjs"], body: "Adds an exemption for docs/x.md.", ref: forked },
+  ]);
+  calls.length = 0;
+  assert.equal(baseRatchets(["lint", "--pr"], root, { PR_BODY: "From the environment." }, run((args) => (args[0] === "scripts/real-clock-ratchet.mjs" ? 1 : 0))), 1);
+  assert.deepEqual(calls.map((call) => call.body), ["From the environment.", "From the environment."]);
+  calls.length = 0;
+  assert.equal(baseRatchets(["lint", "docs/notes.md"], root, {}, run(() => 1)), 0);
+  // The lint itself reports a --body-file it cannot read.
+  assert.equal(baseRatchets(["lint", "--pr", "--body-file", join(root, "gone.md")], root, {}, run(() => 1)), 0);
+  git("checkout", "-q", "--orphan", "work");
+  git("branch", "-D", "main");
+  assert.equal(baseRatchets(["lint", "--pr"], root, {}, run(() => 1)), 0);
+  assert.deepEqual(calls, []);
 });
 
 test("bypasses: noun-verbs, quotations, headings and spelled-out claims are caught", () => {
