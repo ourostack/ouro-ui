@@ -99,6 +99,12 @@ export const knownFindings: KnownFinding[] = [
     reason: "The story holds the display headline to 16ch on purpose, to show it wrap onto two balanced lines.",
   },
   {
+    story: "ItemGroup/InContext",
+    rule: "lone-word",
+    issue: 1955,
+    reason: "The Revoke button sits beside a row's text, centred on it, so the check reads it as a line of its own; the text above it wraps pretty.",
+  },
+  {
     story: "Lightbox/MosaicWithMore",
     rule: "overlap",
     issue: 1957,
