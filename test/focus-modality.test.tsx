@@ -125,6 +125,20 @@ describe("keyboard-only focus rings", () => {
     expect(ring(group)).toBe(true);
   });
 
+  it("marks only the element a press focused, so a switch from keyboard to pointer restyles it and no other (#2524)", async () => {
+    const { open, save } = await mount();
+    await userEvent.click(save);
+    expect(document.activeElement).toBe(save);
+    expect([...document.querySelectorAll("[data-ouro-pressed-focus]")]).toEqual([save]);
+    await pressTab();
+    expect(document.querySelectorAll("[data-ouro-pressed-focus]")).toHaveLength(0);
+    await userEvent.click(open);
+    expect([...document.querySelectorAll("[data-ouro-pressed-focus]")]).toEqual([open]);
+    // No rule reaches the page's other elements through <html>: the mark on the focused element is what the rings read.
+    const rules = [...document.styleSheets].flatMap((sheet) => [...sheet.cssRules]).map((rule) => rule.cssText);
+    expect(rules.filter((text) => text.includes("data-ouro-modality"))).toEqual([]);
+  });
+
   it("reads no layout when the input changes", async () => {
     await mount();
     const watch = watchLayoutReads();

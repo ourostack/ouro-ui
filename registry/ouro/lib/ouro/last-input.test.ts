@@ -94,3 +94,66 @@ it("sees a press or key that a handler below stops, because it listens in the ca
     target.remove();
   }
 });
+
+const pressedFocus = (element: Element) => element.hasAttribute("data-ouro-pressed-focus");
+
+it("marks the focused element after a press and unmarks it after a key, when focus leaves, and never marks the page", () => {
+  const first = document.body.appendChild(document.createElement("button"));
+  const second = document.body.appendChild(document.createElement("button"));
+  try {
+    key("Tab");
+    first.focus();
+    expect(pressedFocus(first)).toBe(false);
+    press("mouse");
+    expect(pressedFocus(first)).toBe(true);
+    second.focus();
+    expect([pressedFocus(first), pressedFocus(second)]).toEqual([false, true]);
+    key("ArrowDown");
+    expect(pressedFocus(second)).toBe(false);
+    second.blur();
+    press("mouse");
+    expect([pressedFocus(document.body), pressedFocus(document.documentElement)]).toEqual([false, false]);
+    // A focus event an app dispatches on the document itself has no element to mark or unmark, and is let through.
+    expect([document.dispatchEvent(new FocusEvent("focusin")), document.dispatchEvent(new FocusEvent("focusout"))]).toEqual([true, true]);
+  } finally {
+    first.remove();
+    second.remove();
+  }
+});
+
+it("marks and unmarks focus that a handler below stops, because it listens to focus in the capture phase", () => {
+  const target = document.body.appendChild(document.createElement("button"));
+  const stop = (event: Event) => event.stopPropagation();
+  target.addEventListener("focusin", stop);
+  target.addEventListener("focusout", stop);
+  try {
+    press("mouse");
+    target.focus();
+    expect(pressedFocus(target)).toBe(true);
+    target.blur();
+    expect(pressedFocus(target)).toBe(false);
+  } finally {
+    target.remove();
+  }
+});
+
+it("marks the elements around pressed focus, up to the body, and unmarks them after a key that moves focus or when focus leaves", () => {
+  const outer = document.body.appendChild(document.createElement("div"));
+  const field = outer.appendChild(document.createElement("label"));
+  const input = field.appendChild(document.createElement("input"));
+  const within = () => [outer, field, document.body].map((element) => element.hasAttribute("data-ouro-pressed-within"));
+  try {
+    press("mouse");
+    input.focus();
+    expect(within()).toEqual([true, true, false]);
+    expect(input.hasAttribute("data-ouro-pressed-within")).toBe(false);
+    key("Tab");
+    expect(within()).toEqual([false, false, false]);
+    press("mouse");
+    expect(within()).toEqual([true, true, false]);
+    input.blur();
+    expect(within()).toEqual([false, false, false]);
+  } finally {
+    outer.remove();
+  }
+});
